@@ -79,12 +79,13 @@ serve(async (req) => {
     // ==========================================
     logStep('Verificando fretes abertos');
     
+    // CORRIGIDO: Usar apenas status válidos do enum freight_status: OPEN
     const { data: openFreights } = await supabaseAdmin
       .from('freights')
-      .select('id, freight_type, service_type, status, created_at, updated_at')
-      .in('status', ['OPEN', 'WAITING_PICKUP', 'PENDING']);
+      .select('id, service_type, cargo_type, status, created_at, updated_at')
+      .eq('status', 'OPEN');
 
-    // Contar por tipo de veículo/serviço
+    // Contar por tipo de serviço (service_type é o campo correto)
     const freightsByType: Record<string, number> = {
       'CAMINHAO': 0,
       'MOTO': 0,
@@ -94,15 +95,17 @@ serve(async (req) => {
     };
 
     openFreights?.forEach(f => {
-      const type = f.freight_type?.toUpperCase() || f.service_type?.toUpperCase() || '';
+      // service_type contém: FRETE_CAMINHAO, FRETE_MOTO, GUINCHO, etc.
+      const serviceType = (f.service_type || '').toUpperCase();
+      const cargoType = (f.cargo_type || '').toUpperCase();
       
-      if (type.includes('CAMINHAO') || type.includes('TRUCK') || type.includes('CARRETA')) {
+      if (serviceType.includes('CAMINHAO') || serviceType.includes('TRUCK') || serviceType.includes('CARRETA')) {
         freightsByType['CAMINHAO']++;
-      } else if (type.includes('MOTO') || type.includes('BIKE')) {
+      } else if (serviceType.includes('MOTO') || serviceType.includes('BIKE') || serviceType === 'FRETE_MOTO') {
         freightsByType['MOTO']++;
-      } else if (type.includes('GUINCHO') || type.includes('REBOQUE') || type.includes('TOW')) {
+      } else if (serviceType.includes('GUINCHO') || serviceType.includes('REBOQUE') || serviceType.includes('TOW')) {
         freightsByType['GUINCHO']++;
-      } else if (type.includes('SERVICO') || type.includes('SERVICE')) {
+      } else if (serviceType.includes('SERVICO') || serviceType.includes('SERVICE')) {
         freightsByType['SERVICO']++;
       } else {
         freightsByType['OUTROS']++;
@@ -112,22 +115,23 @@ serve(async (req) => {
     const totalOpenFreights = openFreights?.length || 0;
 
     // ==========================================
-    // 2. FRETES EM ANDAMENTO
+    // 2. FRETES EM ANDAMENTO (ACCEPTED, LOADING, LOADED, IN_TRANSIT)
     // ==========================================
     logStep('Verificando fretes em andamento');
     const { count: inTransitFreights } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'IN_TRANSIT');
+      .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT']);
 
     // ==========================================
     // 3. FRETES PRÓXIMOS DE CANCELAMENTO AUTOMÁTICO (24h+)
     // ==========================================
     logStep('Verificando fretes estagnados');
+    // CORRIGIDO: Usar apenas status 'OPEN' (não existem WAITING_PICKUP, PENDING)
     const { data: staleFreights } = await supabaseAdmin
       .from('freights')
       .select('id, status, created_at')
-      .in('status', ['OPEN', 'WAITING_PICKUP'])
+      .eq('status', 'OPEN')
       .lt('created_at', last24h.toISOString());
 
     const staleFreightsCount = staleFreights?.length || 0;
@@ -207,12 +211,12 @@ serve(async (req) => {
       .eq('status', 'IN_TRANSIT')
       .lt('updated_at', twoDaysAgo.toISOString());
 
-    // Fretes "DELIVERED" mas não confirmados há mais de 48h
+    // CORRIGIDO: Fretes "DELIVERED_PENDING_CONFIRMATION" sem atualização há mais de 48h
+    // (delivery_confirmed não existe, usar status DELIVERED_PENDING_CONFIRMATION)
     const { count: unconfirmedDeliveries } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'DELIVERED')
-      .eq('delivery_confirmed', false)
+      .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
       .lt('updated_at', twoDaysAgo.toISOString());
 
     const stuckFreightsTotal = (stuckInTransit || 0) + (unconfirmedDeliveries || 0);
@@ -228,11 +232,13 @@ serve(async (req) => {
     // 8. ENTREGAS ATRASADAS
     // ==========================================
     logStep('Verificando entregas atrasadas');
+    // CORRIGIDO: Usar delivery_date (existe) em vez de estimated_delivery_date (não existe)
+    // E usar apenas status válidos (IN_TRANSIT, LOADING, LOADED)
     const { count: overdueDeliveries } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
-      .in('status', ['IN_TRANSIT', 'WAITING_PICKUP'])
-      .lt('estimated_delivery_date', now.toISOString());
+      .in('status', ['IN_TRANSIT', 'LOADING', 'LOADED'])
+      .lt('delivery_date', now.toISOString());
 
     if ((overdueDeliveries || 0) > 5) {
       if (overallStatus !== 'CRITICO') overallStatus = 'ATENCAO';
@@ -243,10 +249,11 @@ serve(async (req) => {
     // 9. COMPARAÇÃO COM DASHBOARD (sanity check)
     // ==========================================
     // Aqui verificamos se os números são consistentes
+    // CORRIGIDO: Usar apenas status 'OPEN' (status válido)
     const { count: dashboardOpenFreights } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
-      .in('status', ['OPEN', 'WAITING_PICKUP', 'PENDING']);
+      .eq('status', 'OPEN');
 
     const divergence = Math.abs((dashboardOpenFreights || 0) - totalOpenFreights);
     const hasDivergence = divergence > 0;
