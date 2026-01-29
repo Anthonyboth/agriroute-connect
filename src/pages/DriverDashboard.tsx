@@ -1910,8 +1910,8 @@ const DriverDashboard = () => {
             return;
           }
 
-          // Status usados pela Edge Function accept-freight-multiple (linha 257)
-          const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'] as const;
+          // ✅ CORREÇÃO: Verificar TODOS os status de assignment (incluindo DELIVERED_PENDING_CONFIRMATION)
+          const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'] as const;
 
           // 1) Verificar se já existe atribuição ativa para ESTE frete (evita 409)
           let assignmentQuery = supabase
@@ -1929,8 +1929,11 @@ const DriverDashboard = () => {
           const { data: existingAssignment } = await assignmentQuery.maybeSingle();
 
           if (existingAssignment) {
+            const statusMsg = existingAssignment.status === 'DELIVERED_PENDING_CONFIRMATION' 
+              ? 'Sua entrega está aguardando confirmação do produtor.'
+              : 'Abrindo seus fretes em andamento…';
             toast.info('Você já aceitou este frete', {
-              description: 'Abrindo seus fretes em andamento…',
+              description: statusMsg,
             });
             setActiveTab('ongoing');
             return;
@@ -1991,15 +1994,20 @@ const DriverDashboard = () => {
             // Extract user-friendly message
             let errorMsg = errorBody?.error || acceptError.message || 'Falha ao aceitar o frete';
             let errorDetails = errorBody?.details || '';
+            const errorCode = errorBody?.code;
 
+            // ✅ Tratamento robusto de erros conhecidos
             const alreadyAccepted =
-              typeof errorMsg === 'string' &&
-              (errorMsg.includes('active assignment') || errorMsg.includes('already have an active assignment'));
+              errorCode === 'ALREADY_ACCEPTED' ||
+              errorCode === 'PENDING_CONFIRMATION' ||
+              (typeof errorMsg === 'string' &&
+                (errorMsg.includes('active assignment') || 
+                 errorMsg.includes('already have an active assignment') ||
+                 errorMsg.includes('Você já aceitou')));
 
-            if (alreadyAccepted) {
+            if (alreadyAccepted || errorCode === 'ALREADY_ACCEPTED') {
               toast.info('Você já aceitou este frete', {
-                description:
-                  'Você já tem uma carreta aceita para este frete. Abrindo seus fretes em andamento…',
+                description: errorDetails || 'Você já tem uma carreta aceita para este frete. Abrindo seus fretes em andamento…',
               });
 
               // Atualizar listas e ir para "Em Andamento" (comportamento idempotente)
@@ -2014,10 +2022,18 @@ const DriverDashboard = () => {
               return;
             }
 
+            if (errorCode === 'PENDING_CONFIRMATION') {
+              toast.info('Entrega aguardando confirmação', {
+                description: errorDetails || 'Aguarde a confirmação do produtor.',
+              });
+              setActiveTab('ongoing');
+              return;
+            }
+
             // ✅ PT-BR fallback (evitar inglês na UI)
             if (
               typeof errorMsg === 'string' &&
-              (errorMsg.includes('Edge function returned 409') || errorMsg.includes('409'))
+              (errorMsg.includes('Edge function returned') || /\d{3}/.test(errorMsg))
             ) {
               errorMsg = 'Não foi possível aceitar o frete';
             }

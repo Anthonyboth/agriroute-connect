@@ -134,8 +134,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       }
 
       // Se tem cadastro, proceder com aceite normal
-      // Status usados pela Edge Function accept-freight-multiple (linha 257)
-      const activeStatuses = ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"] as const;
+      // ✅ CORREÇÃO: Verificar TODOS os status de assignment (incluindo DELIVERED_PENDING_CONFIRMATION)
+      const activeStatuses = ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED", "DELIVERED_PENDING_CONFIRMATION"] as const;
 
       // 1) Verificar se já existe atribuição ativa para ESTE frete
       if (!isTransportCompany && profile?.id) {
@@ -148,8 +148,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           .maybeSingle();
 
         if (existingAssignment) {
+          const statusMsg = existingAssignment.status === 'DELIVERED_PENDING_CONFIRMATION' 
+            ? "Sua entrega está aguardando confirmação do produtor."
+            : "Esse frete já está em andamento na sua conta.";
           toast.info("Você já aceitou este frete", {
-            description: "Esse frete já está em andamento na sua conta.",
+            description: statusMsg,
           });
           onAction?.("accept");
           return;
@@ -215,21 +218,35 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
         let title = errorBody?.error || acceptError.message || "Não foi possível aceitar o frete";
         let description = errorBody?.details;
+        const errorCode = errorBody?.code;
 
+        // ✅ Tratamento robusto de erros conhecidos
         const alreadyAccepted =
-          typeof title === "string" &&
-          (title.includes("active assignment") || title.includes("already have an active assignment"));
+          errorCode === "ALREADY_ACCEPTED" ||
+          errorCode === "PENDING_CONFIRMATION" ||
+          (typeof title === "string" &&
+            (title.includes("active assignment") || 
+             title.includes("already have an active assignment") ||
+             title.includes("Você já aceitou")));
 
-        if (alreadyAccepted) {
+        if (alreadyAccepted || errorCode === "ALREADY_ACCEPTED") {
           toast.info("Você já aceitou este frete", {
-            description: "Esse frete já está em andamento na sua conta.",
+            description: description || "Esse frete já está em andamento na sua conta.",
+          });
+          onAction?.("accept");
+          return;
+        }
+
+        if (errorCode === "PENDING_CONFIRMATION") {
+          toast.info("Entrega aguardando confirmação", {
+            description: description || "Aguarde a confirmação do produtor.",
           });
           onAction?.("accept");
           return;
         }
 
         // ✅ PT-BR fallback (evitar inglês na UI)
-        if (typeof title === "string" && (title.includes("Edge function returned 409") || title.includes("409"))) {
+        if (typeof title === "string" && (title.includes("Edge function returned") || /\d{3}/.test(title))) {
           title = "Não foi possível aceitar o frete";
         }
 
