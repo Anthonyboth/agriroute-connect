@@ -149,7 +149,12 @@ serve(async (req) => {
   try {
     logStep('Função iniciada');
 
-    // Authenticate user
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Authenticate - aceitar tanto usuário admin quanto service_role_key
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Não autenticado' }), {
@@ -158,42 +163,48 @@ serve(async (req) => {
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const token = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    // CORRIGIDO: Aceitar chamadas de outras Edge Functions via service_role_key
+    const isServiceRoleCall = token === serviceRoleKey;
+    
+    if (isServiceRoleCall) {
+      logStep('Chamada autorizada via service_role_key (Edge Function interna)');
+    } else {
+      // Verificar se é um usuário admin
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Não autenticado' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401
+        });
+      }
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
+      // CORRIGIDO: Verificar role na tabela user_roles (não profiles.role)
+      const { data: userRoles, error: rolesError } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      const hasAdminRole = userRoles?.some(r => ['admin', 'moderator'].includes(r.role));
+
+      if (rolesError || !hasAdminRole) {
+        logStep('Acesso negado', { userId: user.id, roles: userRoles?.map(r => r.role) });
+        return new Response(JSON.stringify({ error: 'Acesso negado - requer role admin ou moderator' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403
+        });
+      }
+
+      logStep('Usuário autenticado como admin', { roles: userRoles?.map(r => r.role) });
     }
-
-    // CORRIGIDO: Verificar role na tabela user_roles (não profiles.role)
-    const { data: userRoles, error: rolesError } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const hasAdminRole = userRoles?.some(r => ['admin', 'moderator'].includes(r.role));
-
-    if (rolesError || !hasAdminRole) {
-      logStep('Acesso negado', { userId: user.id, roles: userRoles?.map(r => r.role) });
-      return new Response(JSON.stringify({ error: 'Acesso negado - requer role admin ou moderator' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403
-      });
-    }
-
-    logStep('Usuário autenticado como admin', { roles: userRoles?.map(r => r.role) });
 
     if (!TELEGRAM_BOT_TOKEN) {
       throw new Error('TELEGRAM_BOT_TOKEN não configurado');
