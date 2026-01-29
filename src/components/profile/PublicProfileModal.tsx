@@ -50,6 +50,7 @@ interface PublicProfileData {
   // Location (only city/state, no full address)
   city?: string;
   state?: string;
+  is_verified?: boolean;
 }
 
 export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
@@ -73,10 +74,11 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
     setLoading(true);
     try {
       // Buscar dados básicos do perfil usando a view segura para proteção de PII
-      // profiles_secure mascara dados sensíveis para não-proprietários
+      // ✅ CORREÇÃO: profiles_secure não tem colunas 'role', 'selfie_url', 'active_mode' (mascaradas por segurança)
+      // Colunas disponíveis: id, full_name, profile_photo_url, rating, total_ratings, status, created_at
       const { data: profileData, error: profileError } = await supabase
         .from('profiles_secure')
-        .select('id, full_name, profile_photo_url, role, created_at, rating, total_ratings')
+        .select('id, full_name, profile_photo_url, created_at, rating, total_ratings, status')
         .eq('id', userId)
         .maybeSingle();
 
@@ -116,11 +118,12 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
         id: (profileData as any).id,
         full_name: (profileData as any).full_name,
         avatar_url: avatarUrl || undefined,
-        role: (profileData as any).role,
+        role: userType === 'driver' ? 'MOTORISTA' : 'PRODUTOR', // Inferir role do tipo passado
         created_at: (profileData as any).created_at,
         completed_freights: completedFreights,
         average_rating: averageRating,
         total_ratings: totalRatings,
+        is_verified: (profileData as any).status === 'APPROVED',
       });
 
     } catch (error) {
