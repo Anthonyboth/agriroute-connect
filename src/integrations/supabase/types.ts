@@ -11931,6 +11931,7 @@ export type Database = {
         }[]
       }
       auto_confirm_deliveries: { Args: never; Returns: Json }
+      auto_confirm_pending_deliveries: { Args: never; Returns: Json }
       auto_insert_city: {
         Args: {
           city_name: string
