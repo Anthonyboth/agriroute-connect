@@ -45,13 +45,17 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
       case 'ACCEPTED':
         return <Badge variant="outline">Aceito</Badge>;
       case 'LOADING':
-        return <Badge variant="secondary">A Caminho</Badge>;
+        return <Badge variant="secondary">A Caminho da Coleta</Badge>;
+      case 'LOADED':
+        return <Badge variant="secondary">Carregado</Badge>;
       case 'IN_TRANSIT':
         return <Badge variant="secondary">Em Trânsito</Badge>;
       case 'DELIVERED_PENDING_CONFIRMATION':
-        return <Badge className="bg-orange-500">Aguardando Confirmação</Badge>;
+        return <Badge className="bg-orange-500">Entrega Reportada</Badge>;
       case 'DELIVERED':
         return <Badge variant="default">Entregue</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="default">Concluído</Badge>;
       default:
         return <Badge variant="outline">{s || 'N/A'}</Badge>;
     }
@@ -194,7 +198,7 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
           </div>
         )}
 
-        {/* Ações Rápidas de Atualização de Status */}
+        {/* Ações Rápidas de Atualização de Status - Fluxo Completo */}
         {!isFreightFinal && (
           <div className="flex flex-col gap-2 pt-2">
             {status === 'ACCEPTED' && (
@@ -210,6 +214,18 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
               </Button>
             )}
             {status === 'LOADING' && (
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => handleStatusChange('LOADED')}
+                disabled={isUpdatingStatus}
+                className="w-full whitespace-nowrap overflow-hidden text-ellipsis"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Confirmar Carregamento</span>
+              </Button>
+            )}
+            {status === 'LOADED' && (
               <Button 
                 variant="default" 
                 size="sm"
@@ -230,7 +246,7 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
                 className="w-full whitespace-nowrap overflow-hidden text-ellipsis"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="truncate">Encerrar Frete</span>
+                <span className="truncate">Reportar Entrega</span>
               </Button>
             )}
           </div>
