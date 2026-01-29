@@ -12370,6 +12370,18 @@ export type Database = {
         }[]
       }
       get_fiscalizacao_data: { Args: { p_placa: string }; Returns: Json }
+      get_freight_trip_progress_overview: {
+        Args: { p_only_active?: boolean }
+        Returns: {
+          accepted_trucks: number
+          assignments: Json
+          freight_id: string
+          freight_status: string
+          last_history_at: string
+          required_trucks: number
+          updated_at: string
+        }[]
+      }
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
@@ -12950,6 +12962,20 @@ export type Database = {
             Args: { access_type: string; request_id: string }
             Returns: undefined
           }
+      log_trip_progress_event: {
+        Args: {
+          p_driver_profile_id: string
+          p_error_code?: string
+          p_error_message?: string
+          p_execution_ms?: number
+          p_freight_id: string
+          p_meta?: Json
+          p_new_status: string
+          p_old_status: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
       mark_freight_messages_as_read: {
         Args: { p_freight_id: string }
         Returns: undefined
