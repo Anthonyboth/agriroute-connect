@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { 
   Truck, Wrench, Bike, MapPin, Clock, RefreshCw, ArrowRight, 
-  Phone, MessageSquare, Navigation, CheckCircle, Loader2, Map, FileText,
+  Phone, MessageSquare, Navigation, CheckCircle, Loader2, Map as MapIcon, FileText,
   Play, Package, User, AlertTriangle, Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +19,9 @@ import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus 
 import { getDaysUntilPickup, getPickupDateBadge } from "@/utils/freightDateHelpers";
 import { cn } from "@/lib/utils";
 import { lazy, Suspense } from "react";
+import { FreightDetails } from "@/components/FreightDetails";
+import { driverUpdateFreightStatus, FINAL_STATUSES } from "@/lib/freight-status-helpers";
+import { MyAssignmentCard } from "@/components/MyAssignmentCard";
 
 // Lazy load do mapa
 const FreightRealtimeMap = lazy(() => 
@@ -30,6 +34,7 @@ type FreightRow = {
   id: string;
   created_at: string;
   status: string;
+  updated_at?: string | null;
   cargo_type: string | null;
   price: number | null;
   weight: number | null;
@@ -50,12 +55,22 @@ type FreightRow = {
   urgency: string | null;
   producer_id: string | null;
   required_trucks: number | null;
+  accepted_trucks?: number | null;
+  drivers_assigned?: string[] | null;
   // Dados do produtor (via join)
   producer?: {
     id: string;
     full_name: string;
     contact_phone: string | null;
   } | null;
+};
+
+type AssignmentRow = {
+  id: string;
+  status: string;
+  agreed_price: number | null;
+  accepted_at: string | null;
+  freight: FreightRow | null;
 };
 
 type ServiceRequestRow = {
@@ -148,24 +163,25 @@ const DriverFreightCard: React.FC<{
     }
   };
 
-  const handleStatusUpdate = async () => {
-    if (!nextAction || isUpdating) return;
-    
+  const isFinal = useMemo(() => {
+    const s = normalizeFreightStatus(freight.status ?? '');
+    return FINAL_STATUSES.includes(s as any);
+  }, [freight.status]);
+
+  const handleSetStatus = async (newStatus: string) => {
+    if (!profile?.id || isUpdating || isFinal) return;
+
     setIsUpdating(true);
     try {
-      const { error } = await supabase
-        .from('freights')
-        .update({ status: nextAction.next as any })
-        .eq('id', freight.id)
-        .eq('driver_id', profile?.id);
+      const ok = await driverUpdateFreightStatus({
+        freightId: freight.id,
+        newStatus,
+        currentUserProfile: profile,
+      });
 
-      if (error) throw error;
-      
-      toast.success(`Status atualizado para: ${statusLabel(nextAction.next)}`);
-      onStatusUpdate();
-    } catch (err: any) {
-      console.error('Erro ao atualizar status:', err);
-      toast.error('Falha ao atualizar status do frete');
+      if (ok) {
+        onStatusUpdate();
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -271,7 +287,7 @@ const DriverFreightCard: React.FC<{
               className="text-xs flex items-center gap-1.5"
               disabled={!canShowMap}
             >
-              <Map className="h-3.5 w-3.5" />
+              <MapIcon className="h-3.5 w-3.5" />
               Mapa
             </TabsTrigger>
           </TabsList>
@@ -310,20 +326,34 @@ const DriverFreightCard: React.FC<{
               )}
             </div>
 
-            {/* Ação Principal de Progressão de Status */}
-            {nextAction && (
-              <Button
-                className="w-full"
-                onClick={handleStatusUpdate}
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  nextAction.icon
+            {/* Ações rápidas (como sempre foi no painel do motorista) */}
+            {!isFinal && (
+              <div className="space-y-2">
+                {normalizedStatus === 'ACCEPTED' && (
+                  <Button className="w-full" onClick={() => handleSetStatus('LOADING')} disabled={isUpdating}>
+                    {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Truck className="h-4 w-4 mr-2" />}
+                    Marcar como "A caminho"
+                  </Button>
                 )}
-                <span className="ml-2">{nextAction.label}</span>
-              </Button>
+                {normalizedStatus === 'LOADING' && (
+                  <Button className="w-full" onClick={() => handleSetStatus('LOADED')} disabled={isUpdating}>
+                    {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Package className="h-4 w-4 mr-2" />}
+                    Confirmar Carregamento
+                  </Button>
+                )}
+                {normalizedStatus === 'LOADED' && (
+                  <Button className="w-full" onClick={() => handleSetStatus('IN_TRANSIT')} disabled={isUpdating}>
+                    {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Navigation className="h-4 w-4 mr-2" />}
+                    Iniciar Trânsito
+                  </Button>
+                )}
+                {normalizedStatus === 'IN_TRANSIT' && (
+                  <Button className="w-full" onClick={() => handleSetStatus('DELIVERED_PENDING_CONFIRMATION')} disabled={isUpdating}>
+                    {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Reportar Entrega
+                  </Button>
+                )}
+              </div>
             )}
 
             {/* Botão Ver Detalhes Completos */}
@@ -361,7 +391,7 @@ const DriverFreightCard: React.FC<{
             ) : (
               <div className="flex items-center justify-center h-[280px] bg-muted/30 rounded-lg">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <Map className="h-8 w-8 opacity-50" />
+                     <MapIcon className="h-8 w-8 opacity-50" />
                   <span className="text-sm">Clique para carregar o mapa</span>
                 </div>
               </div>
@@ -377,22 +407,24 @@ export const DriverOngoingTab: React.FC = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const driverProfileId = profile?.id;
+  const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["driver-ongoing-all", driverProfileId],
     enabled: Boolean(driverProfileId),
     staleTime: 30000, // 30 segundos
     queryFn: async () => {
-      if (!driverProfileId) return { freights: [] as FreightRow[], serviceRequests: [] as ServiceRequestRow[] };
+      if (!driverProfileId) return { freights: [] as FreightRow[], assignments: [] as AssignmentRow[], serviceRequests: [] as ServiceRequestRow[] };
 
       // 1) FRETES (rurais) com JOIN no produtor
       const freightOngoingStatuses = ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"] as const;
 
-      const { data: freights, error: freErr } = await supabase
+      const { data: directFreights, error: freErr } = await supabase
         .from("freights")
         .select(`
           id,
           created_at,
+          updated_at,
           status,
           cargo_type,
           price,
@@ -414,6 +446,8 @@ export const DriverOngoingTab: React.FC = () => {
           urgency,
           producer_id,
           required_trucks,
+          accepted_trucks,
+          drivers_assigned,
           producer:profiles!freights_producer_id_fkey(
             id,
             full_name,
@@ -425,6 +459,108 @@ export const DriverOngoingTab: React.FC = () => {
         .order("created_at", { ascending: false });
 
       if (freErr) throw freErr;
+
+      // ✅ Multi-carretas: mantém status OPEN para permanecer visível no marketplace.
+      // Se o motorista estiver em drivers_assigned, precisa ver como "Em Andamento".
+      const { data: multiTruckFreights, error: multiTruckError } = await supabase
+        .from("freights")
+        .select(`
+          id,
+          created_at,
+          updated_at,
+          status,
+          cargo_type,
+          price,
+          weight,
+          distance_km,
+          origin_address,
+          destination_address,
+          origin_city,
+          origin_state,
+          destination_city,
+          destination_state,
+          origin_lat,
+          origin_lng,
+          destination_lat,
+          destination_lng,
+          pickup_date,
+          delivery_date,
+          service_type,
+          urgency,
+          producer_id,
+          required_trucks,
+          accepted_trucks,
+          drivers_assigned,
+          producer:profiles!freights_producer_id_fkey(
+            id,
+            full_name,
+            contact_phone
+          )
+        `)
+        .contains('drivers_assigned', [driverProfileId])
+        .eq('status', 'OPEN')
+        .gt('accepted_trucks', 0)
+        .order('updated_at', { ascending: false });
+
+      if (multiTruckError) {
+        console.warn('[DriverOngoingTab] Falha ao buscar multi-carretas (drivers_assigned):', multiTruckError);
+      }
+
+      // 1.3) ASSIGNMENTS (freight_assignments) - fretes pela transportadora
+      const { data: assignments, error: asgErr } = await supabase
+        .from('freight_assignments')
+        .select(`
+          id,
+          status,
+          agreed_price,
+          accepted_at,
+          freight:freights(
+            id,
+            created_at,
+            updated_at,
+            status,
+            cargo_type,
+            price,
+            weight,
+            distance_km,
+            origin_address,
+            destination_address,
+            origin_city,
+            origin_state,
+            destination_city,
+            destination_state,
+            origin_lat,
+            origin_lng,
+            destination_lat,
+            destination_lng,
+            pickup_date,
+            delivery_date,
+            service_type,
+            urgency,
+            producer_id,
+            required_trucks,
+            accepted_trucks,
+            drivers_assigned,
+            producer:profiles!freights_producer_id_fkey(
+              id,
+              full_name,
+              contact_phone
+            )
+          )
+        `)
+        .eq('driver_id', driverProfileId)
+        .in('status', freightOngoingStatuses)
+        .order('accepted_at', { ascending: false });
+
+      if (asgErr) {
+        console.warn('[DriverOngoingTab] Falha ao buscar freight_assignments:', asgErr);
+      }
+
+      // Unificar fretes diretos + multi-carretas (dedupe por id)
+      const mergedFreightsMap = new Map<string, FreightRow>();
+      (directFreights || []).forEach((f) => mergedFreightsMap.set(f.id, f as FreightRow));
+      (multiTruckFreights || []).forEach((f) => mergedFreightsMap.set(f.id, f as FreightRow));
+      const mergedFreights = Array.from(mergedFreightsMap.values());
 
       // 2) SERVICE REQUESTS (urbano: moto/guincho/mudança)
       const srOngoingStatuses = ["ACCEPTED", "IN_PROGRESS"];
@@ -453,18 +589,20 @@ export const DriverOngoingTab: React.FC = () => {
       if (srErr) throw srErr;
 
       return {
-        freights: (freights || []) as FreightRow[],
+        freights: mergedFreights as FreightRow[],
+        assignments: (assignments || []) as AssignmentRow[],
         serviceRequests: (serviceRequests || []) as ServiceRequestRow[],
       };
     },
   });
 
   const freights = data?.freights || [];
+  const assignments = data?.assignments || [];
   const serviceRequests = data?.serviceRequests || [];
 
   const totalOngoing = useMemo(
-    () => freights.length + serviceRequests.length,
-    [freights.length, serviceRequests.length],
+    () => freights.length + assignments.length + serviceRequests.length,
+    [freights.length, assignments.length, serviceRequests.length],
   );
 
   const handleStatusUpdate = useCallback(() => {
@@ -473,9 +611,7 @@ export const DriverOngoingTab: React.FC = () => {
   }, [refetch, queryClient]);
 
   const handleOpenDetails = useCallback((freightId: string) => {
-    // TODO: Navegar para tela de detalhes ou abrir modal
-    console.log('Open details for freight:', freightId);
-    toast.info('Detalhes do frete em desenvolvimento');
+    setSelectedFreightId(freightId);
   }, []);
 
   const handleCompleteService = async (serviceId: string) => {
@@ -550,6 +686,29 @@ export const DriverOngoingTab: React.FC = () => {
         </Card>
       ) : (
         <>
+          {/* Assignments (Fretes pela Transportadora) */}
+          {assignments.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                Fretes da Transportadora ({assignments.length})
+              </h4>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {assignments.map((a) => (
+                  <MyAssignmentCard
+                    key={a.id}
+                    assignment={{ ...a, freight: a.freight ? { ...a.freight, price: a.agreed_price ?? a.freight.price } : null }}
+                    onAction={() => {
+                      // Mantém o comportamento do card: ao clicar em "Ver Detalhes" abre detalhes
+                      if (a.freight?.id) handleOpenDetails(a.freight.id);
+                      handleStatusUpdate();
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Freights (Rural) - Com Card Completo */}
           {freights.length > 0 && (
             <div className="space-y-3">
@@ -674,6 +833,26 @@ export const DriverOngoingTab: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Modal de detalhes completo (restaura botões e funcionalidades do card "como era") */}
+      <Dialog
+        open={!!selectedFreightId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedFreightId(null);
+        }}
+      >
+        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto">
+          <DialogDescription className="sr-only">Detalhes completos do frete</DialogDescription>
+          {selectedFreightId && profile && (
+            <FreightDetails
+              freightId={selectedFreightId}
+              currentUserProfile={profile}
+              initialTab="status"
+              onClose={() => setSelectedFreightId(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
