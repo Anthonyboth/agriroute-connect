@@ -779,28 +779,28 @@ const DriverDashboard = () => {
         throw freightError;
       }
 
-       // ✅ Multi-carretas: o status pode permanecer OPEN para manter visibilidade no marketplace
-       // (accepted_trucks < required_trucks). Se o motorista já estiver em `drivers_assigned`,
-       // ele precisa ver esse frete na aba "Em Andamento".
-       const { data: multiTruckData, error: multiTruckError } = await supabase
-         .from('freights')
-         .select(`
-           *,
-           origin_city,
-           origin_state,
-           destination_city,
-           destination_state,
-           producer_id
-         `)
-         .contains('drivers_assigned', [profile.id])
-         .eq('status', 'OPEN')
-         .gt('accepted_trucks', 0)
-         .order('updated_at', { ascending: false })
-         .limit(100);
+      // ✅ Multi-carretas: o status pode permanecer OPEN para manter visibilidade no marketplace
+      // (accepted_trucks < required_trucks). Se o motorista já estiver em `drivers_assigned`,
+      // ele precisa ver esse frete na aba "Em Andamento".
+      const { data: multiTruckData, error: multiTruckError } = await supabase
+        .from('freights')
+        .select(`
+          *,
+          origin_city,
+          origin_state,
+          destination_city,
+          destination_state,
+          producer_id
+        `)
+        .contains('drivers_assigned', [profile.id])
+        .eq('status', 'OPEN')
+        .gt('accepted_trucks', 0)
+        .order('updated_at', { ascending: false })
+        .limit(100);
 
-       if (multiTruckError) {
-         console.warn('[fetchOngoingFreights] Falha ao buscar multi-carretas atribuídos (drivers_assigned):', multiTruckError);
-       }
+      if (multiTruckError) {
+        console.warn('[fetchOngoingFreights] Falha ao buscar multi-carretas atribuídos (drivers_assigned):', multiTruckError);
+      }
 
       // ✅ Buscar fretes via freight_assignments
       // Buscar assignments primeiro, depois filtrar por data no client-side (pois não temos pickup_date no assignment)
