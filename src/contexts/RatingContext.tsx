@@ -77,48 +77,50 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   // 🔄 Função de polling para fallback quando Realtime falhar
+  // ✅ CORREÇÃO: Agora verifica se o PAGAMENTO foi confirmado antes de solicitar avaliação
   const pollForPendingRatings = async () => {
     if (!profile?.id || currentPath === '/auth') return;
 
     const now = Date.now();
     if (now - lastLogTimeRef.current > 60000) {
-      console.log('[RatingContext] 🔄 Polling para avaliações pendentes...');
+      console.log('[RatingContext] 🔄 Polling para avaliações pendentes (após pagamento confirmado)...');
       lastLogTimeRef.current = now;
     }
 
     try {
-      // Para produtor: buscar fretes DELIVERED sem avaliação
+      // Para produtor: buscar fretes COMPLETED com pagamento CONFIRMADO sem avaliação
       if (profile.role === 'PRODUTOR') {
-        // Buscar nos últimos 30 dias
-        let { data: freights } = await supabase
+        // Buscar fretes COMPLETED (não DELIVERED, pois COMPLETED = após confirmação de pagamento)
+        const { data: freights } = await supabase
           .from('freights')
           .select(`
-            *,
+            id,
+            status,
+            driver_id,
             driver:profiles!freights_driver_id_fkey(id, full_name, role)
           `)
           .eq('producer_id', profile.id)
-          .eq('status', 'DELIVERED')
+          .eq('status', 'COMPLETED')
           .gte('updated_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
-
-        // Fallback: se não encontrou nada nos últimos 30 dias, buscar sem filtro de data
-        if (!freights || freights.length === 0) {
-          const { data: oldFreights } = await supabase
-            .from('freights')
-            .select(`
-              *,
-              driver:profiles!freights_driver_id_fkey(id, full_name, role)
-            `)
-            .eq('producer_id', profile.id)
-            .eq('status', 'DELIVERED')
-            .order('updated_at', { ascending: false })
-            .limit(1);
-          
-          freights = oldFreights;
-        }
+          .order('updated_at', { ascending: false })
+          .limit(5);
 
         if (freights && freights.length > 0) {
           for (const freight of freights) {
+            // ✅ Verificar se pagamento foi confirmado
+            const { data: paymentConfirmed } = await supabase
+              .from('external_payments')
+              .select('id')
+              .eq('freight_id', freight.id)
+              .eq('status', 'confirmed')
+              .maybeSingle();
+
+            if (!paymentConfirmed) {
+              console.log('[RatingContext] ⏳ Frete aguardando confirmação de pagamento:', freight.id);
+              continue; // Pular este frete - pagamento não confirmado
+            }
+
+            // Verificar se já avaliou
             const { data: existingRating } = await supabase
               .from('freight_ratings')
               .select('id')
@@ -127,7 +129,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               .maybeSingle();
 
             if (!existingRating && freight.driver) {
-              console.log('[RatingContext] ✅ Polling encontrou frete pendente de avaliação:', freight.id);
+              console.log('[RatingContext] ✅ Polling encontrou frete com pagamento confirmado pendente de avaliação:', freight.id);
               openFreightRating(freight.id, freight.driver.id, freight.driver.full_name);
               return; // Abrir apenas um de cada vez
             }
@@ -135,38 +137,47 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }
       }
 
-      // Para motorista: buscar fretes DELIVERED_PENDING_CONFIRMATION sem avaliação
+      // Para motorista: buscar fretes onde ele participou e o pagamento foi confirmado
       if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
-        // Buscar nos últimos 30 dias
-        let { data: freights } = await supabase
-          .from('freights')
+        // Buscar assignments do motorista em fretes COMPLETED
+        const { data: assignments } = await supabase
+          .from('freight_assignments')
           .select(`
-            *,
-            producer:profiles!freights_producer_id_fkey(id, full_name, role)
+            id,
+            freight_id,
+            status,
+            freight:freights!inner(
+              id,
+              status,
+              producer_id,
+              producer:profiles!freights_producer_id_fkey(id, full_name, role)
+            )
           `)
           .eq('driver_id', profile.id)
-          .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
+          .eq('status', 'DELIVERED')
           .gte('updated_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
+          .order('updated_at', { ascending: false })
+          .limit(5);
 
-        // Fallback: se não encontrou nada nos últimos 30 dias, buscar sem filtro de data
-        if (!freights || freights.length === 0) {
-          const { data: oldFreights } = await supabase
-            .from('freights')
-            .select(`
-              *,
-              producer:profiles!freights_producer_id_fkey(id, full_name, role)
-            `)
-            .eq('driver_id', profile.id)
-            .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
-            .order('updated_at', { ascending: false })
-            .limit(1);
-          
-          freights = oldFreights;
-        }
+        if (assignments && assignments.length > 0) {
+          for (const assignment of assignments) {
+            const freight = assignment.freight as any;
+            
+            // ✅ Verificar se pagamento foi confirmado para este motorista
+            const { data: paymentConfirmed } = await supabase
+              .from('external_payments')
+              .select('id')
+              .eq('freight_id', freight.id)
+              .eq('driver_id', profile.id)
+              .eq('status', 'confirmed')
+              .maybeSingle();
 
-        if (freights && freights.length > 0) {
-          for (const freight of freights) {
+            if (!paymentConfirmed) {
+              console.log('[RatingContext] ⏳ Aguardando confirmação de pagamento para motorista:', freight.id);
+              continue; // Pular - pagamento não confirmado
+            }
+
+            // Verificar se já avaliou
             const { data: existingRating } = await supabase
               .from('freight_ratings')
               .select('id')
@@ -175,7 +186,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               .maybeSingle();
 
             if (!existingRating && freight.producer) {
-              console.log('[RatingContext] ✅ Polling encontrou frete pendente de avaliação:', freight.id);
+              console.log('[RatingContext] ✅ Motorista pode avaliar frete com pagamento confirmado:', freight.id);
               openFreightRating(freight.id, freight.producer.id, freight.producer.full_name);
               return;
             }
@@ -249,71 +260,64 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         })
         .subscribe();
 
-      // 🚀 Detectar DELIVERED e DELIVERED_PENDING_CONFIRMATION com subscriptionWithRetry
+      // 🚀 Detectar PAGAMENTO CONFIRMADO (não mais DELIVERED/DELIVERED_PENDING_CONFIRMATION)
+      // ✅ CORREÇÃO: Avaliação só após confirmação de pagamento
       freightRetryConfig = subscriptionWithRetry(
-        'freight_delivery_detection',
+        'payment_confirmation_detection',
         (channel) => {
-          // DELIVERED: produtor avalia motorista
+          // Detectar quando pagamento é confirmado em external_payments
           channel.on('postgres_changes', {
             event: 'UPDATE',
             schema: 'public',
-            table: 'freights',
-            filter: `status=eq.DELIVERED`
+            table: 'external_payments',
+            filter: `status=eq.confirmed`
           }, async (payload: any) => {
-            const freight = payload.new;
+            const payment = payload.new;
             
-            if (freight.producer_id === profile.id) {
-              console.log('[RatingContext] 🔔 DELIVERED detectado para produtor:', freight.id);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              const { data: existingRating } = await supabase
-                .from('freight_ratings')
-                .select('id')
-                .eq('freight_id', freight.id)
-                .eq('rater_id', profile.id)
-                .maybeSingle();
-              
-              if (!existingRating && freight.driver_id) {
-                const { data: driverProfile } = await supabase
-                  .from('profiles')
-                  .select('full_name')
-                  .eq('id', freight.driver_id)
-                  .single();
-                
-                openFreightRating(freight.id, freight.driver_id, driverProfile?.full_name);
-              }
+            // Verificar se este pagamento é relevante para o usuário atual
+            const isProducer = payment.producer_id === profile.id;
+            const isDriver = payment.driver_id === profile.id;
+            
+            if (!isProducer && !isDriver) return;
+            
+            console.log('[RatingContext] 🔔 Pagamento CONFIRMADO detectado:', payment.freight_id);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Buscar dados do frete para avaliação
+            const { data: freight } = await supabase
+              .from('freights')
+              .select(`
+                id,
+                producer_id,
+                driver_id,
+                producer:profiles!freights_producer_id_fkey(id, full_name),
+                driver:profiles!freights_driver_id_fkey(id, full_name)
+              `)
+              .eq('id', payment.freight_id)
+              .maybeSingle();
+            
+            if (!freight) return;
+            
+            // Verificar se já avaliou
+            const { data: existingRating } = await supabase
+              .from('freight_ratings')
+              .select('id')
+              .eq('freight_id', freight.id)
+              .eq('rater_id', profile.id)
+              .maybeSingle();
+            
+            if (existingRating) return;
+            
+            // Produtor avalia motorista
+            if (isProducer && freight.driver) {
+              console.log('[RatingContext] ✅ Produtor pode avaliar motorista após pagamento confirmado');
+              openFreightRating(freight.id, freight.driver.id, freight.driver.full_name);
             }
-          });
-
-          // DELIVERED_PENDING_CONFIRMATION: motorista avalia produtor
-          channel.on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'freights',
-            filter: `status=eq.DELIVERED_PENDING_CONFIRMATION`
-          }, async (payload: any) => {
-            const freight = payload.new;
             
-            if (freight.driver_id === profile.id) {
-              console.log('[RatingContext] 🔔 DELIVERED_PENDING_CONFIRMATION detectado para motorista:', freight.id);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              const { data: existingRating } = await supabase
-                .from('freight_ratings')
-                .select('id')
-                .eq('freight_id', freight.id)
-                .eq('rater_id', profile.id)
-                .maybeSingle();
-              
-              if (!existingRating && freight.producer_id) {
-                const { data: producerProfile } = await supabase
-                  .from('profiles')
-                  .select('full_name')
-                  .eq('id', freight.producer_id)
-                  .single();
-                
-                openFreightRating(freight.id, freight.producer_id, producerProfile?.full_name);
-              }
+            // Motorista avalia produtor
+            if (isDriver && freight.producer) {
+              console.log('[RatingContext] ✅ Motorista pode avaliar produtor após pagamento confirmado');
+              openFreightRating(freight.id, freight.producer.id, freight.producer.full_name);
             }
           });
 
