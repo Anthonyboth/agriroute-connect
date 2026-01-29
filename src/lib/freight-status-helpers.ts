@@ -63,7 +63,7 @@ export async function driverUpdateFreightStatus({
     });
     
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('RPC_TIMEOUT')), 5000)
+      setTimeout(() => reject(new Error('RPC_TIMEOUT')), 15000)  // 15s para corresponder ao timeout do DB
     );
     
     let data, error;
