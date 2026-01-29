@@ -2072,6 +2072,30 @@ export type Database = {
           },
         ]
       }
+      driver_current_locations: {
+        Row: {
+          driver_profile_id: string
+          last_gps_update: string | null
+          lat: number | null
+          lng: number | null
+          updated_at: string
+        }
+        Insert: {
+          driver_profile_id: string
+          last_gps_update?: string | null
+          lat?: number | null
+          lng?: number | null
+          updated_at?: string
+        }
+        Update: {
+          driver_profile_id?: string
+          last_gps_update?: string | null
+          lat?: number | null
+          lng?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       driver_expenses: {
         Row: {
           amount: number
