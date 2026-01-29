@@ -55,55 +55,53 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
     
     setLoading(true);
     try {
-      // Atualizar diretamente o status do frete
-      const { error: updateError } = await supabase
-        .from('freights')
-        .update({ 
-          status: 'DELIVERED',
-          updated_at: new Date().toISOString(),
-          metadata: {
-            ...freight.metadata,
-            delivery_confirmed_at: new Date().toISOString(),
-            confirmed_by_producer: true,
-            confirmation_notes: notes
-          }
-        })
-        .eq('id', freight.id)
-        .eq('status', 'DELIVERED_PENDING_CONFIRMATION');
+      // ✅ Usar RPC confirm_delivery que gerencia multi-carreta corretamente
+      const { data: result, error: rpcError } = await supabase.rpc('confirm_delivery', {
+        freight_id_param: freight.id
+      });
 
-      console.log('Resultado da atualização:', updateError);
+      console.log('Resultado da confirmação:', result, rpcError);
 
-      if (updateError) {
-        console.error('Erro na atualização:', updateError);
-        throw new Error(`Erro ao confirmar entrega: ${updateError.message}`);
+      if (rpcError) {
+        console.error('Erro na RPC:', rpcError);
+        throw new Error(`Erro ao confirmar entrega: ${rpcError.message}`);
       }
       
-      console.log('=== ENTREGA CONFIRMADA COM SUCESSO ===');
+      const response = result as any;
+      if (!response?.success) {
+        throw new Error(response?.message || 'Erro desconhecido');
+      }
+      
+      console.log('=== ENTREGA CONFIRMADA COM SUCESSO ===', response);
 
+      // Mensagem customizada para multi-carreta
+      const isPartialDelivery = response.all_delivered === false;
       toast({
-        title: "Entrega confirmada!",
-        description: "O frete foi marcado como entregue e movido para o histórico. Avalie o motorista!",
+        title: isPartialDelivery ? "Entrega parcial confirmada!" : "Entrega confirmada!",
+        description: response.message || "O frete foi atualizado com sucesso.",
       });
       
-      // 🔔 Enviar notificação persistente ao motorista
-      // Buscar driver_id do frete já que a interface não o inclui
+      // 🔔 Enviar notificação ao motorista
       try {
-        const { data: freightData } = await supabase
-          .from('freights')
+        // Buscar motoristas do assignment confirmado
+        const { data: assignments } = await supabase
+          .from('freight_assignments')
           .select('driver_id')
-          .eq('id', freight.id)
-          .single();
+          .eq('freight_id', freight.id)
+          .eq('status', 'DELIVERED');
 
-        if (freightData?.driver_id) {
+        if (assignments && assignments.length > 0) {
           const { sendNotification } = await import('@/utils/notify');
-          await sendNotification({
-            user_id: freightData.driver_id,
-            title: 'Entrega confirmada',
-            message: `O produtor confirmou a entrega do frete ${freight.cargo_type}.`,
-            type: 'freight_delivery_confirmed',
-            data: { freight_id: freight.id }
-          });
-          console.log('[DeliveryConfirmationModal] 🔔 Notificação enviada ao motorista:', freightData.driver_id);
+          for (const assignment of assignments) {
+            await sendNotification({
+              user_id: assignment.driver_id,
+              title: 'Entrega confirmada',
+              message: `O produtor confirmou a entrega do frete ${freight.cargo_type}.`,
+              type: 'freight_delivery_confirmed',
+              data: { freight_id: freight.id }
+            });
+          }
+          console.log('[DeliveryConfirmationModal] 🔔 Notificações enviadas aos motoristas');
         }
       } catch (notifyError) {
         console.error('[DeliveryConfirmationModal] ⚠️ Erro ao enviar notificação (não bloqueante):', notifyError);
