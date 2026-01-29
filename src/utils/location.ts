@@ -161,7 +161,8 @@ export const watchPositionSafe = (
   const id = navigator.geolocation.watchPosition(
     (p) => onSuccess(p.coords),
     onError,
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    // Timeout maior evita falhas frequentes em ambientes com GPS lento (indoor/PWA)
+    { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 }
   );
   return { clear: () => navigator.geolocation.clearWatch(id) } as any;
 };

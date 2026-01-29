@@ -79,6 +79,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   const destinationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const cancelAnimationRef = useRef<(() => void) | null>(null);
   const previousLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -344,6 +345,9 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     initMap();
 
     return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+
       // Cleanup
       if (cancelAnimationRef.current) {
         cancelAnimationRef.current();
@@ -356,6 +360,38 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       mapRef.current = null;
     };
   }, []);
+
+  // ✅ Garantir resize quando o container muda de tamanho (Tabs/Dialog podem iniciar com 0px)
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !mapContainerRef.current) return;
+
+    // Forçar um resize inicial após render (corrige mapa em branco em containers ocultos)
+    const t = window.setTimeout(() => {
+      try {
+        mapRef.current?.resize();
+      } catch {}
+    }, 150);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = new ResizeObserver(() => {
+        // Evitar resize em cascata
+        requestAnimationFrame(() => {
+          try {
+            mapRef.current?.resize();
+          } catch {}
+        });
+      });
+
+      resizeObserverRef.current.observe(mapContainerRef.current);
+    }
+
+    return () => {
+      window.clearTimeout(t);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, [mapLoaded]);
 
   // ✅ Atualizar markers de origem e destino usando coordenadas efetivas
   useEffect(() => {

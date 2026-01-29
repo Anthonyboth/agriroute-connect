@@ -51,6 +51,7 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +137,19 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
 
       mapRef.current = map;
 
+      // ✅ ResizeObserver: corrige mapa em branco quando renderizado dentro de Tabs/Dialog
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserverRef.current?.disconnect();
+        resizeObserverRef.current = new ResizeObserver(() => {
+          requestAnimationFrame(() => {
+            try {
+              map.resize();
+            } catch {}
+          });
+        });
+        resizeObserverRef.current.observe(containerRef.current);
+      }
+
     } catch (err) {
       console.error('[MapLibreMap] Initialization error:', err);
       setError('Erro ao inicializar o mapa');
@@ -143,6 +157,9 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
     }
 
     return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+
       // Cleanup markers
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current.clear();
