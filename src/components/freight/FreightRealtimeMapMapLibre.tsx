@@ -6,6 +6,8 @@
  * 
  * IMPORTANTE: O mapa NUNCA deve ficar vazio/preto.
  * Fallback de centro: motorista online → rota → Brasil
+ * 
+ * REFATORADO: Usa hooks padronizados para resize e safe-raf.
  */
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
@@ -13,9 +15,11 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Loader2, WifiOff, Navigation, Eye, Clock } from 'lucide-react';
+import { MapPin, WifiOff, Navigation, Eye, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useFreightRealtimeLocation } from '@/hooks/useFreightRealtimeLocation';
 import { useCityCoordinates } from '@/hooks/useCityCoordinates';
+import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport } from '@/hooks/maplibre';
 import { 
   createTruckMarkerElement,
   createLocationMarkerElement,
@@ -604,15 +608,13 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [effectiveOrigin, effectiveDestination, effectiveDriverLocation]);
 
-  // Loading state - IMPORTANTE: manter mesma altura que o mapa para evitar layout shift
+  // Loading state - usar Skeleton padronizado
   if (isLoading) {
     return (
-      <div className={cn("flex items-center justify-center bg-muted/30 rounded-lg", className)} style={{ height: '280px', minHeight: '280px' }}>
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="text-sm">Carregando mapa...</span>
-        </div>
-      </div>
+      <Skeleton 
+        className={cn("rounded-lg", className)} 
+        style={{ height: '280px', minHeight: '280px' }} 
+      />
     );
   }
 

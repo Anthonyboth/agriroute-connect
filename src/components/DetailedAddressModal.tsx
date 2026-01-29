@@ -108,12 +108,12 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
     }
   };
 
-  const handleMapClick = (lat: number, lng: number) => {
-    setSelectedLocation({ lat, lng });
+  const handleMapClick = (lngLat: { lat: number; lng: number }) => {
+    setSelectedLocation({ lat: lngLat.lat, lng: lngLat.lng });
     setAddressData(prev => ({
       ...prev,
-      lat,
-      lng
+      lat: lngLat.lat,
+      lng: lngLat.lng
     }));
     toast.success('Localização selecionada no mapa!');
   };
@@ -151,9 +151,10 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
   };
 
   const markers = selectedLocation ? [{
-    position: selectedLocation,
-    title: 'Localização Selecionada',
-    infoWindow: 'Localização do endereço'
+    id: 'selected-location',
+    lat: selectedLocation.lat,
+    lng: selectedLocation.lng,
+    popup: 'Localização do endereço'
   }] : [];
 
   return (
