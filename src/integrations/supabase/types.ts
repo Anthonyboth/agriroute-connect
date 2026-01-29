@@ -10169,6 +10169,70 @@ export type Database = {
           },
         ]
       }
+      trip_progress_audit: {
+        Row: {
+          created_at: string
+          driver_profile_id: string | null
+          error_code: string | null
+          error_message: string | null
+          execution_ms: number | null
+          freight_id: string
+          id: string
+          meta: Json
+          new_status: string | null
+          old_status: string | null
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          driver_profile_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          execution_ms?: number | null
+          freight_id: string
+          id?: string
+          meta?: Json
+          new_status?: string | null
+          old_status?: string | null
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          driver_profile_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          execution_ms?: number | null
+          freight_id?: string
+          id?: string
+          meta?: Json
+          new_status?: string | null
+          old_status?: string | null
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_progress_audit_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_progress_audit_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_progress_audit_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trusted_entities: {
         Row: {
           added_at: string | null
