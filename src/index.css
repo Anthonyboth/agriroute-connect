@@ -215,6 +215,79 @@
   }
 }
 
+/* ======================================
+   MapLibre GL CSS Critical Fixes
+   Garante que o mapa funcione corretamente
+   ====================================== */
+.maplibregl-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.maplibregl-canvas-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Garantir que controles do mapa apareçam */
+.maplibregl-control-container {
+  z-index: 10;
+}
+
+.maplibregl-ctrl-group {
+  background: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+.maplibregl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Dark mode support para MapLibre */
+.dark .maplibregl-ctrl-group {
+  background: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .maplibregl-ctrl-group button {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Popups do MapLibre */
+.maplibregl-popup-content {
+  background: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 18px !important;
+  padding: 4px 8px !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: hsl(var(--popover)) !important;
+}
+
+/* Attribution styling */
+.maplibregl-ctrl-attrib {
+  background: hsl(var(--background) / 0.8) !important;
+  font-size: 10px !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
 @layer components {
   /* AgriRoute utility classes */
   .gradient-primary {

@@ -76,13 +76,17 @@ export const DriverLocationMapMapLibre = ({ lat, lng, driverName }: DriverLocati
   }, [lat, lng]);
 
   return (
-    <div className="relative w-full h-[400px] rounded-lg overflow-hidden">
+    <div className="relative w-full rounded-lg overflow-hidden" style={{ height: '400px', minHeight: '400px' }}>
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/30 z-10">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      <div 
+        ref={mapContainerRef} 
+        className="absolute inset-0"
+        style={{ width: '100%', height: '100%' }}
+      />
     </div>
   );
 };

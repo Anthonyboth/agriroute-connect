@@ -205,7 +205,7 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
       <div className={cn(
         "flex items-center justify-center bg-muted/30 rounded-lg border border-destructive/20",
         className
-      )}>
+      )} style={{ minHeight: '200px' }}>
         <div className="text-center text-muted-foreground p-4">
           <p className="font-medium text-destructive">{error}</p>
           <p className="text-sm mt-1">Verifique sua conexão e tente novamente</p>
@@ -215,9 +215,13 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
   }
 
   return (
-    <div className={cn("relative rounded-lg overflow-hidden", className)}>
-      {/* Map container */}
-      <div ref={containerRef} className="absolute inset-0" />
+    <div className={cn("relative rounded-lg overflow-hidden", className)} style={{ minHeight: '200px' }}>
+      {/* Map container - IMPORTANTE: dimensões explícitas para MapLibre */}
+      <div 
+        ref={containerRef} 
+        className="absolute inset-0"
+        style={{ width: '100%', height: '100%' }}
+      />
       
       {/* Loading overlay */}
       {isLoading && (
