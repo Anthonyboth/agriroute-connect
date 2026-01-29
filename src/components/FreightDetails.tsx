@@ -93,9 +93,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       // ✅ CORREÇÃO BUG 1: Buscar produtor secundariamente se JOIN falhou
       if (data.producer_id && (!normalizedFreight.producer || !normalizedFreight.producer.full_name)) {
         console.log('[FreightDetails] Producer JOIN vazio, buscando diretamente...');
+        // ✅ CORREÇÃO: profiles_secure NÃO tem coluna 'role', remover do select
         const { data: producerData } = await (supabase as any)
           .from('profiles_secure')
-          .select('id, full_name, role, profile_photo_url, selfie_url, rating, total_ratings')
+          .select('id, full_name, profile_photo_url, selfie_url, rating, total_ratings')
           .eq('id', data.producer_id)
           .maybeSingle();
         
@@ -130,9 +131,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           : [];
 
         if (assignedIds.length > 0) {
+          // ✅ CORREÇÃO: profiles_secure NÃO tem coluna 'role', remover do select
           const { data: driversData, error: driversError } = await (supabase as any)
             .from('profiles_secure')
-            .select('id, full_name, role, profile_photo_url, selfie_url, rating, total_ratings')
+            .select('id, full_name, profile_photo_url, selfie_url, rating, total_ratings')
             .in('id', assignedIds);
 
           if (!driversError) {
