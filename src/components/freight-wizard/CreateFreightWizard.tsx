@@ -18,6 +18,7 @@ import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculat
 import { cargoRequiresAxles } from '@/lib/cargo-types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useFormNotification } from '@/hooks/useFormNotification';
 
 
 interface CreateFreightWizardProps {
@@ -90,6 +91,8 @@ export function CreateFreightWizard({
   onClose: externalOnClose,
   initialData
 }: CreateFreightWizardProps) {
+  const { showFormError, showSuccess } = useFormNotification();
+  
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -285,47 +288,72 @@ export function CreateFreightWizard({
     
     if (!guestMode && !userProfile?.id) {
       logWizardDebug('SUBMIT_BLOCKED_NO_USER', {});
-      toast.error('Faça login como produtor para criar um frete.');
+      showFormError({
+        field: "Autenticação",
+        problem: "Você precisa estar logado para criar um frete.",
+        solution: "Faça login como produtor e tente novamente.",
+      });
       return;
     }
     
     // ✅ PROBLEMA 3: Validar que o usuário é produtor antes de tentar criar
     if (!guestMode && userProfile?.role !== 'PRODUTOR') {
       logWizardDebug('SUBMIT_BLOCKED_WRONG_ROLE', { role: userProfile?.role });
-      toast.error('Apenas produtores podem criar fretes. Verifique seu perfil.', {
-        duration: 5000,
-        description: `Seu perfil atual é: ${userProfile?.role || 'desconhecido'}`
+      showFormError({
+        field: "Tipo de Perfil",
+        problem: `Seu perfil atual é "${userProfile?.role || 'desconhecido'}".`,
+        solution: "Apenas produtores podem criar fretes. Acesse seu perfil para alterar.",
       });
       return;
     }
 
-    // Validação de campos obrigatórios
+    // Validação de campos obrigatórios com notificações claras
     if (!formData.pickup_date) {
-      toast.error('Data de coleta é obrigatória');
+      showFormError({
+        field: "Data de Coleta",
+        problem: "Campo obrigatório não preenchido.",
+        solution: "Selecione a data prevista para retirada da carga.",
+      });
       setCurrentStep(4);
       return;
     }
 
     if (!formData.delivery_date) {
-      toast.error('Data de entrega é obrigatória');
+      showFormError({
+        field: "Data de Entrega",
+        problem: "Campo obrigatório não preenchido.",
+        solution: "Selecione a data prevista para entrega da carga.",
+      });
       setCurrentStep(4);
       return;
     }
 
     if (!formData.origin_city || !formData.destination_city) {
-      toast.error('Origem e destino são obrigatórios');
+      showFormError({
+        field: "Rota",
+        problem: "Origem e/ou destino não informados.",
+        solution: "Volte à etapa 1 e selecione as cidades de origem e destino.",
+      });
       setCurrentStep(1);
       return;
     }
 
     if (!formData.origin_neighborhood) {
-      toast.error('Bairro/Fazenda de origem é obrigatório');
+      showFormError({
+        field: "Bairro/Fazenda de Origem",
+        problem: "Localização de origem incompleta.",
+        solution: "Informe o bairro, fazenda ou ponto de referência de onde sai a carga.",
+      });
       setCurrentStep(2);
       return;
     }
 
     if (!formData.destination_neighborhood) {
-      toast.error('Bairro/Fazenda de destino é obrigatório');
+      showFormError({
+        field: "Bairro/Fazenda de Destino",
+        problem: "Localização de destino incompleta.",
+        solution: "Informe o bairro, fazenda ou ponto de referência de entrega.",
+      });
       setCurrentStep(2);
       return;
     }
@@ -450,7 +478,7 @@ export function CreateFreightWizard({
         }
       }
 
-      toast.success(effectiveGuestMode 
+      showSuccess(effectiveGuestMode 
         ? 'Solicitação enviada! Motoristas da região serão notificados.' 
         : 'Frete criado com sucesso!');
       
@@ -467,54 +495,93 @@ export function CreateFreightWizard({
       const errorCode = error?.code || '';
       const errorDetails = error?.details || '';
       
-      // ✅ PROBLEMA 3: Tratamento específico para erro de RLS
-      if (errorMessage.includes('row-level security') || errorMessage.includes('row level security')) {
-        toast.error('Erro de permissão: você precisa estar logado como produtor para criar fretes.', {
-          duration: 5000,
-          description: 'Faça login novamente ou entre em contato com o suporte.'
+      // ✅ Tratamento específico para erro de RLS - notificação clara
+      if (errorMessage.includes('row-level security') || errorMessage.includes('row level security') || errorMessage.includes('permission denied')) {
+        showFormError({
+          field: "Permissão",
+          problem: "Você não tem permissão para criar fretes.",
+          solution: "Faça login como produtor ou recarregue a página e tente novamente.",
         });
         return;
       }
       
-      // Mapear erros específicos para mensagens claras em português
+      // Mapear erros específicos para notificações claras
       if (errorMessage.includes('delivery_date') || errorDetails.includes('delivery_date')) {
-        toast.error('Data de entrega é obrigatória. Preencha na etapa 4.');
+        showFormError({
+          field: "Data de Entrega",
+          problem: "Campo obrigatório não preenchido.",
+          solution: "Volte à etapa 4 e selecione a data de entrega.",
+        });
         setCurrentStep(4);
       } else if (errorMessage.includes('pickup_date') || errorDetails.includes('pickup_date')) {
-        toast.error('Data de coleta é obrigatória. Preencha na etapa 4.');
+        showFormError({
+          field: "Data de Coleta",
+          problem: "Campo obrigatório não preenchido.",
+          solution: "Volte à etapa 4 e selecione a data de coleta.",
+        });
         setCurrentStep(4);
       } else if (errorMessage.includes('origin') || errorDetails.includes('origin')) {
-        toast.error('Origem é obrigatória. Verifique a etapa 1.');
+        showFormError({
+          field: "Origem",
+          problem: "Cidade de origem não informada.",
+          solution: "Volte à etapa 1 e selecione a cidade de origem.",
+        });
         setCurrentStep(1);
       } else if (errorMessage.includes('destination') || errorDetails.includes('destination')) {
-        toast.error('Destino é obrigatório. Verifique a etapa 1.');
+        showFormError({
+          field: "Destino",
+          problem: "Cidade de destino não informada.",
+          solution: "Volte à etapa 1 e selecione a cidade de destino.",
+        });
         setCurrentStep(1);
       } else if (errorMessage.includes('neighborhood') || errorDetails.includes('neighborhood')) {
-        toast.error('Bairro/Fazenda é obrigatório. Preencha na etapa 2.');
+        showFormError({
+          field: "Bairro/Fazenda",
+          problem: "Localização incompleta.",
+          solution: "Volte à etapa 2 e informe o bairro ou fazenda.",
+        });
         setCurrentStep(2);
       } else if (errorMessage.includes('cargo_type') || errorDetails.includes('cargo_type')) {
-        toast.error('Tipo de carga é obrigatório. Preencha na etapa 3.');
+        showFormError({
+          field: "Tipo de Carga",
+          problem: "Campo obrigatório não preenchido.",
+          solution: "Volte à etapa 3 e selecione o tipo de carga.",
+        });
         setCurrentStep(3);
       } else if (errorMessage.includes('weight') || errorDetails.includes('weight')) {
-        toast.error('Peso da carga é obrigatório. Preencha na etapa 3.');
+        showFormError({
+          field: "Peso da Carga",
+          problem: "Campo obrigatório não preenchido.",
+          solution: "Volte à etapa 3 e informe o peso estimado.",
+        });
         setCurrentStep(3);
       } else if (errorMessage.includes('price') || errorDetails.includes('price')) {
-        toast.error('Valor do frete é obrigatório. Preencha na etapa 4.');
+        showFormError({
+          field: "Valor do Frete",
+          problem: "Valor não definido.",
+          solution: "Volte à etapa 4 e defina o valor por km ou valor fixo.",
+        });
         setCurrentStep(4);
       } else if (errorCode === '23502') {
-        // Campo NOT NULL violado - mostrar campos faltando
-        toast.error('Campos obrigatórios faltando. Verifique todas as etapas.');
+        showFormError({
+          problem: "Alguns campos obrigatórios não foram preenchidos.",
+          solution: "Revise todas as etapas e preencha os campos destacados.",
+        });
       } else if (errorCode === '23503') {
-        // Foreign key violation
-        toast.error('Erro de referência. Recarregue a página e tente novamente.');
+        showFormError({
+          problem: "Erro de referência nos dados.",
+          solution: "Recarregue a página e preencha o formulário novamente.",
+        });
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
+        showFormError({
+          problem: "Erro de conexão com a internet.",
+          solution: "Verifique sua conexão e tente novamente em alguns segundos.",
+        });
       } else {
-        // Erro genérico com mais detalhes
-        const displayMessage = errorMessage.length > 100 
-          ? 'Erro ao criar frete. Verifique os dados e tente novamente.'
-          : errorMessage || 'Erro ao criar frete. Verifique os dados e tente novamente.';
-        toast.error(displayMessage);
+        showFormError({
+          problem: "Não foi possível criar o frete.",
+          solution: "Verifique se todos os campos estão preenchidos corretamente e tente novamente.",
+        });
       }
     } finally {
       setLoading(false);
