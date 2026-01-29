@@ -2583,6 +2583,89 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_trip_progress: {
+        Row: {
+          accepted_at: string | null
+          assignment_id: string | null
+          created_at: string
+          current_status: string
+          delivered_at: string | null
+          driver_id: string
+          driver_notes: string | null
+          freight_id: string
+          id: string
+          in_transit_at: string | null
+          last_lat: number | null
+          last_lng: number | null
+          loaded_at: string | null
+          loading_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assignment_id?: string | null
+          created_at?: string
+          current_status?: string
+          delivered_at?: string | null
+          driver_id: string
+          driver_notes?: string | null
+          freight_id: string
+          id?: string
+          in_transit_at?: string | null
+          last_lat?: number | null
+          last_lng?: number | null
+          loaded_at?: string | null
+          loading_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assignment_id?: string | null
+          created_at?: string
+          current_status?: string
+          delivered_at?: string | null
+          driver_id?: string
+          driver_notes?: string | null
+          freight_id?: string
+          id?: string
+          in_transit_at?: string | null
+          last_lat?: number | null
+          last_lng?: number | null
+          loaded_at?: string | null
+          loading_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_trip_progress_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "freight_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_progress_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_progress_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_progress_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_withdrawals: {
         Row: {
           amount: number
@@ -12502,6 +12585,7 @@ export type Database = {
           ip_count: number
         }[]
       }
+      get_my_trip_progress: { Args: { p_freight_id?: string }; Returns: Json }
       get_nearby_freights_for_driver: {
         Args: { p_driver_id: string; p_radius_km?: number }
         Returns: {
@@ -13387,6 +13471,16 @@ export type Database = {
           p_problem_description?: string
           p_request_id: string
           p_urgency?: string
+        }
+        Returns: Json
+      }
+      update_trip_progress: {
+        Args: {
+          p_freight_id: string
+          p_lat?: number
+          p_lng?: number
+          p_new_status: string
+          p_notes?: string
         }
         Returns: Json
       }
