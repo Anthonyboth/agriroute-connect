@@ -1,17 +1,19 @@
 /**
  * src/components/map/MapLibreMap.tsx
  * 
- * Componente base de mapa usando MapLibre GL JS + OpenStreetMap.
- * Zero dependência de Google Maps ou APIs pagas.
+ * Componente de mapa genérico usando MapLibre GL JS + OpenStreetMap.
+ * REFATORADO: Wrapper simples sobre MapLibreBase para compatibilidade.
+ * 
+ * @deprecated Use MapLibreBase diretamente para novos componentes.
  */
 
-import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useMemo, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import { RURAL_STYLE_INLINE, DEFAULT_CENTER, DEFAULT_ZOOM, MAP_COLORS } from '@/config/maplibre';
-import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { MapLibreBase, type MapLibreBaseRef } from './MapLibreBase';
+import { type MapLibreMarkerData } from '@/hooks/maplibre';
+import { MAP_COLORS } from '@/config/maplibre';
 
+// Interface legada para compatibilidade
 export interface MapMarker {
   id: string;
   lat: number;
@@ -35,224 +37,85 @@ export interface MapLibreMapRef {
   fitBounds: (bounds: maplibregl.LngLatBounds, padding?: number) => void;
   panTo: (lngLat: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
-  addMarker: (marker: MapMarker) => maplibregl.Marker;
+  addMarker: (marker: MapMarker) => maplibregl.Marker | null;
   removeMarker: (id: string) => void;
 }
 
+/**
+ * Componente de mapa genérico (wrapper sobre MapLibreBase)
+ */
 export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
   center,
-  zoom = DEFAULT_ZOOM,
+  zoom = 5,
   className,
   markers = [],
   onClick,
   onLoad,
   children,
 }, ref) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const baseRef = useRef<MapLibreBaseRef>(null);
 
-  // Expose map methods via ref
+  // Converter markers para formato padronizado
+  const normalizedMarkers = useMemo<MapLibreMarkerData[]>(() => {
+    return markers.map((m) => ({
+      id: m.id,
+      lat: m.lat,
+      lng: m.lng,
+      element: m.element,
+      popup: m.popup,
+    }));
+  }, [markers]);
+
+  // Factory padrão para markers (bolinha verde)
+  const defaultMarkerFactory = useCallback(() => {
+    const el = document.createElement('div');
+    el.className = 'w-6 h-6 rounded-full border-2 border-white shadow-lg cursor-pointer';
+    el.style.backgroundColor = MAP_COLORS.primary;
+    return el;
+  }, []);
+
+  // Expor métodos via ref (interface legada)
   useImperativeHandle(ref, () => ({
-    map: mapRef.current,
+    get map() {
+      return baseRef.current?.map ?? null;
+    },
     fitBounds: (bounds: maplibregl.LngLatBounds, padding = 50) => {
-      mapRef.current?.fitBounds(bounds, { padding });
+      const map = baseRef.current?.map;
+      if (map) {
+        map.fitBounds(bounds, { padding });
+      }
     },
     panTo: (lngLat: { lat: number; lng: number }) => {
-      mapRef.current?.panTo([lngLat.lng, lngLat.lat]);
+      baseRef.current?.panTo(lngLat.lat, lngLat.lng);
     },
     setZoom: (z: number) => {
-      mapRef.current?.setZoom(z);
+      baseRef.current?.setZoom(z);
     },
     addMarker: (marker: MapMarker) => {
-      if (!mapRef.current) throw new Error('Map not initialized');
-      
-      const markerInstance = new maplibregl.Marker({
-        element: marker.element,
-      })
-        .setLngLat([marker.lng, marker.lat])
-        .addTo(mapRef.current);
-      
-      if (marker.popup) {
-        markerInstance.setPopup(
-          new maplibregl.Popup({ offset: 25 }).setHTML(marker.popup)
-        );
-      }
-      
-      markersRef.current.set(marker.id, markerInstance);
-      return markerInstance;
+      // Não suportado mais - use markers prop
+      console.warn('[MapLibreMap] addMarker deprecated - use markers prop');
+      return null;
     },
     removeMarker: (id: string) => {
-      const marker = markersRef.current.get(id);
-      if (marker) {
-        marker.remove();
-        markersRef.current.delete(id);
-      }
+      // Não suportado mais - use markers prop
+      console.warn('[MapLibreMap] removeMarker deprecated - use markers prop');
     },
   }), []);
 
-  // Initialize map
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-
-    try {
-      const initialCenter: [number, number] = center 
-        ? [center.lng, center.lat] 
-        : DEFAULT_CENTER;
-
-      const map = new maplibregl.Map({
-        container: containerRef.current,
-        style: RURAL_STYLE_INLINE,
-        center: initialCenter,
-        zoom,
-        attributionControl: {},
-      });
-
-      // Add navigation controls
-      map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-      // Handle click events
-      if (onClick) {
-        map.on('click', (e) => {
-          onClick({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-        });
-      }
-
-      // Handle load
-      map.on('load', () => {
-        setIsLoading(false);
-        onLoad?.(map);
-        console.log('[MapLibreMap] Map loaded successfully');
-      });
-
-      // Handle error
-      map.on('error', (e) => {
-        console.error('[MapLibreMap] Map error:', e);
-        setError('Erro ao carregar o mapa');
-      });
-
-      mapRef.current = map;
-
-      // ✅ ResizeObserver: corrige mapa em branco quando renderizado dentro de Tabs/Dialog
-      if (typeof ResizeObserver !== 'undefined') {
-        resizeObserverRef.current?.disconnect();
-        resizeObserverRef.current = new ResizeObserver(() => {
-          requestAnimationFrame(() => {
-            try {
-              map.resize();
-            } catch {}
-          });
-        });
-        resizeObserverRef.current.observe(containerRef.current);
-      }
-
-    } catch (err) {
-      console.error('[MapLibreMap] Initialization error:', err);
-      setError('Erro ao inicializar o mapa');
-      setIsLoading(false);
-    }
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-
-      // Cleanup markers
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current.clear();
-      
-      // Cleanup map
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, []);
-
-  // Update center when prop changes
-  useEffect(() => {
-    if (mapRef.current && center) {
-      mapRef.current.panTo([center.lng, center.lat]);
-    }
-  }, [center?.lat, center?.lng]);
-
-  // Manage markers
-  useEffect(() => {
-    if (!mapRef.current || isLoading) return;
-
-    const currentIds = new Set(markers.map(m => m.id));
-    
-    // Remove old markers
-    markersRef.current.forEach((marker, id) => {
-      if (!currentIds.has(id)) {
-        marker.remove();
-        markersRef.current.delete(id);
-      }
-    });
-
-    // Add/update markers
-    markers.forEach((markerData) => {
-      const existing = markersRef.current.get(markerData.id);
-      
-      if (existing) {
-        // Update position
-        existing.setLngLat([markerData.lng, markerData.lat]);
-      } else {
-        // Create new marker
-        const markerInstance = new maplibregl.Marker({
-          element: markerData.element,
-        })
-          .setLngLat([markerData.lng, markerData.lat])
-          .addTo(mapRef.current!);
-
-        if (markerData.popup) {
-          markerInstance.setPopup(
-            new maplibregl.Popup({ offset: 25 }).setHTML(markerData.popup)
-          );
-        }
-
-        markersRef.current.set(markerData.id, markerInstance);
-      }
-    });
-  }, [markers, isLoading]);
-
-  if (error) {
-    return (
-      <div className={cn(
-        "flex items-center justify-center bg-muted/30 rounded-lg border border-destructive/20",
-        className
-      )} style={{ minHeight: '200px' }}>
-        <div className="text-center text-muted-foreground p-4">
-          <p className="font-medium text-destructive">{error}</p>
-          <p className="text-sm mt-1">Verifique sua conexão e tente novamente</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={cn("relative rounded-lg overflow-hidden", className)} style={{ minHeight: '200px' }}>
-      {/* Map container - IMPORTANTE: dimensões explícitas para MapLibre */}
-      <div 
-        ref={containerRef} 
-        className="absolute inset-0"
-        style={{ width: '100%', height: '100%' }}
-      />
-      
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="text-sm">Carregando mapa...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Children overlay */}
+    <MapLibreBase
+      ref={baseRef}
+      center={center}
+      zoom={zoom}
+      className={className}
+      markers={normalizedMarkers}
+      markerFactory={defaultMarkerFactory}
+      onClick={onClick}
+      onLoad={onLoad}
+      showNavigationControl
+    >
       {children}
-    </div>
+    </MapLibreBase>
   );
 });
 
