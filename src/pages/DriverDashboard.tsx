@@ -758,11 +758,11 @@ const DriverDashboard = () => {
           origin_state,
           destination_city,
           destination_state,
-          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)
+          producer_id
         `)
         .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
-        .or(`pickup_date.is.null,pickup_date.lte.${todayStr}`)
+        // ✅ Incluir DELIVERED_PENDING_CONFIRMATION (ainda é “andamento” até confirmar)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
         .order('updated_at', { ascending: false })
         .limit(100);
 
@@ -782,14 +782,14 @@ const DriverDashboard = () => {
             origin_state,
             destination_city,
             destination_state,
-            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)
+            producer_id
           ),
           status,
           agreed_price,
           accepted_at
         `)
         .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
         .order('accepted_at', { ascending: false })
         .limit(100);
 
@@ -825,7 +825,9 @@ const DriverDashboard = () => {
           return freight;
         })
         .filter((freight: any) => {
-          // Permitir NULL (sem data específica) ou data <= hoje
+          // ✅ NÃO esconder fretes realmente em andamento por data.
+          // Regra: ACCEPTED com pickup_date futura pode ficar fora; demais status sempre entram.
+          if (freight.status !== 'ACCEPTED') return true;
           if (!freight.pickup_date) return true;
           const pickupDate = new Date(freight.pickup_date);
           pickupDate.setHours(0, 0, 0, 0);
@@ -846,11 +848,40 @@ const DriverDashboard = () => {
         seen.add(item.id);
         return true;
       });
+
+      // ✅ FIX CRÍTICO: manter compatibilidade com fluxos que dependem de `freight.producer`.
+      // Como removemos o JOIN direto em `profiles` (pode falhar por RLS), resolvemos o produtor via `profiles_secure`.
+      const producerIds = Array.from(
+        new Set(
+          dedupedOngoing
+            .map((f: any) => f.producer_id)
+            .filter((id: any) => typeof id === 'string' && id.length > 0),
+        ),
+      );
+
+      let producerMap = new Map<string, any>();
+      if (producerIds.length > 0) {
+        const { data: producers, error: producersError } = await supabase
+          .from('profiles_secure')
+          .select('id, full_name, contact_phone, phone, profile_photo_url')
+          .in('id', producerIds);
+
+        if (producersError) {
+          console.warn('[fetchOngoingFreights] Falha ao carregar produtores (profiles_secure):', producersError.message);
+        } else if (producers?.length) {
+          producerMap = new Map((producers || []).map((p: any) => [p.id, p]));
+        }
+      }
+
+      const dedupedOngoingWithProducer = dedupedOngoing.map((f: any) => ({
+        ...f,
+        producer: f.producer_id ? producerMap.get(f.producer_id) || null : null,
+      }));
       
       // ✅ CORREÇÃO: Remover update assíncrono do filter e criar função separada
-      const filteredOngoing = dedupedOngoing.filter((item: any) => {
+      const filteredOngoing = dedupedOngoingWithProducer.filter((item: any) => {
         // Sempre excluir status finais
-        if (['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
+        if (['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
           console.log(`🔍 [DriverDashboard] Excluindo frete ${item.id} - Status: ${item.status}`);
           return false;
         }
@@ -890,7 +921,7 @@ const DriverDashboard = () => {
       });
       
       // ✅ Identificar fretes com status inconsistente para correção
-      const inconsistentFreights = dedupedOngoing.filter((item: any) => {
+      const inconsistentFreights = dedupedOngoingWithProducer.filter((item: any) => {
         const metadata = item.metadata || {};
         return metadata.delivery_confirmed_at || 
                metadata.confirmed_by_producer === true ||
@@ -900,7 +931,7 @@ const DriverDashboard = () => {
       
       console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
       console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
-      console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoing.length);
+      console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoingWithProducer.length);
       console.log('✅ Total de itens após filtro de conclusão:', filteredOngoing.length);
       if (isMountedRef.current) setOngoingFreights(filteredOngoing);
 

@@ -365,20 +365,11 @@ const ProducerDashboard = () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
     try {
+      // ✅ FIX CRÍTICO: evitar JOIN direto em `profiles` (pode falhar por RLS/segurança e “sumir” cards).
+      // Buscamos fretes e resolvemos os perfis via `profiles_secure` (view) em uma segunda etapa.
       const { data, error } = await (supabase as any)
         .from("freights")
-        .select(
-          `
-          *,
-          profiles!driver_id(
-            id,
-            full_name,
-            contact_phone,
-            email,
-            role
-          )
-        `,
-        )
+        .select("*")
         .eq("producer_id", profile.id)
         .order("updated_at", { ascending: false })
         .limit(500);
@@ -395,13 +386,60 @@ const ProducerDashboard = () => {
         return;
       }
 
-      let finalData = (data || []).map((freight: any) => {
-        // ✅ CORREÇÃO: Mapear profiles para driver_profiles para compatibilidade com FreightInProgressCard
-        const mappedFreight = {
+      // Fallback para não “sumir” DELIVERED_PENDING_CONFIRMATION (mantido, sem JOIN)
+      let rows: any[] = data || [];
+
+      if (rows.every((f: any) => f.status !== "DELIVERED_PENDING_CONFIRMATION")) {
+        const { data: dpcData, error: dpcError } = await (supabase as any)
+          .from("freights")
+          .select("*")
+          .eq("producer_id", profile.id)
+          .eq("status", "DELIVERED_PENDING_CONFIRMATION")
+          .order("updated_at", { ascending: false })
+          .limit(50);
+
+        if (!dpcError && dpcData?.length) {
+          const existingIds = new Set(rows.map((f: any) => f.id));
+          rows = [...rows, ...dpcData.filter((f: any) => !existingIds.has(f.id))];
+        }
+      }
+
+      // Resolver perfis de motoristas via view segura
+      const driverIds = Array.from(
+        new Set(
+          rows
+            .map((f: any) => f.driver_id)
+            .filter((id: any) => typeof id === "string" && id.length > 0),
+        ),
+      );
+
+      let driverMap = new Map<string, any>();
+      if (driverIds.length > 0) {
+        const { data: drivers, error: driversError } = await (supabase as any)
+          .from("profiles_secure")
+          .select("id, full_name, contact_phone, phone, profile_photo_url")
+          .in("id", driverIds);
+
+        if (driversError) {
+          console.warn(
+            "[fetchFreights] Falha ao carregar perfis de motoristas (profiles_secure):",
+            driversError.message,
+          );
+        } else if (drivers?.length) {
+          driverMap = new Map((drivers || []).map((d: any) => [d.id, d]));
+        }
+      }
+
+      const finalData = rows.map((freight: any) => {
+        const driverProfile = freight.driver_id ? driverMap.get(freight.driver_id) || null : null;
+        const mappedFreight: any = {
           ...freight,
-          driver_profiles: freight.profiles || null,
+          // Compatibilidade com FreightInProgressCard
+          driver_profiles: driverProfile,
+          // Compatibilidade retroativa: partes do ProducerDashboard ainda usam `freight.profiles`
+          profiles: driverProfile,
         };
-        
+
         if (mappedFreight.status === "DELIVERED_PENDING_CONFIRMATION") {
           const deliveredDate = mappedFreight.updated_at || mappedFreight.created_at;
           const deadline = new Date(new Date(deliveredDate).getTime() + 72 * 60 * 60 * 1000);
@@ -422,42 +460,9 @@ const ProducerDashboard = () => {
 
           return { ...mappedFreight, deliveryDeadline: { hoursRemaining, isUrgent, isCritical, displayText } };
         }
+
         return mappedFreight;
       });
-
-      // fallback para não “sumir” pending-confirmation
-      if (finalData.every((f: any) => f.status !== "DELIVERED_PENDING_CONFIRMATION")) {
-        const { data: dpcData, error: dpcError } = await (supabase as any)
-          .from("freights")
-          .select(
-            `
-            *,
-            profiles!driver_id(
-              id,
-              full_name,
-              contact_phone,
-              email,
-              role
-            )
-          `,
-          )
-          .eq("producer_id", profile.id)
-          .eq("status", "DELIVERED_PENDING_CONFIRMATION")
-          .order("updated_at", { ascending: false })
-          .limit(50);
-
-        if (!dpcError && dpcData?.length) {
-          const existingIds = new Set(finalData.map((f: any) => f.id));
-          // ✅ CORREÇÃO: Mapear profiles para driver_profiles também no fallback
-          const mappedDpc = dpcData
-            .filter((f: any) => !existingIds.has(f.id))
-            .map((f: any) => ({
-              ...f,
-              driver_profiles: f.profiles || null,
-            }));
-          finalData = [...finalData, ...mappedDpc];
-        }
-      }
 
       setFreights(finalData);
     } catch (err) {
