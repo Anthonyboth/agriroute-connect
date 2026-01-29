@@ -248,33 +248,92 @@ serve(async (req) => {
       );
     }
 
-    // 7. Verificar se motorista já tem assignment ativo para esse frete
-    const { data: activeAssignments } = await supabase
+    // 7. Verificar se motorista já tem QUALQUER assignment para esse frete (evitar duplicata)
+    // ✅ CORREÇÃO: Verificar TODOS os status, não apenas ativos, para evitar erro 23505
+    const { data: existingAssignments, error: existingAssignmentsError } = await supabase
       .from("freight_assignments")
       .select("id, status")
       .eq("freight_id", freight_id)
-      .eq("driver_id", profile.id)
-      .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
+      .eq("driver_id", profile.id);
 
-    if (activeAssignments && activeAssignments.length > 0) {
+    if (existingAssignmentsError) {
+      console.error("[ASSIGNMENT-CHECK] Error checking existing assignments:", existingAssignmentsError);
+    }
+
+    if (existingAssignments && existingAssignments.length > 0) {
       const statusDescriptions: Record<string, string> = {
-        'ACCEPTED': 'already accepted',
-        'IN_TRANSIT': 'in transit',
-        'LOADING': 'loading',
-        'LOADED': 'loaded'
+        'ACCEPTED': 'aceito',
+        'IN_TRANSIT': 'em trânsito',
+        'LOADING': 'carregando',
+        'LOADED': 'carregado',
+        'DELIVERED': 'entregue',
+        'DELIVERED_PENDING_CONFIRMATION': 'aguardando confirmação',
+        'COMPLETED': 'concluído',
+        'CANCELLED': 'cancelado',
+        'WITHDRAWN': 'desistido'
       };
-      const currentStatus = activeAssignments[0].status;
-      const statusDesc = statusDescriptions[currentStatus as string] || currentStatus.toLowerCase();
+      const currentStatus = existingAssignments[0].status;
+      const statusDesc = statusDescriptions[currentStatus as string] || currentStatus?.toLowerCase() || 'desconhecido';
       
-      return new Response(
-        JSON.stringify({ 
-          error: "You already have an active assignment for this freight",
-          details: `You have a truck ${statusDesc} for this freight. Please complete the current delivery before accepting another truck for the same freight.`,
-          current_assignment_status: currentStatus,
-          assignment_count: activeAssignments.length
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.log(`[DUPLICATE-CHECK] Driver ${profile.id} already has assignment for freight ${freight_id} with status: ${currentStatus}`);
+      
+      // Se está em status ativo, informar que já está em andamento
+      const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'];
+      if (activeStatuses.includes(currentStatus)) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Você já aceitou este frete",
+            details: `Você já tem uma carreta ${statusDesc} para este frete. Por favor, conclua a entrega atual antes de aceitar outra carreta para o mesmo frete.`,
+            current_assignment_status: currentStatus,
+            assignment_count: existingAssignments.length,
+            code: "ALREADY_ACCEPTED"
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Se está aguardando confirmação, informar que precisa aguardar
+      if (currentStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+        return new Response(
+          JSON.stringify({ 
+            error: "Entrega aguardando confirmação",
+            details: "Sua entrega anterior deste frete está aguardando confirmação do produtor. Aguarde a confirmação antes de aceitar novamente.",
+            current_assignment_status: currentStatus,
+            code: "PENDING_CONFIRMATION"
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Se foi cancelado ou desistiu, permitir re-aceitação (não bloquear)
+      if (['CANCELLED', 'WITHDRAWN'].includes(currentStatus)) {
+        console.log(`[RE-ACCEPT] Allowing re-acceptance for driver ${profile.id} - previous status was ${currentStatus}`);
+        // Deletar o assignment antigo cancelado/desistido para permitir nova inserção
+        const { error: deleteError } = await supabase
+          .from("freight_assignments")
+          .delete()
+          .eq("id", existingAssignments[0].id);
+        
+        if (deleteError) {
+          console.error("[RE-ACCEPT] Failed to delete old assignment:", deleteError);
+          return new Response(
+            JSON.stringify({ 
+              error: "Erro ao processar re-aceitação",
+              details: "Não foi possível limpar o registro anterior. Tente novamente.",
+              postgres_error: deleteError.message
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log(`[RE-ACCEPT] Deleted old ${currentStatus} assignment, proceeding with new acceptance`);
+      }
+      
+      // Se já foi entregue ou concluído, verificar se pode re-aceitar (lógica de avaliação)
+      // Isso é tratado mais abaixo no código, então não bloquear aqui
+      if (['DELIVERED', 'COMPLETED'].includes(currentStatus)) {
+        console.log(`[DELIVERED-CHECK] Driver ${profile.id} has delivered/completed assignment - will check rating below`);
+        // Continuar para verificação de avaliação (linha 280+)
+      }
     }
 
     // 8. Verificar se tem DELIVERED sem avaliação
