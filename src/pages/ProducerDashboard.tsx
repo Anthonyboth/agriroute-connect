@@ -554,12 +554,14 @@ const ProducerDashboard = () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
     try {
+      console.info("[fetchExternalPayments] Buscando pagamentos para produtor:", profile.id);
+      
       const { data, error } = await supabase
         .from("external_payments")
         .select(
           `
           *,
-          freight:freights(
+          freight:freights!external_payments_freight_id_fkey(
             id,
             cargo_type,
             origin_city,
@@ -588,12 +590,16 @@ const ProducerDashboard = () => {
         console.warn("[fetchExternalPayments] Erro silencioso (sem toast):", {
           code: error.code,
           message: error.message,
+          details: error.details,
+          hint: error.hint,
         });
         
         // Estado vazio válido - sem toast, sem erro visível
         setExternalPayments([]);
         return;
       }
+
+      console.info("[fetchExternalPayments] Pagamentos encontrados:", data?.length || 0);
 
       // ✅ Mapear status do banco para UI
       // Banco: proposed, paid_by_producer, confirmed, rejected, cancelled

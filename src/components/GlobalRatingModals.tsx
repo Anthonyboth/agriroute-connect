@@ -50,19 +50,26 @@ export const GlobalRatingModals: React.FC = () => {
   const { canSubmitRating, submitRating } = useRatingSubmit();
 
   // Verificar se pode avaliar quando o modal de frete abre
+  // ✅ CORREÇÃO: Fechar modal automaticamente se pagamento não confirmado
   useEffect(() => {
     const checkCanSubmit = async () => {
       if (freightRatingOpen && freightId) {
         const { canSubmit, reason } = await canSubmitRating(freightId);
         if (!canSubmit) {
+          console.log('[GlobalRatingModals] Pagamento não confirmado, fechando modal:', reason);
           setPaymentNotConfirmedWarning(reason || 'Avaliação não disponível');
+          // Fechar automaticamente após 3 segundos se pagamento não confirmado
+          setTimeout(() => {
+            closeFreightRating();
+            setPaymentNotConfirmedWarning(null);
+          }, 3000);
         } else {
           setPaymentNotConfirmedWarning(null);
         }
       }
     };
     checkCanSubmit();
-  }, [freightRatingOpen, freightId, canSubmitRating]);
+  }, [freightRatingOpen, freightId, canSubmitRating, closeFreightRating]);
 
   const handleServiceRatingSubmit = async () => {
     if (serviceRating === 0 || !serviceRequestId || !serviceRatedUserId || !profile?.id) {
