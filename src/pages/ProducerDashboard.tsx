@@ -815,7 +815,12 @@ const ProducerDashboard = () => {
     const totalPendingAmount =
       externalPayments.filter((p) => p.status === "proposed").reduce((sum, p) => sum + (p.amount || 0), 0);
 
-    const ongoingFreights = freights.filter((f) => isInProgressFreight(f.pickup_date, f.status));
+    // ✅ Multi-carretas: status pode continuar OPEN enquanto accepted_trucks < required_trucks.
+    // Nesses casos, o produtor ainda precisa ver o frete como “em andamento” (já existe motorista/veículo alocado).
+    const ongoingFreights = freights.filter((f) =>
+      isInProgressFreight(f.pickup_date, f.status) ||
+      (f.status === 'OPEN' && (f.required_trucks ?? 1) > 1 && (f.accepted_trucks ?? 0) > 0)
+    );
 
     return {
       // ✅ Usa classificador central para contadores corretos
@@ -1135,7 +1140,12 @@ const ProducerDashboard = () => {
   }
 
   // ✅ Ongoing freights list (reuso)
-  const ongoingFreights = freights.filter((f) => isInProgressFreight(f.pickup_date, f.status));
+  // ✅ Multi-carretas: status pode continuar OPEN enquanto accepted_trucks < required_trucks.
+  // Nesses casos, o produtor ainda precisa ver o frete como “em andamento” (já existe motorista/veículo alocado).
+  const ongoingFreights = freights.filter((f) =>
+    isInProgressFreight(f.pickup_date, f.status) ||
+    (f.status === 'OPEN' && (f.required_trucks ?? 1) > 1 && (f.accepted_trucks ?? 0) > 0)
+  );
 
   return (
     <div className="h-screen bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden overflow-y-auto">

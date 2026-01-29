@@ -340,15 +340,23 @@ const DriverDashboard = () => {
     
     return (ongoingFreights || []).filter(f => {
       if (isFinalStatus(f.status) || assignmentFreightIds.has(f.id)) return false;
-      
-      // Filtrar por data: só mostrar em "Em Andamento" se pickup_date <= hoje
+
+      // ✅ NÃO esconder fretes realmente em andamento por data.
+      // Regra mínima e segura:
+      // - ACCEPTED (e OPEN de multi-carretas) pode ser ocultado se pickup_date for futura
+      // - demais status ativos (LOADING/LOADED/IN_TRANSIT/DELIVERED_PENDING_CONFIRMATION) sempre entram
+      const status = String((f as any)?.status || '').trim().toUpperCase();
+      const shouldGateByPickupDate = status === 'ACCEPTED' || status === 'OPEN';
+
+      if (!shouldGateByPickupDate) return true;
+
       if (f.pickup_date) {
         const pickupDate = new Date(f.pickup_date);
         pickupDate.setHours(0, 0, 0, 0);
         return pickupDate <= today;
       }
-      
-      return true; // Se não tem pickup_date, manter comportamento anterior
+
+      return true; // sem pickup_date: mantém visível
     });
   }, [ongoingFreights, assignmentFreightIds]);
 
@@ -771,6 +779,29 @@ const DriverDashboard = () => {
         throw freightError;
       }
 
+       // ✅ Multi-carretas: o status pode permanecer OPEN para manter visibilidade no marketplace
+       // (accepted_trucks < required_trucks). Se o motorista já estiver em `drivers_assigned`,
+       // ele precisa ver esse frete na aba "Em Andamento".
+       const { data: multiTruckData, error: multiTruckError } = await supabase
+         .from('freights')
+         .select(`
+           *,
+           origin_city,
+           origin_state,
+           destination_city,
+           destination_state,
+           producer_id
+         `)
+         .contains('drivers_assigned', [profile.id])
+         .eq('status', 'OPEN')
+         .gt('accepted_trucks', 0)
+         .order('updated_at', { ascending: false })
+         .limit(100);
+
+       if (multiTruckError) {
+         console.warn('[fetchOngoingFreights] Falha ao buscar multi-carretas atribuídos (drivers_assigned):', multiTruckError);
+       }
+
       // ✅ Buscar fretes via freight_assignments
       // Buscar assignments primeiro, depois filtrar por data no client-side (pois não temos pickup_date no assignment)
       const { data: assignmentData, error: assignmentError } = await supabase
@@ -839,7 +870,7 @@ const DriverDashboard = () => {
       // ✅ REMOVIDO: Não buscar service_requests aqui (motoristas não veem serviços)
       
       // ✅ Combinar APENAS fretes diretos e assignments (sem service_requests)
-      const allOngoing = [...(freightData || []), ...(assignmentFreights || [])];
+      const allOngoing = [...(freightData || []), ...((multiTruckData as any[]) || []), ...(assignmentFreights || [])];
       
       // Deduplicate by id
       const seen = new Set();
