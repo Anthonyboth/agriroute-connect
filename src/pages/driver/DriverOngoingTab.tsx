@@ -9,11 +9,12 @@ import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog
 import { 
   Truck, Wrench, Bike, MapPin, Clock, RefreshCw, 
   Phone, MessageSquare, Navigation, CheckCircle, Loader2,
-  Play, Package, AlertTriangle
+  Play, Package, AlertTriangle, ArrowRight
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/formatters";
+import { LABELS } from "@/lib/labels";
 import { normalizeFreightStatus } from "@/lib/freight-status";
 import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
@@ -124,6 +125,7 @@ const serviceTitle = (serviceType?: string | null) => {
 };
 
 // ============ Card de Frete com Botões de Ação para Motorista ============
+// Para motoristas com fretes multi-carreta: calcula o valor POR CARRETA que o motorista receberá
 const DriverFreightCardWithActions: React.FC<{
   freight: FreightRow;
   onStatusUpdate: () => void;
@@ -154,73 +156,159 @@ const DriverFreightCardWithActions: React.FC<{
     }
   };
 
+  // CORREÇÃO CRÍTICA: Para motoristas, calcular o valor que ELE vai receber (1 carreta)
+  // Se o frete tem múltiplas carretas (required_trucks > 1), dividir o valor total
+  const requiredTrucks = freight.required_trucks ?? 1;
+  const driverPrice = requiredTrucks > 1 
+    ? Math.round((freight.price ?? 0) / requiredTrucks) 
+    : (freight.price ?? 0);
+
   // Mapeamento para FreightInProgressCard
+  // IMPORTANTE: Passar required_trucks = 1 para que o card NÃO divida novamente
   const mappedFreight = {
     ...freight,
     weight: freight.weight ?? 0,
     distance_km: freight.distance_km ?? 0,
     pickup_date: freight.pickup_date ?? new Date().toISOString(),
-    price: freight.price ?? 0,
-    required_trucks: freight.required_trucks ?? null,
+    // O preço já é o valor do motorista (já dividido se multi-carreta)
+    price: driverPrice,
+    // FORÇAR 1 para não dividir de novo dentro do FreightInProgressCard
+    required_trucks: 1,
     status: freight.status ?? 'OPEN',
     service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO' | undefined,
     driver_profiles: freight.producer ? { full_name: freight.producer.full_name } : null,
   };
 
+  // Botão de ação baseado no status
+  const getActionButton = () => {
+    if (isUpdating) {
+      return (
+        <Button className="w-full" disabled>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Atualizando...
+        </Button>
+      );
+    }
+
+    switch (normalizedStatus) {
+      case 'ACCEPTED':
+        return (
+          <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => handleSetStatus('LOADING')}>
+            <Truck className="h-4 w-4 mr-2" /> Marcar como "A caminho"
+          </Button>
+        );
+      case 'LOADING':
+        return (
+          <Button className="w-full bg-amber-600 hover:bg-amber-700" onClick={() => handleSetStatus('LOADED')}>
+            <Package className="h-4 w-4 mr-2" /> Confirmar Carregamento
+          </Button>
+        );
+      case 'LOADED':
+        return (
+          <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => handleSetStatus('IN_TRANSIT')}>
+            <Navigation className="h-4 w-4 mr-2" /> Iniciar Trânsito
+          </Button>
+        );
+      case 'IN_TRANSIT':
+        return (
+          <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => handleSetStatus('DELIVERED_PENDING_CONFIRMATION')}>
+            <CheckCircle className="h-4 w-4 mr-2" /> Reportar Entrega
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-3">
-      {/* Card padrão de frete em andamento */}
-      <FreightInProgressCard
-        freight={mappedFreight}
-        onViewDetails={onOpenDetails}
-        showActions={false}
-      />
+    <Card className={cn(
+      "overflow-hidden border-l-4 hover:shadow-lg transition-all",
+      normalizedStatus === 'IN_TRANSIT' ? "border-l-green-500" : "border-l-primary"
+    )}>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          {/* Origem → Destino */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm truncate">
+                {freight.origin_city && freight.origin_state
+                  ? `${freight.origin_city} — ${freight.origin_state.length > 2 ? freight.origin_state.substring(0, 2).toUpperCase() : freight.origin_state}`
+                  : 'Origem'}
+              </span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="font-semibold text-sm truncate">
+                {freight.destination_city && freight.destination_state
+                  ? `${freight.destination_city} — ${freight.destination_state.length > 2 ? freight.destination_state.substring(0, 2).toUpperCase() : freight.destination_state}`
+                  : 'Destino'}
+              </span>
+            </div>
+          </div>
 
-      {/* Botões de ação do motorista */}
-      {!isFinal && (
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="py-3 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Ações do Frete:</p>
-            
-            {normalizedStatus === 'ACCEPTED' && (
-              <Button className="w-full" onClick={() => handleSetStatus('LOADING')} disabled={isUpdating}>
-                {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Truck className="h-4 w-4 mr-2" />}
-                Marcar como "A caminho"
-              </Button>
-            )}
-            {normalizedStatus === 'LOADING' && (
-              <Button className="w-full" onClick={() => handleSetStatus('LOADED')} disabled={isUpdating}>
-                {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Package className="h-4 w-4 mr-2" />}
-                Confirmar Carregamento
-              </Button>
-            )}
-            {normalizedStatus === 'LOADED' && (
-              <Button className="w-full" onClick={() => handleSetStatus('IN_TRANSIT')} disabled={isUpdating}>
-                {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Navigation className="h-4 w-4 mr-2" />}
-                Iniciar Trânsito
-              </Button>
-            )}
-            {normalizedStatus === 'IN_TRANSIT' && (
-              <Button className="w-full" onClick={() => handleSetStatus('DELIVERED_PENDING_CONFIRMATION')} disabled={isUpdating}>
-                {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                Reportar Entrega
-              </Button>
-            )}
-            
-            <Button variant="outline" className="w-full" onClick={onOpenDetails}>
-              Ver Detalhes Completos
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          {/* Status badge */}
+          <Badge variant={statusVariant(normalizedStatus)} className="shrink-0">
+            {statusLabel(normalizedStatus)}
+          </Badge>
+        </div>
 
-      {/* Status Final */}
-      {isFinal && (
+        {/* Preço e info de multi-carreta */}
+        <div className="flex items-end justify-between mt-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Truck className="h-3.5 w-3.5" />
+              {freight.weight ? `${(freight.weight / 1000).toFixed(0)}t` : '-'}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" />
+              {freight.distance_km ? `${freight.distance_km.toLocaleString('pt-BR')} km` : '-'}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {freight.pickup_date ? new Date(freight.pickup_date).toLocaleDateString('pt-BR') : '-'}
+            </span>
+          </div>
+
+          <div className="text-right">
+            <p className="font-bold text-lg text-primary">
+              {formatBRL(driverPrice, true)}
+            </p>
+            {requiredTrucks > 1 && (
+              <p className="text-[10px] text-muted-foreground">
+                Sua carreta (1 de {requiredTrucks})
+              </p>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0 space-y-3">
+        {/* Produtor */}
+        {freight.producer && (
+          <div className="flex items-center justify-between text-sm bg-muted/30 p-2 rounded">
+            <span className="text-muted-foreground">Produtor:</span>
+            <span className="font-medium">{freight.producer.full_name}</span>
+          </div>
+        )}
+
+        {/* Cargo type */}
+        <div className="flex items-center gap-2 text-xs">
+          <Badge variant="outline" className="capitalize">
+            {LABELS[freight.cargo_type?.toUpperCase() as keyof typeof LABELS] || freight.cargo_type || 'Carga'}
+          </Badge>
+          {freight.service_type && (
+            <Badge variant="secondary" className="capitalize">
+              {freight.service_type === 'CARGA' ? 'Frete Rural' : freight.service_type}
+            </Badge>
+          )}
+        </div>
+
+        {/* Botão de ação principal */}
+        {!isFinal && getActionButton()}
+
+        {/* Botão ver detalhes */}
         <Button variant="outline" className="w-full" onClick={onOpenDetails}>
           Ver Detalhes Completos
         </Button>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
