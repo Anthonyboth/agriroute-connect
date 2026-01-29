@@ -362,10 +362,16 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Package className="h-4 w-4" />
-              Frete: {getCargoTypeLabel(freight.cargo_type)}
-            </CardTitle>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Package className="h-4 w-4" />
+                Frete: {getCargoTypeLabel(freight.cargo_type)}
+              </CardTitle>
+              {/* ID do frete sempre visível */}
+              <span className="text-xs text-muted-foreground font-mono">
+                ID: {freight.id}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(freight.status)}
               {freight.status === 'DELIVERED' && (isProducer || currentUserProfile?.role === 'ADMIN') && (
@@ -378,6 +384,16 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                   Mover para o histórico
                 </Button>
               )}
+              {/* Botão X para fechar o modal */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onClose}
+                className="h-8 w-8 p-0"
+                title="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </CardHeader>
