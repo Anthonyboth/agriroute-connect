@@ -1,0 +1,287 @@
+import { useState, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+
+/**
+ * Interface para resposta da RPC update_trip_progress
+ */
+interface TripProgressResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  progress_id?: string;
+  previous_status?: string;
+  new_status?: string;
+  timestamp?: string;
+  idempotent?: boolean;
+  detail?: string;
+}
+
+/**
+ * Interface para o progresso da viagem
+ */
+interface TripProgress {
+  id: string;
+  freight_id: string;
+  driver_id: string;
+  assignment_id: string | null;
+  current_status: string;
+  accepted_at: string | null;
+  loading_at: string | null;
+  loaded_at: string | null;
+  in_transit_at: string | null;
+  delivered_at: string | null;
+  last_lat: number | null;
+  last_lng: number | null;
+  driver_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Mapeamento de status para labels amigáveis
+ */
+const STATUS_LABELS: Record<string, string> = {
+  'ACCEPTED': 'Aceito',
+  'LOADING': 'A caminho da coleta',
+  'LOADED': 'Carregado',
+  'IN_TRANSIT': 'Em trânsito',
+  'DELIVERED_PENDING_CONFIRMATION': 'Entrega reportada',
+  'DELIVERED': 'Entregue',
+  'COMPLETED': 'Concluído',
+};
+
+/**
+ * Ordem sequencial dos status
+ */
+const STATUS_ORDER = [
+  'ACCEPTED',
+  'LOADING',
+  'LOADED',
+  'IN_TRANSIT',
+  'DELIVERED_PENDING_CONFIRMATION',
+  'DELIVERED',
+  'COMPLETED'
+];
+
+/**
+ * Hook dedicado para gerenciar o progresso da viagem do motorista
+ * Usa a nova RPC update_trip_progress que é à prova de falhas
+ */
+export const useTripProgress = () => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  
+  // Lock para evitar chamadas duplicadas
+  const lockRef = useRef<Set<string>>(new Set());
+
+  /**
+   * Atualiza o progresso da viagem
+   * Esta é a função principal - NUNCA falha para o motorista
+   */
+  const updateProgress = useCallback(async (
+    freightId: string,
+    newStatus: string,
+    options?: {
+      lat?: number;
+      lng?: number;
+      notes?: string;
+      showToast?: boolean;
+    }
+  ): Promise<{ success: boolean; message: string }> => {
+    const lockKey = `${freightId}-${newStatus}`;
+    
+    // Evita chamadas duplicadas
+    if (lockRef.current.has(lockKey)) {
+      console.log('[useTripProgress] Chamada duplicada bloqueada:', lockKey);
+      return { success: true, message: 'Operação já em andamento' };
+    }
+    
+    lockRef.current.add(lockKey);
+    setIsUpdating(true);
+    setLastError(null);
+    
+    const showToast = options?.showToast !== false;
+
+    try {
+      console.log('[useTripProgress] Atualizando progresso:', { freightId, newStatus });
+      
+      // Chamar a RPC dedicada
+      const { data, error } = await supabase.rpc('update_trip_progress', {
+        p_freight_id: freightId,
+        p_new_status: newStatus.toUpperCase().trim(),
+        p_lat: options?.lat ?? null,
+        p_lng: options?.lng ?? null,
+        p_notes: options?.notes ?? null
+      });
+
+      if (error) {
+        console.error('[useTripProgress] Erro RPC:', error);
+        setLastError(error.message);
+        
+        if (showToast) {
+          toast.error('Erro ao atualizar progresso', {
+            description: error.message
+          });
+        }
+        
+        return { success: false, message: error.message };
+      }
+
+      const response = data as unknown as TripProgressResponse;
+      
+      if (!response.success) {
+        console.error('[useTripProgress] Falha na atualização:', response);
+        setLastError(response.message || response.error || 'Erro desconhecido');
+        
+        if (showToast) {
+          toast.error('Falha ao atualizar progresso', {
+            description: response.message || response.error
+          });
+        }
+        
+        return { success: false, message: response.message || response.error || 'Erro' };
+      }
+
+      console.log('[useTripProgress] Progresso atualizado com sucesso:', response);
+      
+      // Invalidar queries relacionadas para atualizar UI
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['driver-assignments'] }),
+        queryClient.invalidateQueries({ queryKey: ['freight-details', freightId] }),
+        queryClient.invalidateQueries({ queryKey: ['available-freights'] })
+      ]);
+      
+      if (showToast && !response.idempotent) {
+        const statusLabel = STATUS_LABELS[newStatus.toUpperCase()] || newStatus;
+        toast.success('Progresso atualizado', {
+          description: `Status: ${statusLabel}`
+        });
+      }
+      
+      return { 
+        success: true, 
+        message: response.message || 'Atualizado com sucesso' 
+      };
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro inesperado';
+      console.error('[useTripProgress] Erro inesperado:', err);
+      setLastError(errorMessage);
+      
+      if (showToast) {
+        toast.error('Erro inesperado', { description: errorMessage });
+      }
+      
+      return { success: false, message: errorMessage };
+      
+    } finally {
+      setIsUpdating(false);
+      lockRef.current.delete(lockKey);
+    }
+  }, [queryClient]);
+
+  /**
+   * Buscar o progresso atual de um frete
+   */
+  const getProgress = useCallback(async (freightId?: string): Promise<TripProgress | TripProgress[] | null> => {
+    try {
+      const { data, error } = await supabase.rpc('get_my_trip_progress', {
+        p_freight_id: freightId ?? null
+      });
+
+      if (error) {
+        console.error('[useTripProgress] Erro ao buscar progresso:', error);
+        return null;
+      }
+
+      const response = data as unknown as { success: boolean; progress?: TripProgress; progresses?: TripProgress[] };
+      
+      if (!response.success) {
+        return null;
+      }
+
+      return freightId ? response.progress || null : response.progresses || [];
+      
+    } catch (err) {
+      console.error('[useTripProgress] Erro inesperado ao buscar:', err);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Retorna o próximo status na sequência
+   */
+  const getNextStatus = useCallback((currentStatus: string): string | null => {
+    const normalizedStatus = currentStatus.toUpperCase().trim();
+    const currentIndex = STATUS_ORDER.indexOf(normalizedStatus);
+    
+    if (currentIndex === -1 || currentIndex >= STATUS_ORDER.length - 1) {
+      return null;
+    }
+    
+    return STATUS_ORDER[currentIndex + 1];
+  }, []);
+
+  /**
+   * Retorna o label amigável do status
+   */
+  const getStatusLabel = useCallback((status: string): string => {
+    return STATUS_LABELS[status.toUpperCase().trim()] || status;
+  }, []);
+
+  /**
+   * Verifica se pode avançar para o próximo status
+   */
+  const canAdvance = useCallback((currentStatus: string): boolean => {
+    const normalizedStatus = currentStatus.toUpperCase().trim();
+    const currentIndex = STATUS_ORDER.indexOf(normalizedStatus);
+    
+    // Pode avançar se não está no último status e não está cancelado
+    return currentIndex !== -1 && 
+           currentIndex < STATUS_ORDER.length - 1 &&
+           normalizedStatus !== 'CANCELLED' &&
+           normalizedStatus !== 'COMPLETED';
+  }, []);
+
+  /**
+   * Atalho: Avança para o próximo status automaticamente
+   */
+  const advanceToNextStatus = useCallback(async (
+    freightId: string,
+    currentStatus: string,
+    options?: { lat?: number; lng?: number; notes?: string }
+  ) => {
+    const nextStatus = getNextStatus(currentStatus);
+    
+    if (!nextStatus) {
+      return { success: false, message: 'Não há próximo status disponível' };
+    }
+    
+    return updateProgress(freightId, nextStatus, options);
+  }, [getNextStatus, updateProgress]);
+
+  return {
+    // Estados
+    isUpdating,
+    lastError,
+    
+    // Funções principais
+    updateProgress,
+    getProgress,
+    advanceToNextStatus,
+    
+    // Utilitários
+    getNextStatus,
+    getStatusLabel,
+    canAdvance,
+    
+    // Constantes
+    STATUS_ORDER,
+    STATUS_LABELS
+  };
+};
+
+export type { TripProgress, TripProgressResponse };
