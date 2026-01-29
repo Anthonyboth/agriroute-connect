@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, FileWarning } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
-import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe } from '@/utils/location';
+import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe } from '@/utils/location';
 import { supabase } from '@/integrations/supabase/client';
 
 export const UnifiedTrackingControl = () => {
@@ -19,6 +19,9 @@ export const UnifiedTrackingControl = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasUserGesture, setHasUserGesture] = useState(false);
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+
+  // Evitar spam de toasts de geolocalização (timeouts são comuns em PWA/indoor)
+  const lastGeoErrorRef = useRef<{ code?: number; at: number }>({ at: 0 });
 
   // Registrar user gesture para auto-tracking
   useEffect(() => {
@@ -51,10 +54,19 @@ export const UnifiedTrackingControl = () => {
   }, [hasActiveFreight, activeFreightId, profile?.id, hasUserGesture]);
 
   const handleGeolocationError = (error: any) => {
-    console.error('Erro no rastreamento:', error);
+    // GeolocationPositionError possui props não-enumeráveis (aparece como {})
+    const code = error?.code;
+    const message = error?.message;
+    console.error('Erro no rastreamento:', { code, message, raw: error });
+
+    // Debounce de 10s para não travar UX com toasts repetidos
+    const now = Date.now();
+    const last = lastGeoErrorRef.current;
+    if (now - last.at < 10_000 && last.code === code) return;
+    lastGeoErrorRef.current = { code, at: now };
     
-    if (error && error.code) {
-      switch (error.code) {
+    if (code) {
+      switch (code) {
         case 1:
           toast.error('Permissão de localização negada', {
             description: 'Ative nas configurações do dispositivo.'
@@ -66,11 +78,16 @@ export const UnifiedTrackingControl = () => {
           });
           break;
         case 3:
-          toast.error('Tempo esgotado ao obter localização');
+          // Timeout é recuperável: manter tracking e avisar sem bloquear
+          toast.warning('GPS demorando para responder', {
+            description: 'Se estiver em local fechado, mova-se para uma área aberta e tente novamente.'
+          });
           break;
         default:
           toast.error('Erro ao rastrear localização');
       }
+    } else if (message) {
+      toast.error('Erro ao rastrear localização', { description: message });
     }
   };
 
@@ -89,7 +106,16 @@ export const UnifiedTrackingControl = () => {
 
       const delay = isAuto ? 3000 : 0;
       
-      setTimeout(() => {
+      setTimeout(async () => {
+        try {
+          // ✅ Primeira leitura com retries/timeout maior (reduz ocorrência de timeout do watchPosition)
+          const initial = await getCurrentPositionSafe(3);
+          await updateLocation(initial.coords);
+        } catch (e) {
+          // Não bloquear o tracking: o watchPosition pode recuperar depois
+          handleGeolocationError(e);
+        }
+
         const handle = watchPositionSafe(
           (coords) => updateLocation(coords),
           (error) => handleGeolocationError(error)
@@ -154,6 +180,20 @@ export const UnifiedTrackingControl = () => {
     if (!profile?.id) return;
 
     try {
+      // ✅ Persistir também na tabela dedicada (evita dependência de RLS/PII na profiles)
+      await supabase
+        .from('driver_current_locations')
+        .upsert(
+          {
+            driver_profile_id: profile.id,
+            lat: coords.latitude,
+            lng: coords.longitude,
+            last_gps_update: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'driver_profile_id' }
+        );
+
       await supabase
         .from('profiles')
         .update({

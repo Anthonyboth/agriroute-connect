@@ -22,6 +22,7 @@ export const DriverLocationMapMapLibre = ({ lat, lng, driverName }: DriverLocati
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Inicializar mapa
@@ -61,7 +62,22 @@ export const DriverLocationMapMapLibre = ({ lat, lng, driverName }: DriverLocati
 
     mapRef.current = map;
 
+    // Corrigir mapa em branco em Tabs/Dialog (container pode iniciar com tamanho 0)
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = new ResizeObserver(() => {
+        requestAnimationFrame(() => {
+          try {
+            map.resize();
+          } catch {}
+        });
+      });
+      resizeObserverRef.current.observe(mapContainerRef.current);
+    }
+
     return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       markerRef.current?.remove();
       map.remove();
     };
