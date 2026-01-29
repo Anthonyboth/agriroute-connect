@@ -11,7 +11,8 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2 } from 'lucide-react';
+import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2, User } from 'lucide-react';
+import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
 import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
@@ -45,7 +46,10 @@ interface FreightInProgressCardProps {
     service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     driver_profiles?: {
       full_name: string;
+      profile_photo_url?: string;
     } | null;
+    driver_id?: string;
+    drivers_assigned?: string[];
     deliveryDeadline?: {
       hoursRemaining: number;
       isUrgent: boolean;
@@ -254,16 +258,30 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="details" className="flex-1 flex flex-col mt-2">
+          <TabsContent value="details" className="flex-1 flex flex-col mt-2 space-y-3 overflow-y-auto max-h-[300px]">
             {/* Grid de informações */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="min-w-0">
                 <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
                   {LABELS.MOTORISTA_LABEL}
                 </p>
-                <p className="text-foreground truncate whitespace-nowrap">
-                  {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
-                </p>
+                <div className="flex items-center gap-2">
+                  {freight.driver_profiles?.profile_photo_url ? (
+                    <img 
+                      src={freight.driver_profiles.profile_photo_url} 
+                      alt="Foto do motorista"
+                      className="h-6 w-6 rounded-full object-cover border"
+                      onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                    />
+                  ) : (
+                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
+                  <p className="text-foreground truncate whitespace-nowrap">
+                    {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
+                  </p>
+                </div>
               </div>
               <div className="min-w-0">
                 <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
@@ -274,6 +292,13 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                 </p>
               </div>
             </div>
+
+            {/* Preview do veículo do motorista */}
+            {(freight.driver_id || (freight.drivers_assigned && freight.drivers_assigned.length > 0)) && (
+              <DriverVehiclePreview 
+                driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')} 
+              />
+            )}
 
             {/* Botões de ação */}
             {showActions && (

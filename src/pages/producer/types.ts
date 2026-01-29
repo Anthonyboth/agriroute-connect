@@ -37,7 +37,14 @@ export interface ProducerFreight {
     email?: string;
     role?: string;
     user_id?: string;
+    profile_photo_url?: string;
   };
+  driver_profiles?: {
+    full_name: string;
+    profile_photo_url?: string;
+  };
+  drivers_assigned?: string[];
+  required_trucks?: number;
   deliveryDeadline?: {
     hoursRemaining: number;
     isUrgent: boolean;
