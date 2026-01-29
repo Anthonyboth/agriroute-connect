@@ -65,6 +65,7 @@ type AssignmentRow = {
   status: string;
   agreed_price: number | null;
   accepted_at: string | null;
+  company_id?: string | null;
   freight: FreightRow | null;
 };
 
@@ -430,6 +431,7 @@ export const DriverOngoingTab: React.FC = () => {
           status,
           agreed_price,
           accepted_at,
+          company_id,
           freight:freights(
             id,
             created_at,
@@ -497,8 +499,16 @@ export const DriverOngoingTab: React.FC = () => {
         return acc;
       }, [] as FreightRow[]);
 
+      // ✅ EVITAR DUPLICIDADE: se o frete já estiver em freight_assignments, não mostrar também em "Fretes Rurais"
+      const assignmentFreightIds = new Set(
+        (assignments || []).map((a: any) => a?.freight?.id).filter(Boolean)
+      );
+      const freightsWithoutAssignmentDuplicates = uniqueFreights.filter(
+        (f) => !assignmentFreightIds.has(f.id)
+      );
+
       return {
-        freights: uniqueFreights,
+        freights: freightsWithoutAssignmentDuplicates,
         assignments: (assignments || []).filter(a => a.freight) as AssignmentRow[],
         serviceRequests: (svcReqs || []) as ServiceRequestRow[],
       };
@@ -508,6 +518,13 @@ export const DriverOngoingTab: React.FC = () => {
   const freights = data?.freights ?? [];
   const assignments = data?.assignments ?? [];
   const serviceRequests = data?.serviceRequests ?? [];
+
+  const hasTransportCompanyLink = useMemo(() => {
+    const anyAssignmentHasCompany = assignments.some((a: any) => !!a?.company_id);
+    const roleSuggestsAffiliation = profile?.role === 'MOTORISTA_AFILIADO';
+    const profileHasCompany = Boolean((profile as any)?.company_id);
+    return anyAssignmentHasCompany || roleSuggestsAffiliation || profileHasCompany;
+  }, [assignments, profile]);
 
   const totalCount = freights.length + assignments.length + serviceRequests.length;
 
@@ -588,7 +605,9 @@ export const DriverOngoingTab: React.FC = () => {
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <Truck className="h-4 w-4" />
-                Fretes via Transportadora ({assignments.length})
+                {hasTransportCompanyLink
+                  ? `Fretes via Transportadora (${assignments.length})`
+                  : `Fretes Aceitos (${assignments.length})`}
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {assignments.map((a) => (
