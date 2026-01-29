@@ -293,18 +293,65 @@ async function updateStatusDirect(
   try {
     console.log('[STATUS-UPDATE] Executando fallback direto...');
     
-    // 1. Atualizar frete
-    const { error: freightError } = await supabase
+    // Verificar se é frete multi-carreta
+    const { data: freightData } = await supabase
       .from('freights')
-      .update({ 
-        status: newStatus as any,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', freightId);
+      .select('required_trucks, driver_id')
+      .eq('id', freightId)
+      .single();
     
-    if (freightError) {
-      console.error('[STATUS-UPDATE] Erro ao atualizar frete:', freightError);
-      return false;
+    const isMultiTruck = (freightData?.required_trucks ?? 1) > 1 && !freightData?.driver_id;
+    
+    // ✅ Para fretes multi-carreta, NUNCA atualizar o status do frete diretamente
+    // Apenas atualizar o assignment do motorista
+    if (isMultiTruck) {
+      console.log('[STATUS-UPDATE] Multi-truck freight - updating assignment only');
+      
+      const { error: assignmentError } = await supabase
+        .from('freight_assignments')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('freight_id', freightId)
+        .eq('driver_id', userId)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+      
+      if (assignmentError) {
+        console.error('[STATUS-UPDATE] Erro ao atualizar assignment:', assignmentError);
+        return false;
+      }
+      
+      // Apenas atualizar updated_at do frete para trigger de refresh
+      await supabase
+        .from('freights')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', freightId);
+        
+    } else {
+      // Frete de carreta única - comportamento legado
+      const { error: freightError } = await supabase
+        .from('freights')
+        .update({ 
+          status: newStatus as any,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', freightId);
+      
+      if (freightError) {
+        console.error('[STATUS-UPDATE] Erro ao atualizar frete:', freightError);
+        return false;
+      }
+      
+      // Atualizar assignment também
+      await supabase
+        .from('freight_assignments')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('freight_id', freightId)
+        .eq('driver_id', userId);
     }
     
     // 2. Inserir histórico
@@ -319,7 +366,7 @@ async function updateStatusDirect(
     
     if (historyError) {
       console.warn('[STATUS-UPDATE] Erro ao inserir histórico:', historyError);
-      // Não bloqueia pois frete já foi atualizado
+      // Não bloqueia pois já foi atualizado
     }
     
     // 3. Inserir checkin se houver localização
@@ -334,17 +381,6 @@ async function updateStatusDirect(
           checkin_type: newStatus,
           notes: notes
         } as any);
-    }
-    
-    // 4. Atualizar assignment se fornecido
-    if (assignmentId) {
-      await supabase
-        .from('freight_assignments')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', assignmentId);
     }
     
     console.log('[STATUS-UPDATE] ✅ Fallback direto bem-sucedido');
