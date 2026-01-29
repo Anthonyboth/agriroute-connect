@@ -568,10 +568,10 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [effectiveOrigin, effectiveDestination, effectiveDriverLocation]);
 
-  // Loading state
+  // Loading state - IMPORTANTE: manter mesma altura que o mapa para evitar layout shift
   if (isLoading) {
     return (
-      <div className={cn("flex items-center justify-center h-[280px] bg-muted/30 rounded-lg", className)}>
+      <div className={cn("flex items-center justify-center bg-muted/30 rounded-lg", className)} style={{ height: '280px', minHeight: '280px' }}>
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="text-sm">Carregando mapa...</span>
@@ -583,7 +583,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   // Error state
   if (error || mapError) {
     return (
-      <div className={cn("flex items-center justify-center h-[280px] bg-muted/30 rounded-lg", className)}>
+      <div className={cn("flex items-center justify-center bg-muted/30 rounded-lg", className)} style={{ height: '280px', minHeight: '280px' }}>
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <WifiOff className="h-8 w-8" />
           <span className="text-sm">{error || mapError}</span>
@@ -595,7 +595,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   // ✅ No location fallback - só mostra se não tiver NENHUMA coordenada válida
   if (!hasAnyValidCoordinate && !isLoading) {
     return (
-      <div className={cn("flex items-center justify-center h-[280px] bg-muted/30 rounded-lg border-2 border-dashed border-muted", className)}>
+      <div className={cn("flex items-center justify-center bg-muted/30 rounded-lg border-2 border-dashed border-muted", className)} style={{ height: '280px', minHeight: '280px' }}>
         <div className="flex flex-col items-center gap-3 text-muted-foreground p-4 text-center">
           <MapPin className="h-10 w-10 opacity-50" />
           <div>
@@ -608,9 +608,13 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   }
 
   return (
-    <div className={cn("relative h-[280px] rounded-lg overflow-hidden border border-border", className)}>
-      {/* Mapa */}
-      <div ref={mapContainerRef} className="absolute inset-0" />
+    <div className={cn("relative rounded-lg overflow-hidden border border-border", className)} style={{ height: '280px', minHeight: '280px' }}>
+      {/* Mapa - IMPORTANTE: container precisa ter dimensões explícitas para MapLibre */}
+      <div 
+        ref={mapContainerRef} 
+        className="absolute inset-0"
+        style={{ width: '100%', height: '100%' }}
+      />
 
       {/* Status overlay */}
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2 z-10">

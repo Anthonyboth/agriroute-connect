@@ -323,10 +323,10 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             )}
           </TabsContent>
 
-          <TabsContent value="map" className="flex-1 mt-2">
+          <TabsContent value="map" className="mt-2" style={{ minHeight: '280px' }}>
             {mapMounted && (
               <Suspense fallback={
-                <div className="flex items-center justify-center h-[280px] bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-8 w-8 animate-spin" />
                     <span className="text-sm">Carregando mapa...</span>
@@ -350,7 +350,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               </Suspense>
             )}
             {!mapMounted && (
-              <div className="flex items-center justify-center h-[280px] bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <Map className="h-8 w-8 opacity-50" />
                   <span className="text-sm">Clique para carregar o mapa</span>
