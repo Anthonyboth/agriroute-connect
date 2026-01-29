@@ -2,6 +2,8 @@
  * Helpers para classificação de fretes baseado em datas de coleta
  */
 
+import { normalizeFreightStatus } from '@/lib/freight-status';
+
 export interface FreightDateClassification {
   status: 'scheduled' | 'today' | 'overdue' | 'current';
   daysUntilPickup: number;
@@ -99,18 +101,22 @@ export const isScheduledFreight = (pickupDate: string | null, status: string): b
  * @returns true se deve aparecer em "Em Andamento"
  */
 export const isInProgressFreight = (pickupDate: string | null, status: string): boolean => {
+  // ✅ Defesa contra status não-canônico (ex: "CARREGANDO", "EM_TRANSPORTE")
+  // Sem isso, o frete pode "sumir" das abas de andamento.
+  const normalizedStatus = normalizeFreightStatus(String(status || ''));
+
   // Finalizados nunca aparecem em andamento
-  if (['CANCELLED', 'DELIVERED', 'COMPLETED'].includes(status)) return false;
+  if (['CANCELLED', 'DELIVERED', 'COMPLETED'].includes(normalizedStatus)) return false;
   
   // Status que indicam que o frete ESTÁ FISICAMENTE em andamento,
   // independente da data de coleta (já foi carregado, está em trânsito, etc.)
   const alwaysInProgressStatuses = ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'];
-  if (alwaysInProgressStatuses.includes(status)) {
+  if (alwaysInProgressStatuses.includes(normalizedStatus)) {
     return true;
   }
   
   // Status ACCEPTED: depende da data de pickup
-  if (status === 'ACCEPTED') {
+  if (normalizedStatus === 'ACCEPTED') {
     if (!pickupDate) return true; // Sem data = assume que está em andamento
     
     const classification = classifyFreightByPickupDate(pickupDate);
