@@ -404,14 +404,26 @@ const ProducerDashboard = () => {
         }
       }
 
-      // Resolver perfis de motoristas via view segura
-      const driverIds = Array.from(
-        new Set(
-          rows
-            .map((f: any) => f.driver_id)
-            .filter((id: any) => typeof id === "string" && id.length > 0),
-        ),
-      );
+      // ✅ FIX: Resolver perfis de motoristas via view segura
+      // Incluir tanto driver_id quanto drivers_assigned (array de IDs para multi-carreta)
+      const allDriverIds: string[] = [];
+      
+      rows.forEach((f: any) => {
+        // driver_id único (fretes simples)
+        if (typeof f.driver_id === "string" && f.driver_id.length > 0) {
+          allDriverIds.push(f.driver_id);
+        }
+        // drivers_assigned (array para multi-carreta)
+        if (Array.isArray(f.drivers_assigned)) {
+          f.drivers_assigned.forEach((id: any) => {
+            if (typeof id === "string" && id.length > 0) {
+              allDriverIds.push(id);
+            }
+          });
+        }
+      });
+
+      const driverIds = Array.from(new Set(allDriverIds));
 
       let driverMap = new Map<string, any>();
       if (driverIds.length > 0) {
@@ -431,13 +443,35 @@ const ProducerDashboard = () => {
       }
 
       const finalData = rows.map((freight: any) => {
-        const driverProfile = freight.driver_id ? driverMap.get(freight.driver_id) || null : null;
+        // Para fretes simples: usar driver_id
+        // Para fretes multi-carreta (driver_id null): usar primeiro motorista de drivers_assigned
+        let driverProfile = null;
+        
+        if (freight.driver_id && driverMap.has(freight.driver_id)) {
+          driverProfile = driverMap.get(freight.driver_id);
+        } else if (Array.isArray(freight.drivers_assigned) && freight.drivers_assigned.length > 0) {
+          // Multi-carreta: usar primeiro motorista para exibição no card
+          const firstDriverId = freight.drivers_assigned[0];
+          if (firstDriverId && driverMap.has(firstDriverId)) {
+            driverProfile = driverMap.get(firstDriverId);
+          }
+        }
+        
+        // Mapear todos os motoristas atribuídos (para detalhes)
+        const allAssignedDrivers = Array.isArray(freight.drivers_assigned)
+          ? freight.drivers_assigned
+              .map((id: string) => driverMap.get(id))
+              .filter(Boolean)
+          : [];
+
         const mappedFreight: any = {
           ...freight,
           // Compatibilidade com FreightInProgressCard
           driver_profiles: driverProfile,
           // Compatibilidade retroativa: partes do ProducerDashboard ainda usam `freight.profiles`
           profiles: driverProfile,
+          // Novo: todos os motoristas (para tela de detalhes)
+          all_assigned_drivers: allAssignedDrivers,
         };
 
         if (mappedFreight.status === "DELIVERED_PENDING_CONFIRMATION") {
