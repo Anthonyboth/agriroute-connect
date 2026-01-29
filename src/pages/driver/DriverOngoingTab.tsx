@@ -740,7 +740,7 @@ export const DriverOngoingTab: React.FC = () => {
           if (!open) setSelectedFreightId(null);
         }}
       >
-        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
           <DialogDescription className="sr-only">Detalhes completos do frete</DialogDescription>
           {selectedFreightId && profile && (
             <FreightDetails

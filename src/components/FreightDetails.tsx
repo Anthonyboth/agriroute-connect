@@ -374,9 +374,6 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                   Mover para o histórico
                 </Button>
               )}
-              <Button variant="destructive" size="sm" onClick={onClose}>
-                Fechar
-              </Button>
             </div>
           </div>
         </CardHeader>
