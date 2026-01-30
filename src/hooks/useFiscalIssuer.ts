@@ -51,7 +51,7 @@ export interface FiscalCertificate {
   is_valid?: boolean;
   is_expired?: boolean;
   status?: string;
-  storage_path?: string;
+  // ✅ SECURITY: storage_path e password_hash removidos - não expostos ao cliente
   uploaded_at?: string;
   created_at: string;
 }
