@@ -18,7 +18,7 @@ import { LABELS } from "@/lib/labels";
 import { normalizeFreightStatus } from "@/lib/freight-status";
 import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
-import { MyAssignmentCard } from "@/components/MyAssignmentCard";
+import { FreightInProgressCard } from "@/components/FreightInProgressCard";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 
 const statusLabel = (status: string) => {
@@ -173,23 +173,28 @@ export const DriverOngoingTab: React.FC = () => {
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {assignments.map((a) => (
-                  <MyAssignmentCard
+                  <FreightInProgressCard
                     key={a.id}
-                    assignment={{
-                      ...a,
-                      freight: a.freight
+                    freight={
+                      a.freight
                         ? {
                             ...a.freight,
+                            status: normalizeFreightStatus(String(a.status || a.freight.status || "")),
                             // Para motorista: exibir valor do acordo (não o total do frete)
                             price: a.agreed_price ?? a.freight.price,
-                            // Evita que o FreightInProgressCard divida de novo o valor por carreta
+                            // Evita que o card divida novamente preço por carreta
                             required_trucks: a.agreed_price ? 1 : (a.freight as any).required_trucks,
                           }
-                        : null,
-                    }}
-                    onAction={() => {
+                        : ({} as any)
+                    }
+                    onViewDetails={() => {
                       if (a.freight?.id) handleOpenDetails(a.freight.id);
                       handleStatusUpdate();
+                    }}
+                    // No painel do motorista, o fluxo de cancelamento/adiantamento/NF-e é feito na tela de detalhes.
+                    // Então aqui o botão de cancelamento abre os detalhes também.
+                    onRequestCancel={() => {
+                      if (a.freight?.id) handleOpenDetails(a.freight.id);
                     }}
                   />
                 ))}
@@ -213,27 +218,23 @@ export const DriverOngoingTab: React.FC = () => {
                       ? Math.round(((f.price ?? 0) as number) / requiredTrucks)
                       : (f.price ?? 0);
 
-                  // ✅ Renderizar o mesmo card completo usado nos assignments,
-                  // evitando regressões de UX na aba "Em Andamento".
                   return (
-                    <MyAssignmentCard
+                    <FreightInProgressCard
                       key={f.id}
-                      assignment={{
-                        id: `direct:${f.id}`,
+                      freight={{
+                        ...f,
                         status: normalizedStatus,
-                        agreed_price: driverAgreedPrice,
-                        accepted_at: (f.updated_at ?? f.created_at) as any,
-                        company_id: null,
-                        freight: {
-                          ...f,
-                          status: normalizedStatus,
-                          required_trucks: f.required_trucks,
-                          accepted_trucks: f.accepted_trucks,
-                        },
+                        // Mostrar apenas a porção individual do motorista
+                        price: driverAgreedPrice,
+                        // Evita re-divisão no card
+                        required_trucks: requiredTrucks > 1 ? 1 : (f.required_trucks ?? 1),
                       }}
-                      onAction={() => {
+                      onViewDetails={() => {
                         handleOpenDetails(f.id);
                         handleStatusUpdate();
+                      }}
+                      onRequestCancel={() => {
+                        handleOpenDetails(f.id);
                       }}
                     />
                   );
