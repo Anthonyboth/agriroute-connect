@@ -2711,6 +2711,48 @@ export type Database = {
         }
         Relationships: []
       }
+      edge_function_health: {
+        Row: {
+          avg_latency_ms: number | null
+          created_at: string | null
+          error_count: number | null
+          function_name: string
+          id: string
+          last_check: string | null
+          last_error: string | null
+          last_success: string | null
+          metadata: Json | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          avg_latency_ms?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          function_name: string
+          id?: string
+          last_check?: string | null
+          last_error?: string | null
+          last_success?: string | null
+          metadata?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          avg_latency_ms?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          function_name?: string
+          id?: string
+          last_check?: string | null
+          last_error?: string | null
+          last_success?: string | null
+          metadata?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       emergency_events: {
         Row: {
           created_at: string
