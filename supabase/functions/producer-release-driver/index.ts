@@ -112,7 +112,7 @@ serve(async (req) => {
     // 3) Find current assignment status for this driver
     const { data: assignment } = await supabase
       .from("freight_assignments")
-      .select("id, status")
+      .select("id, status, metadata")
       .eq("freight_id", freightId)
       .eq("driver_id", driverId)
       .order("created_at", { ascending: false })
@@ -120,7 +120,25 @@ serve(async (req) => {
       .maybeSingle();
 
     const assignmentStatus = String((assignment as any)?.status || "").toUpperCase();
-    const canRelease = ["ACCEPTED", "LOADING"].includes(assignmentStatus) || (!assignment && ["ACCEPTED", "LOADING"].includes(String((freight as any).status || "").toUpperCase()));
+
+    // ✅ Multi-carreta: o status global do frete pode ficar OPEN mesmo com motoristas em progresso.
+    // Por isso, além do freight_assignments, checamos driver_trip_progress como fonte de verdade.
+    const { data: tripProgressRow } = await supabase
+      .from("driver_trip_progress")
+      .select("current_status")
+      .eq("freight_id", freightId)
+      .eq("driver_id", driverId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const tripStatus = String((tripProgressRow as any)?.current_status || "").toUpperCase();
+    const freightStatus = String((freight as any).status || "").toUpperCase();
+
+    const canRelease =
+      ["ACCEPTED", "LOADING"].includes(assignmentStatus) ||
+      ["ACCEPTED", "LOADING"].includes(tripStatus) ||
+      (!assignment && ["ACCEPTED", "LOADING"].includes(freightStatus));
 
     if (!canRelease) {
       return new Response(
@@ -129,7 +147,7 @@ serve(async (req) => {
           error: "INVALID_STATUS",
           message:
             "Só é possível liberar o motorista quando a atribuição está em ACCEPTED ou LOADING (antes de CARREGADO/EM TRÂNSITO).",
-          debug: { freight_status: (freight as any).status, assignment_status: (assignment as any)?.status },
+          debug: { freight_status: (freight as any).status, assignment_status: (assignment as any)?.status, trip_status: (tripProgressRow as any)?.current_status },
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
