@@ -32,6 +32,7 @@ import { formatKm } from '@/lib/formatters';
 import { CTeEmitirDialog } from './fiscal/CTeEmitirDialog';
 import { isFeatureEnabled } from '@/config/featureFlags';
 import { AntifraudPanel } from './antifraude';
+import { useDashboardIntegrityGuard } from '@/hooks/useDashboardIntegrityGuard';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -48,6 +49,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   onFreightWithdraw,
   initialTab = 'status'
 }) => {
+  // ✅ GUARD: Valida integridade do modal - evita regressões
+  useDashboardIntegrityGuard('freight_details_modal', 'FreightDetails');
+  
   // No toast initialization needed - using sonner directly
   const [freight, setFreight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
