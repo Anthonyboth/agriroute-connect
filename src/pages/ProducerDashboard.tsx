@@ -1039,7 +1039,16 @@ const ProducerDashboard = () => {
           ? freightToCancel.drivers_assigned[0]
           : null;
 
-    const shouldReleaseDriver = ["ACCEPTED", "LOADING"].includes(status) && !!assignedDriverId;
+    const requiredTrucks = Number((freightToCancel as any).required_trucks ?? 1);
+    const acceptedTrucks = Number((freightToCancel as any).accepted_trucks ?? 0);
+
+    // ✅ Multi-carreta: o status global pode continuar OPEN por design para manter visibilidade no marketplace.
+    // Nesses casos, ao clicar em cancelar na aba de andamento, a ação correta é liberar o motorista
+    // (cancelar a atribuição dele) e reabrir o frete — NÃO cancelar o frete inteiro.
+    const shouldReleaseDriver = !!assignedDriverId && (
+      ["ACCEPTED", "LOADING"].includes(status) ||
+      (status === "OPEN" && requiredTrucks > 1 && acceptedTrucks > 0)
+    );
 
     try {
       const { data, error } = shouldReleaseDriver
