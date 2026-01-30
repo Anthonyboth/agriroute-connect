@@ -1021,28 +1021,53 @@ const ProducerDashboard = () => {
   const confirmCancelFreight = async () => {
     if (!freightToCancel) return;
 
-    const canCancelDirectly = ["OPEN", "ACCEPTED", "LOADING"].includes(freightToCancel.status);
+    const status = String(freightToCancel.status || '').toUpperCase().trim();
+    const canCancelDirectly = ["OPEN", "ACCEPTED", "LOADING"].includes(status);
     if (!canCancelDirectly) {
       toast.error("Este frete está em andamento. Solicite o cancelamento via chat com o motorista.");
       setConfirmDialogOpen(false);
       return;
     }
 
+    // ✅ Quando o frete já tem motorista aceito (ACCEPTED/LOADING),
+    // o botão do card do PRODUTOR deve "liberar o motorista" (cancelar a atribuição daquele motorista)
+    // e reabrir o frete para outros motoristas — NÃO cancelar o frete inteiro.
+    const assignedDriverId: string | null =
+      (typeof freightToCancel.driver_id === 'string' && freightToCancel.driver_id.length > 0)
+        ? freightToCancel.driver_id
+        : (Array.isArray(freightToCancel.drivers_assigned) && typeof freightToCancel.drivers_assigned?.[0] === 'string')
+          ? freightToCancel.drivers_assigned[0]
+          : null;
+
+    const shouldReleaseDriver = ["ACCEPTED", "LOADING"].includes(status) && !!assignedDriverId;
+
     try {
-      const { data, error } = await supabase.functions.invoke("cancel-freight-safe", {
-        body: { freight_id: freightToCancel.id, reason: "Cancelado pelo produtor" },
-      });
+      const { data, error } = shouldReleaseDriver
+        ? await supabase.functions.invoke("producer-release-driver", {
+            body: {
+              freight_id: freightToCancel.id,
+              driver_id: assignedDriverId,
+              reason: "Motorista liberado pelo produtor",
+            },
+          })
+        : await supabase.functions.invoke("cancel-freight-safe", {
+            body: { freight_id: freightToCancel.id, reason: "Cancelado pelo produtor" },
+          });
 
       if (error) throw error;
-      if (!(data as any)?.success) throw new Error((data as any)?.error || "Erro ao cancelar frete");
+      if (!(data as any)?.success) throw new Error((data as any)?.error || "Erro ao processar ação");
 
-      toast.success("Frete cancelado com sucesso!");
+      toast.success(
+        shouldReleaseDriver
+          ? "Motorista removido. Frete reaberto para outros motoristas."
+          : "Frete cancelado com sucesso!",
+      );
       setConfirmDialogOpen(false);
       setFreightToCancel(null);
       fetchFreights();
     } catch (e: any) {
-      console.error("Error cancelling freight:", e);
-      toast.error(e?.message || "Erro ao cancelar frete");
+      console.error("Error processing freight action:", e);
+      toast.error(e?.message || "Erro ao processar ação");
     }
   };
 
@@ -1990,9 +2015,21 @@ const ProducerDashboard = () => {
         isOpen={confirmDialogOpen}
         onClose={() => setConfirmDialogOpen(false)}
         onConfirm={confirmCancelFreight}
-        title="Cancelar Frete"
-        description="Tem certeza que deseja cancelar este frete? Esta ação não pode ser desfeita."
-        confirmText="Sim, cancelar"
+        title={
+          freightToCancel && ["ACCEPTED", "LOADING"].includes(String(freightToCancel.status || '').toUpperCase().trim())
+            ? "Liberar Motorista"
+            : "Cancelar Frete"
+        }
+        description={
+          freightToCancel && ["ACCEPTED", "LOADING"].includes(String(freightToCancel.status || '').toUpperCase().trim())
+            ? "Isso remove o motorista atual deste frete e reabre o frete para que outros motoristas possam aceitar."
+            : "Tem certeza que deseja cancelar este frete? Esta ação não pode ser desfeita."
+        }
+        confirmText={
+          freightToCancel && ["ACCEPTED", "LOADING"].includes(String(freightToCancel.status || '').toUpperCase().trim())
+            ? "Sim, liberar"
+            : "Sim, cancelar"
+        }
         cancelText="Não, manter"
         variant="destructive"
       />
