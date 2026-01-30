@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { Play } from 'lucide-react';
 import { isInProgressFreight } from '@/utils/freightDateHelpers';
+import { useDashboardIntegrityGuard } from '@/hooks/useDashboardIntegrityGuard';
 import type { ProducerFreight } from './types';
 
 interface ProducerOngoingTabProps {
@@ -16,6 +17,8 @@ export const ProducerOngoingTab: React.FC<ProducerOngoingTabProps> = ({
   onViewDetails,
   onRequestCancel,
 }) => {
+  // ✅ GUARD: Valida integridade do componente - evita regressões
+  useDashboardIntegrityGuard('producer_ongoing', 'ProducerOngoingTab');
   const ongoingFreights = freights.filter(f => isInProgressFreight(f.pickup_date, f.status));
 
   if (ongoingFreights.length === 0) {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
+import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
 
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -67,6 +68,9 @@ export const DriverOngoingTab: React.FC = () => {
   const queryClient = useQueryClient();
   const driverProfileId = profile?.id;
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
+
+  // ✅ GUARD: Valida integridade do componente - evita regressões
+  useDashboardIntegrityGuard('driver_ongoing', 'DriverOngoingTab');
 
   const { data, isLoading, refetch, isFetching } = useDriverOngoingCards(driverProfileId);
 
