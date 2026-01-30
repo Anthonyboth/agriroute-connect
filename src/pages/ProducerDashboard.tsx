@@ -429,7 +429,8 @@ const ProducerDashboard = () => {
       if (driverIds.length > 0) {
         const { data: drivers, error: driversError } = await (supabase as any)
           .from("profiles_secure")
-          .select("id, full_name, contact_phone, phone, profile_photo_url")
+          // profiles_secure mascara PII (ex: telefones). Buscar apenas campos garantidos.
+          .select("id, full_name, profile_photo_url, rating, total_ratings")
           .in("id", driverIds);
 
         if (driversError) {
