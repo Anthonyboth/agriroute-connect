@@ -277,31 +277,38 @@ serve(async (req) => {
       
       console.log(`[DUPLICATE-CHECK] Driver ${profile.id} already has assignment for freight ${freight_id} with status: ${currentStatus}`);
       
-      // Se está em status ativo, informar que já está em andamento
+      // ✅ IDEMPOTÊNCIA: Se está em status ativo, retornar SUCESSO (não erro)
+      // Isso evita erros 500/409 repetitivos e permite tratamento gracioso no frontend
       const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'];
       if (activeStatuses.includes(currentStatus)) {
+        console.log(`[IDEMPOTENT] Returning success for already-accepted freight`);
         return new Response(
           JSON.stringify({ 
-            error: "Você já aceitou este frete",
-            details: `Você já tem uma carreta ${statusDesc} para este frete. Por favor, conclua a entrega atual antes de aceitar outra carreta para o mesmo frete.`,
+            success: true,
+            already_accepted: true,
+            message: `Você já aceitou este frete (status: ${statusDesc})`,
             current_assignment_status: currentStatus,
             assignment_count: existingAssignments.length,
+            assignments: existingAssignments,
             code: "ALREADY_ACCEPTED"
           }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      // Se está aguardando confirmação, informar que precisa aguardar
+      // ✅ IDEMPOTÊNCIA: Se está aguardando confirmação, retornar SUCESSO
       if (currentStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+        console.log(`[IDEMPOTENT] Returning success for pending confirmation freight`);
         return new Response(
           JSON.stringify({ 
-            error: "Entrega aguardando confirmação",
-            details: "Sua entrega anterior deste frete está aguardando confirmação do produtor. Aguarde a confirmação antes de aceitar novamente.",
+            success: true,
+            pending_confirmation: true,
+            message: "Sua entrega está aguardando confirmação do produtor",
             current_assignment_status: currentStatus,
+            assignments: existingAssignments,
             code: "PENDING_CONFIRMATION"
           }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -565,6 +572,39 @@ serve(async (req) => {
         if (error) {
           console.error(`[ERROR] Creating assignment ${i + 1}/${num_trucks} for driver ${driver_id}:`, error);
           
+          // ✅ IDEMPOTÊNCIA: Duplicata = já aceito = sucesso
+          if (error.code === '23505') {
+            console.log(`[IDEMPOTENT] Duplicate key - freight already accepted by this driver`);
+            
+            // Buscar o assignment existente
+            const { data: existingAssignment } = await supabase
+              .from("freight_assignments")
+              .select("*")
+              .eq("freight_id", freight_id)
+              .eq("driver_id", driver_id)
+              .single();
+            
+            // Rollback assignments criados nesta execução (se houver)
+            if (assignments.length > 0) {
+              console.log(`[ROLLBACK] Deleting ${assignments.length} created assignments`);
+              await supabase
+                .from("freight_assignments")
+                .delete()
+                .in("id", assignments.map(a => a.id));
+            }
+            
+            return new Response(
+              JSON.stringify({ 
+                success: true,
+                already_accepted: true,
+                message: "Você já aceitou este frete",
+                assignments: existingAssignment ? [existingAssignment] : [],
+                code: "ALREADY_ACCEPTED"
+              }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
           // Rollback: deletar assignments já criados
           if (assignments.length > 0) {
             console.log(`[ROLLBACK] Deleting ${assignments.length} created assignments`);
@@ -572,18 +612,6 @@ serve(async (req) => {
               .from("freight_assignments")
               .delete()
               .in("id", assignments.map(a => a.id));
-          }
-          
-          // Retornar erro amigável para duplicatas
-          if (error.code === '23505') {
-            return new Response(
-              JSON.stringify({ 
-                error: "This freight has already been accepted with this driver",
-                details: "You cannot accept the same freight multiple times with the same driver. Try using a different available driver.",
-                postgres_error: error.message
-              }),
-              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
           }
           
           // Outros erros
