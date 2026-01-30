@@ -49,6 +49,12 @@ interface FreightInProgressCardProps {
       full_name: string;
       profile_photo_url?: string;
     } | null;
+    // ✅ Produtor - exibido no painel do MOTORISTA
+    producer?: {
+      id?: string;
+      full_name: string;
+      profile_photo_url?: string;
+    } | null;
     driver_id?: string;
     drivers_assigned?: string[];
     // Multi-carreta (opcional): alguns lugares usam para UX/estado
@@ -264,27 +270,56 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
           <TabsContent value="details" className="flex-1 flex flex-col mt-2 space-y-3 overflow-y-auto max-h-[300px]">
             {/* Grid de informações */}
             <div className="grid grid-cols-2 gap-3 text-sm">
+              {/* Coluna 1: Motorista OU Produtor (depende de quem está vendo) */}
               <div className="min-w-0">
-                <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                  {LABELS.MOTORISTA_LABEL}
-                </p>
-                <div className="flex items-center gap-2">
-                  {freight.driver_profiles?.profile_photo_url ? (
-                    <img 
-                      src={freight.driver_profiles.profile_photo_url} 
-                      alt="Foto do motorista"
-                      className="h-6 w-6 rounded-full object-cover border"
-                      onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                    />
-                  ) : (
-                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-3 w-3 text-muted-foreground" />
+                {/* Se tiver produtor definido, mostra o produtor (painel do motorista) */}
+                {freight.producer ? (
+                  <>
+                    <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                      Produtor
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {freight.producer.profile_photo_url ? (
+                        <img 
+                          src={freight.producer.profile_photo_url} 
+                          alt="Foto do produtor"
+                          className="h-6 w-6 rounded-full object-cover border"
+                          onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                        />
+                      ) : (
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      )}
+                      <p className="text-foreground truncate whitespace-nowrap">
+                        {freight.producer.full_name || 'Produtor não identificado'}
+                      </p>
                     </div>
-                  )}
-                  <p className="text-foreground truncate whitespace-nowrap">
-                    {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
-                  </p>
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                      {LABELS.MOTORISTA_LABEL}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {freight.driver_profiles?.profile_photo_url ? (
+                        <img 
+                          src={freight.driver_profiles.profile_photo_url} 
+                          alt="Foto do motorista"
+                          className="h-6 w-6 rounded-full object-cover border"
+                          onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                        />
+                      ) : (
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      )}
+                      <p className="text-foreground truncate whitespace-nowrap">
+                        {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="min-w-0">
                 <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
@@ -377,7 +412,9 @@ export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, 
     prevProps.freight.current_lat === nextProps.freight.current_lat &&
     prevProps.freight.current_lng === nextProps.freight.current_lng &&
     prevProps.showActions === nextProps.showActions &&
-    prevProps.highlightFreightId === nextProps.highlightFreightId
-    // Removidos onViewDetails e onRequestCancel - callbacks inline quebram memo
+    prevProps.highlightFreightId === nextProps.highlightFreightId &&
+    // ✅ Incluir producer para evitar "Solicitante sem cadastro"
+    prevProps.freight.producer?.full_name === nextProps.freight.producer?.full_name &&
+    prevProps.freight.driver_profiles?.full_name === nextProps.freight.driver_profiles?.full_name
   );
 });
