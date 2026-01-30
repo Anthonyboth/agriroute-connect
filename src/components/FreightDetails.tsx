@@ -265,6 +265,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   // Verificar se é participante (produtor, motorista direto, ou tem assignment ativo)
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
   const [driverAssignment, setDriverAssignment] = useState<any>(null);
+  const [hasActiveCompanyAssignment, setHasActiveCompanyAssignment] = useState(false);
   
   useEffect(() => {
     const checkAssignment = async () => {
@@ -285,6 +286,49 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
     checkAssignment();
   }, [freightId, currentUserProfile?.id]);
 
+  // ✅ Transportadora também é participante quando existe assignment ativo para a empresa.
+  // Isso libera Chat / NF-es / Antifraude no modal para o fluxo de 3+ participantes.
+  useEffect(() => {
+    const checkCompanyAssignment = async () => {
+      if (!isTransportadora || !currentUserProfile?.id || !freightId) {
+        setHasActiveCompanyAssignment(false);
+        return;
+      }
+
+      try {
+        const { data: companyRow, error: companyErr } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', currentUserProfile.id)
+          .maybeSingle();
+
+        if (companyErr || !companyRow?.id) {
+          setHasActiveCompanyAssignment(false);
+          return;
+        }
+
+        const { data: assignmentRows, error: asgErr } = await supabase
+          .from('freight_assignments')
+          .select('id')
+          .eq('freight_id', freightId)
+          .eq('company_id', companyRow.id)
+          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
+          .limit(1);
+
+        if (asgErr) {
+          setHasActiveCompanyAssignment(false);
+          return;
+        }
+
+        setHasActiveCompanyAssignment(!!assignmentRows && assignmentRows.length > 0);
+      } catch {
+        setHasActiveCompanyAssignment(false);
+      }
+    };
+
+    checkCompanyAssignment();
+  }, [freightId, currentUserProfile?.id, isTransportadora]);
+
   // Calculate effective status (prioritize freight.status if final)
   const effectiveStatus = React.useMemo(() => {
     if (FINAL_STATUSES.includes(freight?.status as any)) {
@@ -295,10 +339,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       : driverAssignment?.status;
   }, [freight?.status, driverAssignment?.status]);
   
+  // ✅ Multi-carreta (status OPEN): o motorista pode estar em drivers_assigned sem existir row em freight_assignments.
+  const isAssignedDriver = Array.isArray(freight?.drivers_assigned)
+    ? (freight.drivers_assigned as string[]).includes(currentUserProfile?.id)
+    : false;
+
   const isParticipant = 
     freight?.producer?.id === currentUserProfile?.id || 
     freight?.driver?.id === currentUserProfile?.id ||
-    hasActiveAssignment;
+    hasActiveAssignment ||
+    isAssignedDriver ||
+    hasActiveCompanyAssignment;
   
   const isFreightProducer = freight?.producer?.id === currentUserProfile?.id;
   
