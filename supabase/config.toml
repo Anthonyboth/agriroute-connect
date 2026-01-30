@@ -317,3 +317,9 @@ verify_jwt = false
 
 [functions.hourly-financial-report]
 verify_jwt = false
+
+[functions.producer-reopen-freight]
+verify_jwt = true
+
+[functions.producer-release-driver]
+verify_jwt = true
