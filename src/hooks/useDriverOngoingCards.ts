@@ -45,7 +45,7 @@ export type OngoingFreightRow = {
   producer?: {
     id: string;
     full_name: string;
-    contact_phone: string | null;
+    profile_photo_url?: string | null;
   } | null;
 };
 
@@ -99,7 +99,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         "DELIVERED_PENDING_CONFIRMATION",
       ] as const;
 
-      // 1) FRETES (rurais) com JOIN no produtor
+      // 1) FRETES (rurais) - SEM JOIN no produtor (RLS pode bloquear)
       const { data: directFreights, error: freErr } = await supabase
         .from("freights")
         .select(
@@ -133,12 +133,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
           current_lat,
           current_lng,
           last_location_update,
-          tracking_status,
-          producer:profiles!freights_producer_id_fkey(
-            id,
-            full_name,
-            contact_phone
-          )
+          tracking_status
         `
         )
         .eq("driver_id", driverProfileId)
@@ -181,12 +176,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
           current_lat,
           current_lng,
           last_location_update,
-          tracking_status,
-          producer:profiles!freights_producer_id_fkey(
-            id,
-            full_name,
-            contact_phone
-          )
+          tracking_status
         `
         )
         .contains("drivers_assigned", [driverProfileId])
@@ -195,7 +185,6 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         .order("updated_at", { ascending: false });
 
       if (multiTruckError) {
-        // Não quebrar a tela por esse fetch (é um “extra”)
         console.warn("[useDriverOngoingCards] Falha ao buscar multi-carretas:", multiTruckError);
       }
 
@@ -239,12 +228,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
             current_lat,
             current_lng,
             last_location_update,
-            tracking_status,
-            producer:profiles!freights_producer_id_fkey(
-              id,
-              full_name,
-              contact_phone
-            )
+            tracking_status
           )
         `
         )
@@ -277,15 +261,50 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         return acc;
       }, [] as OngoingFreightRow[]);
 
-      // ✅ EVITAR DUPLICIDADE: se o frete já estiver em freight_assignments, não mostrar também em “Fretes Rurais”
+      // ✅ EVITAR DUPLICIDADE: se o frete já estiver em freight_assignments, não mostrar também em "Fretes Rurais"
       const assignmentFreightIds = new Set(
         (assignments || []).map((a: any) => a?.freight?.id).filter(Boolean)
       );
       const freightsWithoutAssignmentDuplicates = uniqueFreights.filter((f) => !assignmentFreightIds.has(f.id));
 
+      // ✅ FALLBACK: Buscar dados dos produtores via profiles_secure (evita bloqueio por RLS)
+      const allFreightsForProducerLookup = [
+        ...freightsWithoutAssignmentDuplicates,
+        ...(assignments || []).map((a: any) => a.freight).filter(Boolean)
+      ];
+      const producerIds = [...new Set(allFreightsForProducerLookup.map(f => f.producer_id).filter(Boolean))];
+
+      let producerMap: Record<string, { id: string; full_name: string; profile_photo_url?: string }> = {};
+      if (producerIds.length > 0) {
+        const { data: producers, error: prodErr } = await (supabase as any)
+          .from("profiles_secure")
+          .select("id, full_name, profile_photo_url, rating, total_ratings")
+          .in("id", producerIds);
+
+        if (!prodErr && producers) {
+          producerMap = Object.fromEntries(producers.map((p: any) => [p.id, p]));
+        } else if (prodErr) {
+          console.warn("[useDriverOngoingCards] Falha ao buscar produtores:", prodErr);
+        }
+      }
+
+      // Enriquecer fretes com dados do produtor
+      const enrichedFreights = freightsWithoutAssignmentDuplicates.map(f => ({
+        ...f,
+        producer: f.producer_id ? producerMap[f.producer_id] || null : null
+      }));
+
+      const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).map((a: any) => ({
+        ...a,
+        freight: a.freight ? {
+          ...a.freight,
+          producer: a.freight.producer_id ? producerMap[a.freight.producer_id] || null : null
+        } : null
+      }));
+
       return {
-        freights: freightsWithoutAssignmentDuplicates,
-        assignments: (assignments || []).filter((a: any) => a?.freight) as OngoingAssignmentRow[],
+        freights: enrichedFreights as OngoingFreightRow[],
+        assignments: enrichedAssignments as OngoingAssignmentRow[],
         serviceRequests: (svcReqs || []) as OngoingServiceRequestRow[],
       };
     },
