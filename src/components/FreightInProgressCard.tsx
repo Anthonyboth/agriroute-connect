@@ -37,19 +37,22 @@ interface FreightInProgressCardProps {
     origin_lng?: number;
     destination_lat?: number;
     destination_lng?: number;
-    weight: number;
-    distance_km: number;
-    pickup_date: string;
-    price: number;
+    weight: number | null;
+    distance_km: number | null;
+    pickup_date: string | null;
+    price: number | null;
     required_trucks?: number | null;
     status: string;
-    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
+    // Pode variar (ex: "CARGA"/"FRETE_MOTO"/"GUINCHO"/"MUDANCA"/etc). Mantemos flexível.
+    service_type?: string | null;
     driver_profiles?: {
       full_name: string;
       profile_photo_url?: string;
     } | null;
     driver_id?: string;
     drivers_assigned?: string[];
+    // Multi-carreta (opcional): alguns lugares usam para UX/estado
+    accepted_trucks?: number | null;
     deliveryDeadline?: {
       hoursRemaining: number;
       isUrgent: boolean;
