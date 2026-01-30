@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, RefreshCw, AlertTriangle, RotateCcw, Copy } from 'lucide-react';
 import { format, startOfToday, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface ReopenFreightModalProps {
   isOpen: boolean;
@@ -27,12 +28,17 @@ export const ReopenFreightModal: React.FC<ReopenFreightModalProps> = ({
   onSuccess
 }) => {
   const [loading, setLoading] = useState(false);
+  // ✅ Modo de reabertura: 'reactivate' (reativar mesmo frete) ou 'duplicate' (criar cópia)
+  const [reopenMode, setReopenMode] = useState<'reactivate' | 'duplicate'>('reactivate');
   const [formData, setFormData] = useState({
     pickup_date: addDays(startOfToday(), 1),
     delivery_date: addDays(startOfToday(), 3),
     price: '',
     description: ''
   });
+
+  // Verificar se o frete pode ser reativado (apenas CANCELLED)
+  const canReactivate = freight?.status === 'CANCELLED';
 
   // Inicializar com dados do frete original
   useEffect(() => {
@@ -66,8 +72,39 @@ export const ReopenFreightModal: React.FC<ReopenFreightModalProps> = ({
       price: '',
       description: ''
     });
+    setReopenMode(canReactivate ? 'reactivate' : 'duplicate');
     onClose();
   };
+
+  // ✅ Handler para REATIVAR o mesmo frete (via Edge Function)
+  const handleReactivate = async () => {
+    if (!freight?.id) {
+      toast.error('Erro: frete não encontrado');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('producer-reopen-freight', {
+        body: { freight_id: freight.id },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || data?.message || 'Erro ao reabrir frete');
+
+      toast.success('Frete reaberto com sucesso! Agora está disponível para novos motoristas.');
+      onSuccess();
+      handleClose();
+    } catch (error: any) {
+      console.error('Erro ao reativar frete:', error);
+      toast.error(error.message || 'Erro ao reabrir frete');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Handler para DUPLICAR frete (criar novo baseado no antigo)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,128 +211,204 @@ export const ReopenFreightModal: React.FC<ReopenFreightModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
             Reabrir Frete
           </DialogTitle>
           <DialogDescription>
-            Atualize as datas e informações para republicar o frete
+            Escolha como deseja reabrir o frete
           </DialogDescription>
         </DialogHeader>
 
-        <Alert variant="default" className="bg-amber-50 border-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 text-sm">
-            Um novo frete será criado com base no original. O frete anterior permanecerá no histórico.
-          </AlertDescription>
-        </Alert>
+        {/* ✅ Seleção de modo (apenas se o frete pode ser reativado) */}
+        {canReactivate && (
+          <div className="space-y-3 py-2">
+            <Label className="text-sm font-medium">Como deseja reabrir?</Label>
+            <RadioGroup
+              value={reopenMode}
+              onValueChange={(value) => setReopenMode(value as 'reactivate' | 'duplicate')}
+              className="space-y-2"
+            >
+              <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="reactivate" id="reactivate" className="mt-0.5" />
+                <div className="flex-1">
+                  <Label htmlFor="reactivate" className="font-medium cursor-pointer flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4 text-green-600" />
+                    Reativar mesmo frete
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O frete volta a ficar disponível com os mesmos dados. Ideal se foi cancelado por engano.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="duplicate" id="duplicate" className="mt-0.5" />
+                <div className="flex-1">
+                  <Label htmlFor="duplicate" className="font-medium cursor-pointer flex items-center gap-2">
+                    <Copy className="h-4 w-4 text-blue-600" />
+                    Criar cópia com novas datas
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Cria um novo frete baseado no original. O antigo permanece no histórico.
+                  </p>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Data de Coleta *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(formData.pickup_date, "dd/MM/yyyy", { locale: ptBR })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.pickup_date}
-                    onSelect={(date) => date && setFormData(prev => ({ 
-                      ...prev, 
-                      pickup_date: date,
-                      // Ajustar delivery se necessário
-                      delivery_date: prev.delivery_date <= date ? addDays(date, 2) : prev.delivery_date
-                    }))}
-                    disabled={(date) => date < today}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+        {/* ✅ Modo REATIVAR: botão simples */}
+        {reopenMode === 'reactivate' && canReactivate && (
+          <div className="space-y-4 pt-2">
+            <Alert variant="default" className="bg-green-50 border-green-200">
+              <RotateCcw className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 text-sm">
+                O frete será reativado com status <strong>ABERTO</strong> e ficará disponível para motoristas imediatamente.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleReactivate} 
+                disabled={loading} 
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Reativando...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Reativar Frete
+                  </>
+                )}
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label>Data de Entrega *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(formData.delivery_date, "dd/MM/yyyy", { locale: ptBR })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.delivery_date}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, delivery_date: date }))}
-                    disabled={(date) => date <= formData.pickup_date}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="price">Valor (R$)</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-              placeholder={freight?.price?.toString() || '0.00'}
-            />
-            <p className="text-xs text-muted-foreground">
-              Deixe em branco para manter o valor original
-            </p>
-          </div>
+        {/* ✅ Modo DUPLICAR: formulário com datas */}
+        {(reopenMode === 'duplicate' || !canReactivate) && (
+          <>
+            <Alert variant="default" className="bg-amber-50 border-amber-200">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm">
+                Um novo frete será criado com base no original. O frete anterior permanecerá no histórico.
+              </AlertDescription>
+            </Alert>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Observações</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Informações adicionais sobre o frete..."
-              rows={3}
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data de Coleta *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(formData.pickup_date, "dd/MM/yyyy", { locale: ptBR })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.pickup_date}
+                        onSelect={(date) => date && setFormData(prev => ({ 
+                          ...prev, 
+                          pickup_date: date,
+                          delivery_date: prev.delivery_date <= date ? addDays(date, 2) : prev.delivery_date
+                        }))}
+                        disabled={(date) => date < today}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Reabrindo...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Reabrir Frete
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
+                <div className="space-y-2">
+                  <Label>Data de Entrega *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(formData.delivery_date, "dd/MM/yyyy", { locale: ptBR })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.delivery_date}
+                        onSelect={(date) => date && setFormData(prev => ({ ...prev, delivery_date: date }))}
+                        disabled={(date) => date <= formData.pickup_date}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="price">Valor (R$)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  placeholder={freight?.price?.toString() || '0.00'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixe em branco para manter o valor original
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Observações</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Informações adicionais sobre o frete..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading} className="flex-1">
+                  {loading ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Criar Cópia
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
