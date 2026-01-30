@@ -1997,7 +1997,8 @@ const ProducerDashboard = () => {
       />
 
       <Dialog open={!!selectedFreightDetails} onOpenChange={(open) => !open && setSelectedFreightDetails(null)}>
-        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto">
+        {/* ✅ Padrão do FreightDetails: botão de fechar único (X interno) e esconder o close padrão do Radix */}
+        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
           <DialogDescription className="sr-only">Detalhes completos do frete</DialogDescription>
           {selectedFreightDetails && (
             <FreightDetails
