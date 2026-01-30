@@ -123,6 +123,23 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         }
       }
 
+      // ✅ CORREÇÃO BUG 1b: Buscar motorista secundariamente se JOIN falhou (após endurecimento de RLS em profiles)
+      // Importante para o produtor enxergar corretamente o motorista (ou vice-versa) no modal.
+      if (data.driver_id && (!normalizedFreight.driver || !normalizedFreight.driver.full_name)) {
+        console.log('[FreightDetails] Driver JOIN vazio, buscando diretamente...');
+        // ✅ CORREÇÃO: profiles_secure é a fonte segura (sem PII sensível)
+        const { data: driverData } = await (supabase as any)
+          .from('profiles_secure')
+          .select('id, full_name, profile_photo_url, rating, total_ratings')
+          .eq('id', data.driver_id)
+          .maybeSingle();
+
+        if (driverData) {
+          normalizedFreight = { ...normalizedFreight, driver: driverData };
+          console.log('[FreightDetails] Motorista encontrado:', driverData.full_name);
+        }
+      }
+
       // ✅ CORREÇÃO BUG 2: Carregar motoristas atribuídos (multi-carretas)
       // Quando required_trucks > 1, o campo freights.driver_id pode ficar NULL por design.
       // Nesses casos, precisamos renderizar os perfis de drivers_assigned.
