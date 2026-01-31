@@ -57,22 +57,11 @@ export const validateWeight = (
   if (weightTonnes <= 0) {
     errors.push('Peso deve ser maior que zero.');
   }
-  
-  // Limites para peso TOTAL da carga (não por carreta)
-  const MIN_WEIGHT_TONNES = 0.1;    // 100kg mínimo
-  const MAX_WEIGHT_TONNES = 50000;  // 50.000 toneladas máximo (grandes safras)
-  
-  if (weightTonnes < MIN_WEIGHT_TONNES && weightTonnes > 0) {
-    errors.push(`Peso mínimo: ${MIN_WEIGHT_TONNES} tonelada (100kg).`);
-  }
-  
-  if (weightTonnes > MAX_WEIGHT_TONNES) {
-    errors.push(`Peso máximo: ${MAX_WEIGHT_TONNES.toLocaleString('pt-BR')} toneladas.`);
-  }
-  
-  // Warnings para valores suspeitos (pode ter digitado em kg)
-  if (weightTonnes > 100000) {
-    warnings.push('⚠️ Valor muito alto. Confirme se digitou em TONELADAS.');
+
+  // Sem limite máximo: o produtor pode informar qualquer peso total.
+  // Avisos (não bloqueiam) para evitar erro de unidade (kg vs toneladas).
+  if (weightTonnes >= 50000) {
+    warnings.push('⚠️ Valor muito alto. Confirme se está correto e se foi informado em toneladas.');
   }
   
   if (weightTonnes < 1 && weightTonnes > 0) {
