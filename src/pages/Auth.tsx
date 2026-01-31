@@ -78,7 +78,6 @@ const Auth = () => {
   const [companyFantasyName, setCompanyFantasyName] = useState('');
   const [companyCNPJ, setCompanyCNPJ] = useState('');
   const [companyANTT, setCompanyANTT] = useState('');
-  const [companyAddress, setCompanyAddress] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showProfileSelector, setShowProfileSelector] = useState(false);
   const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
@@ -187,7 +186,7 @@ const Auth = () => {
 
     // Validação básica para transportadora
     if (driverType === 'TRANSPORTADORA') {
-      if (!companyName || !companyCNPJ || !companyANTT || !companyAddress) {
+      if (!companyName || !companyCNPJ || !companyANTT) {
         toast.error('Preencha todos os campos obrigatórios da transportadora');
         setLoading(false);
         return;
@@ -325,7 +324,6 @@ const Auth = () => {
                         company_name: companyName,
                         company_cnpj: sanitizeForStore(companyCNPJ),
                         antt_registration: companyANTT,
-                        address: companyAddress,
                         status: 'PENDING'
                       });
 
@@ -384,7 +382,6 @@ const Auth = () => {
               company_name: companyName,
               company_cnpj: sanitizeForStore(companyCNPJ),
               antt_registration: companyANTT,
-              address: companyAddress,
               status: 'PENDING'
             });
 

@@ -59,10 +59,11 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             .eq('profile_id', userProfileId)
             .maybeSingle();
           
-          if (companyData) {
+          if (companyData?.id) {
             freightQuery = freightQuery.eq('company_id', companyData.id);
           } else {
-            freightQuery = freightQuery.eq('company_id', 'none'); // Não retorna nada
+            // Sem transportadora ainda - retornar array vazio sem fazer query inválida
+            return allConversations;
           }
         }
 
