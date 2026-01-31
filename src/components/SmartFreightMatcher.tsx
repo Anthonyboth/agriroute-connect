@@ -901,21 +901,48 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                         </div>
 
                         <CardContent className="p-4 space-y-4">
-                          <div className="space-y-2">
+                          {/* ORIGEM */}
+                          <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-primary" />
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                Local
+                                Origem
                               </span>
                             </div>
-                            {r.city_name && (
-                              <p className="text-lg font-bold text-primary pl-6">
-                                {String(r.city_name).toUpperCase()} {r.state ? `- ${r.state}` : ""}
+                            {(r.origin_city || r.city_name) && (
+                              <p className="text-base font-bold text-foreground pl-4">
+                                {String(r.origin_city || r.city_name).toUpperCase()} — {r.origin_state || r.state || ""}
                               </p>
                             )}
-                            <p className="text-sm text-muted-foreground pl-6 line-clamp-2">
-                              {r.location_address || "Endereço não informado"}
+                            <p className="text-sm text-muted-foreground pl-4 line-clamp-2">
+                              {r.origin_address || r.location_address || "Endereço não informado"}
                             </p>
+                          </div>
+                          
+                          {/* DESTINO */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Destino
+                              </span>
+                            </div>
+                            {(r.destination_city || r.destination_address) ? (
+                              <>
+                                {r.destination_city && (
+                                  <p className="text-base font-bold text-foreground pl-4">
+                                    {String(r.destination_city).toUpperCase()} — {r.destination_state || ""}
+                                  </p>
+                                )}
+                                <p className="text-sm text-muted-foreground pl-4 line-clamp-2">
+                                  {r.destination_address || "Endereço não informado"}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground pl-4 italic">
+                                Destino não informado
+                              </p>
+                            )}
                           </div>
 
                           {r.problem_description && (
