@@ -454,6 +454,14 @@ const Auth = () => {
     }
     
     // Login bem-sucedido - redirecionamento já foi feito pelo hook
+    // ✅ Fallback: se por algum motivo ainda estivermos no /auth, força redirecionamento
+    if (result.redirectTo) {
+      setTimeout(() => {
+        if (window.location.pathname === '/auth') {
+          window.location.href = result.redirectTo as string;
+        }
+      }, 300);
+    }
     setLoading(false);
   };
 

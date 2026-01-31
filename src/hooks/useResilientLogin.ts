@@ -32,6 +32,22 @@ interface LoginStep {
   timestamp: number;
 }
 
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Garantir que o session token foi persistido (evita “login OK mas volta pro /auth” após redirect).
+ */
+async function ensureSessionPersisted(maxAttempts: number = 6): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) return true;
+    await sleep(75 + i * 75);
+  }
+  return false;
+}
+
 /**
  * Notificar erro de login no Telegram para monitoramento
  */
@@ -191,9 +207,34 @@ export function useResilientLogin() {
       
       addStep('Autenticando credenciais', 'success');
       console.log('🟢 [ResilientLogin] Autenticação bem-sucedida');
+
+      // ✅ CRÍTICO: garantir que o token foi persistido antes de redirecionar
+      addStep('Persistindo sessão', 'pending');
+      const sessionOk = await ensureSessionPersisted(6);
+      if (!sessionOk) {
+        addStep('Persistindo sessão', 'error', 'Sessão não persistiu a tempo');
+        await notifyLoginErrorToTelegram(loginField, 'Session not persisted before redirect', steps);
+      } else {
+        addStep('Persistindo sessão', 'success');
+      }
       
       // Limpar cooldowns de fetch de perfil
       sessionStorage.removeItem('profile_fetch_cooldown_until');
+
+      // Helper: tenta navegação SPA primeiro, e faz hard redirect como fallback
+      const safeRedirect = (to: string) => {
+        try {
+          navigate(to, { replace: true });
+        } catch {
+          // ignore
+        }
+        // Fallback: se continuar no /auth, forçar hard redirect
+        setTimeout(() => {
+          if (window.location.pathname === '/auth') {
+            window.location.href = to;
+          }
+        }, 150);
+      };
       
       // ========== STEP 3: Obter dados do usuário ==========
       addStep('Obtendo dados do usuário', 'pending');
@@ -257,7 +298,7 @@ export function useResilientLogin() {
         
         // Redirecionar via fallback
         console.log(`🟢 [ResilientLogin] Fallback redirect para: ${fallbackRoute}`);
-        window.location.href = fallbackRoute;
+        safeRedirect(fallbackRoute);
         
         return { 
           success: true, 
@@ -274,6 +315,8 @@ export function useResilientLogin() {
         addStep('Verificando perfis', 'error', 'Nenhum perfil encontrado');
         
         // Usuário sem perfil - redirecionar para criação
+        toast.warning('Perfil não encontrado. Complete seu cadastro.');
+        safeRedirect('/complete-profile');
         setLoading(false);
         return { 
           success: true, 
@@ -312,8 +355,8 @@ export function useResilientLogin() {
       setLoading(false);
       toast.success('Login realizado!');
       
-      // ✅ REDIRECIONAMENTO GARANTIDO via window.location
-      window.location.href = targetRoute;
+      // ✅ REDIRECIONAMENTO GARANTIDO (SPA + hard redirect fallback)
+      safeRedirect(targetRoute);
       
       return {
         success: true,
@@ -335,7 +378,7 @@ export function useResilientLogin() {
       setLoading(false);
       return { success: false, error: 'Erro no login. Tente novamente.' };
     }
-  }, [addStep]);
+  }, [addStep, navigate]);
 
   /**
    * Selecionar perfil específico após login com múltiplos perfis
@@ -347,9 +390,17 @@ export function useResilientLogin() {
     const targetRoute = getDashboardRoute(targetRole);
     
     console.log(`🟢 [ResilientLogin] Perfil selecionado: ${targetRole} -> ${targetRoute}`);
-    
-    window.location.href = targetRoute;
-  }, []);
+
+    try {
+      navigate(targetRoute, { replace: true });
+    } finally {
+      setTimeout(() => {
+        if (window.location.pathname === '/auth') {
+          window.location.href = targetRoute;
+        }
+      }, 150);
+    }
+  }, [navigate]);
 
   return {
     login,
