@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, XCircle, Building2, User, Mail, Phone, Lock, FileText, MapPin, Truck } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Building2, User, Mail, Phone, Lock, FileText, MapPin, Truck, Eye, EyeOff } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import { validateCPF, formatCPF } from '@/utils/cpfValidator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { queryWithTimeout } from '@/lib/query-utils';
@@ -470,10 +471,9 @@ export default function DriverInviteSignup() {
                   <div className="space-y-2">
                     <Label htmlFor="password">Senha *</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <PasswordInput
                         id="password"
-                        type="password"
                         className="pl-10"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -487,10 +487,9 @@ export default function DriverInviteSignup() {
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <PasswordInput
                         id="confirmPassword"
-                        type="password"
                         className="pl-10"
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}

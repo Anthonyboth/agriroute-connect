@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { uploadSelfieWithInstrumentation } from '@/utils/selfieUpload';
-import { Loader2, CheckCircle, XCircle, Users, AlertTriangle, User, FileText, Truck, Shield, Camera } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Users, AlertTriangle, User, FileText, Truck, Shield, Camera, Eye, EyeOff } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument, formatDocument, validateCNPJ, formatCNPJ } from '@/utils/cpfValidator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -48,6 +49,7 @@ const AffiliatedDriverSignup = () => {
     phone: '',
     document: '',
     password: '',
+    confirmPassword: '',
     // Endereço
     address_zip: '',
     address_street: '',
@@ -176,6 +178,14 @@ const AffiliatedDriverSignup = () => {
         }
         if (formData.password.length < 6) {
           toast.error('A senha deve ter no mínimo 6 caracteres');
+          return;
+        }
+        if (!formData.confirmPassword) {
+          toast.error('Confirme sua senha');
+          return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('As senhas não coincidem');
           return;
         }
         if (!formData.address_zip || !formData.address_street || !formData.address_city || !formData.address_state) {
@@ -618,15 +628,29 @@ const AffiliatedDriverSignup = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha *</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Mínimo 6 caracteres"
                     required
                     minLength={6}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
+                  <PasswordInput
+                    id="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    placeholder="Digite a senha novamente"
+                    required
+                    minLength={6}
+                  />
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-xs text-destructive">As senhas não conferem</p>
+                  )}
                 </div>
               </div>
 

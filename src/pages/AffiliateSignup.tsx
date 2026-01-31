@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BackButton } from '@/components/BackButton';
 import { toast } from 'sonner';
 import { Loader2, Truck } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import { z } from 'zod';
 import { getErrorMessage } from '@/lib/error-handler';
 
@@ -250,10 +251,9 @@ export default function AffiliateSignup() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Mínimo 6 caracteres"
@@ -264,10 +264,9 @@ export default function AffiliateSignup() {
 
             <div className="space-y-2">
               <Label htmlFor="password_confirm">Confirmar Senha</Label>
-              <Input
+              <PasswordInput
                 id="password_confirm"
                 name="password_confirm"
-                type="password"
                 value={formData.password_confirm}
                 onChange={handleInputChange}
                 placeholder="Digite a senha novamente"
