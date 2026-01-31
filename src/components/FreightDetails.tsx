@@ -689,7 +689,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             {/* ✅ Exibir fotos do veículo para o produtor */}
             {isFreightProducer && <DriverVehiclePreview driverId={freight.driver.id} />}
           </div>
-        ) : assignedDrivers.length > 0 ? (
+        ) : assignedDrivers.length > 0 && isFreightProducer ? (
+          // ✅ SEGURANÇA: Lista de motoristas atribuídos visível APENAS para o produtor
+          // Motoristas não precisam ver dados de outros motoristas no mesmo frete
           <div className="space-y-2">
             <Card>
               <CardHeader className="pb-2">
@@ -725,7 +727,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                     }}
                   />
 
-                  {isFreightProducer && <DriverVehiclePreview driverId={d.id} />}
+                  <DriverVehiclePreview driverId={d.id} />
                 </div>
               ))}
             </div>
