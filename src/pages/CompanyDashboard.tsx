@@ -63,6 +63,9 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
+import { ServiceTypeManager } from '@/components/ServiceTypeManager';
+import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
+import { SafeListWrapper } from '@/components/SafeListWrapper';
 
 // ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
 const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
@@ -109,6 +112,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: MessageSquare,
     badge: chatCount > 0 ? chatCount : undefined
   },
+  { value: 'services', label: 'Serviços', shortLabel: 'Serviços', icon: Wrench, badge: undefined },
   { value: 'fiscal', label: 'Fiscal', shortLabel: 'Fiscal', icon: FileText, badge: undefined },
   { value: 'reports', label: 'Relatórios', shortLabel: 'Relatórios', icon: BarChart, badge: undefined }
 ];
@@ -722,6 +726,22 @@ const CompanyDashboard = () => {
 
           <TabsContent value="overview" className="mt-6">
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
+          </TabsContent>
+
+          {/* Aba de Serviços - Tipos de fretes que a transportadora atende */}
+          <TabsContent value="services" className="mt-6">
+            <SafeListWrapper>
+              <div className="w-full max-w-4xl mx-auto space-y-6 overflow-x-hidden">
+                <div className="w-full">
+                  <h3 className="text-lg font-semibold mb-4">Tipos de Serviços</h3>
+                  <ServiceTypeManager />
+                </div>
+                
+                <div className="border-t pt-6 w-full">
+                  <MatchIntelligentDemo />
+                </div>
+              </div>
+            </SafeListWrapper>
           </TabsContent>
 
           <TabsContent value="fiscal" className="mt-6">
