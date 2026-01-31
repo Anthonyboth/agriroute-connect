@@ -118,26 +118,61 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
   // ✅ Coordenadas efetivas de origem (props ou fallback de cidade)
   const effectiveOrigin = useMemo(() => {
-    if (typeof originLat === 'number' && typeof originLng === 'number') {
+    // 1. Usar coordenadas das props se válidas
+    if (typeof originLat === 'number' && typeof originLng === 'number' && 
+        !isNaN(originLat) && !isNaN(originLng) &&
+        originLat !== 0 && originLng !== 0) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Origin from props:', { originLat, originLng });
       return { lat: originLat, lng: originLng };
     }
-    return cityOriginCoords;
-  }, [originLat, originLng, cityOriginCoords]);
+    
+    // 2. Fallback para coordenadas da cidade
+    if (cityOriginCoords && cityOriginCoords.lat && cityOriginCoords.lng) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Origin from city coords:', cityOriginCoords, 'city:', originCity);
+      return cityOriginCoords;
+    }
+    
+    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid origin coordinates available. Props:', { originLat, originLng }, 'City:', cityOriginCoords);
+    return null;
+  }, [originLat, originLng, cityOriginCoords, originCity]);
 
   // ✅ Coordenadas efetivas de destino (props ou fallback de cidade)
   const effectiveDestination = useMemo(() => {
-    if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
+    // 1. Usar coordenadas das props se válidas
+    if (typeof destinationLat === 'number' && typeof destinationLng === 'number' && 
+        !isNaN(destinationLat) && !isNaN(destinationLng) &&
+        destinationLat !== 0 && destinationLng !== 0) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Destination from props:', { destinationLat, destinationLng });
       return { lat: destinationLat, lng: destinationLng };
     }
-    return cityDestinationCoords;
-  }, [destinationLat, destinationLng, cityDestinationCoords]);
+    
+    // 2. Fallback para coordenadas da cidade
+    if (cityDestinationCoords && cityDestinationCoords.lat && cityDestinationCoords.lng) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Destination from city coords:', cityDestinationCoords, 'city:', destinationCity);
+      return cityDestinationCoords;
+    }
+    
+    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid destination coordinates available. Props:', { destinationLat, destinationLng }, 'City:', cityDestinationCoords);
+    return null;
+  }, [destinationLat, destinationLng, cityDestinationCoords, destinationCity]);
 
   // ✅ Localização efetiva do motorista (hook ou props iniciais)
   const effectiveDriverLocation = useMemo(() => {
-    if (driverLocation) return driverLocation;
-    if (typeof initialDriverLat === 'number' && typeof initialDriverLng === 'number') {
+    // 1. Usar localização em tempo real do hook
+    if (driverLocation && driverLocation.lat && driverLocation.lng) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from realtime hook:', driverLocation);
+      return driverLocation;
+    }
+    
+    // 2. Fallback para props iniciais
+    if (typeof initialDriverLat === 'number' && typeof initialDriverLng === 'number' &&
+        !isNaN(initialDriverLat) && !isNaN(initialDriverLng) &&
+        initialDriverLat !== 0 && initialDriverLng !== 0) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from initial props:', { initialDriverLat, initialDriverLng });
       return { lat: initialDriverLat, lng: initialDriverLng };
     }
+    
+    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid driver location available');
     return null;
   }, [driverLocation, initialDriverLat, initialDriverLng]);
 
