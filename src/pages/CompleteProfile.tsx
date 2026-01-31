@@ -177,9 +177,13 @@ const CompleteProfile = () => {
         ));
 
       if (hasCompletedProfile) {
-        const dashboardPath = isDriver ? '/dashboard/driver' : 
-                             (profile.role as any) === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
-                             '/dashboard/producer';
+        const dashboardPath = isDriver
+          ? '/dashboard/driver'
+          : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
+            ? '/dashboard/company'
+            : (profile.role as any) === 'PRESTADOR_SERVICOS'
+              ? '/dashboard/service-provider'
+              : '/dashboard/producer';
         navigate(dashboardPath);
       }
 
@@ -439,7 +443,7 @@ const CompleteProfile = () => {
       } else if ((profile.role as any) === 'PRESTADOR_SERVICOS') {
         navigate('/dashboard/service-provider');
       } else if (profile.role === 'TRANSPORTADORA' || isTransportCompany) {
-        navigate('/dashboard/transport');
+        navigate('/dashboard/company');
       } else {
         navigate('/');
       }
