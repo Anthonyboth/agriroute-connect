@@ -5,6 +5,7 @@ import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { getCachedProfile, setCachedProfile, clearCachedProfile } from '@/lib/profile-cache';
 import { incrementAuthListeners, decrementAuthListeners, incrementSignOutCalls } from '@/debug/authDebug';
+import AutomaticApprovalService from '@/components/AutomaticApproval';
 export interface UserProfile {
   id: string;
   user_id: string;
@@ -83,6 +84,9 @@ const useAuthInternal = () => {
   const isSigningOutRef = useRef(false); // ✅ Single-flight guard para logout
   const autoCreateAttemptedRef = useRef(false); // ✅ P0 FIX: Anti-loop guard for create_additional_profile
 
+  // ✅ Garantir regra de negócio: auto-approve (PRODUTOR/TRANSPORTADORA) só tenta 1x por perfil nesta sessão
+  const autoApproveAttemptedRef = useRef<Set<string>>(new Set());
+
   // ✅ P0 FIX: Ref para rastrear último userId buscado e evitar refetches desnecessários
   const lastFetchedUserIdRef = useRef<string | null>(null);
   
@@ -90,11 +94,18 @@ const useAuthInternal = () => {
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
     // ✅ CRÍTICO: Verificar se já buscamos este userId recentemente (anti-loop)
     if (!force && lastFetchedUserIdRef.current === userId && profile) {
+      // ✅ Se for role auto-aprovada, nunca "travar" em status PENDING (mesmo que seja dado antigo em memória)
+      const currentRole = (profile?.role || profile?.active_mode) as string | undefined;
+      const isAutoApproveRole = currentRole === 'PRODUTOR' || currentRole === 'TRANSPORTADORA';
+      if (isAutoApproveRole && profile?.status !== 'APPROVED') {
+        // deixa continuar para revalidar no banco
+      } else {
       if (import.meta.env.DEV) {
         console.log('[useAuth] ⏸️ Já buscamos perfil para este userId, ignorando');
       }
       setLoading(false);
       return;
+      }
     }
     
     // ✅ CRÍTICO: Verificar cache ANTES de qualquer gate/early return
@@ -261,9 +272,43 @@ const useAuthInternal = () => {
         }
         
         setProfile(activeProfile as UserProfile);
+
+        // ✅ REGRA DE NEGÓCIO (sempre): PRODUTOR e TRANSPORTADORA NÃO podem ficar pendentes.
+        // Se o banco retornar PENDING (ou se estivermos com dados desatualizados), tentamos auto-aprovação e
+        // atualizamos o estado local imediatamente para evitar a tela "Conta Pendente".
+        const activeRole = (activeProfile?.role || activeProfile?.active_mode) as string | undefined;
+        const isAutoApproveRole = activeRole === 'PRODUTOR' || activeRole === 'TRANSPORTADORA';
+        if (isAutoApproveRole && activeProfile?.status !== 'APPROVED') {
+          const profileKey = String(activeProfile?.id || `${userId}:${activeRole}`);
+          if (!autoApproveAttemptedRef.current.has(profileKey)) {
+            autoApproveAttemptedRef.current.add(profileKey);
+
+            try {
+              await AutomaticApprovalService.triggerApprovalProcess(activeProfile.id);
+            } catch {
+              // silencioso: se falhar por RLS/rede, o estado será corrigido no próximo fetch
+            }
+
+            // ✅ Forçar o app a seguir a regra de UX (não bloquear usuário auto-aprovado)
+            const patchedProfiles = profilesWithRoles.map((p: any) =>
+              p.id === activeProfile.id ? { ...p, status: 'APPROVED' } : p
+            );
+            const patchedActive = { ...activeProfile, status: 'APPROVED' };
+
+            setProfiles(patchedProfiles as UserProfile[]);
+            setProfile(patchedActive as UserProfile);
+
+            // ✅ Evitar persistir status antigo no cache
+            clearCachedProfile(userId);
+          }
+        }
         
         // ✅ Salvar no cache após sucesso
-        setCachedProfile(userId, activeProfile);
+        // Observação: se auto-aprovação rodou acima, o cache já foi limpo e o state já foi patchado.
+        // Persistimos o perfil ativo atual (seja ele original ou patchado).
+        setCachedProfile(userId, isAutoApproveRole && activeProfile?.status !== 'APPROVED'
+          ? { ...activeProfile, status: 'APPROVED' }
+          : activeProfile);
         
         // ✅ P0 FIX: Marcar que já buscamos este userId
         lastFetchedUserIdRef.current = userId;
