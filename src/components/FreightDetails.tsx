@@ -1262,6 +1262,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         userId={profileModalOpen.userId}
         userType={profileModalOpen.userType}
         userName={profileModalOpen.userName}
+        freightId={freightId}
       />
 
       {/* Modal de Emissão de CT-e */}

@@ -39,6 +39,8 @@ interface ParticipantProfileModalProps {
   userId: string;
   userType: 'driver' | 'producer';
   userName?: string;
+  /** Contexto opcional para autorizar fallback via Edge Function */
+  freightId?: string;
 }
 
 export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = ({
@@ -46,7 +48,8 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
   onClose,
   userId,
   userType,
-  userName
+  userName,
+  freightId
 }) => {
   const [photoZoom, setPhotoZoom] = useState<{ open: boolean; url: string; title: string }>({ 
     open: false, 
@@ -56,7 +59,8 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
 
   const { profile, vehicle, vehiclePhotos, isLoading } = useParticipantProfile(
     isOpen ? userId : null,
-    userType
+    userType,
+    freightId
   );
 
   const getInitials = (name: string) => {
