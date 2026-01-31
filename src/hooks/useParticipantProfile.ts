@@ -49,7 +49,8 @@ interface UseParticipantProfileResult {
 
 export const useParticipantProfile = (
   userId: string | null | undefined,
-  userType: 'driver' | 'producer'
+  userType: 'driver' | 'producer',
+  freightId?: string | null
 ): UseParticipantProfileResult => {
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [vehicle, setVehicle] = useState<VehicleData | null>(null);
@@ -75,7 +76,28 @@ export const useParticipantProfile = (
 
       if (profileError) throw profileError;
 
-      if (!profileData) {
+      // Se a view segura não retornar (RLS/visibilidade), tentar fallback via Edge Function
+      // (o Edge Function valida que o usuário logado é participante do frete antes de retornar dados públicos)
+      let resolvedProfile: any = profileData;
+      if (!resolvedProfile && freightId) {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke(
+          'get-participant-public-profile',
+          {
+            body: {
+              freight_id: freightId,
+              participant_profile_id: userId,
+              participant_type: userType,
+            },
+          }
+        );
+
+        if (fnError) throw fnError;
+        if (fnData?.success && fnData?.profile) {
+          resolvedProfile = fnData.profile;
+        }
+      }
+
+      if (!resolvedProfile) {
         setProfile(null);
         return;
       }
@@ -99,18 +121,18 @@ export const useParticipantProfile = (
       }
 
       // Avatar URL - usar apenas profile_photo_url (selfie_url não está disponível na view segura)
-      const avatarUrl = profileData.profile_photo_url;
+      const avatarUrl = resolvedProfile.profile_photo_url;
 
       setProfile({
-        id: profileData.id,
-        full_name: profileData.full_name,
+        id: resolvedProfile.id,
+        full_name: resolvedProfile.full_name,
         avatar_url: avatarUrl || undefined,
         role: userType === 'driver' ? 'MOTORISTA' : 'PRODUTOR', // Inferir role do tipo passado
-        created_at: profileData.created_at,
+        created_at: resolvedProfile.created_at,
         completed_freights: completedFreights,
-        average_rating: profileData.rating || 0,
-        total_ratings: profileData.total_ratings || 0,
-        is_verified: profileData.status === 'APPROVED'
+        average_rating: resolvedProfile.rating || 0,
+        total_ratings: resolvedProfile.total_ratings || 0,
+        is_verified: resolvedProfile.status === 'APPROVED'
       });
 
       // Para motoristas, buscar veículo e fotos
