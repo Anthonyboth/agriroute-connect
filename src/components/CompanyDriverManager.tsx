@@ -9,7 +9,7 @@ import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { AffiliationSettingsModal } from './AffiliationSettingsModal';
 import { DriverAvatar } from './ui/driver-avatar';
 import { PendingDriverCard } from './company/PendingDriverCard';
-import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Trash2, Pencil } from 'lucide-react';
+import { Users, UserPlus, Star, Truck as TruckIcon, Phone, Mail, Search, Filter, Eye, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -229,13 +229,13 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {cd.can_accept_freights && (
                     <Badge variant="outline" className="text-xs bg-green-50 border-green-300 text-green-700">
-                      <Truck className="h-3 w-3 mr-1" />
+                      <TruckIcon className="h-3 w-3 mr-1" />
                       Aceita fretes
                     </Badge>
                   )}
                   {cd.can_manage_vehicles && (
                     <Badge variant="outline" className="text-xs bg-blue-50 border-blue-300 text-blue-700">
-                      <Truck className="h-3 w-3 mr-1" />
+                      <TruckIcon className="h-3 w-3 mr-1" />
                       Gerencia veículos
                     </Badge>
                   )}
