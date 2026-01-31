@@ -28,8 +28,7 @@ export const WeightInput = ({ value, onChange, required = true }: WeightInputPro
       <Input
         type="number"
         step="0.01"
-        min="0.1"
-        max="50000"
+        min="0"
         value={value}
         onChange={(e) => onChange(e.target.value, false)}
         placeholder="Ex: 600"

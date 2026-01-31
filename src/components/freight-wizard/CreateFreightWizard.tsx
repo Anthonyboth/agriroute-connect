@@ -364,14 +364,18 @@ export function CreateFreightWizard({
       const originCityId = formData.origin_city_id || await getCityId(formData.origin_city, formData.origin_state);
       const destinationCityId = formData.destination_city_id || await getCityId(formData.destination_city, formData.destination_state);
 
-      const weight = parseFloat(formData.weight);
+      const totalWeightTonnes = parseFloat(formData.weight);
+      const totalWeightKg = convertWeightToKg(totalWeightTonnes);
+      const requiredTrucks = Math.max(parseInt(formData.required_trucks || '1', 10) || 1, 1);
+      const weightPerTruckKg = totalWeightKg / requiredTrucks;
       const calculation = calculateFreightPrice({
         pricePerKm: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : undefined,
         pricePerTon: formData.pricing_type === 'PER_TON' ? parseFloat(formData.price_per_km) : undefined,
         fixedPrice: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : undefined,
         distanceKm: calculatedDistance,
-        weightKg: convertWeightToKg(weight),
-        requiredTrucks: parseInt(formData.required_trucks),
+        // O peso informado no wizard é TOTAL; para preço POR TON (por carreta), usamos o peso por carreta.
+        weightKg: weightPerTruckKg,
+        requiredTrucks,
         pricingType: formData.pricing_type,
         anttMinimumPrice: calculatedAnttPrice || 0
       });
@@ -411,7 +415,8 @@ export function CreateFreightWizard({
         is_guest_freight: effectiveGuestMode,
         cargo_type: formData.cargo_type,
         service_type: serviceType,
-        weight: convertWeightToKg(weight),
+        // ✅ Peso TOTAL em kg (para estatísticas e visão geral)
+        weight: totalWeightKg,
         origin_address: buildAddressString(formData.origin_city, formData.origin_state, formData.origin_neighborhood, formData.origin_street, formData.origin_number, formData.origin_complement),
         origin_city: formData.origin_city,
         origin_state: formData.origin_state,

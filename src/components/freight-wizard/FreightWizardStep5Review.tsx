@@ -63,8 +63,10 @@ export function FreightWizardStep5Review({
     }
     
     if (formData.pricing_type === 'PER_TON') {
-      const weight = parseFloat(formData.weight || 0);
-      return parseFloat(formData.price_per_km || 0) * weight * trucks;
+      // Peso informado no wizard é TOTAL (toneladas).
+      // Total = (R$/ton) × (toneladas totais)
+      const totalTons = parseFloat(formData.weight || 0);
+      return parseFloat(formData.price_per_km || 0) * totalTons;
     }
     
     // PER_KM
