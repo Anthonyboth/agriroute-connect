@@ -124,7 +124,14 @@ const CompanyDashboard = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [driverFileModalOpen, setDriverFileModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
-  const { company, isLoadingCompany: companyLoading, drivers, pendingDrivers } = useTransportCompany();
+  const {
+    company,
+    isLoadingCompany: companyLoading,
+    companyError,
+    refetchCompany: refetchCompanyRecord,
+    drivers,
+    pendingDrivers,
+  } = useTransportCompany();
   
   const getInitialTab = () => {
     const storedTab = localStorage.getItem('company_active_tab');
@@ -469,12 +476,13 @@ const CompanyDashboard = () => {
     handleProfileSwitch();
   }, [company, companyLoading, profile?.id, profiles, switchProfile]);
 
-  // Early return for loading
-  if (!company?.id || companyLoading) {
+  // Loading state
+  if (companyLoading) {
     return <AppSpinner fullscreen />;
   }
 
-  if (companyLoading || isSwitchingProfile) {
+  // Profile switching state
+  if (isSwitchingProfile) {
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center justify-center min-h-screen">
@@ -489,26 +497,73 @@ const CompanyDashboard = () => {
 
   if (!profile) return null;
 
-  if (!company && !profiles.find(p => p.active_mode === 'TRANSPORTADORA' || p.role === 'TRANSPORTADORA')) {
+  // Error loading company record (RLS, network, etc.)
+  if (companyError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        <Header user={profile ? { ...profile, name: profile.full_name, role: (profile.active_mode || profile.role) as any } : undefined} onLogout={signOut} />
+        <Header
+          user={{ ...profile, name: profile.full_name, role: (profile.active_mode || profile.role) as any }}
+          onLogout={signOut}
+        />
         <div className="container mx-auto px-4 py-8">
           <Card className="max-w-2xl mx-auto">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-6 w-6" />
-                Crie sua Transportadora
+                Não foi possível carregar sua Transportadora
               </CardTitle>
+              <CardDescription>
+                Isso normalmente acontece por falta de cadastro da empresa, permissão no banco (RLS) ou instabilidade de rede.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                Para acessar o painel da transportadora, você precisa criar ou ativar sua conta de transportadora.
-              </p>
-              <Button 
-                onClick={() => navigate('/transport-company/registration')}
-                className="w-full"
-              >
+              <Alert variant="destructive">
+                <AlertTitle>Erro ao carregar dados</AlertTitle>
+                <AlertDescription>
+                  Tente novamente. Se persistir, vá para o cadastro da transportadora.
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={() => refetchCompanyRecord()} className="w-full sm:w-auto">
+                  Tentar novamente
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/transport-company/registration')}
+                  className="w-full sm:w-auto"
+                >
+                  Ir para cadastro
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Logged in as transportadora, but no transport_companies record exists yet
+  if (!company?.id) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <Header
+          user={{ ...profile, name: profile.full_name, role: (profile.active_mode || profile.role) as any }}
+          onLogout={signOut}
+        />
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-6 w-6" />
+                Finalize o cadastro da sua Transportadora
+              </CardTitle>
+              <CardDescription>
+                Seu perfil está como transportadora, mas ainda não existe um registro da empresa (transport_companies).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button onClick={() => navigate('/transport-company/registration')} className="w-full">
                 Criar Transportadora
               </Button>
             </CardContent>
@@ -517,6 +572,8 @@ const CompanyDashboard = () => {
       </div>
     );
   }
+
+  // NOTE: cases where the user is not transportadora are handled by route guards.
 
   const totalActiveFreights = myAssignments.length + activeFreights.length;
   const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount);

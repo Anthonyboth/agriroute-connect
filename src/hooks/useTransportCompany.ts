@@ -9,7 +9,12 @@ export const useTransportCompany = () => {
 
   // Verificar se o usuário é uma transportadora
   // ✅ REMOVIDA mutação de dentro do queryFn para evitar loop infinito
-  const { data: company, isLoading: isLoadingCompany } = useQuery({
+  const {
+    data: company,
+    isLoading: isLoadingCompany,
+    error: companyError,
+    refetch: refetchCompany,
+  } = useQuery({
     queryKey: ['transport-company', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return null;
@@ -576,6 +581,8 @@ export const useTransportCompany = () => {
   return {
     company,
     isLoadingCompany,
+    companyError,
+    refetchCompany,
     drivers,
     isLoadingDrivers,
     pendingDrivers,
