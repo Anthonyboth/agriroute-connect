@@ -4,9 +4,12 @@
  * Card padronizado para fretes em andamento.
  * Usado em múltiplos dashboards (Produtor, Motorista, Transportadora).
  * Inclui abas para Detalhes e Mapa em tempo real.
+ * 
+ * CORRIGIDO: Usa useRequesterStatus para determinar corretamente
+ * se o solicitante é cadastrado ou convidado.
  */
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +21,7 @@ import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, forma
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
+import { useRequesterStatus } from '@/hooks/useRequesterStatus';
 
 // Lazy load do mapa MapLibre para performance (100% gratuito, sem Google Maps)
 const FreightRealtimeMap = lazy(() => 
@@ -55,6 +59,10 @@ interface FreightInProgressCardProps {
       full_name: string;
       profile_photo_url?: string;
     } | null;
+    // ✅ producer_id direto do frete
+    producer_id?: string | null;
+    // ✅ Flag de frete convidado
+    is_guest_freight?: boolean;
     driver_id?: string;
     drivers_assigned?: string[];
     // Multi-carreta (opcional): alguns lugares usam para UX/estado
@@ -86,6 +94,16 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<string>('details');
   const [mapMounted, setMapMounted] = useState(false);
+  const [mapKey, setMapKey] = useState(0); // ✅ Key para forçar re-render do mapa
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+
+  // ✅ NOVO: Hook para verificar status do solicitante
+  const requesterStatus = useRequesterStatus(freight.id, {
+    producer: freight.producer,
+    isGuestFreight: freight.is_guest_freight,
+    producerId: freight.producer_id,
+    autoFetch: true,
+  });
 
   // GPS precision indicator
   const precisionInfo = React.useMemo(() => {
@@ -122,13 +140,66 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
     'DELIVERED_PENDING_CONFIRMATION'
   ].includes(normalizedStatus);
 
-  // Handler para quando a aba mapa é selecionada
+  // ✅ Handler para quando a aba mapa é selecionada
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === 'map' && !mapMounted) {
-      setMapMounted(true);
+    if (value === 'map') {
+      if (!mapMounted) {
+        setMapMounted(true);
+      }
+      // ✅ Forçar re-render do mapa para garantir que ele carregue corretamente
+      // quando a aba é selecionada (resolve problema de tela em branco)
+      setTimeout(() => {
+        setMapKey(prev => prev + 1);
+      }, 50);
     }
   };
+
+  // ✅ Resolver nome e foto do produtor usando o hook
+  const producerInfo = React.useMemo(() => {
+    // Prioridade 1: Dados locais do freight.producer
+    if (freight.producer?.full_name) {
+      return {
+        name: freight.producer.full_name,
+        photoUrl: freight.producer.profile_photo_url || null,
+        hasRegistration: true,
+      };
+    }
+    
+    // Prioridade 2: Dados do hook useRequesterStatus
+    if (requesterStatus.hasRegistration && requesterStatus.producerName) {
+      return {
+        name: requesterStatus.producerName,
+        photoUrl: requesterStatus.producerPhotoUrl,
+        hasRegistration: true,
+      };
+    }
+    
+    // Prioridade 3: É um frete de convidado
+    if (requesterStatus.type === 'GUEST' || freight.is_guest_freight) {
+      return {
+        name: 'Solicitante não cadastrado',
+        photoUrl: null,
+        hasRegistration: false,
+      };
+    }
+    
+    // Loading ou desconhecido
+    if (requesterStatus.isLoading) {
+      return {
+        name: 'Carregando...',
+        photoUrl: null,
+        hasRegistration: false,
+      };
+    }
+    
+    // Fallback: Produtor não identificado (mas não é guest)
+    return {
+      name: 'Produtor não identificado',
+      photoUrl: null,
+      hasRegistration: requesterStatus.hasRegistration,
+    };
+  }, [freight.producer, freight.is_guest_freight, requesterStatus]);
 
   return (
     <Card className={cn(
@@ -272,16 +343,17 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             <div className="grid grid-cols-2 gap-3 text-sm">
               {/* Coluna 1: Motorista OU Produtor (depende de quem está vendo) */}
               <div className="min-w-0">
-                {/* Se tiver produtor definido, mostra o produtor (painel do motorista) */}
-                {freight.producer ? (
+                {/* ✅ CORRIGIDO: Usa producerInfo do hook para exibição correta */}
+                {/* Se temos producer_id ou producer object, é contexto de motorista vendo produtor */}
+                {(freight.producer_id || freight.producer) ? (
                   <>
                     <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
                       Produtor
                     </p>
                     <div className="flex items-center gap-2">
-                      {freight.producer.profile_photo_url ? (
+                      {producerInfo.photoUrl ? (
                         <img 
-                          src={freight.producer.profile_photo_url} 
+                          src={producerInfo.photoUrl} 
                           alt="Foto do produtor"
                           className="h-6 w-6 rounded-full object-cover border"
                           onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
@@ -291,8 +363,11 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                           <User className="h-3 w-3 text-muted-foreground" />
                         </div>
                       )}
-                      <p className="text-foreground truncate whitespace-nowrap">
-                        {freight.producer.full_name || 'Produtor não identificado'}
+                      <p className={cn(
+                        "truncate whitespace-nowrap",
+                        producerInfo.hasRegistration ? "text-foreground" : "text-muted-foreground italic"
+                      )}>
+                        {producerInfo.name}
                       </p>
                     </div>
                   </>
@@ -361,8 +436,13 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             )}
           </TabsContent>
 
-          <TabsContent value="map" className="mt-2" style={{ minHeight: '280px' }}>
-            {mapMounted && (
+          <TabsContent 
+            value="map" 
+            className="mt-2" 
+            style={{ minHeight: '280px' }}
+            ref={tabsContainerRef}
+          >
+            {mapMounted && activeTab === 'map' && (
               <Suspense fallback={
                 <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -371,7 +451,9 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                   </div>
                 </div>
               }>
+                {/* ✅ Key força re-render do mapa quando a aba é selecionada */}
                 <FreightRealtimeMap
+                  key={`map-${freight.id}-${mapKey}`}
                   freightId={freight.id}
                   originLat={freight.origin_lat}
                   originLng={freight.origin_lng}
@@ -388,12 +470,17 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               </Suspense>
             )}
             {!mapMounted && (
-              <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <Map className="h-8 w-8 opacity-50" />
-                  <span className="text-sm">Clique para carregar o mapa</span>
-                </div>
-              </div>
+              <Button
+                variant="outline"
+                className="w-full h-[280px] flex flex-col items-center justify-center gap-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                onClick={() => {
+                  setMapMounted(true);
+                  setMapKey(prev => prev + 1);
+                }}
+              >
+                <Map className="h-10 w-10 text-primary opacity-70" />
+                <span className="text-sm font-medium">Clique para abrir o mapa</span>
+              </Button>
             )}
           </TabsContent>
         </Tabs>
@@ -415,6 +502,8 @@ export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, 
     prevProps.highlightFreightId === nextProps.highlightFreightId &&
     // ✅ Incluir producer para evitar "Solicitante sem cadastro"
     prevProps.freight.producer?.full_name === nextProps.freight.producer?.full_name &&
+    prevProps.freight.producer_id === nextProps.freight.producer_id &&
+    prevProps.freight.is_guest_freight === nextProps.freight.is_guest_freight &&
     prevProps.freight.driver_profiles?.full_name === nextProps.freight.driver_profiles?.full_name
   );
 });
