@@ -154,10 +154,11 @@ export class AutomaticApprovalService {
 
       // Update profile status
       if (approved) {
+        // IMPORTANTE: background_check_status só aceita PENDING/APPROVED/REJECTED (constraint do banco)
         const statusUpdate: any = {
           status: 'APPROVED' as const,
           document_validation_status: 'VALIDATED' as const,
-          background_check_status: 'VALIDATED' as const,
+          background_check_status: 'APPROVED' as const, // Corrigido: era 'VALIDATED' que violava constraint
           ...(isDriver ? {
             cnh_validation_status: 'VALIDATED' as const,
             rntrc_validation_status: 'VALIDATED' as const
