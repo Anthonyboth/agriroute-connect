@@ -430,13 +430,15 @@ const CompleteProfile = () => {
         toast.success('Perfil completado! Você já pode acessar a plataforma.');
       }
       
-      // Redirect to appropriate dashboard
+      // Redirect to appropriate dashboard based on role
       if (isDriver) {
         navigate('/dashboard/driver');
       } else if (profile.role === 'PRODUTOR') {
         navigate('/dashboard/producer');
       } else if ((profile.role as any) === 'PRESTADOR_SERVICOS') {
         navigate('/dashboard/service-provider');
+      } else if (profile.role === 'TRANSPORTADORA' || isTransportCompany) {
+        navigate('/dashboard/transport');
       } else {
         navigate('/');
       }
