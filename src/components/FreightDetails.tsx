@@ -33,6 +33,7 @@ import { CTeEmitirDialog } from './fiscal/CTeEmitirDialog';
 import { isFeatureEnabled } from '@/config/featureFlags';
 import { AntifraudPanel } from './antifraude';
 import { useDashboardIntegrityGuard } from '@/hooks/useDashboardIntegrityGuard';
+import { useRequesterStatus } from '@/hooks/useRequesterStatus';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -65,6 +66,15 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
   const [cteModalOpen, setCteModalOpen] = useState(false);
   const [assignedDrivers, setAssignedDrivers] = useState<any[]>([]);
+
+  // ✅ Fallback para identificar solicitante cadastrado quando o JOIN/`profiles_secure` não retornam
+  // (ex: frete multi-carreta ainda com status OPEN, mas já aceito pelo motorista)
+  const requesterStatus = useRequesterStatus(freightId, {
+    autoFetch: !!freightId,
+    producer: freight?.producer,
+    producerId: freight?.producer_id,
+    isGuestFreight: freight?.is_guest_freight,
+  });
 
   // Status order for calculating effective status
   const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
@@ -610,7 +620,25 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               });
             }}
           />
-        ) : (
+        ) : requesterStatus.hasRegistration && (freight.producer_id || requesterStatus.producerId) ? (
+          <FreightParticipantCard
+            participantId={(freight.producer_id || requesterStatus.producerId) as string}
+            participantType="producer"
+            name={requesterStatus.producerName || 'Produtor'}
+            avatarUrl={requesterStatus.producerPhotoUrl || undefined}
+            rating={0}
+            totalRatings={0}
+            onClick={() => {
+              const id = (freight.producer_id || requesterStatus.producerId) as string;
+              setProfileModalOpen({
+                open: true,
+                userId: id,
+                userType: 'producer',
+                userName: requesterStatus.producerName || '',
+              });
+            }}
+          />
+        ) : (freight.is_guest_freight || requesterStatus.type === 'GUEST') ? (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -620,6 +648,20 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-sm text-muted-foreground">Solicitante sem cadastro</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <User className="h-4 w-4" />
+                Produtor
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground">
+                {requesterStatus.isLoading ? 'Carregando...' : 'Produtor não identificado'}
+              </p>
             </CardContent>
           </Card>
         )}
