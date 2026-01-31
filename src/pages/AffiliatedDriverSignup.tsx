@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { DocumentUpload } from '@/components/DocumentUpload';
+import { DocumentUploadLocal } from '@/components/DocumentUploadLocal';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/dialog';
 import { CameraSelfie } from '@/components/CameraSelfie';
@@ -70,12 +70,23 @@ const AffiliatedDriverSignup = () => {
     cooperative: '',
   });
 
-  // Document URLs
+  // Document URLs (para preview)
   const [documentUrls, setDocumentUrls] = useState({
     selfie: '',
     document_photo: '',
     cnh_photo: '',
     address_proof: '',
+  });
+
+  // Document Blobs (para upload após autenticação)
+  const [documentBlobs, setDocumentBlobs] = useState<{
+    document_photo: Blob | null;
+    cnh_photo: Blob | null;
+    address_proof: Blob | null;
+  }>({
+    document_photo: null,
+    cnh_photo: null,
+    address_proof: null,
   });
 
   // Terms acceptance
@@ -195,8 +206,13 @@ const AffiliatedDriverSignup = () => {
         break;
         
       case 3:
-        if (!documentUrls.selfie || !documentUrls.document_photo || 
-            !documentUrls.cnh_photo || !documentUrls.address_proof) {
+        // Verificar se temos os blobs OU as previews (para os documentos locais)
+        const hasSelfie = !!selfieBlobPending || !!documentUrls.selfie;
+        const hasDocumentPhoto = !!documentBlobs.document_photo || !!documentUrls.document_photo;
+        const hasCnhPhoto = !!documentBlobs.cnh_photo || !!documentUrls.cnh_photo;
+        const hasAddressProof = !!documentBlobs.address_proof || !!documentUrls.address_proof;
+        
+        if (!hasSelfie || !hasDocumentPhoto || !hasCnhPhoto || !hasAddressProof) {
           toast.error('Envie todos os documentos obrigatórios');
           return;
         }
@@ -318,7 +334,7 @@ const AffiliatedDriverSignup = () => {
       if (!profileData) throw new Error('Erro ao criar perfil');
 
       // 4. Upload selfie após autenticação (com instrumentação completa)
-      let selfieUrl = documentUrls.selfie;
+      let selfieUrl = '';
       if (selfieBlobPending) {
         try {
           const result = await uploadSelfieWithInstrumentation({
@@ -331,11 +347,8 @@ const AffiliatedDriverSignup = () => {
             console.log('✅ Selfie uploaded successfully:', selfieUrl);
           } else if (result.error) {
             console.error('⚠️ Erro ao fazer upload da selfie:', result.error);
-            const errorDetail = result.error.status 
-              ? `${result.error.message} (${result.error.status})`
-              : result.error.message;
             toast.message('Selfie não foi enviada', {
-              description: `${errorDetail}. Você poderá enviá-la depois no perfil.`
+              description: 'Você poderá enviá-la depois no perfil.'
             });
           }
         } catch (error: any) {
@@ -345,6 +358,41 @@ const AffiliatedDriverSignup = () => {
           });
         }
       }
+
+      // 4.1 Upload dos demais documentos após autenticação
+      const uploadDocument = async (blob: Blob | null, fileType: string): Promise<string> => {
+        if (!blob || blob.size === 0) return '';
+        
+        try {
+          const ext = 'jpg'; // Assumimos jpg para imagens
+          const fileName = `${authData.user!.id}/${fileType}_${Date.now()}.${ext}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
+          
+          if (uploadError) {
+            console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, uploadError);
+            return '';
+          }
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('profile-photos')
+            .getPublicUrl(fileName);
+          
+          console.log(`✅ ${fileType} uploaded:`, publicUrl);
+          return publicUrl;
+        } catch (err) {
+          console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, err);
+          return '';
+        }
+      };
+
+      const [documentPhotoUrl, cnhPhotoUrl, addressProofUrl] = await Promise.all([
+        uploadDocument(documentBlobs.document_photo, 'document_photo'),
+        uploadDocument(documentBlobs.cnh_photo, 'cnh_photo'),
+        uploadDocument(documentBlobs.address_proof, 'address_proof'),
+      ]);
 
       // 5. Update profile with all data (store CNH in metadata)
       const updatedMetadata = {
@@ -369,11 +417,11 @@ const AffiliatedDriverSignup = () => {
           // Emergency
           emergency_contact_name: formData.emergency_contact_name,
           emergency_contact_phone: formData.emergency_contact_phone,
-          // Documents
-          selfie_url: selfieUrl,
-          document_photo_url: documentUrls.document_photo,
-          cnh_photo_url: documentUrls.cnh_photo,
-          address_proof_url: documentUrls.address_proof,
+          // Documents (URLs reais após upload)
+          selfie_url: selfieUrl || null,
+          document_photo_url: documentPhotoUrl || null,
+          cnh_photo_url: cnhPhotoUrl || null,
+          address_proof_url: addressProofUrl || null,
           // Professional (CNH number now in metadata)
           cnh_category: formData.cnh_category,
           cnh_expiry_date: formData.cnh_expiry_date,
@@ -795,34 +843,52 @@ const AffiliatedDriverSignup = () => {
                   </Button>
                 </div>
 
-                <DocumentUpload
+                <DocumentUploadLocal
                   label="Foto do RG ou CNH (frente)"
                   fileType="document_photo"
-                  onUploadComplete={(url) => 
-                    setDocumentUrls(prev => ({ ...prev, document_photo: url }))
-                  }
-                  currentFile={documentUrls.document_photo}
+                  onFileSelect={(blob, previewUrl) => {
+                    if (blob.size > 0) {
+                      setDocumentBlobs(prev => ({ ...prev, document_photo: blob }));
+                      setDocumentUrls(prev => ({ ...prev, document_photo: previewUrl }));
+                    } else {
+                      setDocumentBlobs(prev => ({ ...prev, document_photo: null }));
+                      setDocumentUrls(prev => ({ ...prev, document_photo: '' }));
+                    }
+                  }}
+                  currentPreview={documentUrls.document_photo}
                   required
                 />
 
-                <DocumentUpload
+                <DocumentUploadLocal
                   label="Foto da CNH (verso)"
                   fileType="cnh_photo"
-                  onUploadComplete={(url) => 
-                    setDocumentUrls(prev => ({ ...prev, cnh_photo: url }))
-                  }
-                  currentFile={documentUrls.cnh_photo}
+                  onFileSelect={(blob, previewUrl) => {
+                    if (blob.size > 0) {
+                      setDocumentBlobs(prev => ({ ...prev, cnh_photo: blob }));
+                      setDocumentUrls(prev => ({ ...prev, cnh_photo: previewUrl }));
+                    } else {
+                      setDocumentBlobs(prev => ({ ...prev, cnh_photo: null }));
+                      setDocumentUrls(prev => ({ ...prev, cnh_photo: '' }));
+                    }
+                  }}
+                  currentPreview={documentUrls.cnh_photo}
                   required
                 />
 
-                <DocumentUpload
+                <DocumentUploadLocal
                   label="Comprovante de Residência"
                   fileType="address_proof"
                   accept="image/*,application/pdf"
-                  onUploadComplete={(url) => 
-                    setDocumentUrls(prev => ({ ...prev, address_proof: url }))
-                  }
-                  currentFile={documentUrls.address_proof}
+                  onFileSelect={(blob, previewUrl) => {
+                    if (blob.size > 0) {
+                      setDocumentBlobs(prev => ({ ...prev, address_proof: blob }));
+                      setDocumentUrls(prev => ({ ...prev, address_proof: previewUrl }));
+                    } else {
+                      setDocumentBlobs(prev => ({ ...prev, address_proof: null }));
+                      setDocumentUrls(prev => ({ ...prev, address_proof: '' }));
+                    }
+                  }}
+                  currentPreview={documentUrls.address_proof}
                   required
                 />
               </div>
