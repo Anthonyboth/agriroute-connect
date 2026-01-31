@@ -1,11 +1,13 @@
 /**
  * Hook para buscar coordenadas de cidades
  * Prioriza dados do banco, com fallback para geocoding
+ * ✅ CORRIGIDO: Aplica normalização para corrigir coordenadas invertidas ou em micrograus
  */
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeNominatimGeocode } from '@/utils/safeGeocoding';
+import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
 interface Coordinates {
   lat: number;
@@ -62,10 +64,13 @@ async function fetchCityCoordinates(
     if (cityData?.lat != null && cityData?.lng != null && 
         typeof cityData.lat === 'number' && typeof cityData.lng === 'number' &&
         !isNaN(cityData.lat) && !isNaN(cityData.lng)) {
-      const coords = { lat: cityData.lat, lng: cityData.lng };
-      console.log('[useCityCoordinates] ✅ Found in database:', coords, 'for:', cityName);
-      coordsCache.set(cacheKey, coords);
-      return coords;
+      // ✅ Normalizar coordenadas para corrigir inversões ou micrograus
+      const normalized = normalizeLatLngPoint({ lat: cityData.lat, lng: cityData.lng }, 'BR');
+      if (normalized) {
+        console.log('[useCityCoordinates] ✅ Found in database:', normalized, 'for:', cityName);
+        coordsCache.set(cacheKey, normalized);
+        return normalized;
+      }
     } else {
       console.log('[useCityCoordinates] City found in database but has no coordinates:', cityData);
     }
@@ -75,10 +80,13 @@ async function fetchCityCoordinates(
     const geocodeResult = await safeNominatimGeocode(cityName, state);
     
     if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
-      const coords = { lat: geocodeResult.latitude, lng: geocodeResult.longitude };
-      console.log('[useCityCoordinates] ✅ Geocoding successful:', coords);
-      coordsCache.set(cacheKey, coords);
-      return coords;
+      // ✅ Normalizar coordenadas do geocoding também
+      const normalized = normalizeLatLngPoint({ lat: geocodeResult.latitude, lng: geocodeResult.longitude }, 'BR');
+      if (normalized) {
+        console.log('[useCityCoordinates] ✅ Geocoding successful:', normalized);
+        coordsCache.set(cacheKey, normalized);
+        return normalized;
+      }
     } else {
       console.warn('[useCityCoordinates] ⚠️ Geocoding returned no valid results');
     }
@@ -125,12 +133,18 @@ export function useCityCoordinates({
   const hasDestinationFromProps = typeof destinationLat === 'number' && typeof destinationLng === 'number';
 
   useEffect(() => {
-    // Se já temos coordenadas das props, usar elas
+    // Se já temos coordenadas das props, normalizar e usar elas
     if (hasOriginFromProps) {
-      setOriginCoords({ lat: originLat!, lng: originLng! });
+      const normalized = normalizeLatLngPoint({ lat: originLat!, lng: originLng! }, 'BR');
+      if (normalized) {
+        setOriginCoords(normalized);
+      }
     }
     if (hasDestinationFromProps) {
-      setDestinationCoords({ lat: destinationLat!, lng: destinationLng! });
+      const normalized = normalizeLatLngPoint({ lat: destinationLat!, lng: destinationLng! }, 'BR');
+      if (normalized) {
+        setDestinationCoords(normalized);
+      }
     }
 
     // Só buscar do banco/geocoding se não temos das props
