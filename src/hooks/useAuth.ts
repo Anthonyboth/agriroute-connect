@@ -112,22 +112,26 @@ const useAuthInternal = () => {
     if (!force) {
       const cachedProfile = getCachedProfile(userId);
       if (cachedProfile) {
-        // ✅ Regra de negócio: PRODUTOR e TRANSPORTADORA NÃO podem ficar pendentes.
-        // Se cache estiver desatualizado (ex.: status PENDING), ignorar cache e buscar do banco.
-        const cachedRole = (cachedProfile?.role || cachedProfile?.active_mode) as string | undefined;
-        const isAutoApproveRole = cachedRole === 'PRODUTOR' || cachedRole === 'TRANSPORTADORA';
-
-        if (isAutoApproveRole && cachedProfile?.status !== 'APPROVED') {
+        // ✅ Hotfix: nunca confiar em cache quando status não está APPROVED.
+        // Motivo: status é volátil (aprovação pode mudar no backend) e, se o app iniciar usando cache PENDING,
+        // pode ficar “travado” na tela de Conta Pendente sem disparar um refetch.
+        if (cachedProfile?.status !== 'APPROVED') {
           if (import.meta.env.DEV) {
-            console.log('[ProfileCache] ⚠️ Cache desatualizado para role auto-aprovada. Revalidando no banco.');
+            console.log('[ProfileCache] ⚠️ Cache com status não aprovado. Revalidando no banco.');
           }
           clearCachedProfile(userId);
+          // Se houve timeout/cooldown anteriormente, removemos para permitir revalidação imediata.
+          // Isso evita ficar preso em “Conta Pendente” por 60s quando o backend já está OK.
+          try {
+            sessionStorage.removeItem('profile_fetch_cooldown_until');
+          } catch {}
         } else {
-        setProfiles([cachedProfile]);
-        setProfile(cachedProfile);
-        setLoading(false);  // ✅ Garante que loading seja false
-        lastFetchedUserIdRef.current = userId;
-        return;
+          // ✅ Cache aprovado é seguro usar para acelerar o boot
+          setProfiles([cachedProfile]);
+          setProfile(cachedProfile);
+          setLoading(false); // ✅ Garante que loading seja false
+          lastFetchedUserIdRef.current = userId;
+          return;
         }
       }
     }
