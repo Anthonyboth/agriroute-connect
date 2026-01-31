@@ -162,13 +162,34 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           ? ((data as any).drivers_assigned as string[])
           : [];
 
-        if (assignedIds.length > 0) {
+        // ✅ FALLBACK: se drivers_assigned não estiver preenchido (edge case),
+        // buscar a verdade pelo freight_assignments.
+        let assignmentDriverIds: string[] = [];
+        if (assignedIds.length === 0) {
+          const { data: assignmentRows, error: assignmentErr } = await supabase
+            .from('freight_assignments')
+            .select('driver_id')
+            .eq('freight_id', freightId)
+            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+
+          if (assignmentErr) {
+            console.warn('[FreightDetails] Falha ao buscar freight_assignments (fallback drivers):', assignmentErr);
+          } else {
+            assignmentDriverIds = Array.from(
+              new Set((assignmentRows || []).map((r: any) => r?.driver_id).filter(Boolean)),
+            );
+          }
+        }
+
+        const driverIdsToFetch = assignedIds.length > 0 ? assignedIds : assignmentDriverIds;
+
+        if (driverIdsToFetch.length > 0) {
           // ✅ CORREÇÃO: profiles_secure não tem colunas 'role', 'selfie_url', 'active_mode' (mascaradas)
           // Colunas disponíveis: id, full_name, profile_photo_url, rating, total_ratings, status, created_at
           const { data: driversData, error: driversError } = await (supabase as any)
             .from('profiles_secure')
             .select('id, full_name, profile_photo_url, rating, total_ratings')
-            .in('id', assignedIds);
+            .in('id', driverIdsToFetch);
 
           if (!driversError) {
             setAssignedDrivers((driversData as any[]) || []);

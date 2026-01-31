@@ -144,6 +144,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const normalizedStatus = normalizeFreightStatus(freight.status ?? '');
   const hasAssignedDrivers = Array.isArray(freight.drivers_assigned) && freight.drivers_assigned.length > 0;
   const hasMainDriver = !!freight.driver_id;
+  const hasAcceptedTrucks = (freight.accepted_trucks ?? 0) > 0;
   
   const canShowMap = [
     'ACCEPTED', 
@@ -151,7 +152,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
     'LOADED', 
     'IN_TRANSIT', 
     'DELIVERED_PENDING_CONFIRMATION'
-  ].includes(normalizedStatus) || (normalizedStatus === 'OPEN' && (hasAssignedDrivers || hasMainDriver));
+  ].includes(normalizedStatus) || (normalizedStatus === 'OPEN' && (hasAssignedDrivers || hasMainDriver || hasAcceptedTrucks));
 
   const priceDisplayMode = freight.price_display_mode;
   const originalRequiredTrucks = Math.max((freight.original_required_trucks ?? freight.required_trucks) || 1, 1);

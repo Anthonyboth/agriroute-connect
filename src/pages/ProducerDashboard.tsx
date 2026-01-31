@@ -406,6 +406,35 @@ const ProducerDashboard = () => {
 
       // ✅ FIX: Resolver perfis de motoristas via view segura
       // Incluir tanto driver_id quanto drivers_assigned (array de IDs para multi-carreta)
+      // ✅ FIX EXTRA: Quando drivers_assigned não está preenchido (edge case), usar freight_assignments como fonte
+      // de verdade para descobrir motoristas já contratados.
+      const freightIdsForAssignments = rows.map((f: any) => f.id).filter(Boolean);
+      let assignmentDriversByFreight = new Map<string, string[]>();
+
+      if (freightIdsForAssignments.length > 0) {
+        try {
+          const { data: assignmentRows, error: assignmentErr } = await supabase
+            .from('freight_assignments')
+            .select('freight_id, driver_id')
+            .in('freight_id', freightIdsForAssignments)
+            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+
+          if (assignmentErr) {
+            console.warn('[fetchFreights] Falha ao carregar freight_assignments (fallback drivers):', assignmentErr.message);
+          } else if (assignmentRows?.length) {
+            for (const row of assignmentRows as any[]) {
+              if (!row?.freight_id || !row?.driver_id) continue;
+              const existing = assignmentDriversByFreight.get(row.freight_id) ?? [];
+              // Dedup mantendo ordem de chegada
+              if (!existing.includes(row.driver_id)) existing.push(row.driver_id);
+              assignmentDriversByFreight.set(row.freight_id, existing);
+            }
+          }
+        } catch (e) {
+          console.warn('[fetchFreights] Erro inesperado ao carregar freight_assignments (fallback drivers):', e);
+        }
+      }
+
       const allDriverIds: string[] = [];
       
       rows.forEach((f: any) => {
@@ -414,13 +443,15 @@ const ProducerDashboard = () => {
           allDriverIds.push(f.driver_id);
         }
         // drivers_assigned (array para multi-carreta)
-        if (Array.isArray(f.drivers_assigned)) {
-          f.drivers_assigned.forEach((id: any) => {
-            if (typeof id === "string" && id.length > 0) {
-              allDriverIds.push(id);
-            }
-          });
-        }
+        const driverIdsFromArray = Array.isArray(f.drivers_assigned)
+          ? (f.drivers_assigned as any[]).filter((id) => typeof id === 'string' && id.length > 0)
+          : [];
+        const driverIdsFromAssignments = assignmentDriversByFreight.get(f.id) ?? [];
+
+        // Preferir drivers_assigned quando existir; senão, usar fallback via freight_assignments
+        const driverIdsForUi = driverIdsFromArray.length > 0 ? driverIdsFromArray : driverIdsFromAssignments;
+
+        driverIdsForUi.forEach((id: any) => allDriverIds.push(id));
       });
 
       const driverIds = Array.from(new Set(allDriverIds));
@@ -444,26 +475,28 @@ const ProducerDashboard = () => {
       }
 
       const finalData = rows.map((freight: any) => {
+        const driversFromArray = Array.isArray(freight.drivers_assigned)
+          ? (freight.drivers_assigned as any[]).filter((id) => typeof id === 'string' && id.length > 0)
+          : [];
+        const driversFromAssignments = assignmentDriversByFreight.get(freight.id) ?? [];
+        const driverIdsForUi: string[] = (driversFromArray.length > 0 ? driversFromArray : driversFromAssignments) as string[];
+
         // Para fretes simples: usar driver_id
         // Para fretes multi-carreta (driver_id null): usar primeiro motorista de drivers_assigned
         let driverProfile = null;
         
         if (freight.driver_id && driverMap.has(freight.driver_id)) {
           driverProfile = driverMap.get(freight.driver_id);
-        } else if (Array.isArray(freight.drivers_assigned) && freight.drivers_assigned.length > 0) {
-          // Multi-carreta: usar primeiro motorista para exibição no card
-          const firstDriverId = freight.drivers_assigned[0];
-          if (firstDriverId && driverMap.has(firstDriverId)) {
-            driverProfile = driverMap.get(firstDriverId);
-          }
+        } else if (driverIdsForUi.length > 0) {
+          // Multi-carreta: usar primeiro motorista (drivers_assigned OU fallback via assignments) para exibição no card
+          const firstDriverId = driverIdsForUi[0];
+          if (firstDriverId && driverMap.has(firstDriverId)) driverProfile = driverMap.get(firstDriverId);
         }
         
         // Mapear todos os motoristas atribuídos (para detalhes)
-        const allAssignedDrivers = Array.isArray(freight.drivers_assigned)
-          ? freight.drivers_assigned
-              .map((id: string) => driverMap.get(id))
-              .filter(Boolean)
-          : [];
+        const allAssignedDrivers = driverIdsForUi
+          .map((id: string) => driverMap.get(id))
+          .filter(Boolean);
 
         const mappedFreight: any = {
           ...freight,
@@ -473,6 +506,8 @@ const ProducerDashboard = () => {
           profiles: driverProfile,
           // Novo: todos os motoristas (para tela de detalhes)
           all_assigned_drivers: allAssignedDrivers,
+          // ✅ Garantir consistência de UI mesmo quando trigger não preencheu `drivers_assigned`
+          drivers_assigned: driverIdsForUi,
         };
 
         if (mappedFreight.status === "DELIVERED_PENDING_CONFIRMATION") {
