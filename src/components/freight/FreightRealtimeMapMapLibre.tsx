@@ -57,8 +57,9 @@ interface FreightRealtimeMapMapLibreProps {
   className?: string;
 }
 
-// Threshold para considerar motorista online (5 minutos = 300 segundos)
-const ONLINE_THRESHOLD_SECONDS = 300;
+// Threshold para considerar motorista online (2 minutos = 120 segundos)
+// Reduzido para exibir status mais preciso
+const ONLINE_THRESHOLD_SECONDS = 120;
 
 const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibreProps> = ({
   freightId,
@@ -192,26 +193,11 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     return DEFAULT_CENTER;
   }, [effectiveDriverLocation, effectiveOrigin, effectiveDestination, isDriverReallyOnline]);
 
-  // ✅ Coordenadas da rota ativa (origem → motorista → destino) - simplificada para marker
-  const routeCoordinates = useMemo(() => {
-    const coords: [number, number][] = [];
-    
-    if (effectiveOrigin) {
-      coords.push([effectiveOrigin.lng, effectiveOrigin.lat]);
-    }
-    
-    if (effectiveDriverLocation && isDriverReallyOnline) {
-      coords.push([effectiveDriverLocation.lng, effectiveDriverLocation.lat]);
-    }
-    
-    if (effectiveDestination) {
-      coords.push([effectiveDestination.lng, effectiveDestination.lat]);
-    }
-    
-    return coords;
-  }, [effectiveOrigin, effectiveDestination, effectiveDriverLocation, isDriverReallyOnline]);
+  // ✅ REMOVIDO: Não precisamos mais de routeCoordinates separado
+  // A rota OSRM (plannedRouteCoordinates) já mostra o caminho real por estradas
+  // Não vamos desenhar linha reta sobreposta
 
-  // ✅ 🚗 OSRM: Usar rota real do OSRM ou fallback para linha reta
+  // ✅ 🚗 OSRM: Usar APENAS rota real do OSRM (sem fallback de linha reta)
   const plannedRouteCoordinates = useMemo(() => {
     // Se temos rota OSRM, usar ela
     if (osrmRoute && osrmRoute.coordinates.length >= 2) {
@@ -219,19 +205,10 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       return osrmRoute.coordinates;
     }
     
-    // Fallback: linha reta enquanto carrega ou se OSRM falhar
-    const coords: [number, number][] = [];
-    
-    if (effectiveOrigin) {
-      coords.push([effectiveOrigin.lng, effectiveOrigin.lat]);
-    }
-    
-    if (effectiveDestination) {
-      coords.push([effectiveDestination.lng, effectiveDestination.lat]);
-    }
-    
-    return coords;
-  }, [effectiveOrigin, effectiveDestination, osrmRoute]);
+    // Sem rota ainda - retornar vazio (não desenhar linha reta)
+    // Os markers de origem/destino já indicam os pontos
+    return [];
+  }, [osrmRoute]);
 
   // ✅ Verificar se temos pelo menos uma coordenada válida para exibir o mapa
   const hasAnyValidCoordinate = useMemo(() => {
@@ -326,7 +303,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
             data: plannedRouteData,
           });
 
-          // ✅ 🚗 OSRM: Estilo diferente para rota real vs linha reta
+          // ✅ 🚗 OSRM: Rota real por estradas (sempre verde sólido quando disponível)
           const hasRealRoute = osrmRoute && osrmRoute.coordinates.length >= 2;
           
           map.addLayer({
@@ -338,48 +315,15 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
               'line-cap': 'round',
             },
             paint: {
-              // Rota real OSRM: verde sólido / Linha reta: cinza tracejado
-              'line-color': hasRealRoute ? MAP_COLORS.primary : MAP_COLORS.offline,
-              'line-width': hasRealRoute ? 4 : 3,
-              'line-opacity': hasRealRoute ? 0.8 : 0.5,
-            },
-          });
-
-          // ✅ Adicionar source e layer para rota ativa (sobre a planejada)
-          // IMPORTANTE: Só criar LineString se tiver 2+ pontos
-          const routeData = routeCoordinates.length >= 2
-            ? {
-                type: 'Feature' as const,
-                properties: {},
-                geometry: {
-                  type: 'LineString' as const,
-                  coordinates: routeCoordinates,
-                },
-              }
-            : {
-                type: 'FeatureCollection' as const,
-                features: [],
-              };
-
-          map.addSource('route', {
-            type: 'geojson',
-            data: routeData,
-          });
-
-          map.addLayer({
-            id: 'route-line',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
+              // Rota OSRM: verde sólido / Sem rota: não exibe nada (array vazio)
               'line-color': MAP_COLORS.primary,
-              'line-width': 4,
-              'line-opacity': 0.7,
+              'line-width': 5,
+              'line-opacity': 0.85,
             },
           });
+
+          // ✅ REMOVIDO: Não precisamos de layer 'route' separado
+          // A rota OSRM em 'planned-route' já mostra o caminho correto por estradas
 
           // Adicionar heatmap se habilitado
           if (showHeatmap && stops.length > 0) {
@@ -623,28 +567,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [plannedRouteCoordinates, mapLoaded]);
 
-  // Atualizar polyline quando rota mudar
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    const source = mapRef.current.getSource('route') as maplibregl.GeoJSONSource;
-    if (source) {
-      const data = routeCoordinates.length >= 2
-        ? {
-            type: 'Feature' as const,
-            properties: {},
-            geometry: {
-              type: 'LineString' as const,
-              coordinates: routeCoordinates,
-            },
-          }
-        : {
-            type: 'FeatureCollection' as const,
-            features: [],
-          };
-      source.setData(data);
-    }
-  }, [routeCoordinates, mapLoaded]);
+  // ✅ REMOVIDO: Layer 'route' separado foi eliminado - usar apenas OSRM 'planned-route'
 
   // ✅ Centralizar no motorista
   const handleCenterOnDriver = useCallback(() => {
