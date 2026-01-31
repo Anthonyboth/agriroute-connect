@@ -180,7 +180,9 @@ export const UnifiedTrackingControl = () => {
     if (!profile?.id) return;
 
     try {
-      // ✅ Persistir também na tabela dedicada (evita dependência de RLS/PII na profiles)
+      const timestamp = new Date().toISOString();
+
+      // ✅ Persistir na tabela dedicada (fonte principal para mapas)
       await supabase
         .from('driver_current_locations')
         .upsert(
@@ -188,31 +190,25 @@ export const UnifiedTrackingControl = () => {
             driver_profile_id: profile.id,
             lat: coords.latitude,
             lng: coords.longitude,
-            last_gps_update: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            last_gps_update: timestamp,
+            updated_at: timestamp,
           },
           { onConflict: 'driver_profile_id' }
         );
 
+      // ✅ Atualizar profiles (fallback)
       await supabase
         .from('profiles')
         .update({
           current_location_lat: coords.latitude,
           current_location_lng: coords.longitude,
-          last_gps_update: new Date().toISOString()
+          last_gps_update: timestamp
         })
         .eq('id', profile.id);
 
-      if (activeFreightId && (activeFreightType === 'freight' || activeFreightType === 'assignment')) {
-        await supabase
-          .from('freights')
-          .update({
-            current_lat: coords.latitude,
-            current_lng: coords.longitude,
-            last_location_update: new Date().toISOString()
-          })
-          .eq('id', activeFreightId);
-      }
+      // ❌ REMOVIDO: Atualização direta na tabela freights
+      // Isso causava erro "Data de coleta deve ser futura" devido ao trigger validate_freight_input
+      // A localização agora é lida de driver_current_locations pelo hook useFreightRealtimeLocation
 
       setLastUpdate(new Date());
     } catch (error) {

@@ -150,21 +150,9 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
 
       if (error) throw error;
 
-      // Se há um frete ativo, atualizar também na tabela de fretes
-      if (freightId) {
-        const { error: freightError } = await supabase
-          .from('freights')
-          .update({
-            current_lat: locationData.lat,
-            current_lng: locationData.lng,
-            last_location_update: locationData.timestamp.toISOString()
-          })
-          .eq('id', freightId);
-
-        if (freightError) {
-          console.error('Erro ao atualizar localização do frete:', freightError);
-        }
-      }
+      // ❌ REMOVIDO: Atualização direta na tabela freights
+      // Isso causava erro "Data de coleta deve ser futura" devido ao trigger validate_freight_input
+      // A localização agora é lida de driver_current_locations ou profiles pelo hook useFreightRealtimeLocation
 
       // Callback para componentes pais
       if (onLocationUpdate) {
