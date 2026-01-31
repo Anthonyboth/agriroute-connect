@@ -3,12 +3,14 @@
  * 
  * Mapa de localização do motorista usando MapLibre GL JS.
  * REFATORADO: Usa MapLibreBase para arquitetura padronizada.
+ * ✅ CORRIGIDO: Normaliza coordenadas antes de exibir para evitar markers incorretos.
  */
 
 import { useMemo, useRef, useCallback } from 'react';
 import { MapLibreBase, type MapLibreBaseRef } from '@/components/map/MapLibreBase';
 import { type MapLibreMarkerData } from '@/hooks/maplibre';
 import { createTruckMarkerElement } from '@/lib/maplibre-utils';
+import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
 interface DriverLocationMapMapLibreProps {
   lat: number;
@@ -25,14 +27,22 @@ export const DriverLocationMapMapLibre = ({
 }: DriverLocationMapMapLibreProps) => {
   const mapRef = useRef<MapLibreBaseRef>(null);
 
-  // Marker do motorista
+  // ✅ Normalizar coordenadas para corrigir lat/lng invertidos ou micrograus
+  const normalizedLocation = useMemo(() => {
+    if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+      return null;
+    }
+    return normalizeLatLngPoint({ lat, lng }, 'BR');
+  }, [lat, lng]);
+
+  // Marker do motorista (usando coordenadas normalizadas)
   const markers = useMemo<MapLibreMarkerData[]>(() => {
-    if (typeof lat !== 'number' || typeof lng !== 'number') return [];
+    if (!normalizedLocation) return [];
     
     return [{
       id: 'driver-location',
-      lat,
-      lng,
+      lat: normalizedLocation.lat,
+      lng: normalizedLocation.lng,
       popup: `
         <div style="padding: 8px;">
           <h3 style="margin: 0 0 8px 0; font-weight: 600;">${driverName || 'Motorista'}</h3>
@@ -40,24 +50,29 @@ export const DriverLocationMapMapLibre = ({
         </div>
       `,
     }];
-  }, [lat, lng, driverName]);
+  }, [normalizedLocation, driverName]);
 
   // Factory para criar elemento do marker
   const markerFactory = useCallback(() => {
     return createTruckMarkerElement(true);
   }, []);
 
-  // Centralizar quando coordenadas mudarem
+  // Centralizar quando coordenadas mudarem (usando coordenadas normalizadas)
   const handleLoad = useCallback(() => {
-    if (mapRef.current && lat && lng) {
-      mapRef.current.flyTo(lat, lng, 15);
+    if (mapRef.current && normalizedLocation) {
+      mapRef.current.flyTo(normalizedLocation.lat, normalizedLocation.lng, 15);
     }
-  }, [lat, lng]);
+  }, [normalizedLocation]);
+
+  // Se não tiver coordenadas válidas após normalização, não renderizar mapa vazio
+  if (!normalizedLocation) {
+    return null;
+  }
 
   return (
     <MapLibreBase
       ref={mapRef}
-      center={{ lat, lng }}
+      center={{ lat: normalizedLocation.lat, lng: normalizedLocation.lng }}
       zoom={15}
       className={className}
       minHeight={400}

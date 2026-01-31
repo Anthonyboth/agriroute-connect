@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
 interface DriverLocation {
   lat: number | null;
@@ -38,9 +39,15 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
           ? (new Date().getTime() - new Date(locData.last_gps_update).getTime()) < 5 * 60 * 1000
           : false;
 
+        // ✅ Normalizar coordenadas para corrigir inversões ou micrograus
+        const normalized = normalizeLatLngPoint(
+          { lat: locData.lat ?? 0, lng: locData.lng ?? 0 }, 
+          'BR'
+        );
+
         setLocation({
-          lat: locData.lat,
-          lng: locData.lng,
+          lat: normalized?.lat ?? null,
+          lng: normalized?.lng ?? null,
           lastUpdate: locData.last_gps_update,
           isOnline: isRecent,
         });
@@ -62,9 +69,15 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
             ? (new Date().getTime() - new Date(data.last_gps_update).getTime()) < 5 * 60 * 1000
             : false;
 
+          // ✅ Normalizar coordenadas
+          const normalized = normalizeLatLngPoint(
+            { lat: data.current_lat ?? 0, lng: data.current_lng ?? 0 }, 
+            'BR'
+          );
+
           setLocation({
-            lat: data.current_lat,
-            lng: data.current_lng,
+            lat: normalized?.lat ?? null,
+            lng: normalized?.lng ?? null,
             lastUpdate: data.last_gps_update,
             isOnline: isRecent,
           });
@@ -94,9 +107,15 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
             ? (new Date().getTime() - new Date(newData.last_gps_update).getTime()) < 5 * 60 * 1000
             : false;
 
+          // ✅ Normalizar coordenadas do realtime
+          const normalized = normalizeLatLngPoint(
+            { lat: newData.lat ?? 0, lng: newData.lng ?? 0 }, 
+            'BR'
+          );
+
           setLocation({
-            lat: newData.lat,
-            lng: newData.lng,
+            lat: normalized?.lat ?? null,
+            lng: normalized?.lng ?? null,
             lastUpdate: newData.last_gps_update,
             isOnline: isRecent,
           });
@@ -135,9 +154,15 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
         ? (new Date().getTime() - new Date(locData.last_gps_update).getTime()) < 5 * 60 * 1000
         : false;
 
+      // ✅ Normalizar coordenadas
+      const normalized = normalizeLatLngPoint(
+        { lat: locData.lat ?? 0, lng: locData.lng ?? 0 }, 
+        'BR'
+      );
+
       setLocation({
-        lat: locData.lat,
-        lng: locData.lng,
+        lat: normalized?.lat ?? null,
+        lng: normalized?.lng ?? null,
         lastUpdate: locData.last_gps_update,
         isOnline: isRecent,
       });
@@ -159,9 +184,15 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
           ? (new Date().getTime() - new Date(data.last_gps_update).getTime()) < 5 * 60 * 1000
           : false;
 
+        // ✅ Normalizar coordenadas
+        const normalized = normalizeLatLngPoint(
+          { lat: data.current_lat ?? 0, lng: data.current_lng ?? 0 }, 
+          'BR'
+        );
+
         setLocation({
-          lat: data.current_lat,
-          lng: data.current_lng,
+          lat: normalized?.lat ?? null,
+          lng: normalized?.lng ?? null,
           lastUpdate: data.last_gps_update,
           isOnline: isRecent,
         });
