@@ -2,17 +2,23 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
+import { useOngoingFreightLocation } from '@/hooks/useOngoingFreightLocation';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe } from '@/utils/location';
-import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { MapPin, Navigation } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 
 export const DriverAutoLocationTracking = () => {
   const { profile } = useAuth();
-  const { hasActiveFreight, activeFreightId, activeFreightType } = useActiveFreight();
+  const { hasActiveFreight, activeFreightId } = useActiveFreight();
   const [watchId, setWatchId] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [hasUserGesture, setHasUserGesture] = useState(false);
+
+  const { updateFromCoords } = useOngoingFreightLocation({
+    driverProfileId: profile?.id ?? null,
+    freightId: activeFreightId ?? null,
+    minUpdateInterval: 5000
+  });
 
   // Registrar user gesture
   useEffect(() => {
@@ -34,11 +40,9 @@ export const DriverAutoLocationTracking = () => {
   useEffect(() => {
     if (!profile?.id) return;
 
-    // Iniciar tracking quando houver frete ativo E houver gesto do usuário
     if (hasActiveFreight && activeFreightId && hasUserGesture) {
       startAutoTracking();
     } else {
-      // Parar tracking quando não houver frete ativo
       stopAutoTracking();
     }
 
@@ -52,17 +56,17 @@ export const DriverAutoLocationTracking = () => {
     
     if (error && error.code) {
       switch (error.code) {
-        case 1: // PERMISSION_DENIED
+        case 1:
           toast.error('Permissão de localização negada', {
             description: 'Ative nas configurações do dispositivo.'
           });
           break;
-        case 2: // POSITION_UNAVAILABLE
+        case 2:
           toast.error('Localização indisponível', {
             description: 'Verifique se o GPS está ativado.'
           });
           break;
-        case 3: // TIMEOUT
+        case 3:
           toast.error('Tempo esgotado ao obter localização', {
             description: 'Tente novamente.'
           });
@@ -82,7 +86,6 @@ export const DriverAutoLocationTracking = () => {
     }
 
     try {
-      // Verificar permissão primeiro
       const hasPermission = await checkPermissionSafe();
       if (!hasPermission) {
         const granted = await requestPermissionSafe();
@@ -94,7 +97,7 @@ export const DriverAutoLocationTracking = () => {
 
       setTimeout(() => {
         const handle = watchPositionSafe(
-          (coords) => updateLocation(coords),
+          (coords) => updateFromCoords(coords),
           (error) => handleGeolocationError(error)
         );
 
@@ -128,39 +131,6 @@ export const DriverAutoLocationTracking = () => {
     }
   };
 
-  const updateLocation = async (coords: GeolocationCoordinates) => {
-    if (!profile?.id || !activeFreightId) return;
-
-    try {
-      // Atualizar localização no perfil
-      await supabase
-        .from('profiles')
-        .update({
-          current_location_lat: coords.latitude,
-          current_location_lng: coords.longitude,
-          last_gps_update: new Date().toISOString()
-        })
-        .eq('id', profile.id);
-
-      // Atualizar localização no frete ativo
-      if (activeFreightType === 'freight' || activeFreightType === 'assignment') {
-        await supabase
-          .from('freights')
-          .update({
-            current_lat: coords.latitude,
-            current_lng: coords.longitude,
-            last_location_update: new Date().toISOString()
-          })
-          .eq('id', activeFreightId);
-      }
-      // Para serviços, apenas atualizar no perfil (service_requests não tem campos de tracking)
-
-    } catch (error) {
-      console.error('Erro ao atualizar localização:', error);
-    }
-  };
-
-  // Não renderizar nada se não houver frete ativo ou se não for motorista
   if (!hasActiveFreight || !profile || !['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role)) {
     return null;
   }

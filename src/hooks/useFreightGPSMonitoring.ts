@@ -2,17 +2,18 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentPositionSafe } from '@/utils/location';
 import { toast } from 'sonner';
+import { useOngoingFreightLocation } from './useOngoingFreightLocation';
 
 /**
  * Hook para monitoramento GPS CONTÍNUO durante frete ativo
- * - Atualiza localização a cada 30 segundos
+ * - Atualiza localização a cada 60 segundos
  * - Detecta GPS desligado e reporta como incidente CRÍTICO
- * - Atualiza tanto o frete quanto o tracking do motorista afiliado
+ * - NÃO atualiza tabela `freights` diretamente (evita erro de data)
  * 
  * @param freightId - ID do frete ativo
  * @param driverProfileId - ID do perfil do motorista
  * @param isFreightActive - Se o frete está em status ativo (IN_TRANSIT, LOADING, LOADED)
- * @param updateInterval - Intervalo de atualização em ms (padrão: 30000 = 30 segundos)
+ * @param updateInterval - Intervalo de atualização em ms (padrão: 60000 = 60 segundos)
  */
 export const useFreightGPSMonitoring = (
   freightId: string | null,
@@ -20,6 +21,12 @@ export const useFreightGPSMonitoring = (
   isFreightActive: boolean,
   updateInterval: number = 60000
 ) => {
+  const { updateFromCoords } = useOngoingFreightLocation({
+    driverProfileId,
+    freightId,
+    minUpdateInterval: 5000
+  });
+
   useEffect(() => {
     if (!isFreightActive || !freightId || !driverProfileId) {
       console.log('[GPS Monitoring] Desativado - Condições não atendidas');
@@ -30,65 +37,37 @@ export const useFreightGPSMonitoring = (
     
     let consecutiveFailures = 0;
     const MAX_FAILURES = 3;
-    let lastIncidentReported: number | null = null; // ✅ Timestamp do último incidente reportado
+    let lastIncidentReported: number | null = null;
 
     const updateLocation = async () => {
       try {
         const position = await getCurrentPositionSafe(2);
         
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
-        
-        // Atualizar localização no frete
-        const { error: freightError } = await supabase
-          .from('freights')
-          .update({
-            current_lat: lat,
-            current_lng: lng,
-            last_location_update: new Date().toISOString()
-          })
-          .eq('id', freightId);
-
-        if (freightError) {
-          console.error('[GPS] Erro ao atualizar frete:', freightError);
-        }
+        // ✅ Usar hook dedicado que NÃO atualiza tabela freights
+        await updateFromCoords(position.coords);
 
         // Atualizar tracking do motorista afiliado (se existir)
         const { error: trackingError } = await supabase
           .from('affiliated_drivers_tracking')
           .update({
-            current_lat: lat,
-            current_lng: lng,
+            current_lat: position.coords.latitude,
+            current_lng: position.coords.longitude,
             last_gps_update: new Date().toISOString()
           })
           .eq('driver_profile_id', driverProfileId)
           .eq('current_freight_id', freightId);
 
-        // Ignorar erro se motorista não é afiliado (não tem registro na tabela)
+        // Ignorar erro se motorista não é afiliado
         if (trackingError && trackingError.code !== 'PGRST116') {
           console.error('[GPS] Erro ao atualizar tracking:', trackingError);
-        }
-
-        // ✅ Salvar localização no histórico (retenção máxima de 7 dias, auto-purge após conclusão do frete)
-        const { error: historyError } = await supabase.rpc('insert_driver_location_history', {
-          p_driver_profile_id: driverProfileId,
-          p_freight_id: freightId,
-          p_lat: lat,
-          p_lng: lng,
-          p_accuracy: accuracy
-        });
-
-        if (historyError) {
-          console.error('[GPS] Erro ao salvar histórico:', historyError);
         }
         
         // Reset contador de falhas
         consecutiveFailures = 0;
         console.log('✅ GPS atualizado:', {
-          lat: lat.toFixed(6),
-          lng: lng.toFixed(6),
-          accuracy: `${accuracy.toFixed(0)}m`,
+          lat: position.coords.latitude.toFixed(6),
+          lng: position.coords.longitude.toFixed(6),
+          accuracy: `${position.coords.accuracy.toFixed(0)}m`,
           freight: freightId
         });
         
@@ -98,14 +77,13 @@ export const useFreightGPSMonitoring = (
         
         // Reportar incidente crítico após múltiplas falhas
         if (consecutiveFailures >= MAX_FAILURES) {
-          // ✅ VERIFICAR SE JÁ REPORTOU NAS ÚLTIMAS 2 HORAS
           const now = Date.now();
           const twoHours = 2 * 60 * 60 * 1000;
           
           if (lastIncidentReported && (now - lastIncidentReported) < twoHours) {
             const minutesAgo = Math.round((now - lastIncidentReported) / 60000);
             console.log(`[GPS] Incidente GPS_DISABLED já reportado há ${minutesAgo} minutos. Pulando...`);
-            return; // ⛔ NÃO REPORTAR NOVAMENTE
+            return;
           }
           
           try {
@@ -123,7 +101,7 @@ export const useFreightGPSMonitoring = (
               }
             });
 
-            lastIncidentReported = now; // ✅ ATUALIZAR TIMESTAMP DO ÚLTIMO REPORT
+            lastIncidentReported = now;
 
             toast.error('🚨 GPS DESLIGADO DETECTADO!', {
               description: 'Reative o GPS imediatamente. O produtor foi notificado.',
@@ -132,19 +110,15 @@ export const useFreightGPSMonitoring = (
           } catch (reportError) {
             console.error('[GPS] Erro ao reportar incidente:', reportError);
           }
-          
-          // ⛔ NÃO RESETAR CONTADOR - Manter alto para evitar loops de re-report
-          // consecutiveFailures = 0; 
         }
       }
     };
 
     const intervalId = setInterval(updateLocation, updateInterval);
 
-    // Cleanup ao desmontar ou quando frete não estiver mais ativo
     return () => {
       console.log('[GPS Monitoring] Parando rastreamento para frete:', freightId);
       clearInterval(intervalId);
     };
-  }, [freightId, driverProfileId, isFreightActive, updateInterval]);
+  }, [freightId, driverProfileId, isFreightActive, updateInterval, updateFromCoords]);
 };

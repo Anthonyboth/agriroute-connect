@@ -97,17 +97,9 @@ export const ManualLocationTracking = () => {
         })
         .eq('id', profile.id);
 
-      // Atualizar localização no frete ativo
-      if (activeFreightType === 'freight' || activeFreightType === 'assignment') {
-        await supabase
-          .from('freights')
-          .update({
-            current_lat: coords.latitude,
-            current_lng: coords.longitude,
-            last_location_update: new Date().toISOString()
-          })
-          .eq('id', activeFreightId);
-      }
+      // ❌ REMOVIDO: Atualização direta na tabela freights
+      // Isso causava erro "Data de coleta deve ser futura" devido ao trigger validate_freight_input
+      // A localização agora é lida de driver_current_locations ou profiles pelo hook useFreightRealtimeLocation
 
       setLastUpdate(new Date());
     } catch (error) {
