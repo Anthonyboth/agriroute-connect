@@ -139,14 +139,19 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 
   // Verificar se o frete está em andamento (permite mapa)
   // Inclui LOADED/CARREGADO para que o mapa funcione nesse status também
+  // ✅ CORREÇÃO: Para fretes multi-carreta (OPEN mas com drivers_assigned), 
+  // o produtor deve poder ver a localização dos motoristas já atribuídos
   const normalizedStatus = normalizeFreightStatus(freight.status ?? '');
+  const hasAssignedDrivers = Array.isArray(freight.drivers_assigned) && freight.drivers_assigned.length > 0;
+  const hasMainDriver = !!freight.driver_id;
+  
   const canShowMap = [
     'ACCEPTED', 
     'LOADING', 
     'LOADED', 
     'IN_TRANSIT', 
     'DELIVERED_PENDING_CONFIRMATION'
-  ].includes(normalizedStatus);
+  ].includes(normalizedStatus) || (normalizedStatus === 'OPEN' && (hasAssignedDrivers || hasMainDriver));
 
   const priceDisplayMode = freight.price_display_mode;
   const originalRequiredTrucks = Math.max((freight.original_required_trucks ?? freight.required_trucks) || 1, 1);
