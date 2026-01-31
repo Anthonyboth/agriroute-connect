@@ -80,12 +80,26 @@ async function fetchCityCoordinates(
     const geocodeResult = await safeNominatimGeocode(cityName, state);
     
     if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
+      console.log('[useCityCoordinates] 🌍 Nominatim raw result:', { 
+        lat: geocodeResult.latitude, 
+        lng: geocodeResult.longitude,
+        displayName: geocodeResult.displayName 
+      });
+      
       // ✅ Normalizar coordenadas do geocoding também
       const normalized = normalizeLatLngPoint({ lat: geocodeResult.latitude, lng: geocodeResult.longitude }, 'BR');
+      
       if (normalized) {
-        console.log('[useCityCoordinates] ✅ Geocoding successful:', normalized);
+        console.log('[useCityCoordinates] ✅ Geocoding successful (normalized):', normalized);
         coordsCache.set(cacheKey, normalized);
         return normalized;
+      } else {
+        console.warn('[useCityCoordinates] ⚠️ Normalization returned null for:', { lat: geocodeResult.latitude, lng: geocodeResult.longitude });
+        // ✅ FALLBACK: Se a normalização falhar mas as coordenadas são válidas, usar diretamente
+        const rawCoords = { lat: geocodeResult.latitude, lng: geocodeResult.longitude };
+        console.log('[useCityCoordinates] ✅ Using raw geocoded coords:', rawCoords);
+        coordsCache.set(cacheKey, rawCoords);
+        return rawCoords;
       }
     } else {
       console.warn('[useCityCoordinates] ⚠️ Geocoding returned no valid results');

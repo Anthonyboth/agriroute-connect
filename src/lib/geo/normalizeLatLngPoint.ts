@@ -43,21 +43,40 @@ function tryScaleToDegrees(value: number, kind: 'lat' | 'lng'): number {
  * Normaliza um ponto {lat,lng} para uso no MapLibre.
  * - Corrige coordenadas em micrograus (1e6/1e7)
  * - Corrige lat/lng invertidos quando o ponto final cai no Brasil
+ * 
+ * IMPORTANTE: Esta função pode retornar null se as coordenadas
+ * não forem válidas globalmente. Se você precisa de um fallback,
+ * verifique o retorno antes de usar.
  */
 export function normalizeLatLngPoint(
   point: LatLngPoint | null | undefined,
   region: Region = 'BR'
 ): LatLngPoint | null {
-  if (!point) return null;
-  if (!isFiniteNumber(point.lat) || !isFiniteNumber(point.lng)) return null;
+  if (!point) {
+    console.log('[normalizeLatLngPoint] Null/undefined point received');
+    return null;
+  }
+  
+  if (!isFiniteNumber(point.lat) || !isFiniteNumber(point.lng)) {
+    console.log('[normalizeLatLngPoint] Non-finite numbers:', { lat: point.lat, lng: point.lng });
+    return null;
+  }
 
   // 1) Corrigir escala (micrograus)
   const scaledLat = tryScaleToDegrees(point.lat, 'lat');
   const scaledLng = tryScaleToDegrees(point.lng, 'lng');
+  
+  // Log se houve escala
+  if (scaledLat !== point.lat || scaledLng !== point.lng) {
+    console.log('[normalizeLatLngPoint] Scaled from microdegs:', { 
+      from: { lat: point.lat, lng: point.lng },
+      to: { lat: scaledLat, lng: scaledLng }
+    });
+  }
 
   // 2) Validar range global
   if (!withinWorld(scaledLat, scaledLng)) {
-    // Se estiver fora do range global, não renderiza (evita markers “aleatórios”)
+    console.warn('[normalizeLatLngPoint] Coordinates outside world bounds:', { lat: scaledLat, lng: scaledLng });
     return null;
   }
 
@@ -79,6 +98,8 @@ export function normalizeLatLngPoint(
     return { lat: scaledLng, lng: scaledLat };
   }
 
-  // 5) Não conseguimos inferir; retorna o ponto (ainda válido globalmente)
+  // 5) Não cai no Brasil mas é válido globalmente - retorna mesmo assim
+  // Isso é importante para não rejeitar coordenadas de países vizinhos ou oceano
+  console.log('[normalizeLatLngPoint] Coordinates outside Brazil but valid globally:', { lat: scaledLat, lng: scaledLng });
   return { lat: scaledLat, lng: scaledLng };
 }
