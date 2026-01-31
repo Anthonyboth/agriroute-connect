@@ -338,46 +338,68 @@ const AffiliatedDriverSignup = () => {
         return;
       }
 
-      // 2. Wait for profile creation with retries (usando RPC que bypassa RLS)
-      let profileData = null;
-      let attempts = 0;
-      const maxAttempts = 8;
-      
-      while (!profileData && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 800 + attempts * 400));
-        
-        try {
-          // Primeiro, tentar via SELECT direto (se RLS permitir)
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('id, metadata')
-            .eq('user_id', authData.user.id)
-            .single();
+       // 2. Wait for profile creation with retries
+       // Importante: não usar .single() aqui, pois pode haver 0 linhas (ainda não criado) OU múltiplos perfis por user_id
+       // (ex: múltiplos roles), o que gerava PGRST116 e disparava falso-positivo de "RLS bloqueou".
+       let profileData: { id: string; metadata: any } | null = null;
+       let attempts = 0;
+       const maxAttempts = 8;
 
-          if (!error && data) {
-            profileData = data;
-            break;
-          }
-          
-          // Fallback: Se RLS bloquear, buscar via RPC (bypass RLS com SECURITY DEFINER)
-          if (error && (error.code === 'PGRST116' || error.message?.includes('permission') || error.message?.includes('denied'))) {
-            console.log(`[AffiliatedDriverSignup] RLS bloqueou SELECT, tentando RPC... (tentativa ${attempts + 1})`);
-            
-            // Usar any para evitar erro de tipos enquanto o arquivo de tipos não é regenerado
-            const { data: rpcData, error: rpcError } = await (supabase as any)
-              .rpc('get_own_profile_id', { p_user_id: authData.user.id });
-            
-            if (!rpcError && rpcData) {
-              profileData = { id: rpcData, metadata: {} };
-              break;
-            }
-          }
-        } catch (fetchErr) {
-          console.warn(`[AffiliatedDriverSignup] Erro na tentativa ${attempts + 1}:`, fetchErr);
-        }
-        
-        attempts++;
-      }
+       const tryGetProfileIdViaRpc = async (): Promise<string | null> => {
+         // Usar any para evitar erro de tipos enquanto o arquivo de tipos não é regenerado
+         const tryWithArg = await (supabase as any).rpc('get_own_profile_id', { p_user_id: authData.user.id });
+         if (!tryWithArg.error && tryWithArg.data) return tryWithArg.data as string;
+
+         // Fallback para versões antigas da função (sem parâmetros)
+         const msg = String(tryWithArg.error?.message || '').toLowerCase();
+         const mightBeSignatureMismatch = msg.includes('does not exist') || msg.includes('function') && msg.includes('get_own_profile_id');
+         if (mightBeSignatureMismatch) {
+           const tryNoArg = await (supabase as any).rpc('get_own_profile_id');
+           if (!tryNoArg.error && tryNoArg.data) return tryNoArg.data as string;
+           if (tryNoArg.error) {
+             console.warn('[AffiliatedDriverSignup] RPC get_own_profile_id (sem args) falhou:', tryNoArg.error);
+           }
+         }
+
+         if (tryWithArg.error) {
+           console.warn('[AffiliatedDriverSignup] RPC get_own_profile_id falhou:', tryWithArg.error);
+         }
+         return null;
+       };
+
+       while (!profileData && attempts < maxAttempts) {
+         await new Promise((resolve) => setTimeout(resolve, 800 + attempts * 400));
+
+         try {
+           // 1) Tenta ler o perfil diretamente (quando RLS permite)
+           const { data, error } = await supabase
+             .from('profiles')
+             .select('id, metadata')
+             .eq('user_id', authData.user.id)
+             .order('created_at', { ascending: false })
+             .limit(1)
+             .maybeSingle();
+
+           if (!error && data?.id) {
+             profileData = { id: data.id, metadata: (data as any).metadata ?? {} };
+             break;
+           }
+
+           // 2) Se ainda não encontrou (ou RLS bloqueou), tenta via RPC (bypass RLS com SECURITY DEFINER)
+           if (error?.message?.toLowerCase().includes('permission') || error?.message?.toLowerCase().includes('denied') || !data) {
+             console.log(`[AffiliatedDriverSignup] Perfil ainda indisponível via SELECT, tentando RPC... (tentativa ${attempts + 1})`);
+             const rpcProfileId = await tryGetProfileIdViaRpc();
+             if (rpcProfileId) {
+               profileData = { id: rpcProfileId, metadata: {} };
+               break;
+             }
+           }
+         } catch (fetchErr) {
+           console.warn(`[AffiliatedDriverSignup] Erro na tentativa ${attempts + 1}:`, fetchErr);
+         }
+
+         attempts++;
+       }
 
       if (!profileData) {
         console.error('[AffiliatedDriverSignup] Perfil não encontrado após todas tentativas');
