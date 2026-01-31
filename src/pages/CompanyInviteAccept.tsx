@@ -8,6 +8,7 @@ import { BackButton } from '@/components/BackButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Truck, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -284,9 +285,8 @@ const CompanyInviteAccept: React.FC = () => {
 
             <div>
               <Label htmlFor="password">Senha *</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 placeholder="Mínimo 6 caracteres"
@@ -298,13 +298,15 @@ const CompanyInviteAccept: React.FC = () => {
 
             <div>
               <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 placeholder="Digite a senha novamente"
               />
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-destructive mt-1">As senhas não conferem</p>
+              )}
               {errors.confirmPassword && (
                 <p className="text-sm text-destructive mt-1">{errors.confirmPassword}</p>
               )}

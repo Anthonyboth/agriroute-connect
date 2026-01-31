@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2, Lock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import { BackButton } from '@/components/BackButton';
 
 const ResetPassword = () => {
@@ -191,9 +192,8 @@ const ResetPassword = () => {
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Nova Senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Digite sua nova senha"
@@ -208,9 +208,8 @@ const ResetPassword = () => {
             
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirme sua nova senha"
@@ -218,6 +217,9 @@ const ResetPassword = () => {
                 minLength={6}
                 disabled={loading}
               />
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-xs text-destructive">As senhas não conferem</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
