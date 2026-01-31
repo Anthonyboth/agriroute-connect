@@ -46,6 +46,14 @@ interface FreightInProgressCardProps {
     pickup_date: string | null;
     price: number | null;
     required_trucks?: number | null;
+    /**
+     * Opcional: modo de exibição do preço.
+     * - 'PER_TRUCK': preço já é unitário do motorista (não deve mostrar total)
+     * - 'TOTAL': comportamento padrão existente
+     */
+    price_display_mode?: 'TOTAL' | 'PER_TRUCK';
+    /** Mantém o required_trucks original apenas para rotulagem (ex: mostrar "/carreta") */
+    original_required_trucks?: number | null;
     status: string;
     // Pode variar (ex: "CARGA"/"FRETE_MOTO"/"GUINCHO"/"MUDANCA"/etc). Mantemos flexível.
     service_type?: string | null;
@@ -139,6 +147,9 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
     'IN_TRANSIT', 
     'DELIVERED_PENDING_CONFIRMATION'
   ].includes(normalizedStatus);
+
+  const priceDisplayMode = freight.price_display_mode;
+  const originalRequiredTrucks = Math.max((freight.original_required_trucks ?? freight.required_trucks) || 1, 1);
 
   // ✅ Handler para quando a aba mapa é selecionada
   const handleTabChange = (value: string) => {
@@ -280,6 +291,18 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               })()}
             
               {(() => {
+                // ✅ Segurança (Motorista): quando o preço já é unitário, nunca exibir total.
+                if (priceDisplayMode === 'PER_TRUCK') {
+                  return (
+                    <p className="font-bold text-lg text-primary whitespace-nowrap">
+                      {formatBRL(freight.price, true)}
+                      {originalRequiredTrucks > 1 && (
+                        <span className="text-xs font-semibold text-muted-foreground">/carreta</span>
+                      )}
+                    </p>
+                  );
+                }
+
                 const priceInfo = formatPricePerTruck(freight.price, freight.required_trucks, true);
 
                 if (priceInfo.hasMultipleTrucks) {
