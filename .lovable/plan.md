@@ -1,40 +1,82 @@
 
-# Plano: Melhorar Legibilidade do Badge "Motorista"
+Objetivo
+- Deixar o app com APENAS 1 estilo de spinner em TODOS os lugares, usando o componente padrão `AppSpinner` (o “C” verde do print), eliminando o segundo spinner (Lucide `Loader2`) e quaisquer spinners “caseiros”.
 
-## Problema Identificado
+Diagnóstico (por que hoje alterna “2 spins”)
+- Existem dois sistemas de loading coexistindo:
+  1) `src/components/ui/AppSpinner.tsx` (spinner estilo “C” verde) — é o que você quer como padrão.
+  2) `src/components/AppLoader.tsx` (usa `Loader2` do lucide-react) — este é o “outro spin” que aparece em boot/auth/Suspense.
+- Além disso, há spinners soltos em alguns componentes (ex.: upload) e vários botões/telas usam `Loader2` como spinner.
 
-O badge "Motorista" no header do painel está quase ilegível no modo escuro:
+Estratégia (como garantir “1 spinner só” sem quebrar telas)
+- Manter a API do `AppLoader` (para não ter que reescrever tudo agora), mas trocar a implementação interna para renderizar o `AppSpinner` (e não mais `Loader2`).
+- Fazer uma varredura e substituir os spinners “soltos” e os `Loader2` usados com `animate-spin` por `AppSpinner`/`InlineSpinner`/`CenteredSpinner`.
+- Resultado: mesmo que algum lugar ainda importe `AppLoader`, por dentro ele renderiza o mesmo spinner padrão.
 
-- **Fundo atual**: `bg-accent/15` (laranja muito fraco, 15% opacidade)
-- **Texto atual**: `text-accent-foreground` (que no dark mode é azul-escuro!)
-- **Borda atual**: `border-accent/20` (laranja 20% opacidade)
+Mudanças planejadas (frontend)
 
-O resultado é texto escuro sobre fundo escuro, tornando impossível ler.
+1) Unificar o loader global (principal causa do “alternar 2 spinners”)
+Arquivo: `src/components/AppLoader.tsx`
+- Remover `import { Loader2 } from 'lucide-react'`
+- Importar `AppSpinner` do padrão:
+  - `import { AppSpinner } from '@/components/ui/AppSpinner'`
+- Trocar todas as ocorrências de `<Loader2 ... animate-spin ... />` por `<AppSpinner ... />`
+- Mapear tamanhos do AppLoader para pixels, preservando o visual atual:
+  - `sm` => 20px (equivalente ao antigo `h-5 w-5`)
+  - `md` => 32px (equivalente ao antigo `h-8 w-8`)
+  - `lg` => 48px (equivalente ao antigo `h-12 w-12`)
+- Manter os “containers” por variante para não quebrar layout:
+  - `fullscreen`: manter `fixed inset-0 ... bg-background/95 backdrop-blur-sm` e só trocar o spinner interno
+  - `inline`: manter `min-h-[200px] p-8` e só trocar o spinner interno
+  - `minimal`: manter `p-2` e só trocar o spinner interno
+- Manter `debugId` e os logs em DEV (não afetam produção)
 
-## Solucao
+Impacto direto:
+- Tudo que hoje usa `GlobalLoader`, `AuthLoader`, `DashboardLoader`, `SectionLoader`, `ComponentLoader` (Suspense fallbacks no `App.tsx` e `LazyComponents.tsx`) passará a exibir exatamente o mesmo spinner padrão do `AppSpinner`.
 
-Alterar a cor do texto do badge para usar laranja claro (`text-orange-400`) que contrasta bem com o fundo escuro, mantendo a identidade visual laranja do motorista.
+2) Remover spinners “caseiros” que ainda aparecem em fluxos comuns
+Arquivos encontrados com spinner “manual” (por busca):
+- `src/components/ProfilePhotoUpload.tsx` (já usa um div “C” parecido, mas fora do componente padrão)
+- `src/components/vehicle/VehiclePhotoGallery.tsx` (usa um spinner branco customizado)
 
-## Mudanca Tecnica
+Ajuste:
+- Substituir os `<div className="... animate-spin ...">` por:
+  - `InlineSpinner` quando estiver dentro de botão/linha (mantém espaçamento “mr-2” consistente)
+  - ou `AppSpinner size="sm"` quando precisar customizar cor (por exemplo, em botão escuro, se necessário)
+- Assim, não fica nenhum spinner “inventado” fora do componente oficial.
 
-**Arquivo**: `src/components/Header.tsx`
+3) Reduzir/eliminar `Loader2` apenas quando ele estiver sendo usado como spinner
+(para realmente ficar “1 spinner só” em toda a UI)
+- Fazer busca e substituição por padrão:
+  - Alvo: usos de `Loader2` com `animate-spin`
+  - Trocar por:
+    - `InlineSpinner` em botões (ex.: “Entrar”, “Cadastrar”, “Salvando…”, etc.)
+    - `CenteredSpinner`/`AppSpinner` em estados de tela/seção
+- Prioridade de correção (mais visível para você no dia a dia):
+  1) Tela de Auth (`src/pages/Auth.tsx`) — hoje mostra `Loader2` no botão enquanto loga/cadastra (pode ser percebido como “segundo spinner”)
+  2) Fluxos de upload (foto)
+  3) Painéis/Modais que usam `Loader2` em loading inicial de card/aba
 
-**Linha 89** - Alterar de:
-```typescript
-if (role === 'MOTORISTA') return 'bg-accent/15 text-accent-foreground border border-accent/20';
-```
+Observação importante:
+- Ícones que “giram” mas não são spinner (ex.: `RefreshCw` girando no botão “Atualizar”) não são necessariamente “spinner de carregamento”. Se você quiser padronizar até isso, eu também consigo, mas primeiro vou focar em eliminar os spinners de loading reais (os circulares).
 
-Para:
-```typescript
-if (role === 'MOTORISTA') return 'bg-orange-500/20 text-orange-400 dark:text-orange-300 border border-orange-500/40';
-```
+Critérios de aceite (como vamos confirmar que ficou 1 só)
+- Durante boot/auth e troca de rotas (Suspense): só aparece o “C” verde do `AppSpinner`.
+- Em botões de submit/login/upload/salvar: ao carregar, só aparece o “C” verde do `InlineSpinner`/`AppSpinner` (não mais `Loader2`).
+- Não existem mais spinners customizados em `<div className="...animate-spin...border...">` fora de `AppSpinner.tsx`.
 
-## Resultado Visual
+Checklist de testes (end-to-end)
+1) Abrir o app do zero (forçar reload) e observar o loader global: deve ser o mesmo “C” verde.
+2) Ir em /auth e clicar “Entrar” (com credenciais): o spinner no botão deve ser o mesmo “C” verde.
+3) Navegar para /dashboard/company e alternar abas/ações que carregam dados: loaders devem ser iguais.
+4) Fazer um upload de foto (perfil/veículo): spinner do “Enviando…” deve ser o mesmo “C” verde.
+5) Testar em modo escuro e no mobile.
 
-| Antes | Depois |
-|-------|--------|
-| Texto escuro, quase invisível | Texto laranja claro, alta visibilidade |
-| Borda muito fraca | Borda mais definida (40% opacidade) |
-| Contraste: ~1.5:1 | Contraste: >4.5:1 (WCAG AA) |
+Risco/impacto
+- Baixo: vamos reaproveitar containers e só trocar o “miolo” do spinner, mantendo layout/estrutura.
+- Médio (apenas se você exigir 100% de substituição de todos os `Loader2` do projeto): é um sweep grande, mas é direto e mecânico.
 
-O badge continuara com a cor laranja caracteristica do perfil Motorista, mas agora sera legivel em ambos os modos (claro e escuro).
+O que eu vou implementar assim que você aprovar este plano
+- Refatoração do `AppLoader` para usar `AppSpinner` (principal).
+- Remoção dos spinners customizados identificados.
+- Substituição de `Loader2` usado como spinner nos fluxos mais visíveis (Auth + uploads + alguns painéis), e deixo um sweep final para “zerar Loader2 animate-spin” no app inteiro.
