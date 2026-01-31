@@ -1,9 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle } from "lucide-react";
+import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAffiliatedDriverProfile } from "@/hooks/useAffiliatedDriverProfile";
 import { DriverInfoTab } from "./DriverInfoTab";
 import { DriverLocationTab } from "./DriverLocationTab";
 import { DriverFreightsTab } from "./DriverFreightsTab";
@@ -26,6 +27,14 @@ export const DriverDetailsModal = ({
   onOpenChange,
 }: DriverDetailsModalProps) => {
   const driverProfileId = driver?.driver_profile_id || null;
+
+  // ✅ Buscar perfil completo via RPC (resolve problema de RLS)
+  const { driverProfile, isLoading: isLoadingProfile } = useAffiliatedDriverProfile({
+    driverProfileId,
+    companyId,
+    enabled: open && !!driverProfileId,
+  });
+
   // Contar mensagens não lidas
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['driver-chat-unread', companyId, driverProfileId],
@@ -43,7 +52,6 @@ export const DriverDetailsModal = ({
     enabled: !!driverProfileId && !!companyId && open,
     staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
-    // ❌ REMOVIDO: refetchInterval de 5s - realtime subscription cuida de novas mensagens
   });
 
   // Buscar chat_enabled_at
@@ -64,6 +72,14 @@ export const DriverDetailsModal = ({
 
   if (!driverProfileId) return null;
 
+  // Montar objeto combinado para o DriverInfoTab
+  // Prioriza dados do hook (RPC) sobre dados passados via props
+  const enrichedDriverData = {
+    ...driver,
+    driver: driverProfile || driver?.driver || {},
+    driver_profile: driverProfile,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -74,51 +90,58 @@ export const DriverDetailsModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="info"><User className="h-4 w-4" /><span className="hidden sm:inline ml-2">Info</span></TabsTrigger>
-            <TabsTrigger value="location"><MapPin className="h-4 w-4" /><span className="hidden sm:inline ml-2">Local</span></TabsTrigger>
-            <TabsTrigger value="freights"><Truck className="h-4 w-4" /><span className="hidden sm:inline ml-2">Fretes</span></TabsTrigger>
-            <TabsTrigger value="performance"><TrendingUp className="h-4 w-4" /><span className="hidden sm:inline ml-2">Perf</span></TabsTrigger>
-            <TabsTrigger value="vehicles"><Car className="h-4 w-4" /><span className="hidden sm:inline ml-2">Veíc</span></TabsTrigger>
-            <TabsTrigger value="settings"><Settings className="h-4 w-4" /><span className="hidden sm:inline ml-2">Config</span></TabsTrigger>
-            <TabsTrigger value="chat" className="relative">
-              <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">Chat</span>
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs absolute -top-1 -right-1">
-                  {unreadCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        {isLoadingProfile ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Carregando dados do motorista...</span>
+          </div>
+        ) : (
+          <Tabs defaultValue="info" className="w-full">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="info"><User className="h-4 w-4" /><span className="hidden sm:inline ml-2">Info</span></TabsTrigger>
+              <TabsTrigger value="location"><MapPin className="h-4 w-4" /><span className="hidden sm:inline ml-2">Local</span></TabsTrigger>
+              <TabsTrigger value="freights"><Truck className="h-4 w-4" /><span className="hidden sm:inline ml-2">Fretes</span></TabsTrigger>
+              <TabsTrigger value="performance"><TrendingUp className="h-4 w-4" /><span className="hidden sm:inline ml-2">Perf</span></TabsTrigger>
+              <TabsTrigger value="vehicles"><Car className="h-4 w-4" /><span className="hidden sm:inline ml-2">Veíc</span></TabsTrigger>
+              <TabsTrigger value="settings"><Settings className="h-4 w-4" /><span className="hidden sm:inline ml-2">Config</span></TabsTrigger>
+              <TabsTrigger value="chat" className="relative">
+                <MessageCircle className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Chat</span>
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs absolute -top-1 -right-1">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="info" className="mt-4">
-            <DriverInfoTab driverData={driver} companyId={companyId} />
-          </TabsContent>
-          <TabsContent value="location" className="mt-4">
-            <DriverLocationTab driverProfileId={driverProfileId} companyId={companyId} />
-          </TabsContent>
-          <TabsContent value="freights" className="mt-4">
-            <DriverFreightsTab driverProfileId={driverProfileId} />
-          </TabsContent>
-          <TabsContent value="performance" className="mt-4">
-            <DriverPerformanceTab driverProfileId={driverProfileId} />
-          </TabsContent>
-          <TabsContent value="vehicles" className="mt-4">
-            <DriverVehiclesTab driverProfileId={driverProfileId} companyId={companyId} />
-          </TabsContent>
-          <TabsContent value="settings" className="mt-4">
-            <DriverSettingsTab driverData={driver} companyId={companyId} />
-          </TabsContent>
-          <TabsContent value="chat" className="mt-4">
-            <DriverChatTab 
-              driverProfileId={driverProfileId} 
-              companyId={companyId}
-              chatEnabledAt={driverData?.chat_enabled_at}
-            />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="info" className="mt-4">
+              <DriverInfoTab driverData={enrichedDriverData} companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="location" className="mt-4">
+              <DriverLocationTab driverProfileId={driverProfileId} companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="freights" className="mt-4">
+              <DriverFreightsTab driverProfileId={driverProfileId} />
+            </TabsContent>
+            <TabsContent value="performance" className="mt-4">
+              <DriverPerformanceTab driverProfileId={driverProfileId} />
+            </TabsContent>
+            <TabsContent value="vehicles" className="mt-4">
+              <DriverVehiclesTab driverProfileId={driverProfileId} companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="settings" className="mt-4">
+              <DriverSettingsTab driverData={enrichedDriverData} companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="chat" className="mt-4">
+              <DriverChatTab 
+                driverProfileId={driverProfileId} 
+                companyId={companyId}
+                chatEnabledAt={driverData?.chat_enabled_at}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

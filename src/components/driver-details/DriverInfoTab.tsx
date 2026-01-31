@@ -29,13 +29,16 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
   const selfieInputRef = useRef<HTMLInputElement>(null);
 
   // Extrair dados do motorista - suporte para diferentes estruturas de dados
-  const driver = driverData?.driver || driverData?.driver_profile || driverData;
-  const affiliationData = driverData?.driver ? driverData : null;
+  // Prioridade: driver_profile (RPC) > driver (join) > driverData direto
+  const driver = driverData?.driver_profile || driverData?.driver || driverData;
+  const affiliationData = driverData?.driver_profile || driverData?.driver ? driverData : null;
 
   console.log('📋 [DriverInfoTab] Dados recebidos:', { 
     hasDriver: !!driver, 
     driverId: driver?.id,
     driverName: driver?.full_name,
+    hasSelfie: !!driver?.selfie_url,
+    hasCpf: !!driver?.cpf_cnpj,
     affiliationStatus: affiliationData?.status
   });
 

@@ -12395,6 +12395,39 @@ export type Database = {
         Returns: string
       }
       generate_invite_code: { Args: never; Returns: string }
+      get_affiliated_driver_profile: {
+        Args: { p_company_id: string; p_driver_profile_id: string }
+        Returns: {
+          address_city: string
+          address_complement: string
+          address_neighborhood: string
+          address_number: string
+          address_state: string
+          address_street: string
+          address_zip: string
+          can_accept_freights: boolean
+          can_manage_vehicles: boolean
+          cnh_category: string
+          cnh_expiry_date: string
+          cnh_photo_url: string
+          cnh_validation_status: string
+          contact_phone: string
+          cpf_cnpj: string
+          created_at: string
+          document_validation_status: string
+          email: string
+          full_name: string
+          id: string
+          phone: string
+          profile_photo_url: string
+          rating: number
+          rntrc: string
+          role: string
+          selfie_url: string
+          status: string
+          total_ratings: number
+        }[]
+      }
       get_company_report_charts: {
         Args: { p_company_id: string; p_end_at: string; p_start_at: string }
         Returns: Json
