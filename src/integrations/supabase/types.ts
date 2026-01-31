@@ -12685,6 +12685,7 @@ export type Database = {
           ip_count: number
         }[]
       }
+      get_my_transport_company_ids: { Args: never; Returns: string[] }
       get_my_trip_progress: { Args: { p_freight_id?: string }; Returns: Json }
       get_nearby_freights_for_driver: {
         Args: { p_driver_id: string; p_radius_km?: number }
