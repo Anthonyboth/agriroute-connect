@@ -753,6 +753,37 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               ))}
             </div>
           </div>
+        ) : isDriver && isParticipant ? (
+          // ✅ CORREÇÃO: Em fretes multi-carreta (driver_id nulo), o motorista deve ver o próprio perfil
+          // e não "Aguardando motorista".
+          <div className="space-y-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Truck className="h-4 w-4" />
+                  Motorista
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <FreightParticipantCard
+                  participantId={currentUserProfile.id}
+                  participantType="driver"
+                  name={currentUserProfile.full_name || 'Motorista'}
+                  avatarUrl={currentUserProfile.profile_photo_url || currentUserProfile.selfie_url}
+                  rating={currentUserProfile.rating || 0}
+                  totalRatings={currentUserProfile.total_ratings || 0}
+                  onClick={() => {
+                    setProfileModalOpen({
+                      open: true,
+                      userId: currentUserProfile.id,
+                      userType: 'driver',
+                      userName: currentUserProfile.full_name || ''
+                    });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <Card>
             <CardHeader className="pb-2">
