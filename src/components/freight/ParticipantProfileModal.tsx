@@ -3,9 +3,12 @@
  * 
  * Modal expandido para visualização de perfil público de participantes.
  * Inclui informações não sensíveis, fotos de veículo para motoristas, e estatísticas.
+ * 
+ * ATUALIZAÇÃO: Agora usa hook dedicado useVehiclePhotoViewer e VehiclePhotoZoomModal
+ * para garantir que as fotos do veículo abram corretamente para produtores.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +33,9 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useParticipantProfile, VehiclePhoto } from '@/hooks/useParticipantProfile';
+import { useParticipantProfile } from '@/hooks/useParticipantProfile';
+import { useVehiclePhotoViewer } from '@/hooks/useVehiclePhotoViewer';
+import { VehiclePhotoZoomModal } from './VehiclePhotoZoomModal';
 import { cn } from '@/lib/utils';
 
 interface ParticipantProfileModalProps {
@@ -51,11 +56,8 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
   userName,
   freightId
 }) => {
-  const [photoZoom, setPhotoZoom] = useState<{ open: boolean; url: string; title: string }>({ 
-    open: false, 
-    url: '', 
-    title: '' 
-  });
+  // Hook dedicado para visualização de fotos do veículo
+  const photoViewer = useVehiclePhotoViewer();
 
   const { profile, vehicle, vehiclePhotos, isLoading } = useParticipantProfile(
     isOpen ? userId : null,
@@ -101,16 +103,16 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
     return stars;
   };
 
-  const getPhotoTypeLabel = (photoType: string) => {
-    const labels: Record<string, string> = {
-      'front': 'Frente',
-      'back': 'Traseira',
-      'side': 'Lateral',
-      'interior': 'Interior',
-      'cargo': 'Carroceria',
-      'document': 'Documento'
-    };
-    return labels[photoType] || photoType;
+  // Handler para abrir foto do avatar
+  const handleAvatarClick = () => {
+    if (profile?.avatar_url) {
+      photoViewer.openPhoto([{
+        id: 'avatar',
+        photo_url: profile.avatar_url,
+        photo_type: 'avatar',
+        created_at: profile.created_at
+      }], 0);
+    }
   };
 
   return (
@@ -158,7 +160,7 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
                         size="sm"
                         variant="secondary"
                         className="absolute -bottom-1 -right-1 h-7 w-7 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setPhotoZoom({ open: true, url: profile.avatar_url!, title: profile.full_name })}
+                        onClick={handleAvatarClick}
                         title="Ampliar foto"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -265,15 +267,11 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
                             Fotos do Veículo ({vehiclePhotos.length})
                           </h5>
                           <div className="grid grid-cols-3 gap-2">
-                            {vehiclePhotos.map((photo) => (
+                            {vehiclePhotos.map((photo, index) => (
                               <div 
                                 key={photo.id}
                                 className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all group"
-                                onClick={() => setPhotoZoom({ 
-                                  open: true, 
-                                  url: photo.photo_url, 
-                                  title: `${vehicle.type} - ${getPhotoTypeLabel(photo.photo_type)}`
-                                })}
+                                onClick={() => photoViewer.openPhoto(vehiclePhotos, index)}
                               >
                                 <img 
                                   src={photo.photo_url} 
@@ -285,6 +283,9 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
                                 />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ExternalLink className="h-4 w-4 text-white" />
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1.5 py-0.5 text-[10px] text-white truncate">
+                                  {photoViewer.getPhotoTypeLabel(photo.photo_type)}
                                 </div>
                               </div>
                             ))}
@@ -348,24 +349,23 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
         </DialogContent>
       </Dialog>
 
-      {/* Modal de zoom da foto */}
-      <Dialog open={photoZoom.open} onOpenChange={(open) => setPhotoZoom({ ...photoZoom, open })}>
-        <DialogContent className="max-w-lg p-2">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{photoZoom.title}</DialogTitle>
-          </DialogHeader>
-          {photoZoom.url && (
-            <img 
-              src={photoZoom.url} 
-              alt={photoZoom.title}
-              className="w-full h-auto rounded-lg object-cover max-h-[80vh]"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder.svg';
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Modal de zoom da foto com navegação */}
+      <VehiclePhotoZoomModal
+        isOpen={photoViewer.viewerState.isOpen}
+        photoUrl={photoViewer.currentPhoto?.photo_url || null}
+        photoTitle={
+          photoViewer.currentPhoto 
+            ? `${vehicle?.type || 'Veículo'} - ${photoViewer.getPhotoTypeLabel(photoViewer.currentPhoto.photo_type)}`
+            : ''
+        }
+        onClose={photoViewer.closeViewer}
+        onNext={photoViewer.goToNext}
+        onPrevious={photoViewer.goToPrevious}
+        hasNext={photoViewer.hasNext}
+        hasPrevious={photoViewer.hasPrevious}
+        currentIndex={photoViewer.viewerState.currentIndex}
+        totalPhotos={photoViewer.totalPhotos}
+      />
     </>
   );
 };
