@@ -67,7 +67,7 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
         // Buscar frete com driver_id para fallback
         const { data, error: fetchError } = await supabase
           .from('freights')
-          .select('current_lat, current_lng, last_location_update, driver_id, drivers_assigned')
+          .select('current_lat, current_lng, last_location_update, driver_id, drivers_assigned, status, required_trucks')
           .eq('id', freightId)
           .single();
 
@@ -77,92 +77,96 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           return;
         }
 
-        // ✅ CORREÇÃO CRÍTICA: Para fretes multi-carreta (OPEN com drivers atribuídos),
-        // buscar a localização diretamente de driver_current_locations via freight_assignments
-        const hasFreightLocation = data?.current_lat && data?.current_lng;
+        // ✅ CORREÇÃO CRÍTICA v2: Para QUALQUER frete, SEMPRE tentar buscar de assignments primeiro
+        // Isso garante que fretes multi-carreta (OPEN com assignments) funcionem corretamente
+        console.log('[useFreightRealtimeLocation] Fetching driver assignments for freight:', freightId);
         
-        if (!hasFreightLocation) {
-          console.log('[useFreightRealtimeLocation] Freight location null, trying driver_current_locations via assignments...');
-          
-          // 1) Tentar buscar motoristas atribuídos ao frete
-          const { data: assignments } = await supabase
-            .from('freight_assignments')
-            .select('driver_id')
-            .eq('freight_id', freightId)
-            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
-            .limit(5);
+        // 1) Buscar motoristas atribuídos ao frete (SEMPRE, independente do status do frete)
+        const { data: assignments } = await supabase
+          .from('freight_assignments')
+          .select('driver_id, status')
+          .eq('freight_id', freightId)
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+          .limit(10);
 
-          const assignedDriverIds = assignments?.map(a => a.driver_id).filter(Boolean) || [];
-          
-          // Adicionar driver_id principal e drivers_assigned se existirem
-          if (data?.driver_id) assignedDriverIds.push(data.driver_id);
-          if (Array.isArray(data?.drivers_assigned)) {
-            assignedDriverIds.push(...data.drivers_assigned);
+        const assignedDriverIds = assignments?.map(a => a.driver_id).filter(Boolean) || [];
+        
+        // Adicionar driver_id principal e drivers_assigned se existirem
+        if (data?.driver_id) assignedDriverIds.push(data.driver_id);
+        if (Array.isArray(data?.drivers_assigned)) {
+          assignedDriverIds.push(...data.drivers_assigned);
+        }
+        
+        // Remover duplicatas
+        const uniqueDriverIds = [...new Set(assignedDriverIds)];
+        
+        // ✅ Salvar IDs para subscription realtime
+        setAssignedDriverIds(uniqueDriverIds);
+        
+        console.log('[useFreightRealtimeLocation] Found drivers:', uniqueDriverIds, 'Assignments:', assignments?.map(a => ({ driver: a.driver_id?.substring(0,8), status: a.status })));
+        
+        if (uniqueDriverIds.length > 0) {
+          // 2) Buscar localização atual dos motoristas em driver_current_locations
+          const { data: currentLocations, error: locError } = await supabase
+            .from('driver_current_locations')
+            .select('lat, lng, last_gps_update, driver_profile_id')
+            .in('driver_profile_id', uniqueDriverIds)
+            .order('last_gps_update', { ascending: false })
+            .limit(1);
+
+          console.log('[useFreightRealtimeLocation] Current locations query result:', { 
+            count: currentLocations?.length,
+            error: locError?.message,
+            data: currentLocations?.[0]
+          });
+
+          if (!locError && currentLocations && currentLocations.length > 0) {
+            const loc = currentLocations[0];
+            if (loc.lat && loc.lng) {
+              setDriverLocation({ lat: loc.lat, lng: loc.lng });
+              if (loc.last_gps_update) {
+                setLastUpdate(new Date(loc.last_gps_update));
+              }
+              console.log('[useFreightRealtimeLocation] ✅ Using driver_current_locations:', {
+                lat: loc.lat,
+                lng: loc.lng,
+                driverId: loc.driver_profile_id?.substring(0,8),
+                lastUpdate: loc.last_gps_update
+              });
+              return;
+            }
           }
           
-          // Remover duplicatas
-          const uniqueDriverIds = [...new Set(assignedDriverIds)];
-          
-          // ✅ Salvar IDs para subscription realtime
-          setAssignedDriverIds(uniqueDriverIds);
-          
-          if (uniqueDriverIds.length > 0) {
-            console.log('[useFreightRealtimeLocation] Fetching location for drivers:', uniqueDriverIds);
-            
-            // 2) Buscar localização atual dos motoristas em driver_current_locations
-            const { data: currentLocations, error: locError } = await supabase
-              .from('driver_current_locations')
-              .select('lat, lng, last_gps_update, driver_profile_id')
-              .in('driver_profile_id', uniqueDriverIds)
-              .order('last_gps_update', { ascending: false })
-              .limit(1);
+          // 3) Fallback: driver_location_history
+          const primaryDriverId = data?.driver_id || uniqueDriverIds[0];
+          if (primaryDriverId) {
+            const { data: locationHistory } = await supabase
+              .from('driver_location_history')
+              .select('lat, lng, captured_at')
+              .eq('driver_profile_id', primaryDriverId)
+              .eq('freight_id', freightId)
+              .order('captured_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-            if (!locError && currentLocations && currentLocations.length > 0) {
-              const loc = currentLocations[0];
-              if (loc.lat && loc.lng) {
-                setDriverLocation({ lat: loc.lat, lng: loc.lng });
-                if (loc.last_gps_update) {
-                  setLastUpdate(new Date(loc.last_gps_update));
-                }
-                console.log('[useFreightRealtimeLocation] ✅ Using driver_current_locations:', {
-                  lat: loc.lat,
-                  lng: loc.lng,
-                  driverId: loc.driver_profile_id
-                });
-                return;
+            if (locationHistory?.lat && locationHistory?.lng) {
+              setDriverLocation({ 
+                lat: locationHistory.lat, 
+                lng: locationHistory.lng 
+              });
+              if (locationHistory.captured_at) {
+                setLastUpdate(new Date(locationHistory.captured_at));
               }
-            }
-            
-            // 3) Fallback: driver_location_history (se driver_current_locations não tiver dados)
-            if (data?.driver_id) {
-              const { data: locationHistory } = await supabase
-                .from('driver_location_history')
-                .select('lat, lng, captured_at')
-                .eq('driver_profile_id', data.driver_id)
-                .eq('freight_id', freightId)
-                .order('captured_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-              if (locationHistory?.lat && locationHistory?.lng) {
-                setDriverLocation({ 
-                  lat: locationHistory.lat, 
-                  lng: locationHistory.lng 
-                });
-                if (locationHistory.captured_at) {
-                  setLastUpdate(new Date(locationHistory.captured_at));
-                }
-                console.log('[useFreightRealtimeLocation] Using driver_location_history fallback:', {
-                  lat: locationHistory.lat,
-                  lng: locationHistory.lng
-                });
-                return;
-              }
+              console.log('[useFreightRealtimeLocation] Using driver_location_history fallback:', {
+                lat: locationHistory.lat,
+                lng: locationHistory.lng
+              });
+              return;
             }
           }
         }
 
-        // Usar dados do frete se disponíveis
+        // Fallback final: usar dados do frete se disponíveis
         if (data?.current_lat && data?.current_lng) {
           setDriverLocation({ lat: data.current_lat, lng: data.current_lng });
         }
