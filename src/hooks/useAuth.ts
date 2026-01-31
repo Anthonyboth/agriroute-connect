@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
-import { getCachedProfile, setCachedProfile } from '@/lib/profile-cache';
+import { getCachedProfile, setCachedProfile, clearCachedProfile } from '@/lib/profile-cache';
 import { incrementAuthListeners, decrementAuthListeners, incrementSignOutCalls } from '@/debug/authDebug';
 export interface UserProfile {
   id: string;
@@ -101,11 +101,23 @@ const useAuthInternal = () => {
     if (!force) {
       const cachedProfile = getCachedProfile(userId);
       if (cachedProfile) {
+        // ✅ Regra de negócio: PRODUTOR e TRANSPORTADORA NÃO podem ficar pendentes.
+        // Se cache estiver desatualizado (ex.: status PENDING), ignorar cache e buscar do banco.
+        const cachedRole = (cachedProfile?.role || cachedProfile?.active_mode) as string | undefined;
+        const isAutoApproveRole = cachedRole === 'PRODUTOR' || cachedRole === 'TRANSPORTADORA';
+
+        if (isAutoApproveRole && cachedProfile?.status !== 'APPROVED') {
+          if (import.meta.env.DEV) {
+            console.log('[ProfileCache] ⚠️ Cache desatualizado para role auto-aprovada. Revalidando no banco.');
+          }
+          clearCachedProfile(userId);
+        } else {
         setProfiles([cachedProfile]);
         setProfile(cachedProfile);
         setLoading(false);  // ✅ Garante que loading seja false
         lastFetchedUserIdRef.current = userId;
         return;
+        }
       }
     }
     

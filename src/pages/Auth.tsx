@@ -23,6 +23,8 @@ import { RoleSelectionCards } from '@/components/auth/RoleSelectionCards';
 import { VALID_SIGNUP_ROLES, isValidSignupRole, type SignupRole } from '@/lib/user-roles';
 import { PasswordInput } from '@/components/ui/password-input';
 import { useResilientLogin } from '@/hooks/useResilientLogin';
+import AutomaticApprovalService from '@/components/AutomaticApproval';
+import { clearCachedProfile } from '@/lib/profile-cache';
 
 // Parse and validate role from URL
 function parseRoleFromUrl(roleParam: string | null): SignupRole | null {
@@ -411,6 +413,41 @@ const Auth = () => {
       if (data.session) {
         // Email confirmation está OFF - usuário já está logado
         toast.success('Cadastro concluído! Bem-vindo(a).');
+
+        // ✅ REGRA DE NEGÓCIO: PRODUTOR e TRANSPORTADORA são aprovados automaticamente e vão direto ao painel
+        const signedUpRole = driverType === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : role;
+        if (signedUpRole === 'PRODUTOR' || signedUpRole === 'TRANSPORTADORA') {
+          try {
+            // Aguardar criação do perfil (trigger) e aplicar auto-aprovação como garantia
+            let profileId: string | null = null;
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              const { data: p } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', data.user.id)
+                .maybeSingle();
+
+              if (p?.id) {
+                profileId = p.id;
+                break;
+              }
+
+              await new Promise((r) => setTimeout(r, 250 * attempt));
+            }
+
+            if (profileId) {
+              await AutomaticApprovalService.triggerApprovalProcess(profileId);
+              clearCachedProfile(data.user.id);
+            }
+          } catch {
+            // não bloqueia UX; o login também tentará auto-aprovar se necessário
+          }
+
+          window.location.href = getDashboardByRole(signedUpRole);
+          return;
+        }
+
+        // Demais roles seguem para onboarding
         navigate('/complete-profile');
       } else {
         // Email confirmation está ON - precisa confirmar email
