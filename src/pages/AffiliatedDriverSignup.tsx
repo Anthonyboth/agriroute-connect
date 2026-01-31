@@ -310,6 +310,34 @@ const AffiliatedDriverSignup = () => {
 
       if (!authData.user) throw new Error('Erro ao autenticar usuário');
 
+      // 1.1 Garantir sessão ativa ANTES de qualquer operação que dependa de auth (RLS/Storage)
+      // Observação: dependendo da configuração do Supabase (ex: confirmação de e-mail ligada),
+      // o signUp pode retornar user mas sem session. Neste caso NÃO tentamos upload e NÃO redirecionamos.
+      const ensureActiveSession = async () => {
+        // Preferir session retornada pela chamada de auth
+        if ((authData as any)?.session?.access_token) return (authData as any).session;
+
+        // Tentar recuperar do storage local
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.user?.id === authData.user!.id) return sessionData.session;
+
+        // Último fallback: efetuar sign-in para materializar uma sessão
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (signInError) return null;
+        return signInData.session ?? null;
+      };
+
+      const activeSession = await ensureActiveSession();
+      if (!activeSession) {
+        toast.error('Não foi possível iniciar sua sessão agora. Faça login para concluir o envio dos documentos.');
+        setLoading(false);
+        return;
+      }
+
       // 2. Wait for profile creation with retries
       let profileData = null;
       let attempts = 0;
