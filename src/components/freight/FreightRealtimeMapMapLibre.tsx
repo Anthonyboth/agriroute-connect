@@ -8,6 +8,7 @@
  * Fallback de centro: motorista online → rota → Brasil
  * 
  * REFATORADO: Usa hooks padronizados para resize e safe-raf.
+ * ✅ NOVO: Integração com OSRM para rotas reais por estradas.
  */
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
@@ -15,11 +16,11 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, WifiOff, Navigation, Eye, Clock } from 'lucide-react';
+import { MapPin, WifiOff, Navigation, Eye, Clock, Route } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFreightRealtimeLocation } from '@/hooks/useFreightRealtimeLocation';
 import { useCityCoordinates } from '@/hooks/useCityCoordinates';
-import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport } from '@/hooks/maplibre';
+import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport, useOSRMRoute } from '@/hooks/maplibre';
 import { 
   createTruckMarkerElement,
   createLocationMarkerElement,
@@ -144,6 +145,18 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     return isOnline && secondsAgo < ONLINE_THRESHOLD_SECONDS;
   }, [isOnline, secondsAgo]);
 
+  // ✅ 🚗 OSRM: Buscar rota real por estradas (origem → destino)
+  const { 
+    route: osrmRoute, 
+    isLoading: isLoadingRoute,
+    error: routeError 
+  } = useOSRMRoute({
+    origin: effectiveOrigin,
+    destination: effectiveDestination,
+    profile: 'driving',
+    enabled: !!(effectiveOrigin && effectiveDestination),
+  });
+
   // ✅ NOVO: Centro do mapa com fallback inteligente
   // Prioridade: 1. Motorista online 2. Centro da rota 3. Origem 4. Destino 5. Brasil
   const mapCenter = useMemo<[number, number]>(() => {
@@ -179,7 +192,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     return DEFAULT_CENTER;
   }, [effectiveDriverLocation, effectiveOrigin, effectiveDestination, isDriverReallyOnline]);
 
-  // ✅ Coordenadas da rota para polyline (origem → motorista → destino)
+  // ✅ Coordenadas da rota ativa (origem → motorista → destino) - simplificada para marker
   const routeCoordinates = useMemo(() => {
     const coords: [number, number][] = [];
     
@@ -198,8 +211,15 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     return coords;
   }, [effectiveOrigin, effectiveDestination, effectiveDriverLocation, isDriverReallyOnline]);
 
-  // ✅ Rota planejada (origem → destino) para exibição quando offline
+  // ✅ 🚗 OSRM: Usar rota real do OSRM ou fallback para linha reta
   const plannedRouteCoordinates = useMemo(() => {
+    // Se temos rota OSRM, usar ela
+    if (osrmRoute && osrmRoute.coordinates.length >= 2) {
+      console.log('[FreightRealtimeMapMapLibre] Using OSRM real route:', osrmRoute.distanceText);
+      return osrmRoute.coordinates;
+    }
+    
+    // Fallback: linha reta enquanto carrega ou se OSRM falhar
     const coords: [number, number][] = [];
     
     if (effectiveOrigin) {
@@ -211,7 +231,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
     
     return coords;
-  }, [effectiveOrigin, effectiveDestination]);
+  }, [effectiveOrigin, effectiveDestination, osrmRoute]);
 
   // ✅ Verificar se temos pelo menos uma coordenada válida para exibir o mapa
   const hasAnyValidCoordinate = useMemo(() => {
@@ -306,6 +326,9 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
             data: plannedRouteData,
           });
 
+          // ✅ 🚗 OSRM: Estilo diferente para rota real vs linha reta
+          const hasRealRoute = osrmRoute && osrmRoute.coordinates.length >= 2;
+          
           map.addLayer({
             id: 'planned-route-line',
             type: 'line',
@@ -315,10 +338,10 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
               'line-cap': 'round',
             },
             paint: {
-              'line-color': MAP_COLORS.offline, // Cinza para rota planejada
-              'line-width': 3,
-              'line-opacity': 0.5,
-              'line-dasharray': [4, 2], // Tracejada
+              // Rota real OSRM: verde sólido / Linha reta: cinza tracejado
+              'line-color': hasRealRoute ? MAP_COLORS.primary : MAP_COLORS.offline,
+              'line-width': hasRealRoute ? 4 : 3,
+              'line-opacity': hasRealRoute ? 0.8 : 0.5,
             },
           });
 
@@ -742,6 +765,18 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           </Badge>
         )}
       </div>
+
+      {/* 🚗 Badge de rota OSRM (distância e tempo estimado) */}
+      {osrmRoute && osrmRoute.distance > 0 && (
+        <div className="absolute bottom-2 left-2 z-10">
+          <Badge variant="outline" className="text-xs flex items-center gap-1.5 bg-background/90 shadow-sm">
+            <Route className="h-3 w-3 text-primary" />
+            <span>{osrmRoute.distanceText}</span>
+            <span className="text-muted-foreground">•</span>
+            <span>{osrmRoute.durationText}</span>
+          </Badge>
+        </div>
+      )}
 
       {/* Botões de controle */}
       <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
