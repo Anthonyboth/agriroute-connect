@@ -40,39 +40,55 @@ async function fetchCityCoordinates(
   }
 
   try {
+    console.log('[useCityCoordinates] Fetching coordinates for:', { cityName, state });
+    
     // 1. Tentar buscar no banco (tabela cities)
     let query = supabase
       .from('cities')
-      .select('lat, lng')
+      .select('lat, lng, name')
       .ilike('name', cityName);
     
     if (state) {
       query = query.eq('state', state);
     }
 
-    const { data: cityData } = await query.limit(1).maybeSingle();
+    const { data: cityData, error: dbError } = await query.limit(1).maybeSingle();
 
-    if (cityData?.lat && cityData?.lng) {
+    if (dbError) {
+      console.warn('[useCityCoordinates] Database error:', dbError);
+    }
+
+    // ✅ IMPORTANTE: Verificar se as coordenadas existem E são válidas (não nulas)
+    if (cityData?.lat != null && cityData?.lng != null && 
+        typeof cityData.lat === 'number' && typeof cityData.lng === 'number' &&
+        !isNaN(cityData.lat) && !isNaN(cityData.lng)) {
       const coords = { lat: cityData.lat, lng: cityData.lng };
+      console.log('[useCityCoordinates] ✅ Found in database:', coords, 'for:', cityName);
       coordsCache.set(cacheKey, coords);
       return coords;
+    } else {
+      console.log('[useCityCoordinates] City found in database but has no coordinates:', cityData);
     }
 
     // 2. Fallback: geocoding via Nominatim
-    console.log(`[useCityCoordinates] Cidade não encontrada no banco, tentando geocoding: ${cityName}, ${state}`);
+    console.log(`[useCityCoordinates] 🌍 Trying geocoding via Nominatim: ${cityName}, ${state}`);
     const geocodeResult = await safeNominatimGeocode(cityName, state);
     
-    if (geocodeResult) {
+    if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
       const coords = { lat: geocodeResult.latitude, lng: geocodeResult.longitude };
+      console.log('[useCityCoordinates] ✅ Geocoding successful:', coords);
       coordsCache.set(cacheKey, coords);
       return coords;
+    } else {
+      console.warn('[useCityCoordinates] ⚠️ Geocoding returned no valid results');
     }
 
     // Não encontrou em lugar nenhum
+    console.warn('[useCityCoordinates] ❌ No coordinates found for:', { cityName, state });
     coordsCache.set(cacheKey, null);
     return null;
   } catch (error) {
-    console.error('[useCityCoordinates] Erro ao buscar coordenadas:', error);
+    console.error('[useCityCoordinates] Error fetching coordinates:', error);
     coordsCache.set(cacheKey, null);
     return null;
   }
