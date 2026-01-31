@@ -37,8 +37,9 @@ export const convertWeightToKg = (weightInTonnes: number): number => {
 };
 
 /**
- * Valida e formata peso com limites realistas
- * Input: toneladas (como o sistema atual espera)
+ * Valida e formata peso TOTAL da carga a transportar
+ * Input: toneladas (peso total no barracão/armazém)
+ * Ex: 600 toneladas = volume total que o produtor quer transportar
  */
 export const validateWeight = (
   weightInput: number | string
@@ -57,21 +58,21 @@ export const validateWeight = (
     errors.push('Peso deve ser maior que zero.');
   }
   
-  // Limites realistas para carretas brasileiras (9 eixos)
-  const MIN_WEIGHT_TONNES = 0.1;  // 100kg mínimo
-  const MAX_WEIGHT_TONNES = 90;   // 90 toneladas máximo (capacidade 9 eixos)
+  // Limites para peso TOTAL da carga (não por carreta)
+  const MIN_WEIGHT_TONNES = 0.1;    // 100kg mínimo
+  const MAX_WEIGHT_TONNES = 50000;  // 50.000 toneladas máximo (grandes safras)
   
   if (weightTonnes < MIN_WEIGHT_TONNES && weightTonnes > 0) {
-    errors.push(`Peso mínimo: ${MIN_WEIGHT_TONNES} toneladas (100kg).`);
+    errors.push(`Peso mínimo: ${MIN_WEIGHT_TONNES} tonelada (100kg).`);
   }
   
   if (weightTonnes > MAX_WEIGHT_TONNES) {
-    errors.push(`Peso máximo: ${MAX_WEIGHT_TONNES} toneladas (90.000kg) por carreta.`);
+    errors.push(`Peso máximo: ${MAX_WEIGHT_TONNES.toLocaleString('pt-BR')} toneladas.`);
   }
   
-  // Warnings para valores suspeitos
-  if (weightTonnes > 1000 && weightTonnes <= MAX_WEIGHT_TONNES * 1000) {
-    warnings.push('⚠️ Você digitou TONELADAS? Este valor parece muito alto.');
+  // Warnings para valores suspeitos (pode ter digitado em kg)
+  if (weightTonnes > 100000) {
+    warnings.push('⚠️ Valor muito alto. Confirme se digitou em TONELADAS.');
   }
   
   if (weightTonnes < 1 && weightTonnes > 0) {

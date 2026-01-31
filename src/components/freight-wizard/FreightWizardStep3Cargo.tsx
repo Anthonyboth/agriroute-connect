@@ -33,7 +33,7 @@ export function FreightWizardStep3Cargo({
         </div>
         <h3 className="text-lg font-semibold">Detalhes da Carga</h3>
         <p className="text-sm text-muted-foreground">
-          Informe o tipo e peso da carga a ser transportada
+          Informe o tipo e o peso total que deseja transportar
         </p>
       </div>
 
@@ -62,9 +62,9 @@ export function FreightWizardStep3Cargo({
         </Select>
       </div>
 
-      {/* Peso */}
+      {/* Peso Total */}
       <div className="space-y-2">
-        <Label htmlFor="weight">Peso da Carga *</Label>
+        <Label htmlFor="weight">Peso Total da Carga (toneladas) *</Label>
         <WeightInput
           value={formData.weight}
           onChange={(value, isValid) => onInputChange('weight', value)}
