@@ -76,10 +76,21 @@ export class AutomaticApprovalService {
       let validatedCount = 0;
       let allMandatoryValid = true;
 
-      // Detect if user is a driver
+      // Detect user role type
       const isDriver = ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role);
+      const isAutoApproveRole = ['PRODUTOR', 'TRANSPORTADORA'].includes(profile.role);
 
-      // Define mandatory and optional documents
+      // PRODUTOR e TRANSPORTADORA são aprovados automaticamente sem validação rigorosa
+      if (isAutoApproveRole) {
+        console.log(`🚀 Auto-aprovação direta para role: ${profile.role}`);
+        return {
+          approved: true,
+          validationResults: { auto_approved: { isValid: true, confidence: 1.0 } },
+          finalScore: 1.0
+        };
+      }
+
+      // Define mandatory and optional documents (somente para motoristas/prestadores)
       const mandatoryDocs = ['selfie_url', 'document_photo_url'];
       if (isDriver) {
         mandatoryDocs.push('cnh_photo_url', 'address_proof_url');
