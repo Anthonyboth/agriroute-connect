@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useFreightEffectiveStatus } from '@/hooks/useFreightEffectiveStatus';
 
 // ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
 const FreightRealtimeMap = lazy(() => 
@@ -112,6 +113,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [serviceType, setServiceType] = useState<string | null>(freightServiceType || null);
 
+  // ✅ NOVO: Usar hook para obter status efetivo (especialmente para fretes multi-carreta)
+  const { 
+    effectiveStatus: multiTruckEffectiveStatus, 
+    isMultiTruck,
+    isLoading: isLoadingEffectiveStatus
+  } = useFreightEffectiveStatus(freightId);
+
   // Selecionar fluxo baseado no tipo de serviço
   const statusFlow = useMemo(() => {
     // Fluxo simplificado (sem LOADED) para: Moto, Guincho, Mudança
@@ -137,14 +145,20 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
     }
   };
 
-  // ✅ Calcular status efetivo baseado no histórico (fonte de verdade)
+  // ✅ Calcular status efetivo baseado no histórico OU status de assignments (multi-carreta)
   const effectiveCurrentStatus = useMemo(() => {
+    // Para fretes multi-carreta, usar o status mais avançado das atribuições
+    if (isMultiTruck && multiTruckEffectiveStatus) {
+      console.log('[FreightStatusTracker] Using multi-truck effective status:', multiTruckEffectiveStatus);
+      return multiTruckEffectiveStatus;
+    }
+    // Fallback para histórico ou currentStatus
     if (statusHistory.length > 0) {
       const lastHistoryStatus = statusHistory[statusHistory.length - 1]?.status;
       return lastHistoryStatus || currentStatus;
     }
     return currentStatus;
-  }, [statusHistory, currentStatus]);
+  }, [statusHistory, currentStatus, isMultiTruck, multiTruckEffectiveStatus]);
 
   // ✅ Verificar se é um status final (não pode ser alterado)
   const isFinalStatus = useMemo(() => {
@@ -294,13 +308,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   };
 
   const getNextStatus = () => {
-    const currentIndex = statusFlow.findIndex(status => status.key === currentStatus);
+    const currentIndex = statusFlow.findIndex(status => status.key === effectiveCurrentStatus);
     return currentIndex < statusFlow.length - 1 ? statusFlow[currentIndex + 1] : null;
   };
 
   const getStatusVariant = (status: string) => {
     const statusIndex = statusFlow.findIndex(s => s.key === status);
-    const currentIndex = statusFlow.findIndex(s => s.key === currentStatus);
+    const currentIndex = statusFlow.findIndex(s => s.key === effectiveCurrentStatus);
     
     if (statusIndex < currentIndex) return 'default';
     if (statusIndex === currentIndex) return 'destructive';
@@ -379,7 +393,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
               <div 
                 className="h-full bg-primary transition-all duration-500 ease-in-out" 
                 style={{ 
-                  width: `${(statusFlow.findIndex(s => s.key === currentStatus) / (statusFlow.length - 1)) * 100}%` 
+                  width: `${(statusFlow.findIndex(s => s.key === effectiveCurrentStatus) / (statusFlow.length - 1)) * 100}%` 
                 }}
               />
             </div>
@@ -389,7 +403,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
               {statusFlow.map((status, index) => {
                 const Icon = status.icon;
                 const variant = getStatusVariant(status.key);
-                const isActive = status.key === currentStatus;
+                const isActive = status.key === effectiveCurrentStatus;
                 const isCompleted = variant === 'default';
                 
                 return (
@@ -428,8 +442,8 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         </CardContent>
       </Card>
 
-      {/* Realtime Map - Show when freight is in transit */}
-      {['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'].includes(currentStatus) && (
+      {/* Realtime Map - Show when freight is in transit (using effective status for multi-truck) */}
+      {['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'].includes(effectiveCurrentStatus) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -462,7 +476,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <Badge variant="outline">Status Atual: {statusFlow.find(s => s.key === currentStatus)?.label}</Badge>
+              <Badge variant="outline">Status Atual: {statusFlow.find(s => s.key === effectiveCurrentStatus)?.label || getStatusLabelFallback(effectiveCurrentStatus)}</Badge>
               <span>→</span>
               <Badge>Próximo: {nextStatus.label}</Badge>
             </div>
