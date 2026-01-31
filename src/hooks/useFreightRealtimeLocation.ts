@@ -34,6 +34,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
   const [secondsAgo, setSecondsAgo] = useState<number>(Infinity);
   const [isOnline, setIsOnline] = useState(false);
   const [assignedDriverIds, setAssignedDriverIds] = useState<string[]>([]);
+  // ✅ Driver efetivamente acompanhado no realtime (evita assinar o motorista “errado” em multi-carreta)
+  const [subscribedDriverId, setSubscribedDriverId] = useState<string | null>(null);
   
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const driverChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -86,7 +88,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           .from('freight_assignments')
           .select('driver_id, status')
           .eq('freight_id', freightId)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+          // ✅ Inclui DELIVERED_PENDING_CONFIRMATION (ainda é “em andamento” e precisa manter tracking)
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
           .limit(10);
 
         const assignedDriverIds = assignments?.map(a => a.driver_id).filter(Boolean) || [];
@@ -102,6 +105,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
         
         // ✅ Salvar IDs para subscription realtime
         setAssignedDriverIds(uniqueDriverIds);
+        // fallback inicial: se não acharmos um driver “mais recente”, assina o primeiro
+        setSubscribedDriverId(uniqueDriverIds[0] ?? null);
         
         console.log('[useFreightRealtimeLocation] Found drivers:', uniqueDriverIds, 'Assignments:', assignments?.map(a => ({ driver: a.driver_id?.substring(0,8), status: a.status })));
         
@@ -127,6 +132,12 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
               if (loc.last_gps_update) {
                 setLastUpdate(new Date(loc.last_gps_update));
               }
+
+              // ✅ Assinar realtime do driver que realmente tem o update mais recente
+              if (loc.driver_profile_id) {
+                setSubscribedDriverId(loc.driver_profile_id);
+              }
+
               console.log('[useFreightRealtimeLocation] ✅ Using driver_current_locations:', {
                 lat: loc.lat,
                 lng: loc.lng,
@@ -267,9 +278,9 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
 
   // ✅ Subscription Realtime para driver_current_locations (fretes multi-carreta)
   useEffect(() => {
-    if (!freightId || assignedDriverIds.length === 0) return;
+    if (!freightId || !subscribedDriverId) return;
 
-    console.log('[useFreightRealtimeLocation] Setting up driver_current_locations subscription for drivers:', assignedDriverIds);
+    console.log('[useFreightRealtimeLocation] Setting up driver_current_locations subscription for driver:', subscribedDriverId);
 
     // Cleanup de canal existente
     if (driverChannelRef.current) {
@@ -277,18 +288,15 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
       driverChannelRef.current = null;
     }
 
-    // Criar subscription para cada motorista atribuído (usando o primeiro por simplicidade)
-    const primaryDriverId = assignedDriverIds[0];
-    
     const driverChannel = supabase
-      .channel(`driver-location-${freightId}-${primaryDriverId}`)
+      .channel(`driver-location-${freightId}-${subscribedDriverId}`)
       .on(
         'postgres_changes',
         {
           event: '*', // INSERT, UPDATE
           schema: 'public',
           table: 'driver_current_locations',
-          filter: `driver_profile_id=eq.${primaryDriverId}`
+          filter: `driver_profile_id=eq.${subscribedDriverId}`
         },
         (payload) => {
           // Debounce
@@ -332,7 +340,7 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
         driverChannelRef.current = null;
       }
     };
-  }, [freightId, assignedDriverIds]);
+  }, [freightId, subscribedDriverId]);
 
   // Atualizar secondsAgo periodicamente
   useEffect(() => {
