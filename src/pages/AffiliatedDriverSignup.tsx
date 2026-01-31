@@ -338,28 +338,52 @@ const AffiliatedDriverSignup = () => {
         return;
       }
 
-      // 2. Wait for profile creation with retries
+      // 2. Wait for profile creation with retries (usando RPC que bypassa RLS)
       let profileData = null;
       let attempts = 0;
-      const maxAttempts = 5;
+      const maxAttempts = 8;
       
       while (!profileData && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000 + attempts * 500));
+        await new Promise(resolve => setTimeout(resolve, 800 + attempts * 400));
         
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, metadata')
-          .eq('user_id', authData.user.id)
-          .single();
+        try {
+          // Primeiro, tentar via SELECT direto (se RLS permitir)
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, metadata')
+            .eq('user_id', authData.user.id)
+            .single();
 
-        if (!error && data) {
-          profileData = data;
-          break;
+          if (!error && data) {
+            profileData = data;
+            break;
+          }
+          
+          // Fallback: Se RLS bloquear, buscar via RPC
+          if (error && (error.code === 'PGRST116' || error.message?.includes('permission') || error.message?.includes('denied'))) {
+            console.log(`[AffiliatedDriverSignup] RLS bloqueou SELECT, tentando RPC... (tentativa ${attempts + 1})`);
+            
+            const { data: rpcData, error: rpcError } = await supabase
+              .rpc('get_own_profile_id', { p_user_id: authData.user.id });
+            
+            if (!rpcError && rpcData) {
+              profileData = { id: rpcData, metadata: {} };
+              break;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn(`[AffiliatedDriverSignup] Erro na tentativa ${attempts + 1}:`, fetchErr);
         }
+        
         attempts++;
       }
 
-      if (!profileData) throw new Error('Erro ao criar perfil');
+      if (!profileData) {
+        console.error('[AffiliatedDriverSignup] Perfil não encontrado após todas tentativas');
+        toast.error('Erro ao criar perfil. Tente fazer login manualmente.');
+        navigate('/auth');
+        return;
+      }
 
       // 4. Upload selfie após autenticação (com instrumentação completa)
       let selfieUrl = '';
