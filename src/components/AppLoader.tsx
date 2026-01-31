@@ -11,10 +11,13 @@
  * - fullscreen: Overlay bloqueante para boot/auth (SEM TEXTO)
  * - inline: Para seções/tabs específicas (SEM TEXTO)
  * - minimal: Spinner pequeno (SEM TEXTO)
+ * 
+ * IMPORTANTE: Este componente agora usa o AppSpinner (border-spin style)
+ * como única fonte de verdade para todos os estados de loading.
  */
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { cn } from '@/lib/utils';
 
 export type AppLoaderVariant = 'fullscreen' | 'inline' | 'minimal';
@@ -33,10 +36,11 @@ interface AppLoaderProps {
   debugId?: string;
 }
 
-const sizeClasses: Record<AppLoaderSize, string> = {
-  sm: 'h-5 w-5',
-  md: 'h-8 w-8',
-  lg: 'h-12 w-12',
+// Mapeamento de tamanhos para pixels (compatibilidade com API anterior)
+const sizeToPx: Record<AppLoaderSize, number> = {
+  sm: 20,  // equivalente a h-5 w-5
+  md: 32,  // equivalente a h-8 w-8
+  lg: 48,  // equivalente a h-12 w-12
 };
 
 export const AppLoader: React.FC<AppLoaderProps> = ({
@@ -55,6 +59,8 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
     }
   }, [debugId, variant]);
 
+  const spinnerSize = sizeToPx[size];
+
   if (variant === 'fullscreen') {
     return (
       <div 
@@ -65,7 +71,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
         role="status"
         aria-label="Carregando"
       >
-        <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
+        <AppSpinner size={spinnerSize} />
       </div>
     );
   }
@@ -77,7 +83,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
         role="status"
         aria-label="Carregando"
       >
-        <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
+        <AppSpinner size={spinnerSize} />
       </div>
     );
   }
@@ -92,7 +98,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
       role="status"
       aria-label="Carregando"
     >
-      <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
+      <AppSpinner size={spinnerSize} />
     </div>
   );
 };
