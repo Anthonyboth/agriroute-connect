@@ -1,6 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+function isPublicOrPreAuthRoute(): boolean {
+  // Rotas onde o usuário pode estar propositalmente sem sessão (cadastros públicos, landing pages, etc.)
+  const path = window.location.pathname;
+  return (
+    path === '/' ||
+    path.startsWith('/sobre') ||
+    path.startsWith('/ajuda') ||
+    path.startsWith('/cadastro-motorista') ||
+    path.startsWith('/cadastro-motorista-afiliado')
+  );
+}
+
 interface UploadWithRetryOptions {
   file: File;
   bucketName: string;
@@ -37,12 +49,19 @@ export async function uploadWithAuthRetry({
             if (attempt === maxRetries - 1) {
               // Última tentativa falhou - redirecionar para login
               console.error('[Upload] Todas tentativas de refresh falharam');
-              toast.error('Sua sessão expirou. Redirecionando para login...');
-              setTimeout(() => {
-                localStorage.setItem('redirect_after_login', window.location.pathname);
-                window.location.href = '/auth';
-              }, 1500);
-              return { error: 'AUTH_EXPIRED' };
+               // ✅ IMPORTANTE: em rotas públicas/pré-auth (ex: cadastro por link), não redirecionar.
+               // Apenas sinalizar falha e deixar o fluxo lidar com a ausência de sessão.
+               if (isPublicOrPreAuthRoute()) {
+                 console.warn('[Upload] Sessão expirada em rota pública/pré-auth - pulando redirect');
+                 return { error: 'AUTH_REQUIRED' };
+               }
+
+               toast.error('Sua sessão expirou. Redirecionando para login...');
+               setTimeout(() => {
+                 localStorage.setItem('redirect_after_login', window.location.pathname);
+                 window.location.href = '/auth';
+               }, 1500);
+               return { error: 'AUTH_EXPIRED' };
             }
             continue; // Tentar novamente
           }

@@ -51,6 +51,14 @@ export async function handleAuthError(error: any, redirectTo: string = '/') {
 
 export async function ensureAuthBeforeAction(actionName: string): Promise<boolean> {
   try {
+    const path = window.location.pathname;
+    const isPublicOrPreAuthRoute =
+      path === '/' ||
+      path.startsWith('/sobre') ||
+      path.startsWith('/ajuda') ||
+      path.startsWith('/cadastro-motorista') ||
+      path.startsWith('/cadastro-motorista-afiliado');
+
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error || !session) {
@@ -59,8 +67,13 @@ export async function ensureAuthBeforeAction(actionName: string): Promise<boolea
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       
       if (refreshError || !refreshData.session) {
+        // ✅ Não force redirect em rotas públicas/pré-auth (cadastro por link, landing pages)
+        if (isPublicOrPreAuthRoute) {
+          toast.error('Você precisa estar logado para continuar.');
+          return false;
+        }
+
         toast.error('Sessão expirada. Faça login novamente.');
-        
         setTimeout(() => {
           localStorage.setItem('redirect_after_login', window.location.pathname);
           window.location.href = '/auth';
