@@ -107,8 +107,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       // ✅ CORREÇÃO BUG 1: Buscar produtor secundariamente se JOIN falhou
       if (data.producer_id && (!normalizedFreight.producer || !normalizedFreight.producer.full_name)) {
         console.log('[FreightDetails] Producer JOIN vazio, buscando diretamente...');
-        // ✅ CORREÇÃO: profiles_secure não tem colunas 'role', 'selfie_url', 'active_mode' (mascaradas)
-        // Colunas disponíveis: id, full_name, profile_photo_url, rating, total_ratings, status, created_at
+        
+        // Tentar profiles_secure primeiro
         const { data: producerData } = await (supabase as any)
           .from('profiles_secure')
           .select('id, full_name, profile_photo_url, rating, total_ratings')
@@ -119,29 +119,48 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           normalizedFreight = { ...normalizedFreight, producer: producerData };
           console.log('[FreightDetails] Produtor encontrado:', producerData.full_name);
         } else {
-          // Verificar se existe guest info no metadata ou como fallback
-          const guestInfo = (data as any).guest_name || (data.metadata as any)?.guest_name;
-          const guestPhone = (data as any).guest_phone || (data.metadata as any)?.guest_phone;
-          
-          if (guestInfo) {
-            normalizedFreight = { 
-              ...normalizedFreight, 
-              producer: { 
-                id: null, 
-                full_name: guestInfo, 
-                contact_phone: guestPhone || null,
-                role: 'GUEST' 
-              } 
-            };
+          // ✅ FALLBACK: Usar edge function para buscar produtor
+          console.log('[FreightDetails] profiles_secure vazio para produtor, tentando edge function...');
+          try {
+            const { data: edgeData, error: edgeError } = await supabase.functions.invoke('get-participant-public-profile', {
+              body: {
+                freight_id: freightId,
+                participant_profile_id: data.producer_id,
+                participant_type: 'producer',
+              },
+            });
+            
+            if (!edgeError && edgeData?.success && edgeData?.profile) {
+              normalizedFreight = { ...normalizedFreight, producer: edgeData.profile };
+              console.log('[FreightDetails] Produtor encontrado via edge function:', edgeData.profile.full_name);
+            } else {
+              // Verificar se existe guest info no metadata ou como fallback
+              const guestInfo = (data as any).guest_name || (data.metadata as any)?.guest_name;
+              const guestPhone = (data as any).guest_phone || (data.metadata as any)?.guest_phone;
+              
+              if (guestInfo) {
+                normalizedFreight = { 
+                  ...normalizedFreight, 
+                  producer: { 
+                    id: null, 
+                    full_name: guestInfo, 
+                    contact_phone: guestPhone || null,
+                    role: 'GUEST' 
+                  } 
+                };
+              }
+            }
+          } catch (edgeFallbackErr) {
+            console.warn('[FreightDetails] Edge function fallback falhou para produtor:', edgeFallbackErr);
           }
         }
       }
 
       // ✅ CORREÇÃO BUG 1b: Buscar motorista secundariamente se JOIN falhou (após endurecimento de RLS em profiles)
-      // Importante para o produtor enxergar corretamente o motorista (ou vice-versa) no modal.
       if (data.driver_id && (!normalizedFreight.driver || !normalizedFreight.driver.full_name)) {
         console.log('[FreightDetails] Driver JOIN vazio, buscando diretamente...');
-        // ✅ CORREÇÃO: profiles_secure é a fonte segura (sem PII sensível)
+        
+        // Tentar profiles_secure primeiro
         const { data: driverData } = await (supabase as any)
           .from('profiles_secure')
           .select('id, full_name, profile_photo_url, rating, total_ratings')
@@ -151,6 +170,25 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         if (driverData) {
           normalizedFreight = { ...normalizedFreight, driver: driverData };
           console.log('[FreightDetails] Motorista encontrado:', driverData.full_name);
+        } else {
+          // ✅ FALLBACK: Usar edge function para buscar motorista
+          console.log('[FreightDetails] profiles_secure vazio para motorista, tentando edge function...');
+          try {
+            const { data: edgeData, error: edgeError } = await supabase.functions.invoke('get-participant-public-profile', {
+              body: {
+                freight_id: freightId,
+                participant_profile_id: data.driver_id,
+                participant_type: 'driver',
+              },
+            });
+            
+            if (!edgeError && edgeData?.success && edgeData?.profile) {
+              normalizedFreight = { ...normalizedFreight, driver: edgeData.profile };
+              console.log('[FreightDetails] Motorista encontrado via edge function:', edgeData.profile.full_name);
+            }
+          } catch (edgeFallbackErr) {
+            console.warn('[FreightDetails] Edge function fallback falhou para motorista:', edgeFallbackErr);
+          }
         }
       }
 
@@ -184,18 +222,45 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         const driverIdsToFetch = assignedIds.length > 0 ? assignedIds : assignmentDriverIds;
 
         if (driverIdsToFetch.length > 0) {
-          // ✅ CORREÇÃO: profiles_secure não tem colunas 'role', 'selfie_url', 'active_mode' (mascaradas)
-          // Colunas disponíveis: id, full_name, profile_photo_url, rating, total_ratings, status, created_at
+          // ✅ CORREÇÃO: Tentar profiles_secure primeiro, depois fallback para edge function
           const { data: driversData, error: driversError } = await (supabase as any)
             .from('profiles_secure')
             .select('id, full_name, profile_photo_url, rating, total_ratings')
             .in('id', driverIdsToFetch);
 
-          if (!driversError) {
-            setAssignedDrivers((driversData as any[]) || []);
-          } else {
+          let resolvedDrivers = (driversData as any[]) || [];
+
+          // ✅ FALLBACK: Se profiles_secure retornou vazio (RLS bloqueou), usar edge function
+          if (resolvedDrivers.length === 0 && driverIdsToFetch.length > 0) {
+            console.log('[FreightDetails] profiles_secure vazio, usando edge function fallback...');
+            
+            const fallbackDrivers: any[] = [];
+            for (const driverId of driverIdsToFetch) {
+              try {
+                const { data: edgeData, error: edgeError } = await supabase.functions.invoke('get-participant-public-profile', {
+                  body: {
+                    freight_id: freightId,
+                    participant_profile_id: driverId,
+                    participant_type: 'driver',
+                  },
+                });
+                
+                if (!edgeError && edgeData?.success && edgeData?.profile) {
+                  fallbackDrivers.push(edgeData.profile);
+                  console.log('[FreightDetails] Motorista encontrado via edge function:', edgeData.profile.full_name);
+                }
+              } catch (fallbackErr) {
+                console.warn('[FreightDetails] Falha no edge function fallback para driver:', driverId, fallbackErr);
+              }
+            }
+            
+            resolvedDrivers = fallbackDrivers;
+          }
+
+          setAssignedDrivers(resolvedDrivers);
+          
+          if (driversError && resolvedDrivers.length === 0) {
             console.warn('[FreightDetails] Falha ao buscar drivers_assigned:', driversError);
-            setAssignedDrivers([]);
           }
         } else {
           setAssignedDrivers([]);
