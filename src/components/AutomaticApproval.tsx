@@ -83,6 +83,59 @@ export class AutomaticApprovalService {
       // PRODUTOR e TRANSPORTADORA são aprovados automaticamente sem validação rigorosa
       if (isAutoApproveRole) {
         console.log(`🚀 Auto-aprovação direta para role: ${profile.role}`);
+        
+        // Atualizar status do profile para APPROVED
+        const { error: profileUpdateError } = await supabase
+          .from('profiles')
+          .update({
+            status: 'APPROVED' as const,
+            document_validation_status: 'VALIDATED' as const,
+            background_check_status: 'APPROVED' as const
+          })
+          .eq('id', profileId);
+        
+        if (profileUpdateError) {
+          console.error('ERRO ao atualizar status do perfil (auto-approve):', profileUpdateError);
+        } else {
+          console.log('✅ Profile atualizado para APPROVED');
+        }
+        
+        // ✅ CRÍTICO: Se for TRANSPORTADORA, também atualizar transport_companies para APPROVED
+        if (profile.role === 'TRANSPORTADORA') {
+          console.log('📦 Atualizando transport_companies para APPROVED...');
+          const { error: companyUpdateError } = await supabase
+            .from('transport_companies')
+            .update({
+              status: 'APPROVED' as const,
+              approved_at: new Date().toISOString()
+            })
+            .eq('profile_id', profileId);
+          
+          if (companyUpdateError) {
+            console.error('ERRO ao atualizar transport_companies:', companyUpdateError);
+          } else {
+            console.log('✅ Transport company atualizada para APPROVED');
+          }
+        }
+        
+        // Criar histórico de validação
+        await supabase
+          .from('validation_history')
+          .insert({
+            profile_id: profileId,
+            validation_type: 'AUTOMATIC_APPROVAL',
+            status: 'VALIDATED',
+            notes: `Aprovação automática direta para role: ${profile.role}`
+          });
+        
+        // Enviar notificação
+        await supabase.rpc('send_notification', {
+          p_user_id: profile.user_id,
+          p_title: 'Conta aprovada!',
+          p_message: 'Sua conta foi aprovada automaticamente. Você já pode começar a usar o AgriRoute Connect!',
+          p_type: 'success'
+        });
+        
         return {
           approved: true,
           validationResults: { auto_approved: { isValid: true, confidence: 1.0 } },
