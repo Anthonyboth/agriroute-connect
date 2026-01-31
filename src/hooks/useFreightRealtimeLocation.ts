@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/maplibre-utils';
+import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
 interface DriverLocation {
   lat: number;
@@ -128,7 +129,14 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           if (!locError && currentLocations && currentLocations.length > 0) {
             const loc = currentLocations[0];
             if (loc.lat && loc.lng) {
-              setDriverLocation({ lat: loc.lat, lng: loc.lng });
+              // ✅ Normalizar coordenadas para evitar markers em posições incorretas
+              const normalized = normalizeLatLngPoint({ lat: loc.lat, lng: loc.lng }, 'BR');
+              if (normalized) {
+                setDriverLocation(normalized);
+              } else {
+                setDriverLocation({ lat: loc.lat, lng: loc.lng });
+              }
+              
               if (loc.last_gps_update) {
                 setLastUpdate(new Date(loc.last_gps_update));
               }
@@ -139,8 +147,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
               }
 
               console.log('[useFreightRealtimeLocation] ✅ Using driver_current_locations:', {
-                lat: loc.lat,
-                lng: loc.lng,
+                lat: normalized?.lat ?? loc.lat,
+                lng: normalized?.lng ?? loc.lng,
                 driverId: loc.driver_profile_id?.substring(0,8),
                 lastUpdate: loc.last_gps_update
               });
@@ -161,7 +169,12 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
               .maybeSingle();
 
             if (locationHistory?.lat && locationHistory?.lng) {
-              setDriverLocation({ 
+              // ✅ Normalizar coordenadas
+              const normalized = normalizeLatLngPoint({ 
+                lat: locationHistory.lat, 
+                lng: locationHistory.lng 
+              }, 'BR');
+              setDriverLocation(normalized ?? { 
                 lat: locationHistory.lat, 
                 lng: locationHistory.lng 
               });
@@ -169,8 +182,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
                 setLastUpdate(new Date(locationHistory.captured_at));
               }
               console.log('[useFreightRealtimeLocation] Using driver_location_history fallback:', {
-                lat: locationHistory.lat,
-                lng: locationHistory.lng
+                lat: normalized?.lat ?? locationHistory.lat,
+                lng: normalized?.lng ?? locationHistory.lng
               });
               return;
             }
@@ -179,7 +192,9 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
 
         // Fallback final: usar dados do frete se disponíveis
         if (data?.current_lat && data?.current_lng) {
-          setDriverLocation({ lat: data.current_lat, lng: data.current_lng });
+          // ✅ Normalizar coordenadas
+          const normalized = normalizeLatLngPoint({ lat: data.current_lat, lng: data.current_lng }, 'BR');
+          setDriverLocation(normalized ?? { lat: data.current_lat, lng: data.current_lng });
         }
 
         if (data?.last_location_update) {
