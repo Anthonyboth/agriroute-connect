@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isValidDocument, normalizeDocument } from '@/utils/document';
+import { clearCachedProfile } from '@/lib/profile-cache';
+import AutomaticApprovalService from '@/components/AutomaticApproval';
 
 const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
@@ -208,6 +210,14 @@ export function useResilientLogin() {
       addStep('Autenticando credenciais', 'success');
       console.log('🟢 [ResilientLogin] Autenticação bem-sucedida');
 
+      // ✅ CRÍTICO: evitar tela de "Conta Pendente" por cache antigo após auto-aprovação
+      try {
+        // authData.user pode não existir em alguns cenários; limpamos depois do getUser também.
+        if (authData?.user?.id) clearCachedProfile(authData.user.id);
+      } catch {
+        // ignore
+      }
+
       // ✅ CRÍTICO: garantir que o token foi persistido antes de redirecionar
       addStep('Persistindo sessão', 'pending');
       const sessionOk = await ensureSessionPersisted(6);
@@ -249,6 +259,13 @@ export function useResilientLogin() {
       }
       
       addStep('Obtendo dados do usuário', 'success');
+
+      // ✅ Garantir cache limpo com o user.id real
+      try {
+        clearCachedProfile(user.id);
+      } catch {
+        // ignore
+      }
       
       // ========== STEP 4: Buscar perfis com retry ==========
       addStep('Carregando perfil', 'pending');
@@ -342,6 +359,24 @@ export function useResilientLogin() {
       // ========== STEP 6: Perfil único - redirecionar diretamente ==========
       const targetProfile = userProfiles[0];
       const targetRole = targetProfile.role || targetProfile.active_mode || 'PRODUTOR';
+
+      // ✅ REGRA DE NEGÓCIO: PRODUTOR e TRANSPORTADORA devem ser aprovados automaticamente
+      if ((targetRole === 'PRODUTOR' || targetRole === 'TRANSPORTADORA') && targetProfile.status !== 'APPROVED') {
+        addStep('Aprovação automática', 'pending');
+        try {
+          await AutomaticApprovalService.triggerApprovalProcess(targetProfile.id);
+          await sleep(250);
+          clearCachedProfile(user.id);
+          addStep('Aprovação automática', 'success');
+        } catch (e: any) {
+          addStep('Aprovação automática', 'error', e?.message || 'Falha ao aprovar automaticamente');
+          await notifyLoginErrorToTelegram(loginField, `Auto-approve failed: ${e?.message || 'unknown'}`, steps, {
+            targetRole,
+            profileId: targetProfile.id,
+          });
+        }
+      }
+
       const targetRoute = getDashboardRoute(targetRole);
       
       // Salvar profile ativo
