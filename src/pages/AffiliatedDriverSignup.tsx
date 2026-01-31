@@ -359,11 +359,12 @@ const AffiliatedDriverSignup = () => {
             break;
           }
           
-          // Fallback: Se RLS bloquear, buscar via RPC
+          // Fallback: Se RLS bloquear, buscar via RPC (bypass RLS com SECURITY DEFINER)
           if (error && (error.code === 'PGRST116' || error.message?.includes('permission') || error.message?.includes('denied'))) {
             console.log(`[AffiliatedDriverSignup] RLS bloqueou SELECT, tentando RPC... (tentativa ${attempts + 1})`);
             
-            const { data: rpcData, error: rpcError } = await supabase
+            // Usar any para evitar erro de tipos enquanto o arquivo de tipos não é regenerado
+            const { data: rpcData, error: rpcError } = await (supabase as any)
               .rpc('get_own_profile_id', { p_user_id: authData.user.id });
             
             if (!rpcError && rpcData) {

@@ -12675,6 +12675,7 @@ export type Database = {
           weight: number
         }[]
       }
+      get_own_profile_id: { Args: { p_user_id: string }; Returns: string }
       get_platform_stats: {
         Args: never
         Returns: {
