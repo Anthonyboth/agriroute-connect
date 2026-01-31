@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { StorageImage } from '@/components/ui/storage-image';
+import { InlineSpinner } from '@/components/ui/AppSpinner';
 
 interface VehiclePhotoGalleryProps {
   vehicleId: string;
@@ -256,9 +257,9 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
               disabled={isUploading}
               className="w-full"
             >
-              {isUploading ? (
+            {isUploading ? (
                 <>
-                  <div className="h-4 w-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <InlineSpinner className="border-white/30 border-b-white" />
                   Enviando...
                 </>
               ) : (

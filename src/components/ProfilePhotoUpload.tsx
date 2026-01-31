@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Camera, User, X } from 'lucide-react';
 import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
+import { InlineSpinner } from '@/components/ui/AppSpinner';
 
 interface ProfilePhotoUploadProps {
   currentPhotoUrl?: string;
@@ -176,7 +177,7 @@ export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
                 <span>
                   {uploading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                      <InlineSpinner />
                       Enviando...
                     </>
                   ) : (

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Upload, Check, X, Camera } from 'lucide-react';
 import { validateImageQuality } from '@/utils/imageValidator';
 import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
+import { InlineSpinner } from '@/components/ui/AppSpinner';
 
 interface DocumentUploadProps {
   onUploadComplete: (url: string) => void;
@@ -128,7 +129,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
             >
               {uploading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  <InlineSpinner />
                   Enviando...
                 </>
               ) : uploaded ? (
