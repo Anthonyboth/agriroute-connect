@@ -22,3 +22,20 @@ export { useMapLibreControls, type UseMapLibreControlsOptions, type UseMapLibreC
 
 // Utilitário para requestAnimationFrame/setTimeout seguros
 export { useMapLibreSafeRaf } from './useMapLibreSafeRaf';
+
+// 🚗 Roteamento OSRM (rotas reais por estradas)
+export { 
+  useOSRMRoute, 
+  fetchOSRMRoute,
+  type RoutePoint, 
+  type OSRMRouteResult, 
+  type UseOSRMRouteOptions, 
+  type UseOSRMRouteResult 
+} from './useOSRMRoute';
+
+// 🗺️ Desenho de rotas no MapLibre
+export { 
+  useMapLibreRoute,
+  type UseMapLibreRouteOptions,
+  type UseMapLibreRouteResult
+} from './useMapLibreRoute';
