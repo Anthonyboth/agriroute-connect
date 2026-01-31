@@ -31,6 +31,9 @@ export function isChunkLoadError(error: unknown): boolean {
     /Unable to preload CSS/i,
     // Erro de sintaxe em chunk (quando HTML é retornado no lugar de JS)
     /Unexpected token '<'/i,
+    // ✅ Detectar URLs de source code que não deveriam existir em produção
+    /\/src\/.*\.ts/i,
+    /\/src\/.*\.tsx/i,
   ];
   
   return patterns.some(pattern => pattern.test(errorString));
