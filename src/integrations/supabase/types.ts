@@ -11972,12 +11972,13 @@ export type Database = {
       auto_cancel_overdue_freights: {
         Args: never
         Returns: {
-          cargo_type: string
+          created_date: string
           destination_city: string
-          freight_id: string
+          expiration_reason: string
+          item_id: string
+          item_type: string
           origin_city: string
-          pickup_date: string
-          producer_id: string
+          service_type: string
         }[]
       }
       auto_confirm_deliveries: { Args: never; Returns: Json }
@@ -12628,6 +12629,21 @@ export type Database = {
               weight: number
             }[]
           }
+      get_item_expiration_info: {
+        Args: { p_item_id: string; p_item_type?: string }
+        Returns: {
+          can_auto_cancel: boolean
+          created_at: string
+          expiration_hours: number
+          expires_at: string
+          is_expired: boolean
+          item_id: string
+          item_type: string
+          service_type: string
+          status: string
+          time_remaining: unknown
+        }[]
+      }
       get_multiple_ip_logins: {
         Args: { min_ip_count?: number; since_timestamp: string }
         Returns: {
