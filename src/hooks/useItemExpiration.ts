@@ -11,9 +11,12 @@
  * 
  * REGRA CRÍTICA: Apenas itens NÃO ACEITOS podem ser cancelados automaticamente!
  * Após aceito ou agendado, apenas o usuário pode cancelar manualmente.
+ * 
+ * ORDENAÇÃO: Itens são ordenados por tempo restante (menor primeiro).
+ * Itens próximos de vencer aparecem no topo, recém-postados aparecem embaixo.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 // Configuração de expiração por tipo de serviço (em horas)
 export const EXPIRATION_CONFIG = {
@@ -151,6 +154,96 @@ export function calculateExpirationInfo(
 }
 
 /**
+ * Calcula o tempo restante em milissegundos para um item
+ * Usado para ordenação - itens com menor tempo restante aparecem primeiro
+ */
+export function getTimeRemainingMs(
+  createdAt: string | Date | null | undefined,
+  serviceType: string | null | undefined,
+  isService: boolean = false
+): number {
+  if (!createdAt) return Number.MAX_SAFE_INTEGER; // Itens sem data vão para o final
+  
+  const createdDate = new Date(createdAt);
+  if (isNaN(createdDate.getTime())) return Number.MAX_SAFE_INTEGER;
+  
+  const expirationHours = isService 
+    ? EXPIRATION_CONFIG.SERVICE.hours 
+    : getExpirationHours(serviceType);
+  
+  const expiresAt = createdDate.getTime() + expirationHours * 60 * 60 * 1000;
+  const now = Date.now();
+  
+  return Math.max(0, expiresAt - now);
+}
+
+/**
+ * Interface genérica para itens que podem ser ordenados por expiração
+ */
+export interface ExpirableItem {
+  created_at?: string | Date | null;
+  createdAt?: string | Date | null;
+  service_type?: string | null;
+  serviceType?: string | null;
+  cargo_type?: string | null;
+  cargoType?: string | null;
+  type?: string | null;
+}
+
+/**
+ * Extrai o tipo de serviço de um item (suporta múltiplos formatos de propriedade)
+ */
+function extractServiceType(item: ExpirableItem): string | null | undefined {
+  return item.service_type || item.serviceType || item.cargo_type || item.cargoType || item.type;
+}
+
+/**
+ * Extrai a data de criação de um item (suporta múltiplos formatos de propriedade)
+ */
+function extractCreatedAt(item: ExpirableItem): string | Date | null | undefined {
+  return item.created_at || item.createdAt;
+}
+
+/**
+ * Determina se um item é um serviço (não um frete)
+ */
+function isServiceItem(item: ExpirableItem): boolean {
+  const serviceType = extractServiceType(item);
+  if (!serviceType) return false;
+  
+  const normalized = serviceType.toUpperCase().trim();
+  
+  // Serviços agrícolas, mecânicos, etc. - não são fretes
+  return normalized.includes('SERVICO') || 
+         normalized.includes('SERVIÇO') ||
+         normalized === 'SERVICE' ||
+         normalized.includes('AGRICOLA') ||
+         normalized.includes('MECANICO');
+}
+
+/**
+ * Ordena um array de itens por tempo de expiração (menor primeiro)
+ * Itens próximos de vencer aparecem no topo, recém-postados aparecem embaixo
+ */
+export function sortByExpiration<T extends ExpirableItem>(
+  items: T[],
+  forceIsService?: boolean
+): T[] {
+  if (!items || items.length === 0) return [];
+  
+  return [...items].sort((a, b) => {
+    const isServiceA = forceIsService !== undefined ? forceIsService : isServiceItem(a);
+    const isServiceB = forceIsService !== undefined ? forceIsService : isServiceItem(b);
+    
+    const timeA = getTimeRemainingMs(extractCreatedAt(a), extractServiceType(a), isServiceA);
+    const timeB = getTimeRemainingMs(extractCreatedAt(b), extractServiceType(b), isServiceB);
+    
+    // Menor tempo restante primeiro (mais urgente no topo)
+    return timeA - timeB;
+  });
+}
+
+/**
  * Hook para obter informações de expiração de um frete ou serviço
  */
 export function useItemExpiration(
@@ -176,6 +269,33 @@ export function useCanAutoCancel(status: string | null | undefined): boolean {
     const normalizedStatus = status.toUpperCase().trim();
     return AUTO_CANCEL_STATUSES.includes(normalizedStatus);
   }, [status]);
+}
+
+/**
+ * Hook para ordenar itens por tempo de expiração
+ * Retorna os itens ordenados com os mais urgentes primeiro
+ */
+export function useSortByExpiration<T extends ExpirableItem>(
+  items: T[] | null | undefined,
+  forceIsService?: boolean
+): T[] {
+  return useMemo(() => {
+    if (!items || items.length === 0) return [];
+    return sortByExpiration(items, forceIsService);
+  }, [items, forceIsService]);
+}
+
+/**
+ * Hook que retorna uma função de ordenação memoizada
+ * Útil para cenários onde você precisa ordenar múltiplas listas
+ */
+export function useSortByExpirationFn<T extends ExpirableItem>(): (
+  items: T[],
+  forceIsService?: boolean
+) => T[] {
+  return useCallback((items: T[], forceIsService?: boolean) => {
+    return sortByExpiration(items, forceIsService);
+  }, []);
 }
 
 /**
