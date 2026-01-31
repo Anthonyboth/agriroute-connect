@@ -3,9 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -13,6 +10,7 @@ import { useAffiliationValidation } from '@/hooks/useAffiliationValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { AffiliationSettingsModal } from './AffiliationSettingsModal';
+import { DriverAvatar } from './ui/driver-avatar';
 import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -28,10 +26,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-interface CompanyDriverManagerProps {
-  inModal?: boolean;
-}
 import {
   Select,
   SelectContent,
@@ -39,6 +33,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+interface CompanyDriverManagerProps {
+  inModal?: boolean;
+}
 
 export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inModal = false }) => {
   const { 
@@ -106,12 +104,13 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                     <div className="flex flex-col gap-4">
                       {/* Header com foto e info */}
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 border-2 border-green-500">
-                          <AvatarImage src={driver.driver?.profile_photo_url || driver.driver?.selfie_url} />
-                          <AvatarFallback className="bg-green-100 text-green-700 text-xl font-bold">
-                            {driver.driver?.full_name?.charAt(0) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
+                        <DriverAvatar
+                          profilePhotoUrl={driver.driver?.profile_photo_url}
+                          selfieUrl={driver.driver?.selfie_url}
+                          fullName={driver.driver?.full_name}
+                          className="h-16 w-16 border-2 border-green-500"
+                          fallbackClassName="bg-green-100 text-green-700 text-xl"
+                        />
                         
                         <div className="flex-1">
                           <p className="font-semibold text-lg">{driver.driver?.full_name}</p>
@@ -306,21 +305,13 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
               <CardContent className="p-4 flex flex-col flex-1">
                 {/* Avatar e Info Principal */}
                 <div className="flex flex-col items-center text-center mb-4">
-                  <Avatar className="h-16 w-16 border-2 border-muted mb-3">
-                    <AvatarImage 
-                      src={cd.driver?.profile_photo_url || cd.driver?.selfie_url} 
-                      alt={cd.driver?.full_name}
-                    />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-lg font-bold">
-                      {cd.driver?.full_name
-                        ?.split(' ')
-                        .filter((n: string) => n.length > 0)
-                        .map((n: string) => n[0])
-                        .join('')
-                        .slice(0, 2)
-                        .toUpperCase() || '??'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <DriverAvatar
+                    profilePhotoUrl={cd.driver?.profile_photo_url}
+                    selfieUrl={cd.driver?.selfie_url}
+                    fullName={cd.driver?.full_name}
+                    className="h-16 w-16 border-2 border-muted mb-3"
+                    fallbackClassName="text-lg"
+                  />
                   
                   <h4 className="font-semibold text-base truncate max-w-full">{cd.driver?.full_name}</h4>
                   
