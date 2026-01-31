@@ -473,23 +473,39 @@ const AuthedLanding = () => {
   // Verificar se é transportadora
   React.useEffect(() => {
     const checkCompany = async () => {
-      if (profile?.role === 'MOTORISTA') {
-        setIsCheckingCompany(true);
-        const { data } = await supabase
-          .from('transport_companies')
-          .select('id')
-          .eq('profile_id', profile.id)
-          .maybeSingle();
-        
-        const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
-        setIsCompany(isCompanyUser);
-        setIsCheckingCompany(false);
-        
-        // Log tempo em dev
-        if (import.meta.env.DEV) {
-          console.log(`⏱️ [AuthedLanding] Company check: ${Date.now() - bootTimeRef.current}ms`);
-        }
+      if (!profile) return;
+
+      // ✅ Transportadora: não precisa consultar tabela, sempre é painel da empresa
+      if (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA') {
+        setIsCompany(true);
+        return;
       }
+
+      // Motorista pode operar como transportadora (modo ativo)
+      if (profile.role === 'MOTORISTA') {
+        setIsCheckingCompany(true);
+        try {
+          const { data } = await supabase
+            .from('transport_companies')
+            .select('id')
+            .eq('profile_id', profile.id)
+            .maybeSingle();
+
+          const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
+          setIsCompany(isCompanyUser);
+        } finally {
+          setIsCheckingCompany(false);
+
+          // Log tempo em dev
+          if (import.meta.env.DEV) {
+            console.log(`⏱️ [AuthedLanding] Company check: ${Date.now() - bootTimeRef.current}ms`);
+          }
+        }
+        return;
+      }
+
+      // Outros perfis
+      setIsCompany(false);
     };
     
     if (profile) {
@@ -533,6 +549,9 @@ const AuthedLanding = () => {
   switch (effectiveRole) {
     case 'ADMIN':
       to = '/admin';
+      break;
+    case 'TRANSPORTADORA':
+      to = '/dashboard/company';
       break;
     case 'MOTORISTA':
     case 'MOTORISTA_AFILIADO':
@@ -873,6 +892,8 @@ const App = () => {
                             </ProtectedRoute>
                           } 
                         />
+                        {/* Alias legado (evita tela branca por links antigos) */}
+                        <Route path="/driver/dashboard" element={<Navigate to="/dashboard/driver" replace />} />
                         <Route 
                           path="/dashboard/driver" 
                           element={
@@ -903,6 +924,8 @@ const App = () => {
                             </ProtectedRoute>
                           } 
                         />
+                        {/* Alias legado (rota antiga usada em alguns fluxos) */}
+                        <Route path="/dashboard/transport" element={<Navigate to="/dashboard/company" replace />} />
                         <Route 
                           path="/nfe-dashboard" 
                           element={
