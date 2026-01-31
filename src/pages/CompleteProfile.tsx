@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { uploadSelfieWithInstrumentation } from '@/utils/selfieUpload';
 import { 
   getRegistrationMode, 
   getRequiredSteps, 
@@ -859,33 +860,44 @@ const CompleteProfile = () => {
                     <CameraSelfie
                       autoStart
                       onCapture={async (blob, uploadMethod) => {
-                          toast.loading('Enviando selfie...', { id: 'selfie-upload' });
-                          
-                          const { uploadSelfieWithInstrumentation } = await import('@/utils/selfieUpload');
-                          const result = await uploadSelfieWithInstrumentation({ blob, uploadMethod });
-                          
-                          if (!result.success && result.error) {
-                            // Exibir erro real ao usuário
-                            const errorMsg = result.error.status 
-                              ? `${result.error.message} (${result.error.status})`
-                              : result.error.message;
-                            
-                            toast.error(errorMsg, { id: 'selfie-upload' });
-                            
-                            // Se sessão expirou, redirecionar para login
-                            if (result.error.code === 'SESSION_EXPIRED') {
-                              setTimeout(() => {
-                                localStorage.setItem('redirect_after_login', window.location.pathname);
-                                window.location.href = '/auth';
-                              }, 1500);
+                          try {
+                            toast.loading('Enviando selfie...', { id: 'selfie-upload' });
+
+                            const result = await uploadSelfieWithInstrumentation({ blob, uploadMethod });
+
+                            if (!result.success && result.error) {
+                              // Exibir erro real ao usuário
+                              const errorMsg = result.error.status
+                                ? `${result.error.message} (${result.error.status})`
+                                : result.error.message;
+
+                              toast.error(errorMsg, { id: 'selfie-upload' });
+
+                              // Se sessão expirou, redirecionar para login
+                              if (result.error.code === 'SESSION_EXPIRED') {
+                                setTimeout(() => {
+                                  localStorage.setItem('redirect_after_login', window.location.pathname);
+                                  window.location.href = '/auth';
+                                }, 1500);
+                              }
+                              return;
                             }
-                            return;
+
+                            // Sucesso - atualizar estado
+                            setDocumentUrls(prev => ({ ...prev, selfie: result.signedUrl || '' }));
+                            toast.success(
+                              `✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`,
+                              { id: 'selfie-upload' }
+                            );
+                            setShowSelfieModal(false);
+                          } catch (error: any) {
+                            // Protege contra falhas de import dinâmico / cache / rede que derrubavam a tela
+                            console.error('[CompleteProfile] Falha ao enviar selfie:', error);
+                            toast.error(
+                              'Falha ao enviar a selfie. Recarregue a página e tente novamente.',
+                              { id: 'selfie-upload' }
+                            );
                           }
-                          
-                          // Sucesso - atualizar estado
-                          setDocumentUrls(prev => ({ ...prev, selfie: result.signedUrl || '' }));
-                          toast.success(`✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`, { id: 'selfie-upload' });
-                          setShowSelfieModal(false);
                       }}
                       onCancel={() => setShowSelfieModal(false)}
                     />

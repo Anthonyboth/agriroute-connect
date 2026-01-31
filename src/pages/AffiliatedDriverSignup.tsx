@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { uploadSelfieWithInstrumentation } from '@/utils/selfieUpload';
 import { Loader2, CheckCircle, XCircle, Users, AlertTriangle, User, FileText, Truck, Shield, Camera } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument, formatDocument, validateCNPJ, formatCNPJ } from '@/utils/cpfValidator';
@@ -310,7 +311,6 @@ const AffiliatedDriverSignup = () => {
       let selfieUrl = documentUrls.selfie;
       if (selfieBlobPending) {
         try {
-          const { uploadSelfieWithInstrumentation } = await import('@/utils/selfieUpload');
           const result = await uploadSelfieWithInstrumentation({
             blob: selfieBlobPending,
             uploadMethod: selfieMethodPending || 'CAMERA',
