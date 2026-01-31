@@ -15,7 +15,9 @@ interface Assignment {
   driver: {
     id: string;
     full_name: string;
+    // PII (telefone) não é garantido via view segura; pode ficar ausente.
     contact_phone?: string;
+    profile_photo_url?: string;
     rating?: number;
   };
 }
@@ -42,22 +44,54 @@ export const FreightAssignmentsList: React.FC<FreightAssignmentsListProps> = ({
 
   const fetchAssignments = async () => {
     try {
-      const { data, error } = await supabase
+      // 1) Buscar assignments
+      const { data: rows, error: rowsError } = await supabase
         .from('freight_assignments')
-        .select(`
-          *,
-          driver:profiles!driver_id(
-            id,
-            full_name,
-            contact_phone,
-            rating
-          )
-        `)
+        .select('id, driver_id, agreed_price, pricing_type, price_per_km, status, accepted_at')
         .eq('freight_id', freightId)
         .order('accepted_at', { ascending: false });
 
-      if (error) throw error;
-      setAssignments(data || []);
+      if (rowsError) throw rowsError;
+
+      const assignmentRows = (rows || []) as any[];
+      const driverIds = Array.from(
+        new Set(assignmentRows.map((a) => a?.driver_id).filter(Boolean)),
+      ) as string[];
+
+      // 2) Buscar perfis de motoristas via view segura (evita falhas de RLS na tabela base)
+      let driverMap = new Map<string, any>();
+      if (driverIds.length > 0) {
+        const { data: drivers, error: driversError } = await (supabase as any)
+          .from('profiles_secure')
+          .select('id, full_name, profile_photo_url, rating')
+          .in('id', driverIds);
+
+        if (driversError) {
+          console.warn('[FreightAssignmentsList] Falha ao buscar drivers (profiles_secure):', driversError);
+        } else {
+          driverMap = new Map((drivers || []).map((d: any) => [d.id, d]));
+        }
+      }
+
+      const mapped: Assignment[] = assignmentRows.map((a) => {
+        const d = driverMap.get(a.driver_id);
+        return {
+          id: a.id,
+          driver_id: a.driver_id,
+          agreed_price: a.agreed_price,
+          pricing_type: a.pricing_type,
+          price_per_km: a.price_per_km ?? undefined,
+          status: a.status,
+          driver: {
+            id: a.driver_id,
+            full_name: d?.full_name || 'Motorista',
+            profile_photo_url: d?.profile_photo_url,
+            rating: typeof d?.rating === 'number' ? d.rating : undefined,
+          },
+        };
+      });
+
+      setAssignments(mapped);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       toast.error('Erro ao carregar motoristas contratados');
