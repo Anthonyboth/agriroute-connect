@@ -346,56 +346,70 @@ const AffiliatedDriverSignup = () => {
        const maxAttempts = 8;
 
        const tryGetProfileIdViaRpc = async (): Promise<string | null> => {
-         // Usar any para evitar erro de tipos enquanto o arquivo de tipos não é regenerado
-         const tryWithArg = await (supabase as any).rpc('get_own_profile_id', { p_user_id: authData.user.id });
-         if (!tryWithArg.error && tryWithArg.data) return tryWithArg.data as string;
+         try {
+           // A função atual exige um parâmetro p_user_id
+           const { data, error } = await (supabase as any).rpc('get_own_profile_id', {
+             p_user_id: authData.user!.id
+           });
 
-         // Fallback para versões antigas da função (sem parâmetros)
-         const msg = String(tryWithArg.error?.message || '').toLowerCase();
-         const mightBeSignatureMismatch = msg.includes('does not exist') || msg.includes('function') && msg.includes('get_own_profile_id');
-         if (mightBeSignatureMismatch) {
-           const tryNoArg = await (supabase as any).rpc('get_own_profile_id');
-           if (!tryNoArg.error && tryNoArg.data) return tryNoArg.data as string;
-           if (tryNoArg.error) {
-             console.warn('[AffiliatedDriverSignup] RPC get_own_profile_id (sem args) falhou:', tryNoArg.error);
+           if (!error && data) {
+             console.log('[AffiliatedDriverSignup] RPC get_own_profile_id retornou:', data);
+             return data as string;
            }
-         }
 
-         if (tryWithArg.error) {
-           console.warn('[AffiliatedDriverSignup] RPC get_own_profile_id falhou:', tryWithArg.error);
+           if (error) {
+             console.warn('[AffiliatedDriverSignup] RPC get_own_profile_id falhou:', error);
+           }
+
+           return null;
+         } catch (rpcErr) {
+           console.warn('[AffiliatedDriverSignup] Exceção no RPC get_own_profile_id:', rpcErr);
+           return null;
          }
-         return null;
        };
 
        while (!profileData && attempts < maxAttempts) {
-         await new Promise((resolve) => setTimeout(resolve, 800 + attempts * 400));
+         // Aguardar tempo progressivo para dar tempo ao trigger criar o perfil
+         const waitTime = 600 + attempts * 500;
+         console.log(`[AffiliatedDriverSignup] Tentativa ${attempts + 1}/${maxAttempts} - aguardando ${waitTime}ms...`);
+         await new Promise((resolve) => setTimeout(resolve, waitTime));
 
          try {
-           // 1) Tenta ler o perfil diretamente (quando RLS permite)
+           // 1) Tenta ler o perfil diretamente via SELECT (quando RLS permite)
            const { data, error } = await supabase
              .from('profiles')
              .select('id, metadata')
-             .eq('user_id', authData.user.id)
+             .eq('user_id', authData.user!.id)
              .order('created_at', { ascending: false })
              .limit(1)
              .maybeSingle();
 
            if (!error && data?.id) {
+             console.log(`[AffiliatedDriverSignup] Perfil encontrado via SELECT: ${data.id}`);
              profileData = { id: data.id, metadata: (data as any).metadata ?? {} };
              break;
            }
 
-           // 2) Se ainda não encontrou (ou RLS bloqueou), tenta via RPC (bypass RLS com SECURITY DEFINER)
-           if (error?.message?.toLowerCase().includes('permission') || error?.message?.toLowerCase().includes('denied') || !data) {
-             console.log(`[AffiliatedDriverSignup] Perfil ainda indisponível via SELECT, tentando RPC... (tentativa ${attempts + 1})`);
+           // 2) Se SELECT falhou ou não retornou dados, tenta via RPC SECURITY DEFINER
+           const selectFailedDueToPermission =
+             error?.message?.toLowerCase().includes('permission') ||
+             error?.message?.toLowerCase().includes('denied');
+
+           if (selectFailedDueToPermission || !data) {
+             console.log(`[AffiliatedDriverSignup] SELECT falhou ou sem dados, tentando RPC...`);
              const rpcProfileId = await tryGetProfileIdViaRpc();
              if (rpcProfileId) {
+               console.log(`[AffiliatedDriverSignup] Perfil encontrado via RPC: ${rpcProfileId}`);
                profileData = { id: rpcProfileId, metadata: {} };
                break;
              }
            }
+
+           if (error) {
+             console.warn(`[AffiliatedDriverSignup] Erro no SELECT (tentativa ${attempts + 1}):`, error);
+           }
          } catch (fetchErr) {
-           console.warn(`[AffiliatedDriverSignup] Erro na tentativa ${attempts + 1}:`, fetchErr);
+           console.warn(`[AffiliatedDriverSignup] Exceção na tentativa ${attempts + 1}:`, fetchErr);
          }
 
          attempts++;
