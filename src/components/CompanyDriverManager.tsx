@@ -3,15 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { useAffiliationValidation } from '@/hooks/useAffiliationValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { AffiliationSettingsModal } from './AffiliationSettingsModal';
 import { DriverAvatar } from './ui/driver-avatar';
-import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, Trash2, Pencil } from 'lucide-react';
+import { PendingDriverCard } from './company/PendingDriverCard';
+import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -88,140 +86,23 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {pendingDrivers.map((driver: any) => {
-                const validation = useAffiliationValidation(driver.driver);
-                
-                return (
-                  <div 
-                    key={driver.id} 
-                    className="relative p-4 border-2 border-green-500 rounded-lg bg-background shadow-lg animate-pulse-border"
-                  >
-                    {/* Badge "NOVO" */}
-                    <div className="absolute -top-2 -right-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-bounce z-10">
-                      NOVO
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                      {/* Header com foto e info */}
-                      <div className="flex items-center gap-4">
-                        <DriverAvatar
-                          profilePhotoUrl={driver.driver?.profile_photo_url}
-                          selfieUrl={driver.driver?.selfie_url}
-                          fullName={driver.driver?.full_name}
-                          className="h-16 w-16 border-2 border-green-500"
-                          fallbackClassName="bg-green-100 text-green-700 text-xl"
-                        />
-                        
-                        <div className="flex-1">
-                          <p className="font-semibold text-lg">{driver.driver?.full_name}</p>
-                          <p className="text-sm text-muted-foreground">{driver.driver?.email}</p>
-                          <p className="text-sm text-muted-foreground">{driver.driver?.contact_phone}</p>
-                          
-                          {driver.driver?.rating > 0 && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm">{driver.driver.rating.toFixed(1)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Badges de validação */}
-                      <div className="flex flex-wrap gap-2">
-                        {driver.driver?.cnh_validation_status === 'APPROVED' && (
-                          <Badge variant="outline" className="text-xs bg-green-50 border-green-500 text-green-700">
-                            <Check className="h-3 w-3 mr-1" /> CNH Válida
-                          </Badge>
-                        )}
-                        {driver.driver?.document_validation_status === 'APPROVED' && (
-                          <Badge variant="outline" className="text-xs bg-green-50 border-green-500 text-green-700">
-                            <Check className="h-3 w-3 mr-1" /> Documentos OK
-                          </Badge>
-                        )}
-                        {validation.hasAllDocuments ? (
-                          <Badge variant="outline" className="text-xs bg-green-50 border-green-500 text-green-700">
-                            <Check className="h-3 w-3 mr-1" /> Perfil Completo
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs bg-blue-50 border-blue-500 text-blue-700">
-                            Documentos pendentes ({validation.optionalFields.length})
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Barra de completude do perfil */}
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Completude do Perfil</span>
-                          <span className="font-bold text-foreground">{validation.completionPercentage}%</span>
-                        </div>
-                        <Progress value={validation.completionPercentage} className="h-2" />
-                      </div>
-
-                      {/* Avisos de documentos opcionais */}
-                      {validation.optionalFields.length > 0 && (
-                        <Alert className="py-2 border-blue-500/50 bg-blue-50/10">
-                          <AlertCircle className="h-4 w-4 text-blue-600" />
-                          <AlertDescription className="text-xs text-blue-700">
-                            <strong>Documentos opcionais:</strong> {validation.optionalFields.join(', ')}
-                            <p className="mt-1 text-muted-foreground">
-                              Você pode aprovar agora e solicitar depois.
-                            </p>
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {/* Avisos de dados obrigatórios faltando (apenas CPF/CNPJ) */}
-                      {validation.missingFields.length > 0 && (
-                        <Alert variant="destructive" className="py-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription className="text-xs">
-                            <strong>Dados obrigatórios faltando:</strong> {validation.missingFields.join(', ')}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {/* Botões de ação */}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => {
-                            console.log('🚀 Configurando permissões para:', driver.driver?.full_name);
-                            setAffiliationSettings({
-                              isOpen: true,
-                              requestId: driver.id,
-                              driver: driver.driver
-                            });
-                          }}
-                          disabled={approveDriver.isPending}
-                          title="Configurar permissões e aprovar"
-                        >
-                          {approveDriver.isPending ? (
-                            <>
-                              <Check className="h-4 w-4 mr-2 animate-spin" />
-                              Aprovando...
-                            </>
-                          ) : (
-                            <>
-                              <Check className="h-4 w-4 mr-2" />
-                              Aprovar
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => rejectDriver.mutate(driver.driver_profile_id)}
-                          disabled={rejectDriver.isPending}
-                        >
-                          {rejectDriver.isPending ? 'Rejeitando...' : 'Rejeitar'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {pendingDrivers.map((driver: any) => (
+                <PendingDriverCard
+                  key={driver.id}
+                  driver={driver}
+                  onApprove={() => {
+                    console.log('🚀 Configurando permissões para:', driver.driver?.full_name);
+                    setAffiliationSettings({
+                      isOpen: true,
+                      requestId: driver.id,
+                      driver: driver.driver
+                    });
+                  }}
+                  onReject={() => rejectDriver.mutate(driver.driver_profile_id)}
+                  isApproving={approveDriver.isPending}
+                  isRejecting={rejectDriver.isPending}
+                />
+              ))}
             </div>
           </CardContent>
         </Card>
