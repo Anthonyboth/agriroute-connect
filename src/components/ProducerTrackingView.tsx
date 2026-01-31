@@ -36,24 +36,56 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
         // Buscar o status atual do frete
         const { data: freight } = await supabase
           .from('freights')
-          .select('status, tracking_status')
+          .select('status, tracking_status, required_trucks, driver_id')
           .eq('id', freightId)
           .single();
 
-        if (freight) {
-          setFreightStatus(freight.status);
-          setTrackingStatus(freight.tracking_status);
-          
-          // ✅ NOVA LÓGICA: Tracking ativo se status permite OU tracking_status é ACTIVE
-          const isTrackingActive = 
-            TRACKING_ACTIVE_STATUSES.includes(freight.status) || 
-            freight.tracking_status === 'ACTIVE';
-          
-          setCanTrack(isTrackingActive);
-          
-          // ✅ Mapa visível mesmo em status anteriores (mostra rota planejada)
-          setCanShowMap(MAP_VISIBLE_STATUSES.includes(freight.status));
+        if (!freight) return;
+
+        setFreightStatus(freight.status);
+        setTrackingStatus(freight.tracking_status);
+        
+        const isMultiTruck = (freight.required_trucks ?? 1) > 1 && !freight.driver_id;
+        
+        // ✅ Para fretes multi-carreta, verificar status das atribuições
+        if (isMultiTruck) {
+          const { data: assignments } = await supabase
+            .from('freight_assignments')
+            .select('status')
+            .eq('freight_id', freightId)
+            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+            .limit(1);
+
+          if (assignments && assignments.length > 0) {
+            const assignmentStatus = assignments[0].status;
+            
+            // Usar status da assignment para determinar tracking
+            const isTrackingActive = TRACKING_ACTIVE_STATUSES.includes(assignmentStatus);
+            const mapVisible = MAP_VISIBLE_STATUSES.includes(assignmentStatus);
+            
+            setCanTrack(isTrackingActive);
+            setCanShowMap(mapVisible);
+            
+            // Atualizar freightStatus para exibição
+            setFreightStatus(assignmentStatus);
+            
+            console.log('[ProducerTrackingView] Multi-truck freight:', {
+              freightStatus: freight.status,
+              assignmentStatus,
+              canTrack: isTrackingActive,
+              canShowMap: mapVisible
+            });
+            return;
+          }
         }
+        
+        // Lógica original para fretes de carreta única
+        const isTrackingActive = 
+          TRACKING_ACTIVE_STATUSES.includes(freight.status) || 
+          freight.tracking_status === 'ACTIVE';
+        
+        setCanTrack(isTrackingActive);
+        setCanShowMap(MAP_VISIBLE_STATUSES.includes(freight.status));
       } catch (error) {
         console.error('Erro ao verificar permissões de rastreamento:', error);
       } finally {
@@ -64,8 +96,8 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
     checkTrackingPermission();
 
     // Subscription para mudanças no frete
-    const channel = supabase
-      .channel('freight_tracking_status')
+    const freightChannel = supabase
+      .channel(`freight_tracking_status_${freightId}`)
       .on(
         'postgres_changes',
         {
@@ -80,8 +112,26 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
       )
       .subscribe();
 
+    // ✅ NOVO: Subscription para mudanças nas atribuições (fretes multi-carreta)
+    const assignmentChannel = supabase
+      .channel(`assignment_tracking_status_${freightId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freight_assignments',
+          filter: `freight_id=eq.${freightId}`
+        },
+        () => {
+          checkTrackingPermission();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(freightChannel);
+      supabase.removeChannel(assignmentChannel);
     };
   }, [freightId]);
 
