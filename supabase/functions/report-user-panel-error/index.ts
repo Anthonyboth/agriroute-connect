@@ -170,13 +170,20 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    logStep('Fatal error', { error: error.message });
+    // If validateInput throws a Response object, return it directly
+    if (error instanceof Response) {
+      logStep('Validation failed, returning error response');
+      return error;
+    }
+    
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+    logStep('Fatal error', { error: errorMessage });
     
     return new Response(
       JSON.stringify({
         success: false,
         notified: false,
-        error: error.message
+        error: errorMessage
       }),
       {
         status: 500,
