@@ -1,52 +1,40 @@
 
-# Plano: Atualizar Horário de Funcionamento do Suporte
+# Plano: Melhorar Legibilidade do Badge "Motorista"
 
-## Resumo
-Alterar o horário de funcionamento do suporte de **"Seg-Sex: 8h-18h"** para **"Seg-Seg: 07h-19h"** em todos os locais onde aparece.
+## Problema Identificado
 
----
+O badge "Motorista" no header do painel está quase ilegível no modo escuro:
 
-## Arquivos a Modificar
+- **Fundo atual**: `bg-accent/15` (laranja muito fraco, 15% opacidade)
+- **Texto atual**: `text-accent-foreground` (que no dark mode é azul-escuro!)
+- **Borda atual**: `border-accent/20` (laranja 20% opacidade)
 
-### 1. Centralizar Constante de Horário (Recomendado)
-Adicionar constante em `src/lib/support-contact.ts` para facilitar futuras atualizações:
+O resultado é texto escuro sobre fundo escuro, tornando impossível ler.
 
+## Solucao
+
+Alterar a cor do texto do badge para usar laranja claro (`text-orange-400`) que contrasta bem com o fundo escuro, mantendo a identidade visual laranja do motorista.
+
+## Mudanca Tecnica
+
+**Arquivo**: `src/components/Header.tsx`
+
+**Linha 89** - Alterar de:
 ```typescript
-export const SUPPORT_HOURS = 'Seg-Seg: 07h-19h';
+if (role === 'MOTORISTA') return 'bg-accent/15 text-accent-foreground border border-accent/20';
 ```
 
-### 2. Arquivos que Precisam Atualização
-
-| Arquivo | Texto Atual | Novo Texto |
-|---------|-------------|------------|
-| `src/components/contact/ContactSupportModal.tsx` (linha 214) | `Seg-Sex: 8h-18h` | `Seg-Seg: 07h-19h` |
-| `src/components/OLD_ContactModal.tsx` (linha 84) | `Seg-Sex: 8h-18h` | `Seg-Seg: 07h-19h` |
-| `src/components/ForgotPasswordModal.tsx` (linha 60) | `Seg-Sex: 8h-18h \| Sáb: 8h-12h` | `Seg-Seg: 07h-19h` |
-| `src/pages/Help.tsx` (linha 134) | `Seg-Sex: 8h-18h` | `Seg-Seg: 07h-19h` |
-
----
-
-## Detalhes Técnicos
-
-### Passo 1: Atualizar `src/lib/support-contact.ts`
+Para:
 ```typescript
-// Adicionar nova constante
-export const SUPPORT_HOURS = 'Seg-Seg: 07h-19h';
+if (role === 'MOTORISTA') return 'bg-orange-500/20 text-orange-400 dark:text-orange-300 border border-orange-500/40';
 ```
 
-### Passo 2: Atualizar `ContactSupportModal.tsx`
-Importar e usar a constante centralizada.
+## Resultado Visual
 
-### Passo 3: Atualizar `ForgotPasswordModal.tsx`
-Remover menção ao sábado e usar o novo horário unificado.
+| Antes | Depois |
+|-------|--------|
+| Texto escuro, quase invisível | Texto laranja claro, alta visibilidade |
+| Borda muito fraca | Borda mais definida (40% opacidade) |
+| Contraste: ~1.5:1 | Contraste: >4.5:1 (WCAG AA) |
 
-### Passo 4: Atualizar `Help.tsx`
-Atualizar o campo `available` do card de WhatsApp.
-
-### Passo 5: Atualizar `OLD_ContactModal.tsx`
-Mesmo tratamento para manter consistência (arquivo legado).
-
----
-
-## Resultado Esperado
-Todos os locais que exibem horário de atendimento mostrarão: **Seg-Seg: 07h-19h**
+O badge continuara com a cor laranja caracteristica do perfil Motorista, mas agora sera legivel em ambos os modos (claro e escuro).
