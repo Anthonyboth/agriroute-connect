@@ -772,6 +772,12 @@ const useAuthInternal = () => {
     }
   };
 
+  // Força revalidação no banco (ignora cache/throttles quando necessário)
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    await fetchProfile(user.id, true);
+  }, [user?.id, fetchProfile]);
+
   // Fetch transport company status when profile is TRANSPORTADORA
   useEffect(() => {
     const fetchCompanyStatus = async () => {
@@ -835,6 +841,7 @@ const useAuthInternal = () => {
     profileError,
     signOut,
     switchProfile,
+    refreshProfile,
     clearProfileError,
     retryProfileCreation,
     companyStatus,
