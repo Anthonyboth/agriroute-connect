@@ -976,17 +976,6 @@ const Auth = () => {
                           />
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="companyAddress">Endereço Completo *</Label>
-                          <Input
-                            id="companyAddress"
-                            value={companyAddress}
-                            onChange={(e) => setCompanyAddress(e.target.value)}
-                            placeholder="Rua, Número, Bairro, Cidade, Estado"
-                            required
-                          />
-                        </div>
-
                         {/* 3 Checkboxes obrigatórios para Transportadora */}
                         <div className="space-y-3 border-t pt-4 mt-4">
                           <p className="text-sm font-medium text-foreground">Termos Obrigatórios *</p>
