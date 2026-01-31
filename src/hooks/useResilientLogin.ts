@@ -1,0 +1,360 @@
+/**
+ * useResilientLogin - Hook robusto para autenticação com fallbacks e notificação Telegram
+ * 
+ * Objetivo: Garantir que o login NUNCA falhe silenciosamente e sempre redirecione
+ * para o dashboard correto, com notificações automáticas de erros para monitoramento.
+ */
+
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { isValidDocument, normalizeDocument } from '@/utils/document';
+
+const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
+
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+  userId?: string;
+  profileId?: string;
+  role?: string;
+  redirectTo?: string;
+  requiresProfileSelection?: boolean;
+  profiles?: any[];
+}
+
+interface LoginStep {
+  step: string;
+  status: 'pending' | 'success' | 'error';
+  error?: string;
+  timestamp: number;
+}
+
+/**
+ * Notificar erro de login no Telegram para monitoramento
+ */
+async function notifyLoginErrorToTelegram(
+  loginField: string,
+  error: string,
+  steps: LoginStep[],
+  context?: Record<string, any>
+): Promise<void> {
+  try {
+    // Mascarar dados sensíveis
+    const maskedLogin = loginField.includes('@') 
+      ? loginField.replace(/(.{2}).*(@.*)/, '$1***$2')
+      : loginField.replace(/(.{3}).*(.{2})/, '$1***$2');
+    
+    await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'X-Skip-Error-Monitoring': 'true'
+      },
+      body: JSON.stringify({
+        errorType: 'AUTH',
+        errorCategory: 'CRITICAL',
+        errorMessage: `Login Failed: ${error}`,
+        route: '/auth',
+        metadata: {
+          loginField: maskedLogin,
+          steps: steps.map(s => ({
+            step: s.step,
+            status: s.status,
+            error: s.error,
+            duration: s.timestamp
+          })),
+          context,
+          userAgent: navigator.userAgent.substring(0, 100),
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
+    console.log('🔔 [ResilientLogin] Notificação enviada ao Telegram');
+  } catch (e) {
+    console.debug('[ResilientLogin] Falha ao notificar Telegram (não crítico):', e);
+  }
+}
+
+/**
+ * Determinar rota de dashboard baseado na role do perfil
+ */
+function getDashboardRoute(role: string): string {
+  switch (role) {
+    case 'MOTORISTA':
+    case 'MOTORISTA_AFILIADO':
+      return '/dashboard/driver';
+    case 'PRODUTOR':
+      return '/dashboard/producer';
+    case 'TRANSPORTADORA':
+      return '/dashboard/company';
+    case 'PRESTADOR_SERVICOS':
+      return '/dashboard/service-provider';
+    case 'ADMIN':
+      return '/admin';
+    default:
+      return '/';
+  }
+}
+
+export function useResilientLogin() {
+  const [loading, setLoading] = useState(false);
+  const [steps, setSteps] = useState<LoginStep[]>([]);
+  const navigate = useNavigate();
+
+  const addStep = useCallback((step: string, status: 'pending' | 'success' | 'error', error?: string) => {
+    setSteps(prev => [...prev, { step, status, error, timestamp: Date.now() }]);
+  }, []);
+
+  /**
+   * Login com email/documento e senha
+   * Retorna resultado estruturado com informações para redirecionamento
+   */
+  const login = useCallback(async (
+    loginField: string,
+    password: string
+  ): Promise<LoginResult> => {
+    setLoading(true);
+    setSteps([]);
+    const startTime = Date.now();
+    
+    console.log('🔵 [ResilientLogin] Iniciando login...');
+    
+    try {
+      let emailToUse = loginField.trim();
+      
+      // ========== STEP 1: Resolver email se for documento ==========
+      if (!loginField.includes('@')) {
+        addStep('Validando documento', 'pending');
+        
+        if (!isValidDocument(loginField)) {
+          addStep('Validando documento', 'error', 'Documento inválido');
+          setLoading(false);
+          return { success: false, error: 'CPF/CNPJ inválido. Verifique e tente novamente.' };
+        }
+        
+        addStep('Buscando email via documento', 'pending');
+        
+        const normalizedDoc = normalizeDocument(loginField);
+        const { data: foundEmail, error: rpcError } = await supabase
+          .rpc('get_email_by_document', { p_doc: normalizedDoc });
+        
+        if (rpcError) {
+          addStep('Buscando email via documento', 'error', rpcError.message);
+          await notifyLoginErrorToTelegram(loginField, `RPC Error: ${rpcError.message}`, steps);
+          setLoading(false);
+          return { success: false, error: 'Erro ao buscar documento. Tente novamente.' };
+        }
+        
+        if (!foundEmail) {
+          addStep('Buscando email via documento', 'error', 'Não encontrado');
+          setLoading(false);
+          return { success: false, error: 'CPF/CNPJ não encontrado. Verifique ou cadastre-se.' };
+        }
+        
+        emailToUse = foundEmail;
+        addStep('Buscando email via documento', 'success');
+        console.log('🟢 [ResilientLogin] Email encontrado via documento');
+      }
+      
+      // ========== STEP 2: Autenticar com Supabase Auth ==========
+      addStep('Autenticando credenciais', 'pending');
+      
+      const { error: authError, data: authData } = await supabase.auth.signInWithPassword({
+        email: emailToUse,
+        password
+      });
+      
+      if (authError) {
+        addStep('Autenticando credenciais', 'error', authError.message);
+        
+        const msg = authError.message || '';
+        let userFriendlyError = msg;
+        
+        if (msg.includes('Invalid login credentials')) {
+          userFriendlyError = 'E-mail/Documento ou senha incorretos';
+        } else if (msg.toLowerCase().includes('email not confirmed')) {
+          userFriendlyError = 'Email não confirmado. Verifique sua caixa de entrada.';
+        }
+        
+        // Notificar apenas erros inesperados (não credenciais inválidas)
+        if (!msg.includes('Invalid login credentials')) {
+          await notifyLoginErrorToTelegram(loginField, msg, steps);
+        }
+        
+        setLoading(false);
+        return { success: false, error: userFriendlyError };
+      }
+      
+      addStep('Autenticando credenciais', 'success');
+      console.log('🟢 [ResilientLogin] Autenticação bem-sucedida');
+      
+      // Limpar cooldowns de fetch de perfil
+      sessionStorage.removeItem('profile_fetch_cooldown_until');
+      
+      // ========== STEP 3: Obter dados do usuário ==========
+      addStep('Obtendo dados do usuário', 'pending');
+      
+      const { data: { user }, error: getUserError } = await supabase.auth.getUser();
+      
+      if (getUserError || !user) {
+        addStep('Obtendo dados do usuário', 'error', getUserError?.message || 'Usuário não encontrado');
+        await notifyLoginErrorToTelegram(loginField, `getUser failed: ${getUserError?.message}`, steps);
+        setLoading(false);
+        return { success: false, error: 'Erro ao obter dados do usuário.' };
+      }
+      
+      addStep('Obtendo dados do usuário', 'success');
+      
+      // ========== STEP 4: Buscar perfis com retry ==========
+      addStep('Carregando perfil', 'pending');
+      
+      let userProfiles: any[] | null = null;
+      let profilesError: any = null;
+      
+      // Retry até 3 vezes com delay progressivo
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, user_id, full_name, role, status, active_mode')
+          .eq('user_id', user.id);
+        
+        if (!error && data && data.length > 0) {
+          userProfiles = data;
+          break;
+        }
+        
+        profilesError = error;
+        
+        if (attempt < 3) {
+          console.log(`🔄 [ResilientLogin] Retry ${attempt}/3 para buscar perfil...`);
+          await new Promise(r => setTimeout(r, 500 * attempt));
+        }
+      }
+      
+      if (profilesError) {
+        addStep('Carregando perfil', 'error', profilesError.message);
+        
+        // ✅ FALLBACK CRÍTICO: Usar user_metadata do JWT para determinar rota
+        console.log('🟡 [ResilientLogin] Usando fallback via user_metadata');
+        
+        const userMeta = user.user_metadata;
+        const fallbackRole = userMeta?.role || userMeta?.active_mode || 'PRODUTOR';
+        const fallbackRoute = getDashboardRoute(fallbackRole);
+        
+        // Notificar erro mas permitir navegação via fallback
+        await notifyLoginErrorToTelegram(loginField, `Profile fetch failed: ${profilesError.message}`, steps, {
+          fallbackRole,
+          fallbackRoute,
+          userMetadata: { role: userMeta?.role }
+        });
+        
+        setLoading(false);
+        toast.success('Login realizado!');
+        
+        // Redirecionar via fallback
+        console.log(`🟢 [ResilientLogin] Fallback redirect para: ${fallbackRoute}`);
+        window.location.href = fallbackRoute;
+        
+        return { 
+          success: true, 
+          userId: user.id,
+          role: fallbackRole,
+          redirectTo: fallbackRoute
+        };
+      }
+      
+      addStep('Carregando perfil', 'success');
+      
+      // ========== STEP 5: Processar perfis e determinar redirecionamento ==========
+      if (!userProfiles || userProfiles.length === 0) {
+        addStep('Verificando perfis', 'error', 'Nenhum perfil encontrado');
+        
+        // Usuário sem perfil - redirecionar para criação
+        setLoading(false);
+        return { 
+          success: true, 
+          userId: user.id, 
+          redirectTo: '/complete-profile',
+          error: 'Perfil não encontrado. Complete seu cadastro.'
+        };
+      }
+      
+      // Múltiplos perfis - retornar para seleção
+      if (userProfiles.length > 1) {
+        addStep('Múltiplos perfis detectados', 'success');
+        setLoading(false);
+        
+        return {
+          success: true,
+          userId: user.id,
+          requiresProfileSelection: true,
+          profiles: userProfiles
+        };
+      }
+      
+      // ========== STEP 6: Perfil único - redirecionar diretamente ==========
+      const targetProfile = userProfiles[0];
+      const targetRole = targetProfile.role || targetProfile.active_mode || 'PRODUTOR';
+      const targetRoute = getDashboardRoute(targetRole);
+      
+      // Salvar profile ativo
+      localStorage.setItem('current_profile_id', targetProfile.id);
+      
+      addStep('Preparando redirecionamento', 'success');
+      
+      const totalTime = Date.now() - startTime;
+      console.log(`🟢 [ResilientLogin] Login completo em ${totalTime}ms -> ${targetRoute}`);
+      
+      setLoading(false);
+      toast.success('Login realizado!');
+      
+      // ✅ REDIRECIONAMENTO GARANTIDO via window.location
+      window.location.href = targetRoute;
+      
+      return {
+        success: true,
+        userId: user.id,
+        profileId: targetProfile.id,
+        role: targetRole,
+        redirectTo: targetRoute
+      };
+      
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Erro desconhecido';
+      addStep('Erro fatal', 'error', errorMessage);
+      
+      console.error('🔴 [ResilientLogin] Erro fatal:', error);
+      
+      // Sempre notificar erros fatais
+      await notifyLoginErrorToTelegram(loginField, errorMessage, steps);
+      
+      setLoading(false);
+      return { success: false, error: 'Erro no login. Tente novamente.' };
+    }
+  }, [addStep]);
+
+  /**
+   * Selecionar perfil específico após login com múltiplos perfis
+   */
+  const selectProfile = useCallback((profile: any) => {
+    localStorage.setItem('current_profile_id', profile.id);
+    
+    const targetRole = profile.role || profile.active_mode || 'PRODUTOR';
+    const targetRoute = getDashboardRoute(targetRole);
+    
+    console.log(`🟢 [ResilientLogin] Perfil selecionado: ${targetRole} -> ${targetRoute}`);
+    
+    window.location.href = targetRoute;
+  }, []);
+
+  return {
+    login,
+    selectProfile,
+    loading,
+    steps
+  };
+}

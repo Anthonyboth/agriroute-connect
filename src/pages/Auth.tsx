@@ -22,6 +22,7 @@ import { getDashboardByRole, isValidRole } from '@/lib/auth-utils';
 import { RoleSelectionCards } from '@/components/auth/RoleSelectionCards';
 import { VALID_SIGNUP_ROLES, isValidSignupRole, type SignupRole } from '@/lib/user-roles';
 import { PasswordInput } from '@/components/ui/password-input';
+import { useResilientLogin } from '@/hooks/useResilientLogin';
 
 // Parse and validate role from URL
 function parseRoleFromUrl(roleParam: string | null): SignupRole | null {
@@ -423,143 +424,37 @@ const Auth = () => {
     }
   };
 
+  // ✅ Hook robusto de login com notificações Telegram
+  const { login: resilientLogin, selectProfile: resilientSelectProfile, loading: resilientLoading } = useResilientLogin();
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔵 [LOGIN DEBUG] Início do handleSignIn');
-    setLoading(true);
     setShowResendConfirmation(false);
+    setLoading(true);
 
-    try {
-      let emailToUse = loginField;
-      console.log('🔵 [LOGIN DEBUG] loginField:', loginField);
-      
-      // Se não contém @, assumir que é um documento (CPF/CNPJ)
-      if (!loginField.includes('@')) {
-        console.log('🔵 [LOGIN DEBUG] Login por documento detectado');
-        // Validar formato básico
-        if (!isValidDocument(loginField)) {
-          console.log('🔴 [LOGIN DEBUG] Documento inválido');
-          toast.error('CPF/CNPJ inválido. Verifique e tente novamente.');
-          setLoading(false);
-          return;
-        }
-        
-        console.log('🔵 [LOGIN DEBUG] Buscando email via RPC...');
-        // Buscar o email via RPC (busca em profiles.document e transport_companies.company_cnpj)
-        const { data: foundEmail, error: rpcError } = await supabase
-          .rpc('get_email_by_document', { p_doc: loginField });
-        
-        if (rpcError) {
-          console.error('🔴 [LOGIN DEBUG] RPC error:', rpcError);
-          toast.error('Erro ao buscar documento. Tente novamente.');
-          setLoading(false);
-          return;
-        }
-        
-        if (!foundEmail) {
-          console.log('🔴 [LOGIN DEBUG] Email não encontrado para documento');
-          toast.error('CPF/CNPJ não encontrado. Verifique seus dados ou cadastre-se.');
-          setLoading(false);
-          return;
-        }
-        
-        emailToUse = foundEmail;
-        console.log('🟢 [LOGIN DEBUG] Email encontrado via documento:', emailToUse);
+    const result = await resilientLogin(loginField, password);
+    
+    if (!result.success) {
+      // Mostrar erro amigável
+      if (result.error?.toLowerCase().includes('email não confirmado') || 
+          result.error?.toLowerCase().includes('email not confirmed')) {
+        setShowResendConfirmation(true);
       }
-
-      console.log('🔵 [LOGIN DEBUG] Tentando signInWithPassword com email:', emailToUse);
-      // Fazer login com o email (direto ou encontrado via documento)
-      const { error, data: authData } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
-        password
-      });
-
-      console.log('🔵 [LOGIN DEBUG] Resposta do signInWithPassword:', { error: error?.message, hasSession: !!authData?.session });
-
-      if (error) {
-        console.log('🔴 [LOGIN DEBUG] Erro no login:', error.message);
-        const msg = error.message || '';
-        if (msg.includes('Invalid login credentials')) {
-          toast.error('E-mail/Documento ou senha incorretos');
-        } else if (msg.toLowerCase().includes('email not confirmed')) {
-          setShowResendConfirmation(true);
-          toast.error('Email não confirmado. Clique em "Reenviar e-mail de confirmação" abaixo.');
-        } else {
-          toast.error(msg);
-        }
-        setLoading(false);
-      } else {
-        // Login bem-sucedido
-        console.log('🟢 [LOGIN DEBUG] Login bem-sucedido!');
-        toast.success('Login realizado!');
-        sessionStorage.removeItem('profile_fetch_cooldown_until');
-        
-        console.log('🔵 [LOGIN DEBUG] Buscando usuário autenticado...');
-        // Verificar múltiplos perfis sem delay
-        const { data: { user }, error: getUserError } = await supabase.auth.getUser();
-        console.log('🔵 [LOGIN DEBUG] getUser resultado:', { userId: user?.id, error: getUserError?.message });
-        
-        if (user) {
-          console.log('🔵 [LOGIN DEBUG] Buscando perfis do usuário...');
-          const { data: userProfiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', user.id);
-          
-          console.log('🔵 [LOGIN DEBUG] Perfis encontrados:', userProfiles?.length, 'Erro:', profilesError?.message);
-          console.log('🔵 [LOGIN DEBUG] Perfis:', userProfiles?.map(p => ({ id: p.id, role: p.role })));
-          
-          if (!profilesError && userProfiles && userProfiles.length > 1) {
-            // Usuário tem múltiplos perfis - mostrar seletor
-            console.log('🟡 [LOGIN DEBUG] Múltiplos perfis detectados - mostrando seletor');
-            setAvailableProfiles(userProfiles);
-            setShowProfileSelector(true);
-            setLoading(false);
-            return;
-          }
-          
-          // Se há apenas 1 perfil, redirecionar diretamente
-          if (!profilesError && userProfiles && userProfiles.length === 1) {
-            const targetProfile = userProfiles[0];
-            console.log('🟢 [LOGIN DEBUG] 1 perfil detectado:', targetProfile.role);
-            
-            localStorage.setItem('current_profile_id', targetProfile.id);
-            console.log('🟢 [LOGIN DEBUG] Profile ID salvo no localStorage:', targetProfile.id);
-            
-            let targetRoute = '/';
-            if (targetProfile.role === 'MOTORISTA' || targetProfile.role === 'MOTORISTA_AFILIADO') {
-              targetRoute = '/dashboard/driver';
-            } else if (targetProfile.role === 'PRODUTOR') {
-              targetRoute = '/dashboard/producer';
-            } else if (targetProfile.role === 'TRANSPORTADORA') {
-              targetRoute = '/dashboard/company';
-            } else if (targetProfile.role === 'PRESTADOR_SERVICOS') {
-              targetRoute = '/dashboard/service-provider';
-            }
-            
-            console.log('🟢 [LOGIN DEBUG] Rota de destino:', targetRoute);
-            
-            setLoading(false);
-            
-            // ✅ CORREÇÃO CRÍTICA: Usar window.location.href diretamente
-            // O navigate() não funciona corretamente porque o RedirectIfAuthed
-            // intercepta e mostra ComponentLoader enquanto aguarda profile
-            console.log('🟢 [LOGIN DEBUG] Redirecionando via window.location.href para:', targetRoute);
-            window.location.href = targetRoute;
-            return;
-          }
-          
-          console.log('🟡 [LOGIN DEBUG] Nenhum perfil encontrado ou erro - deixando RedirectIfAuthed lidar');
-        } else {
-          console.log('🔴 [LOGIN DEBUG] Usuário não encontrado após login bem-sucedido');
-        }
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('🔴 [LOGIN DEBUG] Erro fatal no login:', error);
-      toast.error('Erro no login');
+      toast.error(result.error || 'Erro no login');
       setLoading(false);
+      return;
     }
+    
+    // Se requer seleção de perfil, mostrar modal
+    if (result.requiresProfileSelection && result.profiles) {
+      setAvailableProfiles(result.profiles);
+      setShowProfileSelector(true);
+      setLoading(false);
+      return;
+    }
+    
+    // Login bem-sucedido - redirecionamento já foi feito pelo hook
+    setLoading(false);
   };
 
   const handleResendConfirmation = async () => {
