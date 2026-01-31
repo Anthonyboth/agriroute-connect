@@ -86,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({
     if (role === 'PRODUTOR') return 'bg-primary/15 text-primary border border-primary/20';
     if (role === 'PRESTADOR_SERVICOS') return 'bg-blue-500/15 text-blue-600 border border-blue-500/20';
     if (role === 'MOTORISTA_AFILIADO') return 'bg-purple-500/15 text-purple-600 border border-purple-500/20';
-    if (role === 'MOTORISTA') return 'bg-accent/15 text-accent-foreground border border-accent/20';
+    if (role === 'MOTORISTA') return 'bg-orange-500/20 text-orange-400 dark:text-orange-300 border border-orange-500/40';
     if (role === 'TRANSPORTADORA') return 'bg-orange-500/15 text-orange-600 border border-orange-500/20';
     return 'bg-muted text-muted-foreground';
   };
