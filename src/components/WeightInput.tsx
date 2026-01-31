@@ -29,16 +29,16 @@ export const WeightInput = ({ value, onChange, required = true }: WeightInputPro
         type="number"
         step="0.01"
         min="0.1"
-        max="90"
+        max="50000"
         value={value}
         onChange={(e) => onChange(e.target.value, false)}
-        placeholder="Ex: 15.5"
+        placeholder="Ex: 600"
         required={required}
         className={validation && !validation.isValid ? 'border-destructive' : ''}
       />
       
       <p className="text-xs text-muted-foreground">
-        💡 Peso em <strong>toneladas</strong>. Ex: 15 = 15 toneladas = 15.000 kg (máx: 90t para 9 eixos)
+        💡 Peso <strong>total</strong> em toneladas que deseja transportar. Ex: 600 = 600 toneladas no barracão
       </p>
       
       {/* Preview do peso formatado */}
