@@ -87,6 +87,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0); // ✅ Para forçar retry quando container não está pronto
 
   const { 
     driverLocation, 
@@ -221,19 +222,62 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     );
   }, [effectiveDriverLocation, effectiveOrigin, effectiveDestination]);
 
+  // ✅ CORREÇÃO: Flag para evitar dupla inicialização
+  const initializingRef = useRef(false);
+  
   // Inicializar MapLibre
   useEffect(() => {
-    if (!mapContainerRef.current || mapLoaded) return;
+    const container = mapContainerRef.current;
+    
+    // Guards contra dupla inicialização
+    if (!container) {
+      console.log('[FreightRealtimeMapMapLibre] Container not ready yet');
+      return;
+    }
+    if (mapRef.current) {
+      console.log('[FreightRealtimeMapMapLibre] Map already exists');
+      return;
+    }
+    if (initializingRef.current) {
+      console.log('[FreightRealtimeMapMapLibre] Already initializing');
+      return;
+    }
+    
+    // ✅ Verificar se container tem dimensões válidas
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      console.log('[FreightRealtimeMapMapLibre] Container has zero dimensions, retrying...', rect);
+      // Agendar retry com contador para evitar loop infinito
+      if (retryCount < 10) {
+        const retryTimeout = setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+        }, 100 + (retryCount * 50)); // Backoff progressivo
+        return () => clearTimeout(retryTimeout);
+      } else {
+        console.warn('[FreightRealtimeMapMapLibre] Max retries reached, container still has zero dimensions');
+        setMapError('Container do mapa sem dimensões válidas');
+        return;
+      }
+    }
+
+    initializingRef.current = true;
+    console.log('[FreightRealtimeMapMapLibre] Initializing map with container:', rect.width, 'x', rect.height);
 
     const initMap = async () => {
       try {
-        // ✅ NOVO: Usar mapCenter calculado com fallback inteligente
+        // ✅ Centro e zoom calculados com fallback inteligente
+        const initialCenter = mapCenter;
+        const initialZoom = hasAnyValidCoordinate ? 10 : 5;
+        
+        console.log('[FreightRealtimeMapMapLibre] Creating map at center:', initialCenter, 'zoom:', initialZoom);
+        
         const map = new maplibregl.Map({
-          container: mapContainerRef.current!,
+          container: container,
           style: RURAL_STYLE_INLINE,
-          center: mapCenter,
-          zoom: hasAnyValidCoordinate ? 10 : 5, // Zoom menor para fallback Brasil
+          center: initialCenter,
+          zoom: initialZoom,
           attributionControl: {},
+          pixelRatio: window.devicePixelRatio || 1,
         });
 
         // Controles de navegação
@@ -339,31 +383,50 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         });
 
         mapRef.current = map;
+        initializingRef.current = false;
 
       } catch (err) {
         console.error('[FreightRealtimeMapMapLibre] Init error:', err);
         setMapError('Erro ao inicializar o mapa');
+        initializingRef.current = false;
       }
     };
 
     initMap();
 
     return () => {
+      console.log('[FreightRealtimeMapMapLibre] Cleanup running');
+      
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
 
       // Cleanup
       if (cancelAnimationRef.current) {
         cancelAnimationRef.current();
+        cancelAnimationRef.current = null;
       }
       driverMarkerRef.current?.remove();
+      driverMarkerRef.current = null;
       ghostDriverMarkerRef.current?.remove();
+      ghostDriverMarkerRef.current = null;
       originMarkerRef.current?.remove();
+      originMarkerRef.current = null;
       destinationMarkerRef.current?.remove();
-      mapRef.current?.remove();
-      mapRef.current = null;
+      destinationMarkerRef.current = null;
+      
+      if (mapRef.current) {
+        try {
+          mapRef.current.remove();
+        } catch (e) {
+          console.warn('[FreightRealtimeMapMapLibre] Error removing map:', e);
+        }
+        mapRef.current = null;
+      }
+      
+      initializingRef.current = false;
+      setMapLoaded(false);
     };
-  }, []);
+  }, [mapCenter, hasAnyValidCoordinate, retryCount]); // ✅ Incluir retryCount para reinicialização
 
   // ✅ Garantir resize quando o container muda de tamanho (Tabs/Dialog podem iniciar com 0px)
   useEffect(() => {

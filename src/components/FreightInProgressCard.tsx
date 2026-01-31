@@ -166,9 +166,10 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
       }
       // ✅ Forçar re-render do mapa para garantir que ele carregue corretamente
       // quando a aba é selecionada (resolve problema de tela em branco)
+      // Delay maior para garantir que o container esteja visível
       setTimeout(() => {
         setMapKey(prev => prev + 1);
-      }, 50);
+      }, 150);
     }
   };
 
