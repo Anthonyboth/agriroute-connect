@@ -486,7 +486,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           .setLngLat([effectiveDriverLocation.lng, effectiveDriverLocation.lat])
           .setPopup(
             new maplibregl.Popup({ offset: 25 }).setHTML(
-              `<strong>Última Posição Conhecida</strong><br/>🔴 Motorista Offline<br/>Há ${formatSecondsAgo(secondsAgo)}`
+              `<strong>Última Posição Conhecida</strong><br/>🔴 Motorista Offline<br/>${formatSecondsAgo(secondsAgo)}`
             )
           )
           .addTo(mapRef.current);
