@@ -260,12 +260,13 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   adminOnly?: boolean;
   allowedRoles?: ('PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS' | 'ADMIN')[];
 }) => {
-  const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut } = useAuth();
+  const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut, refreshProfile } = useAuth();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const location = useLocation();
   const navigate = useNavigate();
   const [loadingTimeout, setLoadingTimeout] = React.useState(false);
   const loadingStartRef = React.useRef<number>(Date.now());
+  const approvalRecheckRef = React.useRef(false);
 
   React.useEffect(() => {
     if (loading || isLoadingCompany) {
@@ -284,6 +285,19 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
       }
     }
   }, [loading, isLoadingCompany]);
+
+  // ✅ Se a rota exige aprovação e o usuário está autenticado mas o profile ainda não carregou,
+  // revalidar uma vez no banco antes de mostrar "Conta Pendente".
+  React.useEffect(() => {
+    if (!requiresApproval) return;
+    if (!isAuthenticated) return;
+    if (loading || isLoadingCompany) return;
+    if (profile) return;
+    if (approvalRecheckRef.current) return;
+
+    approvalRecheckRef.current = true;
+    refreshProfile?.();
+  }, [requiresApproval, isAuthenticated, loading, isLoadingCompany, profile, refreshProfile]);
 
   // ✅ UNIFICADO: Usar AuthLoader para estado de carregamento
   if ((loading || isLoadingCompany) && !loadingTimeout) {
@@ -314,6 +328,10 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
   if (requiresAuth && !isAuthenticated) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (requiresApproval && isAuthenticated && !profile) {
+    return <AuthLoader message="Revalidando status de aprovação..." />;
   }
 
   // Redirect to correct dashboard BEFORE checking allowedRoles (better UX)
