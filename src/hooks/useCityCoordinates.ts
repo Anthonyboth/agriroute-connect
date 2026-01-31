@@ -42,7 +42,7 @@ async function fetchCityCoordinates(
   }
 
   try {
-    console.log('[useCityCoordinates] Fetching coordinates for:', { cityName, state });
+    console.log('[useCityCoordinates] 🔍 Fetching coordinates for:', { cityName, state });
     
     // 1. Tentar buscar no banco (tabela cities)
     let query = supabase
@@ -63,20 +63,23 @@ async function fetchCityCoordinates(
     // ✅ IMPORTANTE: Verificar se as coordenadas existem E são válidas (não nulas)
     if (cityData?.lat != null && cityData?.lng != null && 
         typeof cityData.lat === 'number' && typeof cityData.lng === 'number' &&
-        !isNaN(cityData.lat) && !isNaN(cityData.lng)) {
+        !isNaN(cityData.lat) && !isNaN(cityData.lng) &&
+        cityData.lat !== 0 && cityData.lng !== 0) {
       // ✅ Normalizar coordenadas para corrigir inversões ou micrograus
       const normalized = normalizeLatLngPoint({ lat: cityData.lat, lng: cityData.lng }, 'BR');
       if (normalized) {
         console.log('[useCityCoordinates] ✅ Found in database:', normalized, 'for:', cityName);
         coordsCache.set(cacheKey, normalized);
         return normalized;
+      } else {
+        console.warn('[useCityCoordinates] ⚠️ Database coords failed normalization:', { lat: cityData.lat, lng: cityData.lng });
       }
     } else {
-      console.log('[useCityCoordinates] City found in database but has no coordinates:', cityData);
+      console.log('[useCityCoordinates] ⚠️ City not found in database or has null/invalid coordinates:', { cityName, state, cityData });
     }
 
     // 2. Fallback: geocoding via Nominatim
-    console.log(`[useCityCoordinates] 🌍 Trying geocoding via Nominatim: ${cityName}, ${state}`);
+    console.log(`[useCityCoordinates] 🌍 Trying geocoding via Nominatim: "${cityName}, ${state || 'Brasil'}"`);
     const geocodeResult = await safeNominatimGeocode(cityName, state);
     
     if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
@@ -94,15 +97,22 @@ async function fetchCityCoordinates(
         coordsCache.set(cacheKey, normalized);
         return normalized;
       } else {
-        console.warn('[useCityCoordinates] ⚠️ Normalization returned null for:', { lat: geocodeResult.latitude, lng: geocodeResult.longitude });
-        // ✅ FALLBACK: Se a normalização falhar mas as coordenadas são válidas, usar diretamente
-        const rawCoords = { lat: geocodeResult.latitude, lng: geocodeResult.longitude };
-        console.log('[useCityCoordinates] ✅ Using raw geocoded coords:', rawCoords);
-        coordsCache.set(cacheKey, rawCoords);
-        return rawCoords;
+        // ✅ FALLBACK: Se a normalização falhar mas as coordenadas parecem válidas, usar diretamente
+        const rawLat = geocodeResult.latitude;
+        const rawLng = geocodeResult.longitude;
+        
+        // Verificação básica de sanidade para coordenadas brasileiras
+        if (rawLat < 10 && rawLat > -35 && rawLng < -30 && rawLng > -75) {
+          const rawCoords = { lat: rawLat, lng: rawLng };
+          console.log('[useCityCoordinates] ✅ Using raw geocoded coords (passed sanity check):', rawCoords);
+          coordsCache.set(cacheKey, rawCoords);
+          return rawCoords;
+        } else {
+          console.warn('[useCityCoordinates] ⚠️ Geocoded coords failed sanity check:', { lat: rawLat, lng: rawLng });
+        }
       }
     } else {
-      console.warn('[useCityCoordinates] ⚠️ Geocoding returned no valid results');
+      console.warn('[useCityCoordinates] ⚠️ Geocoding returned no valid results for:', { cityName, state });
     }
 
     // Não encontrou em lugar nenhum
