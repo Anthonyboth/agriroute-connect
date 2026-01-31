@@ -116,8 +116,8 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-2">
+        <DialogContent className="max-w-md max-h-[90vh] h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2 flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
               Perfil {userType === 'driver' ? 'do Motorista' : 'do Produtor'}
@@ -127,7 +127,7 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6">
+          <ScrollArea className="flex-1 min-h-0 px-6">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
