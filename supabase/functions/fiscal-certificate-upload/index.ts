@@ -148,45 +148,44 @@ async function registerOrUpdateCompanyInFocusNfe(
     let method: string;
     let url: string;
 
-    if (issuer.focus_company_id) {
-      // Update existing company
-      method = "PUT";
-      url = `${focusBaseUrl}/v2/empresas/${issuer.focus_company_id}`;
-    } else {
-      // Try to find existing company by CNPJ first
-        const existingCheckUrl = `${focusBaseUrl}/v2/empresas/${doc}`;
-      const checkResponse = await fetch(existingCheckUrl, {
-        method: "GET",
-        headers: {
-          Authorization: authHeader,
-            "Content-Type": "application/json",
-        },
-      });
+    // SEMPRE verificar se a empresa existe na Focus NFe primeiro (mesmo se temos focus_company_id salvo)
+    // porque o registro pode ter sido deletado ou o ambiente pode ter mudado
+    const existingCheckUrl = `${focusBaseUrl}/v2/empresas/${doc}`;
+    
+    logStep("Checking if company exists in Focus NFe", { checkUrl: existingCheckUrl });
+    
+    const checkResponse = await fetch(existingCheckUrl, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+    });
 
-      if (checkResponse.ok) {
-        // Company exists, update it
-        method = "PUT";
-        url = existingCheckUrl;
-      } else if (checkResponse.status === 404 || checkResponse.status === 422) {
-        // Company doesn't exist (404) or invalid request for non-existent company (422)
-        // Focus NFe returns 422 for non-existent companies in some cases
-        logStep("Company not found in Focus NFe, will create new", { 
-          status: checkResponse.status 
-        });
-        method = "POST";
-        url = `${focusBaseUrl}/v2/empresas`;
-      } else {
-        const errorText = await checkResponse.text();
-        logStep("ERROR: Failed to check existing company", { 
-          status: checkResponse.status, 
-          error: errorText 
-        });
-        const snippet = errorText?.slice(0, 300);
-        return {
-          success: false,
-          error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}${snippet ? ` - ${snippet}` : ""}`,
-        };
-      }
+    if (checkResponse.ok) {
+      // Company exists, update it
+      method = "PUT";
+      url = existingCheckUrl;
+      logStep("Company exists in Focus NFe, will update", { status: checkResponse.status });
+    } else if (checkResponse.status === 404 || checkResponse.status === 422) {
+      // Company doesn't exist (404) or invalid request for non-existent company (422)
+      // Focus NFe returns 422 for non-existent companies in some cases
+      logStep("Company not found in Focus NFe, will create new", { 
+        status: checkResponse.status 
+      });
+      method = "POST";
+      url = `${focusBaseUrl}/v2/empresas`;
+    } else {
+      const errorText = await checkResponse.text();
+      logStep("ERROR: Failed to check existing company", { 
+        status: checkResponse.status, 
+        error: errorText 
+      });
+      const snippet = errorText?.slice(0, 300);
+      return {
+        success: false,
+        error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}${snippet ? ` - ${snippet}` : ""}`,
+      };
     }
 
     logStep(`Sending ${method} request to Focus NFe`, { url });
