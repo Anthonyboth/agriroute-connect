@@ -323,3 +323,6 @@ verify_jwt = true
 
 [functions.producer-release-driver]
 verify_jwt = true
+
+[functions.test-focus-tokens]
+verify_jwt = false
