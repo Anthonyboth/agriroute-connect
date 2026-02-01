@@ -4,19 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
   ArrowLeft, 
-  ArrowRight, 
   Building2, 
   FileCheck, 
-  Key, 
-  Shield, 
   CheckCircle2,
   Loader2
 } from 'lucide-react';
 import { useFiscalIssuer, IssuerType, RegisterIssuerData } from '@/hooks/useFiscalIssuer';
 import { FiscalOnboardingStep1 } from './onboarding/FiscalOnboardingStep1';
 import { FiscalOnboardingStep2 } from './onboarding/FiscalOnboardingStep2';
-import { FiscalOnboardingStep3 } from './onboarding/FiscalOnboardingStep3';
-import { FiscalOnboardingStep4 } from './onboarding/FiscalOnboardingStep4';
+// ✅ Steps 3 e 4 removidos - certificado gerenciado em FiscalIssuerSetup
 import { FiscalOnboardingStep5 } from './onboarding/FiscalOnboardingStep5';
 
 interface FiscalOnboardingWizardProps {
@@ -26,12 +22,11 @@ interface FiscalOnboardingWizardProps {
   editMode?: boolean;
 }
 
+// ✅ SIMPLIFICADO: Certificado é gerenciado fora do wizard (em FiscalIssuerSetup)
 const STEPS = [
   { id: 1, title: 'Tipo de Emissor', icon: Building2 },
   { id: 2, title: 'Dados Cadastrais', icon: FileCheck },
-  { id: 3, title: 'Certificado Digital', icon: Key },
-  { id: 4, title: 'Validação SEFAZ', icon: Shield },
-  { id: 5, title: 'Termo de Responsabilidade', icon: CheckCircle2 },
+  { id: 3, title: 'Termo de Responsabilidade', icon: CheckCircle2 },
 ];
 
 export function FiscalOnboardingWizard({ onComplete, onCancel, editMode = false }: FiscalOnboardingWizardProps) {
@@ -87,6 +82,7 @@ export function FiscalOnboardingWizard({ onComplete, onCancel, editMode = false 
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
+  // ✅ SIMPLIFICADO: Removidas etapas de certificado e validação SEFAZ (gerenciadas em FiscalIssuerSetup)
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -102,25 +98,11 @@ export function FiscalOnboardingWizard({ onComplete, onCancel, editMode = false 
           <FiscalOnboardingStep2
             data={formData}
             onUpdate={updateFormData}
-            onNext={handleStepComplete}
+            onNext={handleNext}
             onBack={handleBack}
           />
         );
       case 3:
-        return (
-          <FiscalOnboardingStep3
-            onNext={handleStepComplete}
-            onBack={handleBack}
-          />
-        );
-      case 4:
-        return (
-          <FiscalOnboardingStep4
-            onNext={handleStepComplete}
-            onBack={handleBack}
-          />
-        );
-      case 5:
         return (
           <FiscalOnboardingStep5
             onComplete={onComplete}
