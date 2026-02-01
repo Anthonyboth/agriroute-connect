@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield, Building2 } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
@@ -34,6 +34,7 @@ import { isFeatureEnabled } from '@/config/featureFlags';
 import { AntifraudPanel } from './antifraude';
 import { useDashboardIntegrityGuard } from '@/hooks/useDashboardIntegrityGuard';
 import { useRequesterStatus } from '@/hooks/useRequesterStatus';
+import { useFreightParticipants } from '@/hooks/useFreightParticipants';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -65,7 +66,18 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
   const [cteModalOpen, setCteModalOpen] = useState(false);
-  const [assignedDrivers, setAssignedDrivers] = useState<any[]>([]);
+  
+  // ✅ Hook centralizado para gerenciar TODOS os participantes do frete
+  // Fonte ÚNICA de verdade: elimina bugs de motoristas não relacionados aparecerem
+  const { 
+    data: participants, 
+    isLoading: participantsLoading,
+    isParticipant: checkIsParticipant
+  } = useFreightParticipants({
+    freightId,
+    includePending: true,
+    realtime: true
+  });
 
   // ✅ Fallback para identificar solicitante cadastrado quando o JOIN/`profiles_secure` não retornam
   // (ex: frete multi-carreta ainda com status OPEN, mas já aceito pelo motorista)
@@ -192,96 +204,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         }
       }
 
-      // ✅ CORREÇÃO: Carregar TODOS os motoristas atribuídos ao frete (multi-carretas)
-      // Fonte de verdade PRIMÁRIA: freight_assignments (não drivers_assigned, que pode estar desatualizado)
-      // Isso garante que motoristas afiliados atribuídos por transportadoras apareçam corretamente
-      try {
-        // ✅ SEMPRE buscar da tabela freight_assignments para ter a lista completa
-        // Incluir TODOS os status ativos (não apenas os avançados)
-        const { data: assignmentRows, error: assignmentErr } = await supabase
-          .from('freight_assignments')
-          .select('driver_id, status, company_id')
-          .eq('freight_id', freightId)
-          .in('status', ['PENDING', 'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
-
-        if (assignmentErr) {
-          console.warn('[FreightDetails] Falha ao buscar freight_assignments:', assignmentErr);
-        }
-
-        // Extrair IDs únicos de motoristas das atribuições
-        const assignmentDriverIds = Array.from(
-          new Set((assignmentRows || []).map((r: any) => r?.driver_id).filter(Boolean)),
-        );
-
-        // ✅ FALLBACK: Se não houver atribuições, tentar drivers_assigned (campo legado)
-        const legacyAssignedIds = Array.isArray((data as any)?.drivers_assigned)
-          ? ((data as any).drivers_assigned as string[])
-          : [];
-        
-        // Combinar IDs de ambas as fontes (remover duplicatas)
-        const allDriverIds = Array.from(new Set([...assignmentDriverIds, ...legacyAssignedIds]));
-        
-        console.log('[FreightDetails] Motoristas encontrados:', {
-          fromAssignments: assignmentDriverIds.length,
-          fromLegacy: legacyAssignedIds.length,
-          total: allDriverIds.length,
-          ids: allDriverIds
-        });
-
-        if (allDriverIds.length > 0) {
-          // ✅ Tentar profiles_secure primeiro, depois fallback para edge function
-          const { data: driversData, error: driversError } = await (supabase as any)
-            .from('profiles_secure')
-            .select('id, full_name, profile_photo_url, rating, total_ratings')
-            .in('id', allDriverIds);
-
-          let resolvedDrivers = (driversData as any[]) || [];
-          
-          console.log('[FreightDetails] Motoristas carregados via profiles_secure:', resolvedDrivers.length);
-
-          // ✅ FALLBACK: Se profiles_secure retornou menos que o esperado, usar edge function para os faltantes
-          const missingDriverIds = allDriverIds.filter(
-            id => !resolvedDrivers.some(d => d.id === id)
-          );
-          
-          if (missingDriverIds.length > 0) {
-            console.log('[FreightDetails] Motoristas faltantes, usando edge function:', missingDriverIds);
-            
-            const fallbackDrivers: any[] = [];
-            for (const driverId of missingDriverIds) {
-              try {
-                const { data: edgeData, error: edgeError } = await supabase.functions.invoke('get-participant-public-profile', {
-                  body: {
-                    freight_id: freightId,
-                    participant_profile_id: driverId,
-                    participant_type: 'driver',
-                  },
-                });
-                
-                if (!edgeError && edgeData?.success && edgeData?.profile) {
-                  fallbackDrivers.push(edgeData.profile);
-                  console.log('[FreightDetails] Motorista encontrado via edge function:', edgeData.profile.full_name);
-                }
-              } catch (fallbackErr) {
-                console.warn('[FreightDetails] Falha no edge function fallback para driver:', driverId, fallbackErr);
-              }
-            }
-            
-            resolvedDrivers = [...resolvedDrivers, ...fallbackDrivers];
-          }
-
-          setAssignedDrivers(resolvedDrivers);
-          
-          if (driversError && resolvedDrivers.length === 0) {
-            console.warn('[FreightDetails] Falha ao buscar motoristas atribuídos:', driversError);
-          }
-        } else {
-          setAssignedDrivers([]);
-        }
-      } catch (e) {
-        console.warn('[FreightDetails] Erro inesperado ao buscar motoristas atribuídos:', e);
-        setAssignedDrivers([]);
-      }
+      // ✅ REMOVIDO: Lógica duplicada de carregamento de motoristas
+      // Agora gerenciado centralizadamente pelo hook useFreightParticipants
       
       setFreight(normalizedFreight);
 
@@ -453,7 +377,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
     ? (freight.drivers_assigned as string[]).includes(currentUserProfile?.id)
     : false;
 
+  // ✅ FONTE ÚNICA DE VERDADE: usar hook useFreightParticipants
+  // Mantemos fallbacks para compatibilidade durante carregamento
   const isParticipant = 
+    checkIsParticipant(currentUserProfile?.id) ||
     freight?.producer?.id === currentUserProfile?.id || 
     freight?.driver?.id === currentUserProfile?.id ||
     hasActiveAssignment ||
@@ -788,7 +715,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             {/* ✅ Exibir fotos do veículo para o produtor */}
             {isFreightProducer && <DriverVehiclePreview driverId={freight.driver.id} />}
           </div>
-        ) : assignedDrivers.length > 0 && (isFreightProducer || (isTransportadora && hasActiveCompanyAssignment)) ? (
+        ) : participants.drivers.length > 0 && (isFreightProducer || (isTransportadora && hasActiveCompanyAssignment)) ? (
           // ✅ Regra: Lista de motoristas atribuídos visível para:
           // - Produtor do frete
           // - Transportadora participante (quando existir assignment ativo da empresa)
@@ -798,7 +725,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Truck className="h-4 w-4" />
-                  Motoristas atribuídos
+                  Motoristas atribuídos ({participants.drivers.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -809,30 +736,52 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </Card>
 
             <div className="grid gap-2">
-              {assignedDrivers.map((d) => (
+              {participants.drivers.map((d) => (
                 <div key={d.id} className="space-y-2">
                   <FreightParticipantCard
-                    participantId={d.id}
+                    participantId={d.profileId}
                     participantType="driver"
-                    name={d.full_name || 'Motorista'}
-                    avatarUrl={d.profile_photo_url || d.selfie_url}
+                    name={d.name || 'Motorista'}
+                    avatarUrl={d.avatarUrl}
                     rating={d.rating || 0}
-                    totalRatings={d.total_ratings || 0}
+                    totalRatings={d.totalRatings || 0}
                     onClick={() => {
                       setProfileModalOpen({
                         open: true,
-                        userId: d.id,
+                        userId: d.profileId,
                         userType: 'driver',
-                        userName: d.full_name || ''
+                        userName: d.name || ''
                       });
                     }}
                   />
 
                   {/* Evitar exposição desnecessária: fotos do veículo apenas para o produtor */}
-                  {isFreightProducer && <DriverVehiclePreview driverId={d.id} />}
+                  {isFreightProducer && <DriverVehiclePreview driverId={d.profileId} />}
                 </div>
               ))}
             </div>
+
+            {/* ✅ Exibir transportadoras envolvidas */}
+            {participants.companies.length > 0 && (
+              <Card className="mt-3">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Building2 className="h-4 w-4" />
+                    Transportadoras ({participants.companies.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    {participants.companies.map((c) => (
+                      <div key={c.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{c.companyName || c.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : isDriver && isParticipant ? (
           // ✅ CORREÇÃO: Em fretes multi-carreta (driver_id nulo), o motorista deve ver o próprio perfil
