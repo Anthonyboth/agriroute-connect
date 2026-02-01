@@ -22,12 +22,16 @@ import { DocumentUploadLocal } from '@/components/DocumentUploadLocal';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/dialog';
 import { CameraSelfie } from '@/components/CameraSelfie';
+import { useAffiliatedDriverManager } from '@/hooks/useAffiliatedDriverManager';
 
 const AffiliatedDriverSignup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const companyCNPJFromURL = searchParams.get('companyCNPJ') || '';
   const inviteToken = searchParams.get('inviteToken');
+
+  // P0: provisionamento determinístico (perfil + vínculo) para evitar “auth ok / profile missing”
+  const { provisionAffiliatedDriver } = useAffiliatedDriverManager();
 
   // Control states
   const [currentStep, setCurrentStep] = useState(1);
@@ -338,89 +342,28 @@ const AffiliatedDriverSignup = () => {
         return;
       }
 
-       // 2. Wait for profile creation with retries
-       // Importante: não usar .single() aqui, pois pode haver 0 linhas (ainda não criado) OU múltiplos perfis por user_id
-       // (ex: múltiplos roles), o que gerava PGRST116 e disparava falso-positivo de "RLS bloqueou".
+       // 2. Garantir perfil + vínculo de forma determinística (sem depender de trigger/replicação)
        let profileData: { id: string; metadata: any } | null = null;
-       let attempts = 0;
-       const maxAttempts = 8;
+       try {
+         const provisioned = await provisionAffiliatedDriver({
+           companyId,
+           fullName: formData.fullName,
+           cpfCnpj: cleanDoc,
+           phone: formData.phone,
+           email: formData.email,
+         });
 
-       const tryGetProfileIdViaRpc = async (): Promise<string | null> => {
-         try {
-           // A função atual exige um parâmetro p_user_id
-           const { data, error } = await (supabase as any).rpc('get_own_profile_id', {
-             p_user_id: authData.user!.id
-           });
-
-           if (!error && data) {
-             console.log('[AffiliatedDriverSignup] RPC get_own_profile_id retornou:', data);
-             return data as string;
-           }
-
-           if (error) {
-             console.warn('[AffiliatedDriverSignup] RPC get_own_profile_id falhou:', error);
-           }
-
-           return null;
-         } catch (rpcErr) {
-           console.warn('[AffiliatedDriverSignup] Exceção no RPC get_own_profile_id:', rpcErr);
-           return null;
-         }
-       };
-
-       while (!profileData && attempts < maxAttempts) {
-         // Aguardar tempo progressivo para dar tempo ao trigger criar o perfil
-         const waitTime = 600 + attempts * 500;
-         console.log(`[AffiliatedDriverSignup] Tentativa ${attempts + 1}/${maxAttempts} - aguardando ${waitTime}ms...`);
-         await new Promise((resolve) => setTimeout(resolve, waitTime));
-
-         try {
-           // 1) Tenta ler o perfil diretamente via SELECT (quando RLS permite)
-           const { data, error } = await supabase
-             .from('profiles')
-             .select('id, metadata')
-             .eq('user_id', authData.user!.id)
-             .order('created_at', { ascending: false })
-             .limit(1)
-             .maybeSingle();
-
-           if (!error && data?.id) {
-             console.log(`[AffiliatedDriverSignup] Perfil encontrado via SELECT: ${data.id}`);
-             profileData = { id: data.id, metadata: (data as any).metadata ?? {} };
-             break;
-           }
-
-           // 2) Se SELECT falhou ou não retornou dados, tenta via RPC SECURITY DEFINER
-           const selectFailedDueToPermission =
-             error?.message?.toLowerCase().includes('permission') ||
-             error?.message?.toLowerCase().includes('denied');
-
-           if (selectFailedDueToPermission || !data) {
-             console.log(`[AffiliatedDriverSignup] SELECT falhou ou sem dados, tentando RPC...`);
-             const rpcProfileId = await tryGetProfileIdViaRpc();
-             if (rpcProfileId) {
-               console.log(`[AffiliatedDriverSignup] Perfil encontrado via RPC: ${rpcProfileId}`);
-               profileData = { id: rpcProfileId, metadata: {} };
-               break;
-             }
-           }
-
-           if (error) {
-             console.warn(`[AffiliatedDriverSignup] Erro no SELECT (tentativa ${attempts + 1}):`, error);
-           }
-         } catch (fetchErr) {
-           console.warn(`[AffiliatedDriverSignup] Exceção na tentativa ${attempts + 1}:`, fetchErr);
+         if (!provisioned?.profileId) {
+           throw new Error('Provisionamento não retornou profileId');
          }
 
-         attempts++;
+         profileData = { id: provisioned.profileId, metadata: {} };
+       } catch (provisionErr) {
+         console.error('[AffiliatedDriverSignup] Falha ao provisionar perfil/vínculo:', provisionErr);
+         toast.error('Erro ao criar seu perfil. Tente novamente ou faça login.');
+         navigate('/auth');
+         return;
        }
-
-      if (!profileData) {
-        console.error('[AffiliatedDriverSignup] Perfil não encontrado após todas tentativas');
-        toast.error('Erro ao criar perfil. Tente fazer login manualmente.');
-        navigate('/auth');
-        return;
-      }
 
       // 4. Upload selfie após autenticação (com instrumentação completa)
       let selfieUrl = '';
