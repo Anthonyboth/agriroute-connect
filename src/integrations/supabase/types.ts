@@ -3487,6 +3487,7 @@ export type Database = {
           document_number: string
           document_type: string
           fiscal_environment: string
+          focus_company_id: string | null
           id: string
           legal_name: string
           municipal_registration: string | null
@@ -3523,6 +3524,7 @@ export type Database = {
           document_number: string
           document_type: string
           fiscal_environment?: string
+          focus_company_id?: string | null
           id?: string
           legal_name: string
           municipal_registration?: string | null
@@ -3559,6 +3561,7 @@ export type Database = {
           document_number?: string
           document_type?: string
           fiscal_environment?: string
+          focus_company_id?: string | null
           id?: string
           legal_name?: string
           municipal_registration?: string | null
