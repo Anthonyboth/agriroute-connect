@@ -1,3 +1,15 @@
+/**
+ * @deprecated Esta Edge Function será removida em breve.
+ * A integração Stripe será substituída pelo Pagar.me.
+ * 
+ * Novo modelo de cobrança: Por emissão de documento fiscal
+ * - NF-e: R$ 0,35/emissão
+ * - CT-e: R$ 0,25/emissão
+ * - MDF-e: R$ 0,15/emissão
+ * - NFS-e: R$ 0,40/emissão
+ * 
+ * Não haverá mais cobrança de mensalidades de planos.
+ */
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";

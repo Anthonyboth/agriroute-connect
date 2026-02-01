@@ -1,3 +1,10 @@
+/**
+ * @deprecated Esta Edge Function será removida em breve.
+ * A integração Stripe será substituída pelo Pagar.me.
+ * 
+ * Novo modelo de cobrança: Por emissão de documento fiscal
+ * Não haverá mais webhooks de assinatura/subscription.
+ */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 import Stripe from 'https://esm.sh/stripe@14.21.0'

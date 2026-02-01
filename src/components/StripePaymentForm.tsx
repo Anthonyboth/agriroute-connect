@@ -1,3 +1,8 @@
+/**
+ * @deprecated Este componente será removido em breve.
+ * A integração Stripe será substituída pelo Pagar.me.
+ * Use o hook useIntegrations() para o novo sistema de pagamentos.
+ */
 import { useState, useEffect } from 'react';
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
