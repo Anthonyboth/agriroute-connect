@@ -55,6 +55,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPrefilled, setHasPrefilled] = useState(false);
+  const [freightRecipientLoading, setFreightRecipientLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     // Destinatário
@@ -85,29 +86,107 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     informacoes_adicionais: "",
   });
 
-  // ✅ PREFILL AUTOMÁTICO: Preencher dados do destinatário com dados fiscais do usuário
+  // ✅ PREFILL DO DESTINATÁRIO: Buscar dados do produtor do frete (destinatário da NF-e)
   useEffect(() => {
-    if (!isOpen || prefillLoading || hasPrefilled || !prefilledFiscal) return;
-    
-    // Verificar se há dados para prefill
-    if (prefilledFiscal.cnpj_cpf || prefilledFiscal.razao_social) {
-      setFormData(prev => ({
-        ...prev,
-        dest_cnpj_cpf: prev.dest_cnpj_cpf || prefilledFiscal.cnpj_cpf,
-        dest_razao_social: prev.dest_razao_social || prefilledFiscal.razao_social,
-        dest_ie: prev.dest_ie || prefilledFiscal.inscricao_estadual || '',
-        dest_email: prev.dest_email || prefilledFiscal.email,
-        dest_telefone: prev.dest_telefone || prefilledFiscal.telefone,
-        dest_logradouro: prev.dest_logradouro || prefilledFiscal.logradouro,
-        dest_numero: prev.dest_numero || prefilledFiscal.numero,
-        dest_bairro: prev.dest_bairro || prefilledFiscal.bairro,
-        dest_municipio: prev.dest_municipio || prefilledFiscal.municipio,
-        dest_uf: prev.dest_uf || prefilledFiscal.uf,
-        dest_cep: prev.dest_cep || prefilledFiscal.cep,
-      }));
-      setHasPrefilled(true);
-    }
-  }, [isOpen, prefillLoading, prefilledFiscal, hasPrefilled]);
+    if (!isOpen || hasPrefilled) return;
+
+    const fetchFreightRecipient = async () => {
+      // Se temos freightId, buscar dados do produtor do frete
+      if (freightId) {
+        setFreightRecipientLoading(true);
+        try {
+          // Buscar frete com dados do produtor
+          const { data: freight, error: freightError } = await supabase
+            .from('freights')
+            .select(`
+              producer_id,
+              origin_city,
+              origin_state,
+              origin_address,
+              origin_neighborhood,
+              origin_street,
+              origin_number,
+              origin_zip_code,
+              destination_city,
+              destination_state,
+              destination_address,
+              destination_neighborhood,
+              destination_street,
+              destination_number,
+              destination_zip_code
+            `)
+            .eq('id', freightId)
+            .single();
+
+          if (freightError || !freight?.producer_id) {
+            console.warn('[NfeEmissionWizard] Frete não encontrado ou sem produtor:', freightError);
+            setFreightRecipientLoading(false);
+            return;
+          }
+
+          // Buscar dados do produtor (destinatário)
+          const { data: producer, error: producerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, cpf_cnpj, document, phone, contact_phone')
+            .eq('id', freight.producer_id)
+            .single();
+
+          if (producerError || !producer) {
+            console.warn('[NfeEmissionWizard] Produtor não encontrado:', producerError);
+            setFreightRecipientLoading(false);
+            return;
+          }
+
+          // Buscar email do usuário auth (se disponível)
+          const { data: authData } = await supabase.auth.admin.getUserById?.(producer.id) || { data: null };
+          const producerEmail = (authData as any)?.user?.email || '';
+
+          // Preencher formulário com dados do produtor (destinatário)
+          setFormData(prev => ({
+            ...prev,
+            dest_cnpj_cpf: prev.dest_cnpj_cpf || (producer.cpf_cnpj || producer.document || '').replace(/\D/g, ''),
+            dest_razao_social: (prev.dest_razao_social || producer.full_name || '').toUpperCase(),
+            dest_telefone: prev.dest_telefone || producer.phone || producer.contact_phone || '',
+            dest_email: prev.dest_email || producerEmail,
+            // Usar endereço de destino do frete (onde a carga vai)
+            dest_logradouro: (prev.dest_logradouro || freight.destination_street || freight.destination_address?.split(',')[0] || '').toUpperCase(),
+            dest_numero: prev.dest_numero || freight.destination_number || '',
+            dest_bairro: (prev.dest_bairro || freight.destination_neighborhood || '').toUpperCase(),
+            dest_municipio: (prev.dest_municipio || freight.destination_city || '').toUpperCase(),
+            dest_uf: (prev.dest_uf || freight.destination_state || '').toUpperCase(),
+            dest_cep: prev.dest_cep || (freight.destination_zip_code || '').replace(/\D/g, ''),
+          }));
+          setHasPrefilled(true);
+        } catch (err) {
+          console.error('[NfeEmissionWizard] Erro ao buscar dados do frete:', err);
+        } finally {
+          setFreightRecipientLoading(false);
+        }
+        return;
+      }
+
+      // Fallback: usar dados fiscais do próprio usuário se não houver frete
+      if (!prefillLoading && prefilledFiscal && (prefilledFiscal.cnpj_cpf || prefilledFiscal.razao_social)) {
+        setFormData(prev => ({
+          ...prev,
+          dest_cnpj_cpf: prev.dest_cnpj_cpf || prefilledFiscal.cnpj_cpf,
+          dest_razao_social: prev.dest_razao_social || prefilledFiscal.razao_social,
+          dest_ie: prev.dest_ie || prefilledFiscal.inscricao_estadual || '',
+          dest_email: prev.dest_email || prefilledFiscal.email,
+          dest_telefone: prev.dest_telefone || prefilledFiscal.telefone,
+          dest_logradouro: prev.dest_logradouro || prefilledFiscal.logradouro,
+          dest_numero: prev.dest_numero || prefilledFiscal.numero,
+          dest_bairro: prev.dest_bairro || prefilledFiscal.bairro,
+          dest_municipio: prev.dest_municipio || prefilledFiscal.municipio,
+          dest_uf: prev.dest_uf || prefilledFiscal.uf,
+          dest_cep: prev.dest_cep || prefilledFiscal.cep,
+        }));
+        setHasPrefilled(true);
+      }
+    };
+
+    fetchFreightRecipient();
+  }, [isOpen, freightId, hasPrefilled, prefillLoading, prefilledFiscal]);
 
   // Reset ao abrir/fechar
   useEffect(() => {
@@ -115,6 +194,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     setCurrentStep(1);
     setIsSubmitting(false);
     setHasPrefilled(false); // Reset para permitir novo prefill
+    setFreightRecipientLoading(false);
   }, [isOpen]);
 
   // Campos que devem ser convertidos para CAIXA ALTA automaticamente
@@ -362,6 +442,12 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       case 1:
         return (
           <div className="space-y-4">
+            {freightRecipientLoading && (
+              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg text-sm text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando dados do destinatário...
+              </div>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="dest_cnpj_cpf">CNPJ/CPF *</Label>
