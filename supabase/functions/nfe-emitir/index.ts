@@ -454,7 +454,7 @@ Deno.serve(async (req) => {
       items: itens.map((item, index) => {
         const unidade = (item.unidade || "UN").toUpperCase();
         const cfop = onlyDigits(item.cfop || "5102") || "5102";
-        const ncm = onlyDigits(item.ncm || "99999999") || "99999999";
+        const ncm = onlyDigits(item.ncm || "00000000") || "00000000";
         const valorTotal = item.quantidade * item.valor_unitario;
 
         return {
@@ -519,7 +519,7 @@ Deno.serve(async (req) => {
     const emissionItems = itens.map((item, index) => ({
       numero_item: index + 1,
       descricao: item.descricao,
-      ncm: onlyDigits(item.ncm || "99999999") || "99999999",
+      ncm: onlyDigits(item.ncm || "00000000") || "00000000",
       cfop: onlyDigits(item.cfop || "5102") || "5102",
       unidade: (item.unidade || "UN").toUpperCase(),
       quantidade: item.quantidade,
