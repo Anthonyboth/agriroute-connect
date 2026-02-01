@@ -125,7 +125,6 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     "dest_bairro",
     "dest_municipio",
     "dest_uf",
-    "descricao",
     "unidade",
     "informacoes_adicionais",
   ]);
