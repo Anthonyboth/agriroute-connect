@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
   FileText, 
   Building2, 
@@ -245,19 +246,26 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
       </Tabs>
 
       {/* Modal de Onboarding Fiscal */}
-      {showOnboarding && (
-        <FiscalOnboardingWizard
-          editMode={isEditMode}
-          onCancel={() => {
-            setShowOnboarding(false);
-            setIsEditMode(false);
-          }}
-          onComplete={() => {
-            setShowOnboarding(false);
-            setIsEditMode(false);
-          }}
-        />
-      )}
+      <Dialog open={showOnboarding} onOpenChange={(open) => {
+        if (!open) {
+          setShowOnboarding(false);
+          setIsEditMode(false);
+        }
+      }}>
+        <DialogContent className="max-w-3xl h-[85vh] p-0 overflow-hidden">
+          <FiscalOnboardingWizard
+            editMode={isEditMode}
+            onCancel={() => {
+              setShowOnboarding(false);
+              setIsEditMode(false);
+            }}
+            onComplete={() => {
+              setShowOnboarding(false);
+              setIsEditMode(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
