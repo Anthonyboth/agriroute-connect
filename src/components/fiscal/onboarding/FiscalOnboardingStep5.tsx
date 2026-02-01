@@ -88,9 +88,9 @@ export function FiscalOnboardingStep5({ onComplete, onBack }: FiscalOnboardingSt
         onScrollCapture={handleScroll}
       >
         <div className="space-y-4 text-sm">
-          <Alert className="border-warning/50 bg-warning/10">
-            <AlertTriangle className="h-4 w-4 text-warning" />
-            <AlertDescription className="text-warning-foreground">
+          <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200 font-medium">
               <strong>IMPORTANTE:</strong> O AgriRoute atua como intermediador tecnológico. 
               A responsabilidade fiscal permanece integralmente com o emissor.
             </AlertDescription>
