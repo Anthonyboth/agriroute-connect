@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePrefilledUserData } from "@/hooks/usePrefilledUserData";
+import { SefazErrorModal } from "./SefazErrorModal";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -56,6 +57,12 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPrefilled, setHasPrefilled] = useState(false);
   const [freightRecipientLoading, setFreightRecipientLoading] = useState(false);
+  
+  // Estado do modal de erro SEFAZ
+  const [sefazError, setSefazError] = useState<{ isOpen: boolean; message: string; response?: any }>({
+    isOpen: false,
+    message: '',
+  });
 
   const [formData, setFormData] = useState({
     // Destinatário
@@ -305,9 +312,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       }
 
       if (status === "rejected") {
-        toast.error("NF-e rejeitada", {
-          description: item?.message || "A SEFAZ rejeitou a nota.",
-        });
+        // Abrir modal de erro detalhado ao invés de só toast
+        const errorMsg = item?.message || item?.error_message || "A SEFAZ rejeitou a nota.";
+        setSefazError({ isOpen: true, message: errorMsg, response: item });
         return { ok: true, status, item };
       }
 
@@ -452,9 +459,25 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       onClose();
     } catch (err: any) {
       console.error("[NFE] Erro ao emitir:", err);
-      toast.error("Erro ao emitir NF-e", {
-        description: err?.message || "Tente novamente.",
-      });
+      const errorMsg = err?.message || "Erro desconhecido ao emitir NF-e.";
+      
+      // Verificar se é um erro SEFAZ (rejeição) para abrir o modal detalhado
+      const isSefazError = errorMsg.toLowerCase().includes('rejeição') ||
+                           errorMsg.toLowerCase().includes('rejei') ||
+                           errorMsg.toLowerCase().includes('sefaz') ||
+                           errorMsg.toLowerCase().includes('ncm') ||
+                           errorMsg.toLowerCase().includes('cfop') ||
+                           errorMsg.toLowerCase().includes('ie ') ||
+                           errorMsg.toLowerCase().includes('cnpj') ||
+                           errorMsg.toLowerCase().includes('certificado');
+      
+      if (isSefazError) {
+        setSefazError({ isOpen: true, message: errorMsg });
+      } else {
+        toast.error("Erro ao emitir NF-e", {
+          description: errorMsg,
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -836,6 +859,14 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
           )}
         </div>
       </DialogContent>
+      
+      {/* Modal de erro SEFAZ detalhado */}
+      <SefazErrorModal
+        isOpen={sefazError.isOpen}
+        onClose={() => setSefazError({ isOpen: false, message: '' })}
+        errorMessage={sefazError.message}
+        originalResponse={sefazError.response}
+      />
     </Dialog>
   );
 };
