@@ -22,6 +22,8 @@ import { FiscalOnboardingStep5 } from './onboarding/FiscalOnboardingStep5';
 interface FiscalOnboardingWizardProps {
   onComplete?: () => void;
   onCancel?: () => void;
+  /** Modo de edição: permite navegar livremente entre etapas */
+  editMode?: boolean;
 }
 
 const STEPS = [
@@ -32,26 +34,32 @@ const STEPS = [
   { id: 5, title: 'Termo de Responsabilidade', icon: CheckCircle2 },
 ];
 
-export function FiscalOnboardingWizard({ onComplete, onCancel }: FiscalOnboardingWizardProps) {
+export function FiscalOnboardingWizard({ onComplete, onCancel, editMode = false }: FiscalOnboardingWizardProps) {
   const { loading, issuer, getOnboardingProgress } = useFiscalIssuer();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(editMode ? 2 : 1); // Ir direto para dados cadastrais em modo edição
   const [formData, setFormData] = useState<Partial<RegisterIssuerData>>({
     issuer_type: 'CPF',
     regime_tributario: 'simples_nacional',
   });
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Sync step with issuer status
+  // Sync step with issuer status (apenas no primeiro render e se não for modo edição)
   useEffect(() => {
+    if (hasInitialized || editMode) return;
+    
     if (issuer) {
       const progress = getOnboardingProgress();
-      // Set to the next incomplete step
+      // Em modo normal, ir para a próxima etapa incompleta
+      // Mas NÃO fechar automaticamente se já completou - permitir edição
       if (progress.step >= 5) {
-        onComplete?.();
+        // Emissor já configurado - ir para etapa 2 (dados cadastrais) para permitir edição
+        setCurrentStep(2);
       } else {
         setCurrentStep(Math.max(1, progress.step + 1));
       }
+      setHasInitialized(true);
     }
-  }, [issuer, getOnboardingProgress, onComplete]);
+  }, [issuer, getOnboardingProgress, hasInitialized, editMode]);
 
   const progressPercent = (currentStep / STEPS.length) * 100;
 

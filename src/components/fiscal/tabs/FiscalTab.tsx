@@ -30,6 +30,7 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
   const permissions = useDocumentPermissions(userRole);
   const [activeSubTab, setActiveSubTab] = useState('documents');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Verificar se já tem emissor fiscal configurado
   const { data: fiscalIssuer, isLoading: loadingIssuer } = useQuery({
@@ -196,7 +197,10 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
           <FiscalIssuerSetup 
             fiscalIssuer={fiscalIssuer}
             userRole={userRole}
-            onStartOnboarding={() => setShowOnboarding(true)}
+            onStartOnboarding={() => {
+              setIsEditMode(!!fiscalIssuer); // Edit mode se já tem emissor
+              setShowOnboarding(true);
+            }}
           />
         </TabsContent>
 
@@ -243,9 +247,14 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
       {/* Modal de Onboarding Fiscal */}
       {showOnboarding && (
         <FiscalOnboardingWizard
-          onCancel={() => setShowOnboarding(false)}
+          editMode={isEditMode}
+          onCancel={() => {
+            setShowOnboarding(false);
+            setIsEditMode(false);
+          }}
           onComplete={() => {
             setShowOnboarding(false);
+            setIsEditMode(false);
           }}
         />
       )}
