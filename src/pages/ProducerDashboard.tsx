@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, lazy } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { AppSpinner } from "@/components/ui/AppSpinner";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
@@ -65,17 +66,17 @@ import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
 import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
 import { HERO_BG_DESKTOP } from "@/lib/hero-assets";
 
-// ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
-const FreightAnalyticsDashboard = lazy(() =>
+// ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
+const FreightAnalyticsDashboard = lazyWithRetry(() =>
   import("@/components/FreightAnalyticsDashboard").then((m) => ({ default: m.FreightAnalyticsDashboard })),
 );
-const DriverPerformanceDashboard = lazy(() =>
+const DriverPerformanceDashboard = lazyWithRetry(() =>
   import("@/components/dashboards/DriverPerformanceDashboard").then((m) => ({ default: m.DriverPerformanceDashboard })),
 );
-const PeriodComparisonDashboard = lazy(() =>
+const PeriodComparisonDashboard = lazyWithRetry(() =>
   import("@/components/PeriodComparisonDashboard").then((m) => ({ default: m.PeriodComparisonDashboard })),
 );
-const RouteRentabilityReport = lazy(() =>
+const RouteRentabilityReport = lazyWithRetry(() =>
   import("@/components/RouteRentabilityReport").then((m) => ({ default: m.RouteRentabilityReport })),
 );
 
