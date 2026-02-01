@@ -192,50 +192,63 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         }
       }
 
-      // ✅ CORREÇÃO BUG 2: Carregar motoristas atribuídos (multi-carretas)
-      // Quando required_trucks > 1, o campo freights.driver_id pode ficar NULL por design.
-      // Nesses casos, precisamos renderizar os perfis de drivers_assigned.
+      // ✅ CORREÇÃO: Carregar TODOS os motoristas atribuídos ao frete (multi-carretas)
+      // Fonte de verdade PRIMÁRIA: freight_assignments (não drivers_assigned, que pode estar desatualizado)
+      // Isso garante que motoristas afiliados atribuídos por transportadoras apareçam corretamente
       try {
-        const assignedIds = Array.isArray((data as any)?.drivers_assigned)
-          ? ((data as any).drivers_assigned as string[])
-          : [];
+        // ✅ SEMPRE buscar da tabela freight_assignments para ter a lista completa
+        // Incluir TODOS os status ativos (não apenas os avançados)
+        const { data: assignmentRows, error: assignmentErr } = await supabase
+          .from('freight_assignments')
+          .select('driver_id, status, company_id')
+          .eq('freight_id', freightId)
+          .in('status', ['PENDING', 'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
 
-        // ✅ FALLBACK: se drivers_assigned não estiver preenchido (edge case),
-        // buscar a verdade pelo freight_assignments.
-        let assignmentDriverIds: string[] = [];
-        if (assignedIds.length === 0) {
-          const { data: assignmentRows, error: assignmentErr } = await supabase
-            .from('freight_assignments')
-            .select('driver_id')
-            .eq('freight_id', freightId)
-            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
-
-          if (assignmentErr) {
-            console.warn('[FreightDetails] Falha ao buscar freight_assignments (fallback drivers):', assignmentErr);
-          } else {
-            assignmentDriverIds = Array.from(
-              new Set((assignmentRows || []).map((r: any) => r?.driver_id).filter(Boolean)),
-            );
-          }
+        if (assignmentErr) {
+          console.warn('[FreightDetails] Falha ao buscar freight_assignments:', assignmentErr);
         }
 
-        const driverIdsToFetch = assignedIds.length > 0 ? assignedIds : assignmentDriverIds;
+        // Extrair IDs únicos de motoristas das atribuições
+        const assignmentDriverIds = Array.from(
+          new Set((assignmentRows || []).map((r: any) => r?.driver_id).filter(Boolean)),
+        );
 
-        if (driverIdsToFetch.length > 0) {
-          // ✅ CORREÇÃO: Tentar profiles_secure primeiro, depois fallback para edge function
+        // ✅ FALLBACK: Se não houver atribuições, tentar drivers_assigned (campo legado)
+        const legacyAssignedIds = Array.isArray((data as any)?.drivers_assigned)
+          ? ((data as any).drivers_assigned as string[])
+          : [];
+        
+        // Combinar IDs de ambas as fontes (remover duplicatas)
+        const allDriverIds = Array.from(new Set([...assignmentDriverIds, ...legacyAssignedIds]));
+        
+        console.log('[FreightDetails] Motoristas encontrados:', {
+          fromAssignments: assignmentDriverIds.length,
+          fromLegacy: legacyAssignedIds.length,
+          total: allDriverIds.length,
+          ids: allDriverIds
+        });
+
+        if (allDriverIds.length > 0) {
+          // ✅ Tentar profiles_secure primeiro, depois fallback para edge function
           const { data: driversData, error: driversError } = await (supabase as any)
             .from('profiles_secure')
             .select('id, full_name, profile_photo_url, rating, total_ratings')
-            .in('id', driverIdsToFetch);
+            .in('id', allDriverIds);
 
           let resolvedDrivers = (driversData as any[]) || [];
+          
+          console.log('[FreightDetails] Motoristas carregados via profiles_secure:', resolvedDrivers.length);
 
-          // ✅ FALLBACK: Se profiles_secure retornou vazio (RLS bloqueou), usar edge function
-          if (resolvedDrivers.length === 0 && driverIdsToFetch.length > 0) {
-            console.log('[FreightDetails] profiles_secure vazio, usando edge function fallback...');
+          // ✅ FALLBACK: Se profiles_secure retornou menos que o esperado, usar edge function para os faltantes
+          const missingDriverIds = allDriverIds.filter(
+            id => !resolvedDrivers.some(d => d.id === id)
+          );
+          
+          if (missingDriverIds.length > 0) {
+            console.log('[FreightDetails] Motoristas faltantes, usando edge function:', missingDriverIds);
             
             const fallbackDrivers: any[] = [];
-            for (const driverId of driverIdsToFetch) {
+            for (const driverId of missingDriverIds) {
               try {
                 const { data: edgeData, error: edgeError } = await supabase.functions.invoke('get-participant-public-profile', {
                   body: {
@@ -254,19 +267,19 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               }
             }
             
-            resolvedDrivers = fallbackDrivers;
+            resolvedDrivers = [...resolvedDrivers, ...fallbackDrivers];
           }
 
           setAssignedDrivers(resolvedDrivers);
           
           if (driversError && resolvedDrivers.length === 0) {
-            console.warn('[FreightDetails] Falha ao buscar drivers_assigned:', driversError);
+            console.warn('[FreightDetails] Falha ao buscar motoristas atribuídos:', driversError);
           }
         } else {
           setAssignedDrivers([]);
         }
       } catch (e) {
-        console.warn('[FreightDetails] Erro inesperado ao buscar drivers_assigned:', e);
+        console.warn('[FreightDetails] Erro inesperado ao buscar motoristas atribuídos:', e);
         setAssignedDrivers([]);
       }
       
