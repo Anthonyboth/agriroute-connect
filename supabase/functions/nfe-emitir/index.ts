@@ -183,11 +183,24 @@ Deno.serve(async (req) => {
 
     // Validação de endereço do destinatário (obrigatório para NF-e)
     const endDest = destinatario.endereco;
-    if (!endDest?.logradouro || !endDest?.bairro || !endDest?.municipio || !endDest?.uf || !endDest?.cep) {
+    const missing: string[] = [];
+    const logradouro = String(endDest?.logradouro || "").trim();
+    const bairro = String(endDest?.bairro || "").trim();
+    const municipio = String(endDest?.municipio || "").trim();
+    const uf = safeUpper(String(endDest?.uf || ""));
+    const cepDigits = onlyDigits(String(endDest?.cep || ""));
+
+    if (!logradouro) missing.push("logradouro");
+    if (!bairro) missing.push("bairro");
+    if (!municipio) missing.push("município");
+    if (uf.length !== 2) missing.push("UF");
+    if (cepDigits.length !== 8) missing.push("CEP");
+
+    if (missing.length > 0) {
       return jsonResponse(400, {
         success: false,
         code: "INVALID_RECIPIENT_ADDRESS",
-        message: "Endereço completo do destinatário é obrigatório (logradouro, bairro, município, UF e CEP).",
+        message: `Endereço do destinatário incompleto: ${missing.join(", ")}.`,
       });
     }
 
