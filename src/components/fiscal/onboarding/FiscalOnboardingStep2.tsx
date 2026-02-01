@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, Search } from 'lucide-react';
 import { RegisterIssuerData, useFiscalIssuer } from '@/hooks/useFiscalIssuer';
+import { cn } from '@/lib/utils';
 import { isValidDocument, formatDocument, getDocumentType } from '@/utils/document';
 import { toast } from 'sonner';
 import { usePrefilledUserData } from '@/hooks/usePrefilledUserData';
+import { ZipCodeService } from '@/services/zipCodeService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FiscalOnboardingStep2Props {
   data: Partial<RegisterIssuerData>;
@@ -33,8 +36,76 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
   const { loading, registerIssuer, updateIssuer, issuer } = useFiscalIssuer();
   const { fiscal: prefilledFiscal, personal: prefilledPersonal, loading: prefillLoading } = usePrefilledUserData();
   const [localLoading, setLocalLoading] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasPrefilled, setHasPrefilled] = useState(false);
+
+  // ✅ BUSCA AUTOMÁTICA DE ENDEREÇO E CÓDIGO IBGE PELO CEP
+  const fetchAddressByCep = useCallback(async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+    
+    setCepLoading(true);
+    try {
+      console.log('[FiscalOnboardingStep2] Buscando endereço pelo CEP:', cleanCep);
+      
+      // Buscar endereço via ZipCodeService
+      const result = await ZipCodeService.searchZipCode(cleanCep);
+      
+      if (result) {
+        console.log('[FiscalOnboardingStep2] Endereço encontrado:', result);
+        
+        // Buscar código IBGE da cidade na tabela cities
+        let ibgeCode = '';
+        if (result.city && result.state) {
+          const { data: cityData } = await supabase
+            .from('cities')
+            .select('ibge_code')
+            .ilike('name', result.city)
+            .eq('state', result.state)
+            .limit(1)
+            .maybeSingle();
+          
+          if (cityData?.ibge_code) {
+            ibgeCode = cityData.ibge_code;
+            console.log('[FiscalOnboardingStep2] Código IBGE encontrado:', ibgeCode);
+          } else {
+            console.warn('[FiscalOnboardingStep2] Código IBGE não encontrado para:', result.city, result.state);
+          }
+        }
+        
+        // Atualizar formulário com dados encontrados
+        const updates: Partial<RegisterIssuerData> = {};
+        
+        if (result.street && !data.endereco_logradouro) {
+          updates.endereco_logradouro = result.street.toUpperCase();
+        }
+        if (result.neighborhood && !data.endereco_bairro) {
+          updates.endereco_bairro = result.neighborhood.toUpperCase();
+        }
+        if (result.city && !data.endereco_cidade) {
+          updates.endereco_cidade = result.city.toUpperCase();
+        }
+        if (result.state && !data.endereco_uf) {
+          updates.endereco_uf = result.state.toUpperCase();
+        }
+        if (ibgeCode) {
+          updates.endereco_ibge = ibgeCode;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          onUpdate(updates);
+          toast.success('Endereço preenchido automaticamente');
+        }
+      } else {
+        console.warn('[FiscalOnboardingStep2] CEP não encontrado:', cleanCep);
+      }
+    } catch (err) {
+      console.error('[FiscalOnboardingStep2] Erro ao buscar CEP:', err);
+    } finally {
+      setCepLoading(false);
+    }
+  }, [data.endereco_logradouro, data.endereco_bairro, data.endereco_cidade, data.endereco_uf, onUpdate]);
 
   const isCNPJ = data.issuer_type === 'CNPJ' || data.issuer_type === 'MEI';
 
@@ -147,6 +218,27 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
     setLocalLoading(true);
     
     try {
+      // ✅ Buscar código IBGE se ainda não tiver
+      let ibgeCode = data.endereco_ibge;
+      if (!ibgeCode && data.endereco_cidade && data.endereco_uf) {
+        console.log('[FiscalOnboardingStep2] Buscando código IBGE antes de salvar...');
+        const { data: cityData } = await supabase
+          .from('cities')
+          .select('ibge_code')
+          .ilike('name', data.endereco_cidade)
+          .eq('state', data.endereco_uf)
+          .limit(1)
+          .maybeSingle();
+        
+        if (cityData?.ibge_code) {
+          ibgeCode = cityData.ibge_code;
+          onUpdate({ endereco_ibge: ibgeCode });
+        } else {
+          console.warn('[FiscalOnboardingStep2] Código IBGE não encontrado! NF-e pode falhar.');
+          toast.warning('Código IBGE do município não encontrado. Verifique o nome da cidade.');
+        }
+      }
+
       console.log('[FiscalOnboardingStep2] Salvando dados cadastrais do emissor:', {
         hasIssuer: !!issuer,
         endereco_cep: data.endereco_cep,
@@ -155,11 +247,15 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
         endereco_bairro: data.endereco_bairro,
         endereco_cidade: data.endereco_cidade,
         endereco_uf: data.endereco_uf,
+        endereco_ibge: ibgeCode,
       });
+
+      // ✅ Garantir que o código IBGE está no objeto antes de salvar
+      const dataWithIbge = { ...data, endereco_ibge: ibgeCode };
 
       // If issuer already exists, UPDATE the data instead of skipping
       if (issuer) {
-        const success = await updateIssuer(data as RegisterIssuerData);
+        const success = await updateIssuer(dataWithIbge as RegisterIssuerData);
         if (success) {
           onNext();
         }
@@ -167,7 +263,7 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
       }
 
       // Register new issuer
-      const result = await registerIssuer(data as RegisterIssuerData);
+      const result = await registerIssuer(dataWithIbge as RegisterIssuerData);
       
       if (result) {
         onNext();
@@ -297,23 +393,48 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
         <div className="space-y-4">
           <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Endereço do Emissor</h4>
           
-          {/* CEP */}
+          {/* CEP com busca automática */}
           <div className="space-y-2">
             <Label htmlFor="endereco_cep">CEP *</Label>
-            <Input
-              id="endereco_cep"
-              value={data.endereco_cep || ''}
-              onChange={(e) => {
-                const cep = e.target.value.replace(/\D/g, '');
-                const formatted = cep.length > 5 ? `${cep.slice(0, 5)}-${cep.slice(5, 8)}` : cep;
-                onUpdate({ endereco_cep: formatted });
-              }}
-              placeholder="00000-000"
-              maxLength={9}
-              className={errors.endereco_cep ? 'border-destructive' : ''}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="endereco_cep"
+                value={data.endereco_cep || ''}
+                onChange={(e) => {
+                  const cep = e.target.value.replace(/\D/g, '');
+                  const formatted = cep.length > 5 ? `${cep.slice(0, 5)}-${cep.slice(5, 8)}` : cep;
+                  onUpdate({ endereco_cep: formatted });
+                  
+                  // Auto-buscar quando CEP completo
+                  if (cep.length === 8) {
+                    fetchAddressByCep(cep);
+                  }
+                }}
+                onBlur={(e) => {
+                  const cep = e.target.value.replace(/\D/g, '');
+                  if (cep.length === 8) {
+                    fetchAddressByCep(cep);
+                  }
+                }}
+                placeholder="00000-000"
+                maxLength={9}
+                className={cn("flex-1", errors.endereco_cep ? 'border-destructive' : '')}
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon"
+                onClick={() => fetchAddressByCep(data.endereco_cep || '')}
+                disabled={cepLoading || (data.endereco_cep?.replace(/\D/g, '').length !== 8)}
+              >
+                {cepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
             {errors.endereco_cep && (
               <p className="text-sm text-destructive">{errors.endereco_cep}</p>
+            )}
+            {cepLoading && (
+              <p className="text-xs text-muted-foreground">Buscando endereço...</p>
             )}
           </div>
 
@@ -381,6 +502,25 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
                 id="endereco_cidade"
                 value={data.endereco_cidade || ''}
                 onChange={(e) => onUpdate({ endereco_cidade: e.target.value.toUpperCase() })}
+                onBlur={async (e) => {
+                  // Buscar código IBGE quando cidade é preenchida manualmente
+                  const cidade = e.target.value.trim();
+                  const uf = data.endereco_uf;
+                  if (cidade && uf && !data.endereco_ibge) {
+                    const { data: cityData } = await supabase
+                      .from('cities')
+                      .select('ibge_code')
+                      .ilike('name', cidade)
+                      .eq('state', uf)
+                      .limit(1)
+                      .maybeSingle();
+                    
+                    if (cityData?.ibge_code) {
+                      console.log('[FiscalOnboardingStep2] IBGE encontrado para cidade:', cityData.ibge_code);
+                      onUpdate({ endereco_ibge: cityData.ibge_code });
+                    }
+                  }
+                }}
                 placeholder="CIDADE"
                 className={errors.endereco_cidade ? 'border-destructive' : ''}
               />
@@ -392,7 +532,26 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
               <Label>UF *</Label>
               <Select
                 value={data.endereco_uf}
-                onValueChange={(value) => onUpdate({ endereco_uf: value })}
+                onValueChange={async (value) => {
+                  onUpdate({ endereco_uf: value });
+                  
+                  // Re-buscar código IBGE se cidade já preenchida
+                  const cidade = data.endereco_cidade?.trim();
+                  if (cidade && value && !data.endereco_ibge) {
+                    const { data: cityData } = await supabase
+                      .from('cities')
+                      .select('ibge_code')
+                      .ilike('name', cidade)
+                      .eq('state', value)
+                      .limit(1)
+                      .maybeSingle();
+                    
+                    if (cityData?.ibge_code) {
+                      console.log('[FiscalOnboardingStep2] IBGE encontrado para UF:', cityData.ibge_code);
+                      onUpdate({ endereco_ibge: cityData.ibge_code });
+                    }
+                  }
+                }}
               >
                 <SelectTrigger className={errors.endereco_uf ? 'border-destructive' : ''}>
                   <SelectValue placeholder="UF" />

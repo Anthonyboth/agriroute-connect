@@ -384,7 +384,7 @@ export function useFiscalIssuer() {
           .update(dbUpdates)
           .eq("id", issuer.id)
           // IMPORTANTE: select() permite detectar UPDATE bloqueado por RLS (retorna 0 linhas sem erro)
-          .select("id,address_street,address_neighborhood,address_zip_code,city,uf");
+          .select("id,address_street,address_neighborhood,address_zip_code,city,uf,city_ibge_code");
 
         if (updateError) throw updateError;
 
