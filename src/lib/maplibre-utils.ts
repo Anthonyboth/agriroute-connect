@@ -54,6 +54,8 @@ export function createTruckMarkerElement(isOnline: boolean = true): HTMLDivEleme
   const color = isOnline ? MAP_COLORS.online : MAP_COLORS.offline;
   const svg = TRUCK_ICON_SVG.replace(/#16a34a/g, color).replace(/#15803d/g, color);
   markerDiv.innerHTML = svg;
+  // ✅ CRÍTICO: Classe para identificar como marker circular (anchor: center)
+  markerDiv.classList.add('truck-marker');
   markerDiv.style.cursor = 'pointer';
   markerDiv.style.width = '40px';
   markerDiv.style.height = '40px';
@@ -68,6 +70,9 @@ export function createTruckMarkerElement(isOnline: boolean = true): HTMLDivEleme
 export function createLocationMarkerElement(type: 'origin' | 'destination'): HTMLDivElement {
   const markerDiv = document.createElement('div');
   markerDiv.innerHTML = type === 'origin' ? ORIGIN_MARKER_SVG : DESTINATION_MARKER_SVG;
+  // ✅ CRÍTICO: Classe para identificar como pin (anchor: bottom)
+  // O anchor 'bottom' faz a ponta do pin apontar EXATAMENTE para a coordenada
+  markerDiv.classList.add('location-pin-marker');
   markerDiv.style.cursor = 'pointer';
   markerDiv.style.width = '32px';
   markerDiv.style.height = '40px';
