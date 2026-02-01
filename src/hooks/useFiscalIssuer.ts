@@ -309,6 +309,7 @@ export function useFiscalIssuer() {
 
   /**
    * Atualizar dados do emissor
+   * Mapeia campos do formulário (RegisterIssuerData) para o schema do banco (fiscal_issuers)
    */
   const updateIssuer = useCallback(
     async (updates: Partial<RegisterIssuerData>): Promise<boolean> => {
@@ -321,14 +322,38 @@ export function useFiscalIssuer() {
       setError(null);
 
       try {
-        console.log("[FISCAL] Updating issuer:", issuer.id);
+        console.log("[FISCAL] Updating issuer:", issuer.id, updates);
+
+        // Mapear campos do formulário para campos do banco
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dbUpdates: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
+
+        // Documento e razão social
+        if (updates.cpf_cnpj) dbUpdates.document_number = updates.cpf_cnpj.replace(/\D/g, '');
+        if (updates.razao_social) dbUpdates.legal_name = updates.razao_social;
+        if (updates.nome_fantasia !== undefined) dbUpdates.trade_name = updates.nome_fantasia || null;
+        if (updates.inscricao_estadual !== undefined) dbUpdates.state_registration = updates.inscricao_estadual || null;
+        if (updates.inscricao_municipal !== undefined) dbUpdates.municipal_registration = updates.inscricao_municipal || null;
+        if (updates.regime_tributario) dbUpdates.tax_regime = updates.regime_tributario;
+        if (updates.cnae_principal !== undefined) dbUpdates.cnae_code = updates.cnae_principal || null;
+
+        // Endereço - mapeamento explícito
+        if (updates.endereco_logradouro !== undefined) dbUpdates.address_street = updates.endereco_logradouro || null;
+        if (updates.endereco_numero !== undefined) dbUpdates.address_number = updates.endereco_numero || null;
+        if (updates.endereco_complemento !== undefined) dbUpdates.address_complement = updates.endereco_complemento || null;
+        if (updates.endereco_bairro !== undefined) dbUpdates.address_neighborhood = updates.endereco_bairro || null;
+        if (updates.endereco_cidade !== undefined) dbUpdates.city = updates.endereco_cidade || null;
+        if (updates.endereco_uf !== undefined) dbUpdates.uf = updates.endereco_uf || null;
+        if (updates.endereco_cep !== undefined) dbUpdates.address_zip_code = updates.endereco_cep?.replace(/\D/g, '') || null;
+        if (updates.endereco_ibge !== undefined) dbUpdates.city_ibge_code = updates.endereco_ibge || null;
+
+        console.log("[FISCAL] DB updates:", dbUpdates);
 
         const { error: updateError } = await db
           .from("fiscal_issuers")
-          .update({
-            ...updates,
-            updated_at: new Date().toISOString(),
-          })
+          .update(dbUpdates)
           .eq("id", issuer.id);
 
         if (updateError) throw updateError;
