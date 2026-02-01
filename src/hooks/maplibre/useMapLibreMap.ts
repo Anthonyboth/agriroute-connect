@@ -9,6 +9,7 @@
  * - Controles de navegação opcionais
  * - Cleanup correto no unmount
  * - Estado de loading e erro
+ * - ✅ Tratamento resiliente de erros de rede (tiles/glyphs)
  */
 
 import { useRef, useState, useEffect, useCallback, MutableRefObject } from 'react';
@@ -52,6 +53,27 @@ export interface UseMapLibreMapResult {
 }
 
 /**
+ * Verifica se erro é de rede (fetch/tile) que pode ser ignorado
+ */
+function isNetworkTileError(error: any): boolean {
+  const message = error?.message || error?.error?.message || '';
+  const url = error?.source?.url || error?.url || '';
+  
+  // Erros de fetch de tiles são esperados offline
+  if (message.includes('Failed to fetch')) return true;
+  if (message.includes('NetworkError')) return true;
+  if (message.includes('Load failed')) return true;
+  if (message.includes('ERR_NETWORK')) return true;
+  
+  // Erros de tiles específicos
+  if (url.includes('tile.openstreetmap.org')) return true;
+  if (url.includes('basemaps.cartocdn.com')) return true;
+  if (url.includes('demotiles.maplibre.org')) return true;
+  
+  return false;
+}
+
+/**
  * Hook para inicialização estável do mapa MapLibre
  */
 export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapResult {
@@ -70,6 +92,7 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
 
   const mapRef = useRef<maplibregl.Map | null>(null);
   const initializingRef = useRef(false);
+  const networkErrorCountRef = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -144,14 +167,28 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
         map.on('load', () => {
           setIsLoading(false);
           setIsReady(true);
+          networkErrorCountRef.current = 0; // Reset error count on load
           console.log('[MapLibre] Mapa inicializado com sucesso');
           onLoad?.(map);
         });
 
-        // Error handler
+        // Error handler - com filtro para erros de rede
         map.on('error', (e) => {
+          // Ignorar erros de rede de tiles (esperados quando offline)
+          if (isNetworkTileError(e)) {
+            networkErrorCountRef.current++;
+            // Log apenas a cada 10 erros para não poluir console
+            if (networkErrorCountRef.current <= 3) {
+              console.warn('[MapLibre] Erro de rede (tile/glyph) - esperado se offline:', e.error?.message);
+            } else if (networkErrorCountRef.current === 4) {
+              console.warn('[MapLibre] Múltiplos erros de rede detectados - suprimindo logs futuros');
+            }
+            // NÃO propagar como erro do mapa - é normal offline
+            return;
+          }
+          
           const errorMsg = e.error?.message || 'Erro ao carregar o mapa';
-          console.error('[MapLibre] Erro:', e);
+          console.error('[MapLibre] Erro crítico:', e);
           setError(errorMsg);
           setIsLoading(false);
           onError?.(new Error(errorMsg));
