@@ -107,12 +107,31 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
       newErrors.regime_tributario = 'Regime tributário é obrigatório';
     }
 
-    if (!data.endereco_uf) {
-      newErrors.endereco_uf = 'UF é obrigatória';
+    // ✅ Validação de endereço completo
+    if (!data.endereco_cep) {
+      newErrors.endereco_cep = 'CEP é obrigatório';
+    } else if (data.endereco_cep.replace(/\D/g, '').length !== 8) {
+      newErrors.endereco_cep = 'CEP inválido (8 dígitos)';
+    }
+
+    if (!data.endereco_logradouro) {
+      newErrors.endereco_logradouro = 'Logradouro é obrigatório';
+    }
+
+    if (!data.endereco_numero) {
+      newErrors.endereco_numero = 'Número é obrigatório';
+    }
+
+    if (!data.endereco_bairro) {
+      newErrors.endereco_bairro = 'Bairro é obrigatório';
     }
 
     if (!data.endereco_cidade) {
       newErrors.endereco_cidade = 'Cidade é obrigatória';
+    }
+
+    if (!data.endereco_uf) {
+      newErrors.endereco_uf = 'UF é obrigatória';
     }
 
     setErrors(newErrors);
@@ -261,42 +280,122 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
           </div>
         )}
 
-        {/* Endereço */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Endereço Completo */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Endereço do Emissor</h4>
+          
+          {/* CEP */}
           <div className="space-y-2">
-            <Label>UF *</Label>
-            <Select
-              value={data.endereco_uf}
-              onValueChange={(value) => onUpdate({ endereco_uf: value })}
-            >
-              <SelectTrigger className={errors.endereco_uf ? 'border-destructive' : ''}>
-                <SelectValue placeholder="UF" />
-              </SelectTrigger>
-              <SelectContent>
-                {UF_OPTIONS.map((uf) => (
-                  <SelectItem key={uf} value={uf}>
-                    {uf}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.endereco_uf && (
-              <p className="text-sm text-destructive">{errors.endereco_uf}</p>
+            <Label htmlFor="endereco_cep">CEP *</Label>
+            <Input
+              id="endereco_cep"
+              value={data.endereco_cep || ''}
+              onChange={(e) => {
+                const cep = e.target.value.replace(/\D/g, '');
+                const formatted = cep.length > 5 ? `${cep.slice(0, 5)}-${cep.slice(5, 8)}` : cep;
+                onUpdate({ endereco_cep: formatted });
+              }}
+              placeholder="00000-000"
+              maxLength={9}
+              className={errors.endereco_cep ? 'border-destructive' : ''}
+            />
+            {errors.endereco_cep && (
+              <p className="text-sm text-destructive">{errors.endereco_cep}</p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="endereco_cidade">Cidade *</Label>
-            <Input
-              id="endereco_cidade"
-              value={data.endereco_cidade || ''}
-              onChange={(e) => onUpdate({ endereco_cidade: e.target.value.toUpperCase() })}
-              placeholder="CIDADE"
-              className={errors.endereco_cidade ? 'border-destructive' : ''}
-            />
-            {errors.endereco_cidade && (
-              <p className="text-sm text-destructive">{errors.endereco_cidade}</p>
-            )}
+          {/* Logradouro e Número */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="endereco_logradouro">Logradouro *</Label>
+              <Input
+                id="endereco_logradouro"
+                value={data.endereco_logradouro || ''}
+                onChange={(e) => onUpdate({ endereco_logradouro: e.target.value.toUpperCase() })}
+                placeholder="RUA, AVENIDA, ETC"
+                className={errors.endereco_logradouro ? 'border-destructive' : ''}
+              />
+              {errors.endereco_logradouro && (
+                <p className="text-sm text-destructive">{errors.endereco_logradouro}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endereco_numero">Número *</Label>
+              <Input
+                id="endereco_numero"
+                value={data.endereco_numero || ''}
+                onChange={(e) => onUpdate({ endereco_numero: e.target.value })}
+                placeholder="123"
+                className={errors.endereco_numero ? 'border-destructive' : ''}
+              />
+              {errors.endereco_numero && (
+                <p className="text-sm text-destructive">{errors.endereco_numero}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Complemento e Bairro */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="endereco_complemento">Complemento</Label>
+              <Input
+                id="endereco_complemento"
+                value={data.endereco_complemento || ''}
+                onChange={(e) => onUpdate({ endereco_complemento: e.target.value.toUpperCase() })}
+                placeholder="SALA 101, BLOCO A"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endereco_bairro">Bairro *</Label>
+              <Input
+                id="endereco_bairro"
+                value={data.endereco_bairro || ''}
+                onChange={(e) => onUpdate({ endereco_bairro: e.target.value.toUpperCase() })}
+                placeholder="BAIRRO"
+                className={errors.endereco_bairro ? 'border-destructive' : ''}
+              />
+              {errors.endereco_bairro && (
+                <p className="text-sm text-destructive">{errors.endereco_bairro}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Cidade e UF */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="endereco_cidade">Cidade *</Label>
+              <Input
+                id="endereco_cidade"
+                value={data.endereco_cidade || ''}
+                onChange={(e) => onUpdate({ endereco_cidade: e.target.value.toUpperCase() })}
+                placeholder="CIDADE"
+                className={errors.endereco_cidade ? 'border-destructive' : ''}
+              />
+              {errors.endereco_cidade && (
+                <p className="text-sm text-destructive">{errors.endereco_cidade}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>UF *</Label>
+              <Select
+                value={data.endereco_uf}
+                onValueChange={(value) => onUpdate({ endereco_uf: value })}
+              >
+                <SelectTrigger className={errors.endereco_uf ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="UF" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UF_OPTIONS.map((uf) => (
+                    <SelectItem key={uf} value={uf}>
+                      {uf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.endereco_uf && (
+                <p className="text-sm text-destructive">{errors.endereco_uf}</p>
+              )}
+            </div>
           </div>
         </div>
 
