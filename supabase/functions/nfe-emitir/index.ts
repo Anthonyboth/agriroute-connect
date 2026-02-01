@@ -300,6 +300,31 @@ Deno.serve(async (req) => {
       destCodigoMunicipio = cityData?.ibge_code || "";
     }
 
+    // ==============================
+    // VALIDAÇÃO DO ENDEREÇO DO EMITENTE (OBRIGATÓRIO PARA NF-e)
+    // ==============================
+    const issuerLogradouro = String(issuer.address_street || "").trim();
+    const issuerBairro = String(issuer.address_neighborhood || "").trim();
+    const issuerMunicipio = String(issuer.city || "").trim();
+    const issuerUf = safeUpper(String(issuer.uf || ""));
+    const issuerCep = onlyDigits(String(issuer.address_zip_code || ""));
+
+    const missingIssuer: string[] = [];
+    if (!issuerLogradouro) missingIssuer.push("logradouro");
+    if (!issuerBairro) missingIssuer.push("bairro");
+    if (!issuerMunicipio) missingIssuer.push("município");
+    if (issuerUf.length !== 2) missingIssuer.push("UF");
+    if (issuerCep.length !== 8) missingIssuer.push("CEP");
+
+    if (missingIssuer.length > 0) {
+      console.error("[nfe-emitir] Endereço do emissor incompleto:", missingIssuer);
+      return jsonResponse(400, {
+        success: false,
+        code: "INVALID_ISSUER_ADDRESS",
+        message: `Endereço do emissor incompleto: ${missingIssuer.join(", ")}. Atualize o cadastro fiscal.`,
+      });
+    }
+
     // Payload Focus (CORRIGIDO)
     const dataEmissao = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     
@@ -318,13 +343,13 @@ Deno.serve(async (req) => {
       inscricao_estadual_emitente: onlyDigits(String(issuer.state_registration || "")) || "ISENTO",
       nome_emitente: String(issuer.legal_name || ""),
       nome_fantasia_emitente: String(issuer.trade_name || issuer.legal_name || ""),
-      logradouro_emitente: String(issuer.address_street || ""),
-      numero_emitente: String(issuer.address_number || "SN"),
-      bairro_emitente: String(issuer.address_neighborhood || ""),
-      municipio_emitente: String(issuer.city || ""),
+      logradouro_emitente: issuerLogradouro,
+      numero_emitente: String(issuer.address_number || "SN").trim() || "SN",
+      bairro_emitente: issuerBairro,
+      municipio_emitente: issuerMunicipio,
       codigo_municipio_emitente: String(issuer.city_ibge_code || ""),
-      uf_emitente: safeUpper(String(issuer.uf || "")),
-      cep_emitente: onlyDigits(String(issuer.address_zip_code || "")),
+      uf_emitente: issuerUf,
+      cep_emitente: issuerCep,
       regime_tributario: mapTaxRegime(String(issuer.tax_regime || "simples_nacional")),
 
       // Destinatário: CPF ou CNPJ (CORREÇÃO)
