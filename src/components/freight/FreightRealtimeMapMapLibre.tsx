@@ -179,15 +179,56 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
   // ✅ Normalizar coordenadas para evitar markers em posições incorretas
   // Corrige casos comuns: lat/lng invertidos e valores persistidos em micrograus.
-  const mapOrigin = useMemo(() => normalizeLatLngPoint(effectiveOrigin, 'BR'), [effectiveOrigin]);
-  const mapDestination = useMemo(
-    () => normalizeLatLngPoint(effectiveDestination, 'BR'),
-    [effectiveDestination]
-  );
-  const mapDriverLocation = useMemo(
-    () => normalizeLatLngPoint(effectiveDriverLocation, 'BR'),
-    [effectiveDriverLocation]
-  );
+  // ✅ CORREÇÃO: Adiciona validação extra de sanidade para garantir que coordenadas estão no Brasil
+  const isValidBrazilCoord = useCallback((lat: number, lng: number): boolean => {
+    return lat >= -35 && lat <= 6 && lng >= -75 && lng <= -30;
+  }, []);
+
+  const mapOrigin = useMemo(() => {
+    const normalized = normalizeLatLngPoint(effectiveOrigin, 'BR');
+    if (normalized && isValidBrazilCoord(normalized.lat, normalized.lng)) {
+      return normalized;
+    }
+    if (normalized) {
+      console.warn('[FreightRealtimeMapMapLibre] ❌ Origin coords outside Brazil after normalization:', normalized);
+    }
+    return normalized; // Retorna mesmo assim para não quebrar o mapa
+  }, [effectiveOrigin, isValidBrazilCoord]);
+
+  const mapDestination = useMemo(() => {
+    const normalized = normalizeLatLngPoint(effectiveDestination, 'BR');
+    if (normalized && isValidBrazilCoord(normalized.lat, normalized.lng)) {
+      return normalized;
+    }
+    if (normalized) {
+      console.warn('[FreightRealtimeMapMapLibre] ❌ Destination coords outside Brazil after normalization:', normalized);
+    }
+    return normalized; // Retorna mesmo assim para não quebrar o mapa
+  }, [effectiveDestination, isValidBrazilCoord]);
+
+  const mapDriverLocation = useMemo(() => {
+    const normalized = normalizeLatLngPoint(effectiveDriverLocation, 'BR');
+    if (normalized && isValidBrazilCoord(normalized.lat, normalized.lng)) {
+      return normalized;
+    }
+    if (normalized) {
+      console.warn('[FreightRealtimeMapMapLibre] ❌ Driver coords outside Brazil after normalization:', normalized);
+    }
+    return normalized; // Retorna mesmo assim para não quebrar o mapa
+  }, [effectiveDriverLocation, isValidBrazilCoord]);
+
+  // ✅ 🔍 DEBUG: Log do fluxo completo de coordenadas para rastreamento
+  useEffect(() => {
+    console.log('[FreightRealtimeMapMapLibre] 🔍 Coordinate Flow Debug:', {
+      props: { originLat, originLng, destinationLat, destinationLng, initialDriverLat, initialDriverLng },
+      effective: { effectiveOrigin, effectiveDestination, effectiveDriverLocation },
+      normalized: { mapOrigin, mapDestination, mapDriverLocation },
+      fallback: { cityOriginCoords, cityDestinationCoords }
+    });
+  }, [originLat, originLng, destinationLat, destinationLng, initialDriverLat, initialDriverLng, 
+      effectiveOrigin, effectiveDestination, effectiveDriverLocation, 
+      mapOrigin, mapDestination, mapDriverLocation, 
+      cityOriginCoords, cityDestinationCoords]);
 
   // ✅ NOVO: Verificar se motorista está realmente online (< 5 min desde última atualização)
   const isDriverReallyOnline = useMemo(() => {
@@ -498,6 +539,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         
         originMarkerRef.current = new maplibregl.Marker({
           element: originElement,
+          anchor: 'bottom', // ✅ CRÍTICO: Ponta do pin coincide com coordenada exata
         })
           .setLngLat([mapOrigin.lng, mapOrigin.lat])
           .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(
@@ -517,6 +559,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         
         destinationMarkerRef.current = new maplibregl.Marker({
           element: destinationElement,
+          anchor: 'bottom', // ✅ CRÍTICO: Ponta do pin coincide com coordenada exata
         })
           .setLngLat([mapDestination.lng, mapDestination.lat])
           .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(
@@ -547,6 +590,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         
         ghostDriverMarkerRef.current = new maplibregl.Marker({
           element: ghostElement,
+          anchor: 'center', // ✅ Caminhão usa centro do ícone
         })
           .setLngLat([mapDriverLocation.lng, mapDriverLocation.lat])
           .setPopup(
@@ -574,6 +618,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       
       driverMarkerRef.current = new maplibregl.Marker({
         element: truckElement,
+        anchor: 'center', // ✅ Caminhão usa centro do ícone
       })
         .setLngLat([mapDriverLocation.lng, mapDriverLocation.lat])
         .setPopup(
