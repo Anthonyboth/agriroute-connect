@@ -178,8 +178,41 @@ serve(async (req) => {
       );
     }
 
-    // Calcular vagas disponíveis com dados frescos
-    const availableSlots = (freightFresh.required_trucks || 1) - (freightFresh.accepted_trucks || 0);
+    // ======================================================
+    // 5.1 CAPACITY SOURCE-OF-TRUTH (CRÍTICO)
+    // ======================================================
+    // accepted_trucks pode ficar fora de sincronia por falhas antigas/triggers.
+    // Para evitar oversubscription (ex.: 1 carreta com 2+ motoristas), usamos
+    // SEMPRE a contagem real de assignments ativos como fonte de verdade.
+    const activeAssignmentStatuses = [
+      'ACCEPTED',
+      'LOADING',
+      'LOADED',
+      'IN_TRANSIT',
+      'DELIVERED_PENDING_CONFIRMATION',
+    ] as const;
+
+    const { count: realAcceptedCount, error: realAcceptedError } = await supabase
+      .from('freight_assignments')
+      .select('id', { count: 'exact', head: true })
+      .eq('freight_id', freight_id)
+      .in('status', [...activeAssignmentStatuses]);
+
+    if (realAcceptedError) {
+      console.error('[PREFLIGHT] Error counting real accepted assignments:', realAcceptedError);
+      return new Response(
+        JSON.stringify({
+          error: 'Error verifying freight capacity',
+          details: 'Unable to verify current assignments. Please try again.',
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const realAccepted = realAcceptedCount ?? 0;
+
+    // Calcular vagas disponíveis com base em assignments (source-of-truth)
+    const availableSlots = (freightFresh.required_trucks || 1) - realAccepted;
     
     if (availableSlots < num_trucks) {
       console.log(`[PREFLIGHT] Insufficient slots - {${JSON.stringify({
@@ -201,6 +234,7 @@ serve(async (req) => {
           available_slots: availableSlots,
           required_trucks: freightFresh.required_trucks,
           accepted_trucks: freightFresh.accepted_trucks,
+          real_accepted_assignments: realAccepted,
           requested_trucks: num_trucks
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }

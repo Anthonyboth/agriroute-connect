@@ -55,12 +55,45 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
       // Verificar se o frete ainda está disponível
       const { data: currentFreight } = await supabase
         .from('freights')
-        .select('status, accepted_trucks')
+        .select('status, accepted_trucks, required_trucks')
         .eq('id', freight.id)
         .single();
 
       if (currentFreight?.status !== 'OPEN') {
         toast.error('Este frete não está mais disponível');
+        onUnavailable?.();
+        onClose();
+        return;
+      }
+
+      // ✅ CRÍTICO: não permitir criar mais motoristas ativos do que o limite do frete
+      const required = Math.max((currentFreight?.required_trucks ?? requiredTrucks) || 1, 1);
+      const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'] as const;
+
+      const [{ data: existingAssignment }, { count: realAcceptedCount, error: realAcceptedError }] = await Promise.all([
+        supabase
+          .from('freight_assignments')
+          .select('id')
+          .eq('freight_id', freight.id)
+          .eq('driver_id', driverId)
+          .maybeSingle(),
+        supabase
+          .from('freight_assignments')
+          .select('id', { count: 'exact', head: true })
+          .eq('freight_id', freight.id)
+          .in('status', [...activeStatuses]),
+      ]);
+
+      if (realAcceptedError) throw realAcceptedError;
+
+      const realAccepted = realAcceptedCount ?? 0;
+      const isNewAcceptance = !existingAssignment;
+
+      if (isNewAcceptance && realAccepted >= required) {
+        toast.error(required === 1
+          ? 'Este frete já está atribuído a um motorista'
+          : 'Este frete já está com todas as vagas preenchidas'
+        );
         onUnavailable?.();
         onClose();
         return;
@@ -106,7 +139,8 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
           status: 'ACCEPTED',
           driver_id: driverId,
           company_id: companyId,
-          accepted_trucks: (currentFreight.accepted_trucks || 0) + 1
+          // Evita drift: só incrementa se for um aceite novo; caso contrário, apenas sincroniza.
+          accepted_trucks: isNewAcceptance ? Math.min(required, realAccepted + 1) : Math.max((currentFreight.accepted_trucks || 0), realAccepted)
         })
         .eq('id', freight.id);
 

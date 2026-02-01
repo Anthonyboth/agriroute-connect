@@ -85,14 +85,26 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
       const delivered = freights.filter(f => f.status === 'DELIVERED');
       const totalEarnings = delivered.reduce((sum, f) => sum + (f.price || 0), 0);
 
-      // Motoristas ativos (únicos)
-      const uniqueDrivers = new Set(
-        (assignments || []).map(a => a.driver_id).filter(Boolean)
-      );
+       // Motoristas ativos (únicos)
+       const uniqueDrivers = new Set(
+         (assignments || []).map(a => a.driver_id).filter(Boolean)
+       );
+
+       // ✅ CRÍTICO: Um frete atribuído a um motorista afiliado continua sendo UM único frete.
+       // Como o frete aparece tanto em `freights` (company_id) quanto em `freight_assignments`,
+       // sempre deduplicar por freight_id para não “contar em dobro”.
+       const activeFreightIds = new Set<string>();
+       (active || []).forEach((f: any) => {
+         if (f?.id) activeFreightIds.add(f.id);
+       });
+       (assignments || []).forEach((a: any) => {
+         const fid = a?.freight_id || a?.freight?.id;
+         if (fid) activeFreightIds.add(fid);
+       });
 
       setStats({
         totalFreights: freights.length,
-        activeFreights: active.length + (assignments?.length || 0),
+         activeFreights: activeFreightIds.size,
         activeDrivers: uniqueDrivers.size,
         totalEarnings,
         pendingProposals: proposals?.length || 0,
