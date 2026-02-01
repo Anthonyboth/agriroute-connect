@@ -339,6 +339,16 @@ export function useFiscalIssuer() {
       try {
         console.log("[FISCAL] Updating issuer:", issuer.id, updates);
 
+        const toNullIfEmpty = (v: unknown) => {
+          if (v === undefined) return undefined;
+          if (v === null) return null;
+          if (typeof v === 'string') {
+            const t = v.trim();
+            return t.length === 0 ? null : t;
+          }
+          return v;
+        };
+
         // Mapear campos do formulário para campos do banco
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const dbUpdates: Record<string, any> = {
@@ -348,30 +358,41 @@ export function useFiscalIssuer() {
         // Documento e razão social
         if (updates.cpf_cnpj) dbUpdates.document_number = updates.cpf_cnpj.replace(/\D/g, '');
         if (updates.razao_social) dbUpdates.legal_name = updates.razao_social;
-        if (updates.nome_fantasia !== undefined) dbUpdates.trade_name = updates.nome_fantasia || null;
-        if (updates.inscricao_estadual !== undefined) dbUpdates.state_registration = updates.inscricao_estadual || null;
-        if (updates.inscricao_municipal !== undefined) dbUpdates.municipal_registration = updates.inscricao_municipal || null;
+        if (updates.nome_fantasia !== undefined) dbUpdates.trade_name = toNullIfEmpty(updates.nome_fantasia);
+        if (updates.inscricao_estadual !== undefined) dbUpdates.state_registration = toNullIfEmpty(updates.inscricao_estadual);
+        if (updates.inscricao_municipal !== undefined) dbUpdates.municipal_registration = toNullIfEmpty(updates.inscricao_municipal);
         if (updates.regime_tributario) dbUpdates.tax_regime = updates.regime_tributario;
-        if (updates.cnae_principal !== undefined) dbUpdates.cnae_code = updates.cnae_principal || null;
+        if (updates.cnae_principal !== undefined) dbUpdates.cnae_code = toNullIfEmpty(updates.cnae_principal);
 
         // Endereço - mapeamento explícito
-        if (updates.endereco_logradouro !== undefined) dbUpdates.address_street = updates.endereco_logradouro || null;
-        if (updates.endereco_numero !== undefined) dbUpdates.address_number = updates.endereco_numero || null;
-        if (updates.endereco_complemento !== undefined) dbUpdates.address_complement = updates.endereco_complemento || null;
-        if (updates.endereco_bairro !== undefined) dbUpdates.address_neighborhood = updates.endereco_bairro || null;
-        if (updates.endereco_cidade !== undefined) dbUpdates.city = updates.endereco_cidade || null;
-        if (updates.endereco_uf !== undefined) dbUpdates.uf = updates.endereco_uf || null;
-        if (updates.endereco_cep !== undefined) dbUpdates.address_zip_code = updates.endereco_cep?.replace(/\D/g, '') || null;
-        if (updates.endereco_ibge !== undefined) dbUpdates.city_ibge_code = updates.endereco_ibge || null;
+        if (updates.endereco_logradouro !== undefined) dbUpdates.address_street = toNullIfEmpty(updates.endereco_logradouro);
+        if (updates.endereco_numero !== undefined) dbUpdates.address_number = toNullIfEmpty(updates.endereco_numero);
+        if (updates.endereco_complemento !== undefined) dbUpdates.address_complement = toNullIfEmpty(updates.endereco_complemento);
+        if (updates.endereco_bairro !== undefined) dbUpdates.address_neighborhood = toNullIfEmpty(updates.endereco_bairro);
+        if (updates.endereco_cidade !== undefined) dbUpdates.city = toNullIfEmpty(updates.endereco_cidade);
+        if (updates.endereco_uf !== undefined) dbUpdates.uf = toNullIfEmpty(updates.endereco_uf);
+        if (updates.endereco_cep !== undefined) {
+          const digits = (updates.endereco_cep || '').replace(/\D/g, '');
+          dbUpdates.address_zip_code = digits.length ? digits : null;
+        }
+        if (updates.endereco_ibge !== undefined) dbUpdates.city_ibge_code = toNullIfEmpty(updates.endereco_ibge);
 
         console.log("[FISCAL] DB updates:", dbUpdates);
 
-        const { error: updateError } = await db
+        const { data: updatedRows, error: updateError } = await db
           .from("fiscal_issuers")
           .update(dbUpdates)
-          .eq("id", issuer.id);
+          .eq("id", issuer.id)
+          // IMPORTANTE: select() permite detectar UPDATE bloqueado por RLS (retorna 0 linhas sem erro)
+          .select("id,address_street,address_neighborhood,address_zip_code,city,uf");
 
         if (updateError) throw updateError;
+
+        if (!updatedRows || updatedRows.length === 0) {
+          throw new Error(
+            "Atualização não aplicada (0 linhas). Isso normalmente indica bloqueio por RLS/permissão. Faça logout/login e tente novamente."
+          );
+        }
 
         toast.success("Dados atualizados com sucesso");
         await fetchIssuer();
