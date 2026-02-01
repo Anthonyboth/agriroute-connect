@@ -37,6 +37,40 @@ export function FiscalOnboardingWizard({ onComplete, onCancel, editMode = false 
     regime_tributario: 'simples_nacional',
   });
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasLoadedIssuerData, setHasLoadedIssuerData] = useState(false);
+
+  // ✅ CARREGAR DADOS DO EMISSOR EXISTENTE para o formulário
+  useEffect(() => {
+    if (hasLoadedIssuerData || !issuer) return;
+    
+    console.log("[FISCAL WIZARD] Carregando dados do emissor existente:", issuer);
+    
+    // Mapear dados do banco (issuer) para o formulário (RegisterIssuerData)
+    const issuerData: Partial<RegisterIssuerData> = {
+      issuer_type: (issuer.document_number?.length === 14 ? 'CNPJ' : 'CPF') as IssuerType,
+      cpf_cnpj: issuer.document_number || '',
+      razao_social: issuer.legal_name || '',
+      nome_fantasia: issuer.trade_name || '',
+      inscricao_estadual: issuer.state_registration || '',
+      inscricao_municipal: issuer.municipal_registration || '',
+      regime_tributario: issuer.tax_regime || 'simples_nacional',
+      cnae_principal: issuer.cnae_code || '',
+      // Endereço - carregar do banco
+      endereco_logradouro: issuer.address_street || '',
+      endereco_numero: issuer.address_number || '',
+      endereco_complemento: issuer.address_complement || '',
+      endereco_bairro: issuer.address_neighborhood || '',
+      endereco_cidade: issuer.city || '',
+      endereco_uf: issuer.uf || '',
+      endereco_cep: issuer.address_zip_code || '',
+      endereco_ibge: issuer.city_ibge_code || '',
+      email_fiscal: issuer.fiscal_email || '',
+      telefone_fiscal: issuer.fiscal_phone || '',
+    };
+    
+    setFormData(prev => ({ ...prev, ...issuerData }));
+    setHasLoadedIssuerData(true);
+  }, [issuer, hasLoadedIssuerData]);
 
   // Sync step with issuer status (apenas no primeiro render e se não for modo edição)
   useEffect(() => {

@@ -37,6 +37,21 @@ export interface FiscalIssuer {
   blocked_by?: string;
   block_reason?: string;
   terms_accepted_at?: string;
+  // ✅ Campos de endereço completo
+  state_registration?: string;
+  municipal_registration?: string;
+  city_ibge_code?: string;
+  address_street?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_neighborhood?: string;
+  address_zip_code?: string;
+  tax_regime?: string;
+  cnae_code?: string;
+  cnae_description?: string;
+  fiscal_email?: string;
+  fiscal_phone?: string;
+  focus_company_id?: string;
 }
 
 export interface FiscalCertificate {
