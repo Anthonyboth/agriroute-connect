@@ -180,7 +180,7 @@ const Landing: React.FC = () => {
     {
       icon: FileText,
       title: 'Documentação Eletrônica',
-      description: 'Emissão assistida de MDF-e, CT-e, GT-a e NF-e para serviços prestados.'
+      description: 'Emissão de MDF-e, CT-e, GT-a e NF-e.'
     }
   ];
 
