@@ -140,7 +140,15 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return isCpfCnpjValid(formData.dest_cnpj_cpf) && !!formData.dest_razao_social;
+        return (
+          isCpfCnpjValid(formData.dest_cnpj_cpf) &&
+          !!formData.dest_razao_social &&
+          !!formData.dest_logradouro &&
+          !!formData.dest_bairro &&
+          !!formData.dest_municipio &&
+          !!normalizeUf(formData.dest_uf) &&
+          onlyDigits(formData.dest_cep || "").length === 8
+        );
       case 2:
         return !!formData.descricao && !!formData.valor_unitario && parseFloat(formData.valor_unitario) > 0;
       case 3:
@@ -213,6 +221,17 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       return;
     }
 
+    // ✅ Validação local do endereço do destinatário (NF-e exige endereço completo)
+    const cepDigits = onlyDigits(formData.dest_cep || "");
+    const uf = normalizeUf(formData.dest_uf) || normalizeUf(fiscalIssuer?.uf) || "";
+    if (!formData.dest_logradouro.trim() || !formData.dest_bairro.trim() || !formData.dest_municipio.trim() || !uf || cepDigits.length !== 8) {
+      toast.error("Endereço do destinatário incompleto", {
+        description: "Preencha logradouro, bairro, município, UF e CEP (8 dígitos).",
+      });
+      setCurrentStep(1);
+      return;
+    }
+
     // ✅ Verificar sessão antes de invocar
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
@@ -237,8 +256,8 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
             numero: (formData.dest_numero || "").trim(),
             bairro: (formData.dest_bairro || "").trim(),
             municipio: (formData.dest_municipio || "").trim(),
-            uf: normalizeUf(formData.dest_uf) || normalizeUf(fiscalIssuer?.uf) || "",
-            cep: onlyDigits(formData.dest_cep || ""),
+            uf,
+            cep: cepDigits,
           },
         },
         itens: [
@@ -422,6 +441,21 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
                   maxLength={2}
                   placeholder={normalizeUf(fiscalIssuer?.uf) || "SP"}
                 />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label htmlFor="dest_cep">CEP *</Label>
+                <Input
+                  id="dest_cep"
+                  value={formData.dest_cep}
+                  onChange={(e) => updateField("dest_cep", e.target.value)}
+                  placeholder="00000-000"
+                />
+                {formData.dest_cep && onlyDigits(formData.dest_cep).length !== 8 && (
+                  <p className="text-xs text-destructive mt-1">CEP inválido (use 8 dígitos).</p>
+                )}
               </div>
             </div>
           </div>
