@@ -11972,18 +11972,7 @@ export type Database = {
           status: string
         }[]
       }
-      auto_cancel_overdue_freights: {
-        Args: never
-        Returns: {
-          created_date: string
-          destination_city: string
-          expiration_reason: string
-          item_id: string
-          item_type: string
-          origin_city: string
-          service_type: string
-        }[]
-      }
+      auto_cancel_overdue_freights: { Args: never; Returns: Json }
       auto_confirm_deliveries: { Args: never; Returns: Json }
       auto_confirm_pending_deliveries: { Args: never; Returns: Json }
       auto_insert_city: {
