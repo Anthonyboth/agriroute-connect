@@ -301,8 +301,37 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         return;
       }
 
-      // ✅ CRÍTICO: Criar assignment COM company_id E driver_id
+      // ✅ CRÍTICO: impedir oversubscription (principalmente em required_trucks=1)
       const requiredTrucks = Math.max((freightData.required_trucks || 1) as number, 1);
+      const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'] as const;
+
+      const [{ data: existingAssignment }, { count: realAcceptedCount, error: realAcceptedError }] = await Promise.all([
+        supabase
+          .from('freight_assignments')
+          .select('id')
+          .eq('freight_id', freight.id)
+          .eq('driver_id', selectedDriverId)
+          .maybeSingle(),
+        supabase
+          .from('freight_assignments')
+          .select('id', { count: 'exact', head: true })
+          .eq('freight_id', freight.id)
+          .in('status', [...activeStatuses]),
+      ]);
+
+      if (realAcceptedError) throw realAcceptedError;
+      const realAccepted = realAcceptedCount ?? 0;
+      const isNewAcceptance = !existingAssignment;
+
+      if (isNewAcceptance && realAccepted >= requiredTrucks) {
+        toast.error(requiredTrucks === 1
+          ? 'Este frete já está atribuído a um motorista'
+          : 'Este frete já está com todas as vagas preenchidas'
+        );
+        return;
+      }
+
+      // ✅ CRÍTICO: Criar assignment COM company_id E driver_id
       const agreedPerTruck = (freightData.price || 0) / requiredTrucks;
 
       const { error: assignmentError } = await supabase.from("freight_assignments").upsert(
@@ -331,7 +360,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           status: "ACCEPTED",
           driver_id: selectedDriverId,
           company_id: company.id, // ✅ ESSENCIAL
-          accepted_trucks: (freightData.accepted_trucks || 0) + 1,
+          // Evita drift: só incrementa se for um aceite novo; caso contrário, apenas sincroniza.
+          accepted_trucks: isNewAcceptance ? Math.min(requiredTrucks, realAccepted + 1) : Math.max((freightData.accepted_trucks || 0), realAccepted),
         })
         .eq("id", freight.id);
 

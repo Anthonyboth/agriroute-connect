@@ -73,6 +73,8 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
   const [fetchingDrivers, setFetchingDrivers] = useState(false);
   const [assignedDriverIds, setAssignedDriverIds] = useState<Set<string>>(new Set());
 
+  const activeAssignmentStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'] as const;
+
   useEffect(() => {
     if (showDialog) {
       fetchDrivers();
@@ -137,6 +139,50 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
     setLoading(true);
     
     try {
+      // =====================================================
+      // Preflight (CRÍTICO): impedir oversubscription
+      // =====================================================
+      // Para fretes de 1 carreta, deve existir no máximo 1 motorista ativo.
+      // Em multi-carreta, o limite é required_trucks. Usamos a contagem REAL
+      // de assignments ativos (não apenas accepted_trucks) para evitar drift.
+      const { data: freightFresh, error: freightFreshError } = await supabase
+        .from('freights')
+        .select('id, status, required_trucks, accepted_trucks')
+        .eq('id', freight.id)
+        .single();
+
+      if (freightFreshError || !freightFresh) {
+        throw freightFreshError || new Error('Frete não encontrado');
+      }
+
+      if (freightFresh.status !== 'OPEN') {
+        toast.error('Este frete não está mais disponível');
+        setShowDialog(false);
+        return;
+      }
+
+      const required = Math.max((freightFresh.required_trucks ?? 1) || 1, 1);
+
+      const { count: realAcceptedCount, error: realAcceptedError } = await supabase
+        .from('freight_assignments')
+        .select('id', { count: 'exact', head: true })
+        .eq('freight_id', freight.id)
+        .in('status', [...activeAssignmentStatuses]);
+
+      if (realAcceptedError) throw realAcceptedError;
+
+      const realAccepted = realAcceptedCount ?? 0;
+      const slotsRemaining = required - realAccepted;
+
+      if (slotsRemaining <= 0) {
+        toast.error(required === 1
+          ? 'Este frete já está atribuído a um motorista'
+          : 'Este frete já está com todas as vagas preenchidas'
+        );
+        setShowDialog(false);
+        return;
+      }
+
       // Check if assignment already exists
       const { data: existing } = await supabase
         .from('freight_assignments')
