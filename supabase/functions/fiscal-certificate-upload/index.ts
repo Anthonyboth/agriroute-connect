@@ -167,8 +167,12 @@ async function registerOrUpdateCompanyInFocusNfe(
         // Company exists, update it
         method = "PUT";
         url = existingCheckUrl;
-      } else if (checkResponse.status === 404) {
-        // Company doesn't exist, create it
+      } else if (checkResponse.status === 404 || checkResponse.status === 422) {
+        // Company doesn't exist (404) or invalid request for non-existent company (422)
+        // Focus NFe returns 422 for non-existent companies in some cases
+        logStep("Company not found in Focus NFe, will create new", { 
+          status: checkResponse.status 
+        });
         method = "POST";
         url = `${focusBaseUrl}/v2/empresas`;
       } else {
@@ -177,11 +181,11 @@ async function registerOrUpdateCompanyInFocusNfe(
           status: checkResponse.status, 
           error: errorText 
         });
-          const snippet = errorText?.slice(0, 300);
-          return {
-            success: false,
-            error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}${snippet ? ` - ${snippet}` : ""}`,
-          };
+        const snippet = errorText?.slice(0, 300);
+        return {
+          success: false,
+          error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}${snippet ? ` - ${snippet}` : ""}`,
+        };
       }
     }
 
