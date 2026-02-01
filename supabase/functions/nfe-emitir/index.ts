@@ -181,6 +181,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validação de endereço do destinatário (obrigatório para NF-e)
+    const endDest = destinatario.endereco;
+    if (!endDest?.logradouro || !endDest?.bairro || !endDest?.municipio || !endDest?.uf || !endDest?.cep) {
+      return jsonResponse(400, {
+        success: false,
+        code: "INVALID_RECIPIENT_ADDRESS",
+        message: "Endereço completo do destinatário é obrigatório (logradouro, bairro, município, UF e CEP).",
+      });
+    }
+
     if (!Array.isArray(itens) || itens.length === 0) {
       return jsonResponse(400, {
         success: false,
