@@ -30,7 +30,7 @@ const UF_OPTIONS = [
 ];
 
 export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: FiscalOnboardingStep2Props) {
-  const { loading, registerIssuer, issuer } = useFiscalIssuer();
+  const { loading, registerIssuer, updateIssuer, issuer } = useFiscalIssuer();
   const { fiscal: prefilledFiscal, personal: prefilledPersonal, loading: prefillLoading } = usePrefilledUserData();
   const [localLoading, setLocalLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -147,9 +147,12 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
     setLocalLoading(true);
     
     try {
-      // If issuer already exists, just go to next step
+      // If issuer already exists, UPDATE the data instead of skipping
       if (issuer) {
-        onNext();
+        const success = await updateIssuer(data as RegisterIssuerData);
+        if (success) {
+          onNext();
+        }
         return;
       }
 
