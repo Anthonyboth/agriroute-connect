@@ -141,6 +141,29 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
           const { data: authData } = await supabase.auth.admin.getUserById?.(producer.id) || { data: null };
           const producerEmail = (authData as any)?.user?.email || '';
 
+          // ✅ Extrair dados do destination_address quando campos específicos estão vazios
+          // Formato esperado: "Rua Nome, Bairro, Cidade, UF" ou "Rua Nome, Cidade - UF"
+          let logradouro = freight.destination_street || '';
+          let bairro = freight.destination_neighborhood || '';
+          let numero = freight.destination_number || '';
+          
+          // Parse do destination_address se campos específicos estão vazios
+          if (freight.destination_address && (!logradouro || !bairro)) {
+            const parts = freight.destination_address.split(',').map((p: string) => p.trim());
+            if (parts.length >= 1 && !logradouro) logradouro = parts[0]; // Primeira parte = rua
+            if (parts.length >= 2 && !bairro) bairro = parts[1]; // Segunda parte = bairro
+          }
+
+          console.log('[NfeEmissionWizard] Dados extraídos do frete:', {
+            logradouro,
+            bairro,
+            numero,
+            cidade: freight.destination_city,
+            uf: freight.destination_state,
+            cep: freight.destination_zip_code,
+            full_address: freight.destination_address
+          });
+
           // Preencher formulário com dados do produtor (destinatário)
           setFormData(prev => ({
             ...prev,
@@ -149,9 +172,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
             dest_telefone: prev.dest_telefone || producer.phone || producer.contact_phone || '',
             dest_email: prev.dest_email || producerEmail,
             // Usar endereço de destino do frete (onde a carga vai)
-            dest_logradouro: (prev.dest_logradouro || freight.destination_street || freight.destination_address?.split(',')[0] || '').toUpperCase(),
-            dest_numero: prev.dest_numero || freight.destination_number || '',
-            dest_bairro: (prev.dest_bairro || freight.destination_neighborhood || '').toUpperCase(),
+            dest_logradouro: (prev.dest_logradouro || logradouro || '').toUpperCase(),
+            dest_numero: prev.dest_numero || numero || 'S/N',
+            dest_bairro: (prev.dest_bairro || bairro || 'CENTRO').toUpperCase(),
             dest_municipio: (prev.dest_municipio || freight.destination_city || '').toUpperCase(),
             dest_uf: (prev.dest_uf || freight.destination_state || '').toUpperCase(),
             dest_cep: prev.dest_cep || (freight.destination_zip_code || '').replace(/\D/g, ''),
