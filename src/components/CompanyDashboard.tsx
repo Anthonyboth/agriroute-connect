@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanyFreightStats } from './CompanyFreightStats';
 import { FreightCard } from './FreightCard';
-import { MyAssignmentCard } from './MyAssignmentCard';
+import { FreightInProgressCard } from './FreightInProgressCard';
 import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { ANTTValidation } from './ANTTValidation';
 import { SafeListWrapper } from './SafeListWrapper';
@@ -50,16 +50,18 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
 
       const freights = companyFreights || [];
 
-      // Buscar assignments ativos
+      // Buscar assignments ativos - incluir todos status de "em andamento"
       const { data: assignments } = await supabase
         .from('freight_assignments')
         .select(`
           *,
-          freight:freights(*),
-          driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone)
+          freight:freights(*,
+            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+          ),
+          driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
         .eq('company_id', company.id)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED']);
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION']);
 
       // Buscar propostas pendentes
       const { data: proposals } = await supabase
@@ -312,9 +314,12 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
           <CardTitle className="flex items-center gap-2 text-lg">
             <Truck className="h-5 w-5 text-blue-600" />
             Fretes em Andamento
+            {activeFreights.length > 0 && (
+              <Badge variant="default" className="ml-2">{activeFreights.length}</Badge>
+            )}
           </CardTitle>
           <CardDescription>
-            Fretes atualmente sendo transportados
+            Fretes atualmente sendo transportados (clique em "Em Andamento" para ver todos)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -323,16 +328,40 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
               Nenhum frete em andamento
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando fretes ativos...</div>}>
-                {activeFreights.map((assignment) => (
-                  <MyAssignmentCard
-                    key={assignment.id}
-                    assignment={assignment}
-                    onAction={() => {}}
-                  />
-                ))}
+                {activeFreights.slice(0, 4).map((assignment) => {
+                  // Mapear assignment para formato de freight
+                  const mappedFreight = {
+                    ...assignment.freight,
+                    producer: assignment.freight?.producer,
+                    driver_profiles: assignment.driver,
+                    profiles: assignment.driver,
+                    price: assignment.agreed_price || assignment.freight?.price,
+                    required_trucks: 1,
+                    assignment_status: assignment.status,
+                  };
+                  
+                  return (
+                    <FreightInProgressCard
+                      key={assignment.id}
+                      freight={mappedFreight}
+                      showActions={false}
+                      onViewDetails={() => {
+                        if (onNavigateToReport) onNavigateToReport('active');
+                      }}
+                      onRequestCancel={() => {}}
+                    />
+                  );
+                })}
               </SafeListWrapper>
+            </div>
+          )}
+          {activeFreights.length > 4 && (
+            <div className="mt-4 text-center">
+              <Button variant="outline" onClick={() => onNavigateToReport?.('active')}>
+                Ver todos os {activeFreights.length} fretes
+              </Button>
             </div>
           )}
         </CardContent>

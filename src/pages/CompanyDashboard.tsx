@@ -330,6 +330,7 @@ const CompanyDashboard = () => {
       }
       const orFilterStr = orFilters.join(',');
 
+      // ✅ Buscar atribuições ativas (status de "em andamento")
       const { data: assignments, error } = await supabase
         .from('freight_assignments')
         .select(`
@@ -340,7 +341,7 @@ const CompanyDashboard = () => {
           driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
         .or(orFilterStr)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
         .order('accepted_at', { ascending: false });
 
       if (error) throw error;
@@ -353,6 +354,7 @@ const CompanyDashboard = () => {
       }
       const orFilterStrFreights = orFiltersFreights.join(',');
 
+      // ✅ CORREÇÃO: Buscar fretes em andamento + fretes OPEN com motoristas atribuídos (multi-carreta)
       const { data: directFreights } = await supabase
         .from('freights')
         .select(`
@@ -361,10 +363,18 @@ const CompanyDashboard = () => {
           driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
         .or(orFilterStrFreights)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION', 'OPEN'])
         .order('created_at', { ascending: false });
 
-      const freightIdsWithCompany = (directFreights || []).map((f: any) => f.id);
+      // ✅ Filtrar fretes OPEN: só incluir se tiver accepted_trucks > 0 (multi-carreta parcial)
+      const filteredFreights = (directFreights || []).filter((f: any) => {
+        if (f.status === 'OPEN') {
+          return (f.accepted_trucks || 0) > 0;
+        }
+        return true;
+      });
+
+      const freightIdsWithCompany = filteredFreights.map((f: any) => f.id);
       if (freightIdsWithCompany.length > 0) {
         const { data: extraAssignments, error: extraErr } = await supabase
           .from('freight_assignments')
@@ -376,7 +386,7 @@ const CompanyDashboard = () => {
             driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
           `)
           .in('freight_id', freightIdsWithCompany)
-          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
           .order('accepted_at', { ascending: false });
         if (!extraErr && extraAssignments) {
           const byId = new Map<string, any>();
@@ -386,7 +396,9 @@ const CompanyDashboard = () => {
       }
 
       setMyAssignments(mergedAssignments);
-      setActiveFreights(directFreights || []);
+      setActiveFreights(filteredFreights);
+      
+      console.log(`📦 [CompanyDashboard] ${mergedAssignments.length} atribuições, ${filteredFreights.length} fretes em andamento`);
     } catch (error) {
       console.error('Erro ao buscar fretes:', error);
       toast.error('Erro ao carregar fretes ativos');
@@ -784,7 +796,15 @@ const CompanyDashboard = () => {
                 <CardTitle className="flex items-center gap-2">
                   <Navigation className="h-5 w-5 text-blue-600" />
                   Fretes em Andamento
+                  {(myAssignments.length + activeFreights.length) > 0 && (
+                    <Badge variant="default" className="ml-2">
+                      {myAssignments.length + activeFreights.length}
+                    </Badge>
+                  )}
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Transportadoras podem gerenciar múltiplos fretes simultaneamente
+                </p>
               </CardHeader>
               <CardContent>
                 {isLoadingActive ? (
@@ -800,70 +820,99 @@ const CompanyDashboard = () => {
                       Seus fretes aceitos aparecerão aqui automaticamente.
                     </p>
                   </div>
-                 ) : (
-                  <div className="space-y-4">
-                    {myAssignments.map((assignment) => (
-                      <MyAssignmentCard
-                        key={assignment.id}
-                        assignment={assignment}
-                        onAction={() => {
-                          if (assignment?.freight?.id) {
-                            setSelectedFreightId(assignment.freight.id);
-                            setShowDetails(true);
-                          }
-                        }}
-                      />
-                    ))}
-                    {activeFreights.map((freight) => {
-                      // Verificar se vencido (48h após pickup_date)
-                      const pickupDate = new Date(freight.pickup_date);
-                      const now = new Date();
-                      const hoursSincePickup = (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60);
-                      const isExpired = hoursSincePickup > 48;
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                    {/* ✅ Exibir atribuições como FreightInProgressCard (padrão unificado) */}
+                    {myAssignments.map((assignment) => {
+                      // Mapear assignment para formato de freight para o card
+                      const mappedFreight = {
+                        ...assignment.freight,
+                        // Garantir que producer e driver estejam mapeados corretamente
+                        producer: assignment.freight?.producer,
+                        driver_profiles: assignment.driver,
+                        profiles: assignment.driver,
+                        // Usar preço do assignment se disponível
+                        price: assignment.agreed_price || assignment.freight?.price,
+                        // Forçar required_trucks para 1 para exibir valor unitário correto
+                        required_trucks: 1,
+                        // Status do assignment (não do freight global)
+                        assignment_status: assignment.status,
+                      };
 
                       return (
                         <FreightInProgressCard
-                          key={freight.id}
-                          freight={freight}
+                          key={`assignment-${assignment.id}`}
+                          freight={mappedFreight}
                           showActions={true}
                           onViewDetails={() => {
-                            setSelectedFreightId(freight.id);
-                            setShowDetails(true);
-                          }}
-                          onRequestCancel={async () => {
-                            if (isExpired) {
-                              if (!confirm('Cancelar este frete por vencimento?')) return;
-                              
-                              try {
-                                const { error } = await supabase
-                                  .from('freights')
-                                  .update({
-                                    status: 'CANCELLED',
-                                    cancellation_reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada',
-                                    cancelled_at: new Date().toISOString()
-                                  })
-                                  .eq('id', freight.id);
-
-                                if (error) throw error;
-
-                                await supabase.from('freight_status_history').insert({
-                                  freight_id: freight.id,
-                                  status: 'CANCELLED',
-                                  changed_by: profile?.id,
-                                  notes: 'Cancelado por vencimento (48h após data de coleta)'
-                                });
-
-                                toast.success('Frete cancelado por vencimento');
-                                fetchActiveFreights();
-                              } catch (error) {
-                                console.error('Erro ao cancelar:', error);
-                                toast.error('Erro ao cancelar frete');
-                              }
+                            if (assignment?.freight?.id) {
+                              setSelectedFreightId(assignment.freight.id);
+                              setShowDetails(true);
                             }
+                          }}
+                          onRequestCancel={() => {
+                            toast.info('Solicite o cancelamento através dos detalhes do frete');
                           }}
                         />
                       );
                     })}
+                    
+                    {/* ✅ Fretes diretos da transportadora */}
+                    {activeFreights
+                      .filter((freight) => {
+                        // Evitar duplicatas: não mostrar se já existe atribuição para este frete
+                        const hasAssignment = myAssignments.some(a => a.freight_id === freight.id);
+                        return !hasAssignment;
+                      })
+                      .map((freight) => {
+                        const pickupDate = new Date(freight.pickup_date);
+                        const now = new Date();
+                        const hoursSincePickup = (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60);
+                        const isExpired = hoursSincePickup > 48;
+
+                        return (
+                          <FreightInProgressCard
+                            key={`freight-${freight.id}`}
+                            freight={freight}
+                            showActions={true}
+                            onViewDetails={() => {
+                              setSelectedFreightId(freight.id);
+                              setShowDetails(true);
+                            }}
+                            onRequestCancel={async () => {
+                              if (isExpired) {
+                                if (!confirm('Cancelar este frete por vencimento?')) return;
+                                
+                                try {
+                                  const { error } = await supabase
+                                    .from('freights')
+                                    .update({
+                                      status: 'CANCELLED',
+                                      cancellation_reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada',
+                                      cancelled_at: new Date().toISOString()
+                                    })
+                                    .eq('id', freight.id);
+
+                                  if (error) throw error;
+
+                                  await supabase.from('freight_status_history').insert({
+                                    freight_id: freight.id,
+                                    status: 'CANCELLED',
+                                    changed_by: profile?.id,
+                                    notes: 'Cancelado por vencimento (48h após data de coleta)'
+                                  });
+
+                                  toast.success('Frete cancelado por vencimento');
+                                  fetchActiveFreights();
+                                } catch (error) {
+                                  console.error('Erro ao cancelar:', error);
+                                  toast.error('Erro ao cancelar frete');
+                                }
+                              }
+                            }}
+                          />
+                        );
+                      })}
                   </div>
                 )}
               </CardContent>
