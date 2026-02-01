@@ -301,7 +301,8 @@ Deno.serve(async (req) => {
       // Emitente: CPF ou CNPJ (CORREÇÃO)
       cpf_emitente: isIssuerCPF ? issuerDoc : undefined,
       cnpj_emitente: isIssuerCNPJ ? issuerDoc : undefined,
-      inscricao_estadual_emitente: String(issuer.state_registration || ""),
+      // IE: se vazia, usa "ISENTO" (padrão NF-e)
+      inscricao_estadual_emitente: onlyDigits(String(issuer.state_registration || "")) || "ISENTO",
       nome_emitente: String(issuer.legal_name || ""),
       nome_fantasia_emitente: String(issuer.trade_name || issuer.legal_name || ""),
       logradouro_emitente: String(issuer.address_street || ""),
@@ -317,9 +318,11 @@ Deno.serve(async (req) => {
       cpf_destinatario: isDestCPF ? destDoc : undefined,
       cnpj_destinatario: isDestCNPJ ? destDoc : undefined,
       nome_destinatario: String(destinatario.razao_social || ""),
-      inscricao_estadual_destinatario: String(destinatario.ie || ""),
-      email_destinatario: String(destinatario.email || ""),
-      telefone_destinatario: onlyDigits(String(destinatario.telefone || "")),
+      // IE destinatário: se vazia, não enviar (ou "ISENTO" para pessoa jurídica)
+      inscricao_estadual_destinatario: onlyDigits(String(destinatario.ie || "")) || (isDestCNPJ ? "ISENTO" : undefined),
+      indicador_inscricao_estadual_destinatario: isDestCPF ? "9" : (onlyDigits(String(destinatario.ie || "")) ? "1" : "2"),
+      email_destinatario: String(destinatario.email || "") || undefined,
+      telefone_destinatario: onlyDigits(String(destinatario.telefone || "")) || undefined,
       logradouro_destinatario: String(destinatario.endereco?.logradouro || ""),
       numero_destinatario: String(destinatario.endereco?.numero || "SN"),
       bairro_destinatario: String(destinatario.endereco?.bairro || ""),
