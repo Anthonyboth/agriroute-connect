@@ -30,6 +30,7 @@ interface CompanyDriverSelectModalProps {
     origin_address: string;
     destination_address: string;
     price: number;
+    required_trucks?: number;
   };
 }
 
@@ -41,6 +42,9 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
   freight
 }) => {
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+
+  const requiredTrucks = Math.max((freight.required_trucks ?? 1) || 1, 1);
+  const unitPrice = (freight.price || 0) / requiredTrucks;
 
   const handleAccept = () => {
     if (selectedDriverId) {
@@ -67,7 +71,8 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
               {freight.origin_address} → {freight.destination_address}
             </p>
             <p className="text-sm font-bold text-primary mt-2">
-              R$ {freight.price.toLocaleString('pt-BR')}
+              R$ {unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {requiredTrucks > 1 && <span className="text-xs ml-1">/carreta</span>}
             </p>
           </div>
 
