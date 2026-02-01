@@ -147,6 +147,16 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
     setLocalLoading(true);
     
     try {
+      console.log('[FiscalOnboardingStep2] Salvando dados cadastrais do emissor:', {
+        hasIssuer: !!issuer,
+        endereco_cep: data.endereco_cep,
+        endereco_logradouro: data.endereco_logradouro,
+        endereco_numero: data.endereco_numero,
+        endereco_bairro: data.endereco_bairro,
+        endereco_cidade: data.endereco_cidade,
+        endereco_uf: data.endereco_uf,
+      });
+
       // If issuer already exists, UPDATE the data instead of skipping
       if (issuer) {
         const success = await updateIssuer(data as RegisterIssuerData);
