@@ -331,15 +331,15 @@ const CompanyDashboard = () => {
       const orFilterStr = orFilters.join(',');
 
       // ✅ Buscar atribuições ativas (status de "em andamento")
-      const { data: assignments, error } = await supabase
-        .from('freight_assignments')
-        .select(`
-          *,
-          freight:freights(*,
-            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
-          ),
-          driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
-        `)
+       const { data: assignments, error } = await supabase
+         .from('freight_assignments')
+         .select(`
+           *,
+           freight:freights(*,
+             producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+           ),
+           driver:profiles_secure!freight_assignments_driver_id_fkey(id, full_name, profile_photo_url, rating)
+         `)
         .or(orFilterStr)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
         .order('accepted_at', { ascending: false });
@@ -355,12 +355,12 @@ const CompanyDashboard = () => {
       const orFilterStrFreights = orFiltersFreights.join(',');
 
       // ✅ CORREÇÃO: Buscar fretes em andamento + fretes OPEN com motoristas atribuídos (multi-carreta)
-      const { data: directFreights } = await supabase
+       const { data: directFreights } = await supabase
         .from('freights')
         .select(`
           *,
           producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone),
-          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
+           driver:profiles_secure!freights_driver_id_fkey(id, full_name, profile_photo_url, rating)
         `)
         .or(orFilterStrFreights)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION', 'OPEN'])
@@ -376,14 +376,14 @@ const CompanyDashboard = () => {
 
       const freightIdsWithCompany = filteredFreights.map((f: any) => f.id);
       if (freightIdsWithCompany.length > 0) {
-        const { data: extraAssignments, error: extraErr } = await supabase
+         const { data: extraAssignments, error: extraErr } = await supabase
           .from('freight_assignments')
           .select(`
             *,
             freight:freights(*,
               producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
             ),
-            driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
+             driver:profiles_secure!freight_assignments_driver_id_fkey(id, full_name, profile_photo_url, rating)
           `)
           .in('freight_id', freightIdsWithCompany)
           .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
