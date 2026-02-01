@@ -16,9 +16,11 @@
  * } = useFocusNfe();
  */
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSingleFlight } from "./utils";
+import { useApiErrorReporter } from "./useApiErrorReporter";
 
 // =============================================================================
 // TYPES
@@ -180,7 +182,10 @@ async function extractErrorFromResponse(error: unknown): Promise<string> {
       const payload = await (ctx as Response).clone().json();
       if (payload?.error) return String(payload.error);
       if (payload?.message) return String(payload.message);
-      if (payload?.details) return String(payload.details);
+      if (payload?.details) {
+        // details às vezes é objeto (ex.: { hint, focus_error })
+        return typeof payload.details === "string" ? payload.details : JSON.stringify(payload.details);
+      }
     } catch {
       // Ignore parse errors
     }
@@ -205,6 +210,9 @@ export function useFocusNfe() {
     certificate: null,
     wallet: null,
   });
+
+  const { reportError } = useApiErrorReporter();
+  const lastUploadErrorToastRef = useRef<string | null>(null);
 
   // =========================================================================
   // FETCH STATE - Carrega dados do emissor, certificado e carteira
@@ -420,7 +428,7 @@ export function useFocusNfe() {
   // =========================================================================
   // UPLOAD CERTIFICATE - Envia certificado para Focus NFe
   // =========================================================================
-  const uploadCertificate = useCallback(async (
+  const uploadCertificateImpl = useCallback(async (
     input: CertificateUploadInput
   ): Promise<CertificateUploadResult> => {
     setLoading(true);
@@ -451,13 +459,51 @@ export function useFocusNfe() {
       if (error) {
         const errorMessage = await extractErrorFromResponse(error);
         console.error("[FOCUS-NFE] Upload error:", errorMessage);
-        toast.error(errorMessage);
+
+        // Evitar spam de toast do mesmo erro enquanto o usuário está tentando
+        if (lastUploadErrorToastRef.current !== errorMessage) {
+          toast.error(errorMessage);
+          lastUploadErrorToastRef.current = errorMessage;
+        }
+
+        // Reportar para Telegram com contexto útil (sem vazar base64)
+        await reportError(
+          {
+            integration: "focus_nfe",
+            operation: "upload_certificate",
+            context: {
+              issuer_id: input.issuerId,
+              file_name: input.file.name,
+              file_size: input.file.size,
+              file_type: input.file.type,
+            },
+          },
+          error
+        );
         return { success: false, focusSynced: false, errorMessage };
       }
       
       if (data?.error) {
         console.error("[FOCUS-NFE] Upload returned error:", data.error);
-        toast.error(data.error);
+
+        if (lastUploadErrorToastRef.current !== data.error) {
+          toast.error(data.error);
+          lastUploadErrorToastRef.current = data.error;
+        }
+
+        await reportError(
+          {
+            integration: "focus_nfe",
+            operation: "upload_certificate",
+            context: {
+              issuer_id: input.issuerId,
+              file_name: input.file.name,
+              file_size: input.file.size,
+              focus_details: data?.details,
+            },
+          },
+          data.error
+        );
         return { success: false, focusSynced: false, errorMessage: data.error };
       }
       
@@ -479,12 +525,45 @@ export function useFocusNfe() {
     } catch (error) {
       const errorMessage = await extractErrorFromResponse(error);
       console.error("[FOCUS-NFE] Upload exception:", errorMessage);
-      toast.error(errorMessage);
+
+      if (lastUploadErrorToastRef.current !== errorMessage) {
+        toast.error(errorMessage);
+        lastUploadErrorToastRef.current = errorMessage;
+      }
+
+      await reportError(
+        {
+          integration: "focus_nfe",
+          operation: "upload_certificate",
+          context: {
+            issuer_id: input.issuerId,
+            file_name: input.file.name,
+            file_size: input.file.size,
+          },
+        },
+        error
+      );
       return { success: false, focusSynced: false, errorMessage };
     } finally {
       setLoading(false);
     }
-  }, [refresh]);
+  }, [refresh, reportError]);
+
+  // Evita múltiplos envios simultâneos (double-click / re-render)
+  const uploadCertificateSingleFlight = useSingleFlight(uploadCertificateImpl);
+  const uploadCertificate = useCallback(async (
+    input: CertificateUploadInput
+  ): Promise<CertificateUploadResult> => {
+    const result = await uploadCertificateSingleFlight(input);
+    if (!result) {
+      return {
+        success: false,
+        focusSynced: false,
+        errorMessage: "Envio já em andamento. Aguarde a conclusão.",
+      };
+    }
+    return result;
+  }, [uploadCertificateSingleFlight]);
 
   // =========================================================================
   // EMITIR NFE - Emite NF-e via Focus NFe
