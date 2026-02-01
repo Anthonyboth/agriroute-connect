@@ -36,6 +36,7 @@ import { FloatingSupportButton } from './components/FloatingSupportButton';
 import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
+import { LoopPreventionBoundary } from '@/components/LoopPreventionBoundary';
 
 // ✅ RELEASE HARDENING: Import centralized env config and health check
 import { ENV, PLATFORM, validateEnvironment } from '@/config/env';
@@ -828,33 +829,34 @@ const App = () => {
   }, []);
 
   return (
-    <GlobalErrorBoundary>
-    <PageDOMErrorBoundary>
-      <ErrorBoundary>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-          <AppBootProvider>
-          <BootstrapGuardWrapper>
-          <BootTimeoutGuard>
-          <BrowserRouter>
-            <BootOrchestrator />
-            <RatingProviderErrorBoundary>
-              <RatingProvider>
-                <TooltipProvider>
-                  <SubscriptionProvider>
-                    <ScrollToTop />
-                    <DeviceSetup />
-                    <SessionManager />
-                    <AndroidBackButtonHandler />
-                    <NativeSplashHandler />
-                    <ErrorMonitoringSetup />
-                    <ZipCodeSyncOnReconnect />
-                    <FloatingSupportButton />
-                    <SilentCityBootstrap />
-                    <SwipeNavigationHandler />
-                    <main>
-                      <Routes>
+    <LoopPreventionBoundary>
+      <GlobalErrorBoundary>
+      <PageDOMErrorBoundary>
+        <ErrorBoundary>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+            <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+            <AppBootProvider>
+            <BootstrapGuardWrapper>
+            <BootTimeoutGuard>
+            <BrowserRouter>
+              <BootOrchestrator />
+              <RatingProviderErrorBoundary>
+                <RatingProvider>
+                  <TooltipProvider>
+                    <SubscriptionProvider>
+                      <ScrollToTop />
+                      <DeviceSetup />
+                      <SessionManager />
+                      <AndroidBackButtonHandler />
+                      <NativeSplashHandler />
+                      <ErrorMonitoringSetup />
+                      <ZipCodeSyncOnReconnect />
+                      <FloatingSupportButton />
+                      <SilentCityBootstrap />
+                      <SwipeNavigationHandler />
+                      <main>
+                        <Routes>
                         <Route path="/" element={<AuthedLanding />} />
                         <Route path="/landing" element={<Landing />} />
                         <Route path="/auth" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><Auth /></Suspense>} />
@@ -1037,9 +1039,10 @@ const App = () => {
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
-    </ErrorBoundary>
-    </PageDOMErrorBoundary>
-    </GlobalErrorBoundary>
+        </ErrorBoundary>
+        </PageDOMErrorBoundary>
+        </GlobalErrorBoundary>
+    </LoopPreventionBoundary>
   );
 };
 
