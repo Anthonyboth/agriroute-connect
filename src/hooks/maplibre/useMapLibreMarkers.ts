@@ -13,6 +13,7 @@
 
 import { useRef, useEffect, MutableRefObject, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
+import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
 export interface MapLibreMarkerData {
   /** ID único do marker */
@@ -61,12 +62,31 @@ export function useMapLibreMarkers(
   const markersMapRef = useRef<Map<string, maplibregl.Marker>>(new Map());
   const popupsMapRef = useRef<Map<string, maplibregl.Popup>>(new Map());
 
+  /**
+   * ✅ REGRA SEM EXCEÇÕES: normalizar toda coordenada antes de usar no mapa.
+   * Isso evita lat/lng invertidos e coordenadas em micrograus (1e5/1e6/1e7).
+   */
+  const normalizeMarker = useCallback((m: MapLibreMarkerData): MapLibreMarkerData | null => {
+    const lat = Number(m.lat);
+    const lng = Number(m.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    const normalized = normalizeLatLngPoint({ lat, lng }, 'BR', { silent: true });
+    const point = normalized ?? { lat, lng };
+    return { ...m, lat: point.lat, lng: point.lng };
+  }, []);
+
   // Atualizar markers quando a lista mudar
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const currentIds = new Set(markers.map((m) => m.id));
+    // Normalização obrigatória (antes de qualquer cálculo/uso)
+    const normalizedMarkers = markers
+      .map((m) => normalizeMarker(m))
+      .filter((m): m is MapLibreMarkerData => Boolean(m));
+
+    const currentIds = new Set(normalizedMarkers.map((m) => m.id));
     const existingIds = new Set(markersMapRef.current.keys());
 
     // Remover markers que não existem mais
@@ -86,7 +106,7 @@ export function useMapLibreMarkers(
     });
 
     // Adicionar/atualizar markers
-    markers.forEach((markerData) => {
+    normalizedMarkers.forEach((markerData) => {
       const existing = markersMapRef.current.get(markerData.id);
 
       if (existing) {
@@ -141,7 +161,7 @@ export function useMapLibreMarkers(
         markersMapRef.current.set(markerData.id, markerInstance);
       }
     });
-  }, [markers, mapRef.current, popupOffset, markerFactory, onMarkerClick]);
+  }, [markers, normalizeMarker, mapRef.current, popupOffset, markerFactory, onMarkerClick]);
 
   // Cleanup no unmount
   useEffect(() => {
@@ -156,7 +176,9 @@ export function useMapLibreMarkers(
   const updatePosition = useCallback((id: string, lat: number, lng: number) => {
     const marker = markersMapRef.current.get(id);
     if (marker) {
-      marker.setLngLat([lng, lat]);
+      const normalized = normalizeLatLngPoint({ lat, lng }, 'BR', { silent: true });
+      const point = normalized ?? { lat, lng };
+      marker.setLngLat([point.lng, point.lat]);
     }
   }, []);
 
