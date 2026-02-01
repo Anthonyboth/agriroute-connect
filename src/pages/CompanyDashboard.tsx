@@ -1,4 +1,5 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { AppSpinner, CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -67,11 +68,11 @@ import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 
-// ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
-const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
-const CompanyDriverPerformanceDashboard = lazy(() => import('@/components/dashboards/CompanyDriverPerformanceDashboard').then(m => ({ default: m.CompanyDriverPerformanceDashboard })));
-const CompanyFinancialDashboard = lazy(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
-const CompanyReportsTab = lazy(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
+// ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
+const CompanyAnalyticsDashboard = lazyWithRetry(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
+const CompanyDriverPerformanceDashboard = lazyWithRetry(() => import('@/components/dashboards/CompanyDriverPerformanceDashboard').then(m => ({ default: m.CompanyDriverPerformanceDashboard })));
+const CompanyFinancialDashboard = lazyWithRetry(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
+const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
 
 // Loading fallback for chart components - SEM TEXTO (padrão global)
 const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
