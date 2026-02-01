@@ -24,6 +24,215 @@ function logStep(step: string, details?: Record<string, unknown>) {
   console.log(`[fiscal-certificate-upload] ${step}`, details ? JSON.stringify(details) : "");
 }
 
+// ============================================
+// FOCUS NFE INTEGRATION - CADASTRO DE EMPRESA COM CERTIFICADO
+// ============================================
+interface FiscalIssuer {
+  id: string;
+  document_number: string;
+  legal_name: string;
+  trade_name?: string;
+  state_registration?: string;
+  municipal_registration?: string;
+  tax_regime: string;
+  cnae_code?: string;
+  uf: string;
+  city: string;
+  city_ibge_code?: string;
+  address_street?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_neighborhood?: string;
+  address_zip_code?: string;
+  fiscal_environment: string;
+  focus_company_id?: string;
+}
+
+function mapTaxRegimeToFocus(taxRegime: string): number {
+  switch (taxRegime) {
+    case "simples_nacional":
+    case "mei":
+      return 1; // Simples Nacional
+    case "simples_nacional_excesso":
+      return 2; // Simples Nacional - Excesso de sublimite
+    case "lucro_presumido":
+    case "lucro_real":
+      return 3; // Regime Normal
+    default:
+      return 1;
+  }
+}
+
+async function registerOrUpdateCompanyInFocusNfe(
+  issuer: FiscalIssuer,
+  certificateBase64: string,
+  certificatePassword: string,
+  focusToken: string
+): Promise<{ success: boolean; error?: string; focusCompanyId?: string }> {
+  const isProducao = issuer.fiscal_environment === "production";
+  const focusBaseUrl = isProducao
+    ? "https://api.focusnfe.com.br"
+    : "https://homologacao.focusnfe.com.br";
+
+  logStep("Registering company in Focus NFe", {
+    cnpj: issuer.document_number,
+    environment: issuer.fiscal_environment,
+    baseUrl: focusBaseUrl,
+    hasExistingFocusId: !!issuer.focus_company_id,
+  });
+
+  // Build the company payload for Focus NFe
+  const companyPayload: Record<string, unknown> = {
+    nome: issuer.legal_name,
+    nome_fantasia: issuer.trade_name || issuer.legal_name,
+    inscricao_estadual: issuer.state_registration ? parseInt(issuer.state_registration.replace(/\D/g, ""), 10) || 0 : 0,
+    inscricao_municipal: issuer.municipal_registration ? parseInt(issuer.municipal_registration.replace(/\D/g, ""), 10) || 0 : 0,
+    regime_tributario: mapTaxRegimeToFocus(issuer.tax_regime),
+    logradouro: issuer.address_street || "",
+    numero: issuer.address_number || "S/N",
+    bairro: issuer.address_neighborhood || "",
+    municipio: issuer.city,
+    uf: issuer.uf,
+    cep: issuer.address_zip_code ? parseInt(issuer.address_zip_code.replace(/\D/g, ""), 10) : 0,
+    habilita_nfe: true,
+    habilita_nfce: false,
+    habilita_nfse: false,
+    habilita_cte: true,
+    habilita_mdfe: true,
+    enviar_email_destinatario: true,
+    // Certificado digital A1
+    arquivo_certificado_base64: certificateBase64,
+    senha_certificado: certificatePassword,
+  };
+
+  // Add CNPJ or CPF based on document length
+  if (issuer.document_number.length === 14) {
+    companyPayload.cnpj = issuer.document_number;
+  } else {
+    companyPayload.cpf = issuer.document_number;
+  }
+
+  // Add optional fields
+  if (issuer.address_complement) {
+    companyPayload.complemento = issuer.address_complement;
+  }
+
+  const authHeader = `Basic ${btoa(`${focusToken}:`)}`;
+
+  try {
+    // Try to update existing company or create new one
+    let response: Response;
+    let method: string;
+    let url: string;
+
+    if (issuer.focus_company_id) {
+      // Update existing company
+      method = "PUT";
+      url = `${focusBaseUrl}/v2/empresas/${issuer.focus_company_id}`;
+    } else {
+      // Try to find existing company by CNPJ first
+      const existingCheckUrl = `${focusBaseUrl}/v2/empresas/${issuer.document_number}`;
+      const checkResponse = await fetch(existingCheckUrl, {
+        method: "GET",
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+
+      if (checkResponse.ok) {
+        // Company exists, update it
+        method = "PUT";
+        url = existingCheckUrl;
+      } else if (checkResponse.status === 404) {
+        // Company doesn't exist, create it
+        method = "POST";
+        url = `${focusBaseUrl}/v2/empresas`;
+      } else {
+        const errorText = await checkResponse.text();
+        logStep("ERROR: Failed to check existing company", { 
+          status: checkResponse.status, 
+          error: errorText 
+        });
+        return { 
+          success: false, 
+          error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}` 
+        };
+      }
+    }
+
+    logStep(`Sending ${method} request to Focus NFe`, { url });
+
+    response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(companyPayload),
+    });
+
+    const responseText = await response.text();
+    let responseData: unknown = null;
+    
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      responseData = { raw: responseText };
+    }
+
+    logStep("Focus NFe response", { 
+      status: response.status, 
+      method,
+      data: responseData 
+    });
+
+    if (!response.ok) {
+      const errorData = responseData as Record<string, unknown>;
+      const errorMessage = errorData?.mensagem || errorData?.codigo || 
+        `HTTP ${response.status}: ${responseText.substring(0, 200)}`;
+      
+      logStep("ERROR: Focus NFe rejected request", { 
+        status: response.status, 
+        error: errorMessage,
+        fullResponse: responseData
+      });
+
+      return { 
+        success: false, 
+        error: `Focus NFe: ${errorMessage}` 
+      };
+    }
+
+    // Extract the company ID from response
+    const focusCompanyId = (responseData as Record<string, unknown>)?.cnpj || 
+                           (responseData as Record<string, unknown>)?.cpf || 
+                           issuer.document_number;
+
+    logStep("SUCCESS: Company registered/updated in Focus NFe", { 
+      focusCompanyId,
+      method 
+    });
+
+    return { 
+      success: true, 
+      focusCompanyId: String(focusCompanyId) 
+    };
+
+  } catch (error) {
+    logStep("ERROR: Exception calling Focus NFe API", { 
+      error: String(error),
+      stack: (error as Error)?.stack 
+    });
+    return { 
+      success: false, 
+      error: `Erro de comunicação com Focus NFe: ${String(error)}` 
+    };
+  }
+}
+
+// ============================================
+// MAIN HANDLER
+// ============================================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -36,6 +245,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const focusToken = Deno.env.get("FOCUS_NFE_TOKEN");
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Authenticate user
@@ -90,17 +300,17 @@ Deno.serve(async (req) => {
     logStep("Request validated", { issuer_id: issuer_id || "not provided", file_name });
 
     // =========================================================
-    // ✅ CORREÇÃO: Buscar emissor usando profile_id (não perfil_id)
+    // Find issuer
     // =========================================================
-    let issuer: { id: string; profile_id: string; status: string } | null = null;
+    let issuer: FiscalIssuer | null = null;
 
-    // Primeiro tenta buscar pelo issuer_id fornecido
+    // First try by issuer_id
     if (issuer_id) {
       logStep("Searching issuer by ID", { issuer_id });
       
       const { data, error } = await supabase
         .from("fiscal_issuers")
-        .select("id, profile_id, status")
+        .select("id, document_number, legal_name, trade_name, state_registration, municipal_registration, tax_regime, cnae_code, uf, city, city_ibge_code, address_street, address_number, address_complement, address_neighborhood, address_zip_code, fiscal_environment, focus_company_id, profile_id, status")
         .eq("id", issuer_id)
         .maybeSingle();
 
@@ -108,19 +318,17 @@ Deno.serve(async (req) => {
         logStep("ERROR: Query by issuer_id failed", { error: error.message });
       } else if (data) {
         issuer = data;
-        logStep("Issuer found by ID", { issuer_id: data.id, profile_id: data.profile_id, status: data.status });
-      } else {
-        logStep("Issuer not found by ID", { issuer_id });
+        logStep("Issuer found by ID", { issuer_id: data.id, document_number: data.document_number });
       }
     }
 
-    // Fallback: busca pelo profile_id do usuário logado
+    // Fallback: search by profile_id
     if (!issuer) {
       logStep("Fallback: searching issuer by profile_id", { profile_id: profile.id });
       
       const { data, error } = await supabase
         .from("fiscal_issuers")
-        .select("id, profile_id, status")
+        .select("id, document_number, legal_name, trade_name, state_registration, municipal_registration, tax_regime, cnae_code, uf, city, city_ibge_code, address_street, address_number, address_complement, address_neighborhood, address_zip_code, fiscal_environment, focus_company_id, profile_id, status")
         .eq("profile_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -130,13 +338,10 @@ Deno.serve(async (req) => {
         logStep("ERROR: Query by profile_id failed", { error: error.message });
       } else if (data) {
         issuer = data;
-        logStep("Issuer found by profile_id", { issuer_id: data.id, profile_id: data.profile_id, status: data.status });
-      } else {
-        logStep("No issuer found for profile", { profile_id: profile.id });
+        logStep("Issuer found by profile_id", { issuer_id: data.id });
       }
     }
 
-    // Se não encontrou emissor
     if (!issuer) {
       logStep("ERROR: No issuer found", { 
         received_issuer_id: issuer_id || null, 
@@ -154,20 +359,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verifica se o emissor pertence ao perfil do usuário
-    if (issuer.profile_id !== profile.id) {
+    // Check ownership
+    const issuerProfileId = (issuer as unknown as { profile_id: string }).profile_id;
+    if (issuerProfileId !== profile.id) {
       logStep("ERROR: Issuer does not belong to user", { 
-        issuer_profile_id: issuer.profile_id, 
+        issuer_profile_id: issuerProfileId, 
         user_profile_id: profile.id 
       });
       
       return json(403, { 
         error: "Você não tem permissão para este emissor",
         code: "FORBIDDEN",
-        details: {
-          issuer_id: issuer.id,
-          hint: "O emissor fiscal pertence a outro usuário."
-        }
       });
     }
 
@@ -215,7 +417,46 @@ Deno.serve(async (req) => {
     }
 
     // =========================================================
-    // Upload to storage
+    // ✅ NEW: Register/Update company in Focus NFe WITH certificate
+    // =========================================================
+    if (focusToken) {
+      logStep("Registering certificate in Focus NFe...");
+      
+      const focusResult = await registerOrUpdateCompanyInFocusNfe(
+        issuer,
+        certificate_base64,
+        certificate_password,
+        focusToken
+      );
+
+      if (!focusResult.success) {
+        logStep("ERROR: Focus NFe registration failed", { error: focusResult.error });
+        return json(422, {
+          error: focusResult.error || "Falha ao registrar certificado na Focus NFe",
+          code: "FOCUS_NFE_ERROR",
+          details: "O certificado não pôde ser registrado no provedor fiscal. Verifique se a senha está correta e se o certificado é válido."
+        });
+      }
+
+      // Update issuer with Focus company ID if we got one
+      if (focusResult.focusCompanyId) {
+        await supabase
+          .from("fiscal_issuers")
+          .update({ focus_company_id: focusResult.focusCompanyId })
+          .eq("id", issuer.id);
+        
+        logStep("Updated issuer with focus_company_id", { 
+          focus_company_id: focusResult.focusCompanyId 
+        });
+      }
+
+      logStep("SUCCESS: Certificate registered in Focus NFe");
+    } else {
+      logStep("WARNING: FOCUS_NFE_TOKEN not configured, skipping Focus NFe registration");
+    }
+
+    // =========================================================
+    // Upload to storage (backup)
     // =========================================================
     const timestamp = Date.now();
     const safeFileName = (file_name || "certificate.pfx").replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -231,15 +472,11 @@ Deno.serve(async (req) => {
       });
 
     if (uploadError) {
-      logStep("ERROR: Storage upload failed", { error: uploadError.message });
-      return json(500, { 
-        error: "Erro ao armazenar certificado",
-        code: "STORAGE_UPLOAD_ERROR",
-        details: uploadError.message
-      });
+      logStep("WARNING: Storage upload failed (non-critical)", { error: uploadError.message });
+      // Don't fail the whole operation if local storage fails - Focus NFe already has the cert
+    } else {
+      logStep("Storage upload successful", { path: storagePath });
     }
-
-    logStep("Storage upload successful", { path: storagePath });
 
     // =========================================================
     // Create certificate record
@@ -257,7 +494,6 @@ Deno.serve(async (req) => {
 
     if (revokeError) {
       logStep("WARNING: Failed to revoke old certificates", { error: revokeError.message });
-      // Continue anyway - not critical
     } else {
       logStep("Previous certificates revoked");
     }
@@ -274,7 +510,7 @@ Deno.serve(async (req) => {
         is_valid: true,
         is_expired: false,
         status: "valid",
-        storage_path: storagePath,
+        storage_path: uploadError ? null : storagePath,
         uploaded_at: now.toISOString(),
         created_at: now.toISOString(),
         updated_at: now.toISOString(),
@@ -285,8 +521,10 @@ Deno.serve(async (req) => {
     if (certError) {
       logStep("ERROR: Certificate insert failed", { error: certError.message });
       
-      // Cleanup: remove uploaded file
-      await supabase.storage.from("fiscal-certificates").remove([storagePath]);
+      // Cleanup: remove uploaded file if we managed to upload
+      if (!uploadError) {
+        await supabase.storage.from("fiscal-certificates").remove([storagePath]);
+      }
       
       return json(500, { 
         error: "Erro ao registrar certificado",
@@ -298,57 +536,41 @@ Deno.serve(async (req) => {
     logStep("Certificate record created", { certificate_id: certificate.id });
 
     // =========================================================
-    // Update issuer status
+    // Update issuer status to ACTIVE (certificate + Focus NFe are ready)
     // =========================================================
+    const newStatus = focusToken ? "active" : "certificate_uploaded";
+    
     const { error: updateError } = await supabase
       .from("fiscal_issuers")
       .update({
-        status: "certificate_uploaded",
+        status: newStatus,
         updated_at: now.toISOString(),
       })
       .eq("id", issuer.id);
 
     if (updateError) {
       logStep("WARNING: Failed to update issuer status", { error: updateError.message });
-      
-      // Return partial success
-      return json(201, {
-        success: true,
-        warning: "Certificado salvo, mas falhou ao atualizar status do emissor",
-        warning_details: updateError.message,
-        certificate: {
-          id: certificate.id,
-          certificate_type: certificate.certificate_type,
-          valid_from: certificate.valid_from,
-          valid_until: certificate.valid_until,
-          is_valid: certificate.is_valid,
-          status: certificate.status,
-        },
-        issuer: { 
-          id: issuer.id, 
-          status: issuer.status,
-          profile_id: issuer.profile_id
-        },
-      });
+    } else {
+      logStep(`Issuer status updated to ${newStatus}`);
     }
-
-    logStep("Issuer status updated to certificate_uploaded");
 
     // =========================================================
     // Success response
     // =========================================================
     logStep("SUCCESS: Certificate upload complete", { 
       issuer_id: issuer.id, 
-      certificate_id: certificate.id 
+      certificate_id: certificate.id,
+      focus_registered: !!focusToken
     });
 
     return json(201, {
       success: true,
-      message: "Certificado enviado com sucesso",
+      message: focusToken 
+        ? "Certificado enviado e registrado na Focus NFe com sucesso!" 
+        : "Certificado enviado com sucesso (Focus NFe não configurado)",
       issuer: { 
         id: issuer.id, 
-        status: "certificate_uploaded",
-        profile_id: issuer.profile_id
+        status: newStatus,
       },
       certificate: {
         id: certificate.id,
@@ -358,6 +580,7 @@ Deno.serve(async (req) => {
         is_valid: certificate.is_valid,
         status: certificate.status,
       },
+      focus_nfe_registered: !!focusToken,
     });
 
   } catch (error) {
