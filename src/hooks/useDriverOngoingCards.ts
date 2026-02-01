@@ -99,6 +99,16 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         "DELIVERED_PENDING_CONFIRMATION",
       ] as const;
 
+      // Status de assignments que devem aparecer na aba "Em Andamento"
+      const assignmentOngoingStatuses = [
+        "ACCEPTED",
+        "LOADING",
+        "LOADED",
+        "IN_TRANSIT",
+        "DELIVERED_PENDING_CONFIRMATION",
+        "PENDING", // Motorista pode ter assignment pendente de aceitar
+      ] as const;
+
       // 1) FRETES (rurais) - SEM JOIN no produtor (RLS pode bloquear)
       const { data: directFreights, error: freErr } = await supabase
         .from("freights")
@@ -187,17 +197,26 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         console.warn("[useDriverOngoingCards] Falha ao buscar multi-carretas:", multiTruckError);
       }
 
-      // 3) ASSIGNMENTS (freight_assignments)
-      const { data: assignments, error: asgErr } = await supabase
+      // 3) ASSIGNMENTS (freight_assignments) - busca separada para evitar problemas de RLS
+      const { data: assignmentsRaw, error: asgErr } = await supabase
         .from("freight_assignments")
-        .select(
-          `
-          id,
-          status,
-          agreed_price,
-          accepted_at,
-          company_id,
-          freight:freights(
+        .select("id, status, agreed_price, accepted_at, company_id, freight_id")
+        .eq("driver_id", driverProfileId)
+        .in("status", assignmentOngoingStatuses)
+        .order("accepted_at", { ascending: false });
+
+      if (asgErr) {
+        console.warn("[useDriverOngoingCards] Falha ao buscar assignments:", asgErr);
+      }
+
+      // Buscar os fretes dos assignments separadamente (evita join que pode falhar por RLS)
+      const assignmentFreightIds = (assignmentsRaw || []).map(a => a.freight_id).filter(Boolean);
+      let assignmentFreightsMap: Record<string, OngoingFreightRow> = {};
+
+      if (assignmentFreightIds.length > 0) {
+        const { data: assignmentFreights, error: afErr } = await supabase
+          .from("freights")
+          .select(`
             id,
             created_at,
             updated_at,
@@ -228,16 +247,29 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
             current_lng,
             last_location_update,
             tracking_status
-          )
-        `
-        )
-        .eq("driver_id", driverProfileId)
-        .in("status", freightOngoingStatuses)
-        .order("accepted_at", { ascending: false });
+          `)
+          .in("id", assignmentFreightIds);
 
-      if (asgErr) {
-        console.warn("[useDriverOngoingCards] Falha ao buscar assignments:", asgErr);
+        if (!afErr && assignmentFreights) {
+          assignmentFreightsMap = Object.fromEntries(
+            assignmentFreights.map(f => [f.id, f as OngoingFreightRow])
+          );
+        } else if (afErr) {
+          console.warn("[useDriverOngoingCards] Falha ao buscar fretes dos assignments:", afErr);
+        }
       }
+
+      // Montar assignments com dados dos fretes
+      const assignments = (assignmentsRaw || [])
+        .filter(a => a.freight_id && assignmentFreightsMap[a.freight_id])
+        .map(a => ({
+          id: a.id,
+          status: a.status,
+          agreed_price: a.agreed_price,
+          accepted_at: a.accepted_at,
+          company_id: a.company_id,
+          freight: assignmentFreightsMap[a.freight_id!] || null
+        }));
 
       // 4) SERVICE REQUESTS (Moto/Guincho/Mudança)
       const { data: svcReqs, error: svcErr } = await supabase
@@ -261,10 +293,10 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       }, [] as OngoingFreightRow[]);
 
       // ✅ EVITAR DUPLICIDADE: se o frete já estiver em freight_assignments, não mostrar também em "Fretes Rurais"
-      const assignmentFreightIds = new Set(
+      const assignmentFreightIdsSet = new Set(
         (assignments || []).map((a: any) => a?.freight?.id).filter(Boolean)
       );
-      const freightsWithoutAssignmentDuplicates = uniqueFreights.filter((f) => !assignmentFreightIds.has(f.id));
+      const freightsWithoutAssignmentDuplicates = uniqueFreights.filter((f) => !assignmentFreightIdsSet.has(f.id));
 
       // ✅ FALLBACK: Buscar dados dos produtores via profiles_secure (evita bloqueio por RLS)
       const allFreightsForProducerLookup = [
