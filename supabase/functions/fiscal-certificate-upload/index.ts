@@ -3,7 +3,8 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const UploadCertificateSchema = z.object({
@@ -22,6 +23,18 @@ function json(status: number, body: unknown) {
 
 function logStep(step: string, details?: Record<string, unknown>) {
   console.log(`[fiscal-certificate-upload] ${step}`, details ? JSON.stringify(details) : "");
+}
+
+function sanitizeDocumentNumber(value: string): string {
+  return (value || "").replace(/\D/g, "");
+}
+
+function normalizeBase64(input: string): string {
+  // Aceita tanto base64 puro quanto data URL (data:...;base64,XXX)
+  const trimmed = (input || "").trim();
+  const maybeDataUrl = trimmed.includes(",") ? trimmed.split(",").pop()! : trimmed;
+  // Remove whitespace/newlines que podem quebrar serviços externos
+  return maybeDataUrl.replace(/\s+/g, "");
 }
 
 // ============================================
@@ -74,8 +87,17 @@ async function registerOrUpdateCompanyInFocusNfe(
     ? "https://api.focusnfe.com.br"
     : "https://homologacao.focusnfe.com.br";
 
+  const doc = sanitizeDocumentNumber(issuer.document_number);
+  const normalizedCertBase64 = normalizeBase64(certificateBase64);
+  // Remover espaços extras (muito comum em copy/paste). Não altera espaços internos.
+  const normalizedPassword = (certificatePassword || "").trim();
+  const token = (focusToken || "").trim();
+  if (!token) {
+    return { success: false, error: "FOCUS_NFE_TOKEN não configurado" };
+  }
+
   logStep("Registering company in Focus NFe", {
-    cnpj: issuer.document_number,
+    document: doc,
     environment: issuer.fiscal_environment,
     baseUrl: focusBaseUrl,
     hasExistingFocusId: !!issuer.focus_company_id,
@@ -89,7 +111,8 @@ async function registerOrUpdateCompanyInFocusNfe(
     inscricao_municipal: issuer.municipal_registration ? parseInt(issuer.municipal_registration.replace(/\D/g, ""), 10) || 0 : 0,
     regime_tributario: mapTaxRegimeToFocus(issuer.tax_regime),
     logradouro: issuer.address_street || "",
-    numero: issuer.address_number || "S/N",
+    // A API da Focus define `numero` como inteiro. Para "S/N" usamos 0.
+    numero: issuer.address_number ? parseInt(String(issuer.address_number).replace(/\D/g, ""), 10) || 0 : 0,
     bairro: issuer.address_neighborhood || "",
     municipio: issuer.city,
     uf: issuer.uf,
@@ -101,15 +124,15 @@ async function registerOrUpdateCompanyInFocusNfe(
     habilita_mdfe: true,
     enviar_email_destinatario: true,
     // Certificado digital A1
-    arquivo_certificado_base64: certificateBase64,
-    senha_certificado: certificatePassword,
+    arquivo_certificado_base64: normalizedCertBase64,
+    senha_certificado: normalizedPassword,
   };
 
   // Add CNPJ or CPF based on document length
-  if (issuer.document_number.length === 14) {
-    companyPayload.cnpj = issuer.document_number;
+  if (doc.length === 14) {
+    companyPayload.cnpj = doc;
   } else {
-    companyPayload.cpf = issuer.document_number;
+    companyPayload.cpf = doc;
   }
 
   // Add optional fields
@@ -117,7 +140,7 @@ async function registerOrUpdateCompanyInFocusNfe(
     companyPayload.complemento = issuer.address_complement;
   }
 
-  const authHeader = `Basic ${btoa(`${focusToken}:`)}`;
+  const authHeader = `Basic ${btoa(`${token}:`)}`;
 
   try {
     // Try to update existing company or create new one
@@ -131,11 +154,12 @@ async function registerOrUpdateCompanyInFocusNfe(
       url = `${focusBaseUrl}/v2/empresas/${issuer.focus_company_id}`;
     } else {
       // Try to find existing company by CNPJ first
-      const existingCheckUrl = `${focusBaseUrl}/v2/empresas/${issuer.document_number}`;
+        const existingCheckUrl = `${focusBaseUrl}/v2/empresas/${doc}`;
       const checkResponse = await fetch(existingCheckUrl, {
         method: "GET",
         headers: {
           Authorization: authHeader,
+            "Content-Type": "application/json",
         },
       });
 
@@ -153,10 +177,11 @@ async function registerOrUpdateCompanyInFocusNfe(
           status: checkResponse.status, 
           error: errorText 
         });
-        return { 
-          success: false, 
-          error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}` 
-        };
+          const snippet = errorText?.slice(0, 300);
+          return {
+            success: false,
+            error: `Erro ao verificar empresa na Focus NFe: ${checkResponse.status}${snippet ? ` - ${snippet}` : ""}`,
+          };
       }
     }
 
@@ -197,16 +222,16 @@ async function registerOrUpdateCompanyInFocusNfe(
         fullResponse: responseData
       });
 
-      return { 
-        success: false, 
-        error: `Focus NFe: ${errorMessage}` 
+      return {
+        success: false,
+        error: `Focus NFe (${response.status}): ${String(errorMessage)}`,
       };
     }
 
     // Extract the company ID from response
-    const focusCompanyId = (responseData as Record<string, unknown>)?.cnpj || 
-                           (responseData as Record<string, unknown>)?.cpf || 
-                           issuer.document_number;
+    const focusCompanyId = (responseData as Record<string, unknown>)?.cnpj ||
+                           (responseData as Record<string, unknown>)?.cpf ||
+                           doc;
 
     logStep("SUCCESS: Company registered/updated in Focus NFe", { 
       focusCompanyId,
@@ -215,7 +240,7 @@ async function registerOrUpdateCompanyInFocusNfe(
 
     return { 
       success: true, 
-      focusCompanyId: String(focusCompanyId) 
+      focusCompanyId: String(focusCompanyId)
     };
 
   } catch (error) {
@@ -234,7 +259,7 @@ async function registerOrUpdateCompanyInFocusNfe(
 // MAIN HANDLER
 // ============================================
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -296,7 +321,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { issuer_id, certificate_base64, certificate_password, file_name } = validation.data;
+     const { issuer_id, certificate_base64, certificate_password, file_name } = validation.data;
     logStep("Request validated", { issuer_id: issuer_id || "not provided", file_name });
 
     // =========================================================
@@ -378,9 +403,12 @@ Deno.serve(async (req) => {
     // =========================================================
     // Decode base64 certificate
     // =========================================================
+    const normalizedCertificateBase64 = normalizeBase64(certificate_base64);
+    const normalizedCertificatePassword = (certificate_password || "").trim();
+
     let certificateBytes: Uint8Array;
     try {
-      const binaryString = atob(certificate_base64);
+      const binaryString = atob(normalizedCertificateBase64);
       certificateBytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         certificateBytes[i] = binaryString.charCodeAt(i);
@@ -424,17 +452,22 @@ Deno.serve(async (req) => {
       
       const focusResult = await registerOrUpdateCompanyInFocusNfe(
         issuer,
-        certificate_base64,
-        certificate_password,
+        normalizedCertificateBase64,
+        normalizedCertificatePassword,
         focusToken
       );
 
       if (!focusResult.success) {
         logStep("ERROR: Focus NFe registration failed", { error: focusResult.error });
+        // Não mascarar a mensagem real da Focus — isso evita a sensação de "senha errada" quando não é.
         return json(422, {
           error: focusResult.error || "Falha ao registrar certificado na Focus NFe",
           code: "FOCUS_NFE_ERROR",
-          details: "O certificado não pôde ser registrado no provedor fiscal. Verifique se a senha está correta e se o certificado é válido."
+          details: {
+            hint:
+              "A Focus NFe rejeitou o cadastro/atualização da empresa com certificado. As causas mais comuns são: certificado A1 sem chave privada, senha com caractere invisível/whitespace, certificado não pertence ao CPF/CNPJ informado, ou token/ambiente incorretos.",
+            focus_error: focusResult.error,
+          },
         });
       }
 
