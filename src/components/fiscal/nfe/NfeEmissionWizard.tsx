@@ -117,9 +117,24 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     setHasPrefilled(false); // Reset para permitir novo prefill
   }, [isOpen]);
 
+  // Campos que devem ser convertidos para CAIXA ALTA automaticamente
+  const UPPERCASE_FIELDS = new Set([
+    "dest_razao_social",
+    "dest_logradouro",
+    "dest_numero",
+    "dest_bairro",
+    "dest_municipio",
+    "dest_uf",
+    "descricao",
+    "unidade",
+    "informacoes_adicionais",
+  ]);
+
   const updateField = (field: string, value: string) => {
     setFormData((prev) => {
-      const next = { ...prev, [field]: value };
+      // ✅ Converter para CAIXA ALTA se o campo estiver na lista
+      const processedValue = UPPERCASE_FIELDS.has(field) ? value.toUpperCase() : value;
+      const next = { ...prev, [field]: processedValue };
 
       // Auto-calcular valor total
       if (field === "quantidade" || field === "valor_unitario") {
