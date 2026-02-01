@@ -1,82 +1,147 @@
 
-Objetivo
-- Deixar o app com APENAS 1 estilo de spinner em TODOS os lugares, usando o componente padrão `AppSpinner` (o “C” verde do print), eliminando o segundo spinner (Lucide `Loader2`) e quaisquer spinners “caseiros”.
+# Plano de Correção: Markers do Mapa Deslocados para o Oceano
 
-Diagnóstico (por que hoje alterna “2 spins”)
-- Existem dois sistemas de loading coexistindo:
-  1) `src/components/ui/AppSpinner.tsx` (spinner estilo “C” verde) — é o que você quer como padrão.
-  2) `src/components/AppLoader.tsx` (usa `Loader2` do lucide-react) — este é o “outro spin” que aparece em boot/auth/Suspense.
-- Além disso, há spinners soltos em alguns componentes (ex.: upload) e vários botões/telas usam `Loader2` como spinner.
+## Diagnóstico do Problema
 
-Estratégia (como garantir “1 spinner só” sem quebrar telas)
-- Manter a API do `AppLoader` (para não ter que reescrever tudo agora), mas trocar a implementação interna para renderizar o `AppSpinner` (e não mais `Loader2`).
-- Fazer uma varredura e substituir os spinners “soltos” e os `Loader2` usados com `animate-spin` por `AppSpinner`/`InlineSpinner`/`CenteredSpinner`.
-- Resultado: mesmo que algum lugar ainda importe `AppLoader`, por dentro ele renderiza o mesmo spinner padrão.
+Após análise detalhada do código e dados do banco, identifiquei as seguintes questões:
 
-Mudanças planejadas (frontend)
+### 1. Dados no Banco de Dados
+- **Origem** (Primavera do Leste): `lat=-15.5606322, lng=-54.2890136` ✅ Correto
+- **Destino** (Canarana): `lat=null, lng=null` ❌ Faltando no frete
+- **Tabela Cities** (Canarana-MT): `lat=-13.5514, lng=-52.2697` ✅ Correto
+- **Motorista**: `lat=-15.568, lng=-54.309` ✅ Correto
 
-1) Unificar o loader global (principal causa do “alternar 2 spinners”)
-Arquivo: `src/components/AppLoader.tsx`
-- Remover `import { Loader2 } from 'lucide-react'`
-- Importar `AppSpinner` do padrão:
-  - `import { AppSpinner } from '@/components/ui/AppSpinner'`
-- Trocar todas as ocorrências de `<Loader2 ... animate-spin ... />` por `<AppSpinner ... />`
-- Mapear tamanhos do AppLoader para pixels, preservando o visual atual:
-  - `sm` => 20px (equivalente ao antigo `h-5 w-5`)
-  - `md` => 32px (equivalente ao antigo `h-8 w-8`)
-  - `lg` => 48px (equivalente ao antigo `h-12 w-12`)
-- Manter os “containers” por variante para não quebrar layout:
-  - `fullscreen`: manter `fixed inset-0 ... bg-background/95 backdrop-blur-sm` e só trocar o spinner interno
-  - `inline`: manter `min-h-[200px] p-8` e só trocar o spinner interno
-  - `minimal`: manter `p-2` e só trocar o spinner interno
-- Manter `debugId` e os logs em DEV (não afetam produção)
+### 2. Problema Identificado
+Os markers aparecem sobre o oceano Atlântico porque:
 
-Impacto direto:
-- Tudo que hoje usa `GlobalLoader`, `AuthLoader`, `DashboardLoader`, `SectionLoader`, `ComponentLoader` (Suspense fallbacks no `App.tsx` e `LazyComponents.tsx`) passará a exibir exatamente o mesmo spinner padrão do `AppSpinner`.
+1. **Falta de anchor nos markers do FreightRealtimeMapMapLibre**: Os markers de origem/destino são criados diretamente sem especificar `anchor: 'bottom'`, diferente do padrão usado no hook `useMapLibreMarkers`.
 
-2) Remover spinners “caseiros” que ainda aparecem em fluxos comuns
-Arquivos encontrados com spinner “manual” (por busca):
-- `src/components/ProfilePhotoUpload.tsx` (já usa um div “C” parecido, mas fora do componente padrão)
-- `src/components/vehicle/VehiclePhotoGallery.tsx` (usa um spinner branco customizado)
+2. **Inconsistência na criação de markers**: O componente `FreightRealtimeMapMapLibre` cria markers manualmente em vez de usar o hook padronizado `useMapLibreMarkers`, resultando em comportamento diferente.
 
-Ajuste:
-- Substituir os `<div className="... animate-spin ...">` por:
-  - `InlineSpinner` quando estiver dentro de botão/linha (mantém espaçamento “mr-2” consistente)
-  - ou `AppSpinner size="sm"` quando precisar customizar cor (por exemplo, em botão escuro, se necessário)
-- Assim, não fica nenhum spinner “inventado” fora do componente oficial.
+3. **Potencial problema no cálculo de bounds**: O `fitBounds` pode estar calculando a área visível incorretamente quando as coordenadas são muito próximas.
 
-3) Reduzir/eliminar `Loader2` apenas quando ele estiver sendo usado como spinner
-(para realmente ficar “1 spinner só” em toda a UI)
-- Fazer busca e substituição por padrão:
-  - Alvo: usos de `Loader2` com `animate-spin`
-  - Trocar por:
-    - `InlineSpinner` em botões (ex.: “Entrar”, “Cadastrar”, “Salvando…”, etc.)
-    - `CenteredSpinner`/`AppSpinner` em estados de tela/seção
-- Prioridade de correção (mais visível para você no dia a dia):
-  1) Tela de Auth (`src/pages/Auth.tsx`) — hoje mostra `Loader2` no botão enquanto loga/cadastra (pode ser percebido como “segundo spinner”)
-  2) Fluxos de upload (foto)
-  3) Painéis/Modais que usam `Loader2` em loading inicial de card/aba
+4. **Logs de debug não ativos**: Os console.logs estão lá mas o mapa pode estar recebendo coordenadas diferentes do esperado.
 
-Observação importante:
-- Ícones que “giram” mas não são spinner (ex.: `RefreshCw` girando no botão “Atualizar”) não são necessariamente “spinner de carregamento”. Se você quiser padronizar até isso, eu também consigo, mas primeiro vou focar em eliminar os spinners de loading reais (os circulares).
+## Solução Proposta
 
-Critérios de aceite (como vamos confirmar que ficou 1 só)
-- Durante boot/auth e troca de rotas (Suspense): só aparece o “C” verde do `AppSpinner`.
-- Em botões de submit/login/upload/salvar: ao carregar, só aparece o “C” verde do `InlineSpinner`/`AppSpinner` (não mais `Loader2`).
-- Não existem mais spinners customizados em `<div className="...animate-spin...border...">` fora de `AppSpinner.tsx`.
+### Parte 1: Corrigir Anchor dos Markers (Principal)
 
-Checklist de testes (end-to-end)
-1) Abrir o app do zero (forçar reload) e observar o loader global: deve ser o mesmo “C” verde.
-2) Ir em /auth e clicar “Entrar” (com credenciais): o spinner no botão deve ser o mesmo “C” verde.
-3) Navegar para /dashboard/company e alternar abas/ações que carregam dados: loaders devem ser iguais.
-4) Fazer um upload de foto (perfil/veículo): spinner do “Enviando…” deve ser o mesmo “C” verde.
-5) Testar em modo escuro e no mobile.
+Adicionar `anchor: 'bottom'` aos markers de origem e destino no `FreightRealtimeMapMapLibre.tsx`:
 
-Risco/impacto
-- Baixo: vamos reaproveitar containers e só trocar o “miolo” do spinner, mantendo layout/estrutura.
-- Médio (apenas se você exigir 100% de substituição de todos os `Loader2` do projeto): é um sweep grande, mas é direto e mecânico.
+```typescript
+// Antes
+originMarkerRef.current = new maplibregl.Marker({
+  element: originElement,
+})
 
-O que eu vou implementar assim que você aprovar este plano
-- Refatoração do `AppLoader` para usar `AppSpinner` (principal).
-- Remoção dos spinners customizados identificados.
-- Substituição de `Loader2` usado como spinner nos fluxos mais visíveis (Auth + uploads + alguns painéis), e deixo um sweep final para “zerar Loader2 animate-spin” no app inteiro.
+// Depois  
+originMarkerRef.current = new maplibregl.Marker({
+  element: originElement,
+  anchor: 'bottom',  // ✅ Ponta do pin na coordenada exata
+})
+```
+
+### Parte 2: Forçar Validação de Coordenadas
+
+Adicionar validação explícita antes de criar markers, garantindo que coordenadas fora do Brasil sejam rejeitadas:
+
+```typescript
+const isValidBrazilCoord = (lat: number, lng: number): boolean => {
+  return lat >= -35 && lat <= 6 && lng >= -75 && lng <= -30;
+};
+```
+
+### Parte 3: Melhorar Logs de Debug
+
+Adicionar logs mais detalhados para rastrear o fluxo completo das coordenadas:
+
+```typescript
+console.log('[FreightRealtimeMapMapLibre] 📍 Coords received:', {
+  originLat, originLng,
+  destinationLat, destinationLng,
+  initialDriverLat, initialDriverLng
+});
+
+console.log('[FreightRealtimeMapMapLibre] 📍 After normalization:', {
+  mapOrigin, mapDestination, mapDriverLocation
+});
+```
+
+### Parte 4: Validar Coordenadas na Criação do Frete
+
+Garantir que ao criar um frete, as coordenadas de destino sejam preenchidas corretamente (atualmente estão `null`).
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/freight/FreightRealtimeMapMapLibre.tsx` | Adicionar anchor aos markers, melhorar logs, validação extra |
+| `src/lib/geo/normalizeLatLngPoint.ts` | Adicionar log mais detalhado para debug |
+
+## Detalhes Técnicos
+
+### Correção 1: FreightRealtimeMapMapLibre.tsx
+
+Nos useEffects que criam markers (~linhas 488-530), adicionar o anchor correto:
+
+```typescript
+// Marker de Origem
+originMarkerRef.current = new maplibregl.Marker({
+  element: originElement,
+  anchor: 'bottom', // ✅ CRÍTICO: Pin apontando para coordenada
+})
+
+// Marker de Destino  
+destinationMarkerRef.current = new maplibregl.Marker({
+  element: destinationElement,
+  anchor: 'bottom', // ✅ CRÍTICO: Pin apontando para coordenada
+})
+
+// Marker do Motorista (já está correto com 'center')
+```
+
+### Correção 2: Adicionar Validação de Sanidade
+
+Antes de usar coordenadas normalizadas, validar que estão dentro do Brasil:
+
+```typescript
+const mapOrigin = useMemo(() => {
+  const normalized = normalizeLatLngPoint(effectiveOrigin, 'BR');
+  // Validação extra de sanidade
+  if (normalized && 
+      normalized.lat >= -35 && normalized.lat <= 6 &&
+      normalized.lng >= -75 && normalized.lng <= -30) {
+    return normalized;
+  }
+  console.warn('[FreightRealtimeMapMapLibre] ❌ Origin coords invalid after normalization:', normalized);
+  return null;
+}, [effectiveOrigin]);
+```
+
+### Correção 3: Logs de Rastreamento
+
+Adicionar logs no início do componente para rastrear todo o fluxo:
+
+```typescript
+// Logo após os useMemo de effectiveOrigin, effectiveDestination, effectiveDriverLocation
+useEffect(() => {
+  console.log('[FreightRealtimeMapMapLibre] 🔍 Coordinate Flow Debug:', {
+    props: { originLat, originLng, destinationLat, destinationLng },
+    effective: { effectiveOrigin, effectiveDestination, effectiveDriverLocation },
+    normalized: { mapOrigin, mapDestination, mapDriverLocation },
+    fallback: { cityOriginCoords, cityDestinationCoords }
+  });
+}, [originLat, originLng, destinationLat, destinationLng, effectiveOrigin, effectiveDestination, effectiveDriverLocation, mapOrigin, mapDestination, mapDriverLocation, cityOriginCoords, cityDestinationCoords]);
+```
+
+## Resultado Esperado
+
+Após as correções:
+1. Markers de origem (A) e destino (B) aparecerão nas posições corretas dentro do Brasil
+2. O marker do caminhão aparecerá na localização real do motorista
+3. A rota OSRM conectará corretamente os pontos
+4. Logs detalhados permitirão debug rápido de problemas futuros
+
+## Observação Importante
+
+O problema também pode estar relacionado ao fato de que `destination_lat` e `destination_lng` estão `null` no banco. Recomendo também verificar o wizard de criação de frete para garantir que essas coordenadas sejam salvas corretamente quando o destino é selecionado.
