@@ -1,7 +1,19 @@
+/**
+ * @deprecated Este componente será removido em breve.
+ * A integração Stripe será substituída pelo Pagar.me.
+ * Use o hook useIntegrations() para o novo sistema de pagamentos.
+ * 
+ * Modelo de cobrança: Por emissão de documento fiscal
+ * - NF-e: R$ 0,35/emissão
+ * - CT-e: R$ 0,25/emissão
+ * - MDF-e: R$ 0,15/emissão
+ * - NFS-e: R$ 0,40/emissão
+ */
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { ReactNode, useState } from 'react';
 
+// @deprecated - Stripe será removido
 // Publishable key from env - optional for Stripe features
 const PUBLISHABLE_KEY: string = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
 
