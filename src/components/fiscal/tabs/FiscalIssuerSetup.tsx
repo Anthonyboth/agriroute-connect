@@ -24,6 +24,23 @@ interface FiscalIssuerSetupProps {
   onStartOnboarding: () => void;
 }
 
+// Mapeamento de status técnicos para português
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  active: 'Ativo',
+  blocked: 'Bloqueado',
+  certificate_uploaded: 'Certificado Enviado',
+  production_enabled: 'Produção Ativa',
+  homologation_enabled: 'Homologação Ativa',
+  sefaz_validated: 'SEFAZ Validado',
+  validated: 'Validado',
+};
+
+const getStatusLabel = (status: string | null): string => {
+  if (!status) return 'Pendente';
+  return STATUS_LABELS[status] || status;
+};
+
 export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
   fiscalIssuer,
   userRole,
@@ -51,12 +68,14 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
       </Card>
     );
   }
-  // ✅ CORREÇÃO P0: Verificar status do certificado incluindo 'certificate_uploaded'
-  // Edge Function define status = 'certificate_uploaded' após upload bem sucedido
+  // ✅ CORREÇÃO P0: Verificar status do certificado incluindo 'certificate_uploaded' e 'production_enabled'
+  // Edge Function define status após upload bem sucedido
   const hasCertificate = 
     fiscalIssuer.sefaz_status === 'validated' || 
     fiscalIssuer.status === 'active' ||
-    fiscalIssuer.status === 'certificate_uploaded';
+    fiscalIssuer.status === 'certificate_uploaded' ||
+    fiscalIssuer.status === 'production_enabled' ||
+    fiscalIssuer.status === 'homologation_enabled';
   
   const sefazValidatedAt = fiscalIssuer.sefaz_validated_at 
     ? new Date(fiscalIssuer.sefaz_validated_at) 
@@ -77,8 +96,8 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
                 Informações cadastradas para emissão fiscal
               </CardDescription>
             </div>
-            <Badge variant={fiscalIssuer.status === 'active' ? 'default' : 'secondary'}>
-              {fiscalIssuer.status === 'active' ? 'Ativo' : fiscalIssuer.status || 'Pendente'}
+            <Badge variant={fiscalIssuer.status === 'active' || fiscalIssuer.status === 'production_enabled' ? 'default' : 'secondary'}>
+              {getStatusLabel(fiscalIssuer.status)}
             </Badge>
           </div>
         </CardHeader>
@@ -172,10 +191,14 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <p className={`font-medium ${fiscalIssuer.status === 'certificate_uploaded' ? 'text-blue-600' : 'text-green-600'}`}>
-                    {fiscalIssuer.status === 'certificate_uploaded' 
-                      ? 'Certificado Enviado' 
-                      : (fiscalIssuer.sefaz_status || 'Validado')}
+                  <p className={`font-medium ${
+                    fiscalIssuer.status === 'production_enabled' || fiscalIssuer.status === 'active' 
+                      ? 'text-green-600' 
+                      : fiscalIssuer.status === 'homologation_enabled' 
+                        ? 'text-amber-600'
+                        : 'text-blue-600'
+                  }`}>
+                    {getStatusLabel(fiscalIssuer.status)}
                   </p>
                 </div>
               </div>
