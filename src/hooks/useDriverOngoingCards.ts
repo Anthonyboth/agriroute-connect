@@ -181,7 +181,6 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         )
         .contains("drivers_assigned", [driverProfileId])
         .eq("status", "OPEN")
-        .gt("accepted_trucks", 0)
         .order("updated_at", { ascending: false });
 
       if (multiTruckError) {
