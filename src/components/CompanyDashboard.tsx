@@ -51,15 +51,15 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
       const freights = companyFreights || [];
 
       // Buscar assignments ativos - incluir todos status de "em andamento"
-      const { data: assignments } = await supabase
-        .from('freight_assignments')
-        .select(`
-          *,
-          freight:freights(*,
-            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
-          ),
-          driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
-        `)
+       const { data: assignments } = await supabase
+         .from('freight_assignments')
+         .select(`
+           *,
+           freight:freights(*,
+             producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+           ),
+           driver:profiles_secure!freight_assignments_driver_id_fkey(id, full_name, profile_photo_url, rating)
+         `)
         .eq('company_id', company.id)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION']);
 
@@ -104,15 +104,16 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
       const activeDriversData = Array.from(uniqueDrivers).map(driverId => {
         const driverAssignments = (assignments || []).filter(a => a.driver_id === driverId);
         const lastAssignment = driverAssignments[0];
-        return {
-          id: driverId,
-          name: lastAssignment?.driver?.full_name || 'Motorista',
-          phone: lastAssignment?.driver?.contact_phone,
-          activeFreights: driverAssignments.length,
-          lastFreight: lastAssignment?.freight?.origin_city 
-            ? `${lastAssignment.freight.origin_city} → ${lastAssignment.freight.destination_city}`
-            : 'N/A'
-        };
+         return {
+           id: driverId,
+           name: lastAssignment?.driver?.full_name || 'Motorista',
+           // profiles_secure pode não expor telefone; manter compatibilidade sem quebrar build
+           phone: (lastAssignment as any)?.driver?.contact_phone || (lastAssignment as any)?.driver?.phone,
+           activeFreights: driverAssignments.length,
+           lastFreight: lastAssignment?.freight?.origin_city 
+             ? `${lastAssignment.freight.origin_city} → ${lastAssignment.freight.destination_city}`
+             : 'N/A'
+         };
       });
 
       setActiveDriversList(activeDriversData);
