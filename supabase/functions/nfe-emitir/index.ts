@@ -323,13 +323,14 @@ Deno.serve(async (req) => {
       indicador_inscricao_estadual_destinatario: isDestCPF ? "9" : (onlyDigits(String(destinatario.ie || "")) ? "1" : "2"),
       email_destinatario: String(destinatario.email || "") || undefined,
       telefone_destinatario: onlyDigits(String(destinatario.telefone || "")) || undefined,
-      logradouro_destinatario: String(destinatario.endereco?.logradouro || ""),
+      // Endereço destinatário: todos os campos são OBRIGATÓRIOS para NF-e
+      logradouro_destinatario: String(destinatario.endereco?.logradouro || "NAO INFORMADO"),
       numero_destinatario: String(destinatario.endereco?.numero || "SN"),
-      bairro_destinatario: String(destinatario.endereco?.bairro || ""),
-      municipio_destinatario: destMunicipio,
-      codigo_municipio_destinatario: destCodigoMunicipio,
-      uf_destinatario: destUf,
-      cep_destinatario: onlyDigits(String(destinatario.endereco?.cep || "")),
+      bairro_destinatario: String(destinatario.endereco?.bairro || "CENTRO"),
+      municipio_destinatario: destMunicipio || "NAO INFORMADO",
+      codigo_municipio_destinatario: destCodigoMunicipio || "0000000",
+      uf_destinatario: destUf || "XX",
+      cep_destinatario: onlyDigits(String(destinatario.endereco?.cep || "")) || "00000000",
 
       // Itens: campos corretos Focus (CORREÇÃO)
       items: itens.map((item, index) => {
