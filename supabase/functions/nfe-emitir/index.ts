@@ -278,7 +278,10 @@ Deno.serve(async (req) => {
     }
 
     // Payload Focus (CORRIGIDO)
+    const dataEmissao = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    
     const nfePayload: Record<string, unknown> = {
+      data_emissao: dataEmissao,
       natureza_operacao: "VENDA DE MERCADORIA",
       forma_pagamento: "0",
       tipo_documento: "1",
