@@ -35,7 +35,12 @@ export function useErrorMonitoring() {
     
     window.fetch = async (...args: Parameters<typeof fetch>) => {
       // ✅ Extrair URL antes do try/catch (Correção 1 e 4)
-      const urlString = typeof args[0] === 'string' ? args[0] : '';
+      const urlString =
+        typeof args[0] === 'string'
+          ? args[0]
+          : args[0] instanceof Request
+            ? args[0].url
+            : ((args[0] as any)?.url as string | undefined) || '';
       const isMonitoringRequest = isMonitoringUrl(urlString);
       
       if (import.meta.env.DEV && !isMonitoringRequest) {
@@ -79,6 +84,13 @@ export function useErrorMonitoring() {
               console.log('📋 [useErrorMonitoring] Dados do erro:', errorData);
             }
           } catch {
+            // Fallback: alguns endpoints retornam texto (ou JSON inválido)
+            try {
+              const text = await clonedResponse.text();
+              if (text) errorData = { raw: text };
+            } catch {
+              // ignore
+            }
             if (import.meta.env.DEV) {
               console.warn('⚠️ [useErrorMonitoring] Não foi possível parsear JSON do erro');
             }
@@ -100,7 +112,7 @@ export function useErrorMonitoring() {
             {
               source: 'supabase_api',
               statusCode: response.status,
-              url: args[0],
+              url: urlString || 'unknown',
               errorData,
               userFacing: true
             }
