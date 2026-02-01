@@ -22,6 +22,7 @@ import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { useRequesterStatus } from '@/hooks/useRequesterStatus';
+import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load do mapa MapLibre para performance (100% gratuito, sem Google Maps)
 const FreightRealtimeMap = lazy(() => 
@@ -100,6 +101,9 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   showActions = true,
   highlightFreightId,
 }) => {
+  const { profile } = useAuth();
+  const canShowTotalFreightValue = profile?.role === 'PRODUTOR';
+
   const [activeTab, setActiveTab] = useState<string>('details');
   const [mapMounted, setMapMounted] = useState(false);
   const [mapKey, setMapKey] = useState(0); // ✅ Key para forçar re-render do mapa
@@ -319,9 +323,11 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                         {priceInfo.pricePerTruck}
                         <span className="text-xs font-semibold text-muted-foreground">/carreta</span>
                       </p>
-                      <p className="text-[11px] text-muted-foreground whitespace-nowrap">
-                        Total ({priceInfo.trucksCount} carretas): {priceInfo.totalPrice}
-                      </p>
+                      {canShowTotalFreightValue && (
+                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          Total ({priceInfo.trucksCount} carretas): {priceInfo.totalPrice}
+                        </p>
+                      )}
                     </div>
                   );
                 }

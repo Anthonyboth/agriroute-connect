@@ -228,7 +228,16 @@ export const CompanyProposalsManager: React.FC = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Valor Original</p>
                 <p className="text-lg font-semibold">
-                  R$ {formatBRL(proposal.freight.price)}
+                  {(() => {
+                    const requiredTrucks = Math.max((proposal.freight as any)?.required_trucks ?? 1, 1);
+                    const perTruck = (proposal.freight.price || 0) / requiredTrucks;
+                    return (
+                      <>
+                        R$ {formatBRL(perTruck)}
+                        {requiredTrucks > 1 && <span className="text-xs ml-1">/carreta</span>}
+                      </>
+                    );
+                  })()}
                 </p>
               </div>
               <div>

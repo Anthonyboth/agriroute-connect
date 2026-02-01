@@ -15,6 +15,7 @@ import { Truck, MapPin, RefreshCw, BarChart, Package, Users } from 'lucide-react
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { isInProgressFreight, isScheduledFreight } from '@/utils/freightDateHelpers';
+import { getDriverVisibleFreightPrice } from '@/lib/freight-price-visibility';
 
 interface CompanyDashboardProps {
   onNavigateToReport?: (tab: string) => void;
@@ -332,13 +333,25 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
             <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando fretes ativos...</div>}>
                 {activeFreights.slice(0, 4).map((assignment) => {
+                  const originalRequiredTrucks = Math.max((assignment?.freight?.required_trucks ?? 1) || 1, 1);
+
+                  // ✅ Segurança (Transportadora): nunca renderizar valor TOTAL de multi-carreta.
+                  // Usa heurística defensiva para corrigir dados legados onde agreed_price foi salvo como TOTAL.
+                  const visiblePrice = getDriverVisibleFreightPrice({
+                    freightPrice: assignment?.freight?.price,
+                    requiredTrucks: originalRequiredTrucks,
+                    assignmentAgreedPrice: typeof assignment?.agreed_price === 'number' ? assignment.agreed_price : undefined,
+                  });
+
                   // Mapear assignment para formato de freight
                   const mappedFreight = {
                     ...assignment.freight,
                     producer: assignment.freight?.producer,
                     driver_profiles: assignment.driver,
                     profiles: assignment.driver,
-                    price: assignment.agreed_price || assignment.freight?.price,
+                    price: visiblePrice.displayPrice,
+                    price_display_mode: visiblePrice.displayMode,
+                    original_required_trucks: originalRequiredTrucks,
                     required_trucks: 1,
                     assignment_status: assignment.status,
                   };

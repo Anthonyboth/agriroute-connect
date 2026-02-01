@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,8 +38,16 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
 }) => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'accept' | 'counter'>('accept');
-  const [counterPrice, setCounterPrice] = useState(freight?.price || 0);
+  const requiredTrucks = useMemo(() => Math.max((freight?.required_trucks ?? 1) || 1, 1), [freight?.required_trucks]);
+  const unitBasePrice = useMemo(() => (freight?.price || 0) / requiredTrucks, [freight?.price, requiredTrucks]);
+
+  const [counterPrice, setCounterPrice] = useState(unitBasePrice);
   const [justification, setJustification] = useState('');
+
+  // Mantém o valor inicial coerente quando o modal abre para outro frete
+  useEffect(() => {
+    setCounterPrice(unitBasePrice);
+  }, [unitBasePrice, freight?.id]);
 
   const handleAccept = async () => {
     setLoading(true);
@@ -67,7 +75,8 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
           company_id: companyId,
           status: 'ACCEPTED',
           accepted_at: new Date().toISOString(),
-          agreed_price: freight.price,
+          // ✅ CRÍTICO: agreed_price deve ser unitário (/carreta) em fretes multi-carreta
+          agreed_price: unitBasePrice,
           pricing_type: 'FIXED',
           minimum_antt_price: freight.minimum_antt_price || null
         }, {
@@ -82,7 +91,8 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         .insert({
           freight_id: freight.id,
           driver_id: driverId,
-          proposed_price: freight.price,
+          // ✅ Consistência: proposta também é por unidade (/carreta)
+          proposed_price: unitBasePrice,
           status: 'ACCEPTED',
           notes: `Aceito pela transportadora em nome do motorista ${driverName}`
         });
@@ -157,10 +167,10 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         .insert({
           freight_id: freight.id,
           sender_id: companyOwnerId,
-          message: `💰 **Contraproposta da Transportadora**\n\n**Valor Original:** R$ ${freight.price.toFixed(2)}\n**Novo Valor:** R$ ${counterPrice.toFixed(2)}\n\n**Justificativa:** ${justification}`,
+          message: `💰 **Contraproposta da Transportadora**\n\n**Valor Original:** R$ ${unitBasePrice.toFixed(2)}${requiredTrucks > 1 ? ' /carreta' : ''}\n**Novo Valor:** R$ ${counterPrice.toFixed(2)}${requiredTrucks > 1 ? ' /carreta' : ''}\n\n**Justificativa:** ${justification}`,
           message_type: 'COUNTER_PROPOSAL',
           metadata: {
-            original_price: freight.price,
+            original_price: unitBasePrice,
             counter_price: counterPrice,
             proposed_by_company: true,
             driver_id: driverId
@@ -270,7 +280,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
               <div>
                 <p className="text-sm font-medium">Valor do Frete</p>
                 <p className="text-2xl font-bold text-primary">
-                  R$ {freight.price?.toFixed(2)}
+                  R$ {unitBasePrice?.toFixed(2)}{requiredTrucks > 1 ? ' /carreta' : ''}
                 </p>
               </div>
             </div>

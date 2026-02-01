@@ -302,6 +302,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       }
 
       // ✅ CRÍTICO: Criar assignment COM company_id E driver_id
+      const requiredTrucks = Math.max((freightData.required_trucks || 1) as number, 1);
+      const agreedPerTruck = (freightData.price || 0) / requiredTrucks;
+
       const { error: assignmentError } = await supabase.from("freight_assignments").upsert(
         {
           freight_id: freight.id,
@@ -309,7 +312,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           company_id: company.id, // ✅ ESSENCIAL
           status: "ACCEPTED",
           accepted_at: new Date().toISOString(),
-          agreed_price: freightData.price,
+          // ✅ CRÍTICO: agreed_price deve ser unitário (/carreta) em fretes multi-carreta
+          agreed_price: agreedPerTruck,
           pricing_type: "FIXED",
           minimum_antt_price: freightData.minimum_antt_price || 0,
         },

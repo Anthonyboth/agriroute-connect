@@ -13,6 +13,7 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { formatTons, formatKm, formatBRL, formatDate, formatCityState } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
+import { getDriverVisibleFreightPrice } from '@/lib/freight-price-visibility';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -119,6 +120,14 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
   const requiredTrucks = typeof freight?.required_trucks === 'number' ? freight.required_trucks : 0;
   const acceptedTrucks = typeof freight?.accepted_trucks === 'number' ? freight.accepted_trucks : 0;
   const cargoType = freight?.cargo_type || freight?.service_type || '—';
+
+  // ✅ Segurança (Transportadora/Motorista): nunca exibir valor total multi-carreta.
+  // Usa heurística defensiva para corrigir dados legados onde agreed_price foi salvo como TOTAL.
+  const visiblePrice = getDriverVisibleFreightPrice({
+    freightPrice: typeof freight?.price === 'number' && Number.isFinite(freight.price) ? freight.price : null,
+    requiredTrucks,
+    assignmentAgreedPrice: agreedPrice ?? undefined,
+  });
   
   return (
     <Card className="border-l-4 border-l-green-600 overflow-hidden">
@@ -151,7 +160,10 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
           <p className="text-sm text-muted-foreground">Seu valor acordado:</p>
           <p className="text-2xl font-bold text-green-600">
-            {formatBRL(agreedPrice, true)}
+            {formatBRL(visiblePrice.displayPrice, true)}
+            {visiblePrice.displayMode === 'PER_TRUCK' && (
+              <span className="text-xs font-semibold text-muted-foreground ml-1">/carreta</span>
+            )}
           </p>
           {assignment?.pricing_type === 'PER_KM' && pricePerKm !== null && (
             <p className="text-xs text-muted-foreground">
@@ -163,7 +175,7 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
         {/* Validação ANTT */}
         {minimumAnttPrice !== null && typeof distanceKm === 'number' && (
           <ANTTValidation
-            proposedPrice={agreedPrice ?? 0}
+            proposedPrice={visiblePrice.displayPrice}
             minimumAnttPrice={minimumAnttPrice}
             distance={distanceKm}
           />

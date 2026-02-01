@@ -32,6 +32,7 @@ interface ShareFreightToDriverProps {
     destination_city?: string;
     destination_state?: string;
     price: number;
+    required_trucks?: number;
     distance_km?: number;
     minimum_antt_price?: number;
     service_type?: string;
@@ -55,10 +56,17 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
   companyId,
   onSuccess
 }) => {
+  const requiredTrucks = Math.max((freight.required_trucks ?? 1) || 1, 1);
+  const unitOriginalPrice = (freight.price || 0) / requiredTrucks;
+  const minAnttPerTruck = typeof freight.minimum_antt_price === 'number'
+    ? (freight.minimum_antt_price || 0) / requiredTrucks
+    : null;
+
   const [showDialog, setShowDialog] = useState(false);
   const [drivers, setDrivers] = useState<AffiliatedDriver[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
-  const [agreedPrice, setAgreedPrice] = useState<string>(freight.price.toString());
+  // ✅ Transportadora trabalha por unidade (/carreta) em multi-carreta
+  const [agreedPrice, setAgreedPrice] = useState<string>(unitOriginalPrice.toString());
   const [pricePerKm, setPricePerKm] = useState<string>('');
   const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('FIXED');
   const [loading, setLoading] = useState(false);
@@ -223,7 +231,10 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
               <p><strong>Origem:</strong> {freight.origin_city}, {freight.origin_state}</p>
               <p><strong>Destino:</strong> {freight.destination_city}, {freight.destination_state}</p>
               {freight.distance_km && <p><strong>Distância:</strong> {formatKm(freight.distance_km)}</p>}
-              <p><strong>Valor original:</strong> R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p>
+                <strong>Valor original:</strong> R$ {unitOriginalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {requiredTrucks > 1 ? ' /carreta' : ''}
+              </p>
             </div>
 
             {/* Seleção de Motorista */}
@@ -297,9 +308,9 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
             )}
 
             {/* Aviso ANTT */}
-            {freight.minimum_antt_price && parseFloat(agreedPrice) < freight.minimum_antt_price && (
+            {minAnttPerTruck !== null && parseFloat(agreedPrice) < minAnttPerTruck && (
               <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 rounded-lg text-xs text-yellow-800 dark:text-yellow-300">
-                ⚠️ Valor abaixo do mínimo ANTT (R$ {freight.minimum_antt_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                ⚠️ Valor abaixo do mínimo ANTT (R$ {minAnttPerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}{requiredTrucks > 1 ? ' /carreta' : ''})
               </div>
             )}
           </div>
