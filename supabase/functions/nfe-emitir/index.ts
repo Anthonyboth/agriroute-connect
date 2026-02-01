@@ -56,6 +56,50 @@ function safeUpper(v: string) {
   return (v || "").trim().toUpperCase();
 }
 
+function isValidIbgeCode(v: unknown): boolean {
+  const s = String(v ?? "").trim();
+  return /^[0-9]{7}$/.test(s);
+}
+
+async function lookupCityIbgeCode(
+  supabase: any,
+  cityName: string,
+  uf: string,
+): Promise<string | null> {
+  const city = String(cityName || "").trim();
+  const state = safeUpper(String(uf || ""));
+
+  if (!city || state.length !== 2) return null;
+
+  // 1) tentativa exata (case-insensitive)
+  const exact = await supabase
+    .from("cities")
+    .select("ibge_code")
+    .eq("state", state)
+    .ilike("name", city)
+    .limit(1)
+    .maybeSingle();
+
+  if (exact?.data?.ibge_code && isValidIbgeCode(exact.data.ibge_code)) {
+    return String(exact.data.ibge_code);
+  }
+
+  // 2) fallback por contains (para variações de escrita)
+  const contains = await supabase
+    .from("cities")
+    .select("ibge_code")
+    .eq("state", state)
+    .ilike("name", `%${city}%`)
+    .limit(1)
+    .maybeSingle();
+
+  if (contains?.data?.ibge_code && isValidIbgeCode(contains.data.ibge_code)) {
+    return String(contains.data.ibge_code);
+  }
+
+  return null;
+}
+
 function mapTaxRegime(regime: string): string {
   switch (regime) {
     case "simples_nacional":
@@ -325,6 +369,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ==============================
+    // CÓDIGO IBGE DO MUNICÍPIO DO EMITENTE (OBRIGATÓRIO: 7 dígitos)
+    // Se estiver vazio no cadastro, tenta resolver automaticamente pela tabela `cities`.
+    // ==============================
+    let issuerCodigoMunicipio = String(issuer.city_ibge_code || "").trim();
+    if (!isValidIbgeCode(issuerCodigoMunicipio)) {
+      const resolved = await lookupCityIbgeCode(supabase, issuerMunicipio, issuerUf);
+
+      if (!resolved) {
+        console.error("[nfe-emitir] city_ibge_code ausente/ inválido e não foi possível resolver:", {
+          issuer_id,
+          issuerMunicipio,
+          issuerUf,
+          current: issuerCodigoMunicipio,
+        });
+        return jsonResponse(400, {
+          success: false,
+          code: "INVALID_ISSUER_CITY_IBGE",
+          message:
+            "Código IBGE do município do emissor está ausente/ inválido. Reabra o Cadastro Fiscal (Etapa 2) e preencha o CEP/Cidade para salvar o município corretamente.",
+        });
+      }
+
+      issuerCodigoMunicipio = resolved;
+
+      // Persistir para evitar futuras falhas
+      const { error: persistError } = await supabase
+        .from("fiscal_issuers")
+        .update({ city_ibge_code: issuerCodigoMunicipio, updated_at: new Date().toISOString() })
+        .eq("id", issuer_id);
+
+      if (persistError) {
+        console.warn("[nfe-emitir] Não foi possível persistir city_ibge_code, seguindo com valor resolvido:", persistError);
+      }
+    }
+
     // Payload Focus (CORRIGIDO)
     const dataEmissao = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     
@@ -347,7 +427,7 @@ Deno.serve(async (req) => {
       numero_emitente: String(issuer.address_number || "SN").trim() || "SN",
       bairro_emitente: issuerBairro,
       municipio_emitente: issuerMunicipio,
-      codigo_municipio_emitente: String(issuer.city_ibge_code || ""),
+      codigo_municipio_emitente: issuerCodigoMunicipio,
       uf_emitente: issuerUf,
       cep_emitente: issuerCep,
       regime_tributario: mapTaxRegime(String(issuer.tax_regime || "simples_nacional")),
