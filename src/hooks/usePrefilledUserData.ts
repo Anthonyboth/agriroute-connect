@@ -224,21 +224,23 @@ export function usePrefilledUserData(): PrefilledUserData {
     }
 
     // Usar dados do emissor fiscal (mais completos)
+    // ✅ Campos corretos do banco: address_street, address_number, address_neighborhood, address_zip_code
     return {
       cnpj_cpf: formatCpfCnpj(fiscalIssuer.document_number || ''),
       razao_social: fiscalIssuer.legal_name || '',
       nome_fantasia: fiscalIssuer.trade_name || '',
-      inscricao_estadual: fiscalIssuer.ie || '',
-      inscricao_municipal: fiscalIssuer.im || '',
-      email: fiscalIssuer.email_fiscal || user?.email || '',
-      telefone: formatPhone(fiscalIssuer.telefone_fiscal || profile?.phone || ''),
-      logradouro: fiscalIssuer.endereco_logradouro || '',
-      numero: fiscalIssuer.endereco_numero || '',
-      bairro: fiscalIssuer.endereco_bairro || '',
-      municipio: fiscalIssuer.endereco_cidade || fiscalIssuer.city || '',
-      uf: fiscalIssuer.endereco_uf || fiscalIssuer.uf || '',
-      cep: formatCep(fiscalIssuer.endereco_cep || ''),
-      ibge_code: fiscalIssuer.endereco_ibge || '',
+      inscricao_estadual: fiscalIssuer.state_registration || fiscalIssuer.ie || '',
+      inscricao_municipal: fiscalIssuer.municipal_registration || fiscalIssuer.im || '',
+      email: fiscalIssuer.email_fiscal || fiscalIssuer.fiscal_email || user?.email || '',
+      telefone: formatPhone(fiscalIssuer.telefone_fiscal || fiscalIssuer.fiscal_phone || profile?.phone || ''),
+      // ✅ CORREÇÃO: usar nomes corretos das colunas do banco
+      logradouro: fiscalIssuer.address_street || fiscalIssuer.endereco_logradouro || '',
+      numero: fiscalIssuer.address_number || fiscalIssuer.endereco_numero || '',
+      bairro: fiscalIssuer.address_neighborhood || fiscalIssuer.endereco_bairro || '',
+      municipio: fiscalIssuer.city || fiscalIssuer.endereco_cidade || '',
+      uf: fiscalIssuer.uf || fiscalIssuer.endereco_uf || '',
+      cep: formatCep(fiscalIssuer.address_zip_code || fiscalIssuer.endereco_cep || ''),
+      ibge_code: fiscalIssuer.address_ibge_code || fiscalIssuer.endereco_ibge || '',
     };
   }, [fiscalIssuer, profile, user]);
 
