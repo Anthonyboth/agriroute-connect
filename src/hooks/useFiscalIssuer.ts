@@ -553,10 +553,12 @@ export function useFiscalIssuer() {
 
       if (acceptError) throw acceptError;
 
+      // ✅ Apenas atualiza onboarding_completed e updated_at (colunas que existem)
       const { error: updateError } = await db
         .from("fiscal_issuers")
         .update({
-          terms_accepted_at: new Date().toISOString(),
+          onboarding_completed: true,
+          onboarding_completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", issuer.id);
