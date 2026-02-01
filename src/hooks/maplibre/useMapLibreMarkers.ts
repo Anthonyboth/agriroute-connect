@@ -107,9 +107,16 @@ export function useMapLibreMarkers(
         // Criar novo marker
         const element = markerData.element || markerFactory?.(markerData);
 
-        const markerInstance = new maplibregl.Marker({
+        // ✅ CRÍTICO: Usar anchor 'bottom' para pins e 'center' para ícones circulares
+        // Isso garante que a ponta do pin fique EXATAMENTE na coordenada lat/lng
+        const markerOptions: maplibregl.MarkerOptions = {
           element,
-        })
+          // Default anchor é 'center', mas pins precisam de 'bottom'
+          // O markerFactory deve retornar elementos com a classe apropriada
+          anchor: element?.classList.contains('truck-marker') ? 'center' : 'bottom',
+        };
+
+        const markerInstance = new maplibregl.Marker(markerOptions)
           .setLngLat([markerData.lng, markerData.lat])
           .addTo(map);
 
