@@ -59,6 +59,15 @@ export function createTruckMarkerElement(isOnline: boolean = true): HTMLDivEleme
   markerDiv.style.cursor = 'pointer';
   markerDiv.style.width = '40px';
   markerDiv.style.height = '40px';
+  // Evita whitespace/offset por baseline de SVG inline
+  markerDiv.style.display = 'block';
+  markerDiv.style.lineHeight = '0';
+  const svgEl = markerDiv.querySelector('svg');
+  if (svgEl) {
+    svgEl.setAttribute('width', '100%');
+    svgEl.setAttribute('height', '100%');
+    (svgEl as any).style && (((svgEl as any).style.display = 'block'));
+  }
   markerDiv.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
   markerDiv.style.transition = 'filter 0.3s ease';
   return markerDiv;
@@ -76,6 +85,15 @@ export function createLocationMarkerElement(type: 'origin' | 'destination'): HTM
   markerDiv.style.cursor = 'pointer';
   markerDiv.style.width = '32px';
   markerDiv.style.height = '40px';
+  // Evita whitespace/offset por baseline de SVG inline
+  markerDiv.style.display = 'block';
+  markerDiv.style.lineHeight = '0';
+  const svgEl = markerDiv.querySelector('svg');
+  if (svgEl) {
+    svgEl.setAttribute('width', '100%');
+    svgEl.setAttribute('height', '100%');
+    (svgEl as any).style && (((svgEl as any).style.display = 'block'));
+  }
   markerDiv.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
   return markerDiv;
 }

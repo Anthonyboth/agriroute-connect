@@ -73,21 +73,30 @@ function isPlausibleBrazilCoord(lat: number, lng: number): boolean {
  */
 export function normalizeLatLngPoint(
   point: LatLngPoint | null | undefined,
-  region: Region = 'BR'
+  region: Region = 'BR',
+  options?: { silent?: boolean }
 ): LatLngPoint | null {
+  const silent = options?.silent ?? false;
+  const log = (...args: any[]) => {
+    if (!silent) console.log(...args);
+  };
+  const warn = (...args: any[]) => {
+    if (!silent) console.warn(...args);
+  };
+
   if (!point) {
-    console.log('[normalizeLatLngPoint] ❌ Null/undefined point received');
+    log('[normalizeLatLngPoint] ❌ Null/undefined point received');
     return null;
   }
   
   if (!isFiniteNumber(point.lat) || !isFiniteNumber(point.lng)) {
-    console.log('[normalizeLatLngPoint] ❌ Non-finite numbers:', { lat: point.lat, lng: point.lng });
+    log('[normalizeLatLngPoint] ❌ Non-finite numbers:', { lat: point.lat, lng: point.lng });
     return null;
   }
 
   // Detectar coordenadas zeradas
   if (point.lat === 0 && point.lng === 0) {
-    console.log('[normalizeLatLngPoint] ❌ Zero coordinates - invalid');
+    log('[normalizeLatLngPoint] ❌ Zero coordinates - invalid');
     return null;
   }
 
@@ -97,7 +106,7 @@ export function normalizeLatLngPoint(
 
   // 2) Validar range global
   if (!withinWorld(scaledLat, scaledLng)) {
-    console.warn('[normalizeLatLngPoint] ❌ Coordinates outside world bounds after scaling:', { 
+    warn('[normalizeLatLngPoint] ❌ Coordinates outside world bounds after scaling:', { 
       original: { lat: point.lat, lng: point.lng },
       scaled: { lat: scaledLat, lng: scaledLng }
     });
@@ -105,19 +114,19 @@ export function normalizeLatLngPoint(
   }
 
   if (region === 'WORLD') {
-    console.log('[normalizeLatLngPoint] ✅ WORLD mode - using scaled:', { lat: scaledLat, lng: scaledLng });
+    log('[normalizeLatLngPoint] ✅ WORLD mode - using scaled:', { lat: scaledLat, lng: scaledLng });
     return { lat: scaledLat, lng: scaledLng };
   }
 
   // 3) Se já cai no Brasil, ok
   if (isPlausibleBrazilCoord(scaledLat, scaledLng)) {
-    console.log('[normalizeLatLngPoint] ✅ Valid Brazil coordinates:', { lat: scaledLat, lng: scaledLng });
+    log('[normalizeLatLngPoint] ✅ Valid Brazil coordinates:', { lat: scaledLat, lng: scaledLng });
     return { lat: scaledLat, lng: scaledLng };
   }
 
   // 4) Heurística: se invertido, corrigir (lat <-> lng)
   if (isPlausibleBrazilCoord(scaledLng, scaledLat)) {
-    console.warn('[normalizeLatLngPoint] 🔄 Detected SWAPPED lat/lng. Auto-fixing.', {
+    warn('[normalizeLatLngPoint] 🔄 Detected SWAPPED lat/lng. Auto-fixing.', {
       from: { lat: point.lat, lng: point.lng },
       to: { lat: scaledLng, lng: scaledLat },
     });
@@ -126,12 +135,12 @@ export function normalizeLatLngPoint(
 
   // 5) Verificar se cai no Brasil com limites mais relaxados
   if (withinBrazil(scaledLat, scaledLng)) {
-    console.log('[normalizeLatLngPoint] ✅ Within Brazil bounds (relaxed):', { lat: scaledLat, lng: scaledLng });
+    log('[normalizeLatLngPoint] ✅ Within Brazil bounds (relaxed):', { lat: scaledLat, lng: scaledLng });
     return { lat: scaledLat, lng: scaledLng };
   }
 
   // 6) Não cai no Brasil mas é válido globalmente - retorna mesmo assim
   // Isso é importante para não rejeitar coordenadas de países vizinhos ou oceano
-  console.log('[normalizeLatLngPoint] ⚠️ Coordinates outside Brazil but valid globally:', { lat: scaledLat, lng: scaledLng });
+  log('[normalizeLatLngPoint] ⚠️ Coordinates outside Brazil but valid globally:', { lat: scaledLat, lng: scaledLng });
   return { lat: scaledLat, lng: scaledLng };
 }
