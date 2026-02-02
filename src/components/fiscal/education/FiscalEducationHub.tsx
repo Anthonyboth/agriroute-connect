@@ -246,129 +246,168 @@ export const FiscalEducationHub: React.FC<FiscalEducationHubProps> = ({
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Receita Federal</CardTitle>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  Receita Federal
+                </CardTitle>
                 <CardDescription>Consultas de CNPJ e CPF</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 pt-0">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/cnpjreva_solicitacao.asp', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consultar CNPJ
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Consultar CNPJ</span>
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://servicos.receita.fazenda.gov.br/Servicos/CPF/ConsultaSituacao/ConsultaPublica.asp', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consultar CPF
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Consultar CPF</span>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">SINTEGRA</CardTitle>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30">
+                    <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  SINTEGRA
+                </CardTitle>
                 <CardDescription>Consulta de Inscrição Estadual</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('http://www.sintegra.gov.br/', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consultar IE no SINTEGRA
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Consultar IE no SINTEGRA</span>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Portais NF-e</CardTitle>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
+                    <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  Portais NF-e
+                </CardTitle>
                 <CardDescription>Documentação e consultas</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 pt-0">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://www.nfe.fazenda.gov.br/', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Portal NF-e Nacional
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Portal NF-e Nacional</span>
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://www.cte.fazenda.gov.br/', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Portal CT-e Nacional
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Portal CT-e Nacional</span>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Certificado Digital</CardTitle>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                    <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  Certificado Digital
+                </CardTitle>
                 <CardDescription>Certificadoras credenciadas</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://www.iti.gov.br/icp-brasil/estrutura', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Lista de Certificadoras
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Lista de Certificadoras</span>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">ANTT</CardTitle>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30">
+                    <Truck className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  </div>
+                  ANTT
+                </CardTitle>
                 <CardDescription>Transporte rodoviário de cargas</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://www.gov.br/antt', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Portal ANTT (RNTRC)
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Portal ANTT (RNTRC)</span>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Códigos e Tabelas</CardTitle>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-teal-100 dark:bg-teal-900/30">
+                    <ClipboardList className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  Códigos e Tabelas
+                </CardTitle>
                 <CardDescription>CNAE, NCM e IBGE</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 pt-0">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://cnae.ibge.gov.br/', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consultar CNAE
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Consultar CNAE</span>
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  size="sm"
+                  className="w-full justify-start h-9 text-sm hover:bg-primary/5"
                   onClick={() => window.open('https://www.ibge.gov.br/explica/codigos-dos-municipios.php', '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Códigos IBGE Municípios
+                  <ExternalLink className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Códigos IBGE Municípios</span>
                 </Button>
               </CardContent>
             </Card>
