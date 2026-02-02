@@ -11974,6 +11974,8 @@ export type Database = {
       }
       auto_cancel_overdue_freights: { Args: never; Returns: Json }
       auto_confirm_deliveries: { Args: never; Returns: Json }
+      auto_confirm_delivery_and_payments: { Args: never; Returns: undefined }
+      auto_confirm_payments_after_72h: { Args: never; Returns: undefined }
       auto_confirm_pending_deliveries: { Args: never; Returns: Json }
       auto_insert_city: {
         Args: {
