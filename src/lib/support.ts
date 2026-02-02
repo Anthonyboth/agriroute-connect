@@ -1,12 +1,16 @@
 /**
  * Helper para abrir suporte - WhatsApp como canal padrão
+ * Usa constantes centralizadas de src/lib/support-contact.ts
  */
+
+import { SUPPORT_PHONE, SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY } from './support-contact';
 
 // Configuração de contato - WhatsApp é o canal principal
 export const SUPPORT_CONFIG = {
-  email: 'suporte@agriroute.com.br',
+  email: SUPPORT_EMAIL,
   // Número do WhatsApp do suporte (formato internacional sem +)
-  whatsapp: '5565999999999', // TODO: Substituir pelo número real do suporte
+  whatsapp: SUPPORT_PHONE,
+  whatsappFormatted: SUPPORT_PHONE_DISPLAY,
   chatEnabled: false, // Habilitar quando chat interno estiver implementado
 };
 
@@ -57,18 +61,7 @@ export function getWhatsAppUrl(context?: SupportContext): string {
  * Retorna o número formatado do WhatsApp para exibição
  */
 export function getFormattedWhatsAppNumber(): string {
-  const num = SUPPORT_CONFIG.whatsapp;
-  if (!num) return '';
-  
-  // Formata como (XX) XXXXX-XXXX para números brasileiros
-  if (num.startsWith('55') && num.length === 13) {
-    const ddd = num.substring(2, 4);
-    const part1 = num.substring(4, 9);
-    const part2 = num.substring(9, 13);
-    return `(${ddd}) ${part1}-${part2}`;
-  }
-  
-  return num;
+  return SUPPORT_CONFIG.whatsappFormatted || SUPPORT_PHONE_DISPLAY;
 }
 
 function buildWhatsAppMessage(context?: SupportContext): string {
