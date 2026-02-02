@@ -12,12 +12,14 @@ import {
   CheckCircle, 
   AlertTriangle,
   Settings,
-  Info
+  Info,
+  GraduationCap
 } from 'lucide-react';
 import { useDocumentPermissions } from '@/hooks/useDocumentPermissions';
 import { FiscalDocumentCards } from './FiscalDocumentCards';
 import { FiscalIssuerSetup } from './FiscalIssuerSetup';
 import { FiscalOnboardingWizard } from '@/components/fiscal/FiscalOnboardingWizard';
+import { FiscalEducationHub, hasCompletedFiscalWizard } from '@/components/fiscal/education';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -135,10 +137,17 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
 
       {/* Sub-abas */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Documentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="guide" className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4" />
+            <span className="hidden sm:inline">Guia Fiscal</span>
+            {!hasCompletedFiscalWizard() && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">Novo</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="issuer" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -191,6 +200,15 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
               </AlertDescription>
             </Alert>
           )}
+        </TabsContent>
+
+        {/* Guia Fiscal Educativo */}
+        <TabsContent value="guide" className="space-y-6 mt-6">
+          <FiscalEducationHub 
+            userRole={userRole}
+            defaultUf={fiscalIssuer?.uf || 'MT'}
+            fiscalIssuer={fiscalIssuer}
+          />
         </TabsContent>
 
         {/* Configuração do Emissor */}
