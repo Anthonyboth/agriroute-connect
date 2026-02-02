@@ -142,13 +142,6 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Documentos</span>
           </TabsTrigger>
-          <TabsTrigger value="guide" className="flex items-center gap-2">
-            <GraduationCap className="h-4 w-4" />
-            <span className="hidden sm:inline">Guia Fiscal</span>
-            {!hasCompletedFiscalWizard() && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">Novo</Badge>
-            )}
-          </TabsTrigger>
           <TabsTrigger value="issuer" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Emissor</span>
@@ -159,6 +152,13 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
               <span className="hidden sm:inline">Configurações</span>
             </TabsTrigger>
           )}
+          <TabsTrigger value="guide" className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4" />
+            <span className="hidden sm:inline">Guia Fiscal</span>
+            {!hasCompletedFiscalWizard() && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-primary/20 text-primary">Novo</Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* Documentos Fiscais */}
