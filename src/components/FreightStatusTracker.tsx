@@ -24,6 +24,38 @@ const MapLoader = () => (
     <span className="ml-2 text-muted-foreground">Carregando mapa...</span>
   </div>
 );
+
+// Fallback para quando o mapa falha ao carregar
+const MapErrorFallback = () => (
+  <div className="flex flex-col items-center justify-center h-[300px] bg-muted/50 rounded-lg border border-dashed gap-2">
+    <Map className="h-8 w-8 text-muted-foreground/50" />
+    <span className="text-muted-foreground text-sm">Mapa indisponível no momento</span>
+    <span className="text-muted-foreground text-xs">Tente recarregar a página</span>
+  </div>
+);
+
+// ErrorBoundary para capturar falhas no lazy load do mapa
+class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[FreightStatusTracker] Map load error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <MapErrorFallback />;
+    }
+    return this.props.children;
+  }
+}
 const DEFAULT_FLOW = [
   { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
   { key: 'LOADING', label: 'A caminho da coleta', icon: Package },
@@ -452,15 +484,17 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Suspense fallback={<MapLoader />}>
-              <FreightRealtimeMap
-                freightId={freightId}
-                originLat={originLat}
-                originLng={originLng}
-                destinationLat={destinationLat}
-                destinationLng={destinationLng}
-              />
-            </Suspense>
+            <MapErrorBoundary>
+              <Suspense fallback={<MapLoader />}>
+                <FreightRealtimeMap
+                  freightId={freightId}
+                  originLat={originLat}
+                  originLng={originLng}
+                  destinationLat={destinationLat}
+                  destinationLng={destinationLng}
+                />
+              </Suspense>
+            </MapErrorBoundary>
             <p className="text-xs text-muted-foreground mt-2 text-center">
               📍 Localização em tempo real do motorista
             </p>
