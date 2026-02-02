@@ -152,50 +152,11 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
 
       if (freErr) throw freErr;
 
-      // 2) Multi-carretas (drivers_assigned)
-      const { data: multiTruckFreights, error: multiTruckError } = await supabase
-        .from("freights")
-        .select(
-          `
-          id,
-          created_at,
-          updated_at,
-          status,
-          cargo_type,
-          price,
-          weight,
-          distance_km,
-          origin_address,
-          destination_address,
-          origin_city,
-          origin_state,
-          destination_city,
-          destination_state,
-          origin_lat,
-          origin_lng,
-          destination_lat,
-          destination_lng,
-          pickup_date,
-          delivery_date,
-          service_type,
-          urgency,
-          producer_id,
-          required_trucks,
-          accepted_trucks,
-          drivers_assigned,
-          current_lat,
-          current_lng,
-          last_location_update,
-          tracking_status
-        `
-        )
-        .contains("drivers_assigned", [driverProfileId])
-        .eq("status", "OPEN")
-        .order("updated_at", { ascending: false });
-
-      if (multiTruckError) {
-        console.warn("[useDriverOngoingCards] Falha ao buscar multi-carretas:", multiTruckError);
-      }
+      // 2) Multi-carretas (drivers_assigned) - APENAS fretes OPEN que ainda não estão em assignments
+      // ✅ CORREÇÃO: Removida essa busca duplicada pois freight_assignments já cobre esses casos
+      // Fretes onde o motorista está em drivers_assigned e tem status OPEN já aparecem via freight_assignments
+      // Manter comentado para evitar duplicação de cards no dashboard
+      const multiTruckFreights: any[] = []; // Desabilitado para evitar duplicação
 
       // 3) ASSIGNMENTS (freight_assignments) - busca separada para evitar problemas de RLS
       const { data: assignmentsRaw, error: asgErr } = await supabase

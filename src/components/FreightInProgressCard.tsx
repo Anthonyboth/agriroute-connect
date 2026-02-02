@@ -31,6 +31,38 @@ const FreightRealtimeMap = lazy(() =>
   }))
 );
 
+// Fallback para quando o mapa falha ao carregar
+const MapErrorFallback = () => (
+  <div className="flex flex-col items-center justify-center h-[300px] bg-muted/50 rounded-lg border border-dashed gap-2">
+    <Map className="h-8 w-8 text-muted-foreground/50" />
+    <span className="text-muted-foreground text-sm">Mapa indisponível no momento</span>
+    <span className="text-muted-foreground text-xs">Tente recarregar a página</span>
+  </div>
+);
+
+// ErrorBoundary para capturar falhas no lazy load do mapa
+class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[FreightInProgressCard] Map load error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <MapErrorFallback />;
+    }
+    return this.props.children;
+  }
+}
+
 interface FreightInProgressCardProps {
   freight: {
     id: string;
@@ -479,31 +511,33 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             ref={tabsContainerRef}
           >
             {mapMounted && activeTab === 'map' && (
-              <Suspense fallback={
-                <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="text-sm">Carregando mapa...</span>
+              <MapErrorBoundary>
+                <Suspense fallback={
+                  <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <span className="text-sm">Carregando mapa...</span>
+                    </div>
                   </div>
-                </div>
-              }>
-                {/* ✅ Key força re-render do mapa quando a aba é selecionada */}
-                <FreightRealtimeMap
-                  key={`map-${freight.id}-${mapKey}`}
-                  freightId={freight.id}
-                  originLat={freight.origin_lat}
-                  originLng={freight.origin_lng}
-                  destinationLat={freight.destination_lat}
-                  destinationLng={freight.destination_lng}
-                  originCity={freight.origin_city}
-                  originState={freight.origin_state}
-                  destinationCity={freight.destination_city}
-                  destinationState={freight.destination_state}
-                  initialDriverLat={freight.current_lat}
-                  initialDriverLng={freight.current_lng}
-                  lastLocationUpdate={freight.last_location_update}
-                />
-              </Suspense>
+                }>
+                  {/* ✅ Key força re-render do mapa quando a aba é selecionada */}
+                  <FreightRealtimeMap
+                    key={`map-${freight.id}-${mapKey}`}
+                    freightId={freight.id}
+                    originLat={freight.origin_lat}
+                    originLng={freight.origin_lng}
+                    destinationLat={freight.destination_lat}
+                    destinationLng={freight.destination_lng}
+                    originCity={freight.origin_city}
+                    originState={freight.origin_state}
+                    destinationCity={freight.destination_city}
+                    destinationState={freight.destination_state}
+                    initialDriverLat={freight.current_lat}
+                    initialDriverLng={freight.current_lng}
+                    lastLocationUpdate={freight.last_location_update}
+                  />
+                </Suspense>
+              </MapErrorBoundary>
             )}
             {!mapMounted && (
               <Button
