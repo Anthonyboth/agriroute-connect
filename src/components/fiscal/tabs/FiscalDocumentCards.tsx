@@ -146,7 +146,16 @@ export const FiscalDocumentCards: React.FC<FiscalDocumentCardsProps> = ({
   const [showGtaUpload, setShowGtaUpload] = useState(false);
   const [showNfeManagement, setShowNfeManagement] = useState(false);
 
-  const hasCertificate = !!fiscalIssuer?.certificate_uploaded_at;
+  // ✅ CORREÇÃO: Verificar status do certificado usando 'status' e 'sefaz_status'
+  // O campo 'certificate_uploaded_at' NÃO EXISTE na tabela fiscal_issuers
+  const hasCertificate = 
+    fiscalIssuer?.sefaz_status === 'validated' || 
+    fiscalIssuer?.sefaz_status === 'production_enabled' ||
+    fiscalIssuer?.sefaz_status === 'homologation_enabled' ||
+    fiscalIssuer?.status === 'active' ||
+    fiscalIssuer?.status === 'certificate_uploaded' ||
+    fiscalIssuer?.status === 'production_enabled' ||
+    fiscalIssuer?.status === 'homologation_enabled';
 
   const documents = [
     {
