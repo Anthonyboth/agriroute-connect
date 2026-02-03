@@ -142,7 +142,13 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   highlightFreightId,
 }) => {
   const { profile } = useAuth();
-  const canShowTotalFreightValue = profile?.role === 'PRODUTOR';
+  // ✅ Regra de exibição de valores:
+  // - Motorista: NUNCA pode ver o total (somente /carreta)
+  // - Produtor: pode ver total (linha secundária)
+  // - Transportadora: frequentemente precisa ver o total do contrato; mostramos total como valor principal
+  const viewerRole = profile?.role;
+  const canShowTotalFreightValue = viewerRole === 'PRODUTOR' || viewerRole === 'TRANSPORTADORA';
+  const preferTotalAsPrimary = viewerRole === 'TRANSPORTADORA';
 
   const [activeTab, setActiveTab] = useState<string>('details');
   const [mapMounted, setMapMounted] = useState(false);
@@ -350,9 +356,28 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               {(() => {
                 // ✅ Segurança (Motorista): quando o preço já é unitário, nunca exibir total.
                 if (priceDisplayMode === 'PER_TRUCK') {
+                  const unitPrice = typeof freight.price === 'number' && Number.isFinite(freight.price) ? freight.price : 0;
+                  const totalFromUnit = unitPrice * Math.max(originalRequiredTrucks || 1, 1);
+
+                  // ✅ Transportadora: exibir TOTAL como primário e /carreta como secundário
+                  if (preferTotalAsPrimary && originalRequiredTrucks > 1) {
+                    return (
+                      <div className="flex flex-col items-end">
+                        <p className="font-bold text-lg text-primary whitespace-nowrap">
+                          {formatBRL(totalFromUnit, true)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {formatBRL(unitPrice, true)}
+                          <span className="font-semibold">/carreta</span>
+                          <span className="ml-1">({originalRequiredTrucks} carretas)</span>
+                        </p>
+                      </div>
+                    );
+                  }
+
                   return (
                     <p className="font-bold text-lg text-primary whitespace-nowrap">
-                      {formatBRL(freight.price, true)}
+                      {formatBRL(unitPrice, true)}
                       {originalRequiredTrucks > 1 && (
                         <span className="text-xs font-semibold text-muted-foreground">/carreta</span>
                       )}
@@ -363,6 +388,22 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                 const priceInfo = formatPricePerTruck(freight.price, freight.required_trucks, true);
 
                 if (priceInfo.hasMultipleTrucks) {
+                  // ✅ Transportadora: exibir TOTAL como primário e /carreta como secundário
+                  if (preferTotalAsPrimary) {
+                    return (
+                      <div className="flex flex-col items-end">
+                        <p className="font-bold text-lg text-primary whitespace-nowrap">
+                          {priceInfo.totalPrice}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {priceInfo.pricePerTruck}
+                          <span className="font-semibold">/carreta</span>
+                          <span className="ml-1">({priceInfo.trucksCount} carretas)</span>
+                        </p>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="flex flex-col items-end">
                       <p className="font-bold text-lg text-primary whitespace-nowrap">
