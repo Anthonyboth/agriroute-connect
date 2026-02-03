@@ -68,6 +68,7 @@ import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
+import { getDriverVisibleFreightPrice } from '@/lib/freight-price-visibility';
 
 // ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
 const CompanyAnalyticsDashboard = lazyWithRetry(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
@@ -331,7 +332,42 @@ const CompanyDashboard = () => {
   // ✅ Mapear fretes gerenciados para formato compatível com FreightInProgressCard
   const activeFreightsForCards = React.useMemo(() => {
     return managedFreights.map(mf => ({
-      ...mf.rawFreight,
+      ...(() => {
+        // ✅ Consistência: no painel da transportadora, o valor exibido no card deve refletir
+        // o valor unitário acordado (/carreta) quando existir em freight_assignments.
+        // Caso contrário, cai no fallback seguro (base/required_trucks).
+        const requiredTrucks = Math.max(mf.requiredTrucks || 1, 1);
+
+        // Preferir preço acordado de motoristas afiliados; se não houver, usar o primeiro disponível.
+        const agreedCandidates = [
+          ...(mf.affiliatedDrivers || []).map((d) => d.agreedPrice),
+          ...(mf.drivers || []).map((d) => d.agreedPrice),
+        ].filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0);
+
+        // Só usa agreed_price no card quando é consistente (evita mostrar um valor arbitrário
+        // em cenários raros onde cada motorista tem um valor diferente).
+        const agreed = (() => {
+          if (agreedCandidates.length === 0) return undefined;
+          const first = agreedCandidates[0];
+          const tol = 0.01;
+          const allSame = agreedCandidates.every((p) => Math.abs(p - first) <= tol);
+          return allSame ? first : undefined;
+        })();
+
+        const visible = getDriverVisibleFreightPrice({
+          freightPrice: mf.rawFreight?.price,
+          requiredTrucks,
+          assignmentAgreedPrice: agreed,
+        });
+
+        return {
+          ...mf.rawFreight,
+          // Valor que o card deve renderizar
+          price: visible.displayPrice,
+          price_display_mode: visible.displayMode,
+          original_required_trucks: visible.originalRequiredTrucks,
+        };
+      })(),
       // Dados do produtor
       producer: mf.producer ? {
         id: mf.producer.id,
