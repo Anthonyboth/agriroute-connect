@@ -29,17 +29,13 @@ export async function driverUpdateFreightStatus({
   companyId,
   assignmentId
 }: UpdateStatusParams): Promise<boolean> {
-  console.log('🔥 [DEBUG] driverUpdateFreightStatus INICIADO');
   console.log('[STATUS UPDATE] 🔄 Iniciando atualização:', {
     freightId,
     newStatus,
-    profileId: currentUserProfile.id,
-    notes,
-    location
+    profileId: currentUserProfile?.id,
   });
   
   try {
-    console.log('🔥 [DEBUG] Dentro do try block');
     // 🌐 Verificar conexão de rede antes de qualquer operação
     if (!navigator.onLine) {
       console.error('[STATUS-UPDATE] ❌ Sem conexão com internet');
@@ -47,63 +43,58 @@ export async function driverUpdateFreightStatus({
       return false;
     }
 
-    console.log('[STATUS-UPDATE] ⚡ FASE 2 FIX: Pulando preflight check (ir direto para RPC)');
-    console.log('[STATUS-UPDATE] 🔐 Auth UID:', (await supabase.auth.getUser()).data.user?.id);
+    const normalizedStatus = String(newStatus).toUpperCase().trim();
 
-    // ⚡ PREFLIGHT CHECKS REMOVIDOS para evitar timeouts
-    // Ir direto para RPC - a função faz as validações necessárias
+    // ✅ Motorista autônomo: usar SEMPRE a RPC update_trip_progress (fonte única de verdade)
+    // para evitar 403 em inserts legados (freight_status_history) e reduzir latência.
+    // Mantemos a RPC antiga apenas para fluxos legados específicos da transportadora.
+    const role = currentUserProfile?.role;
+    const shouldUseTripProgressRpc = !companyId && role !== 'TRANSPORTADORA';
 
-    // Tentar RPC com timeout de 5s
-    const rpcPromise = supabase.rpc('driver_update_freight_status', {
-      p_freight_id: freightId,
-      p_new_status: newStatus,
-      p_user_id: currentUserProfile.id,
-      p_notes: notes ?? null,
-      p_location: location ?? null
-    });
+    const rpcPromise = shouldUseTripProgressRpc
+      ? supabase.rpc('update_trip_progress', {
+          p_freight_id: freightId,
+          p_new_status: normalizedStatus,
+          p_lat: location?.lat ?? null,
+          p_lng: location?.lng ?? null,
+          p_notes: notes ?? null,
+        })
+      : supabase.rpc('driver_update_freight_status', {
+          p_freight_id: freightId,
+          p_new_status: normalizedStatus,
+          p_user_id: currentUserProfile.id,
+          p_notes: notes ?? null,
+          p_location: location ?? null,
+        });
     
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('RPC_TIMEOUT')), 15000)  // 15s para corresponder ao timeout do DB
     );
     
-    let data, error;
+    let data: any, error: any;
     try {
       const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
       data = result.data;
       error = result.error;
     } catch (timeoutError: any) {
       if (timeoutError.message === 'RPC_TIMEOUT') {
-        console.warn('[STATUS-UPDATE] RPC timeout, tentando fallback direto...');
-        
-        // Fallback: atualização direta
-        const fallbackSuccess = await updateStatusDirect(
+        console.warn('[STATUS-UPDATE] RPC timeout, armazenando para sincronizar...');
+
+        // ✅ Não fazer fallback direto em tabelas legadas (pode dar 403/lock e piorar latência).
+        // Armazenar localmente e sincronizar via fila.
+        StatusUpdateQueue.add({
           freightId,
-          newStatus,
-          currentUserProfile.id,
+          newStatus: normalizedStatus,
+          userId: currentUserProfile.id,
           notes,
           location,
-          assignmentId
-        );
-        
-        if (fallbackSuccess) {
-          toast.success('Status atualizado com sucesso!');
-          return true;
-        } else {
-          // Adicionar à fila para retry posterior
-          StatusUpdateQueue.add({
-            freightId,
-            newStatus,
-            userId: currentUserProfile.id,
-            notes,
-            location,
-            assignmentId
-          });
-          
-          toast.info('Atualização armazenada localmente', {
-            description: 'Será sincronizada quando a conexão melhorar'
-          });
-          return false;
-        }
+          assignmentId,
+        });
+
+        toast.info('Atualização armazenada localmente', {
+          description: 'Será sincronizada automaticamente quando a conexão melhorar.'
+        });
+        return false;
       }
       throw timeoutError;
     }
@@ -155,34 +146,20 @@ export async function driverUpdateFreightStatus({
         return false;
       }
       
-      toast.error('Erro ao atualizar status do frete: ' + (error.message || 'Erro desconhecido'));
+      toast.error('Erro ao atualizar status do frete', {
+        description: error.message || 'Erro desconhecido'
+      });
       return false;
     }
     
-    // Verificar resposta da função (data é Json, precisa de cast)
+    // ✅ Normalizar resposta (as duas RPCs retornam formatos diferentes)
     const result = data as any;
-    if (!result || !(result.ok || result.success)) {
-      console.error('[STATUS-UPDATE] Function returned error:', result?.error);
-      
-      // Mensagens de erro específicas
-      if (result?.error === 'FREIGHT_ALREADY_CONFIRMED') {
-        toast.error('Este frete já foi entregue e confirmado. Não é possível alterar o status.');
-      } else if (result?.error === 'TRANSITION_NOT_ALLOWED') {
-        const msg = result?.message || 
-          `Não é possível mudar de ${result?.current_status || 'status atual'} para ${result?.attempted_status || newStatus}`;
-        toast.error(msg);
-        console.warn('[STATUS-UPDATE] Transição bloqueada:', {
-          current: result?.current_status,
-          attempted: result?.attempted_status,
-          message: result?.message
-        });
-      } else {
-        toast.error(result?.message || result?.error || 'Erro ao atualizar status');
-      }
+    const ok = Boolean(result?.success ?? result?.ok);
+    if (!ok) {
+      const message = result?.message || result?.error || 'Erro ao atualizar status';
+      toast.error('Não foi possível atualizar o status', { description: message });
       return false;
     }
-
-    console.log('🔥 [DEBUG] RPC bem-sucedido, preparando toast...');
     
     // Mensagens de sucesso
     const statusMessages: Record<string, string> = {
@@ -191,12 +168,10 @@ export async function driverUpdateFreightStatus({
       'DELIVERED_PENDING_CONFIRMATION': 'Entrega reportada com sucesso! O produtor tem 72h para confirmar. ✅'
     };
 
-    console.log('🔥 [DEBUG] Mostrando toast de sucesso');
-    toast.success(statusMessages[newStatus] || 'Status atualizado com sucesso!');
-    console.log('🔥 [DEBUG] Toast exibido');
+    toast.success(statusMessages[normalizedStatus] || 'Status atualizado com sucesso!');
     
     // 🔔 Enviar notificação persistente quando motorista reporta entrega
-    if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+    if (normalizedStatus === 'DELIVERED_PENDING_CONFIRMATION') {
       try {
         // Buscar dados do frete para obter producer_id
         const { data: freightData } = await supabase
@@ -217,12 +192,12 @@ export async function driverUpdateFreightStatus({
           console.log('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);
         }
 
-        // ✅ SINCRONIZAR assignment.status para mover para histórico
+        // ✅ Sincronização legada é não-bloqueante (o RPC já cuida do core)
         await supabase
           .from('freight_assignments')
-          .update({ 
-            status: 'DELIVERED_PENDING_CONFIRMATION', 
-            updated_at: new Date().toISOString() 
+          .update({
+            status: 'DELIVERED_PENDING_CONFIRMATION',
+            updated_at: new Date().toISOString(),
           })
           .eq('freight_id', freightId)
           .eq('driver_id', currentUserProfile?.id)
@@ -240,22 +215,17 @@ export async function driverUpdateFreightStatus({
       }
     }
     
-    console.log('🔥 [DEBUG] driverUpdateFreightStatus RETORNANDO TRUE');
     console.log('[STATUS UPDATE] ✅ Status atualizado com sucesso:', {
       freightId,
-      newStatus,
+      newStatus: normalizedStatus,
       assignmentId
     });
-    
-    console.log('🔥 [DEBUG] Antes do return true');
     return true;
 
   } catch (error: any) {
-    console.error('🔥 [DEBUG] ERRO CAPTURADO no try/catch principal:', error);
-    console.error('🔥 [DEBUG] Error stack:', error.stack);
     console.error('[STATUS UPDATE] ❌ Falha na atualização:', {
       freightId,
-      newStatus,
+      newStatus: String(newStatus),
       error: error.message,
       code: error.code,
       details: error
@@ -271,13 +241,10 @@ export async function driverUpdateFreightStatus({
     }
     
     console.error('[STATUS-UPDATE] Unexpected error:', error);
-    console.log('🔥 [DEBUG] Mostrando toast de erro genérico');
     toast.error('Erro inesperado ao atualizar status');
-    
-    console.log('🔥 [DEBUG] driverUpdateFreightStatus RETORNANDO FALSE por erro');
     return false;
   } finally {
-    console.log('🔥 [DEBUG] driverUpdateFreightStatus FINALLY BLOCK - função concluída');
+    console.log('[STATUS UPDATE] Fim da operação');
   }
 }
 
