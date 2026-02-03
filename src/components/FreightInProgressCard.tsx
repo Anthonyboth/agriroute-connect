@@ -14,8 +14,9 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2, User } from 'lucide-react';
+import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2, User, Users } from 'lucide-react';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
+import { MultiDriversList } from '@/components/freight/MultiDriversList';
 import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
@@ -28,6 +29,13 @@ import { useAuth } from '@/hooks/useAuth';
 const FreightRealtimeMap = lazy(() => 
   import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
     default: module.FreightRealtimeMapMapLibre 
+  }))
+);
+
+// ✅ Lazy load do mapa multi-motorista para fretes multi-carreta
+const MultiDriverMap = lazy(() => 
+  import('@/components/freight/MultiDriverMapMapLibre').then(module => ({ 
+    default: module.MultiDriverMapMapLibre 
   }))
 );
 
@@ -181,6 +189,12 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const hasAssignedDrivers = Array.isArray(freight.drivers_assigned) && freight.drivers_assigned.length > 0;
   const hasMainDriver = !!freight.driver_id;
   const hasAcceptedTrucks = (freight.accepted_trucks ?? 0) > 0;
+  
+  // ✅ NOVO: Detectar se é frete multi-carreta (múltiplos motoristas)
+  const isMultiTruckFreight = (freight.required_trucks ?? 1) > 1;
+  const hasMultipleDrivers = hasAssignedDrivers && (freight.drivers_assigned?.length ?? 0) > 1;
+  // Usar mapa multi-motorista se é produtor vendo frete multi-carreta com motoristas
+  const shouldUseMultiDriverMap = canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks);
   
   const canShowMap = [
     'ACCEPTED', 
@@ -407,78 +421,100 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
           </TabsList>
 
           <TabsContent value="details" className="flex-1 flex flex-col mt-2 space-y-3 overflow-y-auto max-h-[300px]">
-            {/* Grid de informações */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              {/* Coluna 1: Motorista OU Produtor (depende de quem está vendo) */}
-              <div className="min-w-0">
-                {/* ✅ CORRIGIDO: Usa producerInfo do hook para exibição correta */}
-                {/* Se temos producer_id ou producer object, é contexto de motorista vendo produtor */}
-                {(freight.producer_id || freight.producer) ? (
-                  <>
-                    <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                      Produtor
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {producerInfo.photoUrl ? (
-                        <img 
-                          src={producerInfo.photoUrl} 
-                          alt="Foto do produtor"
-                          className="h-6 w-6 rounded-full object-cover border"
-                          onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                        />
-                      ) : (
-                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                          <User className="h-3 w-3 text-muted-foreground" />
+            {/* ✅ PRODUTOR vendo MOTORISTAS: Mostrar lista completa de todos os motoristas */}
+            {canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks) ? (
+              <>
+                {/* Indicador de capacidade */}
+                <div className="flex items-center justify-between text-sm bg-muted/50 rounded-lg p-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Motoristas</span>
+                  </div>
+                  <Badge variant="secondary">
+                    {freight.accepted_trucks ?? freight.drivers_assigned?.length ?? 0} / {freight.required_trucks ?? 1} carretas
+                  </Badge>
+                </div>
+                
+                {/* Lista completa de motoristas com status individual e veículos */}
+                <MultiDriversList freightId={freight.id} />
+              </>
+            ) : (
+              /* Layout original para frete de 1 carreta ou motorista vendo produtor */
+              <>
+                {/* Grid de informações */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {/* Coluna 1: Motorista OU Produtor (depende de quem está vendo) */}
+                  <div className="min-w-0">
+                    {/* ✅ CORRIGIDO: Usa producerInfo do hook para exibição correta */}
+                    {/* Se temos producer_id ou producer object, é contexto de motorista vendo produtor */}
+                    {(freight.producer_id || freight.producer) ? (
+                      <>
+                        <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                          Produtor
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {producerInfo.photoUrl ? (
+                            <img 
+                              src={producerInfo.photoUrl} 
+                              alt="Foto do produtor"
+                              className="h-6 w-6 rounded-full object-cover border"
+                              onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                            />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className={cn(
+                            "truncate whitespace-nowrap",
+                            producerInfo.hasRegistration ? "text-foreground" : "text-muted-foreground italic"
+                          )}>
+                            {producerInfo.name}
+                          </p>
                         </div>
-                      )}
-                      <p className={cn(
-                        "truncate whitespace-nowrap",
-                        producerInfo.hasRegistration ? "text-foreground" : "text-muted-foreground italic"
-                      )}>
-                        {producerInfo.name}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                      {LABELS.MOTORISTA_LABEL}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {freight.driver_profiles?.profile_photo_url ? (
-                        <img 
-                          src={freight.driver_profiles.profile_photo_url} 
-                          alt="Foto do motorista"
-                          className="h-6 w-6 rounded-full object-cover border"
-                          onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                        />
-                      ) : (
-                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                          <User className="h-3 w-3 text-muted-foreground" />
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                          {LABELS.MOTORISTA_LABEL}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {freight.driver_profiles?.profile_photo_url ? (
+                            <img 
+                              src={freight.driver_profiles.profile_photo_url} 
+                              alt="Foto do motorista"
+                              className="h-6 w-6 rounded-full object-cover border"
+                              onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                            />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="text-foreground truncate whitespace-nowrap">
+                            {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
+                          </p>
                         </div>
-                      )}
-                      <p className="text-foreground truncate whitespace-nowrap">
-                        {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                  {LABELS.PESO_LABEL}
-                </p>
-                <p className="text-foreground truncate whitespace-nowrap">
-                  {formatTons(freight.weight)}
-                </p>
-              </div>
-            </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                      {LABELS.PESO_LABEL}
+                    </p>
+                    <p className="text-foreground truncate whitespace-nowrap">
+                      {formatTons(freight.weight)}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Preview do veículo do motorista */}
-            {(freight.driver_id || (freight.drivers_assigned && freight.drivers_assigned.length > 0)) && (
-              <DriverVehiclePreview 
-                driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')} 
-              />
+                {/* Preview do veículo do motorista */}
+                {(freight.driver_id || (freight.drivers_assigned && freight.drivers_assigned.length > 0)) && (
+                  <DriverVehiclePreview 
+                    driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')} 
+                  />
+                )}
+              </>
             )}
 
             {/* Botões de ação */}
@@ -520,22 +556,37 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                     </div>
                   </div>
                 }>
-                  {/* ✅ Key força re-render do mapa quando a aba é selecionada */}
-                  <FreightRealtimeMap
-                    key={`map-${freight.id}-${mapKey}`}
-                    freightId={freight.id}
-                    originLat={freight.origin_lat}
-                    originLng={freight.origin_lng}
-                    destinationLat={freight.destination_lat}
-                    destinationLng={freight.destination_lng}
-                    originCity={freight.origin_city}
-                    originState={freight.origin_state}
-                    destinationCity={freight.destination_city}
-                    destinationState={freight.destination_state}
-                    initialDriverLat={freight.current_lat}
-                    initialDriverLng={freight.current_lng}
-                    lastLocationUpdate={freight.last_location_update}
-                  />
+                  {/* ✅ NOVO: Usar mapa multi-motorista para fretes multi-carreta do produtor */}
+                  {shouldUseMultiDriverMap ? (
+                    <MultiDriverMap
+                      key={`multi-map-${freight.id}-${mapKey}`}
+                      freightId={freight.id}
+                      originLat={freight.origin_lat}
+                      originLng={freight.origin_lng}
+                      destinationLat={freight.destination_lat}
+                      destinationLng={freight.destination_lng}
+                      originCity={freight.origin_city}
+                      originState={freight.origin_state}
+                      destinationCity={freight.destination_city}
+                      destinationState={freight.destination_state}
+                    />
+                  ) : (
+                    <FreightRealtimeMap
+                      key={`map-${freight.id}-${mapKey}`}
+                      freightId={freight.id}
+                      originLat={freight.origin_lat}
+                      originLng={freight.origin_lng}
+                      destinationLat={freight.destination_lat}
+                      destinationLng={freight.destination_lng}
+                      originCity={freight.origin_city}
+                      originState={freight.origin_state}
+                      destinationCity={freight.destination_city}
+                      destinationState={freight.destination_state}
+                      initialDriverLat={freight.current_lat}
+                      initialDriverLng={freight.current_lng}
+                      lastLocationUpdate={freight.last_location_update}
+                    />
+                  )}
                 </Suspense>
               </MapErrorBoundary>
             )}
