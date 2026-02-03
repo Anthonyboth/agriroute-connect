@@ -1,21 +1,31 @@
+/**
+ * UserProfileModal.tsx
+ * 
+ * Modal de perfil do usuário redesenhado estilo Facebook.
+ * Layout responsivo com 2 colunas (desktop) e 1 coluna (mobile).
+ * 
+ * Características:
+ * - Header com foto de capa e avatar
+ * - Cards com sombras sutis e bordas arredondadas
+ * - Modo visualização/edição com transição suave
+ * - Totalmente responsivo
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { StarRating } from '@/components/StarRating';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { User, Phone, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, User, MapPin, Phone, Mail, Calendar, Award, Trash2, Star } from 'lucide-react';
-import { ProfilePhotoUpload } from '@/components/ProfilePhotoUpload';
-import { StructuredAddressForm } from '@/components/StructuredAddressForm';
-import { formatAddress, Address } from '@/lib/address-utils';
-import { CompanyModeToggle } from '@/components/CompanyModeToggle';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+// Novos componentes modulares
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { ProfileInfoCard, personalInfoFields, producerFields, driverFields, emergencyFields } from '@/components/profile/ProfileInfoCard';
+import { ProfileStatsCard } from '@/components/profile/ProfileStatsCard';
+import { ProfileAddressCard } from '@/components/profile/ProfileAddressCard';
+import { ProfileDangerZone } from '@/components/profile/ProfileDangerZone';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -30,58 +40,72 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [ratingDistribution, setRatingDistribution] = useState<{ star_rating: number; count: number }[]>([]);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>('');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const [secondConfirmOpen, setSecondConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Refs para controle de fetch
   const lastFetchedUserId = useRef<string | null>(null);
   const lastFetchedAt = useRef<number>(0);
   const lastErrorLogAt = useRef<number>(0);
-  const [profileData, setProfileData] = useState({
+
+  // Estado do formulário
+  const [profileData, setProfileData] = useState<Record<string, string>>({
     full_name: '',
     phone: '',
     contact_phone: '',
+    cpf_cnpj: '',
     farm_name: '',
     farm_address: '',
     cooperative: '',
+    rntrc: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
-    address_street: '',
-    address_number: '',
-    address_complement: '',
-    address_neighborhood: '',
-    address_city: '',
-    address_state: '',
-    address_zip: '',
   });
 
+  // Estado do endereço
+  const [addressData, setAddressData] = useState({
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zip: '',
+  });
+
+  // Inicializar dados quando user muda
   useEffect(() => {
     if (user) {
       setProfileData({
         full_name: user.full_name || '',
         phone: user.phone || '',
         contact_phone: user.contact_phone || '',
+        cpf_cnpj: user.cpf_cnpj || '',
         farm_name: user.farm_name || '',
         farm_address: user.farm_address || '',
         cooperative: user.cooperative || '',
+        rntrc: user.rntrc || '',
         emergency_contact_name: user.emergency_contact_name || '',
         emergency_contact_phone: user.emergency_contact_phone || '',
-        address_street: user.address_street || '',
-        address_number: user.address_number || '',
-        address_complement: user.address_complement || '',
-        address_neighborhood: user.address_neighborhood || '',
-        address_city: user.address_city || '',
-        address_state: user.address_state || '',
-        address_zip: user.address_zip || '',
+      });
+      setAddressData({
+        street: user.address_street || '',
+        number: user.address_number || '',
+        complement: user.address_complement || '',
+        neighborhood: user.address_neighborhood || '',
+        city: user.address_city || '',
+        state: user.address_state || '',
+        zip: user.address_zip || '',
       });
       setCurrentPhotoUrl(user.profile_photo_url || '');
     }
   }, [user?.id]);
 
-  // Carregar rating distribution apenas quando modal estiver aberto e com throttle
+  // Carregar rating distribution com throttle
   useEffect(() => {
     if (!isOpen || !user?.id) return;
     
@@ -104,16 +128,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       });
 
       if (error) throw error;
-      
       setRatingDistribution(data || []);
     } catch (error) {
-      // Throttle error logs: apenas 1x por minuto
       const now = Date.now();
       if (now - lastErrorLogAt.current > 60000) {
         console.warn('Erro ao buscar distribuição de avaliações:', error);
         lastErrorLogAt.current = now;
       }
-      // Silenciosamente definir array vazio
       setRatingDistribution([]);
     }
   };
@@ -132,13 +153,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           cooperative: profileData.cooperative,
           emergency_contact_name: profileData.emergency_contact_name,
           emergency_contact_phone: profileData.emergency_contact_phone,
-          address_street: profileData.address_street,
-          address_number: profileData.address_number,
-          address_complement: profileData.address_complement,
-          address_neighborhood: profileData.address_neighborhood,
-          address_city: profileData.address_city,
-          address_state: profileData.address_state,
-          address_zip: profileData.address_zip,
+          address_street: addressData.street,
+          address_number: addressData.number,
+          address_complement: addressData.complement,
+          address_neighborhood: addressData.neighborhood,
+          address_city: addressData.city,
+          address_state: addressData.state,
+          address_zip: addressData.zip,
         })
         .eq('user_id', user.user_id);
 
@@ -149,7 +170,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         description: "Suas informações foram salvas com sucesso.",
       });
       
-      // Invalidar queries para atualização reativa
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       await queryClient.invalidateQueries({ queryKey: ['user'] });
       
@@ -166,16 +186,32 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   };
 
-  const handlePhotoUploadComplete = async (url: string) => {
+  const handlePhotoChange = async (file: File) => {
     try {
-      const { error } = await supabase
+      // Upload da foto
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `profile-photos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Atualizar perfil com nova URL
+      const { error: updateError } = await supabase
         .from('profiles')
-        .update({ profile_photo_url: url })
+        .update({ profile_photo_url: publicUrl })
         .eq('user_id', user.user_id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
       
-      setCurrentPhotoUrl(url);
+      setCurrentPhotoUrl(publicUrl);
       
       toast({
         title: "Foto atualizada",
@@ -191,37 +227,17 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   };
 
-  const handleAddressChange = (address: Address) => {
-    setProfileData({
-      ...profileData,
-      address_street: address.street || '',
-      address_number: address.number || '',
-      address_complement: address.complement || '',
-      address_neighborhood: address.neighborhood || '',
-      address_city: address.city || '',
-      address_state: address.state || '',
-      address_zip: address.zip || '',
-    });
+  const handleFieldChange = (name: string, value: string) => {
+    setProfileData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddressChange = (field: keyof typeof addressData, value: string) => {
+    setAddressData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation.toUpperCase() !== 'EXCLUIR') {
-      toast({
-        title: "Confirmação incorreta",
-        description: "Digite 'EXCLUIR' (em maiúsculas) para confirmar a exclusão da conta.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setSecondConfirmOpen(true);
-  };
-
-  const handleFinalDeleteAccount = async () => {
+    setIsDeleting(true);
     try {
-      setLoading(true);
-      
-      // 1. Deletar perfil atual
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -229,7 +245,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       
       if (profileError) throw profileError;
       
-      // 2. Verificar se há outros perfis para este usuário
       const { data: remainingProfiles, error: checkError } = await supabase
         .from('profiles')
         .select('id')
@@ -237,7 +252,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       
       if (checkError) throw checkError;
       
-      // 3. Se não há mais perfis, fazer logout completo
       if (!remainingProfiles || remainingProfiles.length === 0) {
         await supabase.auth.signOut();
         toast({
@@ -246,19 +260,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         });
         window.location.href = '/';
       } else {
-        // Se há outros perfis, invalidar queries e fechar modal
         toast({
           title: "Perfil excluído",
           description: "Este perfil foi excluído. Você ainda tem outros perfis ativos.",
         });
         
-        // Invalidar queries para atualização reativa
         await queryClient.invalidateQueries({ queryKey: ['profiles'] });
         await queryClient.invalidateQueries({ queryKey: ['profile'] });
         
         onClose();
       }
-      
     } catch (error: any) {
       console.error('Erro ao excluir conta:', error);
       toast({
@@ -267,481 +278,111 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
-      setDeleteDialogOpen(false);
-      setSecondConfirmOpen(false);
-      setDeleteConfirmation('');
+      setIsDeleting(false);
     }
   };
 
-  const getUserInitials = (name: string) => {
-    return name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
-  };
-
-  const getRoleBadge = (role: string) => {
-    return role === 'PRODUTOR' ? 'Produtor' : 'Motorista';
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED': return 'bg-green-100 text-green-800';
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
-      case 'REJECTED': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'APPROVED': return 'Aprovado';
-      case 'PENDING': return 'Pendente';
-      case 'REJECTED': return 'Rejeitado';
-      default: return status;
-    }
-  };
+  // Determinar campos baseado no role
+  const roleSpecificFields = user?.role === 'PRODUTOR' ? producerFields : driverFields;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        {/* Problema 4: Header estilo Instagram com capa */}
-        <div className="relative">
-          {/* Capa/Banner */}
-          <div className="h-32 bg-gradient-to-r from-primary via-accent to-warning rounded-t-lg" />
-          
-          {/* Foto de perfil circular grande */}
-          <div className="absolute -bottom-14 left-6 flex items-end gap-4">
-            <div className="relative">
-              <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
-                <AvatarImage key={currentPhotoUrl} src={currentPhotoUrl || user?.profile_photo_url || undefined} />
-                <AvatarFallback className="gradient-primary text-primary-foreground text-2xl font-bold">
-                  {getUserInitials(user?.full_name)}
-                </AvatarFallback>
-              </Avatar>
-              {editMode && (
-                <div className="absolute -bottom-1 -right-1">
-                  <ProfilePhotoUpload
-                    currentPhotoUrl={currentPhotoUrl}
-                    onUploadComplete={handlePhotoUploadComplete}
-                    userName={user?.full_name || ''}
-                    size="sm"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Botão de edição no canto superior direito */}
-          <div className="absolute top-3 right-3">
-            <Button
-              variant={editMode ? "destructive" : "secondary"}
-              size="sm"
-              onClick={() => setEditMode(!editMode)}
-              className="shadow-lg"
-            >
-              {editMode ? 'Cancelar' : 'Editar Perfil'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Info do usuário e stats estilo rede social */}
-        <div className="pt-16 px-6 pb-4">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold">{user?.full_name}</h2>
-              <p className="text-sm text-muted-foreground">{user?.email || 'Email não informado'}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="secondary" className="text-xs">
-                  {getRoleBadge(user?.role)}
-                </Badge>
-                <Badge className={`text-xs ${getStatusColor(user?.status)}`}>
-                  {getStatusText(user?.status)}
-                </Badge>
-              </div>
-            </div>
-            
-            {/* Stats estilo Instagram */}
-            <div className="flex gap-6 md:gap-8">
-              <div className="text-center">
-                <p className="text-xl font-bold text-foreground">{user?.total_ratings || 0}</p>
-                <p className="text-xs text-muted-foreground">Avaliações</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-foreground flex items-center justify-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  {user?.rating ? user.rating.toFixed(1) : '0.0'}
-                </p>
-                <p className="text-xs text-muted-foreground">Nota Média</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-foreground">
-                  {user?.created_at ? new Date(user.created_at).getFullYear() : 'N/A'}
-                </p>
-                <p className="text-xs text-muted-foreground">Membro desde</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <DialogHeader className="px-6 pb-2 border-t pt-4">
-          <DialogTitle className="text-base font-semibold">Informações do Perfil</DialogTitle>
-          <DialogDescription className="text-sm">
-            Visualize e edite suas informações pessoais
-          </DialogDescription>
+        {/* Header invisível para acessibilidade */}
+        <DialogHeader className="sr-only">
+          <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
+          <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto max-h-[70vh] pr-2">
-          {/* Coluna da esquerda - Informações básicas */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Informações Pessoais
-                </CardTitle>
-                <Button
-                  variant={editMode ? "destructive" : "outline"}
-                  size="sm"
-                  onClick={() => setEditMode(!editMode)}
-                >
-                  {editMode ? 'Cancelar' : 'Editar'}
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nome Completo</Label>
-                    {editMode ? (
-                      <Input
-                        value={profileData.full_name}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{user?.full_name || 'Não informado'}</p>
-                    )}
-                  </div>
+        {/* Profile Header com foto e info básica */}
+        <ProfileHeader
+          fullName={user?.full_name || ''}
+          email={user?.email}
+          role={user?.role || ''}
+          status={user?.status || ''}
+          photoUrl={currentPhotoUrl}
+          isEditing={editMode}
+          isSaving={loading}
+          onEditToggle={() => setEditMode(!editMode)}
+          onSave={handleSave}
+          onPhotoChange={handlePhotoChange}
+        />
 
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      Telefone WhatsApp
-                    </Label>
-                    {editMode ? (
-                      <Input
-                        type="tel"
-                        value={profileData.phone}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{user?.phone || 'Não informado'}</p>
-                    )}
-                  </div>
+        {/* Conteúdo principal com scroll */}
+        <ScrollArea className="flex-1 px-4 sm:px-6 pb-6">
+          {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+            {/* Coluna da Esquerda - 70% (lg:col-span-2) */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Informações Pessoais */}
+              <ProfileInfoCard
+                title="Informações Pessoais"
+                icon={<User className="h-4 w-4 text-primary" />}
+                fields={personalInfoFields}
+                data={profileData}
+                isEditing={editMode}
+                onChange={handleFieldChange}
+              />
 
-                  <div className="space-y-2">
-                    <Label>Telefone de Contato</Label>
-                    {editMode ? (
-                      <Input
-                        type="tel"
-                        value={profileData.contact_phone}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, contact_phone: e.target.value }))}
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{user?.contact_phone || 'Não informado'}</p>
-                    )}
-                  </div>
+              {/* Campos específicos por role */}
+              {roleSpecificFields.length > 0 && (
+                <ProfileInfoCard
+                  title={user?.role === 'PRODUTOR' ? 'Dados da Fazenda' : 'Dados Profissionais'}
+                  icon={<Shield className="h-4 w-4 text-primary" />}
+                  fields={roleSpecificFields}
+                  data={profileData}
+                  isEditing={editMode}
+                  onChange={handleFieldChange}
+                />
+              )}
 
-                  <div className="space-y-2">
-                    <Label>CPF/CNPJ</Label>
-                    <p className="text-sm text-muted-foreground">{user?.cpf_cnpj || 'Não informado'}</p>
-                  </div>
-                </div>
+              {/* Contato de Emergência */}
+              <ProfileInfoCard
+                title="Contato de Emergência"
+                icon={<Phone className="h-4 w-4 text-primary" />}
+                fields={emergencyFields}
+                data={profileData}
+                isEditing={editMode}
+                onChange={handleFieldChange}
+              />
 
-                {user?.role === 'PRODUTOR' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                    <div className="space-y-2">
-                      <Label>Nome da Fazenda</Label>
-                      {editMode ? (
-                        <Input
-                          value={profileData.farm_name}
-                          onChange={(e) => setProfileData(prev => ({ ...prev, farm_name: e.target.value }))}
-                        />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{user?.farm_name || 'Não informado'}</p>
-                      )}
-                    </div>
+              {/* Endereço */}
+              <ProfileAddressCard
+                address={addressData}
+                isEditing={editMode}
+                onChange={handleAddressChange}
+              />
 
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        Endereço da Fazenda
-                      </Label>
-                      {editMode ? (
-                        <Input
-                          value={profileData.farm_address}
-                          onChange={(e) => setProfileData(prev => ({ ...prev, farm_address: e.target.value }))}
-                        />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{user?.farm_address || 'Não informado'}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+              {/* Zona de Perigo - apenas no mobile (aparece no final) */}
+              <div className="lg:hidden">
+                <ProfileDangerZone
+                  onDeleteAccount={handleDeleteAccount}
+                  isDeleting={isDeleting}
+                />
+              </div>
+            </div>
 
-                {user?.role === 'MOTORISTA' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                    <div className="space-y-2">
-                      <Label>Cooperativa</Label>
-                      {editMode ? (
-                        <Input
-                          value={profileData.cooperative}
-                          onChange={(e) => setProfileData(prev => ({ ...prev, cooperative: e.target.value }))}
-                        />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{user?.cooperative || 'Não informado'}</p>
-                      )}
-                    </div>
+            {/* Coluna da Direita - 30% (lg:col-span-1) */}
+            <div className="space-y-4">
+              {/* Stats e Avaliações */}
+              <ProfileStatsCard
+                rating={user?.rating || 0}
+                totalRatings={user?.total_ratings || 0}
+                memberSince={user?.created_at}
+                totalServices={0}
+                ratingDistribution={ratingDistribution}
+              />
 
-                    <div className="space-y-2">
-                      <Label>RNTRC</Label>
-                      <p className="text-sm text-muted-foreground">{user?.rntrc || 'Não informado'}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                  <div className="space-y-2">
-                    <Label>Contato de Emergência</Label>
-                    {editMode ? (
-                      <Input
-                        value={profileData.emergency_contact_name}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, emergency_contact_name: e.target.value }))}
-                        placeholder="Nome do contato"
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{user?.emergency_contact_name || 'Não informado'}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Telefone de Emergência</Label>
-                    {editMode ? (
-                      <Input
-                        type="tel"
-                        value={profileData.emergency_contact_phone}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, emergency_contact_phone: e.target.value }))}
-                        placeholder="Telefone do contato"
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{user?.emergency_contact_phone || 'Não informado'}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Endereço Estruturado */}
-                <div className="pt-4 border-t">
-                  <Label className="flex items-center gap-2 mb-3">
-                    <MapPin className="h-4 w-4" />
-                    Endereço
-                  </Label>
-                  {editMode ? (
-                    <StructuredAddressForm
-                      value={{
-                        street: profileData.address_street,
-                        number: profileData.address_number,
-                        complement: profileData.address_complement,
-                        neighborhood: profileData.address_neighborhood,
-                        city: profileData.address_city,
-                        state: profileData.address_state,
-                        zip: profileData.address_zip,
-                      }}
-                      onChange={handleAddressChange}
-                      disabled={loading}
-                    />
-                  ) : (
-                    <div className="text-sm text-muted-foreground whitespace-pre-line">
-                      {formatAddress({
-                        street: user?.address_street,
-                        number: user?.address_number,
-                        complement: user?.address_complement,
-                        neighborhood: user?.address_neighborhood,
-                        city: user?.address_city,
-                        state: user?.address_state,
-                        zip: user?.address_zip,
-                      }) || 'Endereço não cadastrado'}
-                    </div>
-                  )}
-                </div>
-
-                {editMode && (
-                  <div className="flex justify-end pt-4">
-                    <Button onClick={handleSave} disabled={loading}>
-                      {loading ? 'Salvando...' : 'Salvar Alterações'}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Coluna da direita - Estatísticas e avaliações */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5" />
-                  Avaliações
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary mb-2">
-                    {user?.rating ? user.rating.toFixed(1) : '0.0'}
-                  </div>
-                  <StarRating 
-                    rating={user?.rating || 0} 
-                    size="lg" 
-                    className="justify-center"
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {user?.total_ratings || 0} avaliações
-                  </p>
-                </div>
-
-                {/* Distribuição Real de Estrelas */}
-                <div className="space-y-2">
-                  {[5, 4, 3, 2, 1].map((stars) => {
-                    const starData = ratingDistribution.find(r => r.star_rating === stars);
-                    const count = starData?.count || 0;
-                    const percentage = user?.total_ratings > 0 
-                      ? (count / user.total_ratings) * 100 
-                      : 0;
-                    
-                    return (
-                      <div key={stars} className="flex items-center gap-2">
-                        <span className="text-sm w-16">{stars} estrelas</span>
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-yellow-400 transition-all"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground w-8">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Informações Gerais
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Membro desde</span>
-                  <span className="text-sm font-medium">
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : 'N/A'}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Última atualização</span>
-                  <span className="text-sm font-medium">
-                    {user?.updated_at ? new Date(user.updated_at).toLocaleDateString('pt-BR') : 'N/A'}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Localização ativa</span>
-                  <Badge variant={user?.location_enabled ? "default" : "secondary"}>
-                    {user?.location_enabled ? 'Sim' : 'Não'}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Zona de Perigo - Excluir Conta */}
-            <div className="pt-6 border-t mt-6">
-              <h3 className="text-lg font-semibold text-destructive mb-2">Zona de Perigo</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                A exclusão da sua conta é permanente e não pode ser desfeita. Todos os seus dados serão removidos.
-              </p>
-              
-              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir Conta
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Isso irá excluir permanentemente sua conta
-                      e remover todos os seus dados dos nossos servidores.
-                      <br /><br />
-                      Para confirmar, digite <strong>EXCLUIR</strong> no campo abaixo:
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  
-                  <Input
-                    value={deleteConfirmation}
-                    onChange={(e) => setDeleteConfirmation(e.target.value)}
-                    placeholder="Digite EXCLUIR"
-                    className="mt-2"
-                  />
-                  
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>
-                      Cancelar
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleDeleteAccount}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Continuar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              
-              {/* Segunda confirmação */}
-              <AlertDialog open={secondConfirmOpen} onOpenChange={setSecondConfirmOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Última confirmação</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Você tem certeza que deseja excluir sua conta permanentemente?
-                      <br /><br />
-                      <strong>Esta é sua última chance de cancelar.</strong>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => {
-                      setSecondConfirmOpen(false);
-                      setDeleteDialogOpen(false);
-                      setDeleteConfirmation('');
-                    }}>
-                      Não, manter minha conta
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleFinalDeleteAccount}
-                      disabled={loading}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {loading ? 'Excluindo...' : 'Sim, excluir permanentemente'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {/* Zona de Perigo - apenas no desktop */}
+              <div className="hidden lg:block">
+                <ProfileDangerZone
+                  onDeleteAccount={handleDeleteAccount}
+                  isDeleting={isDeleting}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
