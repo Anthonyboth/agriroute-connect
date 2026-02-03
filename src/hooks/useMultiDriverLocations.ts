@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/maplibre-utils';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
+import { toFiniteNumber } from '@/lib/geo/toFiniteNumber';
 
 export interface DriverLocationData {
   driverId: string;
@@ -126,12 +127,12 @@ export function useMultiDriverLocations(freightId: string | null): UseMultiDrive
         let lat: number | null = null;
         let lng: number | null = null;
         
-        if (location?.lat && location?.lng) {
-          const normalized = normalizeLatLngPoint({ lat: location.lat, lng: location.lng }, 'BR');
-          if (normalized) {
-            lat = normalized.lat;
-            lng = normalized.lng;
-          }
+        const latNum = toFiniteNumber((location as any)?.lat);
+        const lngNum = toFiniteNumber((location as any)?.lng);
+        if (latNum !== null && lngNum !== null) {
+          const normalized = normalizeLatLngPoint({ lat: latNum, lng: lngNum }, 'BR');
+          lat = normalized?.lat ?? latNum;
+          lng = normalized?.lng ?? lngNum;
         }
 
         return {
@@ -202,15 +203,19 @@ export function useMultiDriverLocations(freightId: string | null): UseMultiDrive
           const data = payload.new as any;
           if (data?.driver_profile_id) {
             setDrivers(prev => prev.map(d => {
-              if (d.driverId === data.driver_profile_id && data.lat && data.lng) {
-                const normalized = normalizeLatLngPoint({ lat: data.lat, lng: data.lng }, 'BR');
+              if (d.driverId === data.driver_profile_id) {
+                const latNum = toFiniteNumber(data.lat);
+                const lngNum = toFiniteNumber(data.lng);
+                if (latNum === null || lngNum === null) return d;
+
+                const normalized = normalizeLatLngPoint({ lat: latNum, lng: lngNum }, 'BR');
                 const lastUpdate = data.last_gps_update ? new Date(data.last_gps_update) : d.lastUpdate;
                 const secondsAgo = lastUpdate ? getSecondsSinceUpdate(lastUpdate) : Infinity;
                 
                 return {
                   ...d,
-                  lat: normalized?.lat ?? data.lat,
-                  lng: normalized?.lng ?? data.lng,
+                  lat: normalized?.lat ?? latNum,
+                  lng: normalized?.lng ?? lngNum,
                   lastUpdate,
                   secondsAgo,
                   isOnline: lastUpdate ? isDriverOnline(lastUpdate, OFFLINE_THRESHOLD_MS) : false,
