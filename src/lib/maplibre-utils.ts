@@ -48,54 +48,68 @@ export const DESTINATION_MARKER_SVG = `
 
 /**
  * Cria um elemento HTML para o marker do caminhão
+ * 
+ * ✅ PADRÃO OURO: Elemento raiz neutro (width:0, height:0), sem transform.
+ * Estilos visuais vão apenas em elementos filhos.
  */
 export function createTruckMarkerElement(isOnline: boolean = true): HTMLDivElement {
-  const markerDiv = document.createElement('div');
+  // ✅ ELEMENTO RAIZ NEUTRO - classe CSS define width:0; height:0
+  const root = document.createElement('div');
+  root.className = 'truck-marker'; // Definido em maplibre-markers.css
+  
   const color = isOnline ? MAP_COLORS.online : MAP_COLORS.offline;
   const svg = TRUCK_ICON_SVG.replace(/#16a34a/g, color).replace(/#15803d/g, color);
-  markerDiv.innerHTML = svg;
-  // ✅ CRÍTICO: Classe para identificar como marker circular (anchor: center)
-  markerDiv.classList.add('truck-marker');
-  markerDiv.style.cursor = 'pointer';
-  markerDiv.style.width = '40px';
-  markerDiv.style.height = '40px';
-  // Evita whitespace/offset por baseline de SVG inline
-  markerDiv.style.display = 'block';
-  markerDiv.style.lineHeight = '0';
-  const svgEl = markerDiv.querySelector('svg');
+  
+  // ✅ Wrapper interno com todos os estilos visuais
+  root.innerHTML = `
+    <div class="truck-marker-inner" data-offline="${!isOnline}">
+      ${isOnline ? '<div class="truck-marker-pulse"></div>' : ''}
+      <div class="truck-marker-icon" style="width: 40px; height: 40px; cursor: pointer;">
+        ${svg}
+      </div>
+    </div>
+  `;
+  
+  // Garantir que SVG interno tenha display correto
+  const svgEl = root.querySelector('svg');
   if (svgEl) {
     svgEl.setAttribute('width', '100%');
     svgEl.setAttribute('height', '100%');
-    (svgEl as any).style && (((svgEl as any).style.display = 'block'));
+    svgEl.style.display = 'block';
   }
-  markerDiv.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-  markerDiv.style.transition = 'filter 0.3s ease';
-  return markerDiv;
+  
+  return root;
 }
 
 /**
  * Cria um elemento HTML para marker de origem/destino
+ * 
+ * ✅ PADRÃO OURO: Elemento raiz neutro (width:0, height:0), sem transform.
+ * O anchor 'bottom' faz a ponta do pin apontar EXATAMENTE para a coordenada.
  */
 export function createLocationMarkerElement(type: 'origin' | 'destination'): HTMLDivElement {
-  const markerDiv = document.createElement('div');
-  markerDiv.innerHTML = type === 'origin' ? ORIGIN_MARKER_SVG : DESTINATION_MARKER_SVG;
-  // ✅ CRÍTICO: Classe para identificar como pin (anchor: bottom)
-  // O anchor 'bottom' faz a ponta do pin apontar EXATAMENTE para a coordenada
-  markerDiv.classList.add('location-pin-marker');
-  markerDiv.style.cursor = 'pointer';
-  markerDiv.style.width = '32px';
-  markerDiv.style.height = '40px';
-  // Evita whitespace/offset por baseline de SVG inline
-  markerDiv.style.display = 'block';
-  markerDiv.style.lineHeight = '0';
-  const svgEl = markerDiv.querySelector('svg');
+  // ✅ ELEMENTO RAIZ NEUTRO - classe CSS define width:0; height:0
+  const root = document.createElement('div');
+  root.className = 'location-pin-marker'; // Definido em maplibre-markers.css
+  
+  const svg = type === 'origin' ? ORIGIN_MARKER_SVG : DESTINATION_MARKER_SVG;
+  
+  // ✅ Wrapper interno com todos os estilos visuais
+  root.innerHTML = `
+    <div class="location-pin-inner">
+      ${svg}
+    </div>
+  `;
+  
+  // Garantir que SVG interno tenha display correto
+  const svgEl = root.querySelector('svg');
   if (svgEl) {
     svgEl.setAttribute('width', '100%');
     svgEl.setAttribute('height', '100%');
-    (svgEl as any).style && (((svgEl as any).style.display = 'block'));
+    svgEl.style.display = 'block';
   }
-  markerDiv.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-  return markerDiv;
+  
+  return root;
 }
 
 /**
