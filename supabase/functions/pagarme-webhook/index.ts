@@ -2,12 +2,14 @@
  * Edge Function: pagarme-webhook
  * 
  * Webhook dedicado para receber eventos do Pagar.me (Stone)
- * Objetivo: Confirmar pagamento e registrar log
+ * Objetivo: Confirmar pagamento, liberar emissão fiscal, registrar log
  * 
- * NÃO processa saldo/carteira - apenas registra eventos
+ * Suporta autenticação via:
+ * 1. Basic Auth (PAGARME_WEBHOOK_USER + PAGARME_WEBHOOK_SECRET)
+ * 2. HMAC Signature (x-hub-signature / x-pagarme-signature)
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createHmac, timingSafeEqual } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 // Headers CORS padrão
@@ -29,6 +31,7 @@ const SUPPORTED_EVENTS = [
   'charge.chargedback',
   'charge.chargeback_recovered',
   'charge.canceled',
+  'charge.partial_canceled',
   
   // Pedidos (Order)
   'order.created',
@@ -50,7 +53,31 @@ const SUPPORTED_EVENTS = [
 ];
 
 /**
- * Valida a assinatura do webhook do Pagar.me
+ * Valida Basic Auth do webhook do Pagar.me
+ * Formato: Authorization: Basic base64(user:password)
+ */
+function validateBasicAuth(
+  authHeader: string | null,
+  expectedUser: string,
+  expectedPassword: string
+): boolean {
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return false;
+  }
+
+  try {
+    const base64Credentials = authHeader.slice(6); // Remove 'Basic '
+    const credentials = atob(base64Credentials);
+    const [user, password] = credentials.split(':');
+    
+    return user === expectedUser && password === expectedPassword;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Valida a assinatura HMAC do webhook do Pagar.me
  * O Pagar.me envia a assinatura no header x-hub-signature ou x-pagarme-signature
  */
 function validateSignature(
@@ -162,7 +189,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     console.log(`[PAGARME-WEBHOOK][${requestId}] Método não permitido: ${req.method}`);
     return new Response(
-      JSON.stringify({ ok: false, erro: 'Método não permitido' }),
+      JSON.stringify({ success: false, code: 'METHOD_NOT_ALLOWED', message: 'Método não permitido' }),
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -174,38 +201,55 @@ Deno.serve(async (req) => {
     if (!rawPayload || rawPayload.length === 0) {
       console.log(`[PAGARME-WEBHOOK][${requestId}] Payload vazio`);
       return new Response(
-        JSON.stringify({ ok: false, erro: 'Payload vazio' }),
+        JSON.stringify({ success: false, code: 'EMPTY_PAYLOAD', message: 'Payload vazio' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Obter assinatura do header
-    const signature = 
-      req.headers.get('x-hub-signature') || 
-      req.headers.get('x-pagarme-signature') ||
-      req.headers.get('x-signature') ||
-      req.headers.get('x-webhook-signature');
-
-    // Obter secret
+    // Obter credenciais de autenticação
+    const webhookUser = Deno.env.get('PAGARME_WEBHOOK_USER');
     const webhookSecret = Deno.env.get('PAGARME_WEBHOOK_SECRET');
+    const authHeader = req.headers.get('Authorization');
 
-    // Validar assinatura (se configurada)
-    if (webhookSecret && webhookSecret.length > 0) {
-      const isValidSignature = validateSignature(rawPayload, signature, webhookSecret);
-      
-      if (!isValidSignature) {
-        console.log(`[PAGARME-WEBHOOK][${requestId}] ⚠️ Assinatura inválida - Tentativa de acesso não autorizado`);
-        console.log(`[PAGARME-WEBHOOK][${requestId}] Header recebido: ${signature ? signature.substring(0, 20) + '...' : 'AUSENTE'}`);
-        
-        return new Response(
-          JSON.stringify({ ok: false, erro: 'Assinatura inválida' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    // Validar autenticação (Basic Auth ou HMAC)
+    let isAuthenticated = false;
+
+    // Método 1: Basic Auth (preferido pelo Pagar.me)
+    if (webhookUser && webhookSecret && authHeader) {
+      isAuthenticated = validateBasicAuth(authHeader, webhookUser, webhookSecret);
+      if (isAuthenticated) {
+        console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Autenticação Basic Auth validada`);
       }
-      
-      console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Assinatura validada com sucesso`);
-    } else {
-      console.log(`[PAGARME-WEBHOOK][${requestId}] ⚠️ PAGARME_WEBHOOK_SECRET não configurado - aceitando sem validação`);
+    }
+
+    // Método 2: HMAC Signature (fallback)
+    if (!isAuthenticated && webhookSecret) {
+      const signature = 
+        req.headers.get('x-hub-signature') || 
+        req.headers.get('x-pagarme-signature') ||
+        req.headers.get('x-signature') ||
+        req.headers.get('x-webhook-signature');
+
+      if (signature) {
+        isAuthenticated = validateSignature(rawPayload, signature, webhookSecret);
+        if (isAuthenticated) {
+          console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Autenticação HMAC validada`);
+        }
+      }
+    }
+
+    // Se nenhum método de auth está configurado, aceitar (desenvolvimento)
+    if (!webhookUser && !webhookSecret) {
+      console.log(`[PAGARME-WEBHOOK][${requestId}] ⚠️ Nenhuma autenticação configurada - aceitando para desenvolvimento`);
+      isAuthenticated = true;
+    }
+
+    if (!isAuthenticated) {
+      console.log(`[PAGARME-WEBHOOK][${requestId}] ❌ Autenticação falhou`);
+      return new Response(
+        JSON.stringify({ success: false, code: 'UNAUTHORIZED', message: 'Webhook não autorizado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Parsear JSON
@@ -288,7 +332,9 @@ Deno.serve(async (req) => {
 
     console.log(`[PAGARME-WEBHOOK][${requestId}] Payload (sanitizado): ${truncatedPayload}`);
 
-    // Tentar registrar no banco (opcional - não falha se não conseguir)
+    // ============================================================
+    // PROCESSAMENTO DO PAGAMENTO E ATUALIZAÇÃO DO BANCO
+    // ============================================================
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -296,38 +342,178 @@ Deno.serve(async (req) => {
       if (supabaseUrl && supabaseKey) {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Verificar se existe tabela de logs de pagamento
-        // Tentamos inserir em uma tabela genérica de logs se existir
-        const logEntry = {
-          event_type: eventType,
-          event_id: eventId,
-          charge_id: chargeId,
-          amount: amount,
-          status: status,
-          payment_method: paymentMethod,
-          payload: sanitizedPayload,
-          created_at: createdAt,
-          processed_at: new Date().toISOString(),
-          source: 'pagarme',
-          acao_fiscal: acaoFiscal, // Registra a ação fiscal determinada
-        };
+        // Extrair charge_id do payload (estrutura do Pagar.me)
+        const chargeIdFromPayload = 
+          (data.id as string) || 
+          ((data as any).charges?.[0]?.id) ||
+          (payload.data as any)?.id ||
+          null;
 
-        // Tentar inserir em payment_webhook_logs se existir
+        console.log(`[PAGARME-WEBHOOK][${requestId}] Charge ID extraído: ${chargeIdFromPayload}`);
+
+        // ============================================================
+        // IDEMPOTÊNCIA: Verificar se já processamos este evento
+        // ============================================================
+        const { data: existingLog } = await supabase
+          .from('fiscal_compliance_logs')
+          .select('id')
+          .eq('action_type', `webhook_${eventType}`)
+          .contains('metadata', { event_id: eventId })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingLog) {
+          console.log(`[PAGARME-WEBHOOK][${requestId}] ⚠️ Evento já processado anteriormente (idempotência)`);
+          const processingTime = Date.now() - startTime;
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: 'Evento já processado anteriormente',
+              evento: eventType,
+              id: eventId,
+              acao_fiscal: acaoFiscal,
+              idempotent: true,
+              processado_em_ms: processingTime,
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // ============================================================
+        // ATUALIZAR fiscal_wallet_transactions se for evento de pagamento
+        // ============================================================
+        if (chargeIdFromPayload && acaoFiscal !== 'nenhuma') {
+          console.log(`[PAGARME-WEBHOOK][${requestId}] Buscando transação para charge_id: ${chargeIdFromPayload}`);
+
+          // Buscar transação pendente relacionada a esta cobrança
+          const { data: transactions } = await supabase
+            .from('fiscal_wallet_transactions')
+            .select('*')
+            .eq('reference_type', 'pix_payment')
+            .contains('metadata', { charge_id: chargeIdFromPayload })
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          const transaction = transactions?.[0];
+
+          if (transaction) {
+            const metadata = transaction.metadata as Record<string, unknown>;
+            const documentRef = metadata?.document_ref as string;
+            const documentType = metadata?.document_type as string;
+            const issuerId = metadata?.issuer_id as string;
+
+            console.log(`[PAGARME-WEBHOOK][${requestId}] Transação encontrada: ${transaction.id}`);
+            console.log(`[PAGARME-WEBHOOK][${requestId}] Documento: ${documentType} / ${documentRef}`);
+
+            if (acaoFiscal === 'liberar') {
+              // PAGAMENTO APROVADO - Atualizar transação
+              const { error: updateError } = await supabase
+                .from('fiscal_wallet_transactions')
+                .update({
+                  transaction_type: 'pix_paid',
+                  metadata: {
+                    ...metadata,
+                    payment_status: 'paid',
+                    paid_at: new Date().toISOString(),
+                    webhook_event_id: eventId,
+                    webhook_event_type: eventType,
+                  },
+                })
+                .eq('id', transaction.id);
+
+              if (updateError) {
+                console.error(`[PAGARME-WEBHOOK][${requestId}] Erro ao atualizar transação:`, updateError);
+              } else {
+                console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Transação marcada como PAGA`);
+              }
+
+              // Se for NF-e, atualizar o status da emissão para permitir emissão
+              if (documentType === 'nfe' && documentRef) {
+                // Tentar encontrar a emissão pelo internal_ref ou id
+                const { data: emission } = await supabase
+                  .from('nfe_emissions')
+                  .select('id, status, emission_context')
+                  .or(`internal_ref.eq.${documentRef},id.eq.${documentRef}`)
+                  .maybeSingle();
+
+                if (emission) {
+                  // Atualizar emission_context para indicar que pagamento foi realizado
+                  const currentContext = (emission.emission_context || {}) as Record<string, unknown>;
+                  const { error: emissionUpdateError } = await supabase
+                    .from('nfe_emissions')
+                    .update({
+                      emission_context: {
+                        ...currentContext,
+                        payment_status: 'paid',
+                        payment_charge_id: chargeIdFromPayload,
+                        payment_confirmed_at: new Date().toISOString(),
+                      },
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', emission.id);
+
+                  if (!emissionUpdateError) {
+                    console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Emissão NF-e ${emission.id} liberada para emissão`);
+                  }
+                }
+              }
+
+            } else if (acaoFiscal === 'bloquear') {
+              // PAGAMENTO FALHOU/CANCELADO/ESTORNADO
+              const newStatus = eventType.includes('refund') ? 'pix_refunded' : 
+                                eventType.includes('cancel') ? 'pix_canceled' : 'pix_failed';
+
+              const { error: updateError } = await supabase
+                .from('fiscal_wallet_transactions')
+                .update({
+                  transaction_type: newStatus,
+                  metadata: {
+                    ...metadata,
+                    payment_status: newStatus.replace('pix_', ''),
+                    failed_at: new Date().toISOString(),
+                    webhook_event_id: eventId,
+                    webhook_event_type: eventType,
+                  },
+                })
+                .eq('id', transaction.id);
+
+              if (!updateError) {
+                console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Transação marcada como ${newStatus}`);
+              }
+            }
+          } else {
+            console.log(`[PAGARME-WEBHOOK][${requestId}] ⚠️ Nenhuma transação encontrada para charge_id: ${chargeIdFromPayload}`);
+          }
+        }
+
+        // ============================================================
+        // REGISTRAR LOG DE COMPLIANCE (para idempotência)
+        // ============================================================
         const { error: logError } = await supabase
-          .from('payment_webhook_logs')
-          .insert([logEntry]);
+          .from('fiscal_compliance_logs')
+          .insert({
+            action_type: `webhook_${eventType}`,
+            metadata: {
+              event_id: eventId,
+              charge_id: chargeIdFromPayload,
+              amount: amount,
+              status: status,
+              payment_method: paymentMethod,
+              acao_fiscal: acaoFiscal,
+              processed_at: new Date().toISOString(),
+              source: 'pagarme',
+            },
+          });
 
         if (logError) {
-          // Tabela pode não existir, apenas logamos
-          console.log(`[PAGARME-WEBHOOK][${requestId}] Tabela payment_webhook_logs não disponível: ${logError.message}`);
-          console.log(`[PAGARME-WEBHOOK][${requestId}] Log apenas no console por enquanto`);
+          console.log(`[PAGARME-WEBHOOK][${requestId}] Log de compliance não registrado: ${logError.message}`);
         } else {
-          console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Log registrado no banco com sucesso`);
+          console.log(`[PAGARME-WEBHOOK][${requestId}] ✅ Log de compliance registrado`);
         }
       }
     } catch (dbError) {
       // Erro de banco não deve impedir o retorno 200
-      console.error(`[PAGARME-WEBHOOK][${requestId}] Erro ao registrar log no banco:`, dbError);
+      console.error(`[PAGARME-WEBHOOK][${requestId}] Erro ao processar no banco:`, dbError);
     }
 
     // Tempo de processamento
@@ -337,8 +523,8 @@ Deno.serve(async (req) => {
     // Retornar sucesso rapidamente
     return new Response(
       JSON.stringify({
-        ok: true,
-        mensagem: 'Webhook recebido e registrado',
+        success: true,
+        message: 'Webhook recebido e processado',
         evento: eventType,
         id: eventId,
         acao_fiscal: acaoFiscal,
@@ -352,7 +538,7 @@ Deno.serve(async (req) => {
     console.error(`[PAGARME-WEBHOOK][${requestId}] ❌ Erro interno:`, errorMessage);
     
     return new Response(
-      JSON.stringify({ ok: false, erro: 'Erro interno no servidor' }),
+      JSON.stringify({ success: false, code: 'INTERNAL_ERROR', message: 'Erro interno no servidor' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

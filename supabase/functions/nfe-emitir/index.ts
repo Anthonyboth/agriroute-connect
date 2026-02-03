@@ -280,22 +280,73 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Carteira
+    // ============================================================
+    // VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO ANTES DA EMISSÃO)
+    // ============================================================
+    // Calcular valor da taxa baseado no total da NF-e
+    const totalNfe = valores.total || 0;
+    const taxaCentavos = totalNfe <= 1000 ? 1000 : 2500; // R$ 10,00 ou R$ 25,00
+
+    console.log(`[nfe-emitir] Verificando pagamento - Total NF-e: ${totalNfe}, Taxa: ${taxaCentavos} centavos`);
+
+    // Verificar se existe pagamento PAGO para este issuer + documento
+    const { data: paidTransactions } = await supabase
+      .from('fiscal_wallet_transactions')
+      .select('id, metadata')
+      .eq('reference_type', 'pix_payment')
+      .eq('transaction_type', 'pix_paid')
+      .contains('metadata', { issuer_id: issuer_id, document_type: 'nfe' })
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    // Verificar se algum pagamento corresponde a esta emissão ou é um crédito disponível
+    let pagamentoValido = false;
+    let paymentChargeId: string | null = null;
+
+    if (paidTransactions && paidTransactions.length > 0) {
+      for (const tx of paidTransactions) {
+        const meta = tx.metadata as Record<string, unknown>;
+        // Se o pagamento já está vinculado a outra emissão, pular
+        if (meta?.used_for_emission) continue;
+        
+        // Pagamento disponível encontrado
+        pagamentoValido = true;
+        paymentChargeId = (meta?.charge_id as string) || null;
+        
+        // Marcar como usado (se tiver um ID de emissão para vincular)
+        // Isso será feito após a emissão ser criada
+        break;
+      }
+    }
+
+    // Também verificar no sistema legado de wallet (para compatibilidade)
     const { data: wallet, error: walletError } = await supabase
-      .from("fiscal_wallet")
-      .select("available_balance, reserved_balance")
-      .eq("issuer_id", issuer_id)
+      .from('fiscal_wallet')
+      .select('available_balance, reserved_balance')
+      .eq('issuer_id', issuer_id)
       .maybeSingle();
 
-    if (walletError) console.error("[nfe-emitir] Erro carteira:", walletError);
+    if (walletError) console.error('[nfe-emitir] Erro carteira:', walletError);
 
-    if (!wallet || wallet.available_balance < 1) {
+    // Se não tem pagamento PIX válido E não tem créditos na wallet
+    if (!pagamentoValido && (!wallet || wallet.available_balance < 1)) {
+      console.log(`[nfe-emitir] Pagamento não encontrado - Retornando 402 PAYMENT_REQUIRED`);
       return jsonResponse(402, {
         success: false,
-        code: "INSUFFICIENT_BALANCE",
-        message: "Saldo insuficiente de emissões. Adquira mais créditos.",
+        code: 'PAYMENT_REQUIRED',
+        message: 'Pagamento via PIX obrigatório antes de emitir.',
+        amount_centavos: taxaCentavos,
+        document_type: 'nfe',
+        issuer_id: issuer_id,
+        valores: {
+          total: totalNfe,
+          taxa: taxaCentavos / 100,
+        },
       });
     }
+
+    console.log(`[nfe-emitir] ✅ Pagamento válido encontrado ou créditos disponíveis`);
+    // ============================================================
 
     // Documentos sanitizados (CORREÇÃO CRÍTICA)
     const issuerDoc = onlyDigits(String(issuer.document_number || ""));
