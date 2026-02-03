@@ -250,6 +250,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // =================================================================
+    // 🧠 REGRA DE OURO - Lógica de Emissão Fiscal baseada em pagamento
+    // =================================================================
+    let acaoFiscal: 'liberar' | 'bloquear' | 'nenhuma' = 'nenhuma';
+    
+    // Eventos de PAGAMENTO APROVADO -> Liberar emissão fiscal
+    if (['charge.paid', 'order.paid', 'pix.paid', 'transaction.paid'].includes(eventType)) {
+      acaoFiscal = 'liberar';
+      console.log(`[PAGARME-WEBHOOK][${requestId}] 🟢 PAGAMENTO APROVADO - Liberando emissão fiscal`);
+    }
+    
+    // Eventos de FALHA/CANCELAMENTO/ESTORNO -> Bloquear ou cancelar emissão
+    if ([
+      'charge.payment_failed', 
+      'charge.refunded', 
+      'charge.canceled',
+      'charge.chargedback',
+      'order.payment_failed',
+      'order.canceled',
+      'transaction.refunded',
+      'transaction.canceled',
+      'pix.refunded',
+      'pix.expired'
+    ].includes(eventType)) {
+      acaoFiscal = 'bloquear';
+      console.log(`[PAGARME-WEBHOOK][${requestId}] 🔴 PAGAMENTO FALHOU/CANCELADO - Bloqueando emissão fiscal`);
+    }
+
+    // Log da ação fiscal determinada
+    console.log(`[PAGARME-WEBHOOK][${requestId}] Ação fiscal: ${acaoFiscal.toUpperCase()}`);
+    // =================================================================
+
     // Sanitizar payload para log
     const sanitizedPayload = sanitizePayload(payload);
     const truncatedPayload = truncateForLog(sanitizedPayload);
@@ -277,6 +309,7 @@ Deno.serve(async (req) => {
           created_at: createdAt,
           processed_at: new Date().toISOString(),
           source: 'pagarme',
+          acao_fiscal: acaoFiscal, // Registra a ação fiscal determinada
         };
 
         // Tentar inserir em payment_webhook_logs se existir
@@ -308,6 +341,7 @@ Deno.serve(async (req) => {
         mensagem: 'Webhook recebido e registrado',
         evento: eventType,
         id: eventId,
+        acao_fiscal: acaoFiscal,
         processado_em_ms: processingTime,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
