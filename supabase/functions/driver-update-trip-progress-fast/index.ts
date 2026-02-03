@@ -15,6 +15,62 @@ const BodySchema = z.object({
   notes: z.string().max(1000).nullable().optional(),
 });
 
+// Ordem estrita dos status (não permite regressão nem pulo)
+const STATUS_ORDER = [
+  'NEW',
+  'ACCEPTED',
+  'LOADING',
+  'LOADED',
+  'IN_TRANSIT',
+  'DELIVERED_PENDING_CONFIRMATION',
+  'DELIVERED',
+  'COMPLETED',
+] as const;
+
+function normalizeStatus(s: unknown): string {
+  return String(s ?? '').toUpperCase().trim();
+}
+
+function validateStrictTransition(previousStatus: string, nextStatus: string): { ok: boolean; error?: string; message?: string } {
+  const prev = normalizeStatus(previousStatus) || 'NEW';
+  const next = normalizeStatus(nextStatus);
+
+  const prevIndex = STATUS_ORDER.indexOf(prev as any);
+  const nextIndex = STATUS_ORDER.indexOf(next as any);
+
+  if (nextIndex === -1) {
+    return { ok: false, error: 'STATUS_UNKNOWN', message: `Status inválido: ${nextStatus}` };
+  }
+
+  // Se o status anterior for desconhecido, não arriscar: exigir ACCEPTED como primeiro passo
+  if (prevIndex === -1) {
+    if (next !== 'ACCEPTED') {
+      return {
+        ok: false,
+        error: 'STATUS_UNKNOWN_PREVIOUS',
+        message: `Transição inválida. Status atual não reconhecido (${previousStatus}). Reinicie pelo passo "ACCEPTED".`,
+      };
+    }
+    return { ok: true };
+  }
+
+  // Idempotência (mesmo status)
+  if (prevIndex === nextIndex) return { ok: true };
+
+  // Bloquear regressão
+  if (nextIndex < prevIndex) {
+    return { ok: false, error: 'STATUS_REGRESSION_BLOCKED', message: `Transição inválida: não é permitido voltar (${prev} → ${next}).` };
+  }
+
+  // Bloquear pulo de etapas
+  if (nextIndex > prevIndex + 1) {
+    const expected = STATUS_ORDER[prevIndex + 1];
+    return { ok: false, error: 'STATUS_SKIP_BLOCKED', message: `Transição inválida: de ${prev} você deve ir para ${expected} (não pode pular para ${next}).` };
+  }
+
+  return { ok: true };
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -61,7 +117,7 @@ serve(async (req) => {
     const raw = await req.json();
     const body = BodySchema.parse(raw);
     const freightId = body.freightId;
-    const newStatus = body.newStatus.toUpperCase().trim();
+    const newStatus = normalizeStatus(body.newStatus);
     const lat = body.lat ?? null;
     const lng = body.lng ?? null;
     const notes = body.notes ?? null;
@@ -128,7 +184,28 @@ serve(async (req) => {
       });
     }
 
-    const previousStatus = currentProgress?.current_status ?? 'NEW';
+    // Preferir status já conhecido do assignment quando ainda não existe driver_trip_progress
+    // (isso evita histórico "NEW → LOADING" quando o assignment já estava em ACCEPTED).
+    const previousStatus = normalizeStatus(currentProgress?.current_status ?? assignment.status ?? 'NEW') || 'NEW';
+
+    // =====================================================
+    // Validação estrita no FAST PATH (service_role) — evita regressões e pulos
+    // =====================================================
+    const validation = validateStrictTransition(previousStatus, newStatus);
+    if (!validation.ok) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: validation.error,
+          message: validation.message,
+          previous_status: previousStatus,
+          new_status: newStatus,
+          timestamp: ts,
+          durationMs: Date.now() - startedAt,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
 
     // Idempotent
     if (currentProgress?.current_status === newStatus) {
@@ -155,11 +232,19 @@ serve(async (req) => {
       updated_at: ts,
     };
 
-    if (!currentProgress?.accepted_at) patch.accepted_at = ts;
-    if (newStatus === 'LOADING') patch.loading_at = ts;
-    if (newStatus === 'LOADED') patch.loaded_at = ts;
-    if (newStatus === 'IN_TRANSIT') patch.in_transit_at = ts;
-    if (['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED'].includes(newStatus)) patch.delivered_at = ts;
+    // Definir timestamps apenas na primeira ocorrência (preservar histórico real)
+    const acceptedIndex = STATUS_ORDER.indexOf('ACCEPTED');
+    const prevIndex = STATUS_ORDER.indexOf(previousStatus as any);
+    const nextIndex = STATUS_ORDER.indexOf(newStatus as any);
+
+    // Se já estamos em/apos ACCEPTED (ou indo para ACCEPTED+), garantir accepted_at
+    const beyondAccepted = (prevIndex !== -1 && prevIndex >= acceptedIndex) || (nextIndex !== -1 && nextIndex >= acceptedIndex);
+    if (beyondAccepted && !currentProgress?.accepted_at) patch.accepted_at = ts;
+
+    if (newStatus === 'LOADING' && !currentProgress?.loading_at) patch.loading_at = ts;
+    if (newStatus === 'LOADED' && !currentProgress?.loaded_at) patch.loaded_at = ts;
+    if (newStatus === 'IN_TRANSIT' && !currentProgress?.in_transit_at) patch.in_transit_at = ts;
+    if (['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED'].includes(newStatus) && !currentProgress?.delivered_at) patch.delivered_at = ts;
 
     let progressId = currentProgress?.id as string | undefined;
 
