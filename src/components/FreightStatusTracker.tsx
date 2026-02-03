@@ -166,7 +166,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         .from('freight_status_history')
         .select(`
           *,
-          changer:profiles!changed_by(full_name, role)
+          changer:profiles!freight_status_history_changed_by_fkey(full_name, role)
         `)
         .eq('freight_id', freightId)
         .order('created_at', { ascending: true });
