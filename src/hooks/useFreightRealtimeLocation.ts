@@ -10,6 +10,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/maplibre-utils';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
+function toFiniteNumber(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 interface DriverLocation {
   lat: number;
   lng: number;
@@ -128,13 +137,15 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
 
           if (!locError && currentLocations && currentLocations.length > 0) {
             const loc = currentLocations[0];
-            if (loc.lat && loc.lng) {
+            const latNum = toFiniteNumber((loc as any).lat);
+            const lngNum = toFiniteNumber((loc as any).lng);
+            if (latNum !== null && lngNum !== null) {
               // ✅ Normalizar coordenadas para evitar markers em posições incorretas
-              const normalized = normalizeLatLngPoint({ lat: loc.lat, lng: loc.lng }, 'BR');
+              const normalized = normalizeLatLngPoint({ lat: latNum, lng: lngNum }, 'BR');
               if (normalized) {
                 setDriverLocation(normalized);
               } else {
-                setDriverLocation({ lat: loc.lat, lng: loc.lng });
+                setDriverLocation({ lat: latNum, lng: lngNum });
               }
               
               if (loc.last_gps_update) {
@@ -147,8 +158,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
               }
 
               console.log('[useFreightRealtimeLocation] ✅ Using driver_current_locations:', {
-                lat: normalized?.lat ?? loc.lat,
-                lng: normalized?.lng ?? loc.lng,
+                lat: normalized?.lat ?? latNum,
+                lng: normalized?.lng ?? lngNum,
                 driverId: loc.driver_profile_id?.substring(0,8),
                 lastUpdate: loc.last_gps_update
               });
@@ -253,18 +264,20 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           console.log('[useFreightRealtimeLocation] Realtime update received:', payload);
           
           const newData = payload.new as {
-            current_lat?: number;
-            current_lng?: number;
+            current_lat?: number | string;
+            current_lng?: number | string;
             last_location_update?: string;
           };
 
-          if (typeof newData.current_lat === 'number' && typeof newData.current_lng === 'number') {
+          const latNum = toFiniteNumber(newData.current_lat);
+          const lngNum = toFiniteNumber(newData.current_lng);
+          if (latNum !== null && lngNum !== null) {
             setDriverLocation(prev => {
               // Só atualiza se a posição mudou
-              if (prev?.lat === newData.current_lat && prev?.lng === newData.current_lng) {
+              if (prev?.lat === latNum && prev?.lng === lngNum) {
                 return prev;
               }
-              return { lat: newData.current_lat!, lng: newData.current_lng! };
+              return { lat: latNum, lng: lngNum };
             });
           }
 
@@ -324,17 +337,19 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           console.log('[useFreightRealtimeLocation] Driver location realtime update:', payload);
           
           const newData = payload.new as {
-            lat?: number;
-            lng?: number;
+            lat?: number | string;
+            lng?: number | string;
             last_gps_update?: string;
           };
 
-          if (typeof newData.lat === 'number' && typeof newData.lng === 'number') {
+          const latNum = toFiniteNumber(newData.lat);
+          const lngNum = toFiniteNumber(newData.lng);
+          if (latNum !== null && lngNum !== null) {
             setDriverLocation(prev => {
-              if (prev?.lat === newData.lat && prev?.lng === newData.lng) {
+              if (prev?.lat === latNum && prev?.lng === lngNum) {
                 return prev;
               }
-              return { lat: newData.lat!, lng: newData.lng! };
+              return { lat: latNum, lng: lngNum };
             });
           }
 

@@ -160,7 +160,15 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   // ✅ Localização efetiva do motorista (hook ou props iniciais)
   const effectiveDriverLocation = useMemo(() => {
     // 1. Usar localização em tempo real do hook
-    if (driverLocation && driverLocation.lat && driverLocation.lng) {
+    if (
+      driverLocation &&
+      typeof (driverLocation as any).lat === 'number' &&
+      typeof (driverLocation as any).lng === 'number' &&
+      Number.isFinite((driverLocation as any).lat) &&
+      Number.isFinite((driverLocation as any).lng) &&
+      (driverLocation as any).lat !== 0 &&
+      (driverLocation as any).lng !== 0
+    ) {
       console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from realtime hook:', driverLocation);
       return driverLocation;
     }

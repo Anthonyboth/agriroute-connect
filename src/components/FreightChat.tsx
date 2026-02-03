@@ -16,6 +16,13 @@ import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useChatAttachments } from '@/hooks/useChatAttachments';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -65,6 +72,8 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   const [isSendingLocation, setIsSendingLocation] = useState(false);
   const [showLocationConfirm, setShowLocationConfirm] = useState(false);
   const [freightInfo, setFreightInfo] = useState<any>(null);
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [targetDriverId, setTargetDriverId] = useState<string | null>(null);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [selectedSharedFreight, setSelectedSharedFreight] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
