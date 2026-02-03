@@ -13,6 +13,12 @@ serve(async (req) => {
   }
 
   try {
+    // Service role client para operações internas
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -41,6 +47,101 @@ serve(async (req) => {
     }
 
     console.log(`[MDFe Emitir] Iniciando emissão para frete ${freight_id}, modo: ${modo}`);
+
+    // ==========================================
+    // VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO)
+    // MDF-e: sempre R$ 10,00
+    // ==========================================
+    const taxaCentavos = 1000;
+    const documentRef = `MDFE-${freight_id.substring(0, 8)}-${Date.now()}`;
+
+    console.log(`[MDFe Emitir] Verificando pagamento - Taxa: ${taxaCentavos} centavos`);
+
+    // Verificar pagamento na tabela fiscal_wallet_transactions
+    const { data: paidTransactions, error: txError } = await serviceClient
+      .from('fiscal_wallet_transactions')
+      .select('id, metadata')
+      .eq('reference_type', 'pix_payment')
+      .eq('transaction_type', 'pix_paid')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (txError) {
+      console.error('[MDFe Emitir] Erro ao buscar transações:', txError);
+    }
+
+    let pagamentoValido = false;
+    let transacaoUsada: string | null = null;
+    let issuerId: string | null = null;
+
+    // Buscar o issuer_id associado ao frete para validação
+    const { data: freight } = await supabaseClient
+      .from('freights')
+      .select('company_id, producer_id')
+      .eq('id', freight_id)
+      .single();
+
+    if (paidTransactions?.length) {
+      for (const tx of paidTransactions) {
+        const meta = tx.metadata as Record<string, unknown>;
+        if (
+          meta?.document_type === 'mdfe' &&
+          !meta?.used_for_emission
+        ) {
+          pagamentoValido = true;
+          transacaoUsada = tx.id;
+          issuerId = meta?.issuer_id as string;
+          break;
+        }
+      }
+    }
+
+    if (!pagamentoValido) {
+      console.log(`[MDFe Emitir] Pagamento não encontrado - retornando 402`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          code: 'PAYMENT_REQUIRED',
+          message: 'Pagamento via PIX obrigatório antes de emitir.',
+          amount_centavos: taxaCentavos,
+          document_type: 'mdfe',
+          issuer_id: freight?.company_id || freight_id,
+          document_ref: documentRef,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 402,
+        }
+      );
+    }
+
+    console.log(`[MDFe Emitir] Pagamento válido encontrado: ${transacaoUsada}`);
+
+    // Marcar transação como usada
+    if (transacaoUsada) {
+      const { data: currentTx } = await serviceClient
+        .from('fiscal_wallet_transactions')
+        .select('metadata')
+        .eq('id', transacaoUsada)
+        .single();
+
+      if (currentTx) {
+        await serviceClient
+          .from('fiscal_wallet_transactions')
+          .update({
+            metadata: {
+              ...((currentTx.metadata as Record<string, unknown>) || {}),
+              used_for_emission: true,
+              used_at: new Date().toISOString(),
+              freight_id: freight_id,
+            },
+          })
+          .eq('id', transacaoUsada);
+      }
+    }
+    // ==========================================
+    // FIM DA VERIFICAÇÃO DE PAGAMENTO
+    // ==========================================
 
     // Get user profile
     const { data: profile, error: profileError } = await supabaseClient
