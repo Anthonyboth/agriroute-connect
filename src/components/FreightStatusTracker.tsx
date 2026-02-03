@@ -9,6 +9,7 @@ import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useFreightEffectiveStatus } from '@/hooks/useFreightEffectiveStatus';
+import { FreightStatusHistory } from '@/components/FreightStatusHistory';
 
 // ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
 const FreightRealtimeMap = lazy(() => 
@@ -539,47 +540,54 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           <CardTitle>Histórico de Status</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {statusHistory.map((item) => {
-              const status = statusFlow.find(s => s.key === item.status);
-              const Icon = status?.icon || Clock;
-              
-              return (
-                <div key={item.id} className="flex gap-3 pb-4 border-b last:border-0">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{status?.label || getStatusLabelFallback(item.status)}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
-                      </Badge>
+          {statusHistory.length > 0 ? (
+            <div className="space-y-4">
+              {statusHistory.map((item) => {
+                const status = statusFlow.find(s => s.key === item.status);
+                const Icon = status?.icon || Clock;
+                
+                return (
+                  <div key={item.id} className="flex gap-3 pb-4 border-b last:border-0">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
                     
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
-                      {item.changer && ` • ${item.changer.full_name}`}
-                    </p>
-                    
-                    {item.notes && (
-                      <p className="text-sm bg-muted p-2 rounded">
-                        {item.notes}
-                      </p>
-                    )}
-                    
-                    {item.location_lat && item.location_lng && (
-                      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span>Localização: {item.location_lat.toFixed(4)}, {item.location_lng.toFixed(4)}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{status?.label || getStatusLabelFallback(item.status)}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
+                        </Badge>
                       </div>
-                    )}
+                      
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
+                        {item.changer && ` • ${item.changer.full_name}`}
+                      </p>
+                      
+                      {item.notes && (
+                        <p className="text-sm bg-muted p-2 rounded">
+                          {item.notes}
+                        </p>
+                      )}
+                      
+                      {item.location_lat && item.location_lng && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span>Localização: {item.location_lat.toFixed(4)}, {item.location_lng.toFixed(4)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <FreightStatusHistory
+              freightId={freightId}
+              driverId={isDriver ? currentUserProfile?.id : undefined}
+            />
+          )}
         </CardContent>
       </Card>
     </div>
