@@ -329,23 +329,21 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       });
     }
 
-    // Desvios (se visíveis)
+    // Desvios (se visíveis) - ✅ Usando createMarkerEl (elemento raiz neutro)
     if (layers.deviations) {
       routeDeviations.forEach((d) => {
-        const el = document.createElement("div");
-        el.className = "w-5 h-5 bg-yellow-500 text-white rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-md cursor-pointer";
-        el.textContent = "⚠";
+        const el = createMarkerEl("#eab308", "⚠"); // amarelo
+        el.title = `Desvio: ${d.deviation_km?.toFixed(1) || '?'} km`;
         add(Number(d.lng), Number(d.lat), el, `<strong>Desvio de Rota</strong><br/>Distância: ${d.deviation_km?.toFixed(1) || '?'} km`);
       });
     }
 
-    // Incidentes offline (se visíveis)
+    // Incidentes offline (se visíveis) - ✅ Usando createMarkerEl (elemento raiz neutro)
     if (layers.offline) {
       offlineIncidents.forEach((o) => {
         if (o.last_known_lat && o.last_known_lng) {
-          const el = document.createElement("div");
-          el.className = "w-5 h-5 bg-gray-600 text-white rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-md cursor-pointer";
-          el.textContent = "📵";
+          const el = createMarkerEl("#6b7280", "📵"); // cinza
+          el.title = `Offline: ${o.duration_minutes || 0} min`;
           add(o.last_known_lng, o.last_known_lat, el, `<strong>Offline</strong><br/>Duração: ${o.duration_minutes || 0} min`);
         }
       });
