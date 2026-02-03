@@ -6,13 +6,15 @@
  * Usado no FreightInProgressCard para o produtor ver todos os motoristas.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { User, Truck, MapPin, WifiOff, Clock, CheckCircle2, Package, Navigation } from 'lucide-react';
+import { User, Truck, MapPin, WifiOff, Clock, CheckCircle2, Package, Navigation, History, ExternalLink } from 'lucide-react';
 import { useMultiDriverLocations, DriverLocationData } from '@/hooks/useMultiDriverLocations';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
+import { DriverLocationModal } from '@/components/freight/DriverLocationModal';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { formatSecondsAgo } from '@/lib/maplibre-utils';
 import { cn } from '@/lib/utils';
@@ -42,7 +44,14 @@ const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
   }
 };
 
-const DriverCard: React.FC<{ driver: DriverLocationData; index: number }> = ({ driver, index }) => {
+interface DriverCardProps {
+  driver: DriverLocationData;
+  index: number;
+  freightId: string;
+  onOpenLocation: (driver: DriverLocationData) => void;
+}
+
+const DriverCard: React.FC<DriverCardProps> = ({ driver, index, freightId, onOpenLocation }) => {
   return (
     <AccordionItem value={driver.driverId} className="border rounded-lg mb-2">
       <AccordionTrigger className="px-3 py-2 hover:no-underline">
@@ -119,7 +128,7 @@ const DriverCard: React.FC<{ driver: DriverLocationData; index: number }> = ({ d
             </div>
           )}
 
-          {/* Localização */}
+          {/* Localização resumida */}
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-muted-foreground" />
             {driver.lat && driver.lng ? (
@@ -136,6 +145,20 @@ const DriverCard: React.FC<{ driver: DriverLocationData; index: number }> = ({ d
             )}
           </div>
 
+          {/* Botão Localização + Histórico */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenLocation(driver);
+            }}
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            Localização e Histórico
+          </Button>
+
           {/* Preview do veículo com fotos */}
           <DriverVehiclePreview driverId={driver.driverId} />
         </div>
@@ -146,6 +169,14 @@ const DriverCard: React.FC<{ driver: DriverLocationData; index: number }> = ({ d
 
 export const MultiDriversList: React.FC<MultiDriversListProps> = ({ freightId, className }) => {
   const { drivers, isLoading, error } = useMultiDriverLocations(freightId);
+  const [locationModal, setLocationModal] = useState<{
+    open: boolean;
+    driver: DriverLocationData | null;
+  }>({ open: false, driver: null });
+
+  const handleOpenLocation = (driver: DriverLocationData) => {
+    setLocationModal({ open: true, driver });
+  };
 
   if (isLoading) {
     return (
@@ -180,21 +211,46 @@ export const MultiDriversList: React.FC<MultiDriversListProps> = ({ freightId, c
   }
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Motoristas ({drivers.length})
-        </h4>
-        <Badge variant="outline" className="text-[10px]">
-          {drivers.filter(d => d.isOnline).length} online
-        </Badge>
+    <>
+      <div className={cn("space-y-1", className)}>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Motoristas ({drivers.length})
+          </h4>
+          <Badge variant="outline" className="text-[10px]">
+            {drivers.filter(d => d.isOnline).length} online
+          </Badge>
+        </div>
+        
+        <Accordion type="single" collapsible className="w-full">
+          {drivers.map((driver, index) => (
+            <DriverCard 
+              key={driver.driverId} 
+              driver={driver} 
+              index={index} 
+              freightId={freightId}
+              onOpenLocation={handleOpenLocation}
+            />
+          ))}
+        </Accordion>
       </div>
-      
-      <Accordion type="single" collapsible className="w-full">
-        {drivers.map((driver, index) => (
-          <DriverCard key={driver.driverId} driver={driver} index={index} />
-        ))}
-      </Accordion>
-    </div>
+
+      {/* Modal de Localização + Histórico */}
+      {locationModal.driver && (
+        <DriverLocationModal
+          open={locationModal.open}
+          onOpenChange={(open) => setLocationModal({ ...locationModal, open })}
+          driverId={locationModal.driver.driverId}
+          driverName={locationModal.driver.driverName}
+          freightId={freightId}
+          avatarUrl={locationModal.driver.avatarUrl}
+          lat={locationModal.driver.lat}
+          lng={locationModal.driver.lng}
+          isOnline={locationModal.driver.isOnline}
+          secondsAgo={locationModal.driver.secondsAgo}
+          currentStatus={locationModal.driver.assignmentStatus}
+        />
+      )}
+    </>
   );
 };
