@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserDisplayId, maskDisplayId } from '@/lib/user-display-id';
 
 // =====================================================
 // TIPOS
@@ -25,6 +26,14 @@ import { supabase } from '@/integrations/supabase/client';
 export interface FreightParticipant {
   id: string;
   profileId: string;
+  /**
+   * ✅ REGRA: ID de exibição do usuário para identificação organizada.
+   * Formato: CPF formatado (057-159-091-80) ou hash (GUEST-XXXXXXXX).
+   * Apenas para tracking interno, não exibido para outros usuários.
+   */
+  displayId: string;
+  /** Versão mascarada do displayId para exibição segura */
+  maskedDisplayId: string;
   type: 'producer' | 'driver' | 'company';
   name: string;
   avatarUrl?: string;
@@ -168,13 +177,13 @@ export const useFreightParticipants = ({
         }
       });
 
-      // 4. Buscar perfis via profiles_secure (com fallback)
+      // 4. Buscar perfis via profiles_secure (com fallback) - inclui cpf_cnpj para Display ID
       const profilesMap = new Map<string, any>();
       
       if (allProfileIds.size > 0) {
         const { data: profilesData } = await supabase
           .from('profiles_secure')
-          .select('id, full_name, profile_photo_url, rating, total_ratings, status')
+          .select('id, full_name, profile_photo_url, rating, total_ratings, status, cpf_cnpj')
           .in('id', Array.from(allProfileIds));
 
         (profilesData || []).forEach(p => profilesMap.set(p.id, p));
@@ -216,11 +225,18 @@ export const useFreightParticipants = ({
         (companiesData || []).forEach(c => companiesMap.set(c.id, c));
       }
 
-      // 6. Montar produtor
+      // 6. Montar produtor - ✅ Inclui Display ID para tracking interno
       const producerProfile = profilesMap.get(freightData.producer_id);
+      const producerDisplayId = getUserDisplayId({
+        cpf: producerProfile?.cpf_cnpj,
+        profileId: freightData.producer_id,
+        isGuest: false
+      });
       const producerParticipant: FreightParticipant | null = producerProfile ? {
         id: `producer-${freightData.producer_id}`,
         profileId: freightData.producer_id,
+        displayId: producerDisplayId,
+        maskedDisplayId: maskDisplayId(producerDisplayId),
         type: 'producer',
         name: producerProfile.full_name || 'Produtor',
         avatarUrl: producerProfile.profile_photo_url,
@@ -234,13 +250,22 @@ export const useFreightParticipants = ({
       const companyParticipants: FreightParticipant[] = [];
       const processedCompanies = new Set<string>();
 
+      // 7. Montar motoristas - ✅ Inclui Display ID para tracking interno
       (assignmentsData || []).forEach(assignment => {
         const driverProfile = profilesMap.get(assignment.driver_id);
         
         if (driverProfile) {
+          const driverDisplayId = getUserDisplayId({
+            cpf: driverProfile.cpf_cnpj,
+            profileId: assignment.driver_id,
+            isGuest: false
+          });
+          
           driverParticipants.push({
             id: `driver-${assignment.driver_id}`,
             profileId: assignment.driver_id,
+            displayId: driverDisplayId,
+            maskedDisplayId: maskDisplayId(driverDisplayId),
             type: 'driver',
             name: driverProfile.full_name || 'Motorista',
             avatarUrl: driverProfile.profile_photo_url,
@@ -260,10 +285,17 @@ export const useFreightParticipants = ({
           
           if (company) {
             const companyOwnerProfile = profilesMap.get(company.profile_id);
+            const companyDisplayId = getUserDisplayId({
+              cpf: companyOwnerProfile?.cpf_cnpj,
+              profileId: company.profile_id,
+              isGuest: false
+            });
             
             companyParticipants.push({
               id: `company-${company.id}`,
               profileId: company.profile_id,
+              displayId: companyDisplayId,
+              maskedDisplayId: maskDisplayId(companyDisplayId),
               type: 'company',
               name: company.company_name || 'Transportadora',
               avatarUrl: companyOwnerProfile?.profile_photo_url,
@@ -277,11 +309,22 @@ export const useFreightParticipants = ({
       setDrivers(driverParticipants);
       setCompanies(companyParticipants);
 
+      // ✅ Log interno com Display IDs para tracking organizado
       console.log('[FreightParticipants] Carregado:', {
         freightId,
-        producer: producerParticipant?.name,
-        drivers: driverParticipants.map(d => d.name),
-        companies: companyParticipants.map(c => c.companyName)
+        producer: producerParticipant ? {
+          name: producerParticipant.name,
+          displayId: producerParticipant.displayId
+        } : null,
+        drivers: driverParticipants.map(d => ({
+          name: d.name,
+          displayId: d.displayId,
+          assignmentStatus: d.assignmentStatus
+        })),
+        companies: companyParticipants.map(c => ({
+          name: c.companyName,
+          displayId: c.displayId
+        }))
       });
 
     } catch (err: any) {
