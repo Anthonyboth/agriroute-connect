@@ -1,6 +1,15 @@
-import { useCallback, useMemo } from 'react';
-import { useTripProgress } from '@/hooks/useTripProgress';
-import { useIdempotentAction, useSingleFlight } from '@/hooks/utils';
+/**
+ * useFreightStatus.ts
+ * 
+ * Hook SIMPLIFICADO para atualização de status do frete.
+ * Para gestão COMPLETA (risco, SLA, offline, etc.), use useFreightLifecycle.
+ * 
+ * Este hook é um wrapper fino sobre useFreightLifecycle para compatibilidade
+ * com componentes existentes que só precisam de atualização de status.
+ */
+
+import { useCallback } from 'react';
+import { useFreightLifecycle, FreightStatus } from '@/hooks/useFreightLifecycle';
 
 type UpdateFreightStatusInput = {
   freightId: string;
@@ -8,58 +17,46 @@ type UpdateFreightStatusInput = {
   lat?: number;
   lng?: number;
   notes?: string;
-  /** Por padrão o hook mostra toast; set false quando a UI já controla feedback */
   showToast?: boolean;
 };
 
 /**
- * Hook unificado para atualizar status/progresso do frete pelo motorista.
- *
- * Objetivo imediato: parar 403/timeout em flows legados e reduzir latência,
- * usando a RPC idempotente `update_trip_progress`.
+ * Hook para atualizar status/progresso do frete pelo motorista.
+ * 
+ * Para gestão completa do ciclo de vida (risco, SLA, offline), use useFreightLifecycle diretamente.
  */
-export function useFreightStatus() {
-  const trip = useTripProgress();
+export function useFreightStatus(freightId?: string) {
+  const lifecycle = useFreightLifecycle({ freightId });
 
-  const updateImpl = useCallback(async (input: UpdateFreightStatusInput) => {
-    return trip.updateProgress(input.freightId, input.newStatus, {
+  const updateStatus = useCallback(async (input: UpdateFreightStatusInput) => {
+    return lifecycle.updateStatus(input.newStatus as FreightStatus, {
       lat: input.lat,
       lng: input.lng,
       notes: input.notes,
       showToast: input.showToast,
     });
-  }, [trip]);
-
-  // Evita múltiplos cliques simultâneos
-  const updateSingleFlight = useSingleFlight(updateImpl);
-
-  // Idempotência + cooldown curto para evitar duplo envio
-  const actionId = useMemo(() => 'freight-status:update', []);
-  const idempotent = useIdempotentAction(updateSingleFlight, {
-    actionId,
-    cooldownMs: 800,
-  });
-
-  const updateStatus = useCallback(async (input: UpdateFreightStatusInput) => {
-    return idempotent.execute(input);
-  }, [idempotent]);
+  }, [lifecycle]);
 
   return {
     // estado
-    isUpdating: trip.isUpdating || idempotent.isExecuting,
-    lastError: trip.lastError,
+    isUpdating: lifecycle.isUpdating,
+    lastError: lifecycle.lastError,
+    isOnline: lifecycle.isOnline,
+    pendingOperations: lifecycle.pendingOperations,
 
     // ações
     updateStatus,
+    advanceToNextStatus: lifecycle.advanceToNextStatus,
 
     // utilitários
-    getNextStatus: trip.getNextStatus,
-    getStatusLabel: trip.getStatusLabel,
-    canAdvance: trip.canAdvance,
-    advanceToNextStatus: trip.advanceToNextStatus,
+    getNextStatus: lifecycle.getNextStatus,
+    getStatusLabel: lifecycle.getStatusLabel,
+    canAdvance: lifecycle.canAdvance,
+    syncPendingOperations: lifecycle.syncPendingOperations,
 
     // constantes
-    STATUS_ORDER: trip.STATUS_ORDER,
-    STATUS_LABELS: trip.STATUS_LABELS,
+    STATUS_ORDER: lifecycle.STATUS_ORDER,
+    STATUS_LABELS: lifecycle.STATUS_LABELS,
   };
 }
+
