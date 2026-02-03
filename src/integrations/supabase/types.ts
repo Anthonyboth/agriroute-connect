@@ -3034,6 +3034,42 @@ export type Database = {
           },
         ]
       }
+      encrypted_data_access_log: {
+        Row: {
+          access_type: string
+          accessed_profile_id: string | null
+          accessor_user_id: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          success: boolean | null
+          table_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_profile_id?: string | null
+          accessor_user_id: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          success?: boolean | null
+          table_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_profile_id?: string | null
+          accessor_user_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          success?: boolean | null
+          table_name?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       encryption_keys: {
         Row: {
           created_at: string | null
@@ -12159,8 +12195,8 @@ export type Database = {
       }
       decrypt_pii_field: { Args: { p_encrypted: string }; Returns: string }
       decrypt_sensitive_data:
+        | { Args: { data: string; key: string }; Returns: string }
         | { Args: { encrypted_data: string }; Returns: string }
-        | { Args: { encrypted_data: string; key?: string }; Returns: string }
       detect_eta_worsening: {
         Args: { p_freight_id: string; p_threshold_minutes?: number }
         Returns: boolean
@@ -12205,7 +12241,7 @@ export type Database = {
       encrypt_pii_field: { Args: { p_value: string }; Returns: string }
       encrypt_sensitive_data:
         | { Args: { data: string }; Returns: string }
-        | { Args: { data: string; key?: string }; Returns: string }
+        | { Args: { data: string; key: string }; Returns: string }
       ensure_current_user_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
@@ -12679,6 +12715,7 @@ export type Database = {
           ip_count: number
         }[]
       }
+      get_my_profile_id_for_pii: { Args: never; Returns: string }
       get_my_profile_ids: { Args: never; Returns: string[] }
       get_my_transport_company_ids: { Args: never; Returns: string[] }
       get_my_trip_progress: { Args: { p_freight_id?: string }; Returns: Json }
