@@ -12,7 +12,7 @@ import { FreightRatingModal } from './FreightRatingModal';
 import { AutoRatingModal } from './AutoRatingModal';
 import { FreightAdvanceModal } from './FreightAdvanceModal';
 import { FreightPaymentModal } from './FreightPaymentModal';
-import { FreightAssignmentsList } from './FreightAssignmentsList';
+// FreightAssignmentsList removido - duplicação eliminada
 import { ManifestoModal } from './ManifestoModal';
 import { FreightNfePanel } from './nfe/FreightNfePanel';
 import { ParticipantProfileModal } from './freight/ParticipantProfileModal';
@@ -616,15 +616,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         </Card>
       </div>
 
-      {/* Assignments List (for multi-truck freights) */}
-      {freight.required_trucks > 1 && isFreightProducer && (
-        <FreightAssignmentsList
-          freightId={freight.id}
-          requiredTrucks={freight.required_trucks}
-          acceptedTrucks={freight.accepted_trucks}
-          isProducer={true}
-        />
-      )}
+      {/* ✅ FreightAssignmentsList REMOVIDO para evitar duplicação.
+          A lista de motoristas atribuídos já é exibida abaixo via participants.drivers */}
 
       {/* Participants */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
