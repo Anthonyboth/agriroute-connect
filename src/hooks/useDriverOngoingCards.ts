@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import {
   FREIGHT_ONGOING_STATUSES,
   ASSIGNMENT_ONGOING_STATUSES,
@@ -37,6 +38,14 @@ export type OngoingFreightRow = {
   updated_at?: string | null;
   cargo_type: string | null;
   price: number | null;
+  /** Metadados diversos (inclui, quando disponível, price_per_truck calculado na criação) */
+  metadata?: Json | null;
+  /**
+   * ✅ Regra (Painel do Motorista): valor unitário que o motorista deve enxergar/receber.
+   * Para fretes rurais (tabela freights), isso pode vir de metadata.price_per_truck.
+   * Para fretes via assignment, é preenchido com agreed_price.
+   */
+  driver_unit_price?: number | null;
   weight: number | null;
   distance_km: number | null;
   origin_address: string | null;
@@ -125,6 +134,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
           status,
           cargo_type,
           price,
+           metadata,
           weight,
           distance_km,
           origin_address,
@@ -189,6 +199,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
             status,
             cargo_type,
             price,
+             metadata,
             weight,
             distance_km,
             origin_address,
@@ -288,14 +299,29 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       // Enriquecer fretes com dados do produtor
       const enrichedFreights = freightsWithoutAssignmentDuplicates.map(f => ({
         ...f,
-        producer: f.producer_id ? producerMap[f.producer_id] || null : null
+        producer: f.producer_id ? producerMap[f.producer_id] || null : null,
+        // ✅ REGRA: preferir o valor unitário persistido na criação (metadata.price_per_truck)
+        // e, se não existir, cair para o cálculo seguro (total / carretas) apenas para exibição.
+        driver_unit_price: (() => {
+          const required = Math.max((f.required_trucks ?? 1) || 1, 1);
+          const meta = (typeof f.metadata === 'object' && f.metadata) ? (f.metadata as any) : null;
+          const metaUnit = meta && typeof meta.price_per_truck === 'number' ? meta.price_per_truck : null;
+          if (typeof metaUnit === 'number' && Number.isFinite(metaUnit) && metaUnit > 0) return metaUnit;
+          const base = typeof f.price === 'number' && Number.isFinite(f.price) ? f.price : 0;
+          return required > 1 ? base / required : base;
+        })(),
       }));
 
       const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).map((a: any) => ({
         ...a,
         freight: a.freight ? {
           ...a.freight,
-          producer: a.freight.producer_id ? producerMap[a.freight.producer_id] || null : null
+          producer: a.freight.producer_id ? producerMap[a.freight.producer_id] || null : null,
+          // ✅ Regra: no assignment, o valor unitário do motorista é o agreed_price
+          driver_unit_price:
+            typeof a.agreed_price === 'number' && Number.isFinite(a.agreed_price) && a.agreed_price > 0
+              ? a.agreed_price
+              : null,
         } : null
       }));
 
