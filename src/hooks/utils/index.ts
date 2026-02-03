@@ -82,3 +82,14 @@ export {
   extractPricingData,
   getPaymentAmount,
 } from '../useFreightPricing';
+
+// Ciclo de vida do frete (gestão completa)
+export {
+  useFreightLifecycle,
+  FREIGHT_STATUS_ORDER,
+} from '../useFreightLifecycle';
+
+// Status de frete (wrapper simplificado)
+export {
+  useFreightStatus,
+} from '../useFreightStatus';
