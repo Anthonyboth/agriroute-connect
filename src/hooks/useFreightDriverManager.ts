@@ -34,6 +34,10 @@ export interface DriverAssignment {
   agreedPrice: number | null;
   acceptedAt: string | null;
   vehiclePlate?: string | null;
+  /** Documento único do motorista (CPF/CNPJ) para deduplicação */
+  driverDocument?: string | null;
+  /** Indica se é motorista afiliado à transportadora */
+  isAffiliated: boolean;
 }
 
 export interface ManagedFreight {
@@ -45,7 +49,7 @@ export interface ManagedFreight {
   price: number | null;
   requiredTrucks: number;
   acceptedTrucks: number;
-  /** Capacidade disponível */
+  /** Capacidade disponível baseada em TODOS os motoristas */
   availableSlots: number;
   /** Está com capacidade completa? */
   isFullyAssigned: boolean;
@@ -67,8 +71,12 @@ export interface ManagedFreight {
     name: string;
     phone?: string | null;
   } | null;
-  /** Motoristas atribuídos */
+  /** TODOS os motoristas atribuídos (afiliados + autônomos) */
   drivers: DriverAssignment[];
+  /** Apenas motoristas afiliados à transportadora */
+  affiliatedDrivers: DriverAssignment[];
+  /** Motoristas autônomos/externos */
+  externalDrivers: DriverAssignment[];
   /** Dados brutos do frete (para componentes que precisam) */
   rawFreight: any;
 }
@@ -92,8 +100,10 @@ export interface UseFreightDriverManagerResult {
   totalFreights: number;
   /** Buscar frete por ID */
   getFreight: (freightId: string) => ManagedFreight | undefined;
-  /** Verificar se um motorista está em um frete */
-  isDriverInFreight: (freightId: string, driverId: string) => boolean;
+  /** Verificar se um motorista está em um frete (por ID ou documento) */
+  isDriverInFreight: (freightId: string, driverIdOrDocument: string) => boolean;
+  /** Verificar se um documento já está atribuído a algum frete */
+  isDocumentAssigned: (document: string, excludeFreightId?: string) => boolean;
 }
 
 // =====================================================
@@ -135,13 +145,32 @@ export const useFreightDriverManager = ({
     queryFn: async (): Promise<ManagedFreight[]> => {
       if (!companyId) return [];
 
-      // 1. Buscar todas as atribuições da transportadora + motoristas afiliados
+      // 1. PRIMEIRA BUSCA: Atribuições da transportadora para identificar os fretes
       const orFilters: string[] = [`company_id.eq.${companyId}`];
       if (affiliatedDriverIds.length > 0) {
         orFilters.push(`driver_id.in.(${affiliatedDriverIds.join(',')})`);
       }
 
-      const { data: assignments, error: assignmentsError } = await supabase
+      const { data: companyAssignments, error: companyAssignmentsError } = await supabase
+        .from('freight_assignments')
+        .select('freight_id')
+        .or(orFilters.join(','))
+        .in('status', ACTIVE_ASSIGNMENT_STATUSES);
+
+      if (companyAssignmentsError) {
+        console.error('[FreightDriverManager] Erro ao buscar assignments da empresa:', companyAssignmentsError);
+        throw companyAssignmentsError;
+      }
+
+      // 2. Coletar IDs únicos de fretes
+      const freightIds = [...new Set((companyAssignments || []).map(a => a.freight_id))];
+      
+      if (freightIds.length === 0) {
+        return [];
+      }
+
+      // 3. SEGUNDA BUSCA: TODOS os assignments desses fretes (não apenas da transportadora)
+      const { data: allAssignments, error: allAssignmentsError } = await supabase
         .from('freight_assignments')
         .select(`
           id,
@@ -151,27 +180,20 @@ export const useFreightDriverManager = ({
           agreed_price,
           accepted_at,
           company_id,
-          driver:profiles_secure!freight_assignments_driver_id_fkey(
-            id, full_name, profile_photo_url, rating
+          driver:profiles!freight_assignments_driver_id_fkey(
+            id, full_name, profile_photo_url, rating, cpf_cnpj
           )
         `)
-        .or(orFilters.join(','))
+        .in('freight_id', freightIds)
         .in('status', ACTIVE_ASSIGNMENT_STATUSES)
         .order('accepted_at', { ascending: false });
 
-      if (assignmentsError) {
-        console.error('[FreightDriverManager] Erro ao buscar assignments:', assignmentsError);
-        throw assignmentsError;
+      if (allAssignmentsError) {
+        console.error('[FreightDriverManager] Erro ao buscar todos assignments:', allAssignmentsError);
+        throw allAssignmentsError;
       }
 
-      // 2. Coletar IDs únicos de fretes
-      const freightIds = [...new Set((assignments || []).map(a => a.freight_id))];
-      
-      if (freightIds.length === 0) {
-        return [];
-      }
-
-      // 3. Buscar dados dos fretes
+      // 4. Buscar dados dos fretes
       const freightStatuses = includePartialOpen 
         ? [...ACTIVE_FREIGHT_STATUSES, 'OPEN' as const]
         : [...ACTIVE_FREIGHT_STATUSES];
@@ -209,7 +231,7 @@ export const useFreightDriverManager = ({
         throw freightsError;
       }
 
-      // 4. Filtrar fretes OPEN: só incluir se tiver accepted_trucks > 0
+      // 5. Filtrar fretes OPEN: só incluir se tiver accepted_trucks > 0
       const validFreights = (freightsData || []).filter(f => {
         if (f.status === 'OPEN') {
           return (f.accepted_trucks || 0) > 0;
@@ -217,31 +239,59 @@ export const useFreightDriverManager = ({
         return true;
       });
 
-      // 5. Agrupar atribuições por freight_id
+      // 6. Agrupar atribuições por freight_id COM DEDUPLICAÇÃO POR DOCUMENTO
       const assignmentsByFreight = new Map<string, any[]>();
-      (assignments || []).forEach(a => {
-        const list = assignmentsByFreight.get(a.freight_id) || [];
+      const seenDocumentsPerFreight = new Map<string, Set<string>>();
+
+      (allAssignments || []).forEach(a => {
+        const freightId = a.freight_id;
+        const driverDoc = a.driver?.cpf_cnpj?.replace(/\D/g, '') || a.driver_id;
+        
+        // Verificar se já existe motorista com mesmo documento neste frete
+        const seenDocs = seenDocumentsPerFreight.get(freightId) || new Set();
+        if (seenDocs.has(driverDoc)) {
+          console.warn(`[FreightDriverManager] Motorista duplicado detectado (doc: ${driverDoc}) no frete ${freightId}`);
+          return; // Pular duplicata
+        }
+        
+        seenDocs.add(driverDoc);
+        seenDocumentsPerFreight.set(freightId, seenDocs);
+        
+        const list = assignmentsByFreight.get(freightId) || [];
         list.push(a);
-        assignmentsByFreight.set(a.freight_id, list);
+        assignmentsByFreight.set(freightId, list);
       });
 
-      // 6. Montar resultado final
+      // 7. Montar resultado final
+      const affiliatedDriverIdSet = new Set(affiliatedDriverIds);
+      
       const result: ManagedFreight[] = validFreights.map(freight => {
         const freightAssignments = assignmentsByFreight.get(freight.id) || [];
         const requiredTrucks = freight.required_trucks || 1;
-        const acceptedTrucks = freightAssignments.length;
+        
+        // Contar TODOS os motoristas (não apenas os da transportadora)
+        const totalAcceptedDrivers = freightAssignments.length;
 
-        const drivers: DriverAssignment[] = freightAssignments.map(a => ({
-          id: a.id,
-          driverId: a.driver_id,
-          driverName: a.driver?.full_name || 'Motorista',
-          driverPhoto: a.driver?.profile_photo_url,
-          driverRating: a.driver?.rating,
-          status: a.status,
-          agreedPrice: a.agreed_price,
-          acceptedAt: a.accepted_at,
-          vehiclePlate: null // Podemos buscar depois se necessário
-        }));
+        const drivers: DriverAssignment[] = freightAssignments.map(a => {
+          const isAffiliated = a.company_id === companyId || affiliatedDriverIdSet.has(a.driver_id);
+          return {
+            id: a.id,
+            driverId: a.driver_id,
+            driverName: a.driver?.full_name || 'Motorista',
+            driverPhoto: a.driver?.profile_photo_url,
+            driverRating: a.driver?.rating,
+            status: a.status,
+            agreedPrice: a.agreed_price,
+            acceptedAt: a.accepted_at,
+            vehiclePlate: null,
+            driverDocument: a.driver?.cpf_cnpj?.replace(/\D/g, '') || null,
+            isAffiliated
+          };
+        });
+
+        // Separar motoristas afiliados e externos
+        const affiliatedDrivers = drivers.filter(d => d.isAffiliated);
+        const externalDrivers = drivers.filter(d => !d.isAffiliated);
 
         return {
           id: freight.id,
@@ -251,9 +301,9 @@ export const useFreightDriverManager = ({
           distanceKm: freight.distance_km,
           price: freight.price,
           requiredTrucks,
-          acceptedTrucks,
-          availableSlots: Math.max(0, requiredTrucks - acceptedTrucks),
-          isFullyAssigned: acceptedTrucks >= requiredTrucks,
+          acceptedTrucks: totalAcceptedDrivers,
+          availableSlots: Math.max(0, requiredTrucks - totalAcceptedDrivers),
+          isFullyAssigned: totalAcceptedDrivers >= requiredTrucks,
           originCity: freight.origin_city,
           originState: freight.origin_state,
           originAddress: freight.origin_address,
@@ -269,6 +319,8 @@ export const useFreightDriverManager = ({
             phone: freight.producer.contact_phone
           } : null,
           drivers,
+          affiliatedDrivers,
+          externalDrivers,
           rawFreight: freight
         };
       });
@@ -278,7 +330,7 @@ export const useFreightDriverManager = ({
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      console.log(`[FreightDriverManager] ${result.length} fretes únicos, ${assignments?.length || 0} atribuições totais`);
+      console.log(`[FreightDriverManager] ${result.length} fretes únicos, ${allAssignments?.length || 0} atribuições totais (deduplicadas por documento)`);
 
       return result;
     }
@@ -300,10 +352,26 @@ export const useFreightDriverManager = ({
     [freights]
   );
 
-  const isDriverInFreight = useCallback((freightId: string, driverId: string) => {
+  /** Verifica se motorista está no frete (por ID ou documento CPF/CNPJ) */
+  const isDriverInFreight = useCallback((freightId: string, driverIdOrDocument: string) => {
     const freight = getFreight(freightId);
-    return freight?.drivers.some(d => d.driverId === driverId) || false;
+    if (!freight) return false;
+    
+    const normalizedInput = driverIdOrDocument.replace(/\D/g, '');
+    return freight.drivers.some(d => 
+      d.driverId === driverIdOrDocument || 
+      d.driverDocument === normalizedInput
+    );
   }, [getFreight]);
+
+  /** Verifica se documento já está atribuído a algum frete */
+  const isDocumentAssigned = useCallback((document: string, excludeFreightId?: string) => {
+    const normalizedDoc = document.replace(/\D/g, '');
+    return freights.some(f => {
+      if (excludeFreightId && f.id === excludeFreightId) return false;
+      return f.drivers.some(d => d.driverDocument === normalizedDoc);
+    });
+  }, [freights]);
 
   const refetch = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['freight-driver-manager', companyId] });
@@ -317,7 +385,8 @@ export const useFreightDriverManager = ({
     totalDriversAssigned,
     totalFreights: freights.length,
     getFreight,
-    isDriverInFreight
+    isDriverInFreight,
+    isDocumentAssigned
   };
 };
 
