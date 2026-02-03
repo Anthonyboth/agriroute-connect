@@ -1,14 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  FREIGHT_ONGOING_STATUSES,
+  ASSIGNMENT_ONGOING_STATUSES,
+  ONGOING_SERVICE_TYPES,
+  SERVICE_ONGOING_STATUSES,
+} from "@/constants/freightRules";
 
 /**
+ * ========================================================================
  * Hook exclusivo do Painel do Motorista para garantir que a aba
  * "Fretes Em Andamento" sempre tenha dados completos e consistentes.
+ * ========================================================================
  *
  * Objetivos:
  * - Centralizar o fetch (evita regressões por lógica duplicada)
  * - Deduplicar fretes que também existam em freight_assignments
  * - Fornecer dados estáveis para renderização dos cards
+ * 
+ * Regras aplicadas (de src/constants/freightRules.ts):
+ * - FREIGHT_ONGOING_STATUSES: Status que definem frete como "Em Andamento"
+ * - ASSIGNMENT_ONGOING_STATUSES: Status de assignments visíveis
+ * - ONGOING_SERVICE_TYPES: Tipos de serviço que aparecem na aba
+ * - SERVICE_ONGOING_STATUSES: Status de serviços ativos
+ * 
+ * Documentado em:
+ * - memory/features/freight-in-progress-status-logic-standard
+ * - memory/features/driver-dashboard-ongoing-data-stability
+ * - memory/architecture/freight-assignment-query-decoupling
  */
 
 export type OngoingFreightRow = {
@@ -77,7 +96,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
   return useQuery({
     queryKey: ["driver-ongoing-cards", driverProfileId],
     enabled: Boolean(driverProfileId),
-    // ✅ Evita “cards perdidos” por cache/estado antigo
+    // ✅ Evita "cards perdidos" por cache/estado antigo
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
@@ -91,23 +110,9 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         };
       }
 
-      const freightOngoingStatuses = [
-        "ACCEPTED",
-        "LOADING",
-        "LOADED",
-        "IN_TRANSIT",
-        "DELIVERED_PENDING_CONFIRMATION",
-      ] as const;
-
-      // Status de assignments que devem aparecer na aba "Em Andamento"
-      const assignmentOngoingStatuses = [
-        "ACCEPTED",
-        "LOADING",
-        "LOADED",
-        "IN_TRANSIT",
-        "DELIVERED_PENDING_CONFIRMATION",
-        "PENDING", // Motorista pode ter assignment pendente de aceitar
-      ] as const;
+      // ✅ Usa constantes centralizadas de src/constants/freightRules.ts
+      const freightOngoingStatuses = [...FREIGHT_ONGOING_STATUSES];
+      const assignmentOngoingStatuses = [...ASSIGNMENT_ONGOING_STATUSES];
 
       // 1) FRETES (rurais) - SEM JOIN no produtor (RLS pode bloquear)
       const { data: directFreights, error: freErr } = await supabase
@@ -232,13 +237,13 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
           freight: assignmentFreightsMap[a.freight_id!] || null
         }));
 
-      // 4) SERVICE REQUESTS (Moto/Guincho/Mudança)
+      // 4) SERVICE REQUESTS (Moto/Guincho/Mudança) - Usa constantes centralizadas
       const { data: svcReqs, error: svcErr } = await supabase
         .from("service_requests_secure")
         .select("*")
         .eq("provider_id", driverProfileId)
-        .in("service_type", ["GUINCHO", "MUDANCA", "FRETE_URBANO", "FRETE_MOTO"])
-        .in("status", ["ACCEPTED", "ON_THE_WAY", "IN_PROGRESS"])
+        .in("service_type", [...ONGOING_SERVICE_TYPES])
+        .in("status", [...SERVICE_ONGOING_STATUSES])
         .order("accepted_at", { ascending: false })
         .limit(50);
 
