@@ -12715,6 +12715,7 @@ export type Database = {
           ip_count: number
         }[]
       }
+      get_my_profile_id: { Args: never; Returns: string }
       get_my_profile_id_for_pii: { Args: never; Returns: string }
       get_my_profile_ids: { Args: never; Returns: string[] }
       get_my_transport_company_ids: { Args: never; Returns: string[] }
