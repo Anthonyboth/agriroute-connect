@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useFreightEffectiveStatus } from '@/hooks/useFreightEffectiveStatus';
 import { FreightStatusHistory } from '@/components/FreightStatusHistory';
+import { useDriverFreightStatus } from '@/hooks/useDriverFreightStatus';
 
 // ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
 const FreightRealtimeMap = lazy(() => 
@@ -153,6 +154,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
     isLoading: isLoadingEffectiveStatus
   } = useFreightEffectiveStatus(freightId);
 
+  // ✅ Driver-specific effective status (critical for multi-truck: each driver progresses independently)
+  const driverId = currentUserProfile?.id as string | undefined;
+  const { status: driverEffectiveStatus } = useDriverFreightStatus(
+    isDriver && isMultiTruck ? freightId : null,
+    isDriver && isMultiTruck ? driverId : null,
+  );
+
   // Selecionar fluxo baseado no tipo de serviço
   const statusFlow = useMemo(() => {
     // Fluxo simplificado (sem LOADED) para: Moto, Guincho, Mudança
@@ -162,7 +170,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   const fetchStatusHistory = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('freight_status_history')
         .select(`
           *,
@@ -170,6 +178,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         `)
         .eq('freight_id', freightId)
         .order('created_at', { ascending: true });
+
+      // ✅ Multi-truck driver view: show ONLY this driver's history to avoid mixing other drivers
+      if (isDriver && isMultiTruck && driverId) {
+        query = query.eq('changed_by', driverId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setStatusHistory(data || []);
@@ -180,6 +195,20 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   // ✅ Calcular status efetivo baseado no histórico OU status de assignments (multi-carreta)
   const effectiveCurrentStatus = useMemo(() => {
+    // ✅ Driver view: NEVER use the "most advanced" multi-truck status.
+    // Each driver must see/advance based on their own assignment/trip progress.
+    if (isDriver) {
+      if (isMultiTruck) {
+        return driverEffectiveStatus || currentStatus;
+      }
+      // Single-truck driver: history fallback is ok
+      if (statusHistory.length > 0) {
+        const lastHistoryStatus = statusHistory[statusHistory.length - 1]?.status;
+        return lastHistoryStatus || currentStatus;
+      }
+      return currentStatus;
+    }
+
     // Para fretes multi-carreta, usar o status mais avançado das atribuições
     if (isMultiTruck && multiTruckEffectiveStatus) {
       console.log('[FreightStatusTracker] Using multi-truck effective status:', multiTruckEffectiveStatus);
@@ -191,7 +220,14 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       return lastHistoryStatus || currentStatus;
     }
     return currentStatus;
-  }, [statusHistory, currentStatus, isMultiTruck, multiTruckEffectiveStatus]);
+  }, [
+    statusHistory,
+    currentStatus,
+    isMultiTruck,
+    multiTruckEffectiveStatus,
+    isDriver,
+    driverEffectiveStatus,
+  ]);
 
   // ✅ Verificar se é um status final (não pode ser alterado)
   const isFinalStatus = useMemo(() => {
@@ -398,7 +434,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       supabase.removeChannel(channel);
       window.removeEventListener('freight-status-blocked', handleStatusBlocked);
     };
-  }, [freightId, serviceType]);
+  }, [freightId, serviceType, isDriver, isMultiTruck, driverId]);
 
   const nextStatus = getNextStatus();
   
