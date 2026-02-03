@@ -626,7 +626,7 @@ const CompanyDashboard = () => {
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               <Button 
                 onClick={() => setActiveTab('marketplace')}
-                className="bg-background text-primary hover:bg-background/90 font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-lg hover:scale-105 transition-all"
+                className="bg-background text-primary hover:bg-background/90 font-bold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-lg hover:scale-105 transition-all border-2 border-primary"
               >
                 <Brain className="mr-2 h-5 w-5" />
                 {FRETES_IA_LABEL}
@@ -636,7 +636,7 @@ const CompanyDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveTab('overview')}
-                className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-background/20 border-2 border-white text-white hover:bg-white hover:text-primary font-semibold rounded-full px-4 py-2 w-full sm:w-auto backdrop-blur-sm transition-all"
               >
                 <Building2 className="mr-1 h-4 w-4" />
                 Visão Geral
@@ -646,7 +646,7 @@ const CompanyDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveTab('fleet')}
-                className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-background/20 border-2 border-white text-white hover:bg-white hover:text-primary font-semibold rounded-full px-4 py-2 w-full sm:w-auto backdrop-blur-sm transition-all"
               >
                 <Truck className="mr-1 h-4 w-4" />
                 Frota
@@ -656,7 +656,7 @@ const CompanyDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-background/20 border-2 border-white text-white hover:bg-white hover:text-primary font-semibold rounded-full px-4 py-2 w-full sm:w-auto backdrop-blur-sm transition-all"
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
