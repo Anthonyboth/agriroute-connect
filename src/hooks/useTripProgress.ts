@@ -53,9 +53,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Ordem sequencial dos status
+ * Ordem sequencial dos status - NÃO pode voltar atrás
  */
 const STATUS_ORDER = [
+  'NEW',
   'ACCEPTED',
   'LOADING',
   'LOADED',
@@ -64,6 +65,51 @@ const STATUS_ORDER = [
   'DELIVERED',
   'COMPLETED'
 ];
+
+/**
+ * Verifica se a transição de status é válida (não permite regressão)
+ */
+function isValidStatusTransition(currentStatus: string, newStatus: string): { valid: boolean; error?: string } {
+  const current = currentStatus.toUpperCase().trim();
+  const next = newStatus.toUpperCase().trim();
+  
+  const currentIndex = STATUS_ORDER.indexOf(current);
+  const nextIndex = STATUS_ORDER.indexOf(next);
+  
+  // Status não reconhecido
+  if (currentIndex === -1) {
+    // Se o status atual não está na lista, assume que pode ir para qualquer status válido
+    return { valid: true };
+  }
+  
+  if (nextIndex === -1) {
+    return { valid: false, error: `Status de destino não reconhecido: ${newStatus}` };
+  }
+  
+  // Mesmo status = idempotente, ok
+  if (currentIndex === nextIndex) {
+    return { valid: true };
+  }
+  
+  // Bloquear regressão
+  if (nextIndex < currentIndex) {
+    return { 
+      valid: false, 
+      error: `Não é permitido voltar de "${STATUS_LABELS[current] || current}" para "${STATUS_LABELS[next] || next}". O status só pode avançar.`
+    };
+  }
+  
+  // Bloquear salto de mais de 1 passo
+  if (nextIndex > currentIndex + 1) {
+    const expectedNext = STATUS_ORDER[currentIndex + 1];
+    return { 
+      valid: false, 
+      error: `Não é permitido pular etapas. De "${STATUS_LABELS[current] || current}" você deve ir para "${STATUS_LABELS[expectedNext] || expectedNext}".`
+    };
+  }
+  
+  return { valid: true };
+}
 
 /**
  * Hook dedicado para gerenciar o progresso da viagem do motorista
@@ -80,6 +126,7 @@ export const useTripProgress = () => {
   /**
    * Atualiza o progresso da viagem
    * Esta é a função principal - NUNCA falha para o motorista
+   * VALIDAÇÃO: Impede regressão de status (voltar para etapa anterior)
    */
   const updateProgress = useCallback(async (
     freightId: string,
@@ -89,9 +136,11 @@ export const useTripProgress = () => {
       lng?: number;
       notes?: string;
       showToast?: boolean;
+      currentStatus?: string; // Opcional: se fornecido, valida antes de chamar o servidor
     }
   ): Promise<{ success: boolean; message: string }> => {
     const lockKey = `${freightId}-${newStatus}`;
+    const showToast = options?.showToast !== false;
     
     // Evita chamadas duplicadas
     if (lockRef.current.has(lockKey)) {
@@ -99,16 +148,34 @@ export const useTripProgress = () => {
       return { success: true, message: 'Operação já em andamento' };
     }
     
+    // =====================================================
+    // VALIDAÇÃO DE NÃO-REGRESSÃO NO FRONTEND (UX rápido)
+    // =====================================================
+    if (options?.currentStatus) {
+      const validation = isValidStatusTransition(options.currentStatus, newStatus);
+      if (!validation.valid) {
+        console.warn('[useTripProgress] Transição bloqueada no frontend:', validation.error);
+        setLastError(validation.error || 'Transição de status inválida');
+        
+        if (showToast) {
+          toast.error('Atualização bloqueada', {
+            description: validation.error
+          });
+        }
+        
+        return { success: false, message: validation.error || 'Transição inválida' };
+      }
+    }
+    // =====================================================
+    
     lockRef.current.add(lockKey);
     setIsUpdating(true);
     setLastError(null);
-    
-    const showToast = options?.showToast !== false;
 
     try {
       console.log('[useTripProgress] Atualizando progresso:', { freightId, newStatus });
       
-      // Chamar a RPC dedicada
+      // Chamar a RPC dedicada (que também valida no servidor)
       const { data, error } = await supabase.rpc('update_trip_progress', {
         p_freight_id: freightId,
         p_new_status: newStatus.toUpperCase().trim(),
@@ -248,6 +315,7 @@ export const useTripProgress = () => {
 
   /**
    * Atalho: Avança para o próximo status automaticamente
+   * Valida que está seguindo a sequência correta
    */
   const advanceToNextStatus = useCallback(async (
     freightId: string,
@@ -257,11 +325,24 @@ export const useTripProgress = () => {
     const nextStatus = getNextStatus(currentStatus);
     
     if (!nextStatus) {
+      toast.error('Não há próximo status disponível');
       return { success: false, message: 'Não há próximo status disponível' };
     }
     
-    return updateProgress(freightId, nextStatus, options);
+    // Passa o status atual para validação no frontend
+    return updateProgress(freightId, nextStatus, { 
+      ...options, 
+      currentStatus 
+    });
   }, [getNextStatus, updateProgress]);
+
+  /**
+   * Valida se uma transição de status é permitida
+   * Exportado para uso em componentes que precisam validar antes de mostrar botões
+   */
+  const validateTransition = useCallback((currentStatus: string, newStatus: string) => {
+    return isValidStatusTransition(currentStatus, newStatus);
+  }, []);
 
   return {
     // Estados
@@ -277,6 +358,7 @@ export const useTripProgress = () => {
     getNextStatus,
     getStatusLabel,
     canAdvance,
+    validateTransition,
     
     // Constantes
     STATUS_ORDER,
