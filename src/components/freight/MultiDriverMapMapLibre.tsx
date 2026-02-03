@@ -44,44 +44,50 @@ const DRIVER_COLORS = [
   '#ea580c', // orange-600
 ];
 
+/**
+ * ✅ CORRIGIDO: Cria elemento de marker do caminhão para multi-driver.
+ * IMPORTANTE: NÃO usar transform translate - o MapLibre cuida do posicionamento via anchor.
+ * anchor: 'center' é usado para ícones circulares/caminhões.
+ */
 const createTruckMarkerElement = (index: number, driverName: string, isOnline: boolean): HTMLDivElement => {
   const el = document.createElement('div');
+  // ✅ CRÍTICO: Classe 'truck-marker' define anchor: 'center' no hook de markers
   el.className = 'truck-marker';
   el.title = `${driverName} ${isOnline ? '(Online)' : '(Offline)'}`;
   
   const color = DRIVER_COLORS[index % DRIVER_COLORS.length];
   const opacity = isOnline ? '1' : '0.5';
   
+  // ✅ CORRIGIDO: Remover transform translate - o MapLibre anchor posiciona corretamente
+  el.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+  `;
+  
   el.innerHTML = `
     <div style="
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translate(-50%, -100%);
+      background: ${color};
+      opacity: ${opacity};
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      color: white;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: 2px;
     ">
-      <div style="
-        background: ${color};
-        opacity: ${opacity};
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 600;
-        color: white;
-        white-space: nowrap;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        margin-bottom: 2px;
-      ">
-        #${index + 1}
-      </div>
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="opacity: ${opacity}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
-        <rect x="1" y="6" width="15" height="10" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
-        <rect x="16" y="9" width="6" height="7" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
-        <circle cx="6" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
-        <circle cx="19" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
-        ${isOnline ? '<circle cx="20" cy="6" r="3" fill="#22c55e" stroke="white" stroke-width="1"/>' : ''}
-      </svg>
+      #${index + 1}
     </div>
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="opacity: ${opacity}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
+      <rect x="1" y="6" width="15" height="10" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <rect x="16" y="9" width="6" height="7" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="6" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
+      <circle cx="19" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
+      ${isOnline ? '<circle cx="20" cy="6" r="3" fill="#22c55e" stroke="white" stroke-width="1"/>' : ''}
+    </svg>
   `;
   
   return el;
@@ -286,19 +292,33 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
     drivers.forEach((driver, index) => {
       if (!driver.lat || !driver.lng) return;
 
+      // ✅ CORREÇÃO: Normalizar coordenadas antes de usar no mapa
+      const normalized = normalizeLatLngPoint({ lat: driver.lat, lng: driver.lng }, 'BR');
+      if (!normalized) {
+        console.warn('[MultiDriverMapMapLibre] Invalid driver coordinates:', driver.driverId, driver.lat, driver.lng);
+        return;
+      }
+
       const existingMarker = driverMarkersRef.current.get(driver.driverId);
       
       if (existingMarker) {
-        // Atualizar posição
-        existingMarker.setLngLat([driver.lng, driver.lat]);
-        // Atualizar elemento visual
+        // Atualizar posição (coordenadas normalizadas)
+        existingMarker.setLngLat([normalized.lng, normalized.lat]);
+        
+        // ✅ CORREÇÃO: Reconstruir marker para atualizar visual de online/offline
+        // replaceWith não funciona bem com MapLibre, remover e recriar
+        existingMarker.remove();
         const el = createTruckMarkerElement(index, driver.driverName, driver.isOnline);
-        existingMarker.getElement().replaceWith(el);
+        const newMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([normalized.lng, normalized.lat])
+          .addTo(mapRef.current!);
+        driverMarkersRef.current.set(driver.driverId, newMarker);
       } else {
         // Criar novo marker
         const el = createTruckMarkerElement(index, driver.driverName, driver.isOnline);
-        const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([driver.lng, driver.lat])
+        // ✅ CORREÇÃO: anchor: 'center' para ícones de caminhão (não são pins)
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([normalized.lng, normalized.lat])
           .addTo(mapRef.current!);
         
         driverMarkersRef.current.set(driver.driverId, marker);

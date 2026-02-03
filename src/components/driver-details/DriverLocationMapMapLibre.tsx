@@ -53,8 +53,12 @@ export const DriverLocationMapMapLibre = ({
   }, [normalizedLocation, driverName]);
 
   // Factory para criar elemento do marker
+  // ✅ CORREÇÃO: Retornar elemento com classe correta para anchor: 'center'
   const markerFactory = useCallback(() => {
-    return createTruckMarkerElement(true);
+    const el = createTruckMarkerElement(true);
+    // A classe 'truck-marker' já é definida em createTruckMarkerElement
+    // O hook useMapLibreMarkers usa anchor: 'center' para esta classe
+    return el;
   }, []);
 
   // Centralizar quando coordenadas mudarem (usando coordenadas normalizadas)
