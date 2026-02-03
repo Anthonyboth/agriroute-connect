@@ -13050,6 +13050,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_affiliated_driver: { Args: { p_profile_id: string }; Returns: boolean }
+      is_affiliated_driver_of_my_company: {
+        Args: { p_driver_profile_id: string }
+        Returns: boolean
+      }
       is_antifraud_viewer: { Args: { _user_id: string }; Returns: boolean }
       is_company_driver: {
         Args: { p_company_id: string; p_user_id: string }
