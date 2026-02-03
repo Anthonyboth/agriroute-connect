@@ -9,9 +9,10 @@ import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { AffiliationSettingsModal } from './AffiliationSettingsModal';
 import { DriverAvatar } from './ui/driver-avatar';
 import { PendingDriverCard } from './company/PendingDriverCard';
-import { Users, UserPlus, Star, Truck as TruckIcon, Phone, Mail, Search, Filter, Eye, Trash2, Pencil } from 'lucide-react';
+import { Users, UserPlus, Star, Truck as TruckIcon, Phone, Mail, Search, Filter, Eye, Trash2, Pencil, IdCard, MapPin, FileText, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatDocument } from '@/utils/document';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
@@ -180,53 +181,95 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           </CardContent>
         </Card>
       ) : filteredDrivers.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDrivers.map((cd: any) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredDrivers.map((cd: any) => {
+            const driver = cd.driver;
+            const formatAddress = () => {
+              const parts = [];
+              if (driver?.address_city && driver?.address_state) {
+                parts.push(`${driver.address_city} - ${driver.address_state}`);
+              }
+              return parts.length > 0 ? parts.join(', ') : null;
+            };
+            
+            return (
             <Card key={cd.id} className="hover:shadow-lg transition-shadow h-full flex flex-col">
               <CardContent className="p-4 flex flex-col flex-1">
                 {/* Avatar e Info Principal */}
                 <div className="flex flex-col items-center text-center mb-4">
                   <DriverAvatar
-                    profilePhotoUrl={cd.driver?.profile_photo_url}
-                    selfieUrl={cd.driver?.selfie_url}
-                    fullName={cd.driver?.full_name}
+                    profilePhotoUrl={driver?.profile_photo_url}
+                    selfieUrl={driver?.selfie_url}
+                    fullName={driver?.full_name}
                     className="h-16 w-16 border-2 border-muted mb-3"
                     fallbackClassName="text-lg"
                   />
                   
-                  <h4 className="font-semibold text-base truncate max-w-full">{cd.driver?.full_name}</h4>
+                  <h4 className="font-semibold text-base truncate max-w-full">{driver?.full_name}</h4>
                   
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
                     <Badge variant={cd.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
                       {cd.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
                     </Badge>
-                    {cd.driver?.rating > 0 && (
+                    {driver?.rating > 0 && (
                       <div className="flex items-center gap-1 text-sm">
                         <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">{cd.driver.rating.toFixed(1)}</span>
+                        <span className="font-medium">{driver.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
                 </div>
                 
+                {/* Documento/CPF */}
+                {(driver?.cpf_cnpj || driver?.document) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 justify-center">
+                    <IdCard className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                    <span className="font-medium">{formatDocument(driver.cpf_cnpj || driver.document)}</span>
+                  </div>
+                )}
+                
                 {/* Contato */}
-                <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                  {cd.driver?.email && (
+                <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
+                  {driver?.email && (
                     <span className="flex items-center gap-2 truncate">
                       <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate">{cd.driver.email}</span>
+                      <span className="truncate">{driver.email}</span>
                     </span>
                   )}
-                  {(cd.driver?.phone || cd.driver?.contact_phone) && (
+                  {(driver?.phone || driver?.contact_phone) && (
                     <span className="flex items-center gap-2">
                       <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                      {cd.driver?.phone || cd.driver?.contact_phone}
+                      {driver?.phone || driver?.contact_phone}
+                    </span>
+                  )}
+                  {formatAddress() && (
+                    <span className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{formatAddress()}</span>
                     </span>
                   )}
                 </div>
 
+                {/* CNH */}
+                {(driver?.cnh_category || driver?.cnh_expiry_date) && (
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3 justify-center">
+                    {driver?.cnh_category && (
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        CNH: {driver.cnh_category}
+                      </span>
+                    )}
+                    {driver?.cnh_expiry_date && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Val: {new Date(driver.cnh_expiry_date).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Permissões */}
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="flex flex-wrap gap-1.5 mb-4 justify-center">
                   {cd.can_accept_freights && (
                     <Badge variant="outline" className="text-xs bg-green-50 border-green-300 text-green-700">
                       <TruckIcon className="h-3 w-3 mr-1" />
@@ -311,7 +354,8 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <Card>
