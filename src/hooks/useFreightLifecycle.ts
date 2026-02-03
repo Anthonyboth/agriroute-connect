@@ -332,6 +332,44 @@ export function useFreightLifecycle(
       return { success: true, message: 'Operação já em andamento' };
     }
 
+    // =====================================================
+    // VALIDAÇÃO DE NÃO-REGRESSÃO NO FRONTEND (UX rápido)
+    // =====================================================
+    if (progress?.currentStatus) {
+      const statusOrderStrings = FREIGHT_STATUS_ORDER as readonly string[];
+      const currentIndex = statusOrderStrings.indexOf(progress.currentStatus);
+      const newIndex = statusOrderStrings.indexOf(normalizedStatus);
+      
+      // Se ambos estão na lista, verificar regressão
+      if (currentIndex !== -1 && newIndex !== -1) {
+        // Bloquear regressão
+        if (newIndex < currentIndex) {
+          const errorMsg = `Não é permitido voltar de "${STATUS_LABELS[progress.currentStatus] || progress.currentStatus}" para "${STATUS_LABELS[normalizedStatus] || normalizedStatus}". O status só pode avançar.`;
+          setLastError(errorMsg);
+          
+          if (showToast) {
+            toast.error('Atualização bloqueada', { description: errorMsg });
+          }
+          
+          return { success: false, message: errorMsg };
+        }
+        
+        // Bloquear salto de etapas (mais de 1 passo)
+        if (newIndex > currentIndex + 1) {
+          const expectedNext = FREIGHT_STATUS_ORDER[currentIndex + 1];
+          const errorMsg = `Não é permitido pular etapas. De "${STATUS_LABELS[progress.currentStatus] || progress.currentStatus}" você deve ir para "${STATUS_LABELS[expectedNext] || expectedNext}".`;
+          setLastError(errorMsg);
+          
+          if (showToast) {
+            toast.error('Atualização bloqueada', { description: errorMsg });
+          }
+          
+          return { success: false, message: errorMsg };
+        }
+      }
+    }
+    // =====================================================
+
     lockRef.current.add(lockKey);
     setIsUpdating(true);
     setLastError(null);
