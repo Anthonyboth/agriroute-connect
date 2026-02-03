@@ -36,20 +36,22 @@ export async function driverUpdateFreightStatus({
   });
   
   try {
-    // 🌐 Verificar conexão de rede antes de qualquer operação
-    if (!navigator.onLine) {
-      console.error('[STATUS-UPDATE] ❌ Sem conexão com internet');
-      toast.error('Sem conexão com internet. Verifique sua rede.');
-      return false;
-    }
-
     const normalizedStatus = String(newStatus).toUpperCase().trim();
 
     // ✅ Motorista autônomo: usar SEMPRE a RPC update_trip_progress (fonte única de verdade)
     // para evitar 403 em inserts legados (freight_status_history) e reduzir latência.
     // Mantemos a RPC antiga apenas para fluxos legados específicos da transportadora.
     const role = currentUserProfile?.role;
-    const shouldUseTripProgressRpc = !companyId && role !== 'TRANSPORTADORA';
+    // IMPORTANTE: não usar companyId como heurística aqui.
+    // Motoristas afiliados (company_id preenchido) também precisam usar update_trip_progress;
+    // o caminho legado possui validações antigas que estavam bloqueando a progressão.
+    const shouldUseTripProgressRpc = role !== 'TRANSPORTADORA';
+
+    console.log('[STATUS UPDATE] 🧠 RPC selecionada:', shouldUseTripProgressRpc ? 'update_trip_progress' : 'driver_update_freight_status', {
+      role,
+      companyId: companyId ?? null,
+      assignmentId: assignmentId ?? null,
+    });
 
     const rpcPromise = shouldUseTripProgressRpc
       ? supabase.rpc('update_trip_progress', {
