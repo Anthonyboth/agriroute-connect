@@ -4,7 +4,8 @@ import { ErrorReportSchema, validateInput, sanitizeErrorReport, type ErrorReport
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-skip-error-monitoring, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // ErrorReport type imported from validation.ts
@@ -23,7 +24,7 @@ function getClientIP(req: Request): string {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -173,7 +174,12 @@ serve(async (req) => {
     // If validateInput throws a Response object, return it directly
     if (error instanceof Response) {
       logStep('Validation failed, returning error response');
-      return error;
+      // ✅ CRITICAL: Ensure CORS headers are present even on validation/400 responses
+      const bodyText = await error.text();
+      const headers = new Headers(error.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
+      if (!headers.get('Content-Type')) headers.set('Content-Type', 'application/json');
+      return new Response(bodyText, { status: error.status, headers });
     }
     
     const errorMessage = error?.message || error?.toString() || 'Unknown error';
