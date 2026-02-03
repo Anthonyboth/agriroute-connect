@@ -261,43 +261,69 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
+    /**
+     * ✅ PADRÃO OURO: Factory de markers com elemento raiz neutro
+     * anchor: 'center' para ícones circulares
+     */
     const add = (lng: number, lat: number, el: HTMLElement, html?: string) => {
-      const m = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]);
+      const m = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([lng, lat]);
       if (html) m.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(html));
       m.addTo(map);
       markersRef.current.push(m);
     };
+    
+    /**
+     * ✅ PADRÃO OURO: Cria elemento raiz neutro (width:0, height:0)
+     * Estilos visuais vão apenas em filhos internos - SEM transform/animate no root!
+     */
+    const createMarkerEl = (color: string, text: string, hasPulse = false) => {
+      const root = document.createElement("div");
+      root.className = "truck-marker"; // Define width:0; height:0 via CSS
+      
+      root.innerHTML = `
+        <div class="truck-marker-inner">
+          ${hasPulse ? '<div class="truck-marker-pulse"></div>' : ''}
+          <div style="
+            width: ${text === '🚛' ? '32px' : '24px'};
+            height: ${text === '🚛' ? '32px' : '24px'};
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: ${color};
+            color: white;
+            font-size: ${text === '🚛' ? '16px' : '12px'};
+            font-weight: bold;
+          ">
+            ${text}
+          </div>
+        </div>
+      `;
+      
+      return root;
+    };
 
-    // Origem
+    // Origem - ✅ Usando createMarkerEl (elemento raiz neutro)
     if (typeof originLat === "number" && typeof originLng === "number") {
-      const el = document.createElement("div");
-      el.className = "w-6 h-6 bg-green-500 text-white rounded-full border-2 border-white flex items-center justify-center text-xs font-bold shadow-lg";
-      el.textContent = "O";
-      add(originLng, originLat, el, "<strong>Origem</strong>");
+      add(originLng, originLat, createMarkerEl("#22c55e", "O"), "<strong>Origem</strong>");
     }
 
-    // Destino
+    // Destino - ✅ Usando createMarkerEl (elemento raiz neutro)
     if (typeof destinationLat === "number" && typeof destinationLng === "number") {
-      const el = document.createElement("div");
-      el.className = "w-6 h-6 bg-red-500 text-white rounded-full border-2 border-white flex items-center justify-center text-xs font-bold shadow-lg";
-      el.textContent = "D";
-      add(destinationLng, destinationLat, el, "<strong>Destino</strong>");
+      add(destinationLng, destinationLat, createMarkerEl("#ef4444", "D"), "<strong>Destino</strong>");
     }
 
-    // Posição atual do motorista
+    // Posição atual do motorista - ✅ Usando createMarkerEl COM pulse interno (não animate-pulse no root!)
     if (typeof currentLat === "number" && typeof currentLng === "number") {
-      const el = document.createElement("div");
-      el.className = "w-8 h-8 bg-blue-500 text-white rounded-full border-2 border-white flex items-center justify-center animate-pulse shadow-lg";
-      el.textContent = "🚛";
-      add(currentLng, currentLat, el, "<strong>Posição Atual</strong>");
+      add(currentLng, currentLat, createMarkerEl("#3b82f6", "🚛", true), "<strong>Posição Atual</strong>");
     }
 
-    // Paradas (se visíveis)
+    // Paradas (se visíveis) - ✅ Usando createMarkerEl (elemento raiz neutro)
     if (layers.stops) {
       stops.forEach((s) => {
-        const el = document.createElement("div");
-        el.className = "w-5 h-5 bg-orange-500 text-white rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-md cursor-pointer";
-        el.textContent = "P";
+        const el = createMarkerEl("#f97316", "P");
         el.title = `Parada: ${s.duration_minutes || 0} min`;
         add(Number(s.lng), Number(s.lat), el, `<strong>Parada</strong><br/>Duração: ${s.duration_minutes || 0} min`);
       });
