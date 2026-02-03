@@ -84,43 +84,26 @@ export class StatusUpdateQueue {
   
   private static async retryUpdate(update: QueuedUpdate): Promise<boolean> {
     try {
-      // Atualizar frete
-      const { error: freightError } = await supabase
-        .from('freights')
-        .update({ 
-          status: update.newStatus as any,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', update.freightId);
-      
-      if (freightError) throw freightError;
-      
-      // Inserir histórico
-      const { error: historyError } = await supabase
-        .from('freight_status_history')
-        .insert({
-          freight_id: update.freightId,
-          status: update.newStatus as any,
-          changed_by: update.userId,
-          notes: update.notes || `Status: ${update.newStatus}`
-        } as any);
-      
-      if (historyError) throw historyError;
-      
-      // Inserir checkin se houver localização
-      if (update.location?.lat && update.location?.lng) {
-        await supabase
-          .from('freight_checkins')
-          .insert({
-            freight_id: update.freightId,
-            user_id: update.userId,
-            location_lat: update.location.lat,
-            location_lng: update.location.lng,
-            checkin_type: update.newStatus,
-            notes: update.notes
-          } as any);
+      // ✅ Sincronização via RPC idempotente (evita 403 em tabelas legadas e reduz lock contention)
+      const { data, error } = await supabase.rpc('update_trip_progress', {
+        p_freight_id: update.freightId,
+        p_new_status: String(update.newStatus).toUpperCase().trim(),
+        p_lat: update.location?.lat ?? null,
+        p_lng: update.location?.lng ?? null,
+        p_notes: update.notes ?? null,
+      });
+
+      if (error) {
+        console.error('[StatusUpdateQueue] Erro RPC update_trip_progress:', error);
+        return false;
       }
-      
+
+      const ok = Boolean((data as any)?.success ?? (data as any)?.ok);
+      if (!ok) {
+        console.warn('[StatusUpdateQueue] RPC retornou falha:', data);
+        return false;
+      }
+
       return true;
     } catch (err) {
       console.error('[StatusUpdateQueue] Erro no retry:', err);
