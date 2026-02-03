@@ -170,6 +170,9 @@ export const useFreightDriverManager = ({
       }
 
       // 3. SEGUNDA BUSCA: TODOS os assignments desses fretes (não apenas da transportadora)
+      // Importante: usamos profiles_secure para não depender de acesso direto a PII.
+      // O CPF/CNPJ é resolvido em uma segunda query APENAS para motoristas afiliados
+      // (ou assignments explicitamente marcados com company_id da transportadora).
       const { data: allAssignments, error: allAssignmentsError } = await supabase
         .from('freight_assignments')
         .select(`
@@ -180,8 +183,8 @@ export const useFreightDriverManager = ({
           agreed_price,
           accepted_at,
           company_id,
-          driver:profiles!freight_assignments_driver_id_fkey(
-            id, full_name, profile_photo_url, rating, cpf_cnpj
+          driver:profiles_secure!freight_assignments_driver_id_fkey(
+            id, full_name, profile_photo_url, rating
           )
         `)
         .in('freight_id', freightIds)
@@ -239,13 +242,71 @@ export const useFreightDriverManager = ({
         return true;
       });
 
-      // 6. Agrupar atribuições por freight_id COM DEDUPLICAÇÃO POR DOCUMENTO
+      // 6. Resolver CPF/CNPJ dos motoristas afiliados (para deduplicação e identificação por documento)
+      const affiliatedDriverIdSet = new Set(affiliatedDriverIds);
+      const affiliatedAssignmentDriverIds = [...new Set(
+        (allAssignments || [])
+          .filter(a => a.company_id === companyId || affiliatedDriverIdSet.has(a.driver_id))
+          .map(a => a.driver_id)
+          .filter(Boolean)
+      )] as string[];
+
+      const docByDriverId = new Map<string, string>();
+      if (affiliatedAssignmentDriverIds.length > 0) {
+        const { data: docs, error: docsError } = await supabase
+          .from('profiles')
+          .select('id, cpf_cnpj')
+          .in('id', affiliatedAssignmentDriverIds);
+
+        if (docsError) {
+          // Não quebrar o dashboard se RLS bloquear; apenas perde dedupe por CPF
+          console.warn('[FreightDriverManager] Não foi possível resolver CPF/CNPJ via SELECT (RLS):', docsError);
+
+          // Fallback: tentar resolver via RPC SECURITY DEFINER (padrão do projeto para motoristas afiliados)
+          await Promise.all(
+            affiliatedAssignmentDriverIds.map(async (driverProfileId) => {
+              const { data: rpcData, error: rpcError } = await supabase.rpc('get_affiliated_driver_profile', {
+                p_driver_profile_id: driverProfileId,
+                p_company_id: companyId,
+              });
+
+              if (rpcError) {
+                // Se a RPC falhar para algum motorista, apenas não teremos dedupe por CPF para ele.
+                console.warn('[FreightDriverManager] RPC get_affiliated_driver_profile falhou:', {
+                  driverProfileId,
+                  message: rpcError.message,
+                });
+                return;
+              }
+
+              const profile = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+              const normalized = (profile?.cpf_cnpj || '').toString().replace(/\D/g, '');
+              if (driverProfileId && normalized) docByDriverId.set(driverProfileId, normalized);
+            })
+          );
+        } else {
+          (docs || []).forEach((p: any) => {
+            const normalized = (p.cpf_cnpj || '').toString().replace(/\D/g, '');
+            if (p.id && normalized) docByDriverId.set(p.id, normalized);
+          });
+        }
+      }
+
+      const affiliatedDocuments = new Set(
+        affiliatedDriverIds
+          .map(id => docByDriverId.get(id))
+          .filter((d): d is string => Boolean(d))
+      );
+
+      // 7. Agrupar atribuições por freight_id COM DEDUPLICAÇÃO POR DOCUMENTO (CPF/CNPJ)
       const assignmentsByFreight = new Map<string, any[]>();
       const seenDocumentsPerFreight = new Map<string, Set<string>>();
 
       (allAssignments || []).forEach(a => {
         const freightId = a.freight_id;
-        const driverDoc = a.driver?.cpf_cnpj?.replace(/\D/g, '') || a.driver_id;
+        // Regra: documento é o identificador canônico do motorista (quando disponível).
+        // Se não houver documento resolvível, cai no driver_id.
+        const driverDoc = docByDriverId.get(a.driver_id) || a.driver_id;
         
         // Verificar se já existe motorista com mesmo documento neste frete
         const seenDocs = seenDocumentsPerFreight.get(freightId) || new Set();
@@ -262,8 +323,7 @@ export const useFreightDriverManager = ({
         assignmentsByFreight.set(freightId, list);
       });
 
-      // 7. Montar resultado final
-      const affiliatedDriverIdSet = new Set(affiliatedDriverIds);
+      // 8. Montar resultado final
       
       const result: ManagedFreight[] = validFreights.map(freight => {
         const freightAssignments = assignmentsByFreight.get(freight.id) || [];
@@ -273,7 +333,16 @@ export const useFreightDriverManager = ({
         const totalAcceptedDrivers = freightAssignments.length;
 
         const drivers: DriverAssignment[] = freightAssignments.map(a => {
-          const isAffiliated = a.company_id === companyId || affiliatedDriverIdSet.has(a.driver_id);
+          const doc = docByDriverId.get(a.driver_id) || null;
+          const normalizedDoc = doc ? doc.replace(/\D/g, '') : null;
+
+          // Regra pedida: afiliação e participação devem ser validadas por CPF/CNPJ.
+          // Isso evita duplicações quando o mesmo motorista aparece com IDs diferentes.
+          const isAffiliated =
+            a.company_id === companyId ||
+            affiliatedDriverIdSet.has(a.driver_id) ||
+            (normalizedDoc ? affiliatedDocuments.has(normalizedDoc) : false);
+
           return {
             id: a.id,
             driverId: a.driver_id,
@@ -284,7 +353,7 @@ export const useFreightDriverManager = ({
             agreedPrice: a.agreed_price,
             acceptedAt: a.accepted_at,
             vehiclePlate: null,
-            driverDocument: a.driver?.cpf_cnpj?.replace(/\D/g, '') || null,
+            driverDocument: normalizedDoc,
             isAffiliated
           };
         });
