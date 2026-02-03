@@ -184,10 +184,14 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       const freight = compatibleFreights.find((f) => f.freight_id === freightId);
       if (!freight) return;
 
+      // ✅ CRÍTICO: Para fretes multi-carreta, proposed_price deve ser unitário (/carreta)
+      const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
+      const pricePerTruck = (freight.price || 0) / requiredTrucks;
+
       const { error } = await supabase.from("freight_proposals").insert({
         freight_id: freightId,
         driver_id: selectedDriverId,
-        proposed_price: freight.price,
+        proposed_price: pricePerTruck, // ✅ Valor unitário por carreta
         status: "PENDING",
         message: "Proposta enviada pela transportadora",
       });
