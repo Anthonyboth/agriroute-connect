@@ -105,12 +105,44 @@ serve(async (req) => {
       if (assignmentRow?.id) isParticipant = true;
     }
 
+    // ✅ NOVO: Verificar se é transportadora dona de motoristas atribuídos ao frete
     if (!isParticipant) {
+      // Buscar transportadoras do usuário
+      const { data: userCompanies } = await supabase
+        .from("transport_companies")
+        .select("id")
+        .eq("profile_id", caller_profile_id);
+
+      if (userCompanies && userCompanies.length > 0) {
+        const companyIds = userCompanies.map(c => c.id);
+        
+        // Verificar se alguma transportadora do usuário tem motoristas atribuídos ao frete
+        const { data: companyAssignment } = await supabase
+          .from("freight_assignments")
+          .select("id")
+          .eq("freight_id", freight_id)
+          .in("company_id", companyIds)
+          .limit(1)
+          .maybeSingle();
+
+        if (companyAssignment?.id) isParticipant = true;
+      }
+    }
+
+    if (!isParticipant) {
+      console.log("[get-participant-public-profile] Acesso negado para:", {
+        caller_profile_id,
+        freight_id,
+        producer_id: freight.producer_id,
+        driver_id: freight.driver_id,
+      });
       return new Response(
         JSON.stringify({ success: false, error: "Acesso negado" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    console.log("[get-participant-public-profile] Acesso autorizado para:", caller_profile_id);
 
     // Retornar SOMENTE dados públicos, via view segura
     const { data: profile, error: profileErr } = await supabase
