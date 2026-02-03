@@ -18,6 +18,7 @@ import FreightCheckinModal from '@/components/FreightCheckinModal';
 import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocationPermissionSync } from '@/hooks/useLocationPermissionSync';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
@@ -85,6 +86,9 @@ const DriverDashboard = () => {
   const { canAcceptFreights, mustUseChat } = useDriverPermissions();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // ✅ Sincronizar permissão de localização real do dispositivo com o banco
+  const { isLocationEnabled, isSyncing: isLocationSyncing } = useLocationPermissionSync();
 
   // ✅ Definir permissão unificada: autônomo vê fretes, empresa só se canAcceptFreights
   const canSeeFreights = !isCompanyDriver || canAcceptFreights;
@@ -1866,7 +1870,8 @@ const DriverDashboard = () => {
           const isTransportCompany = !!transportCompanyData || profile.active_mode === 'TRANSPORTADORA';
 
           // Only require location for non-transport companies
-          if (!isTransportCompany && !profile.location_enabled) {
+          // ✅ Usa isLocationEnabled que considera permissão real do dispositivo
+          if (!isTransportCompany && !isLocationEnabled) {
             toast.error('❌ Você precisa ativar a localização para aceitar fretes', {
               description: 'Vá em Configurações → Localização para ativar'
             });
@@ -2459,7 +2464,8 @@ const DriverDashboard = () => {
           )}
 
           {/* ✅ FASE 4 - Alerta de Localização Desativada (apenas para motoristas independentes) */}
-          {!isTransportCompany && !profile?.location_enabled && (
+          {/* Usa isLocationEnabled que verifica permissão real do dispositivo */}
+          {!isTransportCompany && !isLocationEnabled && !isLocationSyncing && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Localização Desativada</AlertTitle>
