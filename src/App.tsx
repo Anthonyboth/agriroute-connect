@@ -72,11 +72,11 @@ if (typeof window !== 'undefined' && 'connection' in navigator) {
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 
 // Lazy load all page components except Landing (needed for initial render)
-// Using lazyWithRetry for critical dashboard pages to handle network/cache failures
-const Auth = lazy(() => import("./pages/Auth"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const ConfirmEmail = lazy(() => import("./pages/ConfirmEmail"));
-const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
+// ✅ Using lazyWithRetry for critical auth pages to handle network/cache failures after deploys
+const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
+const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
 const ServiceProviderRegistration = lazy(() => import("./pages/ServiceProviderRegistration"));
 const Services = lazy(() => import("./pages/Services"));
 const NotFound = lazy(() => import("./pages/NotFound"));
