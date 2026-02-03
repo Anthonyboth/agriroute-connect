@@ -18,6 +18,8 @@ import { FreightNfePanel } from './nfe/FreightNfePanel';
 import { ParticipantProfileModal } from './freight/ParticipantProfileModal';
 import { FreightParticipantCard } from './freight/FreightParticipantCard';
 import { DriverVehiclePreview } from './freight/DriverVehiclePreview';
+import { DriverLocationModal } from './freight/DriverLocationModal';
+import { useMultiDriverLocations } from '@/hooks/useMultiDriverLocations';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -66,6 +68,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
   const [cteModalOpen, setCteModalOpen] = useState(false);
+  const [locationModalState, setLocationModalState] = useState<{
+    open: boolean;
+    driverId: string;
+    driverName: string;
+    avatarUrl?: string;
+  }>({ open: false, driverId: '', driverName: '' });
   
   // ✅ Hook centralizado para gerenciar TODOS os participantes do frete
   // Fonte ÚNICA de verdade: elimina bugs de motoristas não relacionados aparecerem
@@ -78,6 +86,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
     includePending: true,
     realtime: true
   });
+
+  // ✅ Hook para localização em tempo real de motoristas (apenas para produtores)
+  const { drivers: multiDriversLocations } = useMultiDriverLocations(freightId);
 
   // ✅ Fallback para identificar solicitante cadastrado quando o JOIN/`profiles_secure` não retornam
   // (ex: frete multi-carreta ainda com status OPEN, mas já aceito pelo motorista)
@@ -729,29 +740,52 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </Card>
 
             <div className="grid gap-2">
-              {participants.drivers.map((d) => (
-                <div key={d.id} className="space-y-2">
-                  <FreightParticipantCard
-                    participantId={d.profileId}
-                    participantType="driver"
-                    name={d.name || 'Motorista'}
-                    avatarUrl={d.avatarUrl}
-                    rating={d.rating || 0}
-                    totalRatings={d.totalRatings || 0}
-                    onClick={() => {
-                      setProfileModalOpen({
-                        open: true,
-                        userId: d.profileId,
-                        userType: 'driver',
-                        userName: d.name || ''
-                      });
-                    }}
-                  />
+              {participants.drivers.map((d) => {
+                // Buscar localização em tempo real deste motorista
+                const driverLocation = multiDriversLocations.find(dl => dl.driverId === d.profileId);
+                
+                return (
+                  <div key={d.id} className="space-y-2">
+                    <FreightParticipantCard
+                      participantId={d.profileId}
+                      participantType="driver"
+                      name={d.name || 'Motorista'}
+                      avatarUrl={d.avatarUrl}
+                      rating={d.rating || 0}
+                      totalRatings={d.totalRatings || 0}
+                      onClick={() => {
+                        setProfileModalOpen({
+                          open: true,
+                          userId: d.profileId,
+                          userType: 'driver',
+                          userName: d.name || ''
+                        });
+                      }}
+                    />
 
-                  {/* Evitar exposição desnecessária: fotos do veículo apenas para o produtor */}
-                  {isFreightProducer && <DriverVehiclePreview driverId={d.profileId} />}
-                </div>
-              ))}
+                    {/* ✅ Botão Localização + Histórico para o produtor */}
+                    {isFreightProducer && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setLocationModalState({
+                          open: true,
+                          driverId: d.profileId,
+                          driverName: d.name || 'Motorista',
+                          avatarUrl: d.avatarUrl
+                        })}
+                      >
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Localização e Histórico
+                      </Button>
+                    )}
+
+                    {/* Evitar exposição desnecessária: fotos do veículo apenas para o produtor */}
+                    {isFreightProducer && <DriverVehiclePreview driverId={d.profileId} />}
+                  </div>
+                );
+              })}
             </div>
 
             {/* ✅ Exibir transportadoras envolvidas */}
@@ -1352,6 +1386,23 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           fetchFreightDetails();
         }}
       />
+
+      {/* Modal de Localização + Histórico do Motorista */}
+      {locationModalState.open && (
+        <DriverLocationModal
+          open={locationModalState.open}
+          onOpenChange={(open) => setLocationModalState({ ...locationModalState, open })}
+          driverId={locationModalState.driverId}
+          driverName={locationModalState.driverName}
+          freightId={freightId}
+          avatarUrl={locationModalState.avatarUrl}
+          lat={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.lat}
+          lng={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.lng}
+          isOnline={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.isOnline}
+          secondsAgo={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.secondsAgo}
+          currentStatus={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.assignmentStatus}
+        />
+      )}
     </div>
   );
 };
