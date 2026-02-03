@@ -45,52 +45,40 @@ const DRIVER_COLORS = [
 ];
 
 /**
- * ✅ CORRIGIDO: Cria elemento de marker do caminhão para multi-driver.
- * IMPORTANTE: NÃO usar transform translate - o MapLibre cuida do posicionamento via anchor.
- * anchor: 'center' é usado para ícones circulares/caminhões.
+ * ✅ PADRÃO OURO: Cria elemento de marker do caminhão para multi-driver.
+ * 
+ * REGRA CRÍTICA: O elemento raiz passado ao Marker NÃO pode ter transform.
+ * Estilos visuais vão APENAS em filhos internos.
+ * O MapLibre usa anchor para posicionamento, não CSS transform.
  */
 const createTruckMarkerElement = (index: number, driverName: string, isOnline: boolean): HTMLDivElement => {
-  const el = document.createElement('div');
-  // ✅ CRÍTICO: Classe 'truck-marker' define anchor: 'center' no hook de markers
-  el.className = 'truck-marker';
-  el.title = `${driverName} ${isOnline ? '(Online)' : '(Offline)'}`;
+  // ✅ ELEMENTO RAIZ NEUTRO - sem styles que afetem posicionamento
+  const root = document.createElement('div');
+  root.className = 'truck-marker'; // Define width:0; height:0 via CSS
+  root.title = `${driverName} ${isOnline ? '(Online)' : '(Offline)'}`;
   
   const color = DRIVER_COLORS[index % DRIVER_COLORS.length];
-  const opacity = isOnline ? '1' : '0.5';
   
-  // ✅ CORRIGIDO: Remover transform translate - o MapLibre anchor posiciona corretamente
-  el.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-  `;
-  
-  el.innerHTML = `
-    <div style="
-      background: ${color};
-      opacity: ${opacity};
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 600;
-      color: white;
-      white-space: nowrap;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      margin-bottom: 2px;
-    ">
-      #${index + 1}
+  // ✅ Todos os estilos visuais vão no wrapper INTERNO
+  root.innerHTML = `
+    <div class="truck-marker-inner" data-offline="${!isOnline}">
+      ${isOnline ? '<div class="truck-marker-pulse"></div>' : ''}
+      <div class="truck-marker-badge" style="background: ${color};">
+        #${index + 1}
+      </div>
+      <div class="truck-marker-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <rect x="1" y="6" width="15" height="10" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
+          <rect x="16" y="9" width="6" height="7" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
+          <circle cx="6" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
+          <circle cx="19" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
+        </svg>
+      </div>
+      ${isOnline ? '<div class="truck-marker-online-dot"></div>' : ''}
     </div>
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="opacity: ${opacity}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
-      <rect x="1" y="6" width="15" height="10" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
-      <rect x="16" y="9" width="6" height="7" rx="1" fill="${color}" stroke="white" stroke-width="1.5"/>
-      <circle cx="6" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
-      <circle cx="19" cy="17" r="2" fill="#374151" stroke="white" stroke-width="1"/>
-      ${isOnline ? '<circle cx="20" cy="6" r="3" fill="#22c55e" stroke="white" stroke-width="1"/>' : ''}
-    </svg>
   `;
   
-  return el;
+  return root;
 };
 
 export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({

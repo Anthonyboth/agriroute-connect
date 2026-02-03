@@ -53,10 +53,10 @@ export const DriverLocationMapMapLibre = ({
   }, [normalizedLocation, driverName]);
 
   // Factory para criar elemento do marker
-  // ✅ CORREÇÃO: Retornar elemento com classe correta para anchor: 'center'
+  // ✅ PADRÃO OURO: Retorna elemento raiz neutro, estilos visuais em filhos internos
   const markerFactory = useCallback(() => {
     const el = createTruckMarkerElement(true);
-    // A classe 'truck-marker' já é definida em createTruckMarkerElement
+    // Classe 'truck-marker' já define width:0; height:0 via CSS
     // O hook useMapLibreMarkers usa anchor: 'center' para esta classe
     return el;
   }, []);

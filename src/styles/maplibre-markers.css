@@ -1,0 +1,119 @@
+/**
+ * src/styles/maplibre-markers.css
+ * 
+ * Estilos para markers do MapLibre - PADRÃO OURO
+ * 
+ * REGRA CRÍTICA: O elemento passado ao Marker NÃO pode ter transform.
+ * Se quiser animação/efeito, coloque em um filho interno.
+ */
+
+/* ===== ELEMENTO RAIZ NEUTRO ===== */
+/* Usado para markers de caminhão (anchor: center) */
+.truck-marker {
+  width: 0;
+  height: 0;
+  /* SEM transform, transition, ou qualquer propriedade que afete posicionamento */
+}
+
+/* Usado para pins de localização (anchor: bottom) */
+.location-pin-marker {
+  width: 0;
+  height: 0;
+  /* SEM transform, transition, ou qualquer propriedade que afete posicionamento */
+}
+
+/* ===== WRAPPER INTERNO PARA CAMINHÃO ===== */
+.truck-marker-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Badge com número do motorista */
+.truck-marker-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  margin-bottom: 2px;
+}
+
+/* Container do ícone de caminhão */
+.truck-marker-icon {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+
+.truck-marker-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Indicador de online (bolinha verde) */
+.truck-marker-online-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* ===== WRAPPER INTERNO PARA PINS ===== */
+.location-pin-inner {
+  position: relative;
+  width: 32px;
+  height: 40px;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.location-pin-inner svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===== ANIMAÇÃO DE PULSE (SEM TRANSFORM) ===== */
+.truck-marker-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  margin-top: -22px;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 197, 94, 0.35);
+  animation: markerPulseOpacity 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes markerPulseOpacity {
+  0% { 
+    opacity: 0.9;
+    /* SEM scale ou transform - apenas opacity */
+  }
+  100% { 
+    opacity: 0;
+  }
+}
+
+/* ===== ESTADO OFFLINE ===== */
+.truck-marker-inner[data-offline="true"] {
+  opacity: 0.5;
+}
+
+.truck-marker-inner[data-offline="true"] .truck-marker-pulse {
+  display: none;
+}
