@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFreightRealtimeLocation } from '@/hooks/useFreightRealtimeLocation';
 import { useCityCoordinates } from '@/hooks/useCityCoordinates';
 import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport, useOSRMRoute } from '@/hooks/maplibre';
+import { useOngoingFreightMapInputs } from '@/hooks/maplibre/useOngoingFreightMapInputs';
 import { 
   createTruckMarkerElement,
   createLocationMarkerElement,
@@ -42,16 +43,16 @@ interface FreightStop {
 
 interface FreightRealtimeMapMapLibreProps {
   freightId: string;
-  originLat?: number;
-  originLng?: number;
-  destinationLat?: number;
-  destinationLng?: number;
+  originLat?: number | string;
+  originLng?: number | string;
+  destinationLat?: number | string;
+  destinationLng?: number | string;
   originCity?: string;
   originState?: string;
   destinationCity?: string;
   destinationState?: string;
-  initialDriverLat?: number;
-  initialDriverLng?: number;
+  initialDriverLat?: number | string;
+  initialDriverLng?: number | string;
   lastLocationUpdate?: string;
   stops?: FreightStop[];
   showHeatmap?: boolean;
@@ -100,6 +101,23 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     error 
   } = useFreightRealtimeLocation(freightId);
 
+  // ✅ Hook exclusivo: normaliza entradas numéricas (number|string) para evitar markers sumindo
+  const {
+    originLatNum,
+    originLngNum,
+    destinationLatNum,
+    destinationLngNum,
+    initialDriverLatNum,
+    initialDriverLngNum,
+  } = useOngoingFreightMapInputs({
+    originLat,
+    originLng,
+    destinationLat,
+    destinationLng,
+    initialDriverLat,
+    initialDriverLng,
+  });
+
   // ✅ Buscar coordenadas das cidades como fallback
   const { 
     originCoords: cityOriginCoords, 
@@ -111,20 +129,25 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     originState,
     destinationCity,
     destinationState,
-    originLat,
-    originLng,
-    destinationLat,
-    destinationLng,
+    originLat: originLatNum ?? undefined,
+    originLng: originLngNum ?? undefined,
+    destinationLat: destinationLatNum ?? undefined,
+    destinationLng: destinationLngNum ?? undefined,
   });
 
   // ✅ Coordenadas efetivas de origem (props ou fallback de cidade)
   const effectiveOrigin = useMemo(() => {
     // 1. Usar coordenadas das props se válidas
-    if (typeof originLat === 'number' && typeof originLng === 'number' && 
-        !isNaN(originLat) && !isNaN(originLng) &&
-        originLat !== 0 && originLng !== 0) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Origin from props:', { originLat, originLng });
-      return { lat: originLat, lng: originLng };
+    if (
+      typeof originLatNum === 'number' &&
+      typeof originLngNum === 'number' &&
+      Number.isFinite(originLatNum) &&
+      Number.isFinite(originLngNum) &&
+      originLatNum !== 0 &&
+      originLngNum !== 0
+    ) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Origin from props:', { originLat: originLatNum, originLng: originLngNum });
+      return { lat: originLatNum, lng: originLngNum };
     }
     
     // 2. Fallback para coordenadas da cidade
@@ -133,18 +156,23 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       return cityOriginCoords;
     }
     
-    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid origin coordinates available. Props:', { originLat, originLng }, 'City:', cityOriginCoords);
+    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid origin coordinates available. Props:', { originLat: originLatNum, originLng: originLngNum }, 'City:', cityOriginCoords);
     return null;
-  }, [originLat, originLng, cityOriginCoords, originCity]);
+  }, [originLatNum, originLngNum, cityOriginCoords, originCity]);
 
   // ✅ Coordenadas efetivas de destino (props ou fallback de cidade)
   const effectiveDestination = useMemo(() => {
     // 1. Usar coordenadas das props se válidas
-    if (typeof destinationLat === 'number' && typeof destinationLng === 'number' && 
-        !isNaN(destinationLat) && !isNaN(destinationLng) &&
-        destinationLat !== 0 && destinationLng !== 0) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Destination from props:', { destinationLat, destinationLng });
-      return { lat: destinationLat, lng: destinationLng };
+    if (
+      typeof destinationLatNum === 'number' &&
+      typeof destinationLngNum === 'number' &&
+      Number.isFinite(destinationLatNum) &&
+      Number.isFinite(destinationLngNum) &&
+      destinationLatNum !== 0 &&
+      destinationLngNum !== 0
+    ) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Destination from props:', { destinationLat: destinationLatNum, destinationLng: destinationLngNum });
+      return { lat: destinationLatNum, lng: destinationLngNum };
     }
     
     // 2. Fallback para coordenadas da cidade
@@ -153,9 +181,9 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       return cityDestinationCoords;
     }
     
-    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid destination coordinates available. Props:', { destinationLat, destinationLng }, 'City:', cityDestinationCoords);
+    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid destination coordinates available. Props:', { destinationLat: destinationLatNum, destinationLng: destinationLngNum }, 'City:', cityDestinationCoords);
     return null;
-  }, [destinationLat, destinationLng, cityDestinationCoords, destinationCity]);
+  }, [destinationLatNum, destinationLngNum, cityDestinationCoords, destinationCity]);
 
   // ✅ Localização efetiva do motorista (hook ou props iniciais)
   const effectiveDriverLocation = useMemo(() => {
@@ -174,16 +202,21 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
     
     // 2. Fallback para props iniciais
-    if (typeof initialDriverLat === 'number' && typeof initialDriverLng === 'number' &&
-        !isNaN(initialDriverLat) && !isNaN(initialDriverLng) &&
-        initialDriverLat !== 0 && initialDriverLng !== 0) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from initial props:', { initialDriverLat, initialDriverLng });
-      return { lat: initialDriverLat, lng: initialDriverLng };
+    if (
+      typeof initialDriverLatNum === 'number' &&
+      typeof initialDriverLngNum === 'number' &&
+      Number.isFinite(initialDriverLatNum) &&
+      Number.isFinite(initialDriverLngNum) &&
+      initialDriverLatNum !== 0 &&
+      initialDriverLngNum !== 0
+    ) {
+      console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from initial props:', { initialDriverLat: initialDriverLatNum, initialDriverLng: initialDriverLngNum });
+      return { lat: initialDriverLatNum, lng: initialDriverLngNum };
     }
     
     console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid driver location available');
     return null;
-  }, [driverLocation, initialDriverLat, initialDriverLng]);
+  }, [driverLocation, initialDriverLatNum, initialDriverLngNum]);
 
   // ✅ Normalizar coordenadas para evitar markers em posições incorretas
   // Corrige casos comuns: lat/lng invertidos e valores persistidos em micrograus.
@@ -229,11 +262,20 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   useEffect(() => {
     console.log('[FreightRealtimeMapMapLibre] 🔍 Coordinate Flow Debug:', {
       props: { originLat, originLng, destinationLat, destinationLng, initialDriverLat, initialDriverLng },
+      parsed: {
+        originLatNum,
+        originLngNum,
+        destinationLatNum,
+        destinationLngNum,
+        initialDriverLatNum,
+        initialDriverLngNum,
+      },
       effective: { effectiveOrigin, effectiveDestination, effectiveDriverLocation },
       normalized: { mapOrigin, mapDestination, mapDriverLocation },
       fallback: { cityOriginCoords, cityDestinationCoords }
     });
   }, [originLat, originLng, destinationLat, destinationLng, initialDriverLat, initialDriverLng, 
+      originLatNum, originLngNum, destinationLatNum, destinationLngNum, initialDriverLatNum, initialDriverLngNum,
       effectiveOrigin, effectiveDestination, effectiveDriverLocation, 
       mapOrigin, mapDestination, mapDriverLocation, 
       cityOriginCoords, cityDestinationCoords]);

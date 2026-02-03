@@ -13,6 +13,7 @@ import { MapPin, WifiOff, Users, Loader2 } from 'lucide-react';
 import { useMultiDriverLocations, DriverLocationData } from '@/hooks/useMultiDriverLocations';
 import { useCityCoordinates } from '@/hooks/useCityCoordinates';
 import { useOSRMRoute } from '@/hooks/maplibre';
+import { useOngoingFreightMapInputs } from '@/hooks/maplibre/useOngoingFreightMapInputs';
 import { 
   createLocationMarkerElement,
   calculateBounds,
@@ -23,10 +24,10 @@ import { cn } from '@/lib/utils';
 
 interface MultiDriverMapMapLibreProps {
   freightId: string;
-  originLat?: number;
-  originLng?: number;
-  destinationLat?: number;
-  destinationLng?: number;
+  originLat?: number | string;
+  originLng?: number | string;
+  destinationLat?: number | string;
+  destinationLng?: number | string;
   originCity?: string;
   originState?: string;
   destinationCity?: string;
@@ -108,6 +109,19 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
 
   const { drivers, isLoading: driversLoading } = useMultiDriverLocations(freightId);
 
+  // ✅ Hook exclusivo: normaliza entradas numéricas (number|string)
+  const {
+    originLatNum,
+    originLngNum,
+    destinationLatNum,
+    destinationLngNum,
+  } = useOngoingFreightMapInputs({
+    originLat,
+    originLng,
+    destinationLat,
+    destinationLng,
+  });
+
   // Coordenadas efetivas
   const { 
     originCoords: cityOriginCoords, 
@@ -117,21 +131,25 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
     originState,
     destinationCity,
     destinationState,
-    originLat,
-    originLng,
-    destinationLat,
-    destinationLng,
+    originLat: originLatNum ?? undefined,
+    originLng: originLngNum ?? undefined,
+    destinationLat: destinationLatNum ?? undefined,
+    destinationLng: destinationLngNum ?? undefined,
   });
 
   const effectiveOrigin = useMemo(() => {
-    if (originLat && originLng) return normalizeLatLngPoint({ lat: originLat, lng: originLng }, 'BR');
+    if (typeof originLatNum === 'number' && typeof originLngNum === 'number') {
+      return normalizeLatLngPoint({ lat: originLatNum, lng: originLngNum }, 'BR');
+    }
     return cityOriginCoords ? normalizeLatLngPoint(cityOriginCoords, 'BR') : null;
-  }, [originLat, originLng, cityOriginCoords]);
+  }, [originLatNum, originLngNum, cityOriginCoords]);
 
   const effectiveDestination = useMemo(() => {
-    if (destinationLat && destinationLng) return normalizeLatLngPoint({ lat: destinationLat, lng: destinationLng }, 'BR');
+    if (typeof destinationLatNum === 'number' && typeof destinationLngNum === 'number') {
+      return normalizeLatLngPoint({ lat: destinationLatNum, lng: destinationLngNum }, 'BR');
+    }
     return cityDestinationCoords ? normalizeLatLngPoint(cityDestinationCoords, 'BR') : null;
-  }, [destinationLat, destinationLng, cityDestinationCoords]);
+  }, [destinationLatNum, destinationLngNum, cityDestinationCoords]);
 
   // OSRM Route
   const { route: osrmRoute } = useOSRMRoute({
