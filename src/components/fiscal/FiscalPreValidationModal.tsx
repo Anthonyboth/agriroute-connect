@@ -1,0 +1,220 @@
+/**
+ * Modal de Pré-Validação Fiscal
+ * 
+ * Exibe bloqueadores fiscais que impedem a emissão de documentos
+ * DEVE SER EXIBIDO ANTES DE QUALQUER COBRANÇA (PIX/taxa)
+ */
+
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  AlertCircle, 
+  XCircle, 
+  AlertTriangle, 
+  HelpCircle, 
+  FileKey,
+  Building2,
+  FileCheck,
+  Truck,
+  MessageCircle,
+} from 'lucide-react';
+import { EmissionBlocker } from '@/hooks/useFiscalEmissionReadiness';
+import { Severity } from '@/lib/fiscal-requirements';
+
+interface FiscalPreValidationModalProps {
+  open: boolean;
+  onClose: () => void;
+  documentType: 'NFE' | 'CTE' | 'MDFE' | 'GTA';
+  blockers: EmissionBlocker[];
+  warnings?: EmissionBlocker[];
+  onContactSupport?: () => void;
+}
+
+const DOCUMENT_LABELS: Record<string, string> = {
+  NFE: 'NF-e (Nota Fiscal Eletrônica)',
+  CTE: 'CT-e (Conhecimento de Transporte)',
+  MDFE: 'MDF-e (Manifesto de Documentos Fiscais)',
+  GTA: 'GT-A (Guia de Transporte Animal)',
+};
+
+const BLOCKER_ICONS: Record<string, React.ReactNode> = {
+  'no-issuer': <Building2 className="h-5 w-5" />,
+  'no-cnpj': <Building2 className="h-5 w-5" />,
+  'incomplete-address': <Building2 className="h-5 w-5" />,
+  'no-certificate': <FileKey className="h-5 w-5" />,
+  'certificate-expired': <FileKey className="h-5 w-5" />,
+  'no-ie-cte': <FileCheck className="h-5 w-5" />,
+  'no-ie-nfe': <FileCheck className="h-5 w-5" />,
+  'no-rntrc': <Truck className="h-5 w-5" />,
+  'no-vehicle': <Truck className="h-5 w-5" />,
+  'no-condutor': <Truck className="h-5 w-5" />,
+  'pending-sefaz-validation': <FileCheck className="h-5 w-5" />,
+  'sefaz-not-enabled': <FileCheck className="h-5 w-5" />,
+};
+
+const getSeverityIcon = (severity: Severity) => {
+  switch (severity) {
+    case 'blocker':
+      return <XCircle className="h-5 w-5 text-destructive" />;
+    case 'warning':
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    default:
+      return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
+  }
+};
+
+const getSeverityBg = (severity: Severity) => {
+  switch (severity) {
+    case 'blocker':
+      return 'bg-destructive/10 border-destructive/20';
+    case 'warning':
+      return 'bg-yellow-500/10 border-yellow-500/20';
+    default:
+      return 'bg-muted border-muted';
+  }
+};
+
+export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> = ({
+  open,
+  onClose,
+  documentType,
+  blockers,
+  warnings = [],
+  onContactSupport,
+}) => {
+  const hasBlockers = blockers.length > 0;
+  const documentLabel = DOCUMENT_LABELS[documentType] || documentType;
+
+  // Abrir WhatsApp do suporte
+  const handleContactSupport = () => {
+    if (onContactSupport) {
+      onContactSupport();
+    } else {
+      // Fallback: abrir WhatsApp com mensagem padrão
+      const message = encodeURIComponent(
+        `Olá! Preciso de ajuda com a emissão de ${documentLabel}. ` +
+        `Estou com os seguintes bloqueios: ${blockers.map(b => b.title).join(', ')}.`
+      );
+      window.open(`https://wa.me/5565999999999?text=${message}`, '_blank');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            Você ainda não pode emitir {documentType}
+          </DialogTitle>
+          <DialogDescription>
+            Existem pendências fiscais que precisam ser resolvidas antes de prosseguir com a emissão.
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1 pr-4 -mr-4">
+          <div className="space-y-4">
+            {/* Bloqueadores (impedem emissão) */}
+            {hasBlockers && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                  Pendências obrigatórias ({blockers.length})
+                </h3>
+                
+                {blockers.map((blocker) => (
+                  <div 
+                    key={blocker.id}
+                    className={`p-4 rounded-lg border ${getSeverityBg(blocker.severity)}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        {BLOCKER_ICONS[blocker.id] || getSeverityIcon(blocker.severity)}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <h4 className="font-medium text-sm">
+                          {blocker.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {blocker.description}
+                        </p>
+                        <div className="flex items-start gap-2 pt-2">
+                          <HelpCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-primary font-medium">
+                            {blocker.action}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Avisos (não impedem, mas alertam) */}
+            {warnings.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  Avisos ({warnings.length})
+                </h3>
+                
+                {warnings.map((warning) => (
+                  <div 
+                    key={warning.id}
+                    className={`p-3 rounded-lg border ${getSeverityBg(warning.severity)}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{warning.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {warning.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Informações adicionais */}
+            <div className="p-4 bg-muted/50 rounded-lg border mt-4">
+              <h4 className="text-sm font-medium mb-2">O que fazer agora?</h4>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-primary">1.</span>
+                  Resolva as pendências listadas acima
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-primary">2.</span>
+                  Acesse a aba "Emissor" para completar seu cadastro fiscal
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-primary">3.</span>
+                  Após resolver, tente emitir novamente
+                </li>
+              </ul>
+            </div>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={handleContactSupport}
+            className="flex items-center gap-2"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Falar com Suporte
+          </Button>
+          <Button onClick={onClose}>
+            Entendi
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePrefilledUserData } from "@/hooks/usePrefilledUserData";
 import { SefazErrorModal } from "./SefazErrorModal";
+import { FiscalPreValidationModal } from "@/components/fiscal/FiscalPreValidationModal";
+import { PixPaymentModal } from "@/components/fiscal/PixPaymentModal";
+import { useFiscalPreValidation } from "@/hooks/useFiscalPreValidation";
+import { usePixPayment } from "@/hooks/usePixPayment";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -63,6 +67,23 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     isOpen: false,
     message: '',
   });
+  
+  // ✅ PRÉ-VALIDAÇÃO FISCAL: Bloquear emissão se não estiver apto
+  const [showPreValidationModal, setShowPreValidationModal] = useState(false);
+  
+  // ✅ PAGAMENTO PIX: Estado do modal e ref do documento
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [paymentDocumentRef, setPaymentDocumentRef] = useState<string>('');
+  const [isPaid, setIsPaid] = useState(false);
+  
+  // Hook de pré-validação fiscal
+  const { validate, canEmit, blockers, warnings } = useFiscalPreValidation({
+    fiscalIssuer,
+    documentType: 'NFE',
+  });
+  
+  // Hook de pagamento PIX
+  const { calculateFee } = usePixPayment();
 
   const [formData, setFormData] = useState({
     // Destinatário
@@ -332,36 +353,39 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     return { ok: true, status: "processing" };
   };
 
-  const handleSubmit = async () => {
-    if (!fiscalIssuer?.id) {
-      toast.error("Emissor fiscal não configurado");
-      return;
+  // ✅ PRÉ-VALIDAÇÃO FISCAL: Verifica se o usuário pode emitir ANTES de cobrar
+  const handlePreValidation = useCallback(() => {
+    const result = validate();
+    
+    if (!result.canEmit) {
+      console.log('[NFE] Pré-validação fiscal falhou:', result.blockedReasons);
+      setShowPreValidationModal(true);
+      return false;
     }
+    
+    return true;
+  }, [validate]);
 
-    const doc = onlyDigits(formData.dest_cnpj_cpf);
-    if (!isCpfCnpjValid(doc)) {
-      toast.error("CNPJ/CPF inválido", { description: "Informe 11 (CPF) ou 14 (CNPJ) dígitos." });
-      setCurrentStep(1);
-      return;
-    }
+  // ✅ Função chamada quando pagamento é confirmado
+  const handlePaymentConfirmed = useCallback(() => {
+    console.log('[NFE] Pagamento confirmado, prosseguindo com emissão...');
+    setIsPaid(true);
+    setShowPixModal(false);
+    // Continuar com a emissão após pagamento
+    executeEmission();
+  }, []);
 
-    // ✅ Validação local do endereço do destinatário (NF-e exige endereço completo)
-    const cepDigits = onlyDigits(formData.dest_cep || "");
-    const uf = normalizeUf(formData.dest_uf) || normalizeUf(fiscalIssuer?.uf) || "";
-    if (!formData.dest_logradouro.trim() || !formData.dest_bairro.trim() || !formData.dest_municipio.trim() || !uf || cepDigits.length !== 8) {
-      toast.error("Endereço do destinatário incompleto", {
-        description: "Preencha logradouro, bairro, município, UF e CEP (8 dígitos).",
-      });
-      setCurrentStep(1);
-      return;
-    }
-
-    // ✅ Verificar sessão antes de invocar
+  // ✅ Executa a emissão após validação e pagamento
+  const executeEmission = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       toast.error("Sessão inválida", { description: "Faça login novamente." });
       return;
     }
+
+    const doc = onlyDigits(formData.dest_cnpj_cpf);
+    const cepDigits = onlyDigits(formData.dest_cep || "");
+    const uf = normalizeUf(formData.dest_uf) || normalizeUf(fiscalIssuer?.uf) || "";
 
     setIsSubmitting(true);
 
@@ -402,7 +426,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         informacoes_adicionais: (formData.informacoes_adicionais || "").trim(),
       };
 
-      // ✅ CHAMADA CORRETA: "nfe-emitir" (não "nfe-emissao") + Authorization explícito
+      // ✅ CHAMADA: "nfe-emitir" + Authorization explícito
       const { data, error } = await supabase.functions.invoke("nfe-emitir", {
         body: payload,
         headers: {
@@ -410,11 +434,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         },
       });
 
-      // ✅ Tratamento robusto: erro pode vir em `error` OU em `data` (status não-2xx)
+      // ✅ Tratamento robusto: erro pode vir em `error` OU em `data`
       if (error) {
         console.error("[NFE] invoke error:", error);
-        // `@supabase/functions-js` usa `error.context` como `Response` quando é non-2xx.
-        // Portanto precisamos parsear o JSON manualmente para capturar o `message` (ex.: INSUFFICIENT_BALANCE).
         const ctx = (error as any)?.context;
 
         let parsedBody: any = null;
@@ -427,12 +449,34 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         }
 
         const bodyMsg = parsedBody?.message || parsedBody?.error;
+        const code = parsedBody?.code;
+        
+        // ✅ Tratamento especial para PAYMENT_REQUIRED
+        if (code === 'PAYMENT_REQUIRED') {
+          console.log('[NFE] Pagamento obrigatório:', parsedBody);
+          const docRef = parsedBody?.document_ref || `nfe_${Date.now()}`;
+          setPaymentDocumentRef(docRef);
+          setShowPixModal(true);
+          setIsSubmitting(false);
+          return;
+        }
+        
         const msg = bodyMsg || error.message || "Erro ao chamar o servidor fiscal.";
         throw new Error(msg);
       }
 
-      // ✅ Verifica se data indica erro (mesmo sem error, pode ser 4xx/5xx com JSON)
+      // ✅ Verifica se data indica erro
       if (!data?.success) {
+        // ✅ Tratamento especial para PAYMENT_REQUIRED
+        if (data?.code === 'PAYMENT_REQUIRED') {
+          console.log('[NFE] Pagamento obrigatório (via data):', data);
+          const docRef = data?.document_ref || `nfe_${Date.now()}`;
+          setPaymentDocumentRef(docRef);
+          setShowPixModal(true);
+          setIsSubmitting(false);
+          return;
+        }
+        
         const errMsg = data?.message || data?.error || "Falha ao emitir NF-e.";
         console.warn("[NFE] Response não-sucesso:", data);
         throw new Error(errMsg);
@@ -481,6 +525,58 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (!fiscalIssuer?.id) {
+      toast.error("Emissor fiscal não configurado");
+      return;
+    }
+
+    const doc = onlyDigits(formData.dest_cnpj_cpf);
+    if (!isCpfCnpjValid(doc)) {
+      toast.error("CNPJ/CPF inválido", { description: "Informe 11 (CPF) ou 14 (CNPJ) dígitos." });
+      setCurrentStep(1);
+      return;
+    }
+
+    // ✅ Validação local do endereço do destinatário (NF-e exige endereço completo)
+    const cepDigits = onlyDigits(formData.dest_cep || "");
+    const uf = normalizeUf(formData.dest_uf) || normalizeUf(fiscalIssuer?.uf) || "";
+    if (!formData.dest_logradouro.trim() || !formData.dest_bairro.trim() || !formData.dest_municipio.trim() || !uf || cepDigits.length !== 8) {
+      toast.error("Endereço do destinatário incompleto", {
+        description: "Preencha logradouro, bairro, município, UF e CEP (8 dígitos).",
+      });
+      setCurrentStep(1);
+      return;
+    }
+
+    // ✅ PRÉ-VALIDAÇÃO FISCAL: ANTES de pagar ou emitir
+    if (!handlePreValidation()) {
+      return; // Modal de bloqueio será exibido
+    }
+
+    // ✅ Se já pagou, executar emissão diretamente
+    if (isPaid) {
+      await executeEmission();
+      return;
+    }
+
+    // ✅ Verificar sessão antes de invocar
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      toast.error("Sessão inválida", { description: "Faça login novamente." });
+      return;
+    }
+
+    // ✅ Calcular taxa para exibição
+    const totalValue = parseFloat(formData.valor_total) || 0;
+    const feeCentavos = calculateFee('nfe', totalValue);
+    
+    console.log(`[NFE] Taxa calculada: R$ ${(feeCentavos / 100).toFixed(2)} para NF-e de R$ ${totalValue.toFixed(2)}`);
+
+    // ✅ Tentar emitir - o backend retornará PAYMENT_REQUIRED se não pago
+    await executeEmission();
   };
 
   const renderStepContent = () => {
@@ -867,6 +963,34 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         errorMessage={sefazError.message}
         originalResponse={sefazError.response}
       />
+      
+      {/* ✅ Modal de Pré-Validação Fiscal - ANTES de cobrar */}
+      <FiscalPreValidationModal
+        open={showPreValidationModal}
+        onClose={() => setShowPreValidationModal(false)}
+        documentType="NFE"
+        blockers={blockers}
+        warnings={warnings}
+      />
+      
+      {/* ✅ Modal de Pagamento PIX - APÓS validação fiscal */}
+      {showPixModal && fiscalIssuer?.id && (
+        <PixPaymentModal
+          open={showPixModal}
+          onClose={() => setShowPixModal(false)}
+          issuerId={fiscalIssuer.id}
+          documentType="nfe"
+          documentRef={paymentDocumentRef}
+          amountCentavos={calculateFee('nfe', parseFloat(formData.valor_total) || 0)}
+          description={`Emissão de NF-e - ${formData.dest_razao_social || 'Documento fiscal'}`}
+          freightId={freightId}
+          onPaymentConfirmed={handlePaymentConfirmed}
+          onPaymentFailed={(error) => {
+            console.error('[NFE] Pagamento falhou:', error);
+            toast.error('Pagamento não confirmado', { description: 'Tente novamente ou entre em contato com o suporte.' });
+          }}
+        />
+      )}
     </Dialog>
   );
 };
