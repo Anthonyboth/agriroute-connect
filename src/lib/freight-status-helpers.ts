@@ -54,12 +54,14 @@ export async function driverUpdateFreightStatus({
     });
 
     const rpcPromise = shouldUseTripProgressRpc
-      ? supabase.rpc('update_trip_progress', {
-          p_freight_id: freightId,
-          p_new_status: normalizedStatus,
-          p_lat: location?.lat ?? null,
-          p_lng: location?.lng ?? null,
-          p_notes: notes ?? null,
+      ? supabase.functions.invoke('driver-update-trip-progress-fast', {
+          body: {
+            freightId,
+            newStatus: normalizedStatus,
+            lat: location?.lat ?? null,
+            lng: location?.lng ?? null,
+            notes: notes ?? null,
+          },
         })
       : supabase.rpc('driver_update_freight_status', {
           p_freight_id: freightId,
@@ -76,8 +78,8 @@ export async function driverUpdateFreightStatus({
     let data: any, error: any;
     try {
       const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
-      data = result.data;
-      error = result.error;
+        data = result.data;
+        error = result.error;
     } catch (timeoutError: any) {
       if (timeoutError.message === 'RPC_TIMEOUT') {
         console.warn('[STATUS-UPDATE] RPC timeout, armazenando para sincronizar...');
@@ -161,6 +163,21 @@ export async function driverUpdateFreightStatus({
       const message = result?.message || result?.error || 'Erro ao atualizar status';
       toast.error('Não foi possível atualizar o status', { description: message });
       return false;
+    }
+
+    // Guardar timestamp local para UI rápida
+    if (result?.timestamp) {
+      try {
+        const key = 'tripProgress:lastUpdate';
+        const current = JSON.parse(localStorage.getItem(key) || '{}');
+        current[freightId] = {
+          status: normalizedStatus,
+          timestamp: result.timestamp,
+        };
+        localStorage.setItem(key, JSON.stringify(current));
+      } catch {
+        // ignore
+      }
     }
     
     // Mensagens de sucesso

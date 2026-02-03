@@ -110,9 +110,11 @@ export const ErrorReportSchema = z.object({
   errorCategory: z.enum(['SIMPLE', 'CRITICAL']).optional().default('SIMPLE'),
   errorMessage: z.string()
     .min(1, 'Error message required')
-    .max(1000, 'Error message too long (max 1000 chars)'),
+    .max(2000, 'Error message too long (max 2000 chars)'),
   errorStack: z.string()
-    .max(5000, 'Stack trace too long (max 5000 chars)')
+    // Em produção, stacks podem ficar > 5k (especialmente com erros de rede/SDKs minificados).
+    // Mantemos limite, mas mais alto para não bloquear o logging.
+    .max(20000, 'Stack trace too long (max 20000 chars)')
     .optional(),
   errorCode: z.string()
     .max(50, 'Error code too long (max 50 chars)')
@@ -151,8 +153,8 @@ export type ErrorReport = z.infer<typeof ErrorReportSchema>;
 export function sanitizeErrorReport(report: ErrorReport): ErrorReport {
   return {
     ...report,
-    errorMessage: report.errorMessage.slice(0, 1000),
-    errorStack: report.errorStack?.slice(0, 5000),
+    errorMessage: report.errorMessage.slice(0, 2000),
+    errorStack: report.errorStack?.slice(0, 20000),
     metadata: report.metadata ? {
       ...report.metadata,
       _sanitized: true,
