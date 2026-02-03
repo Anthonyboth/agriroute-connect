@@ -148,23 +148,23 @@ export function RouteReplayPlayer({
             },
           });
 
-          // Markers de origem e destino
+          // Markers de origem e destino - ✅ anchor: 'bottom' para pins
           if (typeof originLat === 'number' && typeof originLng === 'number') {
-            new maplibregl.Marker({ element: createLocationMarkerElement('origin') })
+            new maplibregl.Marker({ element: createLocationMarkerElement('origin'), anchor: 'bottom' })
               .setLngLat([originLng, originLat])
               .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML('<strong>Origem</strong>'))
               .addTo(map);
           }
 
           if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
-            new maplibregl.Marker({ element: createLocationMarkerElement('destination') })
+            new maplibregl.Marker({ element: createLocationMarkerElement('destination'), anchor: 'bottom' })
               .setLngLat([destinationLng, destinationLat])
               .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML('<strong>Destino</strong>'))
               .addTo(map);
           }
 
-          // Criar marker do caminhão
-          markerRef.current = new maplibregl.Marker({ element: createTruckMarkerElement(true) })
+          // Criar marker do caminhão - ✅ anchor: 'center' para ícones circulares
+          markerRef.current = new maplibregl.Marker({ element: createTruckMarkerElement(true), anchor: 'center' })
             .setLngLat([points[0].lng, points[0].lat])
             .addTo(map);
 

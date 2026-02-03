@@ -59,25 +59,46 @@ function isNum(n: unknown): n is number {
   return typeof n === "number" && !Number.isNaN(n) && Number.isFinite(n);
 }
 
+/**
+ * ✅ PADRÃO OURO: Elemento raiz neutro (width:0, height:0), sem transform.
+ * Estilos visuais vão apenas em filhos internos.
+ */
 function buildDriverMarkerEl(status: "in_transit" | "available" | "offline") {
-  const el = document.createElement("div");
-  el.className =
-    "w-9 h-9 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white cursor-pointer select-none";
-  el.style.fontSize = "16px";
-
-  if (status === "in_transit") {
-    el.style.background = "#3b82f6"; // azul
-    el.textContent = "🚛";
-    return el;
-  }
-  if (status === "available") {
-    el.style.background = "#22c55e"; // verde
-    el.textContent = "✅";
-    return el;
-  }
-  el.style.background = "#6b7280"; // cinza
-  el.textContent = "⚪";
-  return el;
+  // ✅ ELEMENTO RAIZ NEUTRO - sem styles que afetem posicionamento
+  const root = document.createElement("div");
+  root.className = "truck-marker"; // Define width:0; height:0 via CSS
+  
+  const bgColor = status === "in_transit" 
+    ? "#3b82f6" // azul
+    : status === "available" 
+      ? "#22c55e" // verde
+      : "#6b7280"; // cinza
+  
+  const icon = status === "in_transit" ? "🚛" : status === "available" ? "✅" : "⚪";
+  
+  // ✅ Todos os estilos visuais vão no wrapper INTERNO
+  root.innerHTML = `
+    <div class="truck-marker-inner">
+      <div style="
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: ${bgColor};
+        font-size: 16px;
+        cursor: pointer;
+        user-select: none;
+      ">
+        ${icon}
+      </div>
+    </div>
+  `;
+  
+  return root;
 }
 
 /**
@@ -339,7 +360,8 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
         </div>
       `;
 
-      const marker = new maplibregl.Marker({ element: el })
+      // ✅ anchor: 'center' para markers circulares
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([d.current_lng, d.current_lat])
         .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml))
         .addTo(map);

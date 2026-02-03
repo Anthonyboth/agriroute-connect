@@ -127,17 +127,19 @@ export function RouteReplayPlayerMapLibre({
 
           map.addLayer(ROUTE_LINE_LAYER_CONFIG('progress-path-line', 'progress-path', MAP_COLORS.route.progress, 1));
 
-          // Criar marker do caminhão
+          // Criar marker do caminhão - ✅ anchor: 'center' para ícones circulares
           markerRef.current = new maplibregl.Marker({
             element: createTruckMarkerElement(true),
+            anchor: 'center',
           })
             .setLngLat([points[0].lng, points[0].lat])
             .addTo(map);
 
-          // Markers de origem e destino
+          // Markers de origem e destino - ✅ anchor: 'bottom' para pins
           if (typeof originLat === 'number' && typeof originLng === 'number') {
             new maplibregl.Marker({
               element: createLocationMarkerElement('origin'),
+              anchor: 'bottom',
             })
               .setLngLat([originLng, originLat])
               .addTo(map);
@@ -146,6 +148,7 @@ export function RouteReplayPlayerMapLibre({
           if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
             new maplibregl.Marker({
               element: createLocationMarkerElement('destination'),
+              anchor: 'bottom',
             })
               .setLngLat([destinationLng, destinationLat])
               .addTo(map);
