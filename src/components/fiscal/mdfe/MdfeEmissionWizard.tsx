@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { PixPaymentModal } from '@/components/fiscal/PixPaymentModal';
 
 interface MdfeEmissionWizardProps {
   isOpen: boolean;
@@ -44,6 +45,11 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
   const [documentos, setDocumentos] = useState<Array<{ tipo: string; chave: string }>>([
     { tipo: 'CTE', chave: '' }
   ]);
+
+  // Estados para modal PIX
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [paymentDocumentRef, setPaymentDocumentRef] = useState('');
+  const [paymentAmountCentavos, setPaymentAmountCentavos] = useState(1000);
 
   const hasCertificate = !!fiscalIssuer?.certificate_uploaded_at;
 
@@ -69,7 +75,7 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
     setDocumentos(newDocs);
   };
 
-  const handleSubmit = async () => {
+  const executeEmission = useCallback(async () => {
     if (!freightId) {
       toast.error('Frete não selecionado');
       return;
@@ -95,6 +101,17 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
         },
       });
 
+      // Tratar erro 402 - Pagamento necessário
+      if (data?.code === 'PAYMENT_REQUIRED') {
+        const docRef = data?.document_ref || `mdfe_${Date.now()}`;
+        const amount = data?.amount_centavos || 1000;
+        setPaymentDocumentRef(docRef);
+        setPaymentAmountCentavos(amount);
+        setShowPixModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       if (error) throw error;
 
       if (data?.success) {
@@ -113,168 +130,204 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  }, [freightId, modo, documentos, onClose]);
+
+  const handleSubmit = async () => {
+    await executeEmission();
   };
+
+  // Callback quando pagamento é confirmado
+  const handlePaymentConfirmed = useCallback(() => {
+    setShowPixModal(false);
+    toast.success('Pagamento confirmado! Continuando emissão...');
+    // Tentar emitir novamente após pagamento
+    setTimeout(() => {
+      executeEmission();
+    }, 500);
+  }, [executeEmission]);
 
   const handleClose = () => {
     if (!isSubmitting) {
       setModo('CONTINGENCIA');
       setDocumentos([{ tipo: 'CTE', chave: '' }]);
+      setShowPixModal(false);
+      setPaymentDocumentRef('');
       onClose();
     }
   };
 
+  // Pegar issuer_id - pode vir do fiscalIssuer ou usar um fallback
+  const issuerId = fiscalIssuer?.id || freightId || '';
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-purple-600" />
-            Emitir MDF-e
-          </DialogTitle>
-          <DialogDescription>
-            Manifesto de Documentos Fiscais Eletrônico
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-purple-600" />
+              Emitir MDF-e
+            </DialogTitle>
+            <DialogDescription>
+              Manifesto de Documentos Fiscais Eletrônico
+            </DialogDescription>
+          </DialogHeader>
 
-        {!hasCertificate ? (
-          <Alert className="border-yellow-500/50 bg-yellow-500/10">
-            <FileKey className="h-4 w-4 text-yellow-600" />
-            <AlertDescription>
-              <p className="font-medium mb-2">Certificado Digital Necessário</p>
-              <p className="text-sm">
-                Para emitir MDF-e, é necessário fazer upload do seu certificado digital A1.
-                Acesse a aba "Emissor" para configurar.
-              </p>
-            </AlertDescription>
-          </Alert>
-        ) : !freightId ? (
-          <Alert className="border-yellow-500/50 bg-yellow-500/10">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription>
-              <p className="font-medium mb-2">Frete não selecionado</p>
-              <p className="text-sm">
-                Para emitir MDF-e, selecione um frete primeiro.
-              </p>
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Modo de Emissão</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup value={modo} onValueChange={(v) => setModo(v as 'NORMAL' | 'CONTINGENCIA')}>
-                  <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
-                    <RadioGroupItem value="CONTINGENCIA" id="contingencia" />
-                    <Label htmlFor="contingencia" className="flex items-center gap-2 cursor-pointer flex-1">
-                      <Zap className="h-4 w-4 text-yellow-600" />
-                      <div>
-                        <p className="font-medium">Contingência (FSDA)</p>
-                        <p className="text-xs text-muted-foreground">
-                          Gera documento imediato, transmite depois
-                        </p>
-                      </div>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
-                    <RadioGroupItem value="NORMAL" id="normal" />
-                    <Label htmlFor="normal" className="flex items-center gap-2 cursor-pointer flex-1">
-                      <Shield className="h-4 w-4 text-green-600" />
-                      <div>
-                        <p className="font-medium">Normal</p>
-                        <p className="text-xs text-muted-foreground">
-                          Transmite imediatamente à SEFAZ
-                        </p>
-                      </div>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Documentos Transportados</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Informe as chaves de acesso dos CT-e ou NF-e transportados
-                </p>
-                {documentos.map((doc, index) => (
-                  <div key={index} className="flex gap-2">
-                    <select
-                      value={doc.tipo}
-                      onChange={(e) => handleDocumentoChange(index, 'tipo', e.target.value)}
-                      className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="CTE">CT-e</option>
-                      <option value="NFE">NF-e</option>
-                    </select>
-                    <Input
-                      placeholder="Chave de acesso (44 dígitos)"
-                      value={doc.chave}
-                      onChange={(e) => handleDocumentoChange(index, 'chave', e.target.value)}
-                      maxLength={44}
-                      className="font-mono text-xs flex-1"
-                    />
-                    {documentos.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleRemoveDocumento(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {documentos.length < 20 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddDocumento}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Documento
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            <Alert>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+          {!hasCertificate ? (
+            <Alert className="border-yellow-500/50 bg-yellow-500/10">
+              <FileKey className="h-4 w-4 text-yellow-600" />
               <AlertDescription>
+                <p className="font-medium mb-2">Certificado Digital Necessário</p>
                 <p className="text-sm">
-                  Dados do veículo, condutor e percurso serão preenchidos automaticamente
-                  a partir do cadastro do frete e veículo.
+                  Para emitir MDF-e, é necessário fazer upload do seu certificado digital A1.
+                  Acesse a aba "Emissor" para configurar.
                 </p>
               </AlertDescription>
             </Alert>
-          </div>
-        )}
+          ) : !freightId ? (
+            <Alert className="border-yellow-500/50 bg-yellow-500/10">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription>
+                <p className="font-medium mb-2">Frete não selecionado</p>
+                <p className="text-sm">
+                  Para emitir MDF-e, selecione um frete primeiro.
+                </p>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Modo de Emissão</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RadioGroup value={modo} onValueChange={(v) => setModo(v as 'NORMAL' | 'CONTINGENCIA')}>
+                    <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                      <RadioGroupItem value="CONTINGENCIA" id="contingencia" />
+                      <Label htmlFor="contingencia" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <Zap className="h-4 w-4 text-yellow-600" />
+                        <div>
+                          <p className="font-medium">Contingência (FSDA)</p>
+                          <p className="text-xs text-muted-foreground">
+                            Gera documento imediato, transmite depois
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                      <RadioGroupItem value="NORMAL" id="normal" />
+                      <Label htmlFor="normal" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <Shield className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="font-medium">Normal</p>
+                          <p className="text-xs text-muted-foreground">
+                            Transmite imediatamente à SEFAZ
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </CardContent>
+              </Card>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          {hasCertificate && freightId && (
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Emitindo...
-                </>
-              ) : (
-                'Emitir MDF-e'
-              )}
-            </Button>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Documentos Transportados</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Informe as chaves de acesso dos CT-e ou NF-e transportados
+                  </p>
+                  {documentos.map((doc, index) => (
+                    <div key={index} className="flex gap-2">
+                      <select
+                        value={doc.tipo}
+                        onChange={(e) => handleDocumentoChange(index, 'tipo', e.target.value)}
+                        className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="CTE">CT-e</option>
+                        <option value="NFE">NF-e</option>
+                      </select>
+                      <Input
+                        placeholder="Chave de acesso (44 dígitos)"
+                        value={doc.chave}
+                        onChange={(e) => handleDocumentoChange(index, 'chave', e.target.value)}
+                        maxLength={44}
+                        className="font-mono text-xs flex-1"
+                      />
+                      {documentos.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleRemoveDocumento(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {documentos.length < 20 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddDocumento}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Documento
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Alert>
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription>
+                  <p className="text-sm">
+                    Dados do veículo, condutor e percurso serão preenchidos automaticamente
+                    a partir do cadastro do frete e veículo.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            {hasCertificate && freightId && (
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Emitindo...
+                  </>
+                ) : (
+                  'Emitir MDF-e'
+                )}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Pagamento PIX */}
+      {showPixModal && issuerId && (
+        <PixPaymentModal
+          open={showPixModal}
+          onClose={() => setShowPixModal(false)}
+          issuerId={issuerId}
+          documentType="mdfe"
+          documentRef={paymentDocumentRef}
+          amountCentavos={paymentAmountCentavos}
+          description="Emissão de MDF-e"
+          freightId={freightId}
+          onPaymentConfirmed={handlePaymentConfirmed}
+        />
+      )}
+    </>
   );
 };
