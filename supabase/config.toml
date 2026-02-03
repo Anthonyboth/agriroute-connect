@@ -326,3 +326,6 @@ verify_jwt = true
 
 [functions.test-focus-tokens]
 verify_jwt = false
+
+[functions.pagarme-webhook]
+verify_jwt = false
