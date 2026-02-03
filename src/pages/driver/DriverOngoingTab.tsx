@@ -234,9 +234,12 @@ export const DriverOngoingTab: React.FC = () => {
                 {freights.map((f) => {
                   const normalizedStatus = normalizeFreightStatus(String(f.status || ""));
                   const requiredTrucks = f.required_trucks ?? 1;
+
                   const price = getDriverVisibleFreightPrice({
                     freightPrice: f.price,
                     requiredTrucks,
+                     // ✅ Regra: para fretes rurais (freights), o hook já calcula driver_unit_price.
+                     assignmentAgreedPrice: (f as any).driver_unit_price ?? undefined,
                   });
 
                   return (
