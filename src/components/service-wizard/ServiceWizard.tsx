@@ -372,16 +372,9 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
     setLoading(true);
 
     try {
-      // ✅ Bloqueio de segurança: se não estiver logado, mostra notificação clara
-      if (!profile?.id) {
-        showFormError({
-          field: "Autenticação",
-          problem: "Você precisa estar logado para enviar a solicitação.",
-          solution: "Faça login ou crie uma conta para acompanhar sua solicitação no painel.",
-        });
-        setLoading(false);
-        return;
-      }
+      // ✅ Suporte a solicitações de convidados (guest requests)
+      // Se o usuário não está logado, a solicitação é enviada sem client_id
+      // A edge function create-guest-service-request aceita solicitações anônimas
 
       // ✅ Regra do produto: NÃO criar solicitações genéricas de categoria.
       // Para serviços de catálogo (agrícola/técnico), o usuário precisa selecionar um serviço específico (serviceId).
@@ -434,8 +427,8 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
 
       const { data, error } = await supabase.functions.invoke("create-guest-service-request", {
         body: {
-          prospect_user_id: null,
-          client_id: profile.id, // ✅ sempre vinculado ao perfil logado
+          prospect_user_id: profile?.id ? null : 'guest_user',
+          client_id: profile?.id || null, // ✅ null para convidados, profile.id para logados
           service_type: finalServiceType, // ✅ agora usa catalogServiceId quando disponível
           // ✅ se você quiser guardar referência do catálogo, vai em additional_info
           contact_name: formData.personal.name,
