@@ -902,6 +902,24 @@ export const canProviderHandleService = (
   const normalizedRequest = requestServiceType.toUpperCase().trim();
   const normalizedProvider = providerServiceTypes.map(t => t.toUpperCase().trim());
 
+  // ✅ Compatibilidade (LEGADO): alguns registros antigos ainda chegam como tipo genérico.
+  // Para não “sumir” do painel, permitimos que prestadores com qualquer tipo da categoria
+  // correspondente enxerguem o pedido genérico.
+  // Importante: isso só roda para os dois tipos genéricos legados — o matching continua 1:1
+  // para todos os demais tipos.
+  if (normalizedRequest === 'SERVICO_AGRICOLA' || normalizedRequest === 'SERVICO_TECNICO') {
+    // Se o prestador explicitamente tiver o tipo genérico configurado (caso exista no DB), ok.
+    if (normalizedProvider.includes(normalizedRequest)) return true;
+
+    const requiredCategory = normalizedRequest === 'SERVICO_AGRICOLA' ? 'agricultural' : 'technical';
+    const providerHasCategory = normalizedProvider.some((t) => {
+      const meta = getServiceById(t);
+      return meta?.category === requiredCategory;
+    });
+
+    return providerHasCategory;
+  }
+
   // 1. Match exato
   if (normalizedProvider.includes(normalizedRequest)) {
     return true;
