@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { subscriptionWithRetry } from '@/lib/query-utils';
+import { canProviderHandleService } from '@/lib/service-types';
 
 interface ServiceRequestCounts {
   pending: number;
@@ -48,18 +49,13 @@ export const useServiceRequestCounts = (providerId?: string) => {
         });
 
         if (!error && data) {
-          // ✅ CORREÇÃO CRÍTICA: Aplicar o MESMO filtro que o Dashboard
-          // Filtrar por status OPEN E por service_type compatível com o prestador
+          // ✅ CORREÇÃO: Usar função de matching inteligente por categoria
           availableRequests = (data as any[]).filter((r: any) => {
             // Deve estar OPEN
             if (r.status !== 'OPEN') return false;
             
-            // Se o prestador tem service_types definidos, verificar compatibilidade
-            if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
-              return false;
-            }
-            
-            return true;
+            // Usar matching inteligente que entende SERVICO_AGRICOLA → AGRONOMO
+            return canProviderHandleService(providerServiceTypes, r.service_type);
           });
         }
       } catch (err) {

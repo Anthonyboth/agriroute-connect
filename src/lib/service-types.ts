@@ -874,3 +874,82 @@ export const CATEGORY_LABELS = {
   logistics: 'Logística',
   urban: 'Serviços Urbanos'
 };
+
+/**
+ * ✅ MAPEAMENTO: Tipos genéricos de categoria para tipos específicos
+ * Quando um cliente solicita SERVICO_AGRICOLA, qualquer prestador
+ * que ofereça um subtipo (AGRONOMO, ANALISE_SOLO, etc.) pode atender
+ */
+export const GENERIC_TO_SPECIFIC_MAP: Record<string, string[]> = {
+  'SERVICO_AGRICOLA': AGRICULTURAL_SERVICE_TYPES.map(s => s.id),
+  'SERVICO_TECNICO': TECHNICAL_SERVICE_TYPES.map(s => s.id),
+  'SERVICO_URBANO': URBAN_SERVICE_TYPES.map(s => s.id),
+  'FRETE': FREIGHT_SERVICE_TYPES.map(s => s.id),
+  'LOGISTICA': LOGISTICS_SERVICE_TYPES.map(s => s.id),
+};
+
+/**
+ * ✅ FUNÇÃO DE MATCHING: Verifica se um prestador pode atender um serviço
+ * 
+ * Lógica:
+ * 1. Match exato: prestador oferece AGRONOMO, serviço é AGRONOMO → true
+ * 2. Match por categoria genérica: prestador oferece AGRONOMO, serviço é SERVICO_AGRICOLA → true
+ * 3. Match por subtipo: prestador oferece SERVICO_AGRICOLA, serviço é AGRONOMO → true
+ * 
+ * @param providerServiceTypes - Tipos que o prestador oferece (ex: ['AGRONOMO', 'BORRACHEIRO'])
+ * @param requestServiceType - Tipo do serviço solicitado (ex: 'SERVICO_AGRICOLA')
+ * @returns true se o prestador pode atender
+ */
+export const canProviderHandleService = (
+  providerServiceTypes: string[],
+  requestServiceType: string
+): boolean => {
+  if (!providerServiceTypes || providerServiceTypes.length === 0) {
+    // Prestador sem tipos configurados → não pode atender nada
+    return false;
+  }
+
+  if (!requestServiceType) {
+    return false;
+  }
+
+  const normalizedRequest = requestServiceType.toUpperCase().trim();
+  const normalizedProvider = providerServiceTypes.map(t => t.toUpperCase().trim());
+
+  // 1. Match exato
+  if (normalizedProvider.includes(normalizedRequest)) {
+    return true;
+  }
+
+  // 2. Serviço é genérico (SERVICO_AGRICOLA) e prestador tem subtipo (AGRONOMO)
+  const specificTypesForGeneric = GENERIC_TO_SPECIFIC_MAP[normalizedRequest];
+  if (specificTypesForGeneric) {
+    const hasMatchingSpecific = normalizedProvider.some(pt => 
+      specificTypesForGeneric.includes(pt)
+    );
+    if (hasMatchingSpecific) {
+      return true;
+    }
+  }
+
+  // 3. Prestador tem genérico e serviço é subtipo
+  for (const [generic, specifics] of Object.entries(GENERIC_TO_SPECIFIC_MAP)) {
+    if (normalizedProvider.includes(generic) && specifics.includes(normalizedRequest)) {
+      return true;
+    }
+  }
+
+  // 4. Match por categoria (ambos são da mesma categoria)
+  const requestType = getServiceById(normalizedRequest);
+  if (requestType) {
+    const providerCategories = normalizedProvider
+      .map(pt => getServiceById(pt)?.category)
+      .filter(Boolean);
+    
+    if (providerCategories.includes(requestType.category)) {
+      return true;
+    }
+  }
+
+  return false;
+};
