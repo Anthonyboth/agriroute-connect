@@ -10,15 +10,30 @@ serve(async (req) => {
   try {
     const issues = [];
 
-    // 1. Verificar políticas RLS usando profiles.role diretamente
+    // 1. Verificar políticas RLS usando profiles.role diretamente (separar por tipo)
     const { data: oldStylePolicies } = await supabase.rpc('scan_policies_for_role_references');
     if (oldStylePolicies && oldStylePolicies.length > 0) {
-      issues.push({
-        severity: 'CRITICAL',
-        type: 'OLD_STYLE_RLS',
-        message: `${oldStylePolicies.length} política(s) RLS ainda usam profiles.role diretamente`,
-        details: oldStylePolicies.slice(0, 5)
-      });
+      // Separar violações reais de avisos de duplicação
+      const roleViolations = oldStylePolicies.filter(p => p.violation_type === 'PROFILES_ROLE_CHECK');
+      const duplicatePolicies = oldStylePolicies.filter(p => p.violation_type === 'DUPLICATE_POLICIES');
+      
+      if (roleViolations.length > 0) {
+        issues.push({
+          severity: 'CRITICAL',
+          type: 'OLD_STYLE_RLS',
+          message: `${roleViolations.length} política(s) RLS ainda usam profiles.role diretamente`,
+          details: roleViolations.slice(0, 5)
+        });
+      }
+      
+      if (duplicatePolicies.length > 0) {
+        issues.push({
+          severity: 'LOW',
+          type: 'DUPLICATE_POLICIES',
+          message: `${duplicatePolicies.length} tabela(s) com políticas RLS duplicadas (revisar para consolidação)`,
+          details: duplicatePolicies.slice(0, 5)
+        });
+      }
     }
 
     // 2. Verificar tentativas de acesso não autorizado (últimas 24h)

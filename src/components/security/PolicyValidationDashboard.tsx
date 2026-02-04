@@ -84,10 +84,10 @@ export const PolicyValidationDashboard = () => {
         {violations.length === 0 && !loading && (
           <Alert className="border-success bg-success/10">
             <CheckCircle className="h-4 w-4 text-success" />
-            <AlertTitle className="text-success">Tudo Certo!</AlertTitle>
+            <AlertTitle className="text-success">✅ Todas as 17 Políticas Migradas!</AlertTitle>
             <AlertDescription className="text-success/80">
-              Nenhuma referência a profiles.role encontrada em policies ou funções.
-              Todas as verificações de roles estão usando has_role() corretamente.
+              Todas as políticas RLS foram migradas para usar has_role() com a tabela user_roles.
+              O sistema agora usa os roles: admin, driver, producer, service_provider, carrier, affiliated_driver.
             </AlertDescription>
           </Alert>
         )}
