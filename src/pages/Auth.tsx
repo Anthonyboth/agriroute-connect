@@ -235,7 +235,13 @@ const Auth = () => {
       if (error) {
         // Verificar se é erro de usuário já cadastrado
         const errorMsg = error.message || '';
-        const isUserExists = errorMsg.includes('User already registered') || errorMsg.includes('already registered');
+        const errorStatus = (error as any)?.status;
+        const errorCode = String((error as any)?.code || '').toLowerCase();
+        const isUserExists =
+          errorStatus === 422 ||
+          errorCode.includes('user_already_exists') ||
+          errorMsg.toLowerCase().includes('already') ||
+          errorMsg.toLowerCase().includes('registered');
         
         if (isUserExists) {
           try {
