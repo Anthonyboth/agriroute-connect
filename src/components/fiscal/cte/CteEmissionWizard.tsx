@@ -23,6 +23,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PixPaymentModal } from '@/components/fiscal/PixPaymentModal';
+import { FiscalPreValidationModal } from '@/components/fiscal/FiscalPreValidationModal';
+import { useFiscalPreValidation } from '@/hooks/useFiscalPreValidation';
 
 interface CteEmissionWizardProps {
   isOpen: boolean;
@@ -51,6 +53,15 @@ export const CteEmissionWizard: React.FC<CteEmissionWizardProps> = ({
   const [showPixModal, setShowPixModal] = useState(false);
   const [paymentDocumentRef, setPaymentDocumentRef] = useState('');
   const [paymentAmountCentavos, setPaymentAmountCentavos] = useState(1000);
+  
+  // ✅ PRÉ-VALIDAÇÃO FISCAL: Estado do modal
+  const [showPreValidationModal, setShowPreValidationModal] = useState(false);
+
+  // ✅ Hook de pré-validação fiscal para CT-e
+  const { validate, canEmit, blockers, warnings } = useFiscalPreValidation({
+    fiscalIssuer,
+    documentType: 'CTE',
+  });
 
   const hasCertificate = !!fiscalIssuer?.certificate_uploaded_at;
 
@@ -71,6 +82,19 @@ export const CteEmissionWizard: React.FC<CteEmissionWizardProps> = ({
     newChaves[index] = value.replace(/\D/g, '').slice(0, 44);
     setNfeChaves(newChaves);
   };
+
+  // ✅ PRÉ-VALIDAÇÃO FISCAL: Verificar aptidão antes de qualquer ação
+  const handlePreValidation = useCallback(() => {
+    const result = validate();
+    
+    if (!result.canEmit) {
+      console.log('[CTE] Pré-validação fiscal falhou:', result.blockedReasons);
+      setShowPreValidationModal(true);
+      return false;
+    }
+    
+    return true;
+  }, [validate]);
 
   const executeEmission = useCallback(async () => {
     if (!fiscalIssuer?.id) {
@@ -135,6 +159,11 @@ export const CteEmissionWizard: React.FC<CteEmissionWizardProps> = ({
   }, [fiscalIssuer?.id, freightId, nfeChaves, onClose]);
 
   const handleSubmit = async () => {
+    // ✅ PRÉ-VALIDAÇÃO FISCAL: ANTES de pagar ou emitir
+    if (!handlePreValidation()) {
+      return; // Modal de bloqueio será exibido
+    }
+    
     await executeEmission();
   };
 
@@ -159,6 +188,7 @@ export const CteEmissionWizard: React.FC<CteEmissionWizardProps> = ({
         observacoes: '',
       });
       setShowPixModal(false);
+      setShowPreValidationModal(false);
       setPaymentDocumentRef('');
       onClose();
     }
@@ -294,6 +324,15 @@ export const CteEmissionWizard: React.FC<CteEmissionWizardProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Pré-Validação Fiscal */}
+      <FiscalPreValidationModal
+        open={showPreValidationModal}
+        onClose={() => setShowPreValidationModal(false)}
+        documentType="CTE"
+        blockers={blockers}
+        warnings={warnings}
+      />
 
       {/* Modal de Pagamento PIX */}
       {showPixModal && fiscalIssuer?.id && (
