@@ -537,8 +537,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         const providerServiceTypes = profile?.service_types || [];
         
         (cityBasedRequests || []).forEach((r: any) => {
-          // ✅ CORREÇÃO: Usar matching inteligente por categoria
-          // SERVICO_AGRICOLA matcheia com AGRONOMO, ANALISE_SOLO, etc.
+          // Matching estrito: só mostra requests exatamente dos tipos que o prestador oferece
           if (!canProviderHandleService(providerServiceTypes, r.service_type)) {
             console.warn(`Service type ${r.service_type} não compatível com tipos do prestador:`, providerServiceTypes);
             return;
@@ -608,8 +607,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         const providerServiceTypes = profile?.service_types || [];
         
         (cityBasedRequests || []).forEach((r: any) => {
-          // ✅ CORREÇÃO: Usar matching inteligente por categoria (igual ao scope === 'all')
-          // SERVICO_AGRICOLA matcheia com AGRONOMO, ANALISE_SOLO, etc.
+          // Matching estrito: só mostra requests exatamente dos tipos que o prestador oferece
           if (!canProviderHandleService(providerServiceTypes, r.service_type)) {
             console.warn(`Service type ${r.service_type} não compatível com tipos do prestador:`, providerServiceTypes);
             return;
