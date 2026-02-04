@@ -53,10 +53,10 @@ export const DriverLocationMapMapLibre = ({
   }, [normalizedLocation, driverName]);
 
   // Factory para criar elemento do marker
-  // ✅ PADRÃO OURO: Retorna elemento raiz neutro, estilos visuais em filhos internos
+  // ✅ PADRÃO OURO V2: Retorna elemento raiz com dimensões FIXAS 40x40px
   const markerFactory = useCallback(() => {
     const el = createTruckMarkerElement(true);
-    // Classe 'truck-marker' já define width:0; height:0 via CSS
+    // Classe 'truck-marker' define 40x40px via CSS
     // O hook useMapLibreMarkers usa anchor: 'center' para esta classe
     return el;
   }, []);
