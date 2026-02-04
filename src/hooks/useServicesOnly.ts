@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from 'sonner';
+import { canProviderHandleService } from '@/lib/service-types';
 
 /**
  * Hook exclusivo para PRESTADORES DE SERVIÇO
@@ -35,22 +35,30 @@ export const useServicesOnly = () => {
 
       if (error) throw error;
 
-      // Filtro de segurança: garantir que são apenas serviços técnicos + FRETE_MOTO (que também pode vir de service_requests)
-      const validServices = (data || []).filter((s: any) => 
-        s.service_type && 
-        ['GUINCHO', 'MUDANCA', 'ELETRICISTA', 'MECANICO', 'BORRACHEIRO', 'INSTALACAO', 'FRETE_MOTO'].includes(s.service_type)
-      );
+      // Obter tipos de serviço do prestador
+      const providerServiceTypes: string[] = profile?.service_types || [];
+
+      // ✅ CORREÇÃO: Usar matching inteligente por categoria
+      // Aceita SERVICO_AGRICOLA se prestador oferece AGRONOMO, ANALISE_SOLO, etc.
+      const validServices = (data || []).filter((s: any) => {
+        if (!s.service_type) return false;
+        
+        // Se prestador não configurou tipos, mostrar todos os serviços
+        if (providerServiceTypes.length === 0) return true;
+        
+        // Usar matching inteligente
+        return canProviderHandleService(providerServiceTypes, s.service_type);
+      });
 
       setServices(validServices);
     } catch (error) {
-      // ✅ CORREÇÃO CRÍTICA: NÃO exibir toast automático
-      // Falha silenciosa - lista vazia sem assustar o usuário
+      // ✅ Falha silenciosa - lista vazia sem assustar o usuário
       console.error('[useServicesOnly] Error:', error);
       setServices([]);
     } finally {
       setLoading(false);
     }
-  }, [profile?.id, profile?.role]);
+  }, [profile?.id, profile?.role, profile?.service_types]);
 
   useEffect(() => {
     fetchServices();

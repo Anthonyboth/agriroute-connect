@@ -77,6 +77,7 @@ import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
+import { canProviderHandleService } from '@/lib/service-types';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
 import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
@@ -536,9 +537,10 @@ export const ServiceProviderDashboard: React.FC = () => {
         const providerServiceTypes = profile?.service_types || [];
         
         (cityBasedRequests || []).forEach((r: any) => {
-          // FILTRO: Verificar se o service_type está na lista do prestador
-          if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
-            console.warn(`Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
+          // ✅ CORREÇÃO: Usar matching inteligente por categoria
+          // SERVICO_AGRICOLA matcheia com AGRONOMO, ANALISE_SOLO, etc.
+          if (!canProviderHandleService(providerServiceTypes, r.service_type)) {
+            console.warn(`Service type ${r.service_type} não compatível com tipos do prestador:`, providerServiceTypes);
             return;
           }
           
