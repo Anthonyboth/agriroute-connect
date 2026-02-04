@@ -998,9 +998,10 @@ export const ServiceProviderDashboard: React.FC = () => {
     
     return true;
   }).filter(request => {
-    if (activeTab === 'pending') return !request.provider_id && request.status === 'OPEN';
-    if (activeTab === 'accepted') return request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS');
-    if (activeTab === 'completed') return request.provider_id && request.status === 'COMPLETED';
+    const status = (request.status || '').toUpperCase().trim();
+    if (activeTab === 'pending') return !request.provider_id && (status === 'OPEN' || status === 'ABERTO');
+    if (activeTab === 'accepted') return request.provider_id && (status === 'ACCEPTED' || status === 'IN_PROGRESS' || status === 'ACEITO' || status === 'EM_ANDAMENTO');
+    if (activeTab === 'completed') return request.provider_id && (status === 'COMPLETED' || status === 'CONCLUIDO');
     return true;
   }).sort((a, b) => {
     // Para pendentes, ordenar pelas mais antigas primeiro
