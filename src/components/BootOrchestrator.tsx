@@ -100,6 +100,22 @@ export const BootOrchestrator: React.FC = () => {
     }
   }, [phase, authLoading, session, user, profile, setPhase, setError, bootAttempt, recordStepTiming]);
 
+  // Safety: if stuck in INITIALIZING (hasStarted but phase didn't change)
+  useEffect(() => {
+    if (phase === 'INITIALIZING' && hasStartedRef.current) {
+      // hasStarted is true but we're still in INITIALIZING = setPhase failed
+      const timer = setTimeout(() => {
+        if (phase === 'INITIALIZING') {
+          console.warn('[BootOrchestrator] Forçando transição de INITIALIZING - setPhase pode ter falhado');
+          logStep('SESSION', 'START');
+          setPhase('CHECKING_AUTH');
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [phase, setPhase]);
+
   // Safety: if stuck in CHECKING_AUTH or LOADING_PROFILE for too long with authLoading=false
   useEffect(() => {
     if (!authLoading && (phase === 'CHECKING_AUTH' || phase === 'LOADING_PROFILE')) {
