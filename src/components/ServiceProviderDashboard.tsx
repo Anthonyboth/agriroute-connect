@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
+import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1031,34 +1032,25 @@ export const ServiceProviderDashboard: React.FC = () => {
             <p className="text-base md:text-lg mb-6 opacity-95 font-medium">
               {SISTEMA_IA_LABEL} conecta você com clientes
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button 
-                variant="default"
-                size="sm"
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <HeroActionButton 
                 onClick={() => setActiveTab('cities')}
-                className="bg-white/95 text-primary hover:bg-white hover:scale-105 font-semibold rounded-full px-6 py-2.5 shadow-lg transition-all duration-300 w-full sm:w-auto"
+                icon={<MapPin className="h-4 w-4" />}
               >
-                <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
-              </Button>
-              <Button 
-                variant="default"
-                size="sm"
+              </HeroActionButton>
+              <HeroActionButton 
                 onClick={() => setActiveTab('services')}
-                className="bg-white/95 text-primary hover:bg-white hover:scale-105 font-semibold rounded-full px-6 py-2.5 shadow-lg transition-all duration-300 w-full sm:w-auto"
+                icon={<Wrench className="h-4 w-4" />}
               >
-                <Wrench className="mr-1 h-4 w-4" />
                 Configurar Serviços
-              </Button>
-              <Button 
-                variant="default"
-                size="sm"
+              </HeroActionButton>
+              <HeroActionButton 
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-white/95 text-primary hover:bg-white hover:scale-105 font-semibold rounded-full px-6 py-2.5 shadow-lg transition-all duration-300 w-full sm:w-auto"
+                icon={<Package className="h-4 w-4" />}
               >
-                <Package className="mr-1 h-4 w-4" />
                 Solicitar Serviço
-              </Button>
+              </HeroActionButton>
             </div>
           </div>
         </div>

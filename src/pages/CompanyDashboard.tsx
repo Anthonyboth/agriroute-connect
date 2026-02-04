@@ -3,6 +3,7 @@ import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { AppSpinner, CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
@@ -623,44 +624,34 @@ const CompanyDashboard = () => {
               </div>
             </div>
             
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              <Button 
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
+              <HeroActionButton 
                 onClick={() => setActiveTab('marketplace')}
-                className="bg-background text-primary hover:bg-background/90 font-bold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-lg hover:scale-105 transition-all border-2 border-primary"
+                icon={<Brain className="h-4 w-4" />}
               >
-                <Brain className="mr-2 h-5 w-5" />
                 {FRETES_IA_LABEL}
-              </Button>
+              </HeroActionButton>
               
-              <Button 
-                variant="outline"
-                size="sm"
+              <HeroActionButton 
                 onClick={() => setActiveTab('overview')}
-                className="bg-background/20 border-2 border-white text-white hover:bg-white hover:text-primary font-semibold rounded-full px-4 py-2 w-full sm:w-auto backdrop-blur-sm transition-all"
+                icon={<Building2 className="h-4 w-4" />}
               >
-                <Building2 className="mr-1 h-4 w-4" />
                 Visão Geral
-              </Button>
+              </HeroActionButton>
               
-              <Button 
-                variant="outline"
-                size="sm"
+              <HeroActionButton 
                 onClick={() => setActiveTab('fleet')}
-                className="bg-background/20 border-2 border-white text-white hover:bg-white hover:text-primary font-semibold rounded-full px-4 py-2 w-full sm:w-auto backdrop-blur-sm transition-all"
+                icon={<Truck className="h-4 w-4" />}
               >
-                <Truck className="mr-1 h-4 w-4" />
                 Frota
-              </Button>
+              </HeroActionButton>
               
-              <Button 
-                variant="outline"
-                size="sm"
+              <HeroActionButton 
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-background/20 border-2 border-white text-white hover:bg-white hover:text-primary font-semibold rounded-full px-4 py-2 w-full sm:w-auto backdrop-blur-sm transition-all"
+                icon={<Wrench className="h-4 w-4" />}
               >
-                <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
-              </Button>
+              </HeroActionButton>
             </div>
           </div>
         </div>
