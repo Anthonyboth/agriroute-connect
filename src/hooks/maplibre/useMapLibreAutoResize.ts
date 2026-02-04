@@ -2,12 +2,13 @@
  * src/hooks/maplibre/useMapLibreAutoResize.ts
  * 
  * Hook para auto-resize do mapa MapLibre.
- * Resolve o problema de "mapa branco" em Tabs/Dialogs/Panels.
+ * Resolve o problema de "mapa branco" e markers deslocados em Tabs/Dialogs/Panels.
  * 
  * Estratégia:
  * 1. ResizeObserver + requestAnimationFrame
- * 2. 3 resizes após load: imediato, +150ms, +600ms
+ * 2. Resizes em cascata após load: imediato, +150ms, +350ms, +600ms
  * 3. Só faz resize se container tem dimensões > 0
+ * 4. ✅ Resize duplo em RAF para garantir sincronização com animações de Dialog/Drawer
  */
 
 import { useEffect, useRef, MutableRefObject } from 'react';
@@ -21,7 +22,8 @@ interface UseMapLibreAutoResizeOptions {
   debug?: boolean;
 }
 
-const DEFAULT_RESIZE_DELAYS = [0, 150, 600];
+// ✅ Delays otimizados para Dialog/Drawer animations (duration ~200-300ms)
+const DEFAULT_RESIZE_DELAYS = [0, 150, 350, 600];
 
 /**
  * Hook que gerencia auto-resize do mapa em containers dinâmicos
@@ -48,6 +50,7 @@ export function useMapLibreAutoResize(
 
     /**
      * Executa resize de forma segura
+     * ✅ Resize duplo em RAF para sincronizar com animações
      */
     const safeResize = () => {
       try {
@@ -74,8 +77,17 @@ export function useMapLibreAutoResize(
         }
 
         lastSizeRef.current = { width, height };
+        
+        // ✅ Resize duplo: primeiro resize + segundo em próximo frame
+        // Isso garante sincronização após animações de Dialog/Drawer
         map.resize();
-        log('Resize executado', { width, height });
+        requestAnimationFrame(() => {
+          try {
+            mapRef.current?.resize();
+          } catch {}
+        });
+        
+        log('Resize executado (duplo)', { width, height });
       } catch (error) {
         console.error('[MapLibre] Erro ao fazer resize:', error);
       }
@@ -83,6 +95,7 @@ export function useMapLibreAutoResize(
 
     /**
      * Agenda resizes após load
+     * ✅ Múltiplos resizes para cobrir diferentes durações de animação
      */
     const scheduleResizes = () => {
       resizeDelays.forEach((delay) => {

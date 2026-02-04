@@ -54,10 +54,21 @@ export const DriverLocationMapMapLibre = ({
 
   // Factory para criar elemento do marker
   // ✅ PADRÃO OURO V2: Retorna elemento raiz com dimensões FIXAS 40x40px
+  // ✅ CORRIGIDO: Forçar dimensões inline para prevenir markers gigantes em animações
   const markerFactory = useCallback(() => {
     const el = createTruckMarkerElement(true);
-    // Classe 'truck-marker' define 40x40px via CSS
-    // O hook useMapLibreMarkers usa anchor: 'center' para esta classe
+    
+    // ✅ CRÍTICO: Forçar dimensões inline como proteção contra scale() de Dialog/Drawer
+    // Mesmo que CSS defina 40x40, scale() pode distorcer. Inline styles têm maior precedência.
+    el.style.width = '40px';
+    el.style.height = '40px';
+    el.style.maxWidth = '40px';
+    el.style.maxHeight = '40px';
+    el.style.minWidth = '40px';
+    el.style.minHeight = '40px';
+    el.style.boxSizing = 'border-box';
+    el.style.transform = 'none'; // Previne herança de transforms
+    
     return el;
   }, []);
 

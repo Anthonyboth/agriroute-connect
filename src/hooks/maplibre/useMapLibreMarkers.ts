@@ -134,8 +134,25 @@ export function useMapLibreMarkers(
         let anchor: maplibregl.PositionAnchor = 'bottom';
         if (element?.classList.contains('truck-marker')) {
           anchor = 'center';
+          // ✅ PROTEÇÃO contra markers gigantes em Dialog/Drawer com animações scale()
+          // Forçar dimensões inline no elemento raiz
+          element.style.width = '40px';
+          element.style.height = '40px';
+          element.style.maxWidth = '40px';
+          element.style.maxHeight = '40px';
+          element.style.minWidth = '40px';
+          element.style.minHeight = '40px';
+          element.style.transform = 'none';
         } else if (element?.classList.contains('location-pin-marker')) {
           anchor = 'bottom';
+          // ✅ PROTEÇÃO para pins de localização (32x40px)
+          element.style.width = '32px';
+          element.style.height = '40px';
+          element.style.maxWidth = '32px';
+          element.style.maxHeight = '40px';
+          element.style.minWidth = '32px';
+          element.style.minHeight = '40px';
+          element.style.transform = 'none';
         }
 
         const markerOptions: maplibregl.MarkerOptions = {
