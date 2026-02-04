@@ -49,12 +49,12 @@ export const useServiceRequestCounts = (providerId?: string) => {
         });
 
         if (!error && data) {
-          // ✅ CORREÇÃO: Usar função de matching inteligente por categoria
+          // Matching estrito: service_type precisa bater exatamente
           availableRequests = (data as any[]).filter((r: any) => {
             // Deve estar OPEN
             if (r.status !== 'OPEN') return false;
             
-            // Usar matching inteligente que entende SERVICO_AGRICOLA → AGRONOMO
+            // service_type exato (AGRONOMO só vê AGRONOMO; PULVERIZACAO_DRONE só vê PULVERIZACAO_DRONE)
             return canProviderHandleService(providerServiceTypes, r.service_type);
           });
         }

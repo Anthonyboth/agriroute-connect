@@ -38,15 +38,14 @@ export const useServicesOnly = () => {
       // Obter tipos de serviço do prestador
       const providerServiceTypes: string[] = profile?.service_types || [];
 
-      // ✅ CORREÇÃO: Usar matching inteligente por categoria
-      // Aceita SERVICO_AGRICOLA se prestador oferece AGRONOMO, ANALISE_SOLO, etc.
+      // Matching estrito: service_type precisa bater exatamente
       const validServices = (data || []).filter((s: any) => {
         if (!s.service_type) return false;
         
         // Se prestador não configurou tipos, mostrar todos os serviços
         if (providerServiceTypes.length === 0) return true;
         
-        // Usar matching inteligente
+        // service_type exato
         return canProviderHandleService(providerServiceTypes, s.service_type);
       });
 

@@ -383,6 +383,18 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         return;
       }
 
+      // ✅ Regra do produto: NÃO criar solicitações genéricas de categoria.
+      // Para serviços de catálogo (agrícola/técnico), o usuário precisa selecionar um serviço específico (serviceId).
+      if ((serviceType === 'SERVICO_AGRICOLA' || serviceType === 'SERVICO_TECNICO') && (!catalogServiceId || catalogServiceId.length === 0)) {
+        showFormError({
+          field: 'Tipo de Serviço',
+          problem: 'Seleção de serviço específica ausente.',
+          solution: 'Volte e selecione um serviço específico (ex: Agrônomo, Análise de Solo, Pulverização por Drone).',
+        });
+        setLoading(false);
+        return;
+      }
+
       const originAddress = `${formData.origin.street}, ${formData.origin.number}${
         formData.origin.complement ? `, ${formData.origin.complement}` : ""
       }, ${formData.origin.neighborhood}, ${formData.origin.city} - ${formData.origin.state}`;
