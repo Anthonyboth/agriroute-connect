@@ -109,7 +109,7 @@ export function normalizeServiceType(serviceType: string): string {
     
     // Serviços de transporte e logística
     'CARGA': 'Carga',
-    'CARREGAMENTO_DESCARREGAMENTO': 'Carregamento e Descarregamento',
+    'CARREGAMENTO_DESCARREGAMENTO': 'Saqueiros / Ajudantes de Carga',
     'ARMAZENAGEM': 'Armazenagem',
     'CLASSIFICACAO_GRAOS': 'Classificação de Grãos',
     'SECAGEM_GRAOS': 'Secagem de Grãos',
