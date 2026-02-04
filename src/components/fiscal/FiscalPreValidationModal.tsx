@@ -5,10 +5,11 @@
  * DEVE SER EXIBIDO ANTES DE QUALQUER COBRANÇA (PIX/taxa)
  */
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   AlertCircle, 
   XCircle, 
@@ -19,6 +20,7 @@ import {
   FileCheck,
   Truck,
   MessageCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { EmissionBlocker } from '@/hooks/useFiscalEmissionReadiness';
 import { Severity } from '@/lib/fiscal-requirements';
@@ -86,6 +88,29 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
 }) => {
   const hasBlockers = blockers.length > 0;
   const documentLabel = DOCUMENT_LABELS[documentType] || documentType;
+  const [showTips, setShowTips] = useState(false);
+
+  const quickTips = useMemo(() => {
+    const tips: string[] = [];
+    const blockerIds = new Set(blockers.map((b) => b.id));
+
+    if (blockerIds.has('no-cnpj')) {
+      tips.push('Na aba "Emissor", preencha o CNPJ/CPF com 11 (CPF) ou 14 (CNPJ) dígitos.');
+      tips.push('Se você colou com pontos e traços, tudo bem — confirme apenas se o campo foi salvo.');
+    }
+
+    if (blockerIds.has('incomplete-address')) {
+      tips.push('Confirme se Logradouro, Número, Bairro, Cidade, UF e CEP estão preenchidos no emissor.');
+      tips.push('No CEP, use 8 dígitos (ex.: 01001-000).');
+    }
+
+    // Dica geral para evitar dados desatualizados no modal
+    if (blockers.length > 0) {
+      tips.push('Depois de salvar, feche e abra novamente a emissão para recarregar os dados do emissor.');
+    }
+
+    return tips;
+  }, [blockers]);
 
   // Abrir WhatsApp do suporte
   const handleContactSupport = () => {
@@ -181,23 +206,50 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
             )}
 
             {/* Informações adicionais */}
-            <div className="p-4 bg-muted/50 rounded-lg border mt-4">
-              <h4 className="text-sm font-medium mb-2">O que fazer agora?</h4>
-              <ul className="text-sm text-muted-foreground space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">1.</span>
-                  Resolva as pendências listadas acima
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">2.</span>
-                  Acesse a aba "Emissor" para completar seu cadastro fiscal
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">3.</span>
-                  Após resolver, tente emitir novamente
-                </li>
-              </ul>
-            </div>
+            <Collapsible open={showTips} onOpenChange={setShowTips}>
+              <div className="p-4 bg-muted/50 rounded-lg border mt-4">
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between text-left"
+                    aria-expanded={showTips}
+                  >
+                    <span className="text-sm font-medium">O que fazer agora?</span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${showTips ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="pt-3">
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold text-primary">1.</span>
+                      Resolva as pendências listadas acima
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold text-primary">2.</span>
+                      Acesse a aba "Emissor" para completar seu cadastro fiscal
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold text-primary">3.</span>
+                      Após resolver, tente emitir novamente
+                    </li>
+                  </ul>
+
+                  {quickTips.length > 0 && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-sm font-medium">Dicas rápidas</p>
+                      <ul className="mt-2 text-sm text-muted-foreground space-y-2 list-disc pl-5">
+                        {quickTips.map((tip) => (
+                          <li key={tip}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
           </div>
         </ScrollArea>
 

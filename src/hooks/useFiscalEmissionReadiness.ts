@@ -30,6 +30,7 @@ export interface EmissionBlocker {
 
 export interface FiscalIssuerData {
   id?: string;
+  // Campos legados (pt-BR)
   cnpj_cpf?: string;
   razao_social?: string;
   ie?: string;
@@ -40,10 +41,33 @@ export interface FiscalIssuerData {
   uf?: string;
   cep?: string;
   codigo_ibge?: string;
+
+  // Campos do schema atual (fiscal_issuers)
+  document_number?: string;
+  legal_name?: string;
+  state_registration?: string;
+  address_street?: string;
+  address_number?: string;
+  address_neighborhood?: string;
+  address_zip_code?: string;
+  city?: string;
+  city_ibge_code?: string;
   status?: string;
   sefaz_status?: string;
   fiscal_environment?: string;
   rntrc?: string;
+}
+
+function onlyDigits(v: string | null | undefined) {
+  return (v || '').replace(/\D/g, '');
+}
+
+function pickFirst(...values: Array<string | null | undefined>) {
+  for (const v of values) {
+    const s = (v || '').trim();
+    if (s) return s;
+  }
+  return '';
 }
 
 export interface FiscalReadinessInput {
@@ -104,7 +128,16 @@ export function useFiscalEmissionReadiness(input: FiscalReadinessInput): Emissio
     }
     
     // 2. CNPJ/CPF válido
-    const hasCnpjCpf = !!issuer?.cnpj_cpf && issuer.cnpj_cpf.length >= 11;
+    const issuerDocDigits = onlyDigits(
+      pickFirst(
+        issuer?.cnpj_cpf,
+        issuer?.document_number,
+        // tolerância para eventuais formatos usados em outras telas
+        (issuer as any)?.cpf_cnpj,
+        (issuer as any)?.document
+      )
+    );
+    const hasCnpjCpf = issuerDocDigits.length === 11 || issuerDocDigits.length === 14 || issuerDocDigits.length >= 11;
     if (hasIssuer && !hasCnpjCpf) {
       blockers.push({
         id: 'no-cnpj',
@@ -118,14 +151,14 @@ export function useFiscalEmissionReadiness(input: FiscalReadinessInput): Emissio
     }
     
     // 3. Endereço completo
-    const hasFullAddress = !!(
-      issuer?.logradouro &&
-      issuer?.numero &&
-      issuer?.bairro &&
-      issuer?.cidade &&
-      issuer?.uf &&
-      issuer?.cep
-    );
+    const street = pickFirst(issuer?.logradouro, issuer?.address_street);
+    const number = pickFirst(issuer?.numero, issuer?.address_number);
+    const neighborhood = pickFirst(issuer?.bairro, issuer?.address_neighborhood);
+    const city = pickFirst(issuer?.cidade, issuer?.city);
+    const uf = pickFirst(issuer?.uf);
+    const cepDigits = onlyDigits(pickFirst(issuer?.cep, issuer?.address_zip_code));
+
+    const hasFullAddress = !!(street && number && neighborhood && city && uf && cepDigits);
     if (hasIssuer && !hasFullAddress) {
       blockers.push({
         id: 'incomplete-address',
@@ -174,7 +207,8 @@ export function useFiscalEmissionReadiness(input: FiscalReadinessInput): Emissio
     }
     
     // 5. Inscrição Estadual (warning para NF-e, blocker para CT-e)
-    const hasIE = !!issuer?.ie && issuer.ie.trim().length > 0 && issuer.ie !== 'ISENTO';
+    const ieValue = pickFirst(issuer?.ie, issuer?.state_registration);
+    const hasIE = !!ieValue && ieValue.trim().length > 0 && ieValue !== 'ISENTO';
     if (hasIssuer && !hasIE) {
       warnings.push({
         id: 'no-ie-nfe',
