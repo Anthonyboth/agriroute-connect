@@ -12590,6 +12590,7 @@ export type Database = {
           destination_city: string
           destination_state: string
           distance_km: number
+          distance_to_origin_km: number
           id: string
           origin_address: string
           origin_city: string

@@ -1,0 +1,215 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+
+export interface MatchedFreight {
+  id: string;
+  cargo_type: string;
+  weight: number | null;
+  origin_address: string;
+  origin_city: string;
+  origin_state: string;
+  destination_address: string;
+  destination_city: string;
+  destination_state: string;
+  price: number | null;
+  distance_km: number | null;
+  pickup_date: string | null;
+  delivery_date: string | null;
+  urgency: string;
+  status: string;
+  service_type: string;
+  created_at: string;
+  distance_to_origin_km: number | null;
+}
+
+export interface UserCityConfig {
+  id: string;
+  city_id: string;
+  city_name: string;
+  state: string;
+  radius_km: number;
+  service_types: string[];
+  is_active: boolean;
+}
+
+export interface SmartFreightMatchingResult {
+  freights: MatchedFreight[];
+  userCities: UserCityConfig[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  hasConfiguredCities: boolean;
+  hasConfiguredServiceTypes: boolean;
+}
+
+/**
+ * Hook para matching inteligente de fretes para MOTORISTAS
+ * 
+ * Filtra fretes baseado nas cidades e tipos de serviço configurados pelo usuário.
+ * A RPC get_freights_for_driver faz toda a filtragem - este hook confia nela!
+ * 
+ * @param companyId - ID da transportadora (opcional, para motoristas afiliados)
+ * @returns Fretes filtrados, configuração de cidades e estado de loading
+ */
+export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchingResult => {
+  const { profile } = useAuth();
+  const [freights, setFreights] = useState<MatchedFreight[]>([]);
+  const [userCities, setUserCities] = useState<UserCityConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchUserCities = useCallback(async () => {
+    if (!profile?.user_id) return [];
+
+    try {
+      // Motoristas usam MOTORISTA_ORIGEM para buscar fretes de origem
+      const { data, error: fetchError } = await supabase
+        .from('user_cities')
+        .select(`
+          id,
+          city_id,
+          radius_km,
+          service_types,
+          is_active,
+          cities (name, state)
+        `)
+        .eq('user_id', profile.user_id)
+        .eq('is_active', true);
+
+      if (fetchError) throw fetchError;
+
+      return (data || []).map((uc: any) => ({
+        id: uc.id,
+        city_id: uc.city_id,
+        city_name: uc.cities?.name || '',
+        state: uc.cities?.state || '',
+        radius_km: uc.radius_km || 50,
+        service_types: uc.service_types || [],
+        is_active: uc.is_active
+      }));
+    } catch (err) {
+      console.error('[useSmartFreightMatching] Erro ao buscar cidades:', err);
+      return [];
+    }
+  }, [profile?.user_id]);
+
+  const fetchFreights = useCallback(async () => {
+    const activeMode = profile?.active_mode || profile?.role;
+    
+    if (!profile?.id || !['MOTORISTA', 'TRANSPORTADORA', 'MOTORISTA_AFILIADO'].includes(activeMode || '')) {
+      if (import.meta.env.DEV) {
+        console.warn('[useSmartFreightMatching] Role/mode inválido:', activeMode);
+      }
+      setFreights([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Buscar configuração de cidades
+      const citiesResult = await fetchUserCities();
+      setUserCities(citiesResult);
+
+      if (companyId) {
+        // Fretes da transportadora - busca direta
+        const { data, error: fetchError } = await supabase
+          .from('freights')
+          .select('*')
+          .eq('company_id', companyId)
+          .eq('status', 'OPEN')
+          .order('created_at', { ascending: false });
+
+        if (fetchError) throw fetchError;
+
+        const mappedFreights = (data || []).map((f: any) => ({
+          id: f.id,
+          cargo_type: f.cargo_type,
+          weight: f.weight,
+          origin_address: f.origin_address,
+          origin_city: f.origin_city,
+          origin_state: f.origin_state,
+          destination_address: f.destination_address,
+          destination_city: f.destination_city,
+          destination_state: f.destination_state,
+          price: f.price,
+          distance_km: f.distance_km,
+          pickup_date: f.pickup_date,
+          delivery_date: f.delivery_date,
+          urgency: f.urgency,
+          status: f.status,
+          service_type: f.service_type,
+          created_at: f.created_at,
+          distance_to_origin_km: null
+        }));
+
+        setFreights(mappedFreights);
+      } else {
+        // Usar RPC para motoristas independentes - já filtra por cidade e tipo
+        const { data, error: rpcError } = await supabase.rpc(
+          'get_freights_for_driver',
+          { p_driver_id: profile.id }
+        );
+
+        if (rpcError) throw rpcError;
+
+        const mappedFreights = (data || []).map((f: any) => ({
+          id: f.id,
+          cargo_type: f.cargo_type,
+          weight: f.weight,
+          origin_address: f.origin_address,
+          origin_city: f.origin_city,
+          origin_state: f.origin_state,
+          destination_address: f.destination_address,
+          destination_city: f.destination_city,
+          destination_state: f.destination_state,
+          price: f.price,
+          distance_km: f.distance_km,
+          pickup_date: f.pickup_date,
+          delivery_date: f.delivery_date,
+          urgency: f.urgency,
+          status: f.status,
+          service_type: f.service_type,
+          created_at: f.created_at,
+          distance_to_origin_km: f.distance_to_origin_km
+        }));
+
+        setFreights(mappedFreights);
+
+        if (import.meta.env.DEV) {
+          console.log('[useSmartFreightMatching] Fretes matched:', mappedFreights.length);
+          console.log('[useSmartFreightMatching] Cidades configuradas:', citiesResult.length);
+        }
+      }
+    } catch (err: any) {
+      console.error('[useSmartFreightMatching] Erro:', err);
+      setError(err.message || 'Erro ao buscar fretes');
+      setFreights([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [profile?.id, profile?.role, profile?.active_mode, profile?.user_id, companyId, fetchUserCities]);
+
+  useEffect(() => {
+    fetchFreights();
+  }, [fetchFreights]);
+
+  // Verificar se o usuário tem configuração válida
+  const hasConfiguredCities = userCities.length > 0;
+  const hasConfiguredServiceTypes = 
+    (profile?.service_types && profile.service_types.length > 0) ||
+    userCities.some(uc => uc.service_types && uc.service_types.length > 0);
+
+  return {
+    freights,
+    userCities,
+    loading,
+    error,
+    refetch: fetchFreights,
+    hasConfiguredCities,
+    hasConfiguredServiceTypes
+  };
+};
