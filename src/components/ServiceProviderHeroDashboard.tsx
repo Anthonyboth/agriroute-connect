@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -165,19 +166,16 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
             </p>
             
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
+            <div className="flex flex-wrap gap-3 justify-center items-center max-w-2xl mx-auto">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <HeroActionButton
                     onClick={() => setShowAreasModal(true)}
-                    variant="secondary"
-                    size="lg"
-                    className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+                    icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Configurar cidades e regiões onde você atende"
                   >
-                    <MapPin className="h-5 w-5 mr-2" aria-hidden="true" />
                     Configurar Região
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Defina as cidades onde você atende clientes</p>
@@ -186,16 +184,13 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <HeroActionButton
                     onClick={() => setShowServiceTypesModal(true)}
-                    variant="secondary"
-                    size="lg"
-                    className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+                    icon={<Wrench className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Configurar tipos de serviços oferecidos"
                   >
-                    <Wrench className="h-5 w-5 mr-2" aria-hidden="true" />
                     Configurar Serviços
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Configure os serviços que você oferece</p>
@@ -204,16 +199,13 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <HeroActionButton
                     onClick={() => setServicesModalOpen(true)}
-                    variant="secondary"
-                    size="lg"
-                    className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+                    icon={<Settings className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Solicitar serviços como guincho ou mudança"
                   >
-                    <Settings className="h-5 w-5 mr-2" aria-hidden="true" />
                     Solicitar Serviços
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Solicite guincho, mudança ou outros serviços</p>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Badge } from '@/components/ui/badge';
 import { Brain, MapPin, Settings, Wrench, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -51,20 +51,17 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
                 Motorista - {companyName}
               </Badge>
             )}
-            <div className="flex flex-wrap items-center justify-center gap-2 px-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 px-2">
               {canSeeFreights && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="default"
-                      size="sm"
+                    <HeroActionButton 
                       onClick={() => onTabChange('available')}
-                      className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                      icon={<Brain className="h-4 w-4" aria-hidden="true" />}
                       aria-label="Ver fretes disponíveis selecionados pela inteligência artificial"
                     >
-                      <Brain className="mr-1 h-4 w-4" aria-hidden="true" />
                       {VER_FRETES_IA_LABEL}
-                    </Button>
+                    </HeroActionButton>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Nossa IA seleciona os melhores fretes para o seu perfil</p>
@@ -74,16 +71,13 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="default"
-                    size="sm"
+                  <HeroActionButton 
                     onClick={() => onTabChange('cities')}
-                    className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                    icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Configurar cidades e regiões de atuação"
                   >
-                    <MapPin className="mr-1 h-4 w-4" aria-hidden="true" />
                     Configurar Região
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Defina as cidades onde você busca fretes</p>
@@ -92,16 +86,13 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="default"
-                    size="sm"
+                  <HeroActionButton 
                     onClick={() => onTabChange('services')}
-                    className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                    icon={<Settings className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Configurar tipos de serviços oferecidos"
                   >
-                    <Settings className="mr-1 h-4 w-4" aria-hidden="true" />
                     Configurar Serviços
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Configure os tipos de serviço que você oferece</p>
@@ -110,16 +101,13 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="default"
-                    size="sm"
+                  <HeroActionButton 
                     onClick={onServicesModalOpen}
-                    className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                    icon={<Wrench className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Solicitar serviços como guincho ou mudança"
                   >
-                    <Wrench className="mr-1 h-4 w-4" aria-hidden="true" />
                     Solicitar Serviços
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Solicite guincho, mudança ou outros serviços</p>

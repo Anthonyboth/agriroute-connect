@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatsCard } from "@/components/ui/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { HeroActionButton } from "@/components/ui/hero-action-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FreightCard } from "@/components/FreightCard";
 import { CreateFreightWizardModal } from "@/components/freight-wizard";
@@ -1284,35 +1285,34 @@ const ProducerDashboard = () => {
             <p className="text-base opacity-90 max-w-xl mx-auto mb-4">
               Gerencie seus fretes, acompanhe propostas e monitore o desempenho
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              <CreateFreightWizardModal onFreightCreated={fetchFreights} userProfile={profile} />
-              <Button
-                variant="outline"
-                size="sm"
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <CreateFreightWizardModal 
+                onFreightCreated={fetchFreights} 
+                userProfile={profile}
+                trigger={
+                  <HeroActionButton icon={<Package className="h-4 w-4" />}>
+                    Criar Frete
+                  </HeroActionButton>
+                }
+              />
+              <HeroActionButton
                 onClick={() => setActiveTab("proposals")}
-                className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
+                icon={<Users className="h-4 w-4" />}
               >
-                <Users className="mr-1 h-4 w-4" />
                 Ver Propostas
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
+              </HeroActionButton>
+              <HeroActionButton
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
+                icon={<Wrench className="h-4 w-4" />}
               >
-                <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
+              </HeroActionButton>
+              <HeroActionButton
                 onClick={() => setActiveTab("ratings")}
-                className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
+                icon={<Star className="h-4 w-4" />}
               >
-                <Star className="mr-1 h-4 w-4" />
                 Avaliações
-              </Button>
+              </HeroActionButton>
             </div>
           </div>
         </div>

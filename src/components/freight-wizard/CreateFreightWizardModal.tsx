@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
 import { CreateFreightWizard } from './CreateFreightWizard';
 
 interface CreateFreightWizardModalProps {
@@ -60,10 +61,9 @@ export function CreateFreightWizardModal({
       {trigger !== null && (
         <DialogTrigger asChild>
           {trigger || (
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
+            <HeroActionButton icon={<Package className="h-4 w-4" />}>
               Criar Frete
-            </Button>
+            </HeroActionButton>
           )}
         </DialogTrigger>
       )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Users, Star, Wrench } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreateFreightWizardModal } from '@/components/freight-wizard';
@@ -38,7 +38,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
             <p className="text-base opacity-90 max-w-xl mx-auto mb-4">
               Gerencie seus fretes, acompanhe propostas e monitore o desempenho
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <CreateFreightWizardModal 
                 onFreightCreated={onFreightCreated}
                 userProfile={profile}
@@ -46,16 +46,13 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    size="sm"
+                  <HeroActionButton 
                     onClick={onViewProposals}
-                    className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
+                    icon={<Users className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Ver propostas de motoristas para seus fretes"
                   >
-                    <Users className="mr-1 h-4 w-4" aria-hidden="true" />
                     Ver Propostas
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Veja todas as propostas de motoristas interessados nos seus fretes</p>
@@ -64,16 +61,13 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    size="sm"
+                  <HeroActionButton 
                     onClick={onOpenServices}
-                    className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
+                    icon={<Wrench className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Solicitar serviços como guincho, mudança ou frete urbano"
                   >
-                    <Wrench className="mr-1 h-4 w-4" aria-hidden="true" />
                     Solicitar Serviços
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Solicite guincho, mudança, frete de moto ou frete urbano</p>
@@ -82,16 +76,13 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    size="sm"
+                  <HeroActionButton 
                     onClick={onViewRatings}
-                    className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
+                    icon={<Star className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Ver avaliações recebidas dos motoristas"
                   >
-                    <Star className="mr-1 h-4 w-4" aria-hidden="true" />
                     Avaliações
-                  </Button>
+                  </HeroActionButton>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Veja as avaliações que você recebeu dos motoristas</p>
