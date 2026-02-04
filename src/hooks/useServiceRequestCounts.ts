@@ -31,6 +31,15 @@ export const useServiceRequestCounts = (providerId?: string) => {
 
       if (providerError) throw providerError;
 
+      // Buscar profile do prestador para obter service_types
+      const { data: providerProfile } = await supabase
+        .from('profiles')
+        .select('service_types')
+        .eq('id', providerId)
+        .maybeSingle();
+
+      const providerServiceTypes: string[] = providerProfile?.service_types || [];
+
       // Buscar solicitações disponíveis usando RPC unificado
       let availableRequests: any[] = [];
       try {
@@ -39,7 +48,19 @@ export const useServiceRequestCounts = (providerId?: string) => {
         });
 
         if (!error && data) {
-          availableRequests = (data as any[]).filter((r: any) => r.status === 'OPEN');
+          // ✅ CORREÇÃO CRÍTICA: Aplicar o MESMO filtro que o Dashboard
+          // Filtrar por status OPEN E por service_type compatível com o prestador
+          availableRequests = (data as any[]).filter((r: any) => {
+            // Deve estar OPEN
+            if (r.status !== 'OPEN') return false;
+            
+            // Se o prestador tem service_types definidos, verificar compatibilidade
+            if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
+              return false;
+            }
+            
+            return true;
+          });
         }
       } catch (err) {
         console.warn('Erro ao buscar solicitações disponíveis:', err);
