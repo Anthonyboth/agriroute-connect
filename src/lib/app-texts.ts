@@ -148,7 +148,7 @@ export const appTexts = {
     
     // Transporte e logística
     CARGA: 'Carga',
-    CARREGAMENTO_DESCARREGAMENTO: 'Carregamento e Descarregamento',
+    CARREGAMENTO_DESCARREGAMENTO: 'Saqueiros / Ajudantes de Carga',
     ARMAZENAGEM: 'Armazenagem',
     CLASSIFICACAO_GRAOS: 'Classificação de Grãos',
     SECAGEM_GRAOS: 'Secagem de Grãos',

@@ -129,8 +129,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'CARREGAMENTO_DESCARREGAMENTO',
-    label: 'Carregamento e Descarregamento',
-    description: 'Pessoas para carregamento e descarregamento de caminhões',
+    label: 'Saqueiros / Ajudantes de Carga',
+    description: 'Contratação de ajudantes (saqueiros) para carregar e descarregar caminhões - NÃO é transporte',
     icon: Users2,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
     category: 'agricultural',
@@ -688,9 +688,9 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'CARREGAMENTO_DESCARREGAMENTO_URB',
-    label: 'Carregamento e Descarregamento',
-    description: 'Serviços de carregamento e descarregamento de mercadorias',
-    icon: Package,
+    label: 'Saqueiros / Ajudantes de Carga',
+    description: 'Contratação de ajudantes (saqueiros) para carregar e descarregar caminhões - NÃO é transporte',
+    icon: Users2,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
     category: 'urban',
     clientVisible: true,
