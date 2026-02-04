@@ -42,16 +42,17 @@ serve(async (req) => {
       throw new Error('Não autorizado');
     }
 
-    // Verify user has admin role via user_roles table
+    // 🔒 SEGURANÇA: Verificar se usuário tem role de ADMIN (não moderador!)
+    // Correção: Apenas admins podem resetar senhas para evitar escalação de privilégios
     const { data: adminRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .in('role', ['admin', 'moderator'])
+      .eq('role', 'admin') // ✅ CORRIGIDO: Apenas 'admin', não 'moderator'
       .maybeSingle();
 
     if (!adminRole) {
-      console.error('[admin-reset-password] Unauthorized access attempt');
+      console.error('[admin-reset-password] Unauthorized access attempt by user:', user.id);
       
       // Send Telegram alert about unauthorized attempt
       await supabaseClient.functions.invoke('send-telegram-alert', {
@@ -59,9 +60,10 @@ serve(async (req) => {
           errorData: {
             errorType: 'SECURITY_VIOLATION',
             errorCategory: 'UNAUTHORIZED_ACCESS',
-            errorMessage: 'Unauthorized attempt to reset user password',
+            errorMessage: 'Unauthorized attempt to reset user password (non-admin)',
             metadata: {
               attempted_by_user_id: user?.id,
+              attempted_by_email: user?.email,
               timestamp: new Date().toISOString(),
             },
           },
