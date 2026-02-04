@@ -4,7 +4,7 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ============================================
-// Bottom Sheet - Estilo Instagram/Facebook
+// Bottom Sheet - Estilo Instagram/Facebook (Meta)
 // ============================================
 
 interface BottomSheetProps {
@@ -47,7 +47,7 @@ const BottomSheetOverlay = React.forwardRef<
 ))
 BottomSheetOverlay.displayName = "BottomSheetOverlay"
 
-// Container principal - estilo Meta
+// Container principal - estilo Meta Premium
 interface BottomSheetContentProps extends React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> {
   showCloseButton?: boolean;
 }
@@ -61,14 +61,14 @@ const BottomSheetContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        // Base styles
-        "fixed z-[9999] flex flex-col bg-background",
+        // Base styles - fundo contínuo
+        "fixed z-[9999] flex flex-col bg-background overflow-hidden",
         // Mobile: bottom sheet ocupando 90% da altura
         "inset-x-0 bottom-0 h-[90dvh]",
         // Desktop: centralizado com tamanho máximo
         "md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2",
         "md:h-auto md:max-h-[85vh] md:w-full md:max-w-[720px]",
-        // Borda e sombra estilo Meta
+        // Borda e cantos estilo Meta - sem cortes
         "rounded-t-[24px] md:rounded-[24px]",
         "border border-border/50",
         // Animações
@@ -87,7 +87,7 @@ const BottomSheetContent = React.forwardRef<
       {...props}
     >
       {/* Drag Handle - estilo Meta */}
-      <div className="flex justify-center pt-3 pb-1 md:hidden">
+      <div className="flex justify-center pt-3 pb-1 md:hidden flex-shrink-0">
         <div 
           className="h-1 w-10 rounded-full bg-muted-foreground/30"
           aria-hidden="true"
@@ -131,6 +131,7 @@ const BottomSheetHeader = React.forwardRef<HTMLDivElement, BottomSheetHeaderProp
       className={cn(
         "flex flex-col px-5 pt-2 pb-4 md:px-6 md:pt-4 md:pb-5",
         "border-b border-border/50",
+        "flex-shrink-0",
         className
       )}
       {...props}
@@ -167,21 +168,29 @@ const BottomSheetBody = React.forwardRef<
 ))
 BottomSheetBody.displayName = "BottomSheetBody"
 
-// Footer opcional
+// Footer visual passivo - fecha o sheet visualmente
 const BottomSheetFooter = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "px-5 py-4 md:px-6 md:py-5",
+      // Altura mínima para fechar o visual
+      children ? "px-5 py-4 md:px-6 md:py-5" : "h-6",
       "border-t border-border/50",
       "bg-background",
+      "flex-shrink-0",
+      // Sombra interna sutil no topo
       className
     )}
+    style={{
+      boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.04)'
+    }}
     {...props}
-  />
+  >
+    {children}
+  </div>
 ))
 BottomSheetFooter.displayName = "BottomSheetFooter"
 

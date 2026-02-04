@@ -5,7 +5,8 @@ import {
   BottomSheet, 
   BottomSheetContent, 
   BottomSheetHeader, 
-  BottomSheetBody 
+  BottomSheetBody,
+  BottomSheetFooter 
 } from "@/components/ui/bottom-sheet";
 import { ServiceCategoryCard } from "./ServiceCategoryCard";
 import ServiceRequestModal from "./ServiceRequestModal";
@@ -194,7 +195,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
               </Button>
             )}
 
-            {/* VIEW 1: Categorias - Cards estilo Facebook */}
+            {/* VIEW 1: Categorias - Cards estilo Facebook Premium */}
             {viewMode === "categories" && (
               <div className="flex flex-col gap-3">
                 {categoryCards.map((category) => (
@@ -225,6 +226,9 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
               />
             )}
           </BottomSheetBody>
+
+          {/* Footer visual passivo - fecha o sheet sem cortes */}
+          <BottomSheetFooter />
         </BottomSheetContent>
       </BottomSheet>
 
