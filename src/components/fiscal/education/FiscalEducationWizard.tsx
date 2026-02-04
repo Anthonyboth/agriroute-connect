@@ -597,28 +597,48 @@ const Step6Summary: React.FC<{
         </AlertDescription>
       </Alert>
 
-      <Card className="border-primary/30">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
+      {/* Aceite Jurídico Obrigatório */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-4 space-y-4">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Declaração de Responsabilidade Fiscal
+          </h4>
+          
+          <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+            <p className="italic">
+              "Declaro que estou ciente das obrigações fiscais exigidas pela SEFAZ do meu estado, 
+              que sou responsável pela regularidade do meu cadastro e que entendo que a negativa 
+              de emissão por parte do fisco não caracteriza falha do sistema."
+            </p>
+          </div>
+          
+          <div className="flex items-start gap-3 pt-2">
             <Checkbox 
               id="accept-terms"
               checked={acceptedTerms}
               onCheckedChange={(checked) => onAcceptTerms(checked === true)}
             />
-            <label htmlFor="accept-terms" className="text-sm cursor-pointer">
-              <strong>Declaro que entendi minhas obrigações fiscais</strong> e estou ciente de que devo verificar 
-              meu credenciamento na SEFAZ, ter um certificado A1 válido e manter meus dados cadastrais atualizados 
-              antes de emitir documentos fiscais eletrônicos.
+            <label htmlFor="accept-terms" className="text-sm cursor-pointer leading-relaxed">
+              <strong>Confirmo que li e aceito a declaração acima.</strong> Estou ciente de que devo 
+              verificar meu credenciamento na SEFAZ, ter um certificado A1 válido e manter meus 
+              dados cadastrais atualizados antes de emitir documentos fiscais eletrônicos. 
+              Entendo que o AgriRoute atua como <strong>apoio operacional</strong> e não executa 
+              atos fiscais automatizados.
             </label>
           </div>
         </CardContent>
       </Card>
 
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground mb-2">
-          Tem dúvidas? Estamos aqui para ajudar!
+      <div className="text-center bg-muted/30 p-4 rounded-lg">
+        <p className="text-sm text-muted-foreground mb-3">
+          Dúvidas sobre sua situação fiscal? Nossa equipe pode ajudar.
         </p>
-        <SupportButton context={{ screen: 'Wizard Fiscal - Resumo' }} />
+        <SupportButton 
+          context={{ screen: 'Wizard Fiscal - Resumo' }} 
+          variant="default"
+          size="default"
+        />
       </div>
     </div>
   );

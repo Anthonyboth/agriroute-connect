@@ -165,9 +165,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
             return;
           }
 
-          // Buscar email do usuário auth (se disponível)
-          const { data: authData } = await supabase.auth.admin.getUserById?.(producer.id) || { data: null };
-          const producerEmail = (authData as any)?.user?.email || '';
+          // Email do produtor não é buscado via Admin API (requer SERVICE_ROLE_KEY)
+          // O campo email é opcional na NF-e, então deixamos vazio se não disponível
+          const producerEmail = '';
 
           // ✅ Extrair dados do destination_address quando campos específicos estão vazios
           // Formato esperado: "Rua Nome, Bairro, Cidade, UF" ou "Rua Nome, Cidade - UF"
