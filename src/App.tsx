@@ -137,15 +137,22 @@ const InspectionView = lazy(() => import("./pages/InspectionView"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
-// QueryClient com configurações otimizadas de cache
+// ✅ PERFORMANCE: QueryClient com configurações otimizadas para eliminar polling
+// - staleTime: 10 minutos (dados considerados frescos por mais tempo)
+// - gcTime: 15 minutos (manter cache por mais tempo)
+// - refetchOnWindowFocus: true (atualizar quando voltar para aba)
+// - refetchInterval: false (NUNCA fazer polling automático)
+// - refetchOnMount: false (não refetch se dados no cache)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados frescos
-      gcTime: 10 * 60 * 1000, // 10 minutos - tempo no cache
-      refetchOnWindowFocus: false, // Não refetch ao voltar para aba (economiza requests)
+      staleTime: 10 * 60 * 1000, // 10 minutos - dados considerados frescos
+      gcTime: 15 * 60 * 1000, // 15 minutos - tempo no cache
+      refetchOnWindowFocus: true, // ✅ Atualizar ao voltar para aba
       refetchOnMount: false, // Não refetch ao montar se dados no cache
-      retry: 1, // Apenas 1 retry em caso de erro (reduz latência)
+      refetchOnReconnect: true, // Atualizar ao reconectar
+      retry: 1, // Apenas 1 retry em caso de erro
+      refetchInterval: false, // ❌ NUNCA fazer polling automático
     },
   },
 });

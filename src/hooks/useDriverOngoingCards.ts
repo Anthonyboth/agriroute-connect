@@ -105,11 +105,17 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
   return useQuery({
     queryKey: ["driver-ongoing-cards", driverProfileId],
     enabled: Boolean(driverProfileId),
-    // ✅ Evita "cards perdidos" por cache/estado antigo
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000,
+    // ✅ PERFORMANCE: Configuração otimizada para evitar polling excessivo
+    // - staleTime: 5 minutos (dados são frescos por mais tempo)
+    // - Sem refetchInterval (polling) - dados atualizam via:
+    //   1. Ação do usuário (botão Atualizar)
+    //   2. Voltar para aba (refetchOnWindowFocus)
+    //   3. Realtime do Supabase (quando disponível)
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnMount: true, // Refetch ao entrar na tela
+    refetchOnWindowFocus: true, // Refetch ao voltar para aba
+    // ❌ REMOVIDO: refetchInterval: 30000 - causava excesso de requests
     queryFn: async () => {
       if (!driverProfileId) {
         return {

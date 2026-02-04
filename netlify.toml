@@ -3,6 +3,11 @@
   command = "npm run build"
 
 # ================================
+# PERFORMANCE: Headers ANTES dos Redirects para prioridade correta
+# Assets com hash imutáveis - cache de 1 ano
+# ================================
+
+# ================================
 # CRITICAL: Asset paths MUST NOT be rewritten to index.html
 # These rules MUST come BEFORE the SPA fallback
 # ================================
@@ -11,13 +16,6 @@
 [[redirects]]
   from = "/assets/*"
   to = "/assets/:splat"
-  status = 200
-  force = true
-
-# Explicitly serve all static files - DO NOT REWRITE
-[[redirects]]
-  from = "/*.js"
-  to = "/:splat.js"
   status = 200
   force = true
 
