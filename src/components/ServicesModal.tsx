@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Truck, Leaf, Package, Wrench, Building2, ListChecks, ChevronRight } from "lucide-react";
 import ServiceRequestModal from "./ServiceRequestModal";
 import { ServiceCatalogGrid } from "./ServiceCatalogGrid";
 import { FreightTransportModal } from "./FreightTransportModal";
@@ -18,6 +16,26 @@ interface ServicesModalProps {
 
 type ServiceCategory = "technical" | "agricultural" | "logistics" | "urban" | "freight";
 type ViewMode = "categories" | "services";
+
+// Mapeamento de ícones profissionais para cada categoria
+const categoryIcons: Record<string, React.ElementType> = {
+  freight: Truck,
+  agricultural: Leaf,
+  logistics: Package,
+  technical: Wrench,
+  urban: Building2,
+  all: ListChecks,
+};
+
+// Cores profissionais para ícones (apenas o ícone, não o fundo)
+const iconColors: Record<string, string> = {
+  freight: "text-orange-600",
+  agricultural: "text-green-600",
+  logistics: "text-blue-600",
+  technical: "text-purple-600",
+  urban: "text-cyan-600",
+  all: "text-primary",
+};
 
 export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, onSelect, mode = "client" }) => {
   const [viewMode, setViewMode] = useState<ViewMode>("categories");
@@ -53,74 +71,56 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
     () => [
       {
         id: "freight",
-        icon: "🚛",
         title: "Fretes e Transportes",
         description: "Guincho, mudanças, frete urbano e rural",
-        color: "bg-orange-50 text-orange-600 dark:bg-orange-900/20 border-orange-200",
         count: countByCategory("freight"),
       },
       {
         id: "agricultural",
-        icon: "🌾",
         title: "Serviços Agrícolas",
-        description: "Plantio, colheita, pulverização e mais",
-        color: "bg-green-50 text-green-600 dark:bg-green-900/20 border-green-200",
+        description: "Plantio, colheita, pulverização e outros",
         count: countByCategory("agricultural"),
       },
       {
         id: "logistics",
-        icon: "📦",
         title: "Serviços Logísticos",
         description: "Armazenamento, distribuição e transporte",
-        color: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 border-blue-200",
         count: countByCategory("logistics"),
       },
       {
         id: "technical",
-        icon: "🔧",
         title: "Serviços Técnicos",
-        description: "Manutenção, reparos e assistência",
-        color: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 border-purple-200",
+        description: "Manutenção, reparos e assistência especializada",
         count: countByCategory("technical"),
       },
       {
         id: "urban",
-        icon: "🏘️",
         title: "Serviços Urbanos",
         description: "Entregas, mensageiro e serviços na cidade",
-        color: "bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 border-cyan-200",
         count: countByCategory("urban"),
       },
       {
         id: "all",
-        icon: "📋",
-        title: "Todos os Serviços",
-        description: "Veja a lista completa de serviços disponíveis",
-        color:
-          "bg-gradient-to-br from-primary/10 to-accent/10 text-primary dark:from-primary/20 dark:to-accent/20 border-primary/30",
+        title: "Todas as Categorias",
+        description: "Visualize a lista completa de serviços disponíveis",
         count: allTabCount,
       },
     ],
     [allTabCount, baseServices], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // ✅ Sempre que abrir, resetar estado interno (evita “ficar preso” em sub-tela)
+  // ✅ Sempre que abrir, resetar estado interno (evita "ficar preso" em sub-tela)
   useEffect(() => {
     if (!isOpen) return;
     setViewMode("categories");
     setSelectedCategory(null);
-    // não mexe em freightTransportModal aqui, pois ele é outro modal
-    // não fecha serviceRequestModal aqui, pois ele pode abrir após seleção
   }, [isOpen]);
 
   const closeDialog = () => {
-    // ✅ fecha somente o ServicesModal (sem “matar” modais filhos)
     onClose();
   };
 
   const handleCategoryClick = (categoryId: string) => {
-    // ✅ Para fretes/transportes, abrir o modal específico e fechar o ServicesModal
-    // (evita dois modais competindo e garante fluxo consistente)
     if (categoryId === "freight") {
       setFreightTransportModal(true);
       onClose();
@@ -137,14 +137,12 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
   };
 
   const handleServiceRequest = (service: any) => {
-    // Se o caller quer interceptar seleção
     if (onSelect) {
       onSelect(service);
       onClose();
       return;
     }
 
-    // Caso padrão: abre ServiceRequestModal e fecha ServicesModal
     setServiceRequestModal({
       isOpen: true,
       serviceId: service.id,
@@ -156,73 +154,81 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
     onClose();
   };
 
+  // Título e descrição profissionais (sem emojis)
   const titleText =
     viewMode === "categories"
-      ? "🎯 Escolha a Categoria de Serviço"
+      ? "Categorias de Serviços"
       : selectedCategory === "all"
-        ? "📋 Todos os Serviços"
-        : `${categoryCards.find((c) => c.id === selectedCategory)?.icon ?? ""} ${
-            categoryCards.find((c) => c.id === selectedCategory)?.title ?? "Serviços"
-          }`;
+        ? "Todos os Serviços"
+        : categoryCards.find((c) => c.id === selectedCategory)?.title ?? "Serviços";
 
   const descriptionText =
     viewMode === "categories"
-      ? "Selecione o tipo de serviço que você precisa"
+      ? "Selecione a categoria para visualizar os serviços disponíveis"
       : selectedCategory === "all"
-        ? "Todos os serviços disponíveis na plataforma"
-        : "Escolha o serviço específico";
+        ? "Lista completa de serviços disponíveis na plataforma"
+        : "Selecione o serviço desejado";
 
   return (
     <>
       <Dialog
         open={isOpen}
         onOpenChange={(open) => {
-          // ✅ só fecha quando usuário fecha (X / clique fora / ESC)
           if (!open) closeDialog();
         }}
       >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center">{titleText}</DialogTitle>
-            <DialogDescription className="text-center text-lg">{descriptionText}</DialogDescription>
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-xl font-semibold text-foreground">{titleText}</DialogTitle>
+            <DialogDescription className="text-muted-foreground">{descriptionText}</DialogDescription>
           </DialogHeader>
 
           {/* Botão Voltar quando estiver visualizando serviços */}
           {viewMode === "services" && (
-            <Button variant="ghost" onClick={handleBack} className="mb-4 hover:bg-accent">
+            <Button variant="ghost" onClick={handleBack} className="mb-4 hover:bg-muted w-fit">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para Categorias
             </Button>
           )}
 
-          {/* VIEW 1: Categorias */}
+          {/* VIEW 1: Categorias - Design Profissional B2B */}
           {viewMode === "categories" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
-              {categoryCards.map((category) => (
-                <Card
-                  key={category.id}
-                  className={`hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 ${category.color}`}
-                  onClick={() => handleCategoryClick(category.id)}
-                >
-                  <CardHeader>
-                    <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="text-5xl">{category.icon}</div>
-                      <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                        {category.title}
-                      </CardTitle>
-                      <Badge variant="secondary" className="text-sm">
-                        {category.count} {category.count === 1 ? "serviço" : "serviços"}
-                      </Badge>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              {categoryCards.map((category) => {
+                const IconComponent = categoryIcons[category.id] || ListChecks;
+                const iconColor = iconColors[category.id] || "text-primary";
+                
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category.id)}
+                    className="group flex items-start gap-4 p-4 bg-card hover:bg-muted/50 border border-border hover:border-muted-foreground/30 rounded-lg transition-all duration-150 text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    {/* Ícone */}
+                    <div className={`flex-shrink-0 p-2.5 rounded-lg bg-muted/50 ${iconColor}`}>
+                      <IconComponent className="h-5 w-5" strokeWidth={1.75} />
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-center text-muted-foreground mb-4">{category.description}</p>
-                    <Button className="w-full" variant="outline" type="button">
-                      Ver Serviços
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                    
+                    {/* Conteúdo */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                        {category.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                        {category.description}
+                      </p>
+                      <span className="inline-block text-xs text-muted-foreground/80 mt-2">
+                        • {category.count} {category.count === 1 ? "tipo de serviço disponível" : "tipos de serviço disponíveis"}
+                      </span>
+                    </div>
+                    
+                    {/* Indicador de ação */}
+                    <div className="flex-shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -245,12 +251,10 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
       <FreightTransportModal
         isOpen={freightTransportModal}
         onClose={() => {
-          // ✅ Fecha modal de frete e também fecha ServicesModal (fluxo consistente)
           setFreightTransportModal(false);
           onClose();
         }}
         onBack={() => {
-          // ✅ Volta para ServicesModal
           setFreightTransportModal(false);
         }}
       />
