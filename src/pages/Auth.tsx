@@ -274,12 +274,8 @@ const Auth = () => {
                   localStorage.setItem('current_profile_id', profileToActivate.id);
                   toast.success('Perfil já existe! Redirecionando...');
                   
-                  // Redirecionar conforme a role
-                  if (targetRole === 'PRESTADOR_SERVICOS') {
-                    navigate('/cadastro-prestador');
-                  } else {
-                    navigate('/complete-profile');
-                  }
+                  // Redirecionar para complete-profile (TODOS os tipos usam o mesmo fluxo limpo)
+                  navigate('/complete-profile');
                 }
               } else {
                 // ✅ P0 HOTFIX: Criar novo perfil via RPC (idempotente)
@@ -343,12 +339,8 @@ const Auth = () => {
                     }
                   }
                   
-                  // Redirecionar conforme a role
-                  if (targetRole === 'PRESTADOR_SERVICOS') {
-                    navigate('/cadastro-prestador');
-                  } else {
-                    navigate('/complete-profile');
-                  }
+                  // Redirecionar para complete-profile (TODOS os tipos usam o mesmo fluxo limpo)
+                  navigate('/complete-profile');
                 } catch (createError) {
                   console.error('[Auth] Erro inesperado ao criar perfil:', createError);
                   toast.error('Erro ao criar novo perfil. Tente novamente.');
