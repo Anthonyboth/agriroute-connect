@@ -419,7 +419,27 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   });
 
   useEffect(() => {
-    fetchFreightDetails();
+    // ✅ AbortController para cancelar requisições quando o componente desmonta
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchData = async () => {
+      // Verificar se ainda está montado antes de fazer requisições
+      if (!isMounted || abortController.signal.aborted) return;
+      
+      try {
+        await fetchFreightDetails();
+      } catch (error: any) {
+        // Ignorar erros de abort - são esperados quando o componente desmonta
+        if (error?.name === 'AbortError' || abortController.signal.aborted) {
+          console.log('[FreightDetails] Fetch cancelado - componente desmontado');
+          return;
+        }
+        console.error('[FreightDetails] Erro ao carregar dados:', error);
+      }
+    };
+
+    fetchData();
 
     // Subscribe to real-time freight updates
     const channel = supabase
@@ -430,11 +450,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         table: 'freights',
         filter: `id=eq.${freightId}`
       }, (payload) => {
-        setFreight((prev: any) => prev ? { ...prev, status: payload.new.status } : prev);
+        // Apenas atualizar se ainda estiver montado
+        if (isMounted && !abortController.signal.aborted) {
+          setFreight((prev: any) => prev ? { ...prev, status: payload.new.status } : prev);
+        }
       })
       .subscribe();
 
     return () => {
+      // Cleanup: marcar como desmontado e abortar requisições pendentes
+      isMounted = false;
+      abortController.abort();
       supabase.removeChannel(channel);
     };
   }, [freightId]);
