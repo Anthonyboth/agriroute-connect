@@ -13644,7 +13644,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "driver" | "producer" | "service_provider"
+      app_role:
+        | "admin"
+        | "driver"
+        | "producer"
+        | "service_provider"
+        | "carrier"
+        | "affiliated_driver"
       freight_service_type:
         | "FRETE_MOTO"
         | "CARGA"
@@ -13903,7 +13909,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "driver", "producer", "service_provider"],
+      app_role: [
+        "admin",
+        "driver",
+        "producer",
+        "service_provider",
+        "carrier",
+        "affiliated_driver",
+      ],
       freight_service_type: [
         "FRETE_MOTO",
         "CARGA",
