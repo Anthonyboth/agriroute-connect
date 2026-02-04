@@ -347,6 +347,22 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
     return t;
   };
 
+  // ✅ FIX: Determinar o service_type final para o banco de dados
+  // PRIORIDADE: catalogServiceId > serviceType
+  // Isso garante que serviços específicos do catálogo (ex: AGRONOMO) 
+  // sejam usados em vez de tipos genéricos (ex: SERVICO_AGRICOLA)
+  const getFinalServiceType = (): string => {
+    // Se temos um ID do catálogo válido, usar ele como service_type
+    // Isso permite matching correto com os service_types dos prestadores
+    if (catalogServiceId && catalogServiceId.length > 0) {
+      console.log('[ServiceWizard] Usando catalogServiceId como service_type:', catalogServiceId);
+      return normalizeServiceTypeForDb(catalogServiceId);
+    }
+    // Fallback para o tipo genérico do wizard
+    console.log('[ServiceWizard] Usando serviceType genérico:', serviceType);
+    return normalizeServiceTypeForDb(serviceType);
+  };
+
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
 
@@ -399,16 +415,16 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         additionalInfo.technicalDetails = formData.technical;
       }
 
-      // ✅ Determinar o service_type final (catalogo pode mandar "id" que NAO é o enum)
-      // Se catalogServiceId estiver vindo como um ID do catálogo, NÃO use como service_type.
-      // Use o serviceType real do wizard.
-      const finalServiceType = normalizeServiceTypeForDb(serviceType);
+      // ✅ FIX: Usar getFinalServiceType() que prioriza catalogServiceId
+      // Isso garante que serviços específicos (AGRONOMO, ANALISE_SOLO, etc.) 
+      // sejam usados em vez de tipos genéricos (SERVICO_AGRICOLA)
+      const finalServiceType = getFinalServiceType();
 
       const { data, error } = await supabase.functions.invoke("create-guest-service-request", {
         body: {
           prospect_user_id: null,
           client_id: profile.id, // ✅ sempre vinculado ao perfil logado
-          service_type: finalServiceType, // ✅ NÃO usa catalogServiceId aqui
+          service_type: finalServiceType, // ✅ agora usa catalogServiceId quando disponível
           // ✅ se você quiser guardar referência do catálogo, vai em additional_info
           contact_name: formData.personal.name,
           contact_phone: formData.personal.phone,
