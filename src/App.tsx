@@ -965,7 +965,7 @@ const App = () => {
                             </Suspense>
                           </ProtectedRoute>
                         } />
-                        <Route path="/cadastro-prestador" element={<Suspense fallback={<ComponentLoader />}><ServiceProviderRegistration /></Suspense>} />
+                        <Route path="/cadastro-prestador" element={<Navigate to="/complete-profile" replace />} />
                         <Route 
                           path="/cadastro-transportadora" 
                           element={
