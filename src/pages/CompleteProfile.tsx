@@ -49,12 +49,13 @@ interface AddressData {
 }
 
 const CompleteProfile = () => {
-  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user } = useAuth();
+  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user, refreshProfile } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const navigate = useNavigate();
   const [newCpf, setNewCpf] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recoveringProfile, setRecoveringProfile] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   
   // Calcular modo de cadastro usando a política centralizada
@@ -549,9 +550,88 @@ const CompleteProfile = () => {
   }
 
   if (!profile) {
+    const handleCreateMissingProfile = async () => {
+      if (!user?.id) return;
+      setRecoveringProfile(true);
+      try {
+        const meta: any = (user as any)?.user_metadata || {};
+        const rawRole = String(meta?.role || meta?.active_mode || 'PRODUTOR').toUpperCase();
+        const role = rawRole === 'MOTORISTA_AUTONOMO' ? 'MOTORISTA' : rawRole;
+
+        const document = (meta?.document || meta?.cpf_cnpj || meta?.cpfCnpj || '').toString();
+        const fullName = (meta?.full_name || meta?.name || '').toString();
+        const phone = (meta?.phone || '').toString();
+
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_additional_profile', {
+          p_user_id: user.id,
+          p_role: role,
+          p_document: document ? document : null,
+          p_full_name: fullName ? fullName : null,
+          p_phone: phone ? phone : null,
+        });
+
+        if (rpcError) {
+          throw rpcError;
+        }
+
+        const result = rpcResult as any;
+        if (!result?.success) {
+          toast.error(result?.message || 'Não foi possível finalizar seu cadastro.');
+          return;
+        }
+
+        toast.success('Perfil encontrado/criado. Continuando...');
+        await refreshProfile();
+      } catch (err: any) {
+        console.error('[CompleteProfile] Falha ao recuperar perfil:', err);
+        toast.error('Não conseguimos finalizar seu cadastro automaticamente. Tente novamente.');
+      } finally {
+        setRecoveringProfile(false);
+      }
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Finalizando seu cadastro…</CardTitle>
+            <CardDescription>
+              Seu usuário foi criado, mas o perfil ainda não apareceu no sistema. Isso pode acontecer quando o e-mail foi confirmado e o perfil demorou a ser gerado.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Aguardando perfil…</span>
+            </div>
+
+            <div className="grid gap-2">
+              <Button
+                type="button"
+                onClick={() => refreshProfile()}
+                disabled={recoveringProfile}
+              >
+                Tentar novamente
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCreateMissingProfile}
+                disabled={recoveringProfile}
+              >
+                Finalizar cadastro agora
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => signOut()}
+                disabled={recoveringProfile}
+              >
+                Sair
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
