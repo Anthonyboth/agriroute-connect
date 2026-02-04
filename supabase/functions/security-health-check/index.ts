@@ -87,17 +87,27 @@ serve(async (req) => {
       });
     }
 
-    // Se houver problemas, notificar Telegram
-    if (issues.length > 0) {
+    // -----------------------------------------------------------------------
+    // ALERTAS: evitar spam com itens puramente informativos (ex.: duplicações)
+    // -----------------------------------------------------------------------
+    // A lista `issues` pode conter itens LOW (ex.: DUPLICATE_POLICIES) que são
+    // úteis para housekeeping, mas não indicam um incidente de segurança.
+    // Para o bot/monitoramento, enviamos alerta apenas quando houver pelo
+    // menos 1 item acionável (MEDIUM/HIGH/CRITICAL).
+    const actionableSeverities = new Set(['MEDIUM', 'HIGH', 'CRITICAL']);
+    const actionableIssues = issues.filter((i) => actionableSeverities.has(i.severity));
+
+    // Se houver problemas acionáveis, notificar Telegram
+    if (actionableIssues.length > 0) {
       let message = `🔒 <b>RELATÓRIO DE SEGURANÇA</b>\n\n`;
-      message += `<b>${issues.length} problema(s) detectado(s):</b>\n\n`;
-      
-      issues.forEach((issue, index) => {
+      message += `<b>${actionableIssues.length} alerta(s) acionável(is):</b>\n\n`;
+
+      actionableIssues.forEach((issue) => {
         const emoji = issue.severity === 'CRITICAL' ? '🔴' : issue.severity === 'HIGH' ? '🟠' : '🟡';
         message += `${emoji} <b>${issue.severity}</b> - ${issue.type}\n`;
         message += `   ${issue.message}\n\n`;
       });
-      
+
       message += `<b>Timestamp:</b> ${new Date().toISOString()}\n`;
       message += `\n💡 <i>Revise o painel de segurança para detalhes completos</i>`;
 
@@ -106,22 +116,26 @@ serve(async (req) => {
           errorData: {
             errorType: 'SECURITY_HEALTH_CHECK',
             errorCategory: 'MONITORING',
-            errorMessage: `Relatório de segurança: ${issues.length} problema(s) detectado(s)`,
+            errorMessage: `Relatório de segurança: ${actionableIssues.length} alerta(s) acionável(is)`,
             metadata: {
-              issues_count: issues.length,
-              critical_count: issues.filter(i => i.severity === 'CRITICAL').length,
-              high_count: issues.filter(i => i.severity === 'HIGH').length,
-              issues: issues,
-              timestamp: new Date().toISOString()
-            }
-          }
-        }
+              issues_total_count: issues.length,
+              actionable_issues_count: actionableIssues.length,
+              critical_count: actionableIssues.filter((i) => i.severity === 'CRITICAL').length,
+              high_count: actionableIssues.filter((i) => i.severity === 'HIGH').length,
+              medium_count: actionableIssues.filter((i) => i.severity === 'MEDIUM').length,
+              actionable_issues: actionableIssues,
+              all_issues: issues,
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
       });
     }
 
     return new Response(JSON.stringify({ 
       success: true,
       issues_found: issues.length,
+      actionable_issues_found: actionableIssues.length,
       issues: issues 
     }), {
       headers: { 'Content-Type': 'application/json' }
