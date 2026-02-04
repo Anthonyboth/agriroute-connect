@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Truck, Leaf, Package, Wrench, Building2, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,6 +13,13 @@ import ServiceRequestModal from "./ServiceRequestModal";
 import { ServiceCatalogGrid } from "./ServiceCatalogGrid";
 import { FreightTransportModal } from "./FreightTransportModal";
 import { ALL_SERVICE_TYPES } from "@/lib/service-types";
+
+// ============================================
+// ServicesModal - CORREÇÃO COMPLETA
+// - Overlay + Content sempre sincronizados
+// - Cliques nos cards funcionando
+// - Design consistente nas páginas internas
+// ============================================
 
 interface ServicesModalProps {
   isOpen: boolean;
@@ -36,19 +43,28 @@ const categoryIcons: Record<string, React.ElementType> = {
 
 // Cores profissionais para ícones
 const iconColors: Record<string, string> = {
-  freight: "text-orange-600",
-  agricultural: "text-green-600",
-  logistics: "text-blue-600",
-  technical: "text-purple-600",
-  urban: "text-cyan-600",
+  freight: "text-orange-600 dark:text-orange-400",
+  agricultural: "text-green-600 dark:text-green-400",
+  logistics: "text-blue-600 dark:text-blue-400",
+  technical: "text-purple-600 dark:text-purple-400",
+  urban: "text-cyan-600 dark:text-cyan-400",
   all: "text-primary",
 };
 
-export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, onSelect, mode = "client" }) => {
+export const ServicesModal: React.FC<ServicesModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSelect, 
+  mode = "client" 
+}) => {
+  // Estado interno para navegação entre steps
   const [viewMode, setViewMode] = useState<ViewMode>("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Modal de Fretes (abre separado)
   const [freightTransportModal, setFreightTransportModal] = useState(false);
 
+  // Modal de solicitação de serviço
   const [serviceRequestModal, setServiceRequestModal] = useState<{
     isOpen: boolean;
     serviceId?: string;
@@ -65,9 +81,9 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
   }, [mode]);
 
   // Contar serviços por categoria
-  const countByCategory = (cat: ServiceCategory) => {
+  const countByCategory = useCallback((cat: ServiceCategory) => {
     return baseServices.filter((s: any) => s.category === cat && !s.showOnlyInAllTab).length;
-  };
+  }, [baseServices]);
 
   const allTabCount = useMemo(() => {
     if (mode === "driver") return baseServices.length;
@@ -113,33 +129,41 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
         count: allTabCount,
       },
     ],
-    [allTabCount, baseServices], // eslint-disable-line react-hooks/exhaustive-deps
+    [countByCategory, allTabCount]
   );
 
-  // Resetar estado ao abrir
+  // CRÍTICO: Resetar estado ao abrir (não ao fechar para evitar flash)
   useEffect(() => {
-    if (!isOpen) return;
-    setViewMode("categories");
-    setSelectedCategory(null);
+    if (isOpen) {
+      setViewMode("categories");
+      setSelectedCategory(null);
+    }
   }, [isOpen]);
 
-  const handleCategoryClick = (categoryId: string) => {
+  // CRÍTICO: Handler de clique em categoria - navegação interna
+  const handleCategoryClick = useCallback((categoryId: string) => {
+    console.log('[ServicesModal] Categoria clicada:', categoryId);
+    
     if (categoryId === "freight") {
+      // Fretes abre modal separado
       setFreightTransportModal(true);
       onClose();
       return;
     }
 
+    // Outras categorias: navegação interna no mesmo sheet
     setSelectedCategory(categoryId);
     setViewMode("services");
-  };
+  }, [onClose]);
 
-  const handleBack = () => {
+  // Voltar para categorias
+  const handleBack = useCallback(() => {
     setViewMode("categories");
     setSelectedCategory(null);
-  };
+  }, []);
 
-  const handleServiceRequest = (service: any) => {
+  // Solicitar serviço
+  const handleServiceRequest = useCallback((service: any) => {
     if (onSelect) {
       onSelect(service);
       onClose();
@@ -155,26 +179,32 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
     });
 
     onClose();
-  };
+  }, [onSelect, onClose]);
 
-  // Título e descrição
-  const titleText =
-    viewMode === "categories"
-      ? "Categorias de Serviços"
-      : selectedCategory === "all"
-        ? "Todos os Serviços"
-        : categoryCards.find((c) => c.id === selectedCategory)?.title ?? "Serviços";
+  // Título e descrição dinâmicos
+  const titleText = useMemo(() => {
+    if (viewMode === "categories") return "Categorias de Serviços";
+    if (selectedCategory === "all") return "Todos os Serviços";
+    return categoryCards.find((c) => c.id === selectedCategory)?.title ?? "Serviços";
+  }, [viewMode, selectedCategory, categoryCards]);
 
-  const subtitleText =
-    viewMode === "categories"
-      ? "Selecione uma categoria para visualizar os serviços disponíveis"
-      : selectedCategory === "all"
-        ? "Lista completa de serviços disponíveis na plataforma"
-        : "Selecione o serviço desejado";
+  const subtitleText = useMemo(() => {
+    if (viewMode === "categories") return "Selecione uma categoria para visualizar os serviços disponíveis";
+    if (selectedCategory === "all") return "Lista completa de serviços disponíveis na plataforma";
+    return "Selecione o serviço desejado";
+  }, [viewMode, selectedCategory]);
+
+  // Handler para fechar o modal principal
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  }, [onClose]);
 
   return (
     <>
-      <BottomSheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      {/* MODAL PRINCIPAL - Bottom Sheet */}
+      <BottomSheet open={isOpen} onOpenChange={handleOpenChange}>
         <BottomSheetContent>
           <BottomSheetHeader 
             title={titleText} 
@@ -213,7 +243,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
               </div>
             )}
 
-            {/* VIEW 2: Serviços */}
+            {/* VIEW 2: Serviços da categoria selecionada */}
             {viewMode === "services" && selectedCategory && (
               <ServiceCatalogGrid
                 mode={mode}
@@ -232,12 +262,12 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({ isOpen, onClose, o
         </BottomSheetContent>
       </BottomSheet>
 
-      {/* Modal de Fretes e Transportes */}
+      {/* Modal de Fretes e Transportes (separado) */}
       <FreightTransportModal
         isOpen={freightTransportModal}
         onClose={() => {
           setFreightTransportModal(false);
-          onClose();
+          // Não chama onClose() aqui para permitir o usuário voltar
         }}
         onBack={() => {
           setFreightTransportModal(false);
