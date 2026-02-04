@@ -1,28 +1,29 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ============================================
 // Card de Categoria - Estilo Facebook/Instagram Premium
+// CORREÇÃO: onClick, tabIndex, acessibilidade
 // ============================================
 
 // Cores de fundo por categoria (tons suaves Meta)
 const categoryBackgrounds: Record<string, string> = {
-  freight: "bg-orange-50",
-  agricultural: "bg-green-50",
-  logistics: "bg-blue-50",
-  technical: "bg-purple-50",
-  urban: "bg-slate-50",
+  freight: "bg-orange-50 dark:bg-orange-950/30",
+  agricultural: "bg-green-50 dark:bg-green-950/30",
+  logistics: "bg-blue-50 dark:bg-blue-950/30",
+  technical: "bg-purple-50 dark:bg-purple-950/30",
+  urban: "bg-slate-50 dark:bg-slate-950/30",
   all: "bg-primary/5",
 };
 
 // Cores de fundo do ícone por categoria
 const iconBackgrounds: Record<string, string> = {
-  freight: "bg-orange-100 border-orange-200/60",
-  agricultural: "bg-green-100 border-green-200/60",
-  logistics: "bg-blue-100 border-blue-200/60",
-  technical: "bg-purple-100 border-purple-200/60",
-  urban: "bg-slate-100 border-slate-200/60",
+  freight: "bg-orange-100 dark:bg-orange-900/50 border-orange-200/60 dark:border-orange-700/50",
+  agricultural: "bg-green-100 dark:bg-green-900/50 border-green-200/60 dark:border-green-700/50",
+  logistics: "bg-blue-100 dark:bg-blue-900/50 border-blue-200/60 dark:border-blue-700/50",
+  technical: "bg-purple-100 dark:bg-purple-900/50 border-purple-200/60 dark:border-purple-700/50",
+  urban: "bg-slate-100 dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-700/50",
   all: "bg-primary/15 border-primary/20",
 };
 
@@ -50,9 +51,29 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
   const bgColor = categoryBackgrounds[id] || categoryBackgrounds.all;
   const iconBg = iconBackgrounds[id] || iconBackgrounds.all;
 
+  // CRÍTICO: Handler de clique robusto
+  const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick(id);
+  }, [id, onClick]);
+
+  // CRÍTICO: Suporte a teclado (Enter/Space)
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick(id);
+    }
+  }, [id, onClick]);
+
   return (
     <button
-      onClick={() => onClick(id)}
+      type="button"
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`${title} - ${count} ${count === 1 ? 'tipo' : 'tipos'} de serviço`}
       className={cn(
         // Layout
         "group w-full flex items-center gap-3.5 p-4",
@@ -66,16 +87,15 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
         // Hover premium
         "hover:-translate-y-0.5",
         "hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]",
-        // Focus
+        // Focus acessibilidade
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        // Touch
-        "active:scale-[0.99]"
+        // Touch feedback
+        "active:scale-[0.99]",
+        // CRÍTICO: pointer-events sempre ativo
+        "pointer-events-auto",
+        // Cursor pointer
+        "cursor-pointer"
       )}
-      style={{
-        background: isActive 
-          ? undefined 
-          : `linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%)`,
-      }}
     >
       {/* Ícone em container maior com presença visual */}
       <div
