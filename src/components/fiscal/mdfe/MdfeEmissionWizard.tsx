@@ -26,6 +26,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PixPaymentModal } from '@/components/fiscal/PixPaymentModal';
+import { FiscalPreValidationModal } from '@/components/fiscal/FiscalPreValidationModal';
+import { useFiscalPreValidation } from '@/hooks/useFiscalPreValidation';
 
 interface MdfeEmissionWizardProps {
   isOpen: boolean;
@@ -50,6 +52,15 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
   const [showPixModal, setShowPixModal] = useState(false);
   const [paymentDocumentRef, setPaymentDocumentRef] = useState('');
   const [paymentAmountCentavos, setPaymentAmountCentavos] = useState(1000);
+  
+  // ✅ PRÉ-VALIDAÇÃO FISCAL: Estado do modal
+  const [showPreValidationModal, setShowPreValidationModal] = useState(false);
+
+  // ✅ Hook de pré-validação fiscal para MDF-e
+  const { validate, canEmit, blockers, warnings } = useFiscalPreValidation({
+    fiscalIssuer,
+    documentType: 'MDFE',
+  });
 
   const hasCertificate = !!fiscalIssuer?.certificate_uploaded_at;
 
@@ -74,6 +85,19 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
     }
     setDocumentos(newDocs);
   };
+
+  // ✅ PRÉ-VALIDAÇÃO FISCAL: Verificar aptidão antes de qualquer ação
+  const handlePreValidation = useCallback(() => {
+    const result = validate();
+    
+    if (!result.canEmit) {
+      console.log('[MDFE] Pré-validação fiscal falhou:', result.blockedReasons);
+      setShowPreValidationModal(true);
+      return false;
+    }
+    
+    return true;
+  }, [validate]);
 
   const executeEmission = useCallback(async () => {
     if (!freightId) {
@@ -133,6 +157,11 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
   }, [freightId, modo, documentos, onClose]);
 
   const handleSubmit = async () => {
+    // ✅ PRÉ-VALIDAÇÃO FISCAL: ANTES de pagar ou emitir
+    if (!handlePreValidation()) {
+      return; // Modal de bloqueio será exibido
+    }
+    
     await executeEmission();
   };
 
@@ -151,6 +180,7 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
       setModo('CONTINGENCIA');
       setDocumentos([{ tipo: 'CTE', chave: '' }]);
       setShowPixModal(false);
+      setShowPreValidationModal(false);
       setPaymentDocumentRef('');
       onClose();
     }
@@ -313,6 +343,15 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Pré-Validação Fiscal */}
+      <FiscalPreValidationModal
+        open={showPreValidationModal}
+        onClose={() => setShowPreValidationModal(false)}
+        documentType="MDFE"
+        blockers={blockers}
+        warnings={warnings}
+      />
 
       {/* Modal de Pagamento PIX */}
       {showPixModal && issuerId && (

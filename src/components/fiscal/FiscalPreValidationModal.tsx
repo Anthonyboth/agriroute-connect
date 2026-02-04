@@ -3,6 +3,8 @@
  * 
  * Exibe bloqueadores fiscais que impedem a emissão de documentos
  * DEVE SER EXIBIDO ANTES DE QUALQUER COBRANÇA (PIX/taxa)
+ * 
+ * Regra crítica: Nenhuma emissão ou cobrança ocorre sem aptidão fiscal confirmada.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -21,6 +23,7 @@ import {
   Truck,
   MessageCircle,
   ChevronDown,
+  ExternalLink,
 } from 'lucide-react';
 import { EmissionBlocker } from '@/hooks/useFiscalEmissionReadiness';
 import { Severity } from '@/lib/fiscal-requirements';
@@ -112,17 +115,40 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
     return tips;
   }, [blockers]);
 
+  // Links oficiais por estado (MT prioritário)
+  const officialLinks = useMemo(() => {
+    const links: { label: string; url: string }[] = [];
+    
+    // MT - Links específicos
+    links.push({
+      label: 'Credenciamento SEFAZ-MT (OFICIAL)',
+      url: 'https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811',
+    });
+    links.push({
+      label: 'Portal e-PAC MT',
+      url: 'https://www.sefaz.mt.gov.br/epac/',
+    });
+    links.push({
+      label: 'SINTEGRA (Consulta IE)',
+      url: 'http://www.sintegra.gov.br/',
+    });
+    
+    return links;
+  }, []);
+
   // Abrir WhatsApp do suporte
   const handleContactSupport = () => {
     if (onContactSupport) {
       onContactSupport();
     } else {
-      // Fallback: abrir WhatsApp com mensagem padrão
+      // WhatsApp com número correto
       const message = encodeURIComponent(
-        `Olá! Preciso de ajuda com a emissão de ${documentLabel}. ` +
-        `Estou com os seguintes bloqueios: ${blockers.map(b => b.title).join(', ')}.`
+        `🌱 *AgriRoute - Suporte Fiscal*\n\n` +
+        `Olá! Preciso de ajuda com a emissão de ${documentLabel}.\n\n` +
+        `*Pendências identificadas:*\n${blockers.map(b => `• ${b.title}`).join('\n')}\n\n` +
+        `Por favor, me ajudem a regularizar minha situação fiscal.`
       );
-      window.open(`https://wa.me/5565999999999?text=${message}`, '_blank');
+      window.open(`https://wa.me/5566992734632?text=${message}`, '_blank');
     }
   };
 
@@ -132,15 +158,25 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertCircle className="h-5 w-5" />
-            Você ainda não pode emitir {documentType}
+            Você ainda não está habilitado para emitir {documentType}
           </DialogTitle>
           <DialogDescription>
-            Existem pendências fiscais que precisam ser resolvidas antes de prosseguir com a emissão.
+            Existem pendências fiscais obrigatórias que precisam ser resolvidas <strong>antes</strong> de prosseguir.
+            Siga as instruções abaixo para regularizar sua situação.
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1 pr-4 -mr-4">
           <div className="space-y-4">
+            {/* Mensagem principal de bloqueio */}
+            <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <p className="text-sm font-medium text-destructive">
+                ⚠️ Você ainda não está habilitado pela SEFAZ para emitir este documento.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                O pagamento e a emissão só serão liberados após a resolução das pendências abaixo.
+              </p>
+            </div>
             {/* Bloqueadores (impedem emissão) */}
             {hasBlockers && (
               <div className="space-y-3">
@@ -205,6 +241,30 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
               </div>
             )}
 
+            {/* Links Oficiais */}
+            {officialLinks.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4 text-primary" />
+                  Links Oficiais SEFAZ
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {officialLinks.map((link) => (
+                    <Button
+                      key={link.url}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => window.open(link.url, '_blank')}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      {link.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Informações adicionais */}
             <Collapsible open={showTips} onOpenChange={setShowTips}>
               <div className="p-4 bg-muted/50 rounded-lg border mt-4">
@@ -233,6 +293,10 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-bold text-primary">3.</span>
+                      Verifique seu credenciamento no portal da SEFAZ
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold text-primary">4.</span>
                       Após resolver, tente emitir novamente
                     </li>
                   </ul>
@@ -254,17 +318,22 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
         </ScrollArea>
 
         <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
-          <Button
-            variant="outline"
-            onClick={handleContactSupport}
-            className="flex items-center gap-2"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Falar com Suporte
-          </Button>
-          <Button onClick={onClose}>
-            Entendi
-          </Button>
+          <p className="text-xs text-muted-foreground text-center sm:text-left flex-1">
+            Se você tiver dúvidas sobre sua situação fiscal, fale com nosso time antes de prosseguir.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleContactSupport}
+              className="flex items-center gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Falar com Suporte
+            </Button>
+            <Button onClick={onClose}>
+              Entendi
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

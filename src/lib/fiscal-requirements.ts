@@ -355,25 +355,116 @@ const NFSE_BASE_REQUIREMENTS: FiscalRequirement[] = [
 
 // ============= REQUISITOS POR UF =============
 
+// Links oficiais SEFAZ-MT para credenciamento
+const MT_SEFAZ_CREDENCIAMENTO_NFE = {
+  label: 'Credenciamento NF-e SEFAZ-MT (OFICIAL)',
+  url: 'https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811',
+};
+
+const MT_SEFAZ_PORTAL_CONTRIBUINTE = {
+  label: 'Liberação de Senha SEFAZ-MT',
+  url: 'https://www5.sefaz.mt.gov.br/portal-do-contribuinte',
+};
+
+const MT_SEFAZ_EPAC = {
+  label: 'Portal e-PAC MT',
+  url: 'https://www.sefaz.mt.gov.br/epac/',
+};
+
 const MT_REQUIREMENTS: UFRequirements = {
   uf: 'MT',
   ufName: 'Mato Grosso',
   documents: {
     NFE: [
-      ...NFE_BASE_REQUIREMENTS.map(req => ({
-        ...req,
-        officialLinks: req.id === 'nfe-credenciamento' 
-          ? [
-              { label: 'SEFAZ-MT Credenciamento', url: 'https://www.sefaz.mt.gov.br/' },
-              ...req.officialLinks,
-            ]
-          : req.id === 'nfe-ie'
-          ? [
+      ...NFE_BASE_REQUIREMENTS.map(req => {
+        // Customização específica para credenciamento MT
+        if (req.id === 'nfe-credenciamento') {
+          return {
+            ...req,
+            title: 'Credenciamento NF-e SEFAZ-MT',
+            description: 'Para emitir NF-e no Mato Grosso, você DEVE estar credenciado como emissor de NF-e na SEFAZ-MT. Sem este credenciamento, a emissão será REJEITADA (código 230 ou similar).',
+            severity: 'blocker' as Severity,
+            officialLinks: [
+              MT_SEFAZ_CREDENCIAMENTO_NFE,
+              MT_SEFAZ_PORTAL_CONTRIBUINTE,
+              MT_SEFAZ_EPAC,
+            ],
+            tips: [
+              '1. Acesse o link oficial de Credenciamento SEFAZ-MT',
+              '2. Solicite "Senha para Contribuinte"',
+              '3. Aguarde e-mail da SEFAZ com instruções',
+              '4. Acesse "Liberação de Senha para Contribuinte"',
+              '5. Crie sua senha e conclua o credenciamento',
+              '⚠️ O processo pode levar alguns dias úteis',
+            ],
+            faq: [
+              { q: 'MEI pode emitir NF-e em MT?', a: 'MEI SÓ pode emitir NF-e se tiver Inscrição Estadual (IE) ativa. Caso contrário, utilize a Nota Fiscal Avulsa (NFA) no portal da SEFAZ-MT.' },
+              { q: 'Como sei se já estou credenciado?', a: 'Consulte seu status no portal e-PAC da SEFAZ-MT ou tente emitir uma nota em ambiente de homologação (teste).' },
+              { q: 'Erro 230 - O que significa?', a: 'Significa que seu emissor não está credenciado para NF-e. Siga os passos de credenciamento acima.' },
+            ],
+          };
+        }
+        
+        // Customização para Inscrição Estadual MT
+        if (req.id === 'nfe-ie') {
+          return {
+            ...req,
+            officialLinks: [
               { label: 'SINTEGRA-MT', url: 'http://www.sintegra.gov.br/' },
+              { label: 'Consulta Cadastro SEFAZ-MT', url: 'https://www.sefaz.mt.gov.br/' },
               ...req.officialLinks,
-            ]
-          : req.officialLinks,
-      })),
+            ],
+            tips: [
+              ...req.tips,
+              '⚠️ Em MT, a IE é obrigatória para emissão de NF-e de mercadorias',
+              'MEI sem IE deve usar Nota Fiscal Avulsa (NFA)',
+            ],
+          };
+        }
+        
+        return req;
+      }),
+      // Regra específica de senha e-PAC MT
+      {
+        id: 'nfe-mt-epac-senha',
+        title: 'Senha ativa no portal e-PAC',
+        description: 'O Mato Grosso exige senha ativa no portal e-PAC (Escrituração Fiscal Digital) para credenciamento como emissor.',
+        severity: 'blocker',
+        evidenceNeeded: true,
+        evidenceType: 'CREDENCIAMENTO',
+        officialLinks: [
+          MT_SEFAZ_EPAC,
+          MT_SEFAZ_PORTAL_CONTRIBUINTE,
+        ],
+        tips: [
+          'A senha e-PAC é diferente da senha do certificado digital',
+          'Geralmente é criada no momento do credenciamento',
+          'Mantenha a senha em local seguro',
+        ],
+        faq: [
+          { q: 'Esqueci minha senha e-PAC', a: 'Acesse o portal da SEFAZ-MT e utilize a opção de recuperação de senha.' },
+        ],
+      },
+      // Nota Fiscal Avulsa para MEI
+      {
+        id: 'nfe-mt-nfa-mei',
+        title: 'Nota Fiscal Avulsa (NFA) para MEI',
+        description: 'MEI sem Inscrição Estadual deve emitir Nota Fiscal Avulsa (NFA) diretamente no portal da SEFAZ-MT, ao invés de NF-e.',
+        severity: 'info',
+        evidenceNeeded: false,
+        officialLinks: [
+          { label: 'Portal NFA SEFAZ-MT', url: 'https://www.sefaz.mt.gov.br/' },
+        ],
+        tips: [
+          'A NFA é indicada para MEIs que vendem mercadorias esporadicamente',
+          'A emissão é feita diretamente no portal da SEFAZ-MT',
+          'Não requer certificado digital A1',
+        ],
+        faq: [
+          { q: 'Qual a diferença entre NFA e NF-e?', a: 'NFA é emitida avulsa pelo portal da SEFAZ para quem não tem credenciamento. NF-e é emitida pelo sistema do contribuinte credenciado.' },
+        ],
+      },
+      // SPED MT
       {
         id: 'nfe-mt-sped',
         title: 'Escrituração no SPED (MT)',
@@ -394,7 +485,8 @@ const MT_REQUIREMENTS: UFRequirements = {
         ...req,
         officialLinks: req.id === 'cte-credenciamento' 
           ? [
-              { label: 'SEFAZ-MT CT-e', url: 'https://www.sefaz.mt.gov.br/' },
+              { label: 'Credenciamento CT-e SEFAZ-MT', url: 'https://www.sefaz.mt.gov.br/' },
+              MT_SEFAZ_EPAC,
               ...req.officialLinks,
             ]
           : req.officialLinks,
@@ -405,7 +497,8 @@ const MT_REQUIREMENTS: UFRequirements = {
         ...req,
         officialLinks: req.id === 'mdfe-credenciamento' 
           ? [
-              { label: 'SEFAZ-MT MDF-e', url: 'https://www.sefaz.mt.gov.br/' },
+              { label: 'Credenciamento MDF-e SEFAZ-MT', url: 'https://www.sefaz.mt.gov.br/' },
+              MT_SEFAZ_EPAC,
               ...req.officialLinks,
             ]
           : req.officialLinks,
@@ -415,18 +508,30 @@ const MT_REQUIREMENTS: UFRequirements = {
       ...GTA_BASE_REQUIREMENTS.map(req => ({
         ...req,
         officialLinks: [
-          { label: 'INDEA-MT', url: 'http://www.indea.mt.gov.br/' },
+          { label: 'INDEA-MT (Guia GTA)', url: 'http://www.indea.mt.gov.br/' },
+          { label: 'Sistema e-Saniagro MT', url: 'https://www.indea.mt.gov.br/esaniagro/' },
           ...req.officialLinks,
         ],
+        tips: req.id === 'gta-cadastro-mapa'
+          ? [
+              ...req.tips,
+              'Em MT, a GTA é emitida pelo INDEA-MT',
+              'O sistema utilizado é o e-Saniagro',
+              'Produtores rurais devem estar cadastrados no INDEA',
+            ]
+          : req.tips,
       })),
     ],
   },
   generalNotes: [
-    'MT possui regras específicas de credenciamento. Verifique seu status antes de emitir.',
+    '⚠️ MT possui regras específicas de credenciamento. Verifique seu status ANTES de emitir.',
+    'O credenciamento é feito pelo portal e-PAC da SEFAZ-MT.',
+    'MEI sem IE: utilize a Nota Fiscal Avulsa (NFA) ao invés de NF-e.',
     'O INDEA-MT é responsável pela emissão de GTA no estado.',
+    'Em caso de rejeição (erro 230 ou 203), verifique seu credenciamento.',
   ],
   sefazPortal: 'https://www.sefaz.mt.gov.br/',
-  lastUpdated: '2026-01-01',
+  lastUpdated: '2026-02-01',
 };
 
 const FALLBACK_REQUIREMENTS: UFRequirements = {
