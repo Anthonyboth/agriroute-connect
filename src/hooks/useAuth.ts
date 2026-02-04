@@ -92,6 +92,23 @@ const useAuthInternal = () => {
   
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
+    // ✅ FIX: Quando force=true, limpar TODOS os gates e cooldowns primeiro
+    if (force) {
+      console.log('[useAuth] 🔄 Force refresh solicitado, limpando gates...');
+      try {
+        sessionStorage.removeItem('profile_fetch_cooldown_until');
+        clearCachedProfile(userId);
+      } catch {}
+      // Reset refs para permitir fetch imediato
+      lastFetchedUserIdRef.current = null;
+      lastFetchTimestamp.current = 0;
+      // ✅ FIX: Se fetchingRef estiver travado, resetar
+      if (fetchingRef.current) {
+        console.warn('[useAuth] ⚠️ fetchingRef estava travado, resetando para force refresh');
+        fetchingRef.current = false;
+      }
+    }
+    
     // ✅ CRÍTICO: Verificar se já buscamos este userId recentemente (anti-loop)
     if (!force && lastFetchedUserIdRef.current === userId && profile) {
       // ✅ Se for role auto-aprovada, nunca "travar" em status PENDING (mesmo que seja dado antigo em memória)
@@ -149,7 +166,9 @@ const useAuthInternal = () => {
       return;
     }
     
-    if (fetchingRef.current || !mountedRef.current) return;
+    // ✅ FIX: Não bloquear quando force=true mesmo se fetchingRef estiver ativo
+    if (!force && fetchingRef.current) return;
+    if (!mountedRef.current) return;
     
     // Throttle: prevent too frequent calls
     const now = Date.now();
