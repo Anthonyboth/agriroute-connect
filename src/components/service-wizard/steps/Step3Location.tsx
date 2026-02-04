@@ -1,9 +1,10 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ServiceFormData, ServiceType, AddressData } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Home, Building } from 'lucide-react';
+import { MapPin, Home, Building, Copy } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CitySelector } from '@/components/CitySelector';
 import { LocationFillButton } from '@/components/LocationFillButton';
@@ -227,14 +228,45 @@ export const Step3Location: React.FC<Step3Props> = ({
       />
 
       {requiresDestination && (
-        <AddressForm
-          prefix="destination"
-          title={isMudanca ? 'Endereço de Destino' : 'Endereço de Entrega'}
-          icon={<Building className="h-4 w-4" />}
-          address={formData.destination!}
-          onUpdate={onUpdate}
-          showFloorElevator={isMudanca}
-        />
+        <>
+          {/* Botão para copiar endereço de origem */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full flex items-center gap-2 text-sm border-dashed border-primary/50 text-primary hover:bg-primary/5"
+            onClick={() => {
+              // Copia todos os campos do endereço de origem para o destino
+              onUpdate('destination.city_id', formData.origin.city_id);
+              onUpdate('destination.city', formData.origin.city);
+              onUpdate('destination.state', formData.origin.state);
+              onUpdate('destination.lat', formData.origin.lat);
+              onUpdate('destination.lng', formData.origin.lng);
+              onUpdate('destination.cep', formData.origin.cep);
+              onUpdate('destination.street', formData.origin.street);
+              onUpdate('destination.number', formData.origin.number);
+              onUpdate('destination.neighborhood', formData.origin.neighborhood);
+              onUpdate('destination.complement', formData.origin.complement);
+              onUpdate('destination.reference', formData.origin.reference || '');
+              if (isMudanca) {
+                onUpdate('destination.floor', formData.origin.floor || '');
+                onUpdate('destination.hasElevator', formData.origin.hasElevator || false);
+              }
+            }}
+          >
+            <Copy className="h-4 w-4" />
+            Mesmo endereço de {isMudanca ? 'origem' : 'coleta'}
+          </Button>
+
+          <AddressForm
+            prefix="destination"
+            title={isMudanca ? 'Endereço de Destino' : 'Endereço de Entrega'}
+            icon={<Building className="h-4 w-4" />}
+            address={formData.destination!}
+            onUpdate={onUpdate}
+            showFloorElevator={isMudanca}
+          />
+        </>
       )}
 
       {isAgricultural && (
