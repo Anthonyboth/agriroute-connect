@@ -562,6 +562,8 @@ const CompleteProfile = () => {
         const fullName = (meta?.full_name || meta?.name || '').toString();
         const phone = (meta?.phone || '').toString();
 
+        console.log('[CompleteProfile] Criando perfil via RPC...', { role, hasDocument: !!document });
+
         const { data: rpcResult, error: rpcError } = await supabase.rpc('create_additional_profile', {
           p_user_id: user.id,
           p_role: role,
@@ -575,13 +577,63 @@ const CompleteProfile = () => {
         }
 
         const result = rpcResult as any;
+        console.log('[CompleteProfile] RPC result:', result);
+        
         if (!result?.success) {
           toast.error(result?.message || 'Não foi possível finalizar seu cadastro.');
           return;
         }
 
-        toast.success('Perfil encontrado/criado. Continuando...');
-        await refreshProfile();
+        toast.success('Perfil criado! Carregando dados...');
+        
+        // ✅ FIX: Aguardar a transação ser commitada antes de buscar o perfil
+        // Delay de 800ms para garantir consistência eventual do banco
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // ✅ FIX: Retry loop para buscar o perfil recém-criado
+        const maxRetries = 3;
+        let profileFound = false;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          console.log(`[CompleteProfile] Tentativa ${attempt}/${maxRetries} de carregar perfil...`);
+          
+          // Limpar cache para forçar busca fresca
+          try {
+            sessionStorage.removeItem('profile_fetch_cooldown_until');
+          } catch {}
+          
+          await refreshProfile();
+          
+          // Verificar se o perfil foi carregado (aguardando um momento para o estado atualizar)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Se ainda não temos perfil e não é a última tentativa, aguardar mais
+          if (attempt < maxRetries) {
+            // Buscar diretamente do banco para verificar
+            const { data: directCheck } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .limit(1);
+            
+            if (directCheck && directCheck.length > 0) {
+              console.log('[CompleteProfile] ✅ Perfil encontrado no banco, forçando reload...');
+              profileFound = true;
+              // Forçar um reload completo para garantir que o estado seja atualizado
+              window.location.reload();
+              return;
+            }
+            
+            // Aguardar antes da próxima tentativa
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        
+        if (!profileFound) {
+          console.warn('[CompleteProfile] Perfil criado mas não encontrado após retries');
+          toast.info('Perfil criado. Recarregando página...');
+          window.location.reload();
+        }
       } catch (err: any) {
         console.error('[CompleteProfile] Falha ao recuperar perfil:', err);
         toast.error('Não conseguimos finalizar seu cadastro automaticamente. Tente novamente.');
