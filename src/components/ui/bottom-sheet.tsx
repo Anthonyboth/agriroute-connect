@@ -19,7 +19,15 @@ const BottomSheet = ({ open, onOpenChange, children }: BottomSheetProps) => (
     open={open}
     onOpenChange={onOpenChange}
     shouldScaleBackground={false}
-    // CRÍTICO: Sem nested modals e snap points limpos
+    // CRÍTICO: Evitar fechamento ao mudar conteúdo interno
+    dismissible={true}
+    modal={true}
+    // Desabilitar snap points para evitar comportamento imprevisível
+    snapPoints={undefined}
+    // Não fechar ao arrastar para baixo rapidamente
+    closeThreshold={0.5}
+    // Mantém drawer aberto durante mudanças de estado
+    handleOnly={false}
   >
     {children}
   </DrawerPrimitive.Root>
@@ -68,8 +76,8 @@ const BottomSheetContent = React.forwardRef<
         "fixed z-50 flex flex-col bg-background overflow-hidden pointer-events-auto",
         // Mobile: bottom sheet ocupando 90% da altura
         "inset-x-0 bottom-0 h-[90dvh]",
-        // Desktop: centralizado com tamanho máximo
-        "md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2",
+        // Desktop: centralizado com tamanho máximo - CORREÇÃO: remover justify-end e garantir centralização
+        "md:inset-0 md:m-auto",
         "md:h-auto md:max-h-[85vh] md:w-full md:max-w-[720px]",
         // Borda e cantos estilo Meta - sem cortes
         "rounded-t-[24px] md:rounded-[24px]",
