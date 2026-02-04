@@ -608,9 +608,10 @@ export const ServiceProviderDashboard: React.FC = () => {
         const providerServiceTypes = profile?.service_types || [];
         
         (cityBasedRequests || []).forEach((r: any) => {
-          // FILTRO: Verificar se o service_type está na lista do prestador
-          if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
-            console.warn(`Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
+          // ✅ CORREÇÃO: Usar matching inteligente por categoria (igual ao scope === 'all')
+          // SERVICO_AGRICOLA matcheia com AGRONOMO, ANALISE_SOLO, etc.
+          if (!canProviderHandleService(providerServiceTypes, r.service_type)) {
+            console.warn(`Service type ${r.service_type} não compatível com tipos do prestador:`, providerServiceTypes);
             return;
           }
           
