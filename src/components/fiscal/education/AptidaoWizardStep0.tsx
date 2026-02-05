@@ -227,11 +227,30 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
             {showMeiWarning && (
               <Alert className="border-destructive/30 bg-destructive/5">
                 <XCircle className="h-4 w-4 text-destructive" />
-                <AlertTitle className="text-destructive">⚠️ MEI - Use NF-a no Portal SEFAZ</AlertTitle>
+                <AlertTitle className="text-destructive">⚠️ MEI - Use NF-a (Nota Fiscal Avulsa)</AlertTitle>
                 <AlertDescription className="space-y-4">
+                  {/* Informação do Sebrae sobre MEI e NF */}
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-2">
+                    <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      MEI é obrigado a emitir Nota Fiscal?
+                    </p>
+                    <p className="text-sm">
+                      <strong>Em regra, não.</strong> Porém você pode ter a obrigação em alguns casos:
+                    </p>
+                    <ul className="text-sm list-disc list-inside space-y-1">
+                      <li>Sempre que vender ou prestar serviços para <strong>outras pessoas jurídicas</strong> (empresas ou governo)</li>
+                      <li>Quando seus clientes (pessoa física) <strong>solicitarem</strong></li>
+                      <li>Sempre que precisar <strong>enviar seu produto</strong> para o cliente (ex: venda pela internet)</li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Fonte: Portal Sebrae - "Nota Fiscal para MEI"
+                    </p>
+                  </div>
+
                   <p className="font-semibold">
-                    <strong>MEI NÃO precisa emitir {documentType}.</strong> Conforme orientação da SEFAZ-MT,
-                    você deve emitir <strong>NF-a (Nota Fiscal Avulsa)</strong> diretamente no portal da SEFAZ.
+                    <strong>MEI que NÃO tem credenciamento SEFAZ pode emitir notas avulsas (NF-a)</strong> diretamente 
+                    no portal da SEFAZ com login e senha, sem precisar de certificado digital.
                   </p>
                   
                   {/* Bloco de instruções para NF-a */}
@@ -241,10 +260,10 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                       Como emitir NF-a no Portal SEFAZ-MT:
                     </p>
                     <ol className="list-decimal list-inside text-sm space-y-2">
-                      <li>Acesse o portal SEFAZ-MT com seu Certificado Digital A1</li>
-                      <li>Navegue até <strong>"NFA-e &gt; Emissão de NFA-e"</strong></li>
+                      <li>Acesse o portal SEFAZ-MT com sua <strong>senha de contribuinte</strong> (e-PAC)</li>
+                      <li>Navegue até <strong>"NFA-e → Emissão de NFA-e"</strong></li>
                       <li>Preencha os dados da nota (destinatário, produtos, valores)</li>
-                      <li>Assine e transmita - você receberá o DANFA-e para impressão</li>
+                      <li>Transmita e imprima o <strong>DANFA-e</strong></li>
                     </ol>
                     
                     <Button 
@@ -257,9 +276,37 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                       Acessar Portal SEFAZ-MT para NF-a
                     </Button>
                     
-                    <p className="text-xs text-muted-foreground">
-                      💡 <strong>Dica:</strong> Você precisa ter solicitado e liberado a senha de contribuinte no e-PAC antes de emitir.
-                    </p>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>💡 <strong>Primeira vez?</strong> Solicite a senha de contribuinte no <strong>e-PAC</strong> antes.</p>
+                      <p>🔒 <strong>Não precisa de certificado digital A1</strong> para emitir NF-a como MEI.</p>
+                    </div>
+                  </div>
+
+                  {/* Sobre a diferença NF-e vs NFA */}
+                  <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-2">
+                    <p className="font-medium">Qual a diferença entre NF-e e NF-a?</p>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-1">NF-e</th>
+                          <th className="text-left py-1">NF-a (Avulsa)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="py-1">Exige credenciamento SEFAZ</td>
+                          <td className="py-1">Apenas login/senha</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-1">Exige certificado A1</td>
+                          <td className="py-1">Não exige certificado</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1">Para empresas credenciadas</td>
+                          <td className="py-1">Para MEI ou vendas eventuais</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
                   {/* Aviso sobre NF-e voluntária */}
@@ -267,7 +314,7 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                     <div className="pt-3 border-t border-dashed space-y-3">
                       <p className="text-sm text-muted-foreground">
                         <strong>Insiste em emitir NF-e?</strong> É voluntário para MEI e exige:
-                        IE ativa + credenciamento SEFAZ + certificado A1. <strong>Não é garantido que funcione</strong> e a SEFAZ pode rejeitar.
+                        IE ativa + credenciamento SEFAZ + certificado A1. <strong>A SEFAZ pode rejeitar.</strong>
                       </p>
 
                       <div className="flex items-start gap-2 bg-destructive/10 p-3 rounded-md">
