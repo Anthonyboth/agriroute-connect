@@ -24,6 +24,17 @@ const logStep = (step: string, details?: any) => {
   console.log(`[${timestamp}] [TELEGRAM-ERROR-NOTIFIER] ${step}`, details ? JSON.stringify(details) : '');
 };
 
+/**
+ * Escapa caracteres especiais para HTML do Telegram
+ */
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function formatErrorMessage(errorData: any): string {
   const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Cuiaba' });
   const categoryIcon = errorData.errorCategory === 'CRITICAL' ? '🔴' : '🟡';
@@ -38,29 +49,29 @@ function formatErrorMessage(errorData: any): string {
 
   let message = `🚨 <b>ERRO DETECTADO - AGRIROUTE</b>\n\n`;
   
-  message += `${categoryIcon} <b>Categoria:</b> ${errorData.errorCategory || 'N/A'}\n`;
-  message += `${typeIcon} <b>Tipo:</b> ${errorData.errorType || 'N/A'}\n\n`;
+  message += `${categoryIcon} <b>Categoria:</b> ${escapeHtml(errorData.errorCategory) || 'N/A'}\n`;
+  message += `${typeIcon} <b>Tipo:</b> ${escapeHtml(errorData.errorType) || 'N/A'}\n\n`;
   
   message += `<b>📍 Localização:</b>\n`;
-  message += `  • Rota: ${errorData.route || 'N/A'}\n`;
-  message += `  • Módulo: ${errorData.module || 'N/A'}\n`;
+  message += `  • Rota: ${escapeHtml(errorData.route) || 'N/A'}\n`;
+  message += `  • Módulo: ${escapeHtml(errorData.module) || 'N/A'}\n`;
   if (errorData.functionName) {
-    message += `  • Função: ${errorData.functionName}\n`;
+    message += `  • Função: ${escapeHtml(errorData.functionName)}\n`;
   }
   message += `\n`;
   
   message += `<b>💥 Erro:</b>\n`;
-  const errorMsg = errorData.errorMessage || 'Mensagem não disponível';
+  const errorMsg = escapeHtml(errorData.errorMessage) || 'Mensagem não disponível';
   message += `<pre>${errorMsg.substring(0, 500)}${errorMsg.length > 500 ? '...' : ''}</pre>\n\n`;
   
   if (errorData.errorCode) {
-    message += `<b>📊 Código:</b> ${errorData.errorCode}\n`;
+    message += `<b>📊 Código:</b> ${escapeHtml(String(errorData.errorCode))}\n`;
   }
   
   if (errorData.userId || errorData.userEmail) {
     message += `<b>👤 Usuário:</b>\n`;
-    if (errorData.userEmail) message += `  • Email: ${errorData.userEmail}\n`;
-    if (errorData.userId) message += `  • ID: ${errorData.userId.substring(0, 8)}...\n`;
+    if (errorData.userEmail) message += `  • Email: ${escapeHtml(errorData.userEmail)}\n`;
+    if (errorData.userId) message += `  • ID: ${escapeHtml(errorData.userId.substring(0, 8))}...\n`;
     message += `\n`;
   }
   
@@ -68,10 +79,10 @@ function formatErrorMessage(errorData: any): string {
     const { userAgent, url } = errorData.metadata;
     if (userAgent || url) {
       message += `<b>🌐 Contexto:</b>\n`;
-      if (url) message += `  • URL: ${url}\n`;
+      if (url) message += `  • URL: ${escapeHtml(url)}\n`;
       if (userAgent) {
         const shortUA = userAgent.split(' ').slice(0, 3).join(' ');
-        message += `  • Browser: ${shortUA}\n`;
+        message += `  • Browser: ${escapeHtml(shortUA)}\n`;
       }
       message += `\n`;
     }
@@ -79,7 +90,8 @@ function formatErrorMessage(errorData: any): string {
   
   if (errorData.errorStack) {
     const stackLines = errorData.errorStack.split('\n').slice(0, 5);
-    message += `<b>📋 Stack:</b>\n<pre>${stackLines.join('\n').substring(0, 300)}</pre>\n\n`;
+    const escapedStack = escapeHtml(stackLines.join('\n')).substring(0, 300);
+    message += `<b>📋 Stack:</b>\n<pre>${escapedStack}</pre>\n\n`;
   }
   
   message += `<b>⏰ Timestamp:</b> ${timestamp}`;
