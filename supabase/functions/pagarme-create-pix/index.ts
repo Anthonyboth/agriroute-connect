@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     // Buscar perfil do usuário
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name, email, phone, contact_phone, emergency_contact_phone')
       .eq('user_id', userData.user.id)
       .single();
 
@@ -219,6 +219,16 @@ Deno.serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
 
+    // Pagar.me exige pelo menos um telefone do cliente
+    const customerPhone = parseBrazilPhone(profile.phone || profile.contact_phone || (profile as any).emergency_contact_phone);
+    if (!customerPhone) {
+      return jsonResponse(200, {
+        success: false,
+        code: 'CUSTOMER_PHONE_REQUIRED',
+        message: 'Cadastre um telefone no seu perfil (com DDD) para gerar o PIX.',
+      });
+    }
+
     const pagarmePayload = {
       items: [
         {
@@ -233,6 +243,9 @@ Deno.serve(async (req) => {
         email: profile.email || userData.user.email || 'cliente@agriroute.com.br',
         document: issuer.document_number?.replace(/\D/g, '') || '00000000000',
         type: (issuer.document_number?.replace(/\D/g, '').length === 14) ? 'company' : 'individual',
+        phones: {
+          mobile_phone: customerPhone,
+        },
       },
       payments: [
         {
@@ -276,7 +289,7 @@ Deno.serve(async (req) => {
         pagarmeData = JSON.parse(responseText);
       } catch {
         console.error(`[PAGARME-CREATE-PIX][${requestId}] Resposta não é JSON:`, responseText.substring(0, 500));
-        return jsonResponse(502, {
+        return jsonResponse(200, {
           success: false,
           code: 'PROVIDER_ERROR',
           message: 'Erro ao comunicar com provedor de pagamento.',
@@ -284,17 +297,17 @@ Deno.serve(async (req) => {
       }
     } catch (fetchError) {
       console.error(`[PAGARME-CREATE-PIX][${requestId}] Erro de comunicação:`, fetchError);
-      return jsonResponse(502, {
-        success: false,
-        code: 'PROVIDER_COMMUNICATION_FAILED',
-        message: 'Falha na comunicação com provedor de pagamento. Tente novamente.',
-      });
+       return jsonResponse(200, {
+         success: false,
+         code: 'PROVIDER_COMMUNICATION_FAILED',
+         message: 'Falha na comunicação com provedor de pagamento. Tente novamente.',
+       });
     }
 
     if (!pagarmeResponse.ok) {
       console.error(`[PAGARME-CREATE-PIX][${requestId}] Erro Pagar.me HTTP:`, JSON.stringify(pagarmeData).substring(0, 1000));
       const errorMessage = (pagarmeData as any)?.message || (pagarmeData as any)?.errors?.[0]?.message || 'Erro ao criar cobrança PIX.';
-      return jsonResponse(422, {
+      return jsonResponse(200, {
         success: false,
         code: 'PROVIDER_ERROR',
         message: `Erro do provedor: ${errorMessage}`,
@@ -339,7 +352,7 @@ Deno.serve(async (req) => {
         errorDetail += `Código do gateway: ${gatewayCode || 'desconhecido'}`;
       }
       
-      return jsonResponse(422, {
+      return jsonResponse(200, {
         success: false,
         code: 'PIX_GENERATION_FAILED',
         message: errorDetail,
@@ -457,3 +470,33 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+function parseBrazilPhone(raw?: string | null): {
+  country_code: string;
+  area_code: string;
+  number: string;
+} | null {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return null;
+
+  // Aceita: +55DDNNNNNNNNN, 55DDNNNNNNNNN, DDNNNNNNNNN, DDNNNNNNNN
+  let normalized = digits;
+  if (normalized.startsWith('55') && (normalized.length === 12 || normalized.length === 13)) {
+    normalized = normalized.slice(2);
+  }
+
+  if (normalized.length !== 10 && normalized.length !== 11) return null;
+
+  const area_code = normalized.slice(0, 2);
+  const number = normalized.slice(2);
+
+  // Validações mínimas
+  if (area_code.length !== 2) return null;
+  if (number.length < 8 || number.length > 9) return null;
+
+  return {
+    country_code: '55',
+    area_code,
+    number,
+  };
+}
