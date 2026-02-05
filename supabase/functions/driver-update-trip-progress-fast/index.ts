@@ -308,6 +308,97 @@ serve(async (req) => {
       } catch (e) {
         console.warn('[driver-update-trip-progress-fast] assignment sync failed', e);
       }
+
+      // 3) CRÍTICO: Notificar produtor + criar pagamento quando motorista reporta entrega
+      if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+        try {
+          // Buscar dados do frete para notificação
+          const { data: freight } = await supabaseAdmin
+            .from('freights')
+            .select('id, producer_id, price, required_trucks, origin_city, destination_city')
+            .eq('id', freightId)
+            .single();
+
+          if (freight?.producer_id) {
+            // Buscar nome do motorista
+            const { data: driverProfile } = await supabaseAdmin
+              .from('profiles')
+              .select('full_name')
+              .eq('id', profile.id)
+              .single();
+
+            const driverName = driverProfile?.full_name || 'Motorista';
+            const route = `${freight.origin_city || '?'} → ${freight.destination_city || '?'}`;
+
+            // Buscar agreed_price do assignment
+            const { data: assignmentData } = await supabaseAdmin
+              .from('freight_assignments')
+              .select('agreed_price')
+              .eq('id', assignment.id)
+              .single();
+
+            const agreedPrice = assignmentData?.agreed_price;
+            const fallbackAmount = Math.round((freight.price || 0) / Math.max(freight.required_trucks || 1, 1) * 100) / 100;
+            const amount = (agreedPrice && agreedPrice > 0) ? agreedPrice : fallbackAmount;
+
+            // 3a) Notificar produtor sobre entrega reportada
+            await supabaseAdmin.from('notifications').insert({
+              user_id: freight.producer_id,
+              title: '🚚 Entrega Reportada',
+              message: `${driverName} reportou a entrega do frete ${route}. Você tem 72h para confirmar.`,
+              type: 'delivery_reported',
+              data: {
+                freight_id: freightId,
+                driver_id: profile.id,
+                driver_name: driverName,
+                assignment_id: assignment.id,
+                amount,
+              },
+              read: false,
+            });
+            console.log('[driver-update-trip-progress-fast] Produtor notificado sobre entrega');
+
+            // 3b) Criar external_payment se não existir (para multi-carretas)
+            const { data: existingPayment } = await supabaseAdmin
+              .from('external_payments')
+              .select('id')
+              .eq('freight_id', freightId)
+              .eq('driver_id', profile.id)
+              .maybeSingle();
+
+            if (!existingPayment && amount > 0) {
+              await supabaseAdmin.from('external_payments').insert({
+                freight_id: freightId,
+                producer_id: freight.producer_id,
+                driver_id: profile.id,
+                amount,
+                status: 'proposed',
+                notes: agreedPrice ? 'Pagamento automático: valor acordado com o motorista' : 'Pagamento automático: valor calculado',
+                proposed_at: ts,
+              });
+              console.log('[driver-update-trip-progress-fast] External payment criado:', amount);
+
+              // 3c) Notificar produtor sobre pagamento pendente
+              await supabaseAdmin.from('notifications').insert({
+                user_id: freight.producer_id,
+                title: '💰 Pagamento Pendente',
+                message: `O frete foi entregue. Confirme o pagamento de R$ ${amount.toFixed(2).replace('.', ',')} para ${driverName}.`,
+                type: 'payment_pending',
+                data: {
+                  freight_id: freightId,
+                  driver_id: profile.id,
+                  amount,
+                  source: agreedPrice ? 'agreed_price' : 'calculated',
+                },
+                read: false,
+              });
+              console.log('[driver-update-trip-progress-fast] Produtor notificado sobre pagamento pendente');
+            }
+          }
+        } catch (e) {
+          console.error('[driver-update-trip-progress-fast] Erro ao notificar/criar pagamento:', e);
+        }
+      }
     };
 
     // @ts-ignore - available in Supabase Edge runtime
