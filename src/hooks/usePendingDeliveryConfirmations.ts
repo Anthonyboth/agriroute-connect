@@ -1,0 +1,377 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * ✅ P0 FIX: Busca ATRIBUIÇÕES INDIVIDUAIS com entrega pendente de confirmação
+ * 
+ * Em fretes multi-carreta, o status global do frete pode continuar ACCEPTED/OPEN
+ * enquanto motoristas individuais já reportaram entrega.
+ * 
+ * Este hook busca:
+ * 1. freight_assignments com status DELIVERED_PENDING_CONFIRMATION
+ * 2. driver_trip_progress com current_status DELIVERED ou DELIVERED_PENDING_CONFIRMATION
+ * 
+ * Isso garante que o produtor veja CADA motorista que reportou entrega,
+ * podendo confirmar individualmente.
+ */
+
+export interface PendingDeliveryItem {
+  id: string; // assignment_id (para operações)
+  freight_id: string;
+  driver_id: string;
+  assignment_status: string;
+  trip_status?: string;
+  delivered_at?: string;
+  agreed_price?: number;
+  company_id?: string;
+  // Dados do frete
+  freight: {
+    id: string;
+    cargo_type: string;
+    origin_address?: string;
+    destination_address?: string;
+    origin_city?: string;
+    destination_city?: string;
+    price: number;
+    required_trucks: number;
+    status: string;
+    pickup_date: string;
+    updated_at: string;
+  };
+  // Dados do motorista
+  driver: {
+    id: string;
+    full_name: string;
+    contact_phone?: string;
+    profile_photo_url?: string;
+    rating?: number;
+  };
+  // Dados da transportadora (se afiliado)
+  company?: {
+    id: string;
+    company_name: string;
+  };
+  // Deadline calculado
+  deliveryDeadline: {
+    hoursRemaining: number;
+    isUrgent: boolean;
+    isCritical: boolean;
+    displayText: string;
+    reportedAt: string;
+  };
+}
+
+export function usePendingDeliveryConfirmations(producerId: string | undefined) {
+  const [items, setItems] = useState<PendingDeliveryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPendingDeliveries = useCallback(async () => {
+    if (!producerId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 1. Buscar fretes do produtor (IDs apenas)
+      const { data: producerFreights, error: freightsErr } = await supabase
+        .from('freights')
+        .select('id')
+        .eq('producer_id', producerId);
+
+      if (freightsErr) {
+        console.error('[usePendingDeliveryConfirmations] Erro ao buscar fretes:', freightsErr);
+        throw freightsErr;
+      }
+
+      if (!producerFreights?.length) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
+      const freightIds = producerFreights.map(f => f.id);
+
+      // 2. Buscar atribuições com status DELIVERED_PENDING_CONFIRMATION
+      const { data: assignments, error: assignErr } = await supabase
+        .from('freight_assignments')
+        .select(`
+          id,
+          freight_id,
+          driver_id,
+          status,
+          agreed_price,
+          company_id,
+          delivered_at,
+          updated_at
+        `)
+        .in('freight_id', freightIds)
+        .eq('status', 'DELIVERED_PENDING_CONFIRMATION');
+
+      if (assignErr) {
+        console.error('[usePendingDeliveryConfirmations] Erro ao buscar atribuições:', assignErr);
+        throw assignErr;
+      }
+
+      // 3. Buscar também do driver_trip_progress (fonte de verdade para status individual)
+      const { data: tripProgress, error: tripErr } = await supabase
+        .from('driver_trip_progress')
+        .select(`
+          id,
+          freight_id,
+          driver_id,
+          assignment_id,
+          current_status,
+          delivered_at,
+          updated_at
+        `)
+        .in('freight_id', freightIds)
+        .in('current_status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION']);
+
+      if (tripErr) {
+        console.warn('[usePendingDeliveryConfirmations] Erro ao buscar trip_progress:', tripErr);
+        // Continua mesmo sem trip_progress
+      }
+
+      // 4. Combinar resultados (union por assignment_id ou driver_id+freight_id)
+      const pendingMap = new Map<string, {
+        assignment_id?: string;
+        freight_id: string;
+        driver_id: string;
+        assignment_status?: string;
+        trip_status?: string;
+        delivered_at?: string;
+        agreed_price?: number;
+        company_id?: string;
+        updated_at: string;
+      }>();
+
+      // Adicionar assignments
+      (assignments || []).forEach((a: any) => {
+        const key = `${a.freight_id}_${a.driver_id}`;
+        pendingMap.set(key, {
+          assignment_id: a.id,
+          freight_id: a.freight_id,
+          driver_id: a.driver_id,
+          assignment_status: a.status,
+          agreed_price: a.agreed_price,
+          company_id: a.company_id,
+          delivered_at: a.delivered_at,
+          updated_at: a.updated_at,
+        });
+      });
+
+      // Adicionar/atualizar com trip_progress (fonte de verdade)
+      (tripProgress || []).forEach((tp: any) => {
+        const key = `${tp.freight_id}_${tp.driver_id}`;
+        const existing = pendingMap.get(key);
+        if (existing) {
+          existing.trip_status = tp.current_status;
+          if (tp.delivered_at) existing.delivered_at = tp.delivered_at;
+        } else {
+          // Trip progress existe mas assignment não tem status correto - incluir também
+          pendingMap.set(key, {
+            assignment_id: tp.assignment_id,
+            freight_id: tp.freight_id,
+            driver_id: tp.driver_id,
+            trip_status: tp.current_status,
+            delivered_at: tp.delivered_at,
+            updated_at: tp.updated_at,
+          });
+        }
+      });
+
+      if (pendingMap.size === 0) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
+      // 5. Buscar dados completos dos fretes
+      const uniqueFreightIds = [...new Set([...pendingMap.values()].map(p => p.freight_id))];
+      const { data: freightsData, error: freightsDataErr } = await supabase
+        .from('freights')
+        .select('id, cargo_type, origin_address, destination_address, origin_city, destination_city, price, required_trucks, status, pickup_date, updated_at')
+        .in('id', uniqueFreightIds);
+
+      if (freightsDataErr) {
+        console.error('[usePendingDeliveryConfirmations] Erro ao buscar dados dos fretes:', freightsDataErr);
+      }
+
+      const freightMap = new Map((freightsData || []).map((f: any) => [f.id, f]));
+
+      // 6. Buscar dados dos motoristas
+      const uniqueDriverIds = [...new Set([...pendingMap.values()].map(p => p.driver_id))];
+      const { data: driversData, error: driversErr } = await supabase
+        .from('profiles_secure')
+        .select('id, full_name, profile_photo_url, rating')
+        .in('id', uniqueDriverIds);
+
+      if (driversErr) {
+        console.warn('[usePendingDeliveryConfirmations] Erro ao buscar motoristas:', driversErr);
+      }
+
+      const driverMap = new Map((driversData || []).map((d: any) => [d.id, d]));
+
+      // 7. Buscar dados das transportadoras (se houver)
+      const companyIds = [...new Set([...pendingMap.values()].map(p => p.company_id).filter(Boolean))] as string[];
+      let companyMap = new Map<string, any>();
+      
+      if (companyIds.length > 0) {
+        const { data: companiesData } = await supabase
+          .from('transport_companies')
+          .select('id, company_name')
+          .in('id', companyIds);
+        
+        companyMap = new Map((companiesData || []).map((c: any) => [c.id, c]));
+      }
+
+      // 8. Montar itens finais
+      const finalItems: PendingDeliveryItem[] = [];
+
+      pendingMap.forEach((pending) => {
+        const freight = freightMap.get(pending.freight_id);
+        const driver = driverMap.get(pending.driver_id);
+        
+        if (!freight || !driver) return;
+
+        // Calcular deadline (72h após reportar entrega)
+        const reportedAt = pending.delivered_at || pending.updated_at;
+        const deadline = new Date(new Date(reportedAt).getTime() + 72 * 60 * 60 * 1000);
+        const now = new Date();
+        const hoursRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
+        
+        const isUrgent = hoursRemaining < 24;
+        const isCritical = hoursRemaining < 6;
+
+        let displayText = '';
+        if (hoursRemaining === 0) displayText = 'PRAZO EXPIRADO';
+        else if (hoursRemaining < 24) displayText = `${hoursRemaining}h restantes`;
+        else {
+          const days = Math.floor(hoursRemaining / 24);
+          const hours = hoursRemaining % 24;
+          displayText = `${days}d ${hours}h restantes`;
+        }
+
+        finalItems.push({
+          id: pending.assignment_id || `${pending.freight_id}_${pending.driver_id}`,
+          freight_id: pending.freight_id,
+          driver_id: pending.driver_id,
+          assignment_status: pending.assignment_status || 'DELIVERED_PENDING_CONFIRMATION',
+          trip_status: pending.trip_status,
+          delivered_at: pending.delivered_at,
+          agreed_price: pending.agreed_price,
+          company_id: pending.company_id,
+          freight: {
+            id: freight.id,
+            cargo_type: freight.cargo_type,
+            origin_address: freight.origin_address,
+            destination_address: freight.destination_address,
+            origin_city: freight.origin_city,
+            destination_city: freight.destination_city,
+            price: freight.price,
+            required_trucks: freight.required_trucks || 1,
+            status: freight.status,
+            pickup_date: freight.pickup_date,
+            updated_at: freight.updated_at,
+          },
+          driver: {
+            id: driver.id,
+            full_name: driver.full_name,
+            profile_photo_url: driver.profile_photo_url,
+            rating: driver.rating,
+          },
+          company: pending.company_id ? companyMap.get(pending.company_id) : undefined,
+          deliveryDeadline: {
+            hoursRemaining,
+            isUrgent,
+            isCritical,
+            displayText,
+            reportedAt,
+          },
+        });
+      });
+
+      // Ordenar por urgência (mais urgentes primeiro)
+      finalItems.sort((a, b) => a.deliveryDeadline.hoursRemaining - b.deliveryDeadline.hoursRemaining);
+
+      console.log(`[usePendingDeliveryConfirmations] ✅ Encontradas ${finalItems.length} entregas pendentes de confirmação`);
+      setItems(finalItems);
+
+    } catch (err: any) {
+      console.error('[usePendingDeliveryConfirmations] Erro:', err);
+      setError(err.message || 'Erro ao buscar entregas pendentes');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [producerId]);
+
+  // Buscar ao montar e quando producerId mudar
+  useEffect(() => {
+    fetchPendingDeliveries();
+  }, [fetchPendingDeliveries]);
+
+  // Configurar realtime subscription para atualizações
+  useEffect(() => {
+    if (!producerId) return;
+
+    // Escutar mudanças em freight_assignments
+    const assignmentChannel = supabase
+      .channel('pending-deliveries-assignments')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freight_assignments',
+          filter: `status=eq.DELIVERED_PENDING_CONFIRMATION`,
+        },
+        () => {
+          console.log('[usePendingDeliveryConfirmations] Atualização em freight_assignments detectada');
+          fetchPendingDeliveries();
+        }
+      )
+      .subscribe();
+
+    // Escutar mudanças em driver_trip_progress
+    const tripChannel = supabase
+      .channel('pending-deliveries-trip')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'driver_trip_progress',
+        },
+        (payload) => {
+          const status = (payload.new as any)?.current_status;
+          if (status === 'DELIVERED' || status === 'DELIVERED_PENDING_CONFIRMATION') {
+            console.log('[usePendingDeliveryConfirmations] Atualização em driver_trip_progress detectada');
+            fetchPendingDeliveries();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      assignmentChannel.unsubscribe();
+      tripChannel.unsubscribe();
+    };
+  }, [producerId, fetchPendingDeliveries]);
+
+  return {
+    items,
+    loading,
+    error,
+    refetch: fetchPendingDeliveries,
+    // Contadores para UI
+    totalCount: items.length,
+    criticalCount: items.filter(i => i.deliveryDeadline.isCritical).length,
+    urgentCount: items.filter(i => i.deliveryDeadline.isUrgent && !i.deliveryDeadline.isCritical).length,
+  };
+}
