@@ -7,6 +7,83 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
+// ============================================================
+// FUNÇÕES DE GERENCIAMENTO DE CRÉDITOS PIX
+// ============================================================
+async function releasePixCredit(supabase: any, creditId: string | null, reason: string) {
+  if (!creditId) return;
+  
+  try {
+    const { data: tx } = await supabase
+      .from('fiscal_wallet_transactions')
+      .select('metadata')
+      .eq('id', creditId)
+      .single();
+
+    if (!tx) return;
+
+    const currentMeta = (tx.metadata as Record<string, unknown>) || {};
+    const failHistory = (currentMeta.fail_history as any[]) || [];
+    
+    failHistory.push({
+      at: new Date().toISOString(),
+      reason: reason.substring(0, 200),
+      attempt: currentMeta.attempts || 1,
+    });
+
+    await supabase
+      .from('fiscal_wallet_transactions')
+      .update({
+        metadata: {
+          ...currentMeta,
+          in_use: false,
+          last_fail_reason: reason.substring(0, 200),
+          fail_history: failHistory,
+        },
+      })
+      .eq('id', creditId);
+
+    console.log(`[nfe-emitir] 🔓 Crédito ${creditId} liberado: ${reason}`);
+  } catch (err) {
+    console.error('[nfe-emitir] Erro ao liberar crédito:', err);
+  }
+}
+
+async function consumePixCredit(supabase: any, creditId: string | null, emissionId: string) {
+  if (!creditId) return;
+  
+  try {
+    const { data: tx } = await supabase
+      .from('fiscal_wallet_transactions')
+      .select('metadata')
+      .eq('id', creditId)
+      .single();
+
+    if (!tx) return;
+
+    const currentMeta = (tx.metadata as Record<string, unknown>) || {};
+
+    await supabase
+      .from('fiscal_wallet_transactions')
+      .update({
+        metadata: {
+          ...currentMeta,
+          in_use: false,
+          consumed_at: new Date().toISOString(),
+          emission_id: emissionId,
+          used_for_emission: true,
+        },
+      })
+      .eq('id', creditId);
+
+    console.log(`[nfe-emitir] ✅ Crédito ${creditId} consumido para emissão ${emissionId}`);
+  } catch (err) {
+    console.error('[nfe-emitir] Erro ao consumir crédito:', err);
+  }
+}
+// ============================================================
+
+
 interface NFePayload {
   issuer_id: string;
   freight_id?: string;
@@ -308,51 +385,89 @@ Deno.serve(async (req) => {
     }
 
     // ============================================================
-    // VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO ANTES DA EMISSÃO)
+    // VERIFICAÇÃO DE PAGAMENTO PIX COM SISTEMA DE CRÉDITOS
     // ============================================================
-    // Calcular valor da taxa baseado no total da NF-e
     const totalNfe = valores.total || 0;
     const taxaCentavos = totalNfe <= 1000 ? 1000 : 2500; // R$ 10,00 ou R$ 25,00
 
     console.log(`[nfe-emitir] Verificando pagamento - Total NF-e: ${totalNfe}, Taxa: ${taxaCentavos} centavos`);
 
-    // Verificar se existe pagamento PAGO para este issuer + documento
+    // Configurações anti-fraude
+    const ANTI_FRAUD = {
+      MAX_ATTEMPTS: 5,
+      EXPIRY_HOURS: 48,
+      MIN_INTERVAL_SECONDS: 30,
+    };
+
+    // Buscar transações PIX pagas para este emissor + documento
     const { data: paidTransactions } = await supabase
       .from('fiscal_wallet_transactions')
-      .select('id, metadata')
+      .select('id, metadata, created_at')
       .eq('reference_type', 'pix_payment')
       .eq('transaction_type', 'pix_paid')
       .contains('metadata', { issuer_id: issuer_id, document_type: 'nfe' })
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
 
-    // Verificar se algum pagamento corresponde a esta emissão ou é um crédito disponível
     let pagamentoValido = false;
+    let creditTransactionId: string | null = null;
     let paymentChargeId: string | null = null;
+    let currentAttempts = 0;
+
+    const now = new Date();
+    const expiryThreshold = new Date(now.getTime() - ANTI_FRAUD.EXPIRY_HOURS * 60 * 60 * 1000);
 
     if (paidTransactions && paidTransactions.length > 0) {
       for (const tx of paidTransactions) {
-        const meta = tx.metadata as Record<string, unknown>;
-        // Se o pagamento já está vinculado a outra emissão, pular
-        if (meta?.used_for_emission) continue;
-        
-        // Pagamento disponível encontrado
+        const meta = tx.metadata as Record<string, unknown> || {};
+        const createdAt = new Date(tx.created_at);
+
+        // ❌ Já consumido em emissão bem-sucedida
+        if (meta.consumed_at || meta.emission_id || meta.used_for_emission) {
+          console.log(`[nfe-emitir] Crédito ${tx.id} já consumido`);
+          continue;
+        }
+
+        // ❌ Expirado
+        if (createdAt < expiryThreshold) {
+          console.log(`[nfe-emitir] Crédito ${tx.id} expirado`);
+          continue;
+        }
+
+        // ❌ Tentativas esgotadas
+        const attempts = (meta.attempts as number) || 0;
+        if (attempts >= ANTI_FRAUD.MAX_ATTEMPTS) {
+          console.log(`[nfe-emitir] Crédito ${tx.id} esgotou tentativas (${attempts})`);
+          continue;
+        }
+
+        // ❌ Intervalo mínimo entre tentativas (anti-spam)
+        const lastAttemptAt = meta.last_attempt_at ? new Date(meta.last_attempt_at as string) : null;
+        if (lastAttemptAt) {
+          const secondsSince = (now.getTime() - lastAttemptAt.getTime()) / 1000;
+          if (secondsSince < ANTI_FRAUD.MIN_INTERVAL_SECONDS) {
+            const waitTime = Math.ceil(ANTI_FRAUD.MIN_INTERVAL_SECONDS - secondsSince);
+            console.log(`[nfe-emitir] Intervalo muito curto: ${secondsSince}s`);
+            return jsonResponse(200, {
+              success: false,
+              code: 'RATE_LIMITED',
+              message: `Aguarde ${waitTime} segundos antes de tentar novamente.`,
+              wait_seconds: waitTime,
+            });
+          }
+        }
+
+        // ✅ Crédito válido encontrado!
         pagamentoValido = true;
-        paymentChargeId = (meta?.charge_id as string) || null;
-        
-        // Marcar como usado (se tiver um ID de emissão para vincular)
-        // Isso será feito após a emissão ser criada
+        creditTransactionId = tx.id;
+        paymentChargeId = (meta.charge_id as string) || null;
+        currentAttempts = attempts;
         break;
       }
     }
 
-    // ✅ DESATIVADO: Sistema legado de créditos - PAGAMENTO PIX OBRIGATÓRIO
-    // O sistema de fiscal_wallet foi descontinuado. Agora apenas PIX é aceito.
-    // const { data: wallet } = await supabase.from('fiscal_wallet')...
-
-    // Se não tem pagamento PIX válido, retornar 200 com code PAYMENT_REQUIRED
-    // (HTTP 200 evita exceção no SDK Supabase e blank screen)
-    if (!pagamentoValido) {
+    // Se não tem crédito válido, retornar PAYMENT_REQUIRED
+    if (!pagamentoValido || !creditTransactionId) {
       console.log(`[nfe-emitir] ❌ Pagamento PIX não encontrado - Retornando PAYMENT_REQUIRED`);
       return jsonResponse(200, {
         success: false,
@@ -361,14 +476,34 @@ Deno.serve(async (req) => {
         amount_centavos: taxaCentavos,
         document_type: 'nfe',
         issuer_id: issuer_id,
-        valores: {
-          total: totalNfe,
-          taxa: taxaCentavos / 100,
-        },
+        valores: { total: totalNfe, taxa: taxaCentavos / 100 },
       });
     }
 
-    console.log(`[nfe-emitir] ✅ Pagamento PIX válido encontrado`);
+    // ✅ Reservar crédito (marcar como em uso e incrementar tentativas)
+    const newAttempts = currentAttempts + 1;
+    console.log(`[nfe-emitir] ✅ Crédito válido: ${creditTransactionId} (tentativa ${newAttempts}/${ANTI_FRAUD.MAX_ATTEMPTS})`);
+
+    const { data: currentTx } = await supabase
+      .from('fiscal_wallet_transactions')
+      .select('metadata')
+      .eq('id', creditTransactionId)
+      .single();
+
+    const currentMeta = (currentTx?.metadata as Record<string, unknown>) || {};
+    
+    await supabase
+      .from('fiscal_wallet_transactions')
+      .update({
+        metadata: {
+          ...currentMeta,
+          in_use: true,
+          in_use_since: now.toISOString(),
+          attempts: newAttempts,
+          last_attempt_at: now.toISOString(),
+        },
+      })
+      .eq('id', creditTransactionId);
     // ============================================================
 
     // Documentos sanitizados (CORREÇÃO CRÍTICA)
@@ -678,11 +813,14 @@ Deno.serve(async (req) => {
         .eq("id", emission.id);
 
       await supabase.rpc("release_emission_credit", { p_emission_id: emission.id });
+      // ✅ Liberar crédito PIX para permitir nova tentativa
+      await releasePixCredit(supabase, creditTransactionId, "Falha na comunicação com Focus");
 
-      return jsonResponse(502, {
+      return jsonResponse(200, {
         success: false,
         code: "FOCUS_COMMUNICATION_FAILED",
-        message: "Falha na comunicação com o provedor fiscal. Tente novamente.",
+        message: "Falha na comunicação com o provedor fiscal. Você pode tentar novamente.",
+        credit_released: true,
       });
     }
 
@@ -706,6 +844,8 @@ Deno.serve(async (req) => {
         .eq("id", emission.id);
 
       await supabase.rpc("release_emission_credit", { p_emission_id: emission.id });
+      // ✅ Liberar crédito PIX para permitir nova tentativa
+      await releasePixCredit(supabase, creditTransactionId, msg);
 
       return jsonResponse(200, {
         success: false,
@@ -714,6 +854,7 @@ Deno.serve(async (req) => {
         emission_id: emission.id,
         internal_ref: internalRef,
         ambiente: isProducao ? "producao" : "homologacao",
+        credit_released: true,
       });
     }
 
@@ -757,8 +898,12 @@ Deno.serve(async (req) => {
     // Crédito
     if (newStatus === "authorized") {
       await supabase.rpc("confirm_emission_credit", { p_emission_id: emission.id });
+      // ✅ Consumir crédito PIX (emissão bem-sucedida)
+      await consumePixCredit(supabase, creditTransactionId, emission.id);
     } else if (newStatus === "rejected") {
       await supabase.rpc("release_emission_credit", { p_emission_id: emission.id });
+      // ✅ Liberar crédito PIX para permitir nova tentativa
+      await releasePixCredit(supabase, creditTransactionId, errorMessage || "NF-e rejeitada");
     }
 
     const message =
