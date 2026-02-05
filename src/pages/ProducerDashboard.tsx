@@ -66,6 +66,8 @@ import { UnifiedChatHub } from "@/components/UnifiedChatHub";
 import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
 import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
 import { HERO_BG_DESKTOP } from "@/lib/hero-assets";
+import { usePendingDeliveryConfirmations } from "@/hooks/usePendingDeliveryConfirmations";
+import { PendingDeliveryConfirmationCard } from "@/components/PendingDeliveryConfirmationCard";
 
 // ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
 const FreightAnalyticsDashboard = lazyWithRetry(() =>
@@ -235,6 +237,16 @@ const ProducerDashboard = () => {
 
   // Contador de mensagens não lidas
   const { unreadCount: chatUnreadCount } = useUnreadChatsCount(profile?.id || "", "PRODUTOR");
+
+  // ✅ P0 FIX: Hook para confirmações de entrega INDIVIDUAIS (suporte multi-carreta)
+  const {
+    items: pendingDeliveryItems,
+    loading: pendingDeliveryLoading,
+    totalCount: pendingDeliveryCount,
+    criticalCount: pendingDeliveryCritical,
+    urgentCount: pendingDeliveryUrgent,
+    refetch: refetchPendingDeliveries,
+  } = usePendingDeliveryConfirmations(profile?.id);
 
   // ✅ Abrir aba específica quando vindo de notificação
   useEffect(() => {
@@ -906,13 +918,14 @@ const ProducerDashboard = () => {
       openServices: classifiedOpenItems.counts.services,
       openTotal: classifiedOpenItems.counts.openTotal,
       activeFreights: ongoingFreights.length + ongoingServiceRequests.length,
-      pendingConfirmation: freights.filter((f) => f.status === "DELIVERED_PENDING_CONFIRMATION").length,
+      // ✅ P0 FIX: Usar contagem do hook de atribuições individuais (suporte multi-carreta)
+      pendingConfirmation: pendingDeliveryCount,
       totalValue: freights.reduce((sum, f) => sum + (f.price || 0), 0),
       pendingProposals: proposals.length,
       pendingPayments: totalPendingPayments,
       totalPendingAmount,
     };
-  }, [freights, proposals, externalPayments, ongoingServiceRequests, classifiedOpenItems]);
+  }, [freights, proposals, externalPayments, ongoingServiceRequests, classifiedOpenItems, pendingDeliveryCount]);
 
   // ✅ Ações
   const handleLogout = async () => {
@@ -1155,6 +1168,8 @@ const ProducerDashboard = () => {
 
     fetchFreights();
     fetchExternalPayments();
+    // ✅ P0 FIX: Também atualizar confirmações individuais pendentes
+    refetchPendingDeliveries();
   };
 
   // ✅ Confirmar pagamento externo - criar solicitação de pagamento
@@ -1817,7 +1832,7 @@ const ProducerDashboard = () => {
             )}
           </TabsContent>
 
-          {/* ✅ CONFIRMAR ENTREGA */}
+          {/* ✅ CONFIRMAR ENTREGA - Agora com suporte a atribuições individuais (multi-carreta) */}
           <TabsContent value="confirm-delivery" className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Confirmar Entregas</h3>
@@ -1827,21 +1842,14 @@ const ProducerDashboard = () => {
                   size="sm"
                   onClick={() => setUrgencyFilter("all")}
                 >
-                  Todos ({freights.filter((f) => f.status === "DELIVERED_PENDING_CONFIRMATION").length})
+                  Todos ({pendingDeliveryCount})
                 </Button>
                 <Button
                   variant={urgencyFilter === "critical" ? "destructive" : "outline"}
                   size="sm"
                   onClick={() => setUrgencyFilter("critical")}
                 >
-                  🚨 Críticos (
-                  {
-                    freights.filter(
-                      (f) =>
-                        f.status === "DELIVERED_PENDING_CONFIRMATION" && (f.deliveryDeadline?.hoursRemaining ?? 72) < 6,
-                    ).length
-                  }
-                  )
+                  🚨 Críticos ({pendingDeliveryCritical})
                 </Button>
                 <Button
                   variant={urgencyFilter === "urgent" ? "default" : "outline"}
@@ -1849,19 +1857,16 @@ const ProducerDashboard = () => {
                   onClick={() => setUrgencyFilter("urgent")}
                   className={urgencyFilter === "urgent" ? "bg-orange-600 hover:bg-orange-700" : ""}
                 >
-                  ⚠️ Urgentes (
-                  {
-                    freights.filter((f) => {
-                      const h = f.deliveryDeadline?.hoursRemaining ?? 72;
-                      return f.status === "DELIVERED_PENDING_CONFIRMATION" && h < 24 && h >= 6;
-                    }).length
-                  }
-                  )
+                  ⚠️ Urgentes ({pendingDeliveryUrgent})
                 </Button>
               </div>
             </div>
 
-            {freights.filter((f) => f.status === "DELIVERED_PENDING_CONFIRMATION").length === 0 ? (
+            {pendingDeliveryLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : pendingDeliveryItems.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Clock className="h-12 w-12 text-muted-foreground mb-4" />
@@ -1874,109 +1879,48 @@ const ProducerDashboard = () => {
             ) : (
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                  {freights
-                    .filter((f) => {
-                      if (f.status !== "DELIVERED_PENDING_CONFIRMATION") return false;
-                      const hours = f.deliveryDeadline?.hoursRemaining ?? 72;
+                  {pendingDeliveryItems
+                    .filter((item) => {
+                      const hours = item.deliveryDeadline.hoursRemaining;
                       if (urgencyFilter === "all") return true;
                       if (urgencyFilter === "critical") return hours < 6;
                       if (urgencyFilter === "urgent") return hours < 24 && hours >= 6;
                       return true;
                     })
-                    .sort(
-                      (a, b) => (a.deliveryDeadline?.hoursRemaining ?? 72) - (b.deliveryDeadline?.hoursRemaining ?? 72),
-                    )
-                    .map((freight) => (
-                      <Card
-                        key={freight.id}
-                        className="h-full flex flex-col border-amber-200 bg-amber-50/50 border-l-4 border-l-amber-500"
-                      >
-                        <CardHeader className="pb-4">
-                          <div className="flex justify-between items-start gap-4">
-                            <div className="space-y-2 flex-1 min-w-0">
-                              <h4 className="font-semibold text-lg line-clamp-1">{freight.cargo_type}</h4>
-                              <p className="text-sm text-muted-foreground line-clamp-1">
-                                {freight.origin_address} → {freight.destination_address}
-                              </p>
-
-                              {freight.deliveryDeadline && (
-                                <div
-                                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
-                                    freight.deliveryDeadline.isCritical
-                                      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                      : freight.deliveryDeadline.isUrgent
-                                        ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                  }`}
-                                >
-                                  <Clock className="h-3 w-3" />
-                                  {freight.deliveryDeadline.displayText}
-                                </div>
-                              )}
-
-                              <p className="text-xs font-medium text-amber-700 mt-2">
-                                ⏰ Entrega reportada - Aguardando confirmação
-                              </p>
-                            </div>
-                            <div className="text-right flex-shrink-0 space-y-2">
-                              <Badge
-                                variant="secondary"
-                                className="bg-amber-100 text-amber-800 border-amber-300 whitespace-nowrap"
-                              >
-                                Aguardando Confirmação
-                              </Badge>
-                              <p className="text-lg font-bold text-green-600 whitespace-nowrap">
-                                R$ {formatBRL(freight.price)}
-                              </p>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="flex flex-col gap-4 h-full pt-0">
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="min-w-0">
-                              <p className="font-medium text-xs text-muted-foreground">Motorista:</p>
-                              <p className="text-foreground truncate">
-                                {freight.profiles?.full_name || "Aguardando motorista"}
-                              </p>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-xs text-muted-foreground">Telefone:</p>
-                              <p className="text-foreground truncate">{freight.profiles?.contact_phone || "-"}</p>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-xs text-muted-foreground">Reportado em:</p>
-                              <p className="text-foreground text-xs">
-                                {new Date(freight.updated_at).toLocaleString("pt-BR")}
-                              </p>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-xs text-muted-foreground">Prazo confirmação:</p>
-                              <p className="text-foreground text-xs">72h após reportado</p>
-                            </div>
-                          </div>
-
-                          <div className="mt-auto grid grid-cols-2 gap-3">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => setSelectedFreightDetails(freight)}
-                            >
-                              <Eye className="h-4 w-4 mr-1.5" />
-                              Ver Detalhes
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="w-full bg-green-600 hover:bg-green-700"
-                              onClick={() => openDeliveryConfirmationModal(freight)}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1.5" />
-                              Confirmar Entrega
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                    .map((item) => (
+                      <PendingDeliveryConfirmationCard
+                        key={item.id}
+                        item={item}
+                        onViewDetails={() => {
+                          // Buscar o frete completo para exibir detalhes
+                          const fullFreight = freights.find(f => f.id === item.freight_id);
+                          if (fullFreight) {
+                            setSelectedFreightDetails(fullFreight);
+                          }
+                        }}
+                        onConfirmDelivery={() => {
+                          // ✅ Montar objeto compatível com DeliveryConfirmationModal
+                          // incluindo dados do motorista específico
+                          const confirmationData = {
+                            id: item.freight_id,
+                            assignment_id: item.id, // ID da atribuição para confirmação individual
+                            driver_id: item.driver_id,
+                            cargo_type: item.freight.cargo_type,
+                            origin_address: item.freight.origin_address,
+                            destination_address: item.freight.destination_address,
+                            price: item.agreed_price || (item.freight.price / item.freight.required_trucks),
+                            profiles: {
+                              id: item.driver.id,
+                              full_name: item.driver.full_name,
+                              contact_phone: item.driver.contact_phone,
+                            },
+                            // Metadata para identificar que é confirmação individual
+                            _isIndividualConfirmation: true,
+                            _assignmentId: item.id,
+                          };
+                          openDeliveryConfirmationModal(confirmationData);
+                        }}
+                      />
                     ))}
                 </div>
               </div>
