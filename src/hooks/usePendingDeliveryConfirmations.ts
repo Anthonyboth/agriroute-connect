@@ -78,6 +78,8 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       setError(null);
 
       // 1. Buscar fretes do produtor (IDs apenas)
+      console.log('[usePendingDeliveryConfirmations] Buscando fretes para producerId:', producerId);
+      
       const { data: producerFreights, error: freightsErr } = await supabase
         .from('freights')
         .select('id')
@@ -88,13 +90,17 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         throw freightsErr;
       }
 
+      console.log('[usePendingDeliveryConfirmations] Fretes encontrados:', producerFreights?.length || 0, producerFreights?.map(f => f.id));
+
       if (!producerFreights?.length) {
+        console.warn('[usePendingDeliveryConfirmations] Nenhum frete encontrado para o produtor');
         setItems([]);
         setLoading(false);
         return;
       }
 
       const freightIds = producerFreights.map(f => f.id);
+      console.log('[usePendingDeliveryConfirmations] Buscando assignments para freights:', freightIds);
 
       // 2. Buscar atribuições com status DELIVERED_PENDING_CONFIRMATION
       const { data: assignments, error: assignErr } = await supabase
@@ -111,6 +117,8 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         `)
         .in('freight_id', freightIds)
         .eq('status', 'DELIVERED_PENDING_CONFIRMATION');
+
+      console.log('[usePendingDeliveryConfirmations] Assignments encontradas:', assignments?.length || 0, assignments);
 
       if (assignErr) {
         console.error('[usePendingDeliveryConfirmations] Erro ao buscar atribuições:', assignErr);
@@ -131,6 +139,8 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         `)
         .in('freight_id', freightIds)
         .in('current_status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION']);
+
+      console.log('[usePendingDeliveryConfirmations] TripProgress encontrados:', tripProgress?.length || 0, tripProgress);
 
       if (tripErr) {
         console.warn('[usePendingDeliveryConfirmations] Erro ao buscar trip_progress:', tripErr);
