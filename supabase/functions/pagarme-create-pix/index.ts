@@ -306,27 +306,37 @@ Deno.serve(async (req) => {
     const chargeStatus = (pagarmeData as any)?.charges?.[0]?.status;
     
     if (orderStatus === 'failed' || chargeStatus === 'failed') {
-      const gatewayErrors = (pagarmeData as any)?.charges?.[0]?.last_transaction?.gateway_response?.errors || [];
-      const gatewayCode = (pagarmeData as any)?.charges?.[0]?.last_transaction?.gateway_response?.code || '';
+      const lastTransaction = (pagarmeData as any)?.charges?.[0]?.last_transaction || {};
+      const gatewayResponse = lastTransaction.gateway_response || {};
+      const gatewayErrors = gatewayResponse.errors || [];
+      const gatewayCode = gatewayResponse.code || '';
       
-      console.error(`[PAGARME-CREATE-PIX][${requestId}] Transação PIX falhou internamente:`, {
+      // Log COMPLETO da resposta do gateway para diagnóstico
+      console.error(`[PAGARME-CREATE-PIX][${requestId}] ❌ Transação PIX FALHOU:`, {
         orderStatus,
         chargeStatus,
         gatewayCode,
-        gatewayErrors: JSON.stringify(gatewayErrors).substring(0, 500),
+        gatewayResponse: JSON.stringify(gatewayResponse).substring(0, 1000),
+        lastTransaction: JSON.stringify(lastTransaction).substring(0, 1000),
       });
       
       // Extrair mensagem de erro mais específica
       let errorDetail = 'Erro ao gerar cobrança PIX. ';
+      
       if (gatewayErrors.length > 0) {
-        const firstError = gatewayErrors[0];
-        if (typeof firstError === 'object' && firstError.message) {
-          errorDetail += firstError.message;
-        } else if (typeof firstError === 'string') {
-          errorDetail += firstError;
-        }
+        // Tentar extrair mensagens de erros do array
+        const errorMessages = gatewayErrors.map((err: any) => {
+          if (typeof err === 'object') {
+            return err.message || err.description || JSON.stringify(err);
+          }
+          return String(err);
+        }).join('; ');
+        errorDetail += errorMessages;
       } else if (gatewayCode === '400') {
-        errorDetail += 'Verifique se os dados cadastrais (CNPJ, email) estão corretos.';
+        // Erro genérico 400 - verificar dados cadastrais
+        errorDetail += 'Verifique se os dados cadastrais (CNPJ, email) estão corretos no cadastro do emissor.';
+      } else {
+        errorDetail += `Código do gateway: ${gatewayCode || 'desconhecido'}`;
       }
       
       return jsonResponse(422, {
@@ -337,6 +347,7 @@ Deno.serve(async (req) => {
           order_status: orderStatus,
           charge_status: chargeStatus,
           gateway_code: gatewayCode,
+          gateway_errors: gatewayErrors,
         },
       });
     }
