@@ -96,8 +96,7 @@ export const DriverLocationMapMapLibre = ({
       zoom={15}
       className={className}
       minHeight={400}
-      markers={markers}
-      markerFactory={markerFactory}
+      markers={[]}
       onLoad={handleLoad}
       showNavigationControl
     />
