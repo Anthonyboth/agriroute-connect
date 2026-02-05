@@ -16,13 +16,23 @@ interface DeliveryConfirmationModalProps {
     cargo_type: string;
     origin_address: string;
     destination_address: string;
-    status: string;
-    updated_at: string;
+    status?: string;
+    updated_at?: string;
     metadata?: any;
     driver?: {
       full_name: string;
       contact_phone: string;
     };
+    // ✅ P0 FIX: Suporte a confirmação individual
+    profiles?: {
+      id: string;
+      full_name: string;
+      contact_phone?: string;
+    };
+    _isIndividualConfirmation?: boolean;
+    _assignmentId?: string;
+    driver_id?: string;
+    price?: number;
   };
   isOpen: boolean;
   onClose: () => void;
@@ -40,25 +50,53 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // ✅ P0 FIX: Detectar se é confirmação individual (multi-carreta)
+  const isIndividualConfirmation = Boolean(freight._isIndividualConfirmation && freight._assignmentId);
+  const assignmentId = freight._assignmentId;
+  
+  // Unificar dados do motorista (profiles ou driver)
+  const driverName = freight.profiles?.full_name || freight.driver?.full_name || 'Motorista';
+
   // Debug do frete recebido
   console.log('DeliveryConfirmationModal - freight recebido:', {
     id: freight.id,
     status: freight.status,
     metadata: freight.metadata,
-    updated_at: freight.updated_at
+    updated_at: freight.updated_at,
+    isIndividualConfirmation,
+    assignmentId,
+    driverName
   });
 
   const confirmDelivery = async () => {
     console.log('=== INICIANDO CONFIRMAÇÃO DE ENTREGA ===');
     console.log('Freight ID:', freight.id);
-    console.log('Status atual:', freight.status);
+    console.log('Is Individual:', isIndividualConfirmation);
+    console.log('Assignment ID:', assignmentId);
     
     setLoading(true);
     try {
-      // ✅ Usar RPC confirm_delivery que gerencia multi-carreta corretamente
-      const { data: result, error: rpcError } = await supabase.rpc('confirm_delivery', {
-        freight_id_param: freight.id
-      });
+      let result: any;
+      let rpcError: any;
+
+      if (isIndividualConfirmation && assignmentId) {
+        // ✅ P0 FIX: Usar RPC de confirmação INDIVIDUAL para multi-carreta
+        console.log('Usando RPC confirm_delivery_individual para assignment:', assignmentId);
+        const response = await supabase.rpc('confirm_delivery_individual', {
+          p_assignment_id: assignmentId,
+          p_notes: notes || null
+        });
+        result = response.data;
+        rpcError = response.error;
+      } else {
+        // Usar RPC tradicional para fretes simples
+        console.log('Usando RPC confirm_delivery para freight:', freight.id);
+        const response = await supabase.rpc('confirm_delivery', {
+          freight_id_param: freight.id
+        });
+        result = response.data;
+        rpcError = response.error;
+      }
 
       console.log('Resultado da confirmação:', result, rpcError);
 
