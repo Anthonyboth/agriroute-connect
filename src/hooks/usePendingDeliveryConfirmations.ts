@@ -215,17 +215,55 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       const freightMap = new Map((freightsData || []).map((f: any) => [f.id, f]));
 
       // 6. Buscar dados dos motoristas
+      // Observação: em alguns cenários (multi-carreta / janelas de status), RLS pode ocultar perfis via profiles_secure.
+      // Para garantir que o produtor consiga confirmar, aplicamos fallback via Edge Function segura.
       const uniqueDriverIds = [...new Set([...pendingMap.values()].map(p => p.driver_id))];
+
+      const driverMap = new Map<string, any>();
+
       const { data: driversData, error: driversErr } = await supabase
         .from('profiles_secure')
         .select('id, full_name, profile_photo_url, rating')
         .in('id', uniqueDriverIds);
 
       if (driversErr) {
-        console.warn('[usePendingDeliveryConfirmations] Erro ao buscar motoristas:', driversErr);
+        console.warn('[usePendingDeliveryConfirmations] Erro ao buscar motoristas (profiles_secure):', driversErr);
       }
 
-      const driverMap = new Map((driversData || []).map((d: any) => [d.id, d]));
+      (driversData || []).forEach((d: any) => driverMap.set(d.id, d));
+
+      // Fallback para perfis não visíveis por RLS (busca segura, com checagem de participação no frete)
+      const missingDriverIds = uniqueDriverIds.filter(id => !driverMap.has(id));
+      for (const missingId of missingDriverIds) {
+        const relatedPending = [...pendingMap.values()].find(p => p.driver_id === missingId);
+        const relatedFreightId = relatedPending?.freight_id;
+
+        if (!relatedFreightId) continue;
+
+        try {
+          const { data: fnData, error: fnErr } = await supabase.functions.invoke(
+            'get-participant-public-profile',
+            {
+              body: {
+                freight_id: relatedFreightId,
+                participant_profile_id: missingId,
+                participant_type: 'driver',
+              },
+            }
+          );
+
+          if (fnErr) {
+            console.warn('[usePendingDeliveryConfirmations] Fallback get-participant-public-profile falhou:', fnErr);
+            continue;
+          }
+
+          if (fnData?.success && fnData?.profile?.id) {
+            driverMap.set(fnData.profile.id, fnData.profile);
+          }
+        } catch (e) {
+          console.warn('[usePendingDeliveryConfirmations] Erro no fallback de perfil:', e);
+        }
+      }
 
       // 7. Buscar dados das transportadoras (se houver)
       const companyIds = [...new Set([...pendingMap.values()].map(p => p.company_id).filter(Boolean))] as string[];
