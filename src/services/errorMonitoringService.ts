@@ -15,6 +15,26 @@ export class ErrorMonitoringService {
   private errorThrottle: Map<string, number> = new Map();
   private readonly THROTTLE_MS = 60000; // 1 minuto entre erros do mesmo tipo
 
+  // ✅ Erros que devem ser IGNORADOS (comportamento esperado, não são bugs)
+  private readonly IGNORED_ERRORS: Array<string | RegExp> = [
+    // AbortError: ocorre quando usuário navega enquanto fetch está em andamento
+    'signal is aborted without reason',
+    'The operation was aborted',
+    'AbortError',
+    /aborted/i,
+    // Erros de rede transientes em tiles de mapa
+    'Failed to fetch',
+    /maplibre.*abort/i,
+    // Erros de chunk loading (já tratados pelo lazyWithRetry)
+    'Failed to fetch dynamically imported module',
+    'Loading chunk',
+    // Extensões de navegador
+    'ResizeObserver loop',
+    // Erros de cancelamento React Query
+    'Query was cancelled',
+    'CancelledError',
+  ];
+
   private constructor() {
     this.autoCorrector = ErrorAutoCorrector.getInstance();
     
@@ -57,11 +77,31 @@ export class ErrorMonitoringService {
     return `${report.errorType}_${report.errorMessage?.substring(0, 50) || 'unknown'}`;
   }
 
+  // ✅ Verificar se erro deve ser ignorado (comportamento esperado)
+  private shouldIgnoreError(errorMessage: string | undefined): boolean {
+    if (!errorMessage) return false;
+    
+    return this.IGNORED_ERRORS.some(pattern => {
+      if (typeof pattern === 'string') {
+        return errorMessage.includes(pattern);
+      }
+      return pattern.test(errorMessage);
+    });
+  }
+
   /**
    * Notificar TODOS os erros diretamente no Telegram
    * SEM deduplicação, SEM verificação de role
    */
   private async notifyTelegram(report: ErrorReport): Promise<boolean> {
+    // ✅ Ignorar erros esperados (AbortError, chunk loading, etc.)
+    if (this.shouldIgnoreError(report.errorMessage)) {
+      if (import.meta.env.DEV) {
+        console.log(`[ErrorMonitoringService] Erro ignorado (esperado): ${report.errorMessage?.substring(0, 50)}`);
+      }
+      return false;
+    }
+
     // ✅ Correção 3: Aplicar throttling
     const throttleKey = this.getThrottleKey(report);
     if (this.shouldThrottle(throttleKey)) {
