@@ -26,6 +26,7 @@ import { PixPaymentModal } from "@/components/fiscal/PixPaymentModal";
 import { useFiscalPreValidation } from "@/hooks/useFiscalPreValidation";
 import { usePixPayment } from "@/hooks/usePixPayment";
 import { useFiscalDocumentCredits } from "@/hooks/useFiscalDocumentCredits";
+import { AptidaoWizardStep0, StateGuideViewer } from "@/components/fiscal/education";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -108,10 +109,31 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   
   // ✅ PRÉ-VALIDAÇÃO FISCAL: Bloquear emissão se não estiver apto
   const [showPreValidationModal, setShowPreValidationModal] = useState(false);
-  
+
+  // ✅ ETAPA 0 OBRIGATÓRIA: Documento correto + aptidão (antes de cobrar/emitir)
+  const [showAptidaoStep0, setShowAptidaoStep0] = useState(false);
+  const [aptidaoStep0Completed, setAptidaoStep0Completed] = useState(false);
+  const [showNfaGuide, setShowNfaGuide] = useState(false);
+
+  const step0HasIE = !!fiscalIssuer?.inscricao_estadual;
+  const step0HasCertificate = useMemo(() => {
+    const validStatuses = [
+      "certificate_uploaded",
+      "active",
+      "production_enabled",
+      "homologation_enabled",
+    ];
+    const validSefazStatuses = ["validated", "production_enabled", "homologation_enabled"];
+
+    return (
+      validStatuses.includes(fiscalIssuer?.status || "") ||
+      validSefazStatuses.includes(fiscalIssuer?.sefaz_status || "")
+    );
+  }, [fiscalIssuer?.status, fiscalIssuer?.sefaz_status]);
+
   // ✅ PAGAMENTO PIX: Estado do modal e ref do documento
   const [showPixModal, setShowPixModal] = useState(false);
-  const [paymentDocumentRef, setPaymentDocumentRef] = useState<string>('');
+  const [paymentDocumentRef, setPaymentDocumentRef] = useState<string>("");
   const [requiredAmountCentavos, setRequiredAmountCentavos] = useState<number | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   
@@ -307,6 +329,12 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     setIsSubmitting(false);
     setHasPrefilled(false); // Reset para permitir novo prefill
     setFreightRecipientLoading(false);
+
+    // Etapa 0 (documento correto) deve ser reavaliada a cada abertura
+    setShowAptidaoStep0(false);
+    setAptidaoStep0Completed(false);
+    setShowNfaGuide(false);
+    setIsPaid(false);
   }, [isOpen]);
 
   // Campos que devem ser convertidos para CAIXA ALTA automaticamente
@@ -630,7 +658,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     }
   };
 
-  const handleSubmit = async () => {
+  const submitAfterAptidaoStep0 = async () => {
     if (!fiscalIssuer?.id) {
       toast.error("Emissor fiscal não configurado");
       return;
@@ -666,7 +694,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     }
 
     // ✅ Verificar sessão antes de invocar
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session?.access_token) {
       toast.error("Sessão inválida", { description: "Faça login novamente." });
       return;
@@ -674,12 +704,22 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
     // ✅ Calcular taxa para exibição
     const totalValue = parseFloat(formData.valor_total) || 0;
-    const feeCentavos = calculateFee('nfe', totalValue);
-    
+    const feeCentavos = calculateFee("nfe", totalValue);
+
     console.log(`[NFE] Taxa calculada: R$ ${(feeCentavos / 100).toFixed(2)} para NF-e de R$ ${totalValue.toFixed(2)}`);
 
     // ✅ Tentar emitir - o backend retornará PAYMENT_REQUIRED se não pago
     await executeEmission();
+  };
+
+  const handleSubmit = async () => {
+    // ✅ Etapa 0 obrigatória: sempre orientar MEI/UF/perfil antes de emitir/pagar
+    if (!aptidaoStep0Completed) {
+      setShowAptidaoStep0(true);
+      return;
+    }
+
+    await submitAfterAptidaoStep0();
   };
 
   const renderStepContent = () => {
@@ -1083,7 +1123,57 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
           )}
         </div>
       </DialogContent>
-      
+
+      {/* ✅ ETAPA 0: Documento correto + aptidão (antes de qualquer cobrança/emissão) */}
+      <Dialog open={showAptidaoStep0} onOpenChange={(open) => setShowAptidaoStep0(open)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Documento correto + Aptidão</DialogTitle>
+            <DialogDescription>
+              Para evitar cobrança sem emissão, confirme seu perfil e veja o documento mais adequado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <AptidaoWizardStep0
+            documentType="NFE"
+            fiscalIssuer={fiscalIssuer}
+            hasCertificate={step0HasCertificate}
+            hasIE={step0HasIE}
+            defaultUf={normalizeUf(fiscalIssuer?.uf) || "MT"}
+            onCancel={() => setShowAptidaoStep0(false)}
+            onUseAlternative={(alt) => {
+              if (alt === "NFA") {
+                setShowAptidaoStep0(false);
+                setShowNfaGuide(true);
+              }
+            }}
+            onContinue={async () => {
+              setAptidaoStep0Completed(true);
+              setShowAptidaoStep0(false);
+              // Depois da etapa 0, seguimos com o fluxo normal (pré-validação, PIX, emissão)
+              await submitAfterAptidaoStep0();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ Guia rápido NF-a (quando recomendado) */}
+      <Dialog open={showNfaGuide} onOpenChange={(open) => setShowNfaGuide(open)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Como emitir NF-a (Nota Fiscal Avulsa)</DialogTitle>
+            <DialogDescription>
+              A NF-a geralmente é emitida diretamente no portal da SEFAZ do seu estado (fora do AgriRoute).
+            </DialogDescription>
+          </DialogHeader>
+
+          <StateGuideViewer
+            defaultUf={(normalizeUf(fiscalIssuer?.uf) || "MT") as any}
+            filterDocType="NFA"
+          />
+        </DialogContent>
+      </Dialog>
+
       {/* Modal de erro SEFAZ detalhado */}
       <SefazErrorModal
         isOpen={sefazError.isOpen}
