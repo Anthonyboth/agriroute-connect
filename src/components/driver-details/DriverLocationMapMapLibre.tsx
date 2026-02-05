@@ -35,17 +35,7 @@ export const DriverLocationMapMapLibre = ({
     return normalizeLatLngPoint({ lat, lng }, 'BR');
   }, [lat, lng]);
 
-  // ========================================
-  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-  // Sem markers - apenas basemap puro
-  // ========================================
-  const markers = useMemo<MapLibreMarkerData[]>(() => [], []);
-
-  // Factory desativada - não criar nenhum marker
-  const markerFactory = useCallback(() => undefined, []);
-
-  /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
-  // Marker do motorista (usando coordenadas normalizadas)
+  // ✅ REATIVADO: Marker do motorista (usando coordenadas normalizadas)
   const markers = useMemo<MapLibreMarkerData[]>(() => {
     if (!normalizedLocation) return [];
     
@@ -53,29 +43,8 @@ export const DriverLocationMapMapLibre = ({
       id: 'driver-location',
       lat: normalizedLocation.lat,
       lng: normalizedLocation.lng,
-      popup: `
-        <div style="padding: 8px;">
-          <h3 style="margin: 0 0 8px 0; font-weight: 600;">${driverName || 'Motorista'}</h3>
-          <p style="margin: 0; font-size: 14px; color: #666;">Última localização conhecida</p>
-        </div>
-      `,
     }];
-  }, [normalizedLocation, driverName]);
-
-  // Factory para criar elemento do marker
-  const markerFactory = useCallback(() => {
-    const el = createTruckMarkerElement(true);
-    el.style.width = '40px';
-    el.style.height = '40px';
-    el.style.maxWidth = '40px';
-    el.style.maxHeight = '40px';
-    el.style.minWidth = '40px';
-    el.style.minHeight = '40px';
-    el.style.boxSizing = 'border-box';
-    el.style.transform = 'none';
-    return el;
-  }, []);
-  */
+  }, [normalizedLocation]);
 
   // Centralizar quando coordenadas mudarem (usando coordenadas normalizadas)
   const handleLoad = useCallback(() => {
@@ -96,7 +65,7 @@ export const DriverLocationMapMapLibre = ({
       zoom={15}
       className={className}
       minHeight={400}
-      markers={[]}
+      markers={markers}
       onLoad={handleLoad}
       showNavigationControl
     />
