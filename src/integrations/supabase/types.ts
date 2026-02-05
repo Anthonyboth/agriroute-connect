@@ -4984,7 +4984,9 @@ export type Database = {
       }
       freight_ratings: {
         Row: {
+          assignment_id: string | null
           comment: string | null
+          company_id: string | null
           created_at: string
           freight_id: string
           id: string
@@ -4994,7 +4996,9 @@ export type Database = {
           rating_type: string
         }
         Insert: {
+          assignment_id?: string | null
           comment?: string | null
+          company_id?: string | null
           created_at?: string
           freight_id: string
           id?: string
@@ -5004,7 +5008,9 @@ export type Database = {
           rating_type: string
         }
         Update: {
+          assignment_id?: string | null
           comment?: string | null
+          company_id?: string | null
           created_at?: string
           freight_id?: string
           id?: string
@@ -5047,6 +5053,27 @@ export type Database = {
             columns: ["rater_id"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_ratings_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "freight_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_ratings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_ratings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -12748,6 +12775,21 @@ export type Database = {
         }[]
       }
       get_own_profile_id: { Args: { p_user_id: string }; Returns: string }
+      get_pending_ratings_with_affiliation: {
+        Args: { p_profile_id: string }
+        Returns: {
+          assignment_id: string
+          company_id: string
+          company_name: string
+          driver_id: string
+          driver_name: string
+          freight_id: string
+          payment_confirmed_at: string
+          pending_types: string[]
+          producer_id: string
+          producer_name: string
+        }[]
+      }
       get_platform_stats: {
         Args: never
         Returns: {

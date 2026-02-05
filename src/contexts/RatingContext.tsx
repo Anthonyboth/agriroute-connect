@@ -2,12 +2,22 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { subscriptionWithRetry } from '@/lib/query-utils';
+import { RatingType } from '@/hooks/useRatingSubmit';
 
-// Tipos
+// Tipos para avaliação com múltiplas etapas
+export interface RatingStep {
+  type: RatingType;
+  ratedUserId: string;
+  ratedUserName: string;
+  companyId?: string;
+  label: string;
+  icon?: React.ReactNode;
+}
+
 interface RatingContextType {
   openServiceRating: (requestId: string, ratedId: string, ratedName?: string, type?: string) => void;
   closeServiceRating: () => void;
-  openFreightRating: (freightId: string, ratedId: string, ratedName?: string) => void;
+  openFreightRating: (freightId: string, ratedId: string, ratedName?: string, companyId?: string, companyName?: string) => void;
   closeFreightRating: () => void;
   serviceRatingOpen: boolean;
   serviceRequestId: string | null;
@@ -18,6 +28,10 @@ interface RatingContextType {
   freightId: string | null;
   freightRatedUserId: string | null;
   freightRatedUserName: string | null;
+  // Novos campos para transportadora
+  freightCompanyId: string | null;
+  freightCompanyName: string | null;
+  ratingSteps: RatingStep[];
 }
 
 const RatingContext = createContext<RatingContextType | undefined>(undefined);
@@ -44,6 +58,10 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [freightId, setFreightId] = useState<string | null>(null);
   const [freightRatedUserId, setFreightRatedUserId] = useState<string | null>(null);
   const [freightRatedUserName, setFreightRatedUserName] = useState<string | null>(null);
+  // Novos estados para transportadora
+  const [freightCompanyId, setFreightCompanyId] = useState<string | null>(null);
+  const [freightCompanyName, setFreightCompanyName] = useState<string | null>(null);
+  const [ratingSteps, setRatingSteps] = useState<RatingStep[]>([]);
 
   // Track path changes without React Router
   useEffect(() => {
@@ -451,11 +469,59 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const openFreightRating = (
     fId: string, 
     ratedId: string, 
-    ratedName?: string
+    ratedName?: string,
+    companyId?: string,
+    companyName?: string
   ) => {
     setFreightId(fId);
     setFreightRatedUserId(ratedId);
     setFreightRatedUserName(ratedName || null);
+    setFreightCompanyId(companyId || null);
+    setFreightCompanyName(companyName || null);
+    
+    // Construir steps de avaliação
+    const steps: RatingStep[] = [];
+    
+    // Se temos ratedId, é avaliação de motorista ou produtor
+    if (ratedId) {
+      // Determinar o tipo baseado no role do usuário
+      if (profile?.role === 'PRODUTOR') {
+        steps.push({
+          type: 'PRODUCER_TO_DRIVER',
+          ratedUserId: ratedId,
+          ratedUserName: ratedName || 'Motorista',
+          label: 'Motorista'
+        });
+        
+        // Se motorista tem transportadora, adicionar step para avaliar empresa
+        if (companyId && companyName) {
+          steps.push({
+            type: 'PRODUCER_TO_COMPANY',
+            ratedUserId: companyId, // Para avaliação de empresa, usamos company_id
+            ratedUserName: companyName,
+            companyId: companyId,
+            label: 'Transportadora'
+          });
+        }
+      } else if (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') {
+        steps.push({
+          type: 'DRIVER_TO_PRODUCER',
+          ratedUserId: ratedId,
+          ratedUserName: ratedName || 'Produtor',
+          label: 'Produtor'
+        });
+      } else if (profile?.role === 'TRANSPORTADORA') {
+        steps.push({
+          type: 'COMPANY_TO_PRODUCER',
+          ratedUserId: ratedId,
+          ratedUserName: ratedName || 'Produtor',
+          companyId: companyId,
+          label: 'Produtor'
+        });
+      }
+    }
+    
+    setRatingSteps(steps);
     setFreightRatingOpen(true);
   };
 
@@ -464,6 +530,9 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setFreightId(null);
     setFreightRatedUserId(null);
     setFreightRatedUserName(null);
+    setFreightCompanyId(null);
+    setFreightCompanyName(null);
+    setRatingSteps([]);
   };
 
   return (
@@ -482,6 +551,9 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         freightId,
         freightRatedUserId,
         freightRatedUserName,
+        freightCompanyId,
+        freightCompanyName,
+        ratingSteps,
       }}
     >
       {children}

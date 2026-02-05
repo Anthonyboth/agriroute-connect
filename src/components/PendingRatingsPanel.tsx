@@ -1,31 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SafeListWrapper } from './SafeListWrapper';
-import { Star, User, MapPin, Clock } from 'lucide-react';
+import { Star, User, MapPin, Clock, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { FreightRatingMultiStepModal, getRatingStepIcon, getRatingStepLabel } from './FreightRatingMultiStepModal';
 import { FreightRatingModal } from './FreightRatingModal';
+import { useRatingSubmit, RatingType } from '@/hooks/useRatingSubmit';
 import { format } from 'date-fns';
 
 interface PendingRating {
-  id: string;
-  cargo_type: string;
-  origin_address: string;
-  destination_address: string;
-  price: number;
-  updated_at: string;
-  producer_profiles?: {
-    full_name: string;
-  };
-  driver_profiles?: {
-    full_name: string;
-  };
+  freightId: string;
+  assignmentId: string | null;
+  driverId: string;
+  driverName: string;
+  companyId: string | null;
+  companyName: string | null;
+  producerId: string;
+  producerName: string;
+  pendingTypes: RatingType[];
+  paymentConfirmedAt: string;
+  // Campos adicionais para exibição
+  cargoType?: string;
+  originAddress?: string;
+  destinationAddress?: string;
+  price?: number;
 }
 
 interface PendingRatingsPanelProps {
-  userRole: 'PRODUTOR' | 'MOTORISTA';
+  userRole: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
   userProfileId: string;
 }
 
@@ -35,119 +40,65 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
 }) => {
   const [pendingRatings, setPendingRatings] = useState<PendingRating[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFreight, setSelectedFreight] = useState<PendingRating | null>(null);
+  const [selectedRating, setSelectedRating] = useState<PendingRating | null>(null);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  
+  const { getPendingRatings } = useRatingSubmit();
 
-  const fetchPendingRatings = async () => {
+  const fetchPendingRatings = useCallback(async () => {
     try {
       setLoading(true);
       
-      console.log('[PendingRatingsPanel] 🔍 Iniciando busca de avaliações pendentes...');
-      console.log('[PendingRatingsPanel] 👤 User Profile ID:', userProfileId);
-      console.log('[PendingRatingsPanel] 🎭 User Role:', userRole);
+      console.log('[PendingRatingsPanel] 🔍 Buscando avaliações pendentes via RPC...');
+      console.log('[PendingRatingsPanel] 👤 Profile ID:', userProfileId);
+      console.log('[PendingRatingsPanel] 🎭 Role:', userRole);
       
-      // Get freights that are DELIVERED/COMPLETED but user hasn't rated yet
-      const { data: freights, error: freightsError } = await supabase
-        .from('freights')
-        .select(`
-          id,
-          cargo_type,
-          origin_address,
-          destination_address,
-          price,
-          updated_at,
-          producer_id,
-          driver_id,
-          status,
-          producer_profiles:profiles!freights_producer_id_fkey(full_name),
-          driver_profiles:profiles!freights_driver_id_fkey(full_name)
-        `)
-        .in('status', ['DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'])
-        .or(`producer_id.eq.${userProfileId},driver_id.eq.${userProfileId}`);
-
-      if (freightsError) {
-        console.error('[PendingRatingsPanel] ❌ Erro ao buscar fretes:', freightsError);
-        throw freightsError;
-      }
-
-      console.log('[PendingRatingsPanel] 📦 Fretes DELIVERED encontrados:', freights?.length || 0);
-      if (freights && freights.length > 0) {
-        console.log('[PendingRatingsPanel] 📋 Detalhes dos fretes:', freights.map(f => ({
-          id: f.id,
-          status: f.status,
-          cargo_type: f.cargo_type,
-          producer_id: f.producer_id,
-          driver_id: f.driver_id
-        })));
-      }
-
-      if (!freights || freights.length === 0) {
-        console.log('[PendingRatingsPanel] ⚠️ Nenhum frete DELIVERED encontrado para este usuário');
+      // Usar a nova função RPC
+      const ratings = await getPendingRatings(userProfileId);
+      
+      console.log('[PendingRatingsPanel] 📝 Avaliações pendentes:', ratings.length);
+      
+      // Enriquecer com dados do frete se necessário
+      if (ratings.length > 0) {
+        const freightIds = [...new Set(ratings.map(r => r.freightId))];
+        
+        const { data: freightsData } = await supabase
+          .from('freights')
+          .select('id, cargo_type, origin_address, destination_address, price')
+          .in('id', freightIds);
+        
+        const freightMap = new Map(freightsData?.map(f => [f.id, f]) || []);
+        
+        const enrichedRatings = ratings.map(r => {
+          const freight = freightMap.get(r.freightId);
+          return {
+            ...r,
+            cargoType: freight?.cargo_type,
+            originAddress: freight?.origin_address,
+            destinationAddress: freight?.destination_address,
+            price: freight?.price
+          };
+        });
+        
+        setPendingRatings(enrichedRatings);
+      } else {
         setPendingRatings([]);
-        return;
       }
-
-      // Check which ones the user hasn't rated yet
-      const freightIds = freights.map(f => f.id);
-      const ratingType = userRole === 'PRODUTOR' ? 'PRODUCER_TO_DRIVER' : 'DRIVER_TO_PRODUCER';
-
-      console.log('[PendingRatingsPanel] 🔎 Buscando ratings existentes do tipo:', ratingType);
-
-      // CORREÇÃO: Dividir em lotes de 50 para evitar erro HTTP 400
-      let existingRatings: { freight_id: string }[] = [];
-      const batchSize = 50;
-      for (let i = 0; i < freightIds.length; i += batchSize) {
-        const batch = freightIds.slice(i, i + batchSize);
-        try {
-          const { data: batchData, error: batchError } = await supabase
-            .from('freight_ratings')
-            .select('freight_id')
-            .in('freight_id', batch)
-            .eq('rater_id', userProfileId)
-            .eq('rating_type', ratingType);
-
-          if (batchError) {
-            console.warn('[PendingRatingsPanel] ⚠️ Erro em batch de ratings:', batchError);
-          } else if (batchData) {
-            existingRatings.push(...batchData);
-          }
-        } catch (e) {
-          console.warn('[PendingRatingsPanel] ⚠️ Erro ao buscar ratings batch:', e);
-        }
-      }
-
-      console.log('[PendingRatingsPanel] ✅ Ratings existentes:', existingRatings?.length || 0);
-
-      const ratedFreightIds = new Set(existingRatings?.map(r => r.freight_id) || []);
-      const unratedFreights = freights.filter(f => !ratedFreightIds.has(f.id));
-
-      console.log('[PendingRatingsPanel] 📝 Fretes sem avaliação (pendentes):', unratedFreights.length);
-      if (unratedFreights.length > 0) {
-        console.log('[PendingRatingsPanel] 📋 IDs pendentes:', unratedFreights.map(f => f.id));
-      }
-
-      setPendingRatings(unratedFreights);
       
     } catch (error) {
-      console.error('[PendingRatingsPanel] ❌ Erro geral ao buscar avaliações pendentes:', error);
+      console.error('[PendingRatingsPanel] ❌ Erro ao buscar avaliações:', error);
+      setPendingRatings([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userProfileId, getPendingRatings]);
 
   useEffect(() => {
     let mounted = true;
     
     const loadRatings = async () => {
       if (!userProfileId || !mounted) return;
-      
-      try {
-        await fetchPendingRatings();
-      } catch (error) {
-        if (mounted) {
-          console.error('Erro ao carregar avaliações:', error);
-        }
-      }
+      await fetchPendingRatings();
     };
     
     loadRatings();
@@ -155,15 +106,46 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
     return () => {
       mounted = false;
     };
-  }, [userProfileId]);
+  }, [userProfileId, fetchPendingRatings]);
 
   const handleRatingSubmitted = () => {
-    fetchPendingRatings(); // Refresh the list
+    fetchPendingRatings();
   };
 
-  const openRatingModal = (freight: PendingRating) => {
-    setSelectedFreight(freight);
+  const openRatingModal = (rating: PendingRating) => {
+    setSelectedRating(rating);
     setRatingModalOpen(true);
+  };
+
+  const getRatingTargetText = (rating: PendingRating): string => {
+    if (rating.pendingTypes.includes('PRODUCER_TO_DRIVER') && rating.pendingTypes.includes('PRODUCER_TO_COMPANY')) {
+      return `${rating.driverName} e ${rating.companyName}`;
+    }
+    if (rating.pendingTypes.includes('PRODUCER_TO_DRIVER')) {
+      return rating.driverName;
+    }
+    if (rating.pendingTypes.includes('PRODUCER_TO_COMPANY')) {
+      return rating.companyName || 'Transportadora';
+    }
+    if (rating.pendingTypes.includes('DRIVER_TO_PRODUCER') || rating.pendingTypes.includes('COMPANY_TO_PRODUCER')) {
+      return rating.producerName;
+    }
+    return 'Participante';
+  };
+
+  const buildRatingSteps = (rating: PendingRating) => {
+    return rating.pendingTypes.map(type => ({
+      type,
+      ratedUserId: type === 'PRODUCER_TO_DRIVER' ? rating.driverId :
+                   type === 'PRODUCER_TO_COMPANY' ? (rating.companyId || '') :
+                   rating.producerId,
+      ratedUserName: type === 'PRODUCER_TO_DRIVER' ? rating.driverName :
+                     type === 'PRODUCER_TO_COMPANY' ? (rating.companyName || 'Transportadora') :
+                     rating.producerName,
+      companyId: type === 'PRODUCER_TO_COMPANY' || type === 'COMPANY_TO_PRODUCER' ? rating.companyId || undefined : undefined,
+      label: getRatingStepLabel(type),
+      icon: getRatingStepIcon(type)
+    }));
   };
 
   if (loading) {
@@ -212,52 +194,66 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
           ) : (
             <div className="space-y-4">
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando avaliações...</div>}>
-                {pendingRatings.map((freight) => (
-                  <React.Fragment key={`rating-${freight.id}`}>
-                    <Card className="border-l-4 border-l-amber-500 bg-amber-50/50">
+                {pendingRatings.map((rating) => (
+                  <React.Fragment key={`rating-${rating.freightId}-${rating.assignmentId || 'main'}`}>
+                    <Card className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h4 className="font-semibold">{freight.cargo_type}</h4>
+                            <h4 className="font-semibold">{rating.cargoType || 'Frete'}</h4>
                             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                               <User className="h-3 w-3" />
-                              <span>
-                                {userRole === 'PRODUTOR' 
-                                  ? freight.driver_profiles?.full_name || 'Motorista'
-                                  : freight.producer_profiles?.full_name || 'Produtor'
-                                }
-                              </span>
+                              <span>{getRatingTargetText(rating)}</span>
                             </div>
+                            {/* Badge para indicar transportadora envolvida */}
+                            {rating.companyId && rating.pendingTypes.includes('PRODUCER_TO_COMPANY') && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Building2 className="h-3 w-3" />
+                                <span>Inclui avaliação da transportadora</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-lg">
-                              R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                          </div>
+                          {rating.price && (
+                            <div className="text-right">
+                              <p className="font-semibold text-lg">
+                                R$ {rating.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-3 w-3 text-green-600" />
-                            <span className="truncate">{freight.origin_address}</span>
+                        {(rating.originAddress || rating.destinationAddress) && (
+                          <div className="space-y-2 mb-4">
+                            {rating.originAddress && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <MapPin className="h-3 w-3 text-green-600" />
+                                <span className="truncate">{rating.originAddress}</span>
+                              </div>
+                            )}
+                            {rating.destinationAddress && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <MapPin className="h-3 w-3 text-red-600" />
+                                <span className="truncate">{rating.destinationAddress}</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-3 w-3 text-red-600" />
-                            <span className="truncate">{freight.destination_address}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            <span>Concluído em {format(new Date(freight.updated_at), 'dd/MM/yyyy HH:mm')}</span>
-                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                          <Clock className="h-3 w-3" />
+                          <span>Pagamento confirmado em {format(new Date(rating.paymentConfirmedAt), 'dd/MM/yyyy HH:mm')}</span>
                         </div>
 
                         <Button 
-                          onClick={() => openRatingModal(freight)}
+                          onClick={() => openRatingModal(rating)}
                           className="w-full"
                           size="sm"
                         >
                           <Star className="h-4 w-4 mr-2" />
-                          Avaliar {userRole === 'PRODUTOR' ? 'Motorista' : 'Produtor'}
+                          {rating.pendingTypes.length > 1 
+                            ? `Avaliar (${rating.pendingTypes.length} etapas)`
+                            : `Avaliar ${getRatingStepLabel(rating.pendingTypes[0])}`
+                          }
                         </Button>
                       </CardContent>
                     </Card>
@@ -269,22 +265,24 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
         </CardContent>
       </Card>
 
-      {selectedFreight && (
-        <FreightRatingModal
-          freight={selectedFreight}
+      {/* Modal Multi-Step para avaliações com múltiplas etapas */}
+      {selectedRating && selectedRating.pendingTypes.length > 0 && (
+        <FreightRatingMultiStepModal
           isOpen={ratingModalOpen}
           onClose={() => {
             setRatingModalOpen(false);
-            setSelectedFreight(null);
+            setSelectedRating(null);
           }}
-          onRatingSubmitted={handleRatingSubmitted}
-          userRole={userRole}
+          onAllRatingsSubmitted={handleRatingSubmitted}
+          freightId={selectedRating.freightId}
+          assignmentId={selectedRating.assignmentId || undefined}
+          raterId={userProfileId}
+          steps={buildRatingSteps(selectedRating)}
         />
       )}
     </>
   );
 }, (prevProps, nextProps) => {
-  // Memoização: só re-renderizar se props mudarem
   return prevProps.userProfileId === nextProps.userProfileId &&
          prevProps.userRole === nextProps.userRole;
 });
