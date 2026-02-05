@@ -90,6 +90,8 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
   onMarkerClick,
   children,
 }, ref) => {
+  // 🔍 DEBUG ETAPA 1: Provar que markers chegam no componente
+  console.log("[MapLibreBase] markers prop:", markers, "count:", markers?.length);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 1. Verificar suporte WebGL
