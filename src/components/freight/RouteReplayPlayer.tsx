@@ -148,6 +148,13 @@ export function RouteReplayPlayer({
             },
           });
 
+          // ========================================
+          // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+          // Sem markers - apenas basemap puro
+          // ========================================
+          // NÃO criar nenhum marker - apenas o mapa
+
+          /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
           // Markers de origem e destino - ✅ anchor: 'bottom' para pins
           if (typeof originLat === 'number' && typeof originLng === 'number') {
             new maplibregl.Marker({ element: createLocationMarkerElement('origin'), anchor: 'bottom' })
@@ -167,6 +174,7 @@ export function RouteReplayPlayer({
           markerRef.current = new maplibregl.Marker({ element: createTruckMarkerElement(true), anchor: 'center' })
             .setLngLat([points[0].lng, points[0].lat])
             .addTo(map);
+          */
 
           // Ajustar bounds
           const bounds = new maplibregl.LngLatBounds();

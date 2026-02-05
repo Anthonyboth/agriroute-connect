@@ -321,9 +321,21 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     mapRef.current.setCenter(computedCenter);
   }, [computedCenter]);
 
-  // ✅ Render/Update markers
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem markers de motoristas - apenas basemap puro
+  // ========================================
   useEffect(() => {
     if (!mapRef.current) return;
+
+    // 🚨 DESATIVADO: Limpar markers existentes
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current.clear();
+
+    // Retorno antecipado - não criar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     const map = mapRef.current;
 
     const keepIds = new Set<string>();
@@ -360,7 +372,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
         </div>
       `;
 
-      // ✅ anchor: 'center' para markers circulares
       const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([d.current_lng, d.current_lat])
         .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml))
@@ -390,6 +401,7 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     }
 
     requestAnimationFrame(() => map.resize());
+    */
   }, [filteredDrivers, selectedDriver]);
 
   return (

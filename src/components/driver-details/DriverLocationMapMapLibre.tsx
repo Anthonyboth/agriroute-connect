@@ -35,6 +35,16 @@ export const DriverLocationMapMapLibre = ({
     return normalizeLatLngPoint({ lat, lng }, 'BR');
   }, [lat, lng]);
 
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem markers - apenas basemap puro
+  // ========================================
+  const markers = useMemo<MapLibreMarkerData[]>(() => [], []);
+
+  // Factory desativada - não criar nenhum marker
+  const markerFactory = useCallback(() => undefined, []);
+
+  /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
   // Marker do motorista (usando coordenadas normalizadas)
   const markers = useMemo<MapLibreMarkerData[]>(() => {
     if (!normalizedLocation) return [];
@@ -53,13 +63,8 @@ export const DriverLocationMapMapLibre = ({
   }, [normalizedLocation, driverName]);
 
   // Factory para criar elemento do marker
-  // ✅ PADRÃO OURO V2: Retorna elemento raiz com dimensões FIXAS 40x40px
-  // ✅ CORRIGIDO: Forçar dimensões inline para prevenir markers gigantes em animações
   const markerFactory = useCallback(() => {
     const el = createTruckMarkerElement(true);
-    
-    // ✅ CRÍTICO: Forçar dimensões inline como proteção contra scale() de Dialog/Drawer
-    // Mesmo que CSS defina 40x40, scale() pode distorcer. Inline styles têm maior precedência.
     el.style.width = '40px';
     el.style.height = '40px';
     el.style.maxWidth = '40px';
@@ -67,10 +72,10 @@ export const DriverLocationMapMapLibre = ({
     el.style.minWidth = '40px';
     el.style.minHeight = '40px';
     el.style.boxSizing = 'border-box';
-    el.style.transform = 'none'; // Previne herança de transforms
-    
+    el.style.transform = 'none';
     return el;
   }, []);
+  */
 
   // Centralizar quando coordenadas mudarem (usando coordenadas normalizadas)
   const handleLoad = useCallback(() => {

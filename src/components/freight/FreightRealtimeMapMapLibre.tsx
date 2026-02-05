@@ -575,10 +575,23 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     };
   }, [mapLoaded]);
 
-  // ✅ Atualizar markers de origem e destino usando coordenadas efetivas
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem markers de origem/destino - apenas basemap puro
+  // ========================================
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
+    // 🚨 DESATIVADO: Limpar qualquer marker existente
+    originMarkerRef.current?.remove();
+    originMarkerRef.current = null;
+    destinationMarkerRef.current?.remove();
+    destinationMarkerRef.current = null;
+
+    // Retorno antecipado - não criar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     console.log('[FreightRealtimeMapMapLibre] 📍 Creating markers - Origin:', mapOrigin, 'Destination:', mapDestination);
 
     // Marker de origem (usando effectiveOrigin que inclui fallback de cidade)
@@ -589,7 +602,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         
         originMarkerRef.current = new maplibregl.Marker({
           element: originElement,
-          anchor: 'bottom', // ✅ CRÍTICO: Ponta do pin coincide com coordenada exata
+          anchor: 'bottom',
         })
           .setLngLat([mapOrigin.lng, mapOrigin.lat])
           .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(
@@ -609,7 +622,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         
         destinationMarkerRef.current = new maplibregl.Marker({
           element: destinationElement,
-          anchor: 'bottom', // ✅ CRÍTICO: Ponta do pin coincide com coordenada exata
+          anchor: 'bottom',
         })
           .setLngLat([mapDestination.lng, mapDestination.lat])
           .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(
@@ -620,19 +633,36 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         destinationMarkerRef.current.setLngLat([mapDestination.lng, mapDestination.lat]);
       }
     }
+    */
   }, [mapOrigin, mapDestination, originCity, originState, destinationCity, destinationState, mapLoaded]);
 
-  // ✅ Atualizar marker do motorista com animação (usando effectiveDriverLocation)
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem marker do motorista - apenas basemap puro
+  // ========================================
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded || !mapDriverLocation) return;
+    if (!mapRef.current || !mapLoaded) return;
 
+    // 🚨 DESATIVADO: Limpar markers de motorista
+    driverMarkerRef.current?.remove();
+    driverMarkerRef.current = null;
+    ghostDriverMarkerRef.current?.remove();
+    ghostDriverMarkerRef.current = null;
+    
+    if (cancelAnimationRef.current) {
+      cancelAnimationRef.current();
+      cancelAnimationRef.current = null;
+    }
+
+    // Retorno antecipado - não criar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     // ✅ NOVO: Se motorista está offline, mostrar marker "fantasma" semi-transparente
     if (!isDriverReallyOnline) {
-      // Remover marker ativo se existir
       driverMarkerRef.current?.remove();
       driverMarkerRef.current = null;
 
-      // Criar marker fantasma se não existir
       if (!ghostDriverMarkerRef.current) {
         const ghostElement = createTruckMarkerElement(false);
         ghostElement.style.opacity = '0.5';
@@ -640,7 +670,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         
         ghostDriverMarkerRef.current = new maplibregl.Marker({
           element: ghostElement,
-          anchor: 'center', // ✅ Caminhão usa centro do ícone
+          anchor: 'center',
         })
           .setLngLat([mapDriverLocation.lng, mapDriverLocation.lat])
           .setPopup(
@@ -649,26 +679,21 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
             )
           )
           .addTo(mapRef.current);
-        
-        console.log('[FreightRealtimeMapMapLibre] Ghost marker created - driver offline');
       } else {
         ghostDriverMarkerRef.current.setLngLat([mapDriverLocation.lng, mapDriverLocation.lat]);
       }
       return;
     }
 
-    // ✅ Motorista online - remover marker fantasma e usar marker ativo
     ghostDriverMarkerRef.current?.remove();
     ghostDriverMarkerRef.current = null;
 
-    // Criar marker se não existir
     if (!driverMarkerRef.current) {
       const truckElement = createTruckMarkerElement(true);
-      console.log('[FreightRealtimeMapMapLibre] 🚛 Creating TRUCK marker (driver) at:', mapDriverLocation);
       
       driverMarkerRef.current = new maplibregl.Marker({
         element: truckElement,
-        anchor: 'center', // ✅ Caminhão usa centro do ícone
+        anchor: 'center',
       })
         .setLngLat([mapDriverLocation.lng, mapDriverLocation.lat])
         .setPopup(
@@ -679,13 +704,10 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         .addTo(mapRef.current);
       
       previousLocationRef.current = mapDriverLocation;
-      console.log('[FreightRealtimeMapMapLibre] ✅ Truck marker created successfully');
       return;
     }
 
-    // Animar para nova posição
     if (previousLocationRef.current) {
-      // Cancelar animação anterior
       if (cancelAnimationRef.current) {
         cancelAnimationRef.current();
       }
@@ -705,6 +727,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       driverMarkerRef.current.setLngLat([mapDriverLocation.lng, mapDriverLocation.lat]);
       previousLocationRef.current = mapDriverLocation;
     }
+    */
   }, [mapDriverLocation, mapLoaded, isDriverReallyOnline, secondsAgo]);
 
   // ✅ Atualizar rota planejada quando coordenadas mudarem

@@ -111,8 +111,12 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
     onClick,
   });
 
-  // 4. Gerenciar markers
-  useMapLibreMarkers(mapRef, markers, { markerFactory });
+  // ========================================
+  // 🚨 4. DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Não renderizar markers - apenas basemap
+  // ========================================
+  // useMapLibreMarkers(mapRef, markers, { markerFactory });
+  useMapLibreMarkers(mapRef, [], {}); // Array vazio = sem markers
 
   // 5. Controles de navegação
   const controls = useMapLibreControls(mapRef);
@@ -199,8 +203,11 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
         </div>
       )}
 
-      {/* Children overlay (badges, botões, etc) */}
-      {isReady && children}
+      {/* ========================================
+         🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+         Sem children overlay (badges, botões, etc)
+         ======================================== */}
+      {/* {isReady && children} */}
     </div>
   );
 });
