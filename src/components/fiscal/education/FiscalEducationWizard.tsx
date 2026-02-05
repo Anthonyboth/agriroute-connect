@@ -355,8 +355,9 @@ const Step2MinimumRegistration: React.FC = () => {
       <Alert className="border-yellow-500/30 bg-yellow-500/5">
         <AlertTriangle className="h-4 w-4 text-yellow-600" />
         <AlertDescription>
-          <strong>Atenção MEI:</strong> Microempreendedores Individuais geralmente emitem NFS-e (Nota de Serviço, pela Prefeitura).
-          A emissão de NF-e estadual pode ter restrições dependendo da atividade.
+          <strong>⚠️ Atenção MEI:</strong> MEI <strong>não é obrigado</strong> a emitir NF-e. 
+          Conforme orientação da SEFAZ-MT, MEI pode emitir <strong>NF-a (Nota Fiscal Avulsa)</strong> diretamente no portal da SEFAZ.
+          A emissão de NF-e por MEI é voluntária e depende de Inscrição Estadual (IE) ativa + credenciamento específico.
         </AlertDescription>
       </Alert>
     </div>

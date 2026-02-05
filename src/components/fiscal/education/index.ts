@@ -4,3 +4,5 @@ export { SupportButton } from './SupportButton';
 export { FiscalEducationWizard, hasCompletedFiscalWizard, resetFiscalWizard } from './FiscalEducationWizard';
 export { FiscalEducationHub } from './FiscalEducationHub';
 export { PreEmissionValidationModal } from './PreEmissionValidationModal';
+export { FiscalCentralHub } from './FiscalCentralHub';
+export { AptidaoWizardStep0 } from './AptidaoWizardStep0';
