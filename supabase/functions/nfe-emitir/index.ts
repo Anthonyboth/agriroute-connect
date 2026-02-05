@@ -127,6 +127,14 @@ async function parseJsonOrText(resp: Response): Promise<{ ok: boolean; data: any
 }
 
 function focusFriendlyMessage(focusData: any, httpStatus?: number) {
+  // ✅ Primeiro tentar extrair erros detalhados (array de erros Focus)
+  if (focusData?.erros && Array.isArray(focusData.erros) && focusData.erros.length > 0) {
+    const detailedErrors = focusData.erros
+      .map((e: any) => `${e.campo || 'Campo desconhecido'}: ${e.mensagem}`)
+      .join('; ');
+    return `Erro de validação: ${detailedErrors}`;
+  }
+
   const msg = String(
     focusData?.mensagem_sefaz || focusData?.mensagem || focusData?.error || focusData?.raw || "",
   ).trim();
@@ -319,22 +327,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Também verificar no sistema legado de wallet (para compatibilidade)
-    const { data: wallet, error: walletError } = await supabase
-      .from('fiscal_wallet')
-      .select('available_balance, reserved_balance')
-      .eq('issuer_id', issuer_id)
-      .maybeSingle();
+    // ✅ DESATIVADO: Sistema legado de créditos - PAGAMENTO PIX OBRIGATÓRIO
+    // O sistema de fiscal_wallet foi descontinuado. Agora apenas PIX é aceito.
+    // const { data: wallet } = await supabase.from('fiscal_wallet')...
 
-    if (walletError) console.error('[nfe-emitir] Erro carteira:', walletError);
-
-    // Se não tem pagamento PIX válido E não tem créditos na wallet
-    if (!pagamentoValido && (!wallet || wallet.available_balance < 1)) {
-      console.log(`[nfe-emitir] Pagamento não encontrado - Retornando 402 PAYMENT_REQUIRED`);
+    // Se não tem pagamento PIX válido, retornar 402
+    if (!pagamentoValido) {
+      console.log(`[nfe-emitir] ❌ Pagamento PIX não encontrado - Retornando 402 PAYMENT_REQUIRED`);
       return jsonResponse(402, {
         success: false,
         code: 'PAYMENT_REQUIRED',
-        message: 'Pagamento via PIX obrigatório antes de emitir.',
+        message: 'Pagamento via PIX obrigatório antes de emitir NF-e.',
         amount_centavos: taxaCentavos,
         document_type: 'nfe',
         issuer_id: issuer_id,
@@ -345,7 +348,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[nfe-emitir] ✅ Pagamento válido encontrado ou créditos disponíveis`);
+    console.log(`[nfe-emitir] ✅ Pagamento PIX válido encontrado`);
     // ============================================================
 
     // Documentos sanitizados (CORREÇÃO CRÍTICA)

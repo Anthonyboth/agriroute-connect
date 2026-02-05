@@ -719,13 +719,17 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <Label htmlFor="ncm">NCM</Label>
+                <Label htmlFor="ncm">NCM (8 dígitos)</Label>
                 <Input
                   id="ncm"
                   value={formData.ncm}
                   onChange={(e) => updateField("ncm", e.target.value)}
                   placeholder="00000000"
+                  maxLength={8}
                 />
+                {formData.ncm && onlyDigits(formData.ncm).length > 0 && onlyDigits(formData.ncm).length !== 8 && (
+                  <p className="text-xs text-destructive mt-1">NCM deve ter exatamente 8 dígitos.</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="cfop">CFOP</Label>
