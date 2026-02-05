@@ -68,15 +68,18 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
         docType: 'NFE',
         status: 'DEPENDE',
         label: 'NF-e (Nota Fiscal Eletrônica)',
-        description: 'MEI NÃO é obrigado a emitir NF-e. Pode ser voluntário, mas exige Inscrição Estadual (IE) ativa e credenciamento SEFAZ.',
-        warningMessage: 'MEI geralmente emite NF-a (NFA). NF-e exige credenciamento e IE, não é garantido.',
+        description: 'MEI pode emitir NF-e se estiver credenciado na SEFAZ. Não é obrigatório, mas é permitido para quem fez o credenciamento.',
+        warningMessage: 'MEI credenciado na SEFAZ pode emitir NF-e normalmente. Se não tiver credenciamento, use NF-a.',
         requirements: [
           'Inscrição Estadual (IE) ativa',
           'Credenciamento como emissor na SEFAZ',
           'Certificado Digital A1',
           'CNAE compatível com venda de mercadorias',
         ],
-        recommendedAlternative: 'Recomendamos usar NF-a (NFA) que é mais simples para MEI.',
+        recommendedAlternative: 'Se não possui credenciamento, use NF-a (NFA) que não exige certificado digital.',
+        links: [
+          { label: 'Emissor NF-e SEBRAE (gratuito)', url: 'https://www.nfe.sebrae.com.br/' },
+        ],
       },
       {
         docType: 'CTE',
@@ -104,9 +107,10 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
       },
     ],
     generalNotes: [
-      '⚠️ MEI NÃO é obrigado a emitir NF-e. Conforme atendimento SEFAZ-MT, MEI pode emitir NFA (Nota Fiscal Avulsa).',
-      'Para emitir NF-e voluntariamente, é necessário ter IE ativa e credenciamento específico.',
-      'A NFA é emitida diretamente no portal da SEFAZ, sem certificado digital.',
+      '✅ MEI credenciado na SEFAZ pode emitir NF-e normalmente (conforme orientação SEBRAE).',
+      '⚠️ MEI sem credenciamento pode usar NF-a (NFA) emitida no portal SEFAZ, sem certificado digital.',
+      'Para emitir NF-e é necessário ter IE ativa + credenciamento + certificado A1.',
+      'O SEBRAE oferece emissor de NF-e gratuito em nuvem: nfe.sebrae.com.br',
     ],
   },
   {
