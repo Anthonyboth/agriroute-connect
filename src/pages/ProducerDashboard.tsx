@@ -1958,12 +1958,9 @@ const ProducerDashboard = () => {
                       <PendingDeliveryConfirmationCard
                         key={item.id}
                         item={item}
-                        onViewDetails={() => {
-                          // Buscar o frete completo para exibir detalhes
-                          const fullFreight = freights.find(f => f.id === item.freight_id);
-                          if (fullFreight) {
-                            setSelectedFreightDetails(fullFreight);
-                          }
+                        onDispute={() => {
+                          // TODO: Implementar disputa de entrega
+                          toast.info('Disputa de entrega em breve');
                         }}
                         onConfirmDelivery={() => {
                           // ✅ Montar objeto compatível com DeliveryConfirmationModal

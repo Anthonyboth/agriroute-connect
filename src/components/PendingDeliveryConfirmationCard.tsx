@@ -3,21 +3,21 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Clock, Eye, CheckCircle, Truck, Star, Building2 } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Truck, Star, Building2 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import type { PendingDeliveryItem } from '@/hooks/usePendingDeliveryConfirmations';
 
 interface PendingDeliveryConfirmationCardProps {
   item: PendingDeliveryItem;
-  onViewDetails: () => void;
   onConfirmDelivery: () => void;
+  onDispute?: () => void;
   isHighlighted?: boolean;
 }
 
 export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmationCardProps> = ({
   item,
-  onViewDetails,
   onConfirmDelivery,
+  onDispute,
   isHighlighted = false,
 }) => {
   // Calcular preço individual (prioridade: agreed_price unitário → metadata.price_per_truck → rateio)
@@ -150,16 +150,21 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
           </div>
         </div>
 
-        {/* Botões de ação */}
+        {/* Botões de ação: apenas Confirmar e Contestar */}
         <div className="mt-auto grid grid-cols-2 gap-3">
           <Button 
             size="sm" 
-            variant="outline"
+            variant="destructive"
+            type="button"
             className="w-full"
-            onClick={onViewDetails}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDispute?.();
+            }}
           >
-            <Eye className="h-4 w-4 mr-1.5" />
-            Ver Detalhes
+            <XCircle className="h-4 w-4 mr-1.5" />
+            Contestar
           </Button>
           <Button 
             size="sm" 

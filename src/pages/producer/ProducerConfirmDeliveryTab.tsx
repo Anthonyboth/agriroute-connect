@@ -2,22 +2,22 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Eye, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import type { ProducerFreight } from './types';
 
 interface ProducerConfirmDeliveryTabProps {
   freights: ProducerFreight[];
   highlightFreightId?: string;
-  onViewDetails: (freight: ProducerFreight) => void;
   onConfirmDelivery: (freight: ProducerFreight) => void;
+  onDispute?: (freight: ProducerFreight) => void;
 }
 
 export const ProducerConfirmDeliveryTab: React.FC<ProducerConfirmDeliveryTabProps> = ({
   freights,
   highlightFreightId,
-  onViewDetails,
   onConfirmDelivery,
+  onDispute,
 }) => {
   const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'critical' | 'urgent'>('all');
 
@@ -178,20 +178,21 @@ export const ProducerConfirmDeliveryTab: React.FC<ProducerConfirmDeliveryTabProp
                     </div>
                   </div>
 
+                  {/* Botões: apenas Confirmar e Contestar */}
                   <div className="mt-auto grid grid-cols-2 gap-3">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="destructive"
                       type="button"
                       className="w-full"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onViewDetails(freight);
+                        onDispute?.(freight);
                       }}
                     >
-                      <Eye className="h-4 w-4 mr-1.5" />
-                      Ver Detalhes
+                      <XCircle className="h-4 w-4 mr-1.5" />
+                      Contestar
                     </Button>
                     <Button
                       size="sm"
