@@ -292,12 +292,52 @@ Deno.serve(async (req) => {
     }
 
     if (!pagarmeResponse.ok) {
-      console.error(`[PAGARME-CREATE-PIX][${requestId}] Erro Pagar.me:`, JSON.stringify(pagarmeData).substring(0, 1000));
+      console.error(`[PAGARME-CREATE-PIX][${requestId}] Erro Pagar.me HTTP:`, JSON.stringify(pagarmeData).substring(0, 1000));
       const errorMessage = (pagarmeData as any)?.message || (pagarmeData as any)?.errors?.[0]?.message || 'Erro ao criar cobrança PIX.';
       return jsonResponse(422, {
         success: false,
         code: 'PROVIDER_ERROR',
         message: `Erro do provedor: ${errorMessage}`,
+      });
+    }
+
+    // Verificar se a order ou charge falhou internamente (status 200 mas transação failed)
+    const orderStatus = (pagarmeData as any)?.status;
+    const chargeStatus = (pagarmeData as any)?.charges?.[0]?.status;
+    
+    if (orderStatus === 'failed' || chargeStatus === 'failed') {
+      const gatewayErrors = (pagarmeData as any)?.charges?.[0]?.last_transaction?.gateway_response?.errors || [];
+      const gatewayCode = (pagarmeData as any)?.charges?.[0]?.last_transaction?.gateway_response?.code || '';
+      
+      console.error(`[PAGARME-CREATE-PIX][${requestId}] Transação PIX falhou internamente:`, {
+        orderStatus,
+        chargeStatus,
+        gatewayCode,
+        gatewayErrors: JSON.stringify(gatewayErrors).substring(0, 500),
+      });
+      
+      // Extrair mensagem de erro mais específica
+      let errorDetail = 'Erro ao gerar cobrança PIX. ';
+      if (gatewayErrors.length > 0) {
+        const firstError = gatewayErrors[0];
+        if (typeof firstError === 'object' && firstError.message) {
+          errorDetail += firstError.message;
+        } else if (typeof firstError === 'string') {
+          errorDetail += firstError;
+        }
+      } else if (gatewayCode === '400') {
+        errorDetail += 'Verifique se os dados cadastrais (CNPJ, email) estão corretos.';
+      }
+      
+      return jsonResponse(422, {
+        success: false,
+        code: 'PIX_GENERATION_FAILED',
+        message: errorDetail,
+        debug: {
+          order_status: orderStatus,
+          charge_status: chargeStatus,
+          gateway_code: gatewayCode,
+        },
       });
     }
 
