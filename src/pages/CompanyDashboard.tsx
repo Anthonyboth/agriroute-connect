@@ -70,6 +70,7 @@ import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { getDriverVisibleFreightPrice } from '@/lib/freight-price-visibility';
+import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 
 // ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
 const CompanyAnalyticsDashboard = lazyWithRetry(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
@@ -887,9 +888,17 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
-            <Suspense fallback={<ChartLoader />}>
-              <CompanyDriverPerformanceDashboard companyId={company.id} />
-            </Suspense>
+            <div className="space-y-6">
+              {/* Avaliações pendentes da transportadora para produtores */}
+              <PendingRatingsPanel 
+                userRole="TRANSPORTADORA" 
+                userProfileId={profile.id} 
+              />
+              {/* Performance dos motoristas */}
+              <Suspense fallback={<ChartLoader />}>
+                <CompanyDriverPerformanceDashboard companyId={company.id} />
+              </Suspense>
+            </div>
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">

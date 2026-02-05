@@ -3,20 +3,50 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
+/**
+ * Tipos de avaliação suportados:
+ * - PRODUCER_TO_DRIVER: Produtor avalia Motorista
+ * - DRIVER_TO_PRODUCER: Motorista avalia Produtor
+ * - PRODUCER_TO_COMPANY: Produtor avalia Transportadora (quando motorista é afiliado)
+ * - COMPANY_TO_PRODUCER: Transportadora avalia Produtor
+ * ❌ NÃO EXISTE: Transportadora ↔ Motorista
+ */
+export type RatingType = 
+  | 'PRODUCER_TO_DRIVER' 
+  | 'DRIVER_TO_PRODUCER' 
+  | 'PRODUCER_TO_COMPANY' 
+  | 'COMPANY_TO_PRODUCER';
+
 interface RatingSubmission {
   freightId: string;
   raterId: string;
   ratedUserId: string;
   rating: number;
   comment?: string;
-  ratingType: 'PRODUCER_TO_DRIVER' | 'DRIVER_TO_PRODUCER';
+  ratingType: RatingType;
+  companyId?: string; // Para avaliações envolvendo transportadora
+  assignmentId?: string; // Para fretes multi-carreta
+}
+
+interface PendingRating {
+  freightId: string;
+  assignmentId: string | null;
+  driverId: string;
+  driverName: string;
+  companyId: string | null;
+  companyName: string | null;
+  producerId: string;
+  producerName: string;
+  pendingTypes: RatingType[];
+  paymentConfirmedAt: string;
 }
 
 interface UseRatingSubmitResult {
   submitRating: (data: RatingSubmission) => Promise<boolean>;
   isSubmitting: boolean;
   error: string | null;
-  canSubmitRating: (freightId: string) => Promise<{ canSubmit: boolean; reason?: string }>;
+  canSubmitRating: (freightId: string, ratingType?: RatingType) => Promise<{ canSubmit: boolean; reason?: string }>;
+  getPendingRatings: (profileId: string) => Promise<PendingRating[]>;
 }
 
 /**
@@ -25,6 +55,7 @@ interface UseRatingSubmitResult {
  * ✅ Implementa:
  * - Verificação prévia de pagamento confirmado
  * - Verificação de avaliação duplicada
+ * - Suporte a avaliações de transportadoras
  * - Tratamento de erros RLS com mensagens claras
  * - Logging para monitoramento
  */
@@ -33,16 +64,52 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
   const [error, setError] = useState<string | null>(null);
 
   /**
+   * Busca avaliações pendentes usando a função RPC
+   */
+  const getPendingRatings = useCallback(async (profileId: string): Promise<PendingRating[]> => {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('get_pending_ratings_with_affiliation', {
+        p_profile_id: profileId
+      });
+
+      if (rpcError) {
+        console.error('[useRatingSubmit] Erro ao buscar avaliações pendentes:', rpcError);
+        return [];
+      }
+
+      return (data || []).map((row: any) => ({
+        freightId: row.freight_id,
+        assignmentId: row.assignment_id,
+        driverId: row.driver_id,
+        driverName: row.driver_name,
+        companyId: row.company_id,
+        companyName: row.company_name,
+        producerId: row.producer_id,
+        producerName: row.producer_name,
+        pendingTypes: row.pending_types || [],
+        paymentConfirmedAt: row.payment_confirmed_at
+      }));
+    } catch (err) {
+      console.error('[useRatingSubmit] Erro em getPendingRatings:', err);
+      return [];
+    }
+  }, []);
+
+  /**
    * Verifica se o usuário pode avaliar o frete
    */
-  const canSubmitRating = useCallback(async (freightId: string): Promise<{ canSubmit: boolean; reason?: string }> => {
+  const canSubmitRating = useCallback(async (
+    freightId: string,
+    ratingType?: RatingType
+  ): Promise<{ canSubmit: boolean; reason?: string }> => {
     try {
-      // 1. Verificar se o pagamento foi confirmado
+      // 1. Verificar se existe pelo menos um pagamento confirmado para este frete
       const { data: payment, error: paymentError } = await supabase
         .from('external_payments')
         .select('id, status')
         .eq('freight_id', freightId)
         .eq('status', 'confirmed')
+        .limit(1)
         .maybeSingle();
 
       if (paymentError) {
@@ -74,16 +141,21 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
         return { canSubmit: false, reason: 'Perfil do usuário não encontrado' };
       }
 
-      // 4. Verificar se já avaliou
-      const { data: existingRating } = await supabase
+      // 4. Verificar se já avaliou (considerando o tipo específico se fornecido)
+      let query = supabase
         .from('freight_ratings')
         .select('id')
         .eq('freight_id', freightId)
-        .eq('rater_id', profile.id)
-        .maybeSingle();
+        .eq('rater_id', profile.id);
+
+      if (ratingType) {
+        query = query.eq('rating_type', ratingType);
+      }
+
+      const { data: existingRating } = await query.maybeSingle();
 
       if (existingRating) {
-        return { canSubmit: false, reason: 'Você já avaliou este frete' };
+        return { canSubmit: false, reason: 'Você já enviou esta avaliação' };
       }
 
       return { canSubmit: true };
@@ -102,7 +174,7 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
 
     try {
       // Verificação prévia
-      const { canSubmit, reason } = await canSubmitRating(data.freightId);
+      const { canSubmit, reason } = await canSubmitRating(data.freightId, data.ratingType);
       
       if (!canSubmit) {
         setError(reason || 'Não é possível avaliar este frete');
@@ -112,19 +184,30 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
         return false;
       }
 
+      // Preparar dados para inserção
+      const insertData: any = {
+        freight_id: data.freightId,
+        rater_id: data.raterId,
+        rated_user_id: data.ratedUserId,
+        rating: data.rating,
+        comment: data.comment || null,
+        rating_type: data.ratingType,
+      };
+
+      // Adicionar company_id se for avaliação de transportadora
+      if (data.companyId && (data.ratingType === 'PRODUCER_TO_COMPANY' || data.ratingType === 'COMPANY_TO_PRODUCER')) {
+        insertData.company_id = data.companyId;
+      }
+
+      // Adicionar assignment_id se fornecido (para fretes multi-carreta)
+      if (data.assignmentId) {
+        insertData.assignment_id = data.assignmentId;
+      }
+
       // Submeter avaliação
       const { error: insertError } = await supabase
         .from('freight_ratings')
-        .upsert({
-          freight_id: data.freightId,
-          rater_id: data.raterId,
-          rated_user_id: data.ratedUserId,
-          rating: data.rating,
-          comment: data.comment || null,
-          rating_type: data.ratingType,
-        }, {
-          onConflict: 'freight_id,rater_id,rating_type'
-        });
+        .insert(insertData);
 
       if (insertError) {
         // Tratamento específico de erros RLS
@@ -135,12 +218,19 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
             description: userMessage
           });
           
-          // Log para monitoramento (sem alarmar o usuário)
-          console.warn('[useRatingSubmit] RLS bloqueou avaliação - pagamento não confirmado:', {
+          console.warn('[useRatingSubmit] RLS bloqueou avaliação:', {
             freightId: data.freightId,
-            raterId: data.raterId
+            raterId: data.raterId,
+            ratingType: data.ratingType
           });
           
+          return false;
+        }
+
+        // Erro de duplicidade
+        if (insertError.message.includes('duplicate key') || insertError.message.includes('unique')) {
+          setError('Você já enviou esta avaliação');
+          toast.error('Avaliação já registrada');
           return false;
         }
 
@@ -148,19 +238,27 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
         throw insertError;
       }
 
-      toast.success('Avaliação enviada com sucesso!');
+      // Mensagem de sucesso personalizada
+      const successMessages: Record<RatingType, string> = {
+        'PRODUCER_TO_DRIVER': 'Avaliação do motorista enviada!',
+        'DRIVER_TO_PRODUCER': 'Avaliação do produtor enviada!',
+        'PRODUCER_TO_COMPANY': 'Avaliação da transportadora enviada!',
+        'COMPANY_TO_PRODUCER': 'Avaliação do produtor enviada!'
+      };
+
+      toast.success(successMessages[data.ratingType] || 'Avaliação enviada com sucesso!');
       return true;
 
     } catch (err: any) {
       const errorMessage = err?.message || 'Erro ao enviar avaliação';
       setError(errorMessage);
       
-      // Log detalhado
       console.error('[useRatingSubmit] Erro ao submeter avaliação:', {
         message: err?.message,
         code: err?.code,
         details: err?.details,
-        freightId: data.freightId
+        freightId: data.freightId,
+        ratingType: data.ratingType
       });
 
       // Enviar para monitoramento
@@ -171,6 +269,7 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
           functionName: 'submitRating',
           freightId: data.freightId,
           raterId: data.raterId,
+          ratingType: data.ratingType,
           errorCode: err?.code,
           userFacing: true
         }
@@ -190,6 +289,7 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
     submitRating,
     isSubmitting,
     error,
-    canSubmitRating
+    canSubmitRating,
+    getPendingRatings
   };
 };
