@@ -600,12 +600,13 @@ const ProducerDashboard = () => {
 
   // ✅ Buscar pagamentos externos
   // ✅ Buscar pagamentos externos com mapeamento de status
+  // ✅ SEGURANÇA: NÃO fazer JOIN direto em `profiles` (tabela com PII). Resolver via `profiles_secure`.
   const fetchExternalPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
     try {
       console.info("[fetchExternalPayments] Buscando pagamentos para produtor:", profile.id);
-      
+
       const { data, error } = await supabase
         .from("external_payments")
         .select(
@@ -622,12 +623,6 @@ const ProducerDashboard = () => {
             status,
             price,
             distance_km
-          ),
-          driver:profiles!external_payments_driver_id_fkey(
-            id,
-            full_name,
-            contact_phone,
-            profile_photo_url
           )
         `,
         )
@@ -643,21 +638,47 @@ const ProducerDashboard = () => {
           details: error.details,
           hint: error.hint,
         });
-        
+
         // Estado vazio válido - sem toast, sem erro visível
         setExternalPayments([]);
         return;
       }
 
-      console.info("[fetchExternalPayments] Pagamentos encontrados:", data?.length || 0);
+      const payments = data || [];
+      console.info("[fetchExternalPayments] Pagamentos encontrados:", payments.length);
+
+      // Resolver dados do motorista via view segura
+      const uniqueDriverIds = [...new Set(payments.map((p: any) => p.driver_id).filter(Boolean))] as string[];
+      const driverMap = new Map<string, any>();
+
+      if (uniqueDriverIds.length > 0) {
+        const { data: driversData, error: driversErr } = await supabase
+          .from('profiles_secure')
+          .select('id, full_name, profile_photo_url, rating, total_ratings')
+          .in('id', uniqueDriverIds);
+
+        if (driversErr) {
+          console.warn('[fetchExternalPayments] Erro ao buscar motoristas (profiles_secure):', driversErr);
+        }
+
+        (driversData || []).forEach((d: any) => driverMap.set(d.id, d));
+      }
 
       // ✅ Mapear status do banco para UI
       // Banco: proposed, paid_by_producer, confirmed, rejected, cancelled
       // UI: proposed, paid_by_producer, completed (confirmed mapeado)
-      const mappedData = (data || []).map((payment: any) => ({
+      const mappedData = payments.map((payment: any) => ({
         ...payment,
+        driver: driverMap.get(payment.driver_id)
+          ? {
+              id: payment.driver_id,
+              full_name: driverMap.get(payment.driver_id).full_name,
+              profile_photo_url: driverMap.get(payment.driver_id).profile_photo_url,
+              // Deliberadamente NÃO incluir telefone aqui (PII)
+            }
+          : undefined,
         // Mapear 'confirmed' do banco para 'completed' na UI
-        status: payment.status === 'confirmed' ? 'completed' : payment.status
+        status: payment.status === 'confirmed' ? 'completed' : payment.status,
       }));
 
       setExternalPayments(mappedData);
@@ -1140,30 +1161,76 @@ const ProducerDashboard = () => {
     setDeliveryConfirmationModal(false);
   };
 
-  const requestFullPayment = async (_freightId: string, _driverId: string, _amount: number) => {
-    // mantido só para não quebrar compilação se você ainda chama em outro ponto
-    // (se quiser, eu integro com seu fluxo de payments completo depois)
-  };
+  const ensureExternalPaymentRequest = useCallback(
+    async (args: { freightId: string; driverId: string; amount: number; notes?: string }) => {
+      if (!profile?.id) return;
+
+      const { freightId, driverId, amount } = args;
+      const notes = args.notes || 'Pagamento completo do frete após entrega confirmada';
+
+      try {
+        // Evitar duplicar solicitações
+        const { data: existing, error: existingErr } = await supabase
+          .from('external_payments')
+          .select('id, status')
+          .eq('freight_id', freightId)
+          .eq('producer_id', profile.id)
+          .eq('driver_id', driverId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (existingErr) {
+          console.warn('[ensureExternalPaymentRequest] Falha ao checar existente:', existingErr.message);
+        }
+
+        if (existing && existing.length > 0) {
+          // Já existe um registro, não criar outro
+          return;
+        }
+
+        const { error: insertError } = await supabase
+          .from('external_payments')
+          .insert({
+            freight_id: freightId,
+            producer_id: profile.id,
+            driver_id: driverId,
+            amount,
+            status: 'proposed',
+            notes,
+            proposed_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('[ensureExternalPaymentRequest] Erro ao criar external_payment:', insertError);
+          return;
+        }
+
+        // Atualizar UI
+        fetchExternalPayments();
+      } catch (e) {
+        console.error('[ensureExternalPaymentRequest] Erro inesperado:', e);
+      }
+    },
+    [profile?.id, fetchExternalPayments],
+  );
 
   const handleDeliveryConfirmed = () => {
-    if (freightToConfirm && freightToConfirm.profiles) {
-      setTimeout(() => {
-        requestFullPayment(freightToConfirm.id, freightToConfirm.profiles.id, freightToConfirm.price);
-      }, 1000);
+    // ✅ Fluxo correto: Entrega confirmada → abrir Pagamentos → produtor marca como pago → motorista confirma recebimento → avaliações liberadas
+    if (freightToConfirm) {
+      const driverId = freightToConfirm.driver_id || freightToConfirm.profiles?.id;
+      const amount = freightToConfirm.price;
 
-      if (freightToConfirm.profiles?.id) {
-        setTimeout(() => {
-          window.dispatchEvent(
-            new CustomEvent("show-freight-rating", {
-              detail: {
-                freightId: freightToConfirm.id,
-                ratedUserId: freightToConfirm.profiles.id,
-                ratedUserName: freightToConfirm.profiles.full_name,
-              },
-            }),
-          );
-        }, 500);
+      if (freightToConfirm.id && driverId && typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
+        void ensureExternalPaymentRequest({
+          freightId: freightToConfirm.id,
+          driverId,
+          amount,
+        });
       }
+
+      // Levar o produtor diretamente para a aba de pagamentos
+      setActiveTab('payments');
+      toast.info('Entrega confirmada. Vá em “Pagamentos” para confirmar o pagamento ao motorista.');
     }
 
     fetchFreights();
@@ -1901,6 +1968,16 @@ const ProducerDashboard = () => {
                         onConfirmDelivery={() => {
                           // ✅ Montar objeto compatível com DeliveryConfirmationModal
                           // incluindo dados do motorista específico
+                          const reportedAt =
+                            item.deliveryDeadline?.reportedAt ||
+                            item.delivered_at ||
+                            (item.freight as any)?.updated_at ||
+                            new Date().toISOString();
+
+                          const confirmationDeadline = new Date(
+                            new Date(reportedAt).getTime() + 72 * 60 * 60 * 1000,
+                          ).toISOString();
+
                           const confirmationData = {
                             id: item.freight_id,
                             assignment_id: item.id, // ID da atribuição para confirmação individual
@@ -1909,6 +1986,13 @@ const ProducerDashboard = () => {
                             origin_address: item.freight.origin_address,
                             destination_address: item.freight.destination_address,
                             price: item.agreed_price || (item.freight.price / item.freight.required_trucks),
+                            // ✅ Evita crash/reload: DeliveryConfirmationModal usa updated_at para render
+                            updated_at: reportedAt,
+                            status: 'DELIVERED_PENDING_CONFIRMATION',
+                            metadata: {
+                              ...(item.freight as any).metadata,
+                              confirmation_deadline: confirmationDeadline,
+                            },
                             profiles: {
                               id: item.driver.id,
                               full_name: item.driver.full_name,
