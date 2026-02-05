@@ -269,6 +269,9 @@ Deno.serve(async (req) => {
       const responseText = await pagarmeResponse.text();
       console.log(`[PAGARME-CREATE-PIX][${requestId}] Pagar.me status: ${pagarmeResponse.status}`);
       
+      // Log da resposta completa para debug (primeiros 2000 chars)
+      console.log(`[PAGARME-CREATE-PIX][${requestId}] Resposta Pagar.me:`, responseText.substring(0, 2000));
+      
       try {
         pagarmeData = JSON.parse(responseText);
       } catch {
@@ -299,17 +302,40 @@ Deno.serve(async (req) => {
     }
 
     // Extrair dados do PIX da resposta
+    // A estrutura pode variar: last_transaction ou diretamente em pix
     const orderId = (pagarmeData as any).id;
     const charges = (pagarmeData as any).charges || [];
     const charge = charges[0] || {};
     const chargeId = charge.id;
+    
+    // Tentar múltiplas estruturas de resposta da Pagar.me
     const lastTransaction = charge.last_transaction || {};
-    const qrCode = lastTransaction.qr_code || '';
-    const qrCodeUrl = lastTransaction.qr_code_url || '';
-    const pixExpiresAt = lastTransaction.expires_at || expiresAt.toISOString();
+    const pixData = lastTransaction.pix || lastTransaction || {};
+    
+    // Log detalhado para debug
+    console.log(`[PAGARME-CREATE-PIX][${requestId}] Charge structure:`, JSON.stringify({
+      chargeId,
+      lastTransactionKeys: Object.keys(lastTransaction),
+      pixDataKeys: Object.keys(pixData),
+      hasQrCode: !!lastTransaction.qr_code,
+      hasQrCodeInPix: !!pixData.qr_code,
+    }));
+    
+    // Extrair QR Code de diferentes locais possíveis
+    let qrCode = lastTransaction.qr_code || pixData.qr_code || '';
+    let qrCodeUrl = lastTransaction.qr_code_url || pixData.qr_code_url || '';
+    
+    // Fallback: tentar gerar URL do QR Code se temos o código mas não a URL
+    if (qrCode && !qrCodeUrl) {
+      // Algumas APIs retornam apenas o código PIX copia-e-cola
+      qrCodeUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(qrCode)}`;
+    }
+    
+    const pixExpiresAt = lastTransaction.expires_at || pixData.expires_at || expiresAt.toISOString();
 
     console.log(`[PAGARME-CREATE-PIX][${requestId}] ✅ Cobrança criada: ${chargeId}`);
     console.log(`[PAGARME-CREATE-PIX][${requestId}] Order ID: ${orderId}`);
+    console.log(`[PAGARME-CREATE-PIX][${requestId}] QR Code presente: ${!!qrCode}, URL: ${!!qrCodeUrl}`);
 
     // Registrar a cobrança na tabela fiscal_wallet_transactions
     const transactionData = {
