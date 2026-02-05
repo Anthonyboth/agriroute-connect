@@ -6,3 +6,5 @@ export { FiscalEducationHub } from './FiscalEducationHub';
 export { PreEmissionValidationModal } from './PreEmissionValidationModal';
 export { FiscalCentralHub } from './FiscalCentralHub';
 export { AptidaoWizardStep0 } from './AptidaoWizardStep0';
+export { StateGuideViewer } from './StateGuideViewer';
+export { AptidaoCheckModal } from './AptidaoCheckModal';

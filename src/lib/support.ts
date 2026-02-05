@@ -18,6 +18,7 @@ export interface SupportContext {
   screen?: string;
   documentType?: string;
   issuerUf?: string;
+  uf?: string; // Alias para issuerUf
   errorCode?: string;
   freightId?: string;
   userId?: string;
@@ -78,8 +79,8 @@ function buildWhatsAppMessage(context?: SupportContext): string {
   if (context?.documentType) {
     msg += `\n📄 *Documento:* ${context.documentType}`;
   }
-  if (context?.issuerUf) {
-    msg += `\n🗺️ *Estado:* ${context.issuerUf}`;
+  if (context?.issuerUf || context?.uf) {
+    msg += `\n🗺️ *Estado:* ${context.issuerUf || context.uf}`;
   }
   if (context?.freightId) {
     msg += `\n🚚 *Frete:* ${context.freightId}`;
