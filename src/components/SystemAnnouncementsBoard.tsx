@@ -157,9 +157,9 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose, ignoreDismissals = f
           size="icon"
           onClick={handleDismissAll}
           aria-label="Fechar mural"
-          className="h-8 w-8 rounded-full hover:bg-muted"
+          className="h-12 w-12 rounded-md border-2 border-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-950 dark:hover:bg-red-900"
         >
-          <X className="h-5 w-5" />
+          <X className="h-7 w-7 text-red-600 dark:text-red-400" />
         </Button>
       </div>
 
