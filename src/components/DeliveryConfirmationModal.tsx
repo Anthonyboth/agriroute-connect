@@ -313,11 +313,25 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
 
           {/* Botões */}
           <div className="flex gap-3 pt-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
+              className="flex-1"
+            >
               Cancelar
             </Button>
-            <Button 
-              onClick={confirmDelivery} 
+            <Button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                confirmDelivery();
+              }}
               disabled={loading}
               className="flex-1"
             >

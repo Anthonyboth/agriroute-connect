@@ -49,21 +49,33 @@ export const ProducerConfirmDeliveryTab: React.FC<ProducerConfirmDeliveryTabProp
           <Button
             variant={urgencyFilter === 'all' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setUrgencyFilter('all')}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setUrgencyFilter('all');
+            }}
           >
             Todos ({pendingConfirmation.length})
           </Button>
           <Button
             variant={urgencyFilter === 'critical' ? 'destructive' : 'outline'}
             size="sm"
-            onClick={() => setUrgencyFilter('critical')}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setUrgencyFilter('critical');
+            }}
           >
             🚨 Críticos ({criticalCount})
           </Button>
           <Button
             variant={urgencyFilter === 'urgent' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setUrgencyFilter('urgent')}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setUrgencyFilter('urgent');
+            }}
             className={urgencyFilter === 'urgent' ? 'bg-orange-600 hover:bg-orange-700' : ''}
           >
             ⚠️ Urgentes ({urgentCount})
@@ -167,19 +179,29 @@ export const ProducerConfirmDeliveryTab: React.FC<ProducerConfirmDeliveryTabProp
                   </div>
 
                   <div className="mt-auto grid grid-cols-2 gap-3">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
+                      type="button"
                       className="w-full"
-                      onClick={() => onViewDetails(freight)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onViewDetails(freight);
+                      }}
                     >
                       <Eye className="h-4 w-4 mr-1.5" />
                       Ver Detalhes
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
+                      type="button"
                       className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={() => onConfirmDelivery(freight)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onConfirmDelivery(freight);
+                      }}
                     >
                       <CheckCircle className="h-4 w-4 mr-1.5" />
                       Confirmar Entrega
