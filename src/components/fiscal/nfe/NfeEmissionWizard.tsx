@@ -1126,7 +1126,11 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
       {/* ✅ ETAPA 0: Documento correto + aptidão (antes de qualquer cobrança/emissão) */}
       <Dialog open={showAptidaoStep0} onOpenChange={(open) => setShowAptidaoStep0(open)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Documento correto + Aptidão</DialogTitle>
             <DialogDescription>
