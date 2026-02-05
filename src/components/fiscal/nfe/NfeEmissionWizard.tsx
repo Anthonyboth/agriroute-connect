@@ -25,6 +25,7 @@ import { FiscalPreValidationModal } from "@/components/fiscal/FiscalPreValidatio
 import { PixPaymentModal } from "@/components/fiscal/PixPaymentModal";
 import { useFiscalPreValidation } from "@/hooks/useFiscalPreValidation";
 import { usePixPayment } from "@/hooks/usePixPayment";
+import { useFiscalDocumentCredits } from "@/hooks/useFiscalDocumentCredits";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -122,6 +123,10 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   
   // Hook de pagamento PIX
   const { calculateFee } = usePixPayment();
+  
+  // Hook de créditos de documentos fiscais (anti-fraude)
+  const { checkAvailableCredit } = useFiscalDocumentCredits();
+  const [availableCredit, setAvailableCredit] = useState<{ hasCredit: boolean; remainingAttempts?: number } | null>(null);
 
   const [formData, setFormData] = useState({
     // Destinatário
@@ -151,6 +156,24 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     valor_desconto: "0",
     informacoes_adicionais: "",
   });
+
+  // ✅ Verificar crédito disponível quando modal abre
+  useEffect(() => {
+    if (!isOpen || !fiscalIssuer?.id) return;
+    
+    const checkCredit = async () => {
+      const result = await checkAvailableCredit(fiscalIssuer.id, 'nfe');
+      if (result.hasCredit && result.credit) {
+        const remaining = result.credit.maxAttempts - result.credit.attempts;
+        setAvailableCredit({ hasCredit: true, remainingAttempts: remaining });
+        console.log('[NfeEmissionWizard] ✅ Crédito disponível:', remaining, 'tentativas restantes');
+      } else {
+        setAvailableCredit({ hasCredit: false });
+      }
+    };
+    
+    checkCredit();
+  }, [isOpen, fiscalIssuer?.id, checkAvailableCredit]);
 
   // ✅ PREFILL DO DESTINATÁRIO: Buscar dados do produtor do frete (destinatário da NF-e)
   useEffect(() => {
@@ -538,6 +561,18 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       console.error("[NFE] Erro ao emitir:", err);
       const errorMsg = err?.message || "Erro desconhecido ao emitir NF-e.";
       
+      // ✅ Atualizar estado de crédito após erro (crédito foi liberado no backend)
+      if (fiscalIssuer?.id) {
+        const creditResult = await checkAvailableCredit(fiscalIssuer.id, 'nfe');
+        if (creditResult.hasCredit && creditResult.credit) {
+          const remaining = creditResult.credit.maxAttempts - creditResult.credit.attempts;
+          setAvailableCredit({ hasCredit: true, remainingAttempts: remaining });
+          toast.info(`Crédito preservado: ${remaining} tentativa(s) restante(s)`);
+        } else {
+          setAvailableCredit({ hasCredit: false });
+        }
+      }
+      
       // Verificar se é um erro SEFAZ (rejeição) para abrir o modal detalhado
       const isSefazError = errorMsg.toLowerCase().includes('rejeição') ||
                            errorMsg.toLowerCase().includes('rejei') ||
@@ -894,12 +929,27 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
               </CardContent>
             </Card>
 
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+            {/* ✅ Informação sobre créditos disponíveis */}
+            {availableCredit?.hasCredit && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-green-800 dark:text-green-200">Crédito disponível</p>
+                    <p className="text-green-700 dark:text-green-300">
+                      Você tem um pagamento pendente de uso. {availableCredit.remainingAttempts} tentativa(s) restante(s).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
               <div className="flex gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-yellow-800 dark:text-yellow-200">Ambiente: {ambienteLabel}</p>
-                  <p className="text-yellow-700 dark:text-yellow-300">
+                  <p className="font-medium text-amber-800 dark:text-amber-200">Ambiente: {ambienteLabel}</p>
+                  <p className="text-amber-700 dark:text-amber-300">
                     {ambienteLabel === "Produção"
                       ? "Esta nota terá validade jurídica."
                       : "Esta é uma nota de teste, sem validade fiscal."}
