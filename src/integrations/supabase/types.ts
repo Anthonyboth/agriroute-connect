@@ -12174,6 +12174,10 @@ export type Database = {
         Returns: boolean
       }
       confirm_delivery: { Args: { freight_id_param: string }; Returns: Json }
+      confirm_delivery_individual: {
+        Args: { p_assignment_id: string; p_notes?: string }
+        Returns: Json
+      }
       confirm_emission_credit: {
         Args: { p_emission_id: string }
         Returns: boolean
