@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     const { data: existingTransaction } = await supabase
       .from('fiscal_wallet_transactions')
       .select('id, metadata')
-      .eq('reference_type', 'pix_payment')
+      .in('reference_type', ['pix_payment', 'pix_paid'])
       .contains('metadata', { document_ref, document_type })
       .in('transaction_type', ['pix_pending', 'pix_paid'])
       .limit(1)
@@ -420,14 +420,18 @@ Deno.serve(async (req) => {
       .from('fiscal_wallet_transactions')
       .insert(transactionData)
       .select('id')
-      .single();
+      .maybeSingle();
 
-    if (transactionError) {
+    if (transactionError || !transaction?.id) {
       console.error(`[PAGARME-CREATE-PIX][${requestId}] Erro ao registrar transação:`, transactionError);
-      // Não falha, apenas loga
-    } else {
-      console.log(`[PAGARME-CREATE-PIX][${requestId}] ✅ Transação registrada: ${transaction?.id}`);
+      return jsonResponse(500, {
+        success: false,
+        code: 'DB_WRITE_FAILED',
+        message: 'Cobrança criada no provedor, mas falhou ao registrar no sistema. Tente novamente.',
+      });
     }
+
+    console.log(`[PAGARME-CREATE-PIX][${requestId}] ✅ Transação registrada: ${transaction.id}`);
 
     return jsonResponse(200, {
       success: true,
