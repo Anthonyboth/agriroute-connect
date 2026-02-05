@@ -256,16 +256,16 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
           {/* Detalhes do Frete */}
           <div className="space-y-4">
             <h3 className="font-semibold">Detalhes da Entrega</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Tipo de Carga</label>
                 <p className="font-medium">{freight.cargo_type}</p>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Motorista</label>
-                <p className="font-medium">{freight.driver?.full_name || 'N/A'}</p>
+                <p className="font-medium">{driverName}</p>
               </div>
             </div>
 
@@ -282,7 +282,17 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Reportado em</label>
               <p className="font-medium">
-                {format(new Date(freight.updated_at), 'dd/MM/yyyy HH:mm')}
+                {(() => {
+                  const v = freight.updated_at;
+                  if (!v) return '-';
+                  const d = new Date(v);
+                  if (Number.isNaN(d.getTime())) return '-';
+                  try {
+                    return format(d, 'dd/MM/yyyy HH:mm');
+                  } catch {
+                    return d.toLocaleString('pt-BR');
+                  }
+                })()}
               </p>
             </div>
           </div>
