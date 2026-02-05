@@ -37,6 +37,7 @@ export interface PendingDeliveryItem {
     status: string;
     pickup_date: string;
     updated_at: string;
+    metadata?: any;
   };
   // Dados do motorista
   driver: {
@@ -205,7 +206,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       const uniqueFreightIds = [...new Set([...pendingMap.values()].map(p => p.freight_id))];
       const { data: freightsData, error: freightsDataErr } = await supabase
         .from('freights')
-        .select('id, cargo_type, origin_address, destination_address, origin_city, destination_city, price, required_trucks, status, pickup_date, updated_at')
+        .select('id, cargo_type, origin_address, destination_address, origin_city, destination_city, price, required_trucks, status, pickup_date, updated_at, metadata')
         .in('id', uniqueFreightIds);
 
       if (freightsDataErr) {
@@ -326,6 +327,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
             status: freight.status,
             pickup_date: freight.pickup_date,
             updated_at: freight.updated_at,
+            metadata: (freight as any).metadata,
           },
           driver: {
             id: driver.id,
