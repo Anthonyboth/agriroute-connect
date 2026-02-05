@@ -1,279 +1,212 @@
 
-# Plano: Implementar PIX para CT-e / MDF-e / GT-A + Padronizar Fluxo
+# Plano: Debug HARD de Markers no MapLibre
 
-## Resumo Executivo
+## Problema Identificado
 
-Implementação do fluxo de pagamento PIX Pagar.me para CT-e, MDF-e e GT-A (R$10,00 fixo cada), seguindo o padrão já existente para NF-e. Também será corrigida a integração do PixPaymentModal em todos os wizards.
+Encontrei a **causa raiz** do problema: os markers estao sendo ZERADOS em multiplos lugares:
 
-## Estado Atual
+1. **DriverLocationMapMapLibre.tsx (linha 93)**: Passa `markers={[]}` explicitamente
+2. **MapLibreMap.tsx (linha 111)**: Passa `markers={[]}` ignorando o `normalizedMarkers` calculado
+3. **useMapLibreMarkers.ts (linhas 80-96)**: Codigo DESATIVADO com comentario `// DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA`
 
-### Backend
-- **cte-emitir**: Existe, mas NÃO tem verificação de pagamento PIX
-- **mdfe-emitir**: Existe, mas NÃO tem verificação de pagamento PIX
-- **GTA**: Não há edge function de emissão (é upload de documento externo)
-- **nfe-emitir**: Já implementado com verificação de pagamento PIX (retorna 402)
+---
 
-### Frontend
-- **NfeEmissionWizard**: Já tem PixPaymentModal integrado e tratamento do 402
-- **CteEmissionWizard**: NÃO tem integração PIX
-- **MdfeEmissionWizard**: NÃO tem integração PIX
-- **GtaUploadDialog**: É apenas upload de documento externo (não emissão SEFAZ)
+## Plano de Correcao em 3 Etapas
 
-## Arquitetura do Fluxo
+### ETAPA 1 - Logs de Debug no MapLibreBase.tsx
+
+Adicionar logs imediatos no componente para provar que markers chegam (ou nao):
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    FLUXO DE EMISSÃO FISCAL                       │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Usuário clica "Emitir"                                       │
-│  2. Pré-validação fiscal (certificado, SEFAZ, etc.)              │
-│  3. Chama edge function (cte-emitir, mdfe-emitir, nfe-emitir)   │
-│  4. Backend verifica pagamento em fiscal_wallet_transactions     │
-│     ├─ Se PAGO: continua emissão                                 │
-│     └─ Se NÃO PAGO: retorna 402 PAYMENT_REQUIRED                │
-│  5. Frontend abre PixPaymentModal                                │
-│  6. Usuário paga PIX                                             │
-│  7. Webhook atualiza fiscal_wallet_transactions (status: paid)   │
-│  8. Frontend detecta pagamento e chama emissão novamente         │
-│  9. Backend emite documento normalmente                          │
-└─────────────────────────────────────────────────────────────────┘
+LINHA ~92 (inicio do componente):
+  console.log("[MapLibreBase] markers prop:", markers, "count:", markers?.length);
+
+APOS map.on("load") em useMapLibreMap.ts:
+  console.log("[MapLibreBase] map ready - center:", map.getCenter(), "zoom:", map.getZoom());
 ```
+
+### ETAPA 2 - Correcao do useMapLibreGeoJSONLayers.ts
+
+O hook ja existe e funciona, mas precisa de logs adicionais e validacao explicita:
+
+```text
+LINHA ~138-170 (setupSourceAndLayers):
+  - Log quando criar source: "source existe?"
+  - Log quando criar layer: "layer existe?"
+
+LINHA ~210-223 (updatePoints):
+  - Validar cada feature antes de adicionar:
+    - typeof lat === "number"
+    - typeof lng === "number"
+    - isFinite(lat) && isFinite(lng)
+    - lat >= -90 && lat <= 90
+    - lng >= -180 && lng <= 180
+  - Log: console.log("[MapLibreBase] setData features:", features.length, features[0])
+
+NOVA FUNCAO (apos updatePoints):
+  - Se features.length >= 1, calcular bounds e executar fitBounds
+  - Executar resize burst por 500ms (15 frames)
+```
+
+### ETAPA 3 - Correcao dos Componentes que Passam Markers Vazios
+
+**DriverLocationMapMapLibre.tsx:**
+- DESCOMENTAR o useMemo dos markers (linhas 45-69)
+- MUDAR linha 93 de `markers={[]}` para `markers={markers}`
+
+**MapLibreMap.tsx:**
+- MUDAR linha 111 de `markers={[]}` para `markers={normalizedMarkers}`
 
 ---
 
-## Implementação
+## Arquivos a Modificar
 
-### 1. Backend - Atualizar cte-emitir
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/components/map/MapLibreBase.tsx` | Adicionar logs de markers prop |
+| `src/hooks/maplibre/useMapLibreGeoJSONLayers.ts` | Logs + validacao + fitBounds + resize burst |
+| `src/components/driver-details/DriverLocationMapMapLibre.tsx` | Descomentar markers + passar corretamente |
+| `src/components/map/MapLibreMap.tsx` | Passar normalizedMarkers ao inves de array vazio |
 
-**Arquivo**: `supabase/functions/cte-emitir/index.ts`
+---
 
-Adicionar verificação de pagamento PIX antes da emissão (mesma lógica do nfe-emitir):
+## Codigo Final Esperado
+
+### MapLibreBase.tsx (logs)
 
 ```typescript
-// Após validações iniciais, ANTES de enviar para Focus NFe:
+export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
+  // ... props
+  markers = [],
+  // ...
+}, ref) => {
+  // DEBUG: Provar que markers chegam
+  console.log("[MapLibreBase] markers prop:", markers, "count:", markers?.length);
+  
+  // ... resto do componente
+});
+```
 
-// VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO)
-const taxaCentavos = 1000; // CT-e: sempre R$ 10,00
+### useMapLibreGeoJSONLayers.ts (logs + validacao + fitBounds)
 
-console.log(`[CT-e Emitir] Verificando pagamento - Taxa: ${taxaCentavos} centavos`);
+```typescript
+const updatePoints = useCallback((points: GeoJSONMarkerData[]) => {
+  const map = mapRef.current;
+  if (!map) return;
 
-// Verificar pagamento na tabela fiscal_wallet_transactions
-const { data: paidTransactions } = await supabaseClient
-  .from('fiscal_wallet_transactions')
-  .select('id, metadata')
-  .eq('reference_type', 'pix_payment')
-  .eq('transaction_type', 'pix_paid')
-  .order('created_at', { ascending: false })
-  .limit(10);
-
-let pagamentoValido = false;
-if (paidTransactions?.length > 0) {
-  for (const tx of paidTransactions) {
-    const meta = tx.metadata as Record<string, unknown>;
-    if (meta?.issuer_id === empresa_id && 
-        meta?.document_type === 'cte' && 
-        !meta?.used_for_emission) {
-      pagamentoValido = true;
-      break;
+  try {
+    const source = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+    
+    // LOG: source existe?
+    console.log("[MapLibreBase] source existe?", !!source);
+    console.log("[MapLibreBase] layer existe?", !!map.getLayer(layerCircleId));
+    
+    if (source) {
+      const geojson = markersToGeoJSON(points);
+      
+      // Validar features antes de setData
+      const validFeatures = geojson.features.filter(f => {
+        const coords = (f.geometry as GeoJSON.Point).coordinates;
+        const lng = coords[0];
+        const lat = coords[1];
+        const isValid = 
+          typeof lat === 'number' && typeof lng === 'number' &&
+          isFinite(lat) && isFinite(lng) &&
+          lat >= -90 && lat <= 90 &&
+          lng >= -180 && lng <= 180;
+        if (!isValid) {
+          console.warn("[MapLibreBase] Feature invalida:", f.properties?.id, { lat, lng });
+        }
+        return isValid;
+      });
+      
+      console.log("[MapLibreBase] setData features:", validFeatures.length, validFeatures[0]);
+      
+      source.setData({
+        type: 'FeatureCollection',
+        features: validFeatures,
+      });
+      
+      // ETAPA 3: fitBounds + resize burst
+      if (validFeatures.length >= 1) {
+        const bounds = new maplibregl.LngLatBounds();
+        validFeatures.forEach(f => {
+          const coords = (f.geometry as GeoJSON.Point).coordinates;
+          bounds.extend(coords as [number, number]);
+        });
+        
+        map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 0 });
+        console.log("[MapLibreBase] fitBounds executado para", validFeatures.length, "pontos");
+        
+        // Resize burst por 500ms (15 frames) para Drawers com transform
+        for (let i = 0; i < 15; i++) {
+          setTimeout(() => map.resize(), i * (500 / 15));
+        }
+      }
     }
+  } catch (error) {
+    console.error('[GeoJSONLayers] Erro ao atualizar pontos:', error);
   }
-}
-
-if (!pagamentoValido) {
-  return new Response(JSON.stringify({
-    success: false,
-    code: 'PAYMENT_REQUIRED',
-    message: 'Pagamento via PIX obrigatório antes de emitir.',
-    amount_centavos: taxaCentavos,
-    document_type: 'cte',
-    issuer_id: empresa_id,
-    document_ref: `CTE-${frete_id.substring(0, 8)}-${Date.now()}`,
-  }), { 
-    headers: corsHeaders, 
-    status: 402 
-  });
-}
+}, [mapRef, sourceId, layerCircleId]);
 ```
 
-### 2. Backend - Atualizar mdfe-emitir
-
-**Arquivo**: `supabase/functions/mdfe-emitir/index.ts`
-
-Mesma lógica, mas com `document_type: 'mdfe'`:
+### DriverLocationMapMapLibre.tsx (descomentar markers)
 
 ```typescript
-// VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO)
-const taxaCentavos = 1000; // MDF-e: sempre R$ 10,00
+// Marker do motorista (usando coordenadas normalizadas)
+const markers = useMemo<MapLibreMarkerData[]>(() => {
+  if (!normalizedLocation) return [];
+  
+  return [{
+    id: 'driver-location',
+    lat: normalizedLocation.lat,
+    lng: normalizedLocation.lng,
+  }];
+}, [normalizedLocation]);
 
-// (mesma verificação do cte-emitir, ajustando document_type para 'mdfe')
-
-if (!pagamentoValido) {
-  return new Response(JSON.stringify({
-    success: false,
-    code: 'PAYMENT_REQUIRED',
-    message: 'Pagamento via PIX obrigatório antes de emitir.',
-    amount_centavos: taxaCentavos,
-    document_type: 'mdfe',
-    issuer_id: config.id || freight_id, // usar ID apropriado
-    document_ref: `MDFE-${freight_id.substring(0, 8)}-${Date.now()}`,
-  }), { 
-    headers: corsHeaders, 
-    status: 402 
-  });
-}
+// No JSX:
+<MapLibreBase
+  ref={mapRef}
+  center={{ lat: normalizedLocation.lat, lng: normalizedLocation.lng }}
+  zoom={15}
+  className={className}
+  minHeight={400}
+  markers={markers}  // <-- CORRIGIDO: era markers={[]}
+  onLoad={handleLoad}
+  showNavigationControl
+/>
 ```
 
-### 3. Frontend - Atualizar CteEmissionWizard
-
-**Arquivo**: `src/components/fiscal/cte/CteEmissionWizard.tsx`
-
-Mudanças:
-- Importar `PixPaymentModal` e `usePixPayment`
-- Adicionar estados para controle do modal PIX
-- Tratar resposta 402 no `handleSubmit`
-- Renderizar o modal no final
+### MapLibreMap.tsx (passar normalizedMarkers)
 
 ```typescript
-// Novos imports
-import { PixPaymentModal } from '@/components/fiscal/PixPaymentModal';
-import { usePixPayment } from '@/hooks/usePixPayment';
-
-// Novos estados
-const [showPixModal, setShowPixModal] = useState(false);
-const [paymentDocumentRef, setPaymentDocumentRef] = useState('');
-const { calculateFee } = usePixPayment();
-
-// No handleSubmit, após chamar cte-emitir:
-if (data?.code === 'PAYMENT_REQUIRED') {
-  const docRef = data?.document_ref || `cte_${Date.now()}`;
-  setPaymentDocumentRef(docRef);
-  setShowPixModal(true);
-  return;
-}
-
-// Callback quando pagamento confirmado
-const handlePaymentConfirmed = useCallback(() => {
-  setShowPixModal(false);
-  handleSubmit(); // Tentar emitir novamente
-}, []);
-
-// No return, adicionar modal:
-{showPixModal && fiscalIssuer?.id && (
-  <PixPaymentModal
-    open={showPixModal}
-    onClose={() => setShowPixModal(false)}
-    issuerId={fiscalIssuer.id}
-    documentType="cte"
-    documentRef={paymentDocumentRef}
-    amountCentavos={1000} // R$ 10,00 fixo
-    description="Emissão de CT-e"
-    freightId={freightId}
-    onPaymentConfirmed={handlePaymentConfirmed}
-  />
-)}
-```
-
-### 4. Frontend - Atualizar MdfeEmissionWizard
-
-**Arquivo**: `src/components/fiscal/mdfe/MdfeEmissionWizard.tsx`
-
-Mesmas mudanças do CteEmissionWizard, ajustando:
-- `documentType="mdfe"`
-- `description="Emissão de MDF-e"`
-
-### 5. Frontend - Atualizar GtaUploadDialog (Opcional - Taxa de Registro)
-
-**Arquivo**: `src/components/fiscal/gta/GtaUploadDialog.tsx`
-
-A GTA é um documento externo (não emitido via SEFAZ). Há duas opções:
-
-**Opção A (Recomendada)**: Não cobrar taxa para upload de GTA (documento externo)
-- Manter código atual sem modificações
-
-**Opção B**: Cobrar R$ 10,00 por registro de GTA no sistema
-- Antes do upload, verificar pagamento
-- Se não pago, abrir PixPaymentModal
-- Após pagamento, continuar com upload
-
-Seguirei a **Opção A** (não cobrar) pois GTA não é emissão fiscal via API.
-
----
-
-## Detalhes Técnicos
-
-### Regra de Preços
-
-| Documento | Condição | Valor |
-|-----------|----------|-------|
-| NF-e | Total ≤ R$ 1.000 | R$ 10,00 |
-| NF-e | Total > R$ 1.000 | R$ 25,00 |
-| CT-e | Sempre | R$ 10,00 |
-| MDF-e | Sempre | R$ 10,00 |
-| GT-A | Upload (não cobra) | R$ 0,00 |
-
-### Verificação de Pagamento no Backend
-
-Query para verificar pagamento válido:
-
-```sql
-SELECT id, metadata 
-FROM fiscal_wallet_transactions 
-WHERE reference_type = 'pix_payment'
-  AND transaction_type = 'pix_paid'
-  AND metadata->>'issuer_id' = :issuer_id
-  AND metadata->>'document_type' = :document_type
-  AND (metadata->>'used_for_emission') IS NULL
-ORDER BY created_at DESC
-LIMIT 1
-```
-
-### Estrutura do Erro 402
-
-```json
-{
-  "success": false,
-  "code": "PAYMENT_REQUIRED",
-  "message": "Pagamento via PIX obrigatório antes de emitir.",
-  "amount_centavos": 1000,
-  "document_type": "cte",
-  "issuer_id": "uuid",
-  "document_ref": "CTE-abc12345-1234567890"
-}
+<MapLibreBase
+  ref={baseRef}
+  center={center}
+  zoom={zoom}
+  className={className}
+  markers={normalizedMarkers}  // <-- CORRIGIDO: era markers={[]}
+  onClick={onClick}
+  onLoad={onLoad}
+  showNavigationControl
+>
+  {children}
+</MapLibreBase>
 ```
 
 ---
 
-## Arquivos a Serem Modificados
+## Criterio de Aceite
 
-### Backend (Edge Functions)
-1. `supabase/functions/cte-emitir/index.ts` - Adicionar verificação de pagamento
-2. `supabase/functions/mdfe-emitir/index.ts` - Adicionar verificação de pagamento
+Apos a implementacao, voce deve ver no console:
 
-### Frontend (React)
-3. `src/components/fiscal/cte/CteEmissionWizard.tsx` - Integrar PixPaymentModal
-4. `src/components/fiscal/mdfe/MdfeEmissionWizard.tsx` - Integrar PixPaymentModal
+- `[MapLibreBase] markers prop: [{...}] count: 1`
+- `[MapLibreBase] source existe? true`
+- `[MapLibreBase] layer existe? true`
+- `[MapLibreBase] setData features: 1 {type:"Feature", ...}`
+- `[MapLibreBase] fitBounds executado para 1 pontos`
 
----
+E visualmente:
 
-## Fluxo Passo a Passo (8 linhas)
-
-1. Usuário preenche dados e clica "Emitir CT-e/MDF-e"
-2. Frontend chama edge function correspondente (cte-emitir ou mdfe-emitir)
-3. Backend verifica se existe pagamento PIX válido em fiscal_wallet_transactions
-4. Se não pago: retorna 402 PAYMENT_REQUIRED com amount_centavos=1000
-5. Frontend abre PixPaymentModal com QR Code para R$ 10,00
-6. Usuário paga PIX; webhook atualiza fiscal_wallet_transactions com status paid
-7. Usuário clica "Verificar pagamento" ou aguarda polling automático
-8. Frontend detecta pagamento e chama emissão novamente; backend emite normalmente
-
----
-
-## Confirmações ao Concluir
-
-Ao finalizar a implementação:
-
-- CT-e/MDF-e agora cobram R$10 fixo via PIX antes de emitir
-- NF-e wizard já abre PixPaymentModal no 402 e continua emissão após pagamento
-- Nenhuma alteração de schema foi feita
-- Nenhuma navegação/aba foi alterada
-- Todas mensagens em pt-BR
+- Um circulo escuro com borda branca visivel no mapa
+- O mapa centralizado automaticamente no ponto
