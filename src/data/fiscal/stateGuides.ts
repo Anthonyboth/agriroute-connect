@@ -170,27 +170,29 @@ const MT_GUIDE: StateGuide = {
 };
 
 // ============= TEMPLATE PARA OUTROS ESTADOS =============
+// ⚠️ IMPORTANTE: não inventar URLs. Para estados sem link confirmado,
+// mostramos apenas o Portal Nacional NF-e e orientamos o usuário a buscar
+// o portal oficial da SEFAZ do seu estado.
 const createPlaceholderGuide = (uf: StateUF, displayName: string): StateGuide => ({
   uf,
   displayName,
   officialPortals: [
-    { title: `Portal SEFAZ-${uf}`, url: `https://www.sefaz.${uf.toLowerCase()}.gov.br/` },
     { title: 'Portal Nacional NF-e', url: 'https://www.nfe.fazenda.gov.br/' },
   ],
   credentialing: {
     title: `Credenciamento SEFAZ-${uf}`,
     steps: [
       {
-        title: '1. Acesse o portal da SEFAZ do seu estado',
-        description: `Procure por "Credenciamento" ou "Habilitação" para emissão de documentos fiscais eletrônicos no site da SEFAZ-${uf}.`,
+        title: '1. Acesse o site oficial da SEFAZ do seu estado',
+        description: `No momento, ainda não temos o link direto confirmado para a SEFAZ-${uf}. Procure por “portal de serviços”, “e-PAC” ou “credenciamento NF-e” no site oficial da SEFAZ do seu estado.`,
       },
       {
-        title: '2. Verifique requisitos específicos',
-        description: 'Cada estado tem suas próprias regras e prazos. Consulte a documentação oficial.',
+        title: '2. Procure por “Credenciamento” / “Habilitação” / “Emissão de NF-e”',
+        description: 'Cada UF tem regras e etapas próprias. Siga o passo a passo do portal oficial.',
       },
       {
-        title: '3. Obtenha sua senha de acesso',
-        description: 'A maioria dos estados exige cadastro prévio para acessar os serviços online.',
+        title: '3. Se tiver dúvidas, fale com o suporte',
+        description: 'Nós te ajudamos a identificar o caminho correto no seu estado.',
       },
     ],
   },
@@ -204,7 +206,7 @@ const createPlaceholderGuide = (uf: StateUF, displayName: string): StateGuide =>
       ],
       commonErrors: [
         'Emitente não habilitado',
-        'IE do destinatário inválida',
+        'IE inválida',
       ],
     },
     CTE: {
@@ -221,8 +223,8 @@ const createPlaceholderGuide = (uf: StateUF, displayName: string): StateGuide =>
     },
   },
   specialNotes: [
-    `Verifique as regras específicas no portal da SEFAZ-${uf}.`,
-    'Links oficiais serão atualizados conforme disponibilidade.',
+    `Links oficiais da SEFAZ-${uf} serão atualizados conforme confirmação.`,
+    'Dica: pesquise no Google por “SEFAZ ' + uf + ' credenciamento NF-e”.',
   ],
 });
 

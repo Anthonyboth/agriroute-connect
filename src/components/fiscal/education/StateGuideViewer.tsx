@@ -101,8 +101,31 @@ export const StateGuideViewer: React.FC<StateGuideViewerProps> = ({
           <AlertTriangle className="h-4 w-4 text-warning" />
           <AlertTitle>Guia em construção</AlertTitle>
           <AlertDescription>
-            O guia detalhado para {guide.displayName} está sendo elaborado. 
-            Por enquanto, consulte os links oficiais abaixo ou fale com nosso suporte.
+            O guia detalhado para {guide.displayName} está sendo elaborado.
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  window.open(
+                    `https://www.google.com/search?q=${encodeURIComponent(`SEFAZ ${selectedUf} credenciamento NF-e portal de serviços`)}`,
+                    "_blank",
+                  )
+                }
+              >
+                Buscar SEFAZ no Google
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open("https://www.nfe.fazenda.gov.br/", "_blank")}
+              >
+                Portal Nacional NF-e
+              </Button>
+            </div>
+            <div className="mt-3">
+              Se preferir, fale com nosso suporte.
+            </div>
           </AlertDescription>
         </Alert>
       )}
