@@ -538,18 +538,47 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         throw new Error(errMsg);
       }
 
-      toast.success("NF-e enviada!", {
-        description: data.status === "processing" ? "Aguardando autorização da SEFAZ..." : "Processada.",
-      });
-
-      // Se já veio autorizada/rejeitada, fecha. Se processando, faz polling.
       const emission_id = data.emission_id;
       const internal_ref = data.internal_ref;
 
-      if (data.status === "authorized" || data.status === "rejected" || data.status === "canceled") {
+      // ✅ TRATAMENTO PARA CADA STATUS RETORNADO
+      if (data.status === "authorized") {
+        toast.success("✅ NF-e Autorizada!", {
+          description: `Documento emitido com sucesso. Chave: ${data.chave?.slice(-8) || '...'}`,
+          duration: 8000,
+        });
         onClose();
         return;
       }
+
+      if (data.status === "rejected") {
+        // 🔥 ERRO CRÍTICO: Mostrar modal de erro SEFAZ em vez de fechar silenciosamente!
+        const rejectMsg = data.message || data.error_message || data.mensagem_erro || "NF-e foi rejeitada pelo SEFAZ. Verifique os dados e tente novamente.";
+        console.error('[NFE] ❌ NF-e REJEITADA:', rejectMsg);
+        setSefazError({ isOpen: true, message: rejectMsg });
+        
+        // Atualizar crédito (foi liberado no backend)
+        if (fiscalIssuer?.id) {
+          const creditResult = await checkAvailableCredit(fiscalIssuer.id, 'nfe');
+          if (creditResult.hasCredit && creditResult.credit) {
+            const remaining = creditResult.credit.maxAttempts - creditResult.credit.attempts;
+            setAvailableCredit({ hasCredit: true, remainingAttempts: remaining });
+            toast.info(`💳 Crédito preservado: ${remaining} tentativa(s) restante(s) para corrigir e reenviar.`, { duration: 10000 });
+          }
+        }
+        return; // NÃO fecha o modal - deixa usuário ver o erro
+      }
+
+      if (data.status === "canceled") {
+        toast.warning("NF-e foi cancelada.");
+        onClose();
+        return;
+      }
+
+      // Status "processing" - mostra e faz polling
+      toast.success("NF-e enviada!", {
+        description: "Aguardando autorização da SEFAZ...",
+      });
 
       // 🔥 Polling para sair do "Aguardando" eterno
       if (emission_id || internal_ref) {
@@ -935,15 +964,21 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
               </CardContent>
             </Card>
 
-            {/* ✅ Informação sobre créditos disponíveis */}
+            {/* ✅ Informação sobre créditos disponíveis (pagamento anterior não consumido) */}
             {availableCredit?.hasCredit && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
                 <div className="flex gap-3">
-                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-green-800 dark:text-green-200">Crédito disponível</p>
-                    <p className="text-green-700 dark:text-green-300">
-                      Você tem um pagamento pendente de uso. {availableCredit.remainingAttempts} tentativa(s) restante(s).
+                    <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                      💳 Você possui crédito de emissão anterior
+                    </p>
+                    <p className="text-emerald-700 dark:text-emerald-300">
+                      Sua última tentativa falhou, mas o pagamento foi preservado. 
+                      Você pode emitir esta NF-e <strong>sem novo pagamento</strong>.
+                    </p>
+                    <p className="text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                      {availableCredit.remainingAttempts} tentativa(s) restante(s) com este crédito.
                     </p>
                   </div>
                 </div>
