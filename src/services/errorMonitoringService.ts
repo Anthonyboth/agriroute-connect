@@ -298,7 +298,10 @@ export class ErrorMonitoringService {
   }
 
   private extractErrorCode(error: any): string | undefined {
-    return error.code || error.status?.toString() || undefined;
+    // Ensure errorCode is always a string (schema requires string, not number)
+    if (error.code != null) return String(error.code);
+    if (error.status != null) return String(error.status);
+    return undefined;
   }
 
   private async sendToBackend(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
