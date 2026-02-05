@@ -222,50 +222,74 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Alerta MEI para NF-e/CT-e/MDF-e */}
+            {/* Alerta MEI para NF-e/CT-e/MDF-e - Redirecionamento para NF-a */}
             {showMeiWarning && (
               <Alert className="border-destructive/30 bg-destructive/5">
                 <XCircle className="h-4 w-4 text-destructive" />
-                <AlertTitle>ATENÇÃO MEI - Documento incorreto</AlertTitle>
-                <AlertDescription className="space-y-3">
+                <AlertTitle className="text-destructive">⚠️ MEI - Use NF-a no Portal SEFAZ</AlertTitle>
+                <AlertDescription className="space-y-4">
                   <p className="font-semibold">
-                    <strong>MEI geralmente NÃO é obrigado a emitir {documentType}.</strong> Conforme atendimento SEFAZ-MT,
-                    para muitos casos você deve usar <strong>NF-a (Nota Fiscal Avulsa)</strong>.
+                    <strong>MEI NÃO precisa emitir {documentType}.</strong> Conforme orientação da SEFAZ-MT,
+                    você deve emitir <strong>NF-a (Nota Fiscal Avulsa)</strong> diretamente no portal da SEFAZ.
                   </p>
+                  
+                  {/* Bloco de instruções para NF-a */}
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-3">
+                    <p className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Como emitir NF-a no Portal SEFAZ-MT:
+                    </p>
+                    <ol className="list-decimal list-inside text-sm space-y-2">
+                      <li>Acesse o portal SEFAZ-MT com seu Certificado Digital A1</li>
+                      <li>Navegue até <strong>"NFA-e &gt; Emissão de NFA-e"</strong></li>
+                      <li>Preencha os dados da nota (destinatário, produtos, valores)</li>
+                      <li>Assine e transmita - você receberá o DANFA-e para impressão</li>
+                    </ol>
+                    
+                    <Button 
+                      variant="default" 
+                      size="lg" 
+                      onClick={() => window.open('https://www.sefaz.mt.gov.br/nfae/emissao', '_blank')}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Acessar Portal SEFAZ-MT para NF-a
+                    </Button>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      💡 <strong>Dica:</strong> Você precisa ter solicitado e liberado a senha de contribuinte no e-PAC antes de emitir.
+                    </p>
+                  </div>
+
+                  {/* Aviso sobre NF-e voluntária */}
                   {documentType === 'NFE' && (
-                    <p className="text-sm">
-                      A emissão de NF-e por MEI é <strong>voluntária</strong> e exige:
-                      Inscrição Estadual (IE) ativa + credenciamento SEFAZ + certificado A1.
-                      <strong> Não é garantido que funcione.</strong>
-                    </p>
-                  )}
-                  {(documentType === 'CTE' || documentType === 'MDFE') && (
-                    <p className="text-sm">
-                      CT-e e MDF-e para MEI são <strong>voluntários</strong> e exigem:
-                      RNTRC + credenciamento SEFAZ + certificado A1 + programa emissor.
-                    </p>
-                  )}
+                    <div className="pt-3 border-t border-dashed space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Insiste em emitir NF-e?</strong> É voluntário para MEI e exige:
+                        IE ativa + credenciamento SEFAZ + certificado A1. <strong>Não é garantido que funcione</strong> e a SEFAZ pode rejeitar.
+                      </p>
 
-                  {documentType === 'NFE' && onUseAlternative && (
-                    <div className="pt-3 border-t space-y-2">
-                      <Button variant="default" size="lg" onClick={() => onUseAlternative('NFA')} className="w-full">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Ver como emitir NF-a (recomendado)
-                      </Button>
-
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-start gap-2 bg-destructive/10 p-3 rounded-md">
                         <input
                           type="checkbox"
                           id="acknowledge-voluntary"
                           checked={acknowledged}
                           onChange={(e) => setAcknowledged(e.target.checked)}
-                          className="h-4 w-4"
+                          className="h-4 w-4 mt-0.5"
                         />
                         <label htmlFor="acknowledge-voluntary" className="text-sm cursor-pointer">
-                          Entendo que NF-e não é obrigatória para MEI e assumo o risco de rejeição pela SEFAZ.
+                          <strong>Entendo que NF-e não é obrigatória para MEI</strong>, que a SEFAZ pode rejeitar minha emissão,
+                          e que a opção correta é emitir NF-a pelo portal SEFAZ-MT.
                         </label>
                       </div>
                     </div>
+                  )}
+                  
+                  {(documentType === 'CTE' || documentType === 'MDFE') && (
+                    <p className="text-sm pt-2 border-t">
+                      CT-e e MDF-e para MEI são <strong>voluntários</strong> e exigem:
+                      RNTRC + credenciamento SEFAZ + certificado A1 + programa emissor.
+                    </p>
                   )}
                 </AlertDescription>
               </Alert>
