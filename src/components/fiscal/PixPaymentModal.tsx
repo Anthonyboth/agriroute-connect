@@ -45,6 +45,7 @@ export function PixPaymentModal({
 
   const {
     loading,
+    error: pixError,
     createPixPayment,
     checkPaymentStatus,
     copyPixCode,
@@ -185,6 +186,27 @@ export function PixPaymentModal({
             <div className="flex flex-col items-center justify-center py-8 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">Gerando cobrança PIX...</p>
+            </div>
+          )}
+
+          {/* Erro ao gerar PIX */}
+          {!loading && !pixData && pixError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+              <div className="flex items-start gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5 mt-0.5" />
+                <div>
+                  <p className="font-medium">Não foi possível gerar o PIX</p>
+                  <p className="text-sm text-muted-foreground">{pixError}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={handleNewPix}>
+                  Tentar novamente
+                </Button>
+                <Button className="flex-1" onClick={handleClose}>
+                  Fechar
+                </Button>
+              </div>
             </div>
           )}
 

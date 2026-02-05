@@ -54,6 +54,43 @@ function normalizeUf(uf: string) {
   return v.length === 2 ? v : "";
 }
 
+async function extractInvokeErrorBody(err: any): Promise<any | null> {
+  const ctx = err?.context;
+
+  // Prefer clone() para evitar "body already used" quando o client já leu o response.
+  if (ctx && typeof ctx.clone === "function") {
+    try {
+      return await ctx.clone().json();
+    } catch {
+      // ignore
+    }
+  }
+
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      return await ctx.json();
+    } catch {
+      // ignore
+    }
+  }
+
+  // Fallback: supabase-js inclui o JSON no texto da mensagem
+  const msg = err?.message;
+  if (typeof msg === "string") {
+    const start = msg.indexOf("{");
+    const end = msg.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        return JSON.parse(msg.slice(start, end + 1));
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  return null;
+}
+
 export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, onClose, fiscalIssuer, freightId }) => {
   const { fiscal: prefilledFiscal, loading: prefillLoading } = usePrefilledUserData();
   
@@ -74,6 +111,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   // ✅ PAGAMENTO PIX: Estado do modal e ref do documento
   const [showPixModal, setShowPixModal] = useState(false);
   const [paymentDocumentRef, setPaymentDocumentRef] = useState<string>('');
+  const [requiredAmountCentavos, setRequiredAmountCentavos] = useState<number | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   
   // Hook de pré-validação fiscal
@@ -437,30 +475,24 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       // ✅ Tratamento robusto: erro pode vir em `error` OU em `data`
       if (error) {
         console.error("[NFE] invoke error:", error);
-        const ctx = (error as any)?.context;
 
-        let parsedBody: any = null;
-        if (ctx && typeof ctx.json === "function") {
-          try {
-            parsedBody = await ctx.json();
-          } catch {
-            parsedBody = null;
-          }
-        }
-
+        const parsedBody = await extractInvokeErrorBody(error);
         const bodyMsg = parsedBody?.message || parsedBody?.error;
         const code = parsedBody?.code;
-        
+
         // ✅ Tratamento especial para PAYMENT_REQUIRED
-        if (code === 'PAYMENT_REQUIRED') {
-          console.log('[NFE] Pagamento obrigatório:', parsedBody);
+        if (code === "PAYMENT_REQUIRED") {
+          console.log("[NFE] Pagamento obrigatório:", parsedBody);
           const docRef = parsedBody?.document_ref || `nfe_${Date.now()}`;
           setPaymentDocumentRef(docRef);
+          setRequiredAmountCentavos(
+            typeof parsedBody?.amount_centavos === "number" ? parsedBody.amount_centavos : null,
+          );
           setShowPixModal(true);
           setIsSubmitting(false);
           return;
         }
-        
+
         const msg = bodyMsg || error.message || "Erro ao chamar o servidor fiscal.";
         throw new Error(msg);
       }
@@ -472,6 +504,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
           console.log('[NFE] Pagamento obrigatório (via data):', data);
           const docRef = data?.document_ref || `nfe_${Date.now()}`;
           setPaymentDocumentRef(docRef);
+          setRequiredAmountCentavos(typeof data?.amount_centavos === 'number' ? data.amount_centavos : null);
           setShowPixModal(true);
           setIsSubmitting(false);
           return;
@@ -985,7 +1018,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
           issuerId={fiscalIssuer.id}
           documentType="nfe"
           documentRef={paymentDocumentRef}
-          amountCentavos={calculateFee('nfe', parseFloat(formData.valor_total) || 0)}
+          amountCentavos={
+            requiredAmountCentavos ?? calculateFee('nfe', parseFloat(formData.valor_total) || 0)
+          }
           description={`Emissão de NF-e - ${formData.dest_razao_social || 'Documento fiscal'}`}
           freightId={freightId}
           onPaymentConfirmed={handlePaymentConfirmed}
