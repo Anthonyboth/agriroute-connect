@@ -60,10 +60,16 @@ serve(async (req) => {
     }
 
     // Parse and validate error report with comprehensive zod validation
-    const rawReport = await req.json();
+    const rawReport: any = await req.json();
+
+    // ✅ Defensive coercion: some callers may send numeric error codes (e.g. HTTP status)
+    // Zod schema expects `errorCode` to be a string.
+    if (rawReport && typeof rawReport === 'object' && rawReport.errorCode != null) {
+      rawReport.errorCode = String(rawReport.errorCode);
+    }
+
     const validatedReport = validateInput(ErrorReportSchema, rawReport);
     const report = sanitizeErrorReport(validatedReport);
-    
     logStep('Report received and validated', { 
       errorType: report.errorType,
       errorMessage: report.errorMessage.substring(0, 100),
