@@ -125,8 +125,13 @@ export function RouteReplayPlayerMapLibre({
             },
           });
 
-          map.addLayer(ROUTE_LINE_LAYER_CONFIG('progress-path-line', 'progress-path', MAP_COLORS.route.progress, 1));
-
+          // ========================================
+          // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+          // Sem markers - apenas basemap puro
+          // ========================================
+          // NÃO criar nenhum marker - apenas o mapa
+          
+          /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
           // Criar marker do caminhão - ✅ anchor: 'center' para ícones circulares
           markerRef.current = new maplibregl.Marker({
             element: createTruckMarkerElement(true),
@@ -153,6 +158,7 @@ export function RouteReplayPlayerMapLibre({
               .setLngLat([destinationLng, destinationLat])
               .addTo(map);
           }
+          */
 
           // Ajustar bounds
           const bounds = new maplibregl.LngLatBounds();

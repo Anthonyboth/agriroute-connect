@@ -235,10 +235,23 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
     );
   }, [osrmRoute, mapLoaded]);
 
-  // Atualizar marcadores de origem/destino
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem markers de origem/destino - apenas basemap puro
+  // ========================================
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
+    // 🚨 DESATIVADO: Limpar markers existentes
+    originMarkerRef.current?.remove();
+    originMarkerRef.current = null;
+    destinationMarkerRef.current?.remove();
+    destinationMarkerRef.current = null;
+
+    // Retorno antecipado - não criar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     // Origem
     if (effectiveOrigin) {
       if (!originMarkerRef.current) {
@@ -260,12 +273,24 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
         destinationMarkerRef.current.setLngLat([effectiveDestination.lng, effectiveDestination.lat]);
       }
     }
+    */
   }, [effectiveOrigin, effectiveDestination, mapLoaded]);
 
-  // Atualizar marcadores de motoristas
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem markers de motoristas - apenas basemap puro
+  // ========================================
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
+    // 🚨 DESATIVADO: Limpar markers de motoristas
+    driverMarkersRef.current.forEach(m => m.remove());
+    driverMarkersRef.current.clear();
+
+    // Retorno antecipado - não criar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     const currentDriverIds = new Set(drivers.map(d => d.driverId));
 
     // Remover markers de motoristas que saíram
@@ -280,7 +305,6 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
     drivers.forEach((driver, index) => {
       if (!driver.lat || !driver.lng) return;
 
-      // ✅ CORREÇÃO: Normalizar coordenadas antes de usar no mapa
       const normalized = normalizeLatLngPoint({ lat: driver.lat, lng: driver.lng }, 'BR');
       if (!normalized) {
         console.warn('[MultiDriverMapMapLibre] Invalid driver coordinates:', driver.driverId, driver.lat, driver.lng);
@@ -290,11 +314,7 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
       const existingMarker = driverMarkersRef.current.get(driver.driverId);
       
       if (existingMarker) {
-        // Atualizar posição (coordenadas normalizadas)
         existingMarker.setLngLat([normalized.lng, normalized.lat]);
-        
-        // ✅ CORREÇÃO: Reconstruir marker para atualizar visual de online/offline
-        // replaceWith não funciona bem com MapLibre, remover e recriar
         existingMarker.remove();
         const el = createTruckMarkerElement(index, driver.driverName, driver.isOnline);
         const newMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
@@ -302,9 +322,7 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
           .addTo(mapRef.current!);
         driverMarkersRef.current.set(driver.driverId, newMarker);
       } else {
-        // Criar novo marker
         const el = createTruckMarkerElement(index, driver.driverName, driver.isOnline);
-        // ✅ CORREÇÃO: anchor: 'center' para ícones de caminhão (não são pins)
         const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
           .setLngLat([normalized.lng, normalized.lat])
           .addTo(mapRef.current!);
@@ -329,6 +347,7 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
         mapRef.current?.fitBounds(bounds as any, { padding: 60, maxZoom: 14, duration: 500 });
       }
     }
+    */
   }, [drivers, mapLoaded, effectiveOrigin, effectiveDestination]);
 
   const onlineCount = drivers.filter(d => d.isOnline).length;

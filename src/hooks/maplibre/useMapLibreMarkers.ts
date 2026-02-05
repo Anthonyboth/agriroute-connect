@@ -76,11 +76,26 @@ export function useMapLibreMarkers(
     return { ...m, lat: point.lat, lng: point.lng };
   }, []);
 
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Apenas basemap, sem nenhum marker
+  // ========================================
   // Atualizar markers quando a lista mudar
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
+    // 🚨 DESATIVADO: Não criar nenhum marker - apenas mapa puro
+    // Limpar qualquer marker existente
+    markersMapRef.current.forEach((marker) => marker.remove());
+    markersMapRef.current.clear();
+    popupsMapRef.current.forEach((popup) => popup.remove());
+    popupsMapRef.current.clear();
+
+    // Retorno antecipado - não processar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     // Normalização obrigatória (antes de qualquer cálculo/uso)
     const normalizedMarkers = markers
       .map((m) => normalizeMarker(m))
@@ -127,15 +142,9 @@ export function useMapLibreMarkers(
         // Criar novo marker
         const element = markerData.element || markerFactory?.(markerData);
 
-        // ✅ CRÍTICO: Determinar anchor baseado no tipo de marker
-        // - 'truck-marker': ícone circular/caminhão → anchor: 'center'
-        // - 'location-pin-marker': pins com ponta → anchor: 'bottom' (ponta aponta para coordenada)
-        // - Default: 'bottom' para pins tradicionais
         let anchor: maplibregl.PositionAnchor = 'bottom';
         if (element?.classList.contains('truck-marker')) {
           anchor = 'center';
-          // ✅ PROTEÇÃO contra markers gigantes em Dialog/Drawer com animações scale()
-          // Forçar dimensões inline no elemento raiz
           element.style.width = '40px';
           element.style.height = '40px';
           element.style.maxWidth = '40px';
@@ -145,7 +154,6 @@ export function useMapLibreMarkers(
           element.style.transform = 'none';
         } else if (element?.classList.contains('location-pin-marker')) {
           anchor = 'bottom';
-          // ✅ PROTEÇÃO para pins de localização (32x40px)
           element.style.width = '32px';
           element.style.height = '40px';
           element.style.maxWidth = '32px';
@@ -185,6 +193,7 @@ export function useMapLibreMarkers(
         markersMapRef.current.set(markerData.id, markerInstance);
       }
     });
+    */
   }, [markers, normalizeMarker, mapRef.current, popupOffset, markerFactory, onMarkerClick]);
 
   // Cleanup no unmount

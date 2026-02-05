@@ -253,18 +253,25 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
     }
   }, [center, mapReady]);
 
-  // 📍 Markers
+  // ========================================
+  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
+  // Sem markers - apenas basemap puro
+  // ========================================
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
 
+    // 🚨 DESATIVADO: Limpar markers existentes
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    // Retorno antecipado - não criar markers
+    return;
+
+    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     const map = mapRef.current;
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    /**
-     * ✅ PADRÃO OURO: Factory de markers com elemento raiz neutro
-     * anchor: 'center' para ícones circulares
-     */
     const add = (lng: number, lat: number, el: HTMLElement, html?: string) => {
       const m = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([lng, lat]);
       if (html) m.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(html));
@@ -272,13 +279,9 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       markersRef.current.push(m);
     };
     
-    /**
-     * ✅ PADRÃO OURO: Cria elemento raiz neutro (width:0, height:0)
-     * Estilos visuais vão apenas em filhos internos - SEM transform/animate no root!
-     */
     const createMarkerEl = (color: string, text: string, hasPulse = false) => {
       const root = document.createElement("div");
-      root.className = "truck-marker"; // Define width:0; height:0 via CSS
+      root.className = "truck-marker";
       
       root.innerHTML = `
         <div class="truck-marker-inner">
@@ -305,22 +308,22 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       return root;
     };
 
-    // Origem - ✅ Usando createMarkerEl (elemento raiz neutro)
+    // Origem
     if (typeof originLat === "number" && typeof originLng === "number") {
       add(originLng, originLat, createMarkerEl("#22c55e", "O"), "<strong>Origem</strong>");
     }
 
-    // Destino - ✅ Usando createMarkerEl (elemento raiz neutro)
+    // Destino
     if (typeof destinationLat === "number" && typeof destinationLng === "number") {
       add(destinationLng, destinationLat, createMarkerEl("#ef4444", "D"), "<strong>Destino</strong>");
     }
 
-    // Posição atual do motorista - ✅ Usando createMarkerEl COM pulse interno (não animate-pulse no root!)
+    // Posição atual do motorista
     if (typeof currentLat === "number" && typeof currentLng === "number") {
       add(currentLng, currentLat, createMarkerEl("#3b82f6", "🚛", true), "<strong>Posição Atual</strong>");
     }
 
-    // Paradas (se visíveis) - ✅ Usando createMarkerEl (elemento raiz neutro)
+    // Paradas (se visíveis)
     if (layers.stops) {
       stops.forEach((s) => {
         const el = createMarkerEl("#f97316", "P");
@@ -329,20 +332,20 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       });
     }
 
-    // Desvios (se visíveis) - ✅ Usando createMarkerEl (elemento raiz neutro)
+    // Desvios (se visíveis)
     if (layers.deviations) {
       routeDeviations.forEach((d) => {
-        const el = createMarkerEl("#eab308", "⚠"); // amarelo
+        const el = createMarkerEl("#eab308", "⚠");
         el.title = `Desvio: ${d.deviation_km?.toFixed(1) || '?'} km`;
         add(Number(d.lng), Number(d.lat), el, `<strong>Desvio de Rota</strong><br/>Distância: ${d.deviation_km?.toFixed(1) || '?'} km`);
       });
     }
 
-    // Incidentes offline (se visíveis) - ✅ Usando createMarkerEl (elemento raiz neutro)
+    // Incidentes offline (se visíveis)
     if (layers.offline) {
       offlineIncidents.forEach((o) => {
         if (o.last_known_lat && o.last_known_lng) {
-          const el = createMarkerEl("#6b7280", "📵"); // cinza
+          const el = createMarkerEl("#6b7280", "📵");
           el.title = `Offline: ${o.duration_minutes || 0} min`;
           add(o.last_known_lng, o.last_known_lat, el, `<strong>Offline</strong><br/>Duração: ${o.duration_minutes || 0} min`);
         }
@@ -354,7 +357,6 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       const bounds = new maplibregl.LngLatBounds();
       markersRef.current.forEach((m) => bounds.extend(m.getLngLat()));
       
-      // Incluir coordenadas da rota OSRM no bounds
       if (osrmRoute && osrmRoute.coordinates.length >= 2) {
         osrmRoute.coordinates.forEach(coord => {
           bounds.extend(coord as [number, number]);
@@ -363,6 +365,7 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       
       map.fitBounds(bounds, { padding: 50, maxZoom: 12, duration: 0 });
     }
+    */
   }, [
     mapReady,
     layers,
