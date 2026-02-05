@@ -153,10 +153,15 @@ export class ErrorMonitoringService {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('report-user-panel-error', {
-        body: report
-      });
+      // ✅ Defensive normalization: guarantee schema-compatible payload
+      const safeReport: ErrorReport = {
+        ...report,
+        errorCode: report.errorCode != null ? String(report.errorCode) : undefined,
+      };
 
+      const { data, error } = await supabase.functions.invoke('report-user-panel-error', {
+        body: safeReport
+      });
       if (error) {
         console.error('[ErrorMonitoringService] Erro ao reportar ao backend:', error);
         this.errorQueue.push(report);
