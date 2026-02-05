@@ -789,6 +789,8 @@ Deno.serve(async (req) => {
     let focusResp: Response;
     let parsed: { ok: boolean; data: any; raw: string };
 
+    console.log(`[nfe-emitir] 📤 Enviando para Focus: ${focusUrl}`);
+    
     try {
       focusResp = await fetch(`${focusUrl}?ref=${encodeURIComponent(internalRef)}`, {
         method: "POST",
@@ -798,6 +800,8 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify(nfePayload),
       });
+      
+      console.log(`[nfe-emitir] 📥 Focus respondeu: HTTP ${focusResp.status}`);
 
       parsed = await parseJsonOrText(focusResp);
     } catch (err) {
@@ -863,12 +867,14 @@ Deno.serve(async (req) => {
     let errorMessage: string | null = null;
 
     const focusStatus = String(focusData?.status || "");
+    console.log(`[nfe-emitir] 📋 Focus status: "${focusStatus}"`);
 
     if (focusStatus === "autorizado") newStatus = "authorized";
     else if (focusStatus === "cancelado") newStatus = "canceled";
     else if (focusStatus === "erro_autorizacao" || focusStatus === "rejeitado" || focusStatus === "denegado") {
       newStatus = "rejected";
       errorMessage = focusFriendlyMessage(focusData);
+      console.log(`[nfe-emitir] ❌ NF-e rejeitada: ${errorMessage}`);
     } else if (focusStatus === "processando_autorizacao") newStatus = "processing";
     else newStatus = "processing";
 

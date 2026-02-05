@@ -574,14 +574,20 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       }
       
       // Verificar se é um erro SEFAZ (rejeição) para abrir o modal detalhado
-      const isSefazError = errorMsg.toLowerCase().includes('rejeição') ||
-                           errorMsg.toLowerCase().includes('rejei') ||
-                           errorMsg.toLowerCase().includes('sefaz') ||
-                           errorMsg.toLowerCase().includes('ncm') ||
-                           errorMsg.toLowerCase().includes('cfop') ||
-                           errorMsg.toLowerCase().includes('ie ') ||
-                           errorMsg.toLowerCase().includes('cnpj') ||
-                           errorMsg.toLowerCase().includes('certificado');
+      const lowerMsg = errorMsg.toLowerCase();
+      const isSefazError = lowerMsg.includes('rejeição') ||
+                           lowerMsg.includes('rejei') ||
+                           lowerMsg.includes('sefaz') ||
+                           lowerMsg.includes('ncm') ||
+                           lowerMsg.includes('cfop') ||
+                           lowerMsg.includes('ie ') ||
+                           lowerMsg.includes('cnpj') ||
+                           lowerMsg.includes('certificado') ||
+                           lowerMsg.includes('habilitado') ||
+                           lowerMsg.includes('emissor') ||
+                           lowerMsg.includes('emitente');
+      
+      console.log('[NFE] Erro detectado:', { errorMsg, isSefazError });
       
       if (isSefazError) {
         setSefazError({ isOpen: true, message: errorMsg });
