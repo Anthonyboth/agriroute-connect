@@ -331,10 +331,11 @@ Deno.serve(async (req) => {
     // O sistema de fiscal_wallet foi descontinuado. Agora apenas PIX é aceito.
     // const { data: wallet } = await supabase.from('fiscal_wallet')...
 
-    // Se não tem pagamento PIX válido, retornar 402
+    // Se não tem pagamento PIX válido, retornar 200 com code PAYMENT_REQUIRED
+    // (HTTP 200 evita exceção no SDK Supabase e blank screen)
     if (!pagamentoValido) {
-      console.log(`[nfe-emitir] ❌ Pagamento PIX não encontrado - Retornando 402 PAYMENT_REQUIRED`);
-      return jsonResponse(402, {
+      console.log(`[nfe-emitir] ❌ Pagamento PIX não encontrado - Retornando PAYMENT_REQUIRED`);
+      return jsonResponse(200, {
         success: false,
         code: 'PAYMENT_REQUIRED',
         message: 'Pagamento via PIX obrigatório antes de emitir NF-e.',
