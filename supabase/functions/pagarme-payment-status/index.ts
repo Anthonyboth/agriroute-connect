@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     let query = supabase
       .from('fiscal_wallet_transactions')
       .select('*')
-      .eq('reference_type', 'pix_payment');
+      .in('reference_type', ['pix_payment', 'pix_paid']);
 
     if (charge_id) {
       query = query.contains('metadata', { charge_id });
@@ -147,10 +147,11 @@ Deno.serve(async (req) => {
     }
 
     if (!transactions || transactions.length === 0) {
-      return jsonResponse(404, {
+      // Retornar 200 para evitar invokeError no frontend (supabase.functions.invoke)
+      return jsonResponse(200, {
         success: false,
         code: 'PAYMENT_NOT_FOUND',
-        message: 'Pagamento não encontrado.',
+        message: 'Pagamento não encontrado (pode ter sido uma cobrança antiga que não foi registrada). Gere um novo PIX.',
       });
     }
 
