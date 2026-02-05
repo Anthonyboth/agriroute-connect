@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,13 @@ import { formatBRL, formatKm, formatDate } from '@/lib/formatters';
 import { UI_TEXTS } from '@/lib/ui-texts';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ProposalChatPanel } from '@/components/proposal/ProposalChatPanel';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
+
+// Lazy load ProposalChatPanel with retry for chunk loading resilience
+const ProposalChatPanel = lazyWithRetry(() => 
+  import('@/components/proposal/ProposalChatPanel').then(m => ({ default: m.ProposalChatPanel }))
+);
 
 interface ProposalForModal {
   id: string;
@@ -331,12 +337,14 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
               <MessageSquare className="h-4 w-4" />
               Chat de Negociação
             </div>
-            <ProposalChatPanel
-              proposalId={proposal.id}
-              currentUserId={proposal.driver_id}
-              currentUserName="Você"
-              userRole="driver"
-            />
+            <Suspense fallback={<CenteredSpinner className="h-32" />}>
+              <ProposalChatPanel
+                proposalId={proposal.id}
+                currentUserId={proposal.driver_id}
+                currentUserName="Você"
+                userRole="driver"
+              />
+            </Suspense>
           </div>
         </div>
 
