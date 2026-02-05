@@ -361,7 +361,7 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
   {
     profileType: 'PRESTADOR_SERVICOS',
     label: 'Prestador de Serviços',
-    description: 'Prestador de serviços (mecânico, técnico, etc.)',
+    description: 'Prestador de serviços (mecânico, técnico, consultoria, etc.)',
     documents: [
       {
         docType: 'NFSE',
@@ -377,21 +377,27 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
       },
       {
         docType: 'NFE',
-        status: 'NAO_APLICAVEL',
-        label: 'NF-e',
-        description: 'Prestador de serviços não emite NF-e (apenas NFS-e).',
+        status: 'DEPENDE',
+        label: 'NF-e (Nota Fiscal Eletrônica)',
+        description: 'Prestador de serviços pode emitir NF-e para venda de produtos ou materiais aplicados no serviço.',
+        requirements: [
+          'Inscrição Estadual (IE) ativa',
+          'Credenciamento SEFAZ como emissor',
+          'Certificado Digital A1',
+          'CNAE compatível com venda de mercadorias/produtos',
+        ],
       },
       {
         docType: 'NFA',
-        status: 'NAO_APLICAVEL',
-        label: 'NF-a',
-        description: 'Não aplicável para serviços.',
+        status: 'DEPENDE',
+        label: 'NF-a (Nota Fiscal Avulsa)',
+        description: 'Pode usar NF-a para vendas eventuais de produtos.',
       },
       {
         docType: 'CTE',
         status: 'NAO_APLICAVEL',
         label: 'CT-e',
-        description: 'Não aplicável.',
+        description: 'Não aplicável para prestadores de serviço (apenas transportadores).',
       },
       {
         docType: 'MDFE',
@@ -407,9 +413,9 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
       },
     ],
     generalNotes: [
-      'Prestador de serviços emite NFS-e pela prefeitura.',
+      'Para serviços puros, emita NFS-e pela prefeitura.',
+      'Para venda de produtos/materiais, pode usar NF-e ou NF-a.',
       'AgriRoute não integra com sistemas municipais de NFS-e.',
-      'Consulte o portal da sua prefeitura para emissão.',
     ],
   },
 ];
@@ -495,4 +501,12 @@ export function getStatusLabel(status: EligibilityStatus): string {
     default:
       return status;
   }
+}
+
+/**
+ * Retorna o label amigável do perfil fiscal (sem underscores)
+ */
+export function getProfileLabel(profileType: FiscalProfileType): string {
+  const profile = getProfileEligibility(profileType);
+  return profile?.label || profileType.replace(/_/g, ' ');
 }

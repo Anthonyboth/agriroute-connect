@@ -40,6 +40,7 @@ import {
 import { 
   FiscalProfileType,
   getProfileEligibility,
+  getProfileLabel,
   canEmitDocument,
   getStatusLabel,
   EligibilityStatus,
@@ -301,7 +302,7 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                 <XCircle className="h-4 w-4" />
                 <AlertTitle>Documento não aplicável</AlertTitle>
                 <AlertDescription>
-                  O documento {documentType} não se aplica ao seu perfil de {fiscalProfile}. 
+                  O documento {documentType} não se aplica ao seu perfil de <strong>{fiscalProfile ? getProfileLabel(fiscalProfile) : 'desconhecido'}</strong>. 
                   Verifique se selecionou a opção correta ou fale com nosso suporte.
                 </AlertDescription>
               </Alert>
