@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError || !profile) {
-      return jsonResponse(404, { success: false, code: "PROFILE_NOT_FOUND", message: "Perfil não encontrado." });
+      return jsonResponse(200, { success: false, code: "PROFILE_NOT_FOUND", message: "Perfil não encontrado." });
     }
 
     // Payload
@@ -212,7 +212,8 @@ Deno.serve(async (req) => {
     try {
       payload = (await req.json()) as NFePayload;
     } catch {
-      return jsonResponse(400, {
+      // ✅ HTTP 200 para evitar exceção no SDK Supabase e blank screen
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_PAYLOAD",
         message: "Dados inválidos. Verifique o formulário e tente novamente.",
@@ -221,15 +222,32 @@ Deno.serve(async (req) => {
 
     const { issuer_id, freight_id, destinatario, itens, valores, informacoes_adicionais } = payload;
 
+    // ✅ Log do payload para debugging
+    console.log("[nfe-emitir] Payload recebido:", JSON.stringify({
+      issuer_id,
+      freight_id,
+      destinatario: destinatario ? {
+        cnpj_cpf: destinatario.cnpj_cpf ? "***" : null,
+        razao_social: destinatario.razao_social || null,
+        endereco: destinatario.endereco ? "presente" : null,
+      } : null,
+      itens_count: Array.isArray(itens) ? itens.length : 0,
+      valores,
+    }));
+
     if (!issuer_id) {
-      return jsonResponse(400, { success: false, code: "INVALID_PAYLOAD", message: "issuer_id é obrigatório." });
+      return jsonResponse(200, { success: false, code: "INVALID_PAYLOAD", message: "issuer_id é obrigatório." });
     }
 
     if (!destinatario?.cnpj_cpf || !destinatario?.razao_social) {
-      return jsonResponse(400, {
+      console.log("[nfe-emitir] ❌ Destinatário inválido:", { 
+        cnpj_cpf: destinatario?.cnpj_cpf || "VAZIO", 
+        razao_social: destinatario?.razao_social || "VAZIO" 
+      });
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_PAYLOAD",
-        message: "Dados do destinatário são obrigatórios.",
+        message: "Dados do destinatário são obrigatórios (CNPJ/CPF e Razão Social).",
       });
     }
 
@@ -249,7 +267,8 @@ Deno.serve(async (req) => {
     if (cepDigits.length !== 8) missing.push("CEP");
 
     if (missing.length > 0) {
-      return jsonResponse(400, {
+      console.log("[nfe-emitir] ❌ Endereço incompleto:", missing);
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_RECIPIENT_ADDRESS",
         message: `Endereço do destinatário incompleto: ${missing.join(", ")}.`,
@@ -257,7 +276,7 @@ Deno.serve(async (req) => {
     }
 
     if (!Array.isArray(itens) || itens.length === 0) {
-      return jsonResponse(400, {
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_PAYLOAD",
         message: "Pelo menos um item é obrigatório.",
@@ -273,15 +292,15 @@ Deno.serve(async (req) => {
 
     if (issuerError || !issuer) {
       console.error("[nfe-emitir] Issuer não encontrado:", issuerError);
-      return jsonResponse(404, { success: false, code: "ISSUER_NOT_FOUND", message: "Emissor fiscal não encontrado." });
+      return jsonResponse(200, { success: false, code: "ISSUER_NOT_FOUND", message: "Emissor fiscal não encontrado." });
     }
 
     if (issuer.profile_id !== profile.id) {
-      return jsonResponse(403, { success: false, code: "FORBIDDEN", message: "Sem permissão para este emissor." });
+      return jsonResponse(200, { success: false, code: "FORBIDDEN", message: "Sem permissão para este emissor." });
     }
 
     if (issuer.status === "blocked" || issuer.status === "suspended") {
-      return jsonResponse(403, {
+      return jsonResponse(200, {
         success: false,
         code: "ISSUER_BLOCKED",
         message: "Emissor fiscal bloqueado ou suspenso.",
@@ -359,7 +378,7 @@ Deno.serve(async (req) => {
     const isIssuerCPF = issuerDoc.length === 11;
     const isIssuerCNPJ = issuerDoc.length === 14;
     if (!isIssuerCPF && !isIssuerCNPJ) {
-      return jsonResponse(400, {
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_ISSUER_DOCUMENT",
         message: "CPF/CNPJ do emissor inválido. Verifique o cadastro do emissor fiscal.",
@@ -369,7 +388,7 @@ Deno.serve(async (req) => {
     const isDestCPF = destDoc.length === 11;
     const isDestCNPJ = destDoc.length === 14;
     if (!isDestCPF && !isDestCNPJ) {
-      return jsonResponse(400, {
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_RECIPIENT_DOCUMENT",
         message: "CPF/CNPJ do destinatário inválido. Verifique o dado informado.",
@@ -417,7 +436,7 @@ Deno.serve(async (req) => {
 
     if (missingIssuer.length > 0) {
       console.error("[nfe-emitir] Endereço do emissor incompleto:", missingIssuer);
-      return jsonResponse(400, {
+      return jsonResponse(200, {
         success: false,
         code: "INVALID_ISSUER_ADDRESS",
         message: `Endereço do emissor incompleto: ${missingIssuer.join(", ")}. Atualize o cadastro fiscal.`,
@@ -439,7 +458,7 @@ Deno.serve(async (req) => {
           issuerUf,
           current: issuerCodigoMunicipio,
         });
-        return jsonResponse(400, {
+        return jsonResponse(200, {
           success: false,
           code: "INVALID_ISSUER_CITY_IBGE",
           message:
@@ -688,7 +707,7 @@ Deno.serve(async (req) => {
 
       await supabase.rpc("release_emission_credit", { p_emission_id: emission.id });
 
-      return jsonResponse(422, {
+      return jsonResponse(200, {
         success: false,
         code: "FOCUS_REQUEST_FAILED",
         message: msg,
