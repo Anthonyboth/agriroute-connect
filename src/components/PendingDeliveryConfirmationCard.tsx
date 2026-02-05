@@ -163,8 +163,13 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
           </Button>
           <Button 
             size="sm" 
+            type="button"
             className="w-full bg-green-600 hover:bg-green-700"
-            onClick={onConfirmDelivery}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onConfirmDelivery();
+            }}
           >
             <CheckCircle className="h-4 w-4 mr-1.5" />
             Confirmar
