@@ -220,7 +220,19 @@ Deno.serve(async (req) => {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
 
     // Pagar.me exige pelo menos um telefone do cliente
-    const customerPhone = parseBrazilPhone(profile.phone || profile.contact_phone || (profile as any).emergency_contact_phone);
+    const metaPhone =
+      (userData.user.user_metadata as any)?.phone ||
+      (userData.user.user_metadata as any)?.telefone ||
+      null;
+
+    const customerPhone = parseBrazilPhone(
+      profile.phone ||
+        profile.contact_phone ||
+        (profile as any).emergency_contact_phone ||
+        metaPhone ||
+        userData.user.phone ||
+        null,
+    );
     if (!customerPhone) {
       return jsonResponse(200, {
         success: false,
