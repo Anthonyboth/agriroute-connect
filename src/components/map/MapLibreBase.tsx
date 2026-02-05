@@ -3,12 +3,15 @@
  * 
  * Componente base padronizado para mapas MapLibre no AgriRoute.
  * 
+ * ✅ ATUALIZADO: Marcadores agora usam GeoJSON layers (não DOM Markers)
+ * ✅ Resolve flutuação/offset em Drawers com animações transform/scale
+ * 
  * Features:
  * - Verificação de suporte WebGL
  * - Fallback amigável quando não suportado
  * - Loader padronizado único
- * - Auto-resize em Tabs/Dialogs/Panels
- * - Markers via props
+ * - Auto-resize em Tabs/Dialogs/Panels (inclui resize burst)
+ * - Markers via GeoJSON circle layers (sem DOM)
  * - Children overlay
  * - Tratamento centralizado de erros
  */
@@ -22,9 +25,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   useMapLibreSupport,
   useMapLibreMap,
-  useMapLibreMarkers,
+  useMapLibreGeoJSONLayers,
   useMapLibreControls,
-  type MapLibreMarkerData,
+  type GeoJSONMarkerData,
 } from '@/hooks/maplibre';
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '@/config/maplibre';
 
@@ -39,8 +42,8 @@ export interface MapLibreBaseProps {
   className?: string;
   /** Altura mínima do mapa */
   minHeight?: number;
-  /** Markers a exibir */
-  markers?: MapLibreMarkerData[];
+  /** Markers a exibir (agora via GeoJSON layers) */
+  markers?: GeoJSONMarkerData[];
   /** Mostrar controles de navegação */
   showNavigationControl?: boolean;
   /** Callback de click no mapa */
@@ -49,8 +52,8 @@ export interface MapLibreBaseProps {
   onLoad?: (map: maplibregl.Map) => void;
   /** Callback de erro */
   onError?: (error: Error) => void;
-  /** Factory para criar elementos de marker */
-  markerFactory?: (marker: MapLibreMarkerData) => HTMLElement | undefined;
+  /** Callback de click em marcador */
+  onMarkerClick?: (marker: GeoJSONMarkerData) => void;
   /** Children overlay (badges, botões, etc) */
   children?: React.ReactNode;
 }
@@ -84,7 +87,7 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
   onClick,
   onLoad,
   onError,
-  markerFactory,
+  onMarkerClick,
   children,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,7 +103,7 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
     return DEFAULT_CENTER;
   }, [center?.lat, center?.lng]);
 
-  // 3. Inicializar mapa
+  // 3. Inicializar mapa (inclui auto-resize com burst para Drawers)
   const { mapRef, isLoading, error, isReady } = useMapLibreMap({
     containerRef,
     center: mapCenter,
@@ -111,12 +114,15 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
     onClick,
   });
 
-  // ========================================
-  // 🚨 4. DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-  // Não renderizar markers - apenas basemap
-  // ========================================
-  // useMapLibreMarkers(mapRef, markers, { markerFactory });
-  useMapLibreMarkers(mapRef, [], {}); // Array vazio = sem markers
+  // ✅ 4. Marcadores via GeoJSON layers (NÃO DOM Markers)
+  // Isso evita flutuação/offset em Drawers com transform/scale
+  useMapLibreGeoJSONLayers(mapRef, markers, {
+    onPointClick: onMarkerClick,
+    circleColor: '#111827', // gray-900
+    circleRadius: 8,
+    strokeColor: '#ffffff',
+    strokeWidth: 2,
+  });
 
   // 5. Controles de navegação
   const controls = useMapLibreControls(mapRef);
@@ -203,11 +209,8 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
         </div>
       )}
 
-      {/* ========================================
-         🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-         Sem children overlay (badges, botões, etc)
-         ======================================== */}
-      {/* {isReady && children} */}
+      {/* Children overlay (badges, botões, etc) - REATIVADO */}
+      {isReady && children}
     </div>
   );
 });

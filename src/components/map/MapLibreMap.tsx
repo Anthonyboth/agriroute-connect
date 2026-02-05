@@ -108,8 +108,7 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
       center={center}
       zoom={zoom}
       className={className}
-      markers={normalizedMarkers}
-      markerFactory={defaultMarkerFactory}
+      markers={[]}
       onClick={onClick}
       onLoad={onLoad}
       showNavigationControl

@@ -11,10 +11,20 @@ export { useMapLibreSupport } from './useMapLibreSupport';
 // Inicialização estável do mapa
 export { useMapLibreMap, type UseMapLibreMapOptions, type UseMapLibreMapResult } from './useMapLibreMap';
 
-// Auto-resize para containers dinâmicos
+// Auto-resize para containers dinâmicos (inclui resize burst para Drawers)
 export { useMapLibreAutoResize } from './useMapLibreAutoResize';
 
-// Gerenciamento de markers
+// ✅ NOVO: Gerenciamento de markers via GeoJSON layers (sem DOM Markers)
+// Usar ESTE hook ao invés de useMapLibreMarkers para evitar flutuação em Drawers
+export { 
+  useMapLibreGeoJSONLayers, 
+  type GeoJSONMarkerData, 
+  type UseMapLibreGeoJSONLayersOptions, 
+  type UseMapLibreGeoJSONLayersResult 
+} from './useMapLibreGeoJSONLayers';
+
+// ⚠️ DEPRECATED: Gerenciamento de markers via DOM (causa flutuação em Drawers com transform)
+// Mantido apenas para compatibilidade - preferir useMapLibreGeoJSONLayers
 export { useMapLibreMarkers, type MapLibreMarkerData, type UseMapLibreMarkersOptions, type UseMapLibreMarkersResult } from './useMapLibreMarkers';
 
 // Controles de navegação (pan, zoom, bounds)
