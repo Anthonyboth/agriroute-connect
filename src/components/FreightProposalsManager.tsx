@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,13 @@ import { ptBR } from 'date-fns/locale';
 import { showErrorToast } from '@/lib/error-handler';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { formatBRL } from '@/lib/formatters';
-import { ProposalChatPanel } from '@/components/proposal/ProposalChatPanel';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { ProposalCard } from '@/components/proposal/ProposalCard';
+
+// Lazy load ProposalChatPanel with retry for chunk loading resilience
+const ProposalChatPanel = lazyWithRetry(() => 
+  import('@/components/proposal/ProposalChatPanel').then(m => ({ default: m.ProposalChatPanel }))
+);
 
 interface Proposal {
   id: string;
@@ -753,12 +758,14 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                   <MessageSquare className="h-4 w-4" />
                   Chat de Negociação
                 </div>
-            <ProposalChatPanel
-              proposalId={detailsDialog.proposal.id}
-              currentUserId={producerId}
-              currentUserName="Você"
-              userRole="producer"
-            />
+            <Suspense fallback={<CenteredSpinner className="h-32" />}>
+              <ProposalChatPanel
+                proposalId={detailsDialog.proposal.id}
+                currentUserId={producerId}
+                currentUserName="Você"
+                userRole="producer"
+              />
+            </Suspense>
               </div>
             </div>
           )}
