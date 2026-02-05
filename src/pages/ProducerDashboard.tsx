@@ -2054,6 +2054,12 @@ const ProducerDashboard = () => {
                   contact_phone: freightToConfirm.profiles.contact_phone || freightToConfirm.profiles.phone,
                 }
               : undefined,
+            // ✅ P0 FIX: Passar campos de confirmação individual
+            profiles: freightToConfirm.profiles,
+            _isIndividualConfirmation: freightToConfirm._isIndividualConfirmation,
+            _assignmentId: freightToConfirm._assignmentId,
+            driver_id: freightToConfirm.driver_id,
+            price: freightToConfirm.price,
           }}
           isOpen={deliveryConfirmationModal}
           onClose={closeDeliveryConfirmationModal}
