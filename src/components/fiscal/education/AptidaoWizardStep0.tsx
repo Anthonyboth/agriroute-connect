@@ -107,18 +107,26 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
     return issues;
   }, [fiscalIssuer, hasCertificate, hasIE, documentType]);
 
-  const canProceed = useMemo(() => {
-    // MEI tentando NF-e deve ser alertado, mas pode continuar se reconhecer
-    if (eligibility === 'NAO_APLICAVEL') return false;
-    if (aptidaoIssues.length > 0 && !acknowledged) return false;
-    return true;
-  }, [eligibility, aptidaoIssues, acknowledged]);
-
   const showMeiWarning = useMemo(() => {
-    return isMei === 'sim' && 
-           (documentType === 'NFE' || documentType === 'CTE' || documentType === 'MDFE') &&
-           (eligibility === 'DEPENDE' || eligibility === 'VOLUNTARIO');
+    return (
+      isMei === 'sim' &&
+      (documentType === 'NFE' || documentType === 'CTE' || documentType === 'MDFE') &&
+      (eligibility === 'DEPENDE' || eligibility === 'VOLUNTARIO')
+    );
   }, [isMei, documentType, eligibility]);
+
+  const canProceed = useMemo(() => {
+    // ❌ Não aplicável = nunca pode emitir
+    if (eligibility === 'NAO_APLICAVEL') return false;
+
+    // ⚠️ MEI tentando NF-e/CT-e/MDF-e = só pode continuar se reconhecer explicitamente
+    if (showMeiWarning && !acknowledged) return false;
+
+    // ⚠️ Pendências técnicas = só pode continuar se reconhecer
+    if (aptidaoIssues.length > 0 && !acknowledged) return false;
+
+    return true;
+  }, [eligibility, aptidaoIssues, acknowledged, showMeiWarning]);
 
   const handleContactSupport = () => {
     const message = encodeURIComponent(
@@ -216,40 +224,47 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
           <CardContent className="space-y-4">
             {/* Alerta MEI para NF-e/CT-e/MDF-e */}
             {showMeiWarning && (
-              <Alert className="border-yellow-500/30 bg-yellow-500/5">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertTitle>Atenção MEI</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p>
-                    <strong>MEI geralmente emite NF-a (Nota Fiscal Avulsa)</strong> e não é obrigado a emitir {documentType}.
+              <Alert className="border-destructive/30 bg-destructive/5">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <AlertTitle>ATENÇÃO MEI - Documento incorreto</AlertTitle>
+                <AlertDescription className="space-y-3">
+                  <p className="font-semibold">
+                    <strong>MEI geralmente NÃO é obrigado a emitir {documentType}.</strong> Conforme atendimento SEFAZ-MT,
+                    para muitos casos você deve usar <strong>NF-a (Nota Fiscal Avulsa)</strong>.
                   </p>
                   {documentType === 'NFE' && (
-                    <p>
-                      Para emitir NF-e voluntariamente, você precisa de Inscrição Estadual (IE) ativa 
-                      e credenciamento específico na SEFAZ do seu estado. Não é garantido.
+                    <p className="text-sm">
+                      A emissão de NF-e por MEI é <strong>voluntária</strong> e exige:
+                      Inscrição Estadual (IE) ativa + credenciamento SEFAZ + certificado A1.
+                      <strong> Não é garantido que funcione.</strong>
                     </p>
                   )}
                   {(documentType === 'CTE' || documentType === 'MDFE') && (
-                    <p>
-                      CT-e e MDF-e para MEI são voluntários e exigem credenciamento + programa emissor + RNTRC.
+                    <p className="text-sm">
+                      CT-e e MDF-e para MEI são <strong>voluntários</strong> e exigem:
+                      RNTRC + credenciamento SEFAZ + certificado A1 + programa emissor.
                     </p>
                   )}
-                  
+
                   {documentType === 'NFE' && onUseAlternative && (
-                    <div className="pt-2">
-                      <Button 
-                        variant="default"
-                        onClick={() => onUseAlternative('NFA')}
-                        className="mr-2"
-                      >
-                        Emitir NF-a (recomendado)
+                    <div className="pt-3 border-t space-y-2">
+                      <Button variant="default" size="lg" onClick={() => onUseAlternative('NFA')} className="w-full">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Ver como emitir NF-a (recomendado)
                       </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => setAcknowledged(true)}
-                      >
-                        Continuar com NF-e (voluntário)
-                      </Button>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="acknowledge-voluntary"
+                          checked={acknowledged}
+                          onChange={(e) => setAcknowledged(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor="acknowledge-voluntary" className="text-sm cursor-pointer">
+                          Entendo que NF-e não é obrigatória para MEI e assumo o risco de rejeição pela SEFAZ.
+                        </label>
+                      </div>
                     </div>
                   )}
                 </AlertDescription>
@@ -363,16 +378,23 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+            Cancelar
           </Button>
           
-          <Button 
-            onClick={onContinue}
-            disabled={!canProceed || eligibility === 'NAO_APLICAVEL'}
-          >
-            Continuar com {documentType}
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
+          {showMeiWarning && !acknowledged ? (
+            <Button disabled variant="secondary">
+              <XCircle className="h-4 w-4 mr-2" />
+              Reconheça ou escolha NF-a
+            </Button>
+          ) : (
+            <Button 
+              onClick={onContinue}
+              disabled={!canProceed || eligibility === 'NAO_APLICAVEL'}
+            >
+              Continuar com {documentType}
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
         </div>
       </div>
 
