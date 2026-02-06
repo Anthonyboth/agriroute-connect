@@ -47,6 +47,7 @@ import {
   Bike,
   FileText,
   Wrench,
+  MessageSquare,
 } from "lucide-react";
 import { UrbanFreightCard } from "@/components/freights/UrbanFreightCard";
 import { ServiceRequestCard } from "@/components/ServiceRequestCard";
@@ -56,6 +57,7 @@ import { ProducerReportsTab } from "@/pages/producer/ProducerReportsTab";
 import { ProducerPaymentsTab } from "@/pages/producer/ProducerPaymentsTab";
 import { PendingRatingsPanel } from "@/components/PendingRatingsPanel";
 import { ServicesModal } from "@/components/ServicesModal";
+import { ServiceChatDialog } from "@/components/ServiceChatDialog";
 import { ServiceEditModal } from "@/components/service-wizard/ServiceEditModal";
 import { ProducerHistoryTab } from "@/pages/producer/ProducerHistoryTab";
 import { showErrorToast } from "@/lib/error-handler";
@@ -130,6 +132,10 @@ const ProducerDashboard = () => {
   // ✅ P0: Service Edit Modal state
   const [serviceEditModalOpen, setServiceEditModalOpen] = useState(false);
   const [selectedServiceToEdit, setSelectedServiceToEdit] = useState<any>(null);
+
+  // ✅ Service Chat Dialog state
+  const [serviceChatOpen, setServiceChatOpen] = useState(false);
+  const [selectedChatServiceRequest, setSelectedChatServiceRequest] = useState<any>(null);
 
   // ============================================
   // P0: CLASSIFICADOR CENTRAL (única fonte de verdade)
@@ -1875,6 +1881,22 @@ const ProducerDashboard = () => {
                                 )}
                               </div>
                             )}
+
+                            {/* Botão de Chat */}
+                            {sr.provider_id && sr.client_id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full mt-2"
+                                onClick={() => {
+                                  setSelectedChatServiceRequest(sr);
+                                  setServiceChatOpen(true);
+                                }}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Abrir Chat
+                              </Button>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -2192,6 +2214,19 @@ const ProducerDashboard = () => {
             await Promise.all([fetchServiceRequests(), fetchFreights()]);
           }}
           serviceRequest={selectedServiceToEdit}
+        />
+      )}
+
+      {/* ✅ Service Chat Dialog */}
+      {serviceChatOpen && selectedChatServiceRequest && (
+        <ServiceChatDialog
+          isOpen={serviceChatOpen}
+          onClose={() => {
+            setServiceChatOpen(false);
+            setSelectedChatServiceRequest(null);
+          }}
+          serviceRequest={selectedChatServiceRequest}
+          currentUserProfile={profile}
         />
       )}
     </div>
