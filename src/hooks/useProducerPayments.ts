@@ -106,6 +106,7 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
           )
         `)
         .eq('producer_id', profile.id)
+        .not('status', 'in', '("cancelled")')  // ✅ Excluir pagamentos cancelados
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -120,8 +121,18 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
       }
 
       console.log('[useProducerPayments] Fetched payments:', data?.length || 0);
-      // Cast para any para evitar erros de tipo - a query funciona mas os tipos não refletem corretamente
-      setPayments((data || []) as unknown as ProducerPayment[]);
+      
+      // ✅ Filtrar pagamentos de fretes cancelados no client-side como segurança extra
+      const activePayments = (data || []).filter((p: any) => {
+        const freightStatus = p.freight?.status;
+        if (freightStatus === 'CANCELLED') {
+          console.log('[useProducerPayments] Filtrado pagamento de frete cancelado:', p.id);
+          return false;
+        }
+        return true;
+      });
+      
+      setPayments(activePayments as unknown as ProducerPayment[]);
     } catch (err: any) {
       console.error('[useProducerPayments] Unexpected error:', err);
       setError(err?.message || 'Erro ao carregar pagamentos');
