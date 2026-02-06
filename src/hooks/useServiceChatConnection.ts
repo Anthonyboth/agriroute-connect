@@ -206,10 +206,18 @@ export function useServiceChatConnection({
 
     setIsUploading(true);
     try {
+      // CRÍTICO: usar auth.uid() para o path, não profileId!
+      // A política RLS do storage valida: auth.uid()::text = foldername[1]
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Sessão expirada. Faça login novamente.');
+        return null;
+      }
+      const authUserId = user.id;
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `${currentUserProfileId}/${Date.now()}.${fileExt}`;
+      const fileName = `${authUserId}/${Date.now()}.${fileExt}`;
       // Rotear para bucket correto: imagens → chat-interno-images, demais → chat-interno-files
-      // Para áudio/vídeo, usar content type genérico para evitar rejeição do bucket
       const bucket = type === 'IMAGE' ? 'chat-interno-images' : 'chat-interno-files';
       
       // Para áudio/vídeo, forçar contentType sem codec para compatibilidade com bucket
