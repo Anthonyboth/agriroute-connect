@@ -5,33 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image as ImageIcon, MessageSquare, User, Wrench, Paperclip, Download, FileText } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { 
+  Send, Image as ImageIcon, MessageSquare, User, Wrench, 
+  Paperclip, Download, FileText, Video, Loader2, WifiOff, 
+  RefreshCw, ShieldAlert, Play
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
-import { useChatAttachments } from '@/hooks/useChatAttachments';
-
-interface Message {
-  id: string;
-  service_request_id: string;
-  sender_id: string;
-  message: string;
-  message_type: 'TEXT' | 'IMAGE' | 'FILE';
-  image_url?: string;
-  file_url?: string;
-  file_name?: string;
-  file_size?: number;
-  created_at: string;
-  sender?: {
-    id: string;
-    full_name: string;
-    role: string;
-    profile_photo_url?: string;
-  };
-}
+import { useServiceChatConnection, ChatMessage } from '@/hooks/useServiceChatConnection';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ServiceChatProps {
   serviceRequestId: string;
@@ -42,188 +24,81 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   serviceRequestId, 
   currentUserProfile 
 }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Hook para upload de anexos
-  const { uploadImage: uploadImageAttachment, uploadFile: uploadFileAttachment, isUploading } = useChatAttachments(currentUserProfile?.id);
-  
-  const { 
-    unreadServiceMessages, 
-    fetchUnreadServiceMessages, 
-    markServiceMessagesAsRead 
-  } = useUnreadMessages(currentUserProfile?.id);
-  
-  const unreadCount = unreadServiceMessages[serviceRequestId] || 0;
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
-  // Buscar mensagens
-  const fetchMessages = async () => {
-    try {
-      console.log('[ServiceChat] Carregando mensagens...');
-      
-      const messages = await queryWithTimeout(
-        async () => {
-          const { data, error } = await supabase
-            .from('service_messages')
-            .select(`
-              *,
-              sender:profiles!service_messages_sender_id_fkey(id, full_name, role, profile_photo_url)
-            `)
-            .eq('service_request_id', serviceRequestId)
-            .order('created_at', { ascending: true });
+  const {
+    messages,
+    isLoading,
+    isConnected,
+    isSending,
+    isUploading,
+    error,
+    isParticipant,
+    sendTextMessage,
+    sendMediaMessage,
+    refresh,
+  } = useServiceChatConnection({
+    serviceRequestId,
+    currentUserProfileId: currentUserProfile?.id,
+  });
 
-          if (error) throw error;
-          return data;
-        },
-        { timeoutMs: 5000, operationName: 'fetchServiceMessages' }
-      );
+  const isDisabled = isSending || isUploading;
 
-      setMessages((messages || []) as Message[]);
-    } catch (error) {
-      console.error('[ServiceChat] Erro ao carregar mensagens:', error);
-      toast.error('Erro ao carregar mensagens. Tente novamente.');
+  // Auto-scroll ao receber novas mensagens
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const timer = setTimeout(() => {
+        if (scrollAreaRef.current) {
+          scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || isDisabled) return;
+    const text = newMessage;
+    setNewMessage('');
+    const success = await sendTextMessage(text);
+    if (!success) setNewMessage(text); // Restaurar se falhou
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
-  // Enviar mensagem
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUserProfile?.id) return;
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('service_messages')
-        .insert({
-          service_request_id: serviceRequestId,
-          sender_id: currentUserProfile.id,
-          message: newMessage,
-          message_type: 'TEXT'
-        });
-
-      if (error) throw error;
-
-      setNewMessage('');
-      await fetchMessages();
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
-      toast.error('Erro ao enviar mensagem');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Upload de imagem
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentUserProfile?.id) return;
-
-    const imageUrl = await uploadImageAttachment(file);
-    if (!imageUrl) return;
-
-    try {
-      const { error } = await supabase
-        .from('service_messages')
-        .insert({
-          service_request_id: serviceRequestId,
-          sender_id: currentUserProfile.id,
-          message: 'Imagem enviada',
-          message_type: 'IMAGE',
-          image_url: imageUrl
-        });
-
-      if (error) throw error;
-
-      await fetchMessages();
-      toast.success('Imagem enviada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao enviar imagem:', error);
-      toast.error('Erro ao enviar imagem');
-    }
-    
+    if (file) await sendMediaMessage(file, 'IMAGE');
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
-  // Upload de arquivo
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await sendMediaMessage(file, 'VIDEO');
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentUserProfile?.id) return;
-
-    const fileData = await uploadFileAttachment(file);
-    if (!fileData) return;
-
-    try {
-      const { error } = await supabase
-        .from('service_messages')
-        .insert({
-          service_request_id: serviceRequestId,
-          sender_id: currentUserProfile.id,
-          message: `Arquivo enviado: ${fileData.name}`,
-          message_type: 'FILE',
-          file_url: fileData.url,
-          file_name: fileData.name,
-          file_size: fileData.size,
-        });
-
-      if (error) throw error;
-
-      await fetchMessages();
-      toast.success('Arquivo enviado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao enviar arquivo:', error);
-      toast.error('Erro ao enviar arquivo');
-    }
-    
+    if (file) await sendMediaMessage(file, 'FILE');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
-  
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
     const kb = bytes / 1024;
     if (kb < 1024) return `${kb.toFixed(1)} KB`;
     return `${(kb / 1024).toFixed(1)} MB`;
   };
-
-  useEffect(() => {
-    fetchMessages();
-    fetchUnreadServiceMessages(serviceRequestId);
-    
-    // Marcar mensagens como lidas ao abrir o chat
-    markServiceMessagesAsRead(serviceRequestId);
-
-    // Realtime subscription com error handling
-    const channel = subscriptionWithErrorHandler(
-      supabase
-        .channel(`service-messages-${serviceRequestId}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'service_messages',
-          filter: `service_request_id=eq.${serviceRequestId}`
-        }, () => {
-          console.log('[ServiceChat] Nova mensagem recebida');
-          fetchMessages();
-        }),
-      (error) => {
-        console.error('[ServiceChat] Erro na subscription:', error);
-        toast.error('Erro na conexão do chat. Recarregue a página.');
-      }
-    ).subscribe();
-
-    return () => {
-      console.log('[ServiceChat] Removendo subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [serviceRequestId]);
-
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
@@ -234,6 +109,72 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
     return roleMap[role] || { label: role, variant: 'default' };
   };
 
+  // ============ ESTADOS ESPECIAIS ============
+
+  // Não é participante
+  if (!isLoading && !isParticipant && error) {
+    return (
+      <Card className="h-full flex flex-col items-center justify-center">
+        <CardContent className="text-center py-12">
+          <ShieldAlert className="h-12 w-12 text-destructive mx-auto mb-3" />
+          <p className="text-sm font-medium text-destructive">Acesso negado</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Somente participantes do serviço podem acessar este chat.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Erro de conexão
+  if (!isLoading && error && isParticipant) {
+    return (
+      <Card className="h-full flex flex-col items-center justify-center">
+        <CardContent className="text-center py-12">
+          <WifiOff className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">{error}</p>
+          <Button variant="outline" size="sm" onClick={refresh} className="mt-3">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tentar novamente
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <Card className="h-full flex flex-col">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MessageSquare className="h-5 w-5" />
+            Chat do Serviço
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col p-4 space-y-4">
+          <div className="flex-1 space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className={`flex gap-2 ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                {i % 2 !== 0 && <Skeleton className="h-8 w-8 rounded-full" />}
+                <div className={`space-y-2 ${i % 2 === 0 ? 'items-end' : 'items-start'}`}>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-12 w-48 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 flex-1 rounded-md" />
+            <Skeleton className="h-10 w-10 rounded-md" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ============ CHAT PRINCIPAL ============
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -241,14 +182,27 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
           <MessageSquare className="h-5 w-5" />
           Chat do Serviço
         </CardTitle>
-        {unreadCount > 0 && (
-          <Badge variant="destructive">
-            {unreadCount} {unreadCount === 1 ? 'não lida' : 'não lidas'}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {!isConnected && (
+            <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+              <WifiOff className="h-3 w-3" />
+              Reconectando
+            </Badge>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={refresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-4 space-y-4">
+      <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
         {/* Área de mensagens */}
         <ScrollArea 
           ref={scrollAreaRef}
@@ -282,7 +236,7 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                     )}
                     
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
+                      className={`max-w-[75%] rounded-lg p-3 ${
                         isCurrentUser
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-secondary'
@@ -301,18 +255,34 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                         </div>
                       )}
                       
+                      {/* Imagem */}
                       {msg.message_type === 'IMAGE' && msg.image_url ? (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <img 
                             src={msg.image_url} 
-                            alt="Imagem enviada" 
+                            alt="Imagem enviada"
+                            loading="lazy"
                             className="rounded max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                            style={{ maxHeight: '300px' }}
+                            style={{ maxHeight: '250px' }}
                             onClick={() => window.open(msg.image_url, '_blank')}
                           />
-                          <p className="text-sm">{msg.message}</p>
+                        </div>
+                      ) : msg.message_type === 'VIDEO' && msg.image_url ? (
+                        /* Vídeo */
+                        <div className="space-y-1">
+                          <video 
+                            src={msg.image_url} 
+                            controls
+                            preload="metadata"
+                            className="rounded max-w-full h-auto"
+                            style={{ maxHeight: '250px' }}
+                          >
+                            <track kind="captions" />
+                            Seu navegador não suporta vídeos.
+                          </video>
                         </div>
                       ) : msg.message_type === 'FILE' && msg.file_url ? (
+                        /* Arquivo */
                         <a
                           href={msg.file_url}
                           download={msg.file_name}
@@ -330,11 +300,12 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                           <Download className="h-4 w-4 flex-shrink-0" />
                         </a>
                       ) : (
+                        /* Texto */
                         <p className="text-sm whitespace-pre-wrap" translate="no">{msg.message}</p>
                       )}
                       
                       <p className={`text-xs mt-1 ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        {format(new Date(msg.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {format(new Date(msg.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                       </p>
                     </div>
                   </div>
@@ -344,6 +315,14 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
           </div>
         </ScrollArea>
 
+        {/* Upload status */}
+        {isUploading && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Enviando mídia...
+          </div>
+        )}
+
         {/* Input de mensagem */}
         <div className="flex gap-2">
           <input
@@ -351,6 +330,13 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
             ref={imageInputRef}
             accept="image/*"
             onChange={handleImageSelect}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={videoInputRef}
+            accept="video/mp4,video/webm,video/quicktime"
+            onChange={handleVideoSelect}
             className="hidden"
           />
           <input
@@ -366,8 +352,9 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
             variant="outline"
             size="icon"
             onClick={() => imageInputRef.current?.click()}
-            disabled={loading || isUploading}
+            disabled={isDisabled}
             title="Enviar imagem"
+            className="flex-shrink-0"
           >
             <ImageIcon className="h-4 w-4" />
           </Button>
@@ -376,9 +363,22 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
             type="button"
             variant="outline"
             size="icon"
+            onClick={() => videoInputRef.current?.click()}
+            disabled={isDisabled}
+            title="Enviar vídeo"
+            className="flex-shrink-0"
+          >
+            <Video className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
             onClick={() => fileInputRef.current?.click()}
-            disabled={loading || isUploading}
+            disabled={isDisabled}
             title="Enviar arquivo"
+            className="flex-shrink-0"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
@@ -386,17 +386,24 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            onKeyDown={handleKeyPress}
             placeholder="Digite sua mensagem..."
-            disabled={loading || isUploading}
+            disabled={isDisabled}
             translate="no"
+            className="flex-1"
           />
 
           <Button
-            onClick={sendMessage}
-            disabled={loading || isUploading || !newMessage.trim()}
+            type="button"
+            onClick={handleSend}
+            disabled={isDisabled || !newMessage.trim()}
+            className="flex-shrink-0"
           >
-            <Send className="h-4 w-4" />
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </CardContent>
