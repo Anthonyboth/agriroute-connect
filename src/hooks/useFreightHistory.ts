@@ -1,0 +1,138 @@
+/**
+ * useFreightHistory.ts
+ * 
+ * Hook para consultar a tabela imutável freight_history.
+ * Substitui consultas diretas à tabela 'freights' para histórico.
+ */
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+
+export interface FreightHistoryItem {
+  id: string;
+  freight_id: string;
+  producer_id: string | null;
+  is_guest_freight: boolean;
+  company_id: string | null;
+  driver_id: string | null;
+  required_trucks: number;
+  accepted_trucks: number;
+  status_final: string;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  origin_city: string | null;
+  origin_state: string | null;
+  destination_city: string | null;
+  destination_state: string | null;
+  distance_km: number;
+  weight: number;
+  price_total: number;
+  price_per_truck: number;
+  cargo_type: string | null;
+  source: string;
+  created_at: string;
+}
+
+export interface FreightAssignmentHistoryItem {
+  id: string;
+  freight_id: string;
+  assignment_id: string;
+  driver_id: string;
+  company_id: string | null;
+  status_final: string;
+  completed_at: string | null;
+  agreed_price: number;
+  distance_km: number;
+  weight_per_truck: number;
+  origin_city: string | null;
+  origin_state: string | null;
+  destination_city: string | null;
+  destination_state: string | null;
+  cargo_type: string | null;
+  created_at: string;
+}
+
+interface UseFreightHistoryOptions {
+  role?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
+  companyId?: string;
+  limit?: number;
+}
+
+export function useFreightHistory(options: UseFreightHistoryOptions = {}) {
+  const { profile } = useAuth();
+  const { role, companyId, limit = 100 } = options;
+
+  const effectiveRole = role || (profile?.role as any) || 'MOTORISTA';
+
+  // Query para fretes (produtor vê por producer_id, motorista/empresa por assignment)
+  const freightHistoryQuery = useQuery({
+    queryKey: ['freight-history', profile?.id, effectiveRole, companyId, limit],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+
+      if (effectiveRole === 'PRODUTOR') {
+        const { data, error } = await supabase
+          .from('freight_history')
+          .select('*')
+          .eq('producer_id', profile.id)
+          .order('completed_at', { ascending: false, nullsFirst: false })
+          .limit(limit);
+
+        if (error) throw error;
+        return (data || []) as FreightHistoryItem[];
+      }
+
+      return [] as FreightHistoryItem[];
+    },
+    enabled: !!profile?.id && effectiveRole === 'PRODUTOR',
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Query para assignments (motorista e transportadora)
+  const assignmentHistoryQuery = useQuery({
+    queryKey: ['freight-assignment-history', profile?.id, effectiveRole, companyId, limit],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+
+      if (effectiveRole === 'MOTORISTA' || effectiveRole === 'MOTORISTA_AFILIADO') {
+        const { data, error } = await supabase
+          .from('freight_assignment_history')
+          .select('*')
+          .eq('driver_id', profile.id)
+          .order('completed_at', { ascending: false, nullsFirst: false })
+          .limit(limit);
+
+        if (error) throw error;
+        return (data || []) as FreightAssignmentHistoryItem[];
+      }
+
+      if (effectiveRole === 'TRANSPORTADORA' && companyId) {
+        const { data, error } = await supabase
+          .from('freight_assignment_history')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('completed_at', { ascending: false, nullsFirst: false })
+          .limit(limit);
+
+        if (error) throw error;
+        return (data || []) as FreightAssignmentHistoryItem[];
+      }
+
+      return [] as FreightAssignmentHistoryItem[];
+    },
+    enabled: !!profile?.id && (effectiveRole === 'MOTORISTA' || effectiveRole === 'MOTORISTA_AFILIADO' || effectiveRole === 'TRANSPORTADORA'),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  return {
+    freightHistory: freightHistoryQuery.data || [],
+    assignmentHistory: assignmentHistoryQuery.data || [],
+    isLoading: freightHistoryQuery.isLoading || assignmentHistoryQuery.isLoading,
+    isError: freightHistoryQuery.isError || assignmentHistoryQuery.isError,
+    error: freightHistoryQuery.error || assignmentHistoryQuery.error,
+    refetch: () => {
+      freightHistoryQuery.refetch();
+      assignmentHistoryQuery.refetch();
+    },
+  };
+}

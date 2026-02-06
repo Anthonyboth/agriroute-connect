@@ -4121,6 +4121,63 @@ export type Database = {
           },
         ]
       }
+      freight_assignment_history: {
+        Row: {
+          agreed_price: number
+          assignment_id: string
+          cargo_type: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          destination_city: string | null
+          destination_state: string | null
+          distance_km: number | null
+          driver_id: string
+          freight_id: string
+          id: string
+          origin_city: string | null
+          origin_state: string | null
+          status_final: string
+          weight_per_truck: number | null
+        }
+        Insert: {
+          agreed_price?: number
+          assignment_id: string
+          cargo_type?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_city?: string | null
+          destination_state?: string | null
+          distance_km?: number | null
+          driver_id: string
+          freight_id: string
+          id?: string
+          origin_city?: string | null
+          origin_state?: string | null
+          status_final: string
+          weight_per_truck?: number | null
+        }
+        Update: {
+          agreed_price?: number
+          assignment_id?: string
+          cargo_type?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_city?: string | null
+          destination_state?: string | null
+          distance_km?: number | null
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          origin_city?: string | null
+          origin_state?: string | null
+          status_final?: string
+          weight_per_truck?: number | null
+        }
+        Relationships: []
+      }
       freight_assignments: {
         Row: {
           accepted_at: string
@@ -4684,6 +4741,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      freight_history: {
+        Row: {
+          accepted_trucks: number
+          cancelled_at: string | null
+          cargo_type: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          destination_city: string | null
+          destination_state: string | null
+          distance_km: number | null
+          driver_id: string | null
+          freight_id: string
+          id: string
+          is_guest_freight: boolean
+          origin_city: string | null
+          origin_state: string | null
+          price_per_truck: number
+          price_total: number
+          producer_id: string | null
+          required_trucks: number
+          source: string
+          status_final: string
+          weight: number | null
+        }
+        Insert: {
+          accepted_trucks?: number
+          cancelled_at?: string | null
+          cargo_type?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_city?: string | null
+          destination_state?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          freight_id: string
+          id?: string
+          is_guest_freight?: boolean
+          origin_city?: string | null
+          origin_state?: string | null
+          price_per_truck?: number
+          price_total?: number
+          producer_id?: string | null
+          required_trucks?: number
+          source?: string
+          status_final: string
+          weight?: number | null
+        }
+        Update: {
+          accepted_trucks?: number
+          cancelled_at?: string | null
+          cargo_type?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_city?: string | null
+          destination_state?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          freight_id?: string
+          id?: string
+          is_guest_freight?: boolean
+          origin_city?: string | null
+          origin_state?: string | null
+          price_per_truck?: number
+          price_total?: number
+          producer_id?: string | null
+          required_trucks?: number
+          source?: string
+          status_final?: string
+          weight?: number | null
+        }
+        Relationships: []
       }
       freight_matches: {
         Row: {
@@ -9777,6 +9909,66 @@ export type Database = {
           },
         ]
       }
+      service_request_history: {
+        Row: {
+          accepted_at: string | null
+          cancelled_at: string | null
+          city: string | null
+          client_id: string | null
+          completed_at: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          estimated_price: number | null
+          final_price: number | null
+          id: string
+          provider_id: string | null
+          service_request_id: string
+          service_type: string | null
+          source: string
+          state: string | null
+          status_final: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          city?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          estimated_price?: number | null
+          final_price?: number | null
+          id?: string
+          provider_id?: string | null
+          service_request_id: string
+          service_type?: string | null
+          source?: string
+          state?: string | null
+          status_final: string
+        }
+        Update: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          city?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          estimated_price?: number | null
+          final_price?: number | null
+          id?: string
+          provider_id?: string | null
+          service_request_id?: string
+          service_type?: string | null
+          source?: string
+          state?: string | null
+          status_final?: string
+        }
+        Relationships: []
+      }
       service_request_matches: {
         Row: {
           created_at: string
@@ -13105,6 +13297,16 @@ export type Database = {
           total_freights: number
           total_producers: number
         }[]
+      }
+      get_reports_dashboard: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_filters?: Json
+          p_panel: string
+          p_profile_id: string
+        }
+        Returns: Json
       }
       get_scheduled_freights_by_location_and_date: {
         Args: { p_city: string; p_date: string; p_days_range?: number }
