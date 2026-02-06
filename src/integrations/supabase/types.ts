@@ -7681,6 +7681,84 @@ export type Database = {
           },
         ]
       }
+      operation_history: {
+        Row: {
+          completed_at: string
+          destination_location: string | null
+          entity_type: string
+          final_price: number | null
+          final_status: string
+          guest_contact_name: string | null
+          guest_contact_phone: string | null
+          id: string
+          operation_created_at: string
+          origin_location: string | null
+          original_id: string
+          rating_completed: boolean | null
+          recorded_at: string
+          service_or_cargo_type: string | null
+          snapshot_data: Json | null
+          truck_count: number | null
+          user_id: string | null
+          user_role: string
+        }
+        Insert: {
+          completed_at?: string
+          destination_location?: string | null
+          entity_type: string
+          final_price?: number | null
+          final_status?: string
+          guest_contact_name?: string | null
+          guest_contact_phone?: string | null
+          id?: string
+          operation_created_at: string
+          origin_location?: string | null
+          original_id: string
+          rating_completed?: boolean | null
+          recorded_at?: string
+          service_or_cargo_type?: string | null
+          snapshot_data?: Json | null
+          truck_count?: number | null
+          user_id?: string | null
+          user_role: string
+        }
+        Update: {
+          completed_at?: string
+          destination_location?: string | null
+          entity_type?: string
+          final_price?: number | null
+          final_status?: string
+          guest_contact_name?: string | null
+          guest_contact_phone?: string | null
+          id?: string
+          operation_created_at?: string
+          origin_location?: string | null
+          original_id?: string
+          rating_completed?: boolean | null
+          recorded_at?: string
+          service_or_cargo_type?: string | null
+          snapshot_data?: Json | null
+          truck_count?: number | null
+          user_id?: string | null
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_paid: number | null
@@ -8789,6 +8867,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reports_daily_metrics: {
+        Row: {
+          avg_price: number | null
+          by_service_type: Json | null
+          created_at: string | null
+          entity_type: string
+          id: string
+          metric_date: string
+          region: string
+          total_cancelled: number | null
+          total_completed: number | null
+          total_revenue: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avg_price?: number | null
+          by_service_type?: Json | null
+          created_at?: string | null
+          entity_type: string
+          id?: string
+          metric_date: string
+          region?: string
+          total_cancelled?: number | null
+          total_completed?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          avg_price?: number | null
+          by_service_type?: Json | null
+          created_at?: string | null
+          entity_type?: string
+          id?: string
+          metric_date?: string
+          region?: string
+          total_cancelled?: number | null
+          total_completed?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       rewards: {
         Row: {
@@ -12859,6 +12979,14 @@ export type Database = {
           weight: number
         }[]
       }
+      get_operation_report: {
+        Args: {
+          p_end_date?: string
+          p_entity_type?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
       get_own_profile_id: { Args: { p_user_id: string }; Returns: string }
       get_pending_ratings_with_affiliation: {
         Args: { p_profile_id: string }
@@ -13341,6 +13469,10 @@ export type Database = {
       }
       mark_freight_messages_as_read: {
         Args: { p_freight_id: string }
+        Returns: undefined
+      }
+      mark_history_rating_completed: {
+        Args: { p_original_id: string; p_user_id: string }
         Returns: undefined
       }
       mark_service_messages_as_read: {
