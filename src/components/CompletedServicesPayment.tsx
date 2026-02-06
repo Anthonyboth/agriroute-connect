@@ -60,9 +60,9 @@ export const CompletedServicesPayment: React.FC = () => {
     try {
       setLoading(true);
 
-      // Buscar serviços concluídos do usuário atual
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
       const { data: serviceRequests, error: servicesError } = await supabase
-        .from('service_requests')
+        .from('service_requests_secure')
         .select('*')
         .eq('status', 'COMPLETED')
         .order('completed_at', { ascending: false });
