@@ -19,6 +19,7 @@ import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview'
 import { MultiDriversList } from '@/components/freight/MultiDriversList';
 import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState } from '@/lib/formatters';
+import { SafeStatusBadge } from '@/components/security';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
@@ -325,12 +326,12 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 
             {/* Status e Preço no lado direito */}
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              <Badge 
-                variant={getFreightStatusVariant(freight.status)} 
-                className="font-medium whitespace-nowrap"
-              >
-                {getFreightStatusLabel(freight.status)}
-              </Badge>
+              {/* ✅ SEGURANÇA: SafeStatusBadge - NUNCA renderiza string crua */}
+              <SafeStatusBadge
+                status={freight.status}
+                type="freight"
+                className="whitespace-nowrap"
+              />
               
               {/* Badge de dias até coleta */}
               {(() => {

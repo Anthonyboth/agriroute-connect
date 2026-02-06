@@ -11,7 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
-import { guardStatusDisplay } from '@/security/i18nGuard';
+import { SafeStatusBadge, SafePrice } from '@/components/security';
 
 interface Proposal {
   id: string;
@@ -150,10 +150,8 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               </p>
             </div>
           </div>
-          {/* ✅ SEGURANÇA: Status via i18nGuard - NUNCA exibe inglês cru */}
-          <Badge variant={proposal.status === 'PENDING' ? 'default' : proposal.status === 'ACCEPTED' ? 'default' : 'destructive'}>
-            {guardStatusDisplay(proposal.status)}
-          </Badge>
+          {/* ✅ SEGURANÇA: Status via SafeStatusBadge - NUNCA exibe inglês cru */}
+          <SafeStatusBadge status={proposal.status} type="proposal" />
         </div>
 
         <Separator className="my-4" />
@@ -192,9 +190,16 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant={belowAntt ? 'destructive' : 'default'} className="text-lg px-3">
-                    {formatBRL(proposalPricePerTruck, true)}
-                  </Badge>
+                  <SafePrice
+                    price={proposalPricePerTruck}
+                    freight={{ required_trucks: freight.required_trucks, price: freight.price }}
+                    context="PROPOSAL"
+                    viewerRole="PRODUTOR"
+                    asBadge
+                    badgeVariant={belowAntt ? 'destructive' : 'default'}
+                    size="lg"
+                    showSecondary={false}
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
                   {belowAntt 
