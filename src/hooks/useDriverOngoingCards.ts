@@ -111,11 +111,11 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
     //   1. Ação do usuário (botão Atualizar)
     //   2. Voltar para aba (refetchOnWindowFocus)
     //   3. Realtime do Supabase (quando disponível)
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
-    refetchOnMount: true, // Refetch ao entrar na tela
+    staleTime: 10 * 60 * 1000, // ✅ 10 minutos (alinhado com padrão global)
+    gcTime: 15 * 60 * 1000, // 15 minutos
+    refetchOnMount: 'always' as const, // Refetch ao entrar na tela (dados críticos)
     refetchOnWindowFocus: true, // Refetch ao voltar para aba
-    // ❌ REMOVIDO: refetchInterval: 30000 - causava excesso de requests
+    // ❌ PROIBIDO: refetchInterval - atualiza via focus/botão/10min global
     queryFn: async () => {
       if (!driverProfileId) {
         return {

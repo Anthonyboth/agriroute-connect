@@ -5,6 +5,7 @@ import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { getCachedProfile, setCachedProfile, clearCachedProfile } from '@/lib/profile-cache';
 import { incrementAuthListeners, decrementAuthListeners, incrementSignOutCalls } from '@/debug/authDebug';
+import { clearSmartCache } from '@/hooks/useSmartQuery';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 export interface UserProfile {
   id: string;
@@ -758,6 +759,7 @@ const useAuthInternal = () => {
       }
 
       // Garantir limpeza do estado local
+      clearSmartCache(); // ✅ Limpar todo o cache global de requests
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -772,6 +774,7 @@ const useAuthInternal = () => {
       try {
         await supabase.auth.signOut({ scope: 'local' });
       } catch {}
+      clearSmartCache();
       setUser(null);
       setSession(null);
       setProfile(null);

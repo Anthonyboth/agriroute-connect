@@ -107,7 +107,7 @@ function buildDriverMarkerEl(status: "in_transit" | "available" | "offline") {
  */
 export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
   companyId,
-  refreshInterval = 30000,
+  refreshInterval = 60000, // ✅ Mínimo 60s para GPS tracking
   showDriverList = true,
   className,
 }: FleetGPSTrackingMapProps) {
@@ -191,8 +191,8 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
 
       return locations.filter((d) => isNum(d.current_lat) && isNum(d.current_lng));
     },
-    refetchInterval: refreshInterval,
-    staleTime: 10000,
+    refetchInterval: Math.max(refreshInterval, 60000), // ✅ Mínimo 60s
+    staleTime: 30000, // 30s staleTime para GPS
   });
 
   // Filter drivers

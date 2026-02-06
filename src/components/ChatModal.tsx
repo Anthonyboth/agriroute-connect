@@ -73,7 +73,9 @@ export const ChatModal = ({
       return data;
     },
     enabled: !!freightData?.driver_id && conversation?.hasGpsTracking,
-    refetchInterval: 30000, // Atualizar a cada 30s
+    // ✅ REMOVIDO: refetchInterval: 30000 - localização atualiza via focus/visibilidade
+    staleTime: 60 * 1000, // 1 minuto
+    refetchOnWindowFocus: true,
   });
 
   // ✅ SEGURANÇA: Usar view segura - telefone mascarado para não-participantes
