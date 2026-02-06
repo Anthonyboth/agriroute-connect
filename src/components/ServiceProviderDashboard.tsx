@@ -70,7 +70,7 @@ import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import { UserCityManager } from '@/components/UserCityManager';
-import { ServiceHistory } from '@/components/ServiceHistory';
+import { ProviderHistoryTab } from '@/pages/provider/ProviderHistoryTab';
 // ServiceProviderReportsDashboard removido - usando ProviderReportsTab
 import { ProviderReportsTab } from '@/pages/provider/ProviderReportsTab';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
@@ -1552,7 +1552,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            <ServiceHistory />
+            <ProviderHistoryTab />
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-4">

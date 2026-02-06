@@ -58,7 +58,7 @@ import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
 import { UserCityManager } from '@/components/UserCityManager';
-import { CompanyHistory } from '@/components/CompanyHistory';
+import { CompanyHistoryTab } from '@/pages/company/CompanyHistoryTab';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
 import { FreightDetails } from '@/components/FreightDetails';
@@ -902,7 +902,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
-            <CompanyHistory />
+            <CompanyHistoryTab />
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
