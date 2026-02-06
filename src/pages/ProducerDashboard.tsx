@@ -1300,14 +1300,15 @@ const ProducerDashboard = () => {
 
     setPaymentLoading(true);
     try {
-      const { error } = await supabase
+      const { data: updatedRows, error } = await supabase
         .from("external_payments")
         .update({ 
           status: "paid_by_producer",
           updated_at: new Date().toISOString()
         })
         .eq("id", paymentId)
-        .eq("producer_id", profile.id); // RLS adicional: só o produtor pode atualizar
+        .eq("producer_id", profile.id)
+        .select("id");
 
       if (error) {
         console.error("[confirmPaymentMade] Erro ao confirmar pagamento:", error);
@@ -1319,6 +1320,16 @@ const ProducerDashboard = () => {
         return;
       }
 
+      // ✅ Verificar se realmente atualizou (evita falha silenciosa por RLS)
+      if (!updatedRows || updatedRows.length === 0) {
+        console.error("[confirmPaymentMade] Update afetou 0 linhas - possível problema de RLS ou status");
+        toast.error("Não foi possível confirmar o pagamento.", {
+          description: "Verifique se o pagamento ainda está pendente e tente novamente."
+        });
+        return;
+      }
+
+      console.log("[confirmPaymentMade] ✅ Pagamento atualizado:", updatedRows);
       toast.success("Pagamento confirmado! Aguardando confirmação do motorista.");
       fetchExternalPayments();
     } catch (error) {
