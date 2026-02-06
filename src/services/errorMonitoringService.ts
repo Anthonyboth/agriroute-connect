@@ -179,6 +179,14 @@ export class ErrorMonitoringService {
   }
 
   async captureError(error: Error, context?: any): Promise<{ notified: boolean; errorLogId?: string }> {
+    // ✅ Early bail-out: não processar erros que serão ignorados (AbortError, etc.)
+    if (this.shouldIgnoreError(error.message) || this.shouldIgnoreError(error.name)) {
+      if (import.meta.env.DEV) {
+        console.log(`[ErrorMonitoringService] Erro ignorado (early bail-out): ${error.message?.substring(0, 50)}`);
+      }
+      return { notified: false };
+    }
+
     if (import.meta.env.DEV) {
       console.log('[ErrorMonitoringService] Erro capturado:', error.message);
     }
