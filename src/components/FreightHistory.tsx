@@ -119,8 +119,9 @@ export const FreightHistory: React.FC = () => {
     setLoading(true);
     try {
       let allFreights: Freight[] = [];
+      const seenFreightIds = new Set<string>();
 
-      // 1. Buscar fretes tradicionais
+      // 1. Buscar fretes tradicionais (driver_id direto)
       let freightQuery = supabase
         .from('freights')
         .select(`
@@ -129,7 +130,7 @@ export const FreightHistory: React.FC = () => {
           driver:profiles!freights_driver_id_fkey(id, full_name)
         `)
         .order('created_at', { ascending: false })
-        .limit(100); // Limitar para evitar queries muito grandes
+        .limit(100);
 
       if (profile.role === 'PRODUTOR') {
         freightQuery = freightQuery.eq('producer_id', profile.id);
@@ -153,7 +154,66 @@ export const FreightHistory: React.FC = () => {
         driver: Array.isArray(item.driver) && item.driver.length > 0 ? item.driver[0] : undefined
       }));
       
+      transformedFreights.forEach(f => seenFreightIds.add(f.id));
       allFreights = [...transformedFreights];
+
+      // 2. Para motoristas: buscar fretes via freight_assignments (multi-carreta)
+      if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
+        try {
+          const { data: assignmentData, error: assignmentError } = await supabase
+            .from('freight_assignments')
+            .select('freight_id, status, agreed_price, delivered_at')
+            .eq('driver_id', profile.id)
+            .limit(100);
+
+          if (!assignmentError && assignmentData && assignmentData.length > 0) {
+            // Filtrar IDs que já foram encontrados pela query direta
+            const missingFreightIds = assignmentData
+              .filter(a => !seenFreightIds.has(a.freight_id))
+              .map(a => a.freight_id);
+
+            if (missingFreightIds.length > 0) {
+              const { data: assignedFreights, error: assignedError } = await supabase
+                .from('freights')
+                .select(`
+                  *,
+                  producer:profiles!freights_producer_id_fkey(id, full_name),
+                  driver:profiles!freights_driver_id_fkey(id, full_name)
+                `)
+                .in('id', missingFreightIds)
+                .order('created_at', { ascending: false });
+
+              if (!assignedError && assignedFreights) {
+                // Criar mapa de assignment status/price por freight_id
+                const assignmentMap = new Map(
+                  assignmentData.map(a => [a.freight_id, a])
+                );
+
+                const transformedAssigned = assignedFreights.map(item => {
+                  const assignment = assignmentMap.get(item.id);
+                  return {
+                    ...item,
+                    // Usar status e preço individual do assignment
+                    status: assignment?.status || item.status,
+                    price: assignment?.agreed_price || item.price,
+                    producer: Array.isArray(item.producer) && item.producer.length > 0 ? item.producer[0] : undefined,
+                    driver: { id: profile.id, full_name: profile.full_name || '' }
+                  };
+                });
+
+                transformedAssigned.forEach(f => seenFreightIds.add(f.id));
+                allFreights = [...allFreights, ...transformedAssigned];
+
+                if (import.meta.env.DEV) {
+                  console.log('[FreightHistory] ✅ Fretes via assignments:', transformedAssigned.length);
+                }
+              }
+            }
+          }
+        } catch (assignmentError) {
+          console.warn('[FreightHistory] Erro ao buscar assignments (não crítico):', assignmentError);
+        }
+      }
 
       // ✅ P0 FIX: Buscar fretes urbanos para TODOS os roles (não apenas MOTORISTA)
       // Usar classificação centralizada
