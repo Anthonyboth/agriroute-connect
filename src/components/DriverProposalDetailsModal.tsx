@@ -11,8 +11,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
-import { guardStatusDisplay } from '@/security/i18nGuard';
 import { formatPriceForUser, type PriceContext } from '@/security/multiTruckPriceGuard';
+import { SafeStatusBadge, SafePrice } from '@/components/security';
 
 // Lazy load ProposalChatPanel with retry for chunk loading resilience
 const ProposalChatPanel = lazyWithRetry(() => 
@@ -377,20 +377,14 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
             </>
           )}
 
-          {/* 6. STATUS DA PROPOSTA - ✅ SEGURANÇA: Usa i18nGuard, NUNCA fallback em inglês */}
+          {/* 6. STATUS DA PROPOSTA - ✅ SEGURANÇA: Usa SafeStatusBadge, NUNCA fallback em inglês */}
           <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
             <span className="text-sm font-medium">{UI_TEXTS.STATUS}:</span>
-            <Badge
-              variant={
-                proposal.status === 'ACCEPTED' ? 'default' :
-                proposal.status === 'PENDING' ? 'secondary' : 'destructive'
-              }
-            >
-              {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
-               proposal.status === 'PENDING' ? '⏳ Pendente' :
-               proposal.status === 'REJECTED' ? '❌ Rejeitada' :
-               `⚠️ ${guardStatusDisplay(proposal.status)}`}
-            </Badge>
+            <SafeStatusBadge
+              status={proposal.status}
+              type="proposal"
+              showEmoji
+            />
           </div>
 
           {/* CHAT DE NEGOCIAÇÃO */}
