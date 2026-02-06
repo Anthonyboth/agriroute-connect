@@ -41,6 +41,18 @@ serve(async (req) => {
       );
     }
 
+    // Validate UUID format for freight_id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (typeof freight_id !== 'string' || !uuidRegex.test(freight_id)) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid parameter: freight_id must be a valid UUID",
+          details: "Please provide a valid freight ID in UUID format"
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Validate num_trucks is a positive integer
     if (typeof num_trucks !== 'number' || num_trucks < 1 || !Number.isInteger(num_trucks)) {
       return new Response(
