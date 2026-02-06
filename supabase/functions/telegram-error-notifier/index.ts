@@ -150,7 +150,10 @@ serve(async (req) => {
       message: errorData.errorMessage?.substring(0, 100)
     });
 
-    const message = formatErrorMessage(errorData);
+    // ✅ Suporte a mensagens customizadas (ex: auto-heal reports)
+    const message = errorData._customMessage 
+      ? String(errorData._customMessage)
+      : formatErrorMessage(errorData);
     const sent = await sendToTelegram(message);
 
     return new Response(JSON.stringify({ 
