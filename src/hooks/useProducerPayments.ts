@@ -12,6 +12,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
+import { sendPushNotification } from '@/utils/pushNotificationService';
 
 export interface ProducerPayment {
   id: string;
@@ -142,7 +143,28 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
     try {
       console.log('[useProducerPayments] Confirming payment made:', paymentId);
 
-      const { error: updateError } = await supabase
+      // Buscar dados do pagamento ANTES de atualizar para ter info do motorista e frete
+      const { data: paymentData } = await supabase
+        .from('external_payments')
+        .select(`
+          id, driver_id, amount, freight_id,
+          freight:freights!external_payments_freight_id_fkey(
+            origin_city, destination_city, cargo_type
+          )
+        `)
+        .eq('id', paymentId)
+        .eq('producer_id', profile.id)
+        .eq('status', 'proposed')
+        .maybeSingle();
+
+      if (!paymentData) {
+        console.error('[useProducerPayments] Payment not found or not in proposed status');
+        toast.error('Pagamento não encontrado ou já foi confirmado.');
+        return false;
+      }
+
+      // ✅ Usar .select() para verificar se o update realmente afetou alguma linha
+      const { data: updatedRows, error: updateError } = await supabase
         .from('external_payments')
         .update({
           status: 'paid_by_producer',
@@ -150,7 +172,8 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
         })
         .eq('id', paymentId)
         .eq('producer_id', profile.id)
-        .eq('status', 'proposed'); // Só pode confirmar pagamentos propostos
+        .eq('status', 'proposed')
+        .select('id');
 
       if (updateError) {
         console.error('[useProducerPayments] Error confirming payment:', updateError);
@@ -160,9 +183,56 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
         return false;
       }
 
+      // ✅ Verificar se realmente atualizou
+      if (!updatedRows || updatedRows.length === 0) {
+        console.error('[useProducerPayments] Update affected 0 rows - RLS or status mismatch');
+        toast.error('Não foi possível atualizar o pagamento.', {
+          description: 'Verifique se o pagamento ainda está pendente.'
+        });
+        return false;
+      }
+
+      console.log('[useProducerPayments] ✅ Payment updated successfully:', updatedRows);
+
       toast.success('Pagamento confirmado!', {
         description: 'O motorista será notificado para confirmar o recebimento.'
       });
+
+      // ✅ Enviar push notification + notificação no banco para o motorista
+      if (paymentData.driver_id) {
+        const freight = paymentData.freight as any;
+        const amountFormatted = paymentData.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00';
+        const routeInfo = freight?.origin_city && freight?.destination_city 
+          ? `${freight.origin_city} → ${freight.destination_city}` 
+          : 'Frete';
+
+        // Criar notificação no banco (visível no painel do motorista)
+        supabase.from('notifications').insert({
+          user_id: paymentData.driver_id,
+          title: '💰 Pagamento Confirmado pelo Produtor',
+          message: `R$ ${amountFormatted} - ${routeInfo}. Acesse a aba Pagamentos para confirmar o recebimento.`,
+          type: 'payment_confirmed_by_producer',
+          read: false,
+        }).then(({ error }) => {
+          if (error) console.error('[useProducerPayments] Error creating notification:', error);
+          else console.log('[useProducerPayments] ✅ Notification created for driver');
+        });
+
+        // Enviar push notification
+        sendPushNotification({
+          userIds: [paymentData.driver_id],
+          title: '💰 Pagamento Confirmado pelo Produtor',
+          message: `R$ ${amountFormatted} - ${routeInfo}. Confirme o recebimento no app.`,
+          type: 'payment_confirmed_by_producer',
+          data: {
+            payment_id: paymentId,
+            freight_id: paymentData.freight_id,
+            amount: paymentData.amount,
+          },
+          url: '/dashboard?tab=payments',
+          requireInteraction: true,
+        }).catch(err => console.error('[useProducerPayments] Push notification error:', err));
+      }
 
       // Refetch para atualizar a lista
       await fetchPayments();
