@@ -356,19 +356,25 @@ const NFSE_BASE_REQUIREMENTS: FiscalRequirement[] = [
 // ============= REQUISITOS POR UF =============
 
 // Links oficiais SEFAZ-MT para credenciamento
+// Atualizado: 06/02/2026 - Confirmado com atendimento SEFAZ-MT (SAC0055693)
 const MT_SEFAZ_CREDENCIAMENTO_NFE = {
   label: 'Credenciamento NF-e SEFAZ-MT (OFICIAL)',
   url: 'https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811',
 };
 
 const MT_SEFAZ_PORTAL_CONTRIBUINTE = {
-  label: 'Liberação de Senha SEFAZ-MT',
-  url: 'https://www5.sefaz.mt.gov.br/portal-do-contribuinte',
+  label: 'Portal de Atendimento ao Contribuinte',
+  url: 'https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte',
 };
 
 const MT_SEFAZ_EPAC = {
-  label: 'Portal e-PAC MT',
+  label: 'Portal e-PAC MT (requer e-CNPJ)',
   url: 'https://www.sefaz.mt.gov.br/epac/',
+};
+
+const MT_SEFAZ_WEBSERVICE = {
+  label: 'Webservice SEFAZ-MT (login IE + senha)',
+  url: 'https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml',
 };
 
 const MT_REQUIREMENTS: UFRequirements = {
@@ -386,6 +392,7 @@ const MT_REQUIREMENTS: UFRequirements = {
             severity: 'blocker' as Severity,
             officialLinks: [
               MT_SEFAZ_CREDENCIAMENTO_NFE,
+              MT_SEFAZ_WEBSERVICE,
               MT_SEFAZ_PORTAL_CONTRIBUINTE,
               MT_SEFAZ_EPAC,
             ],
@@ -399,8 +406,9 @@ const MT_REQUIREMENTS: UFRequirements = {
             ],
             faq: [
               { q: 'MEI pode emitir NF-e em MT?', a: 'MEI SÓ pode emitir NF-e se tiver Inscrição Estadual (IE) ativa. Caso contrário, utilize a Nota Fiscal Avulsa (NFA) no portal da SEFAZ-MT.' },
-              { q: 'Como sei se já estou credenciado?', a: 'Consulte seu status no portal e-PAC da SEFAZ-MT ou tente emitir uma nota em ambiente de homologação (teste).' },
+              { q: 'Como sei se já estou credenciado?', a: 'Acesse o Webservice SEFAZ-MT (não precisa de certificado). Login: sua Inscrição Estadual (IE). Senha: a senha de contribuinte. Em "Consulta Genérica do Contribuinte", verifique a seção "CREDENCIAMENTOS".' },
               { q: 'Erro 230 - O que significa?', a: 'Significa que seu emissor não está credenciado para NF-e. Siga os passos de credenciamento acima.' },
+              { q: 'Qual a diferença entre e-PAC e Webservice?', a: 'O e-PAC requer certificado e-CNPJ da empresa. O Webservice só precisa da IE + senha do contribuinte.' },
             ],
           };
         }
@@ -424,25 +432,29 @@ const MT_REQUIREMENTS: UFRequirements = {
         
         return req;
       }),
-      // Regra específica de senha e-PAC MT
+      // Regra específica de senha contribuinte MT
       {
         id: 'nfe-mt-epac-senha',
-        title: 'Senha ativa no portal e-PAC',
-        description: 'O Mato Grosso exige senha ativa no portal e-PAC (Escrituração Fiscal Digital) para credenciamento como emissor.',
+        title: 'Senha de Contribuinte SEFAZ-MT',
+        description: 'O Mato Grosso exige senha de contribuinte ativa para credenciamento e consulta de status. O login é feito com a Inscrição Estadual (IE) e a senha criada no portal.',
         severity: 'blocker',
         evidenceNeeded: true,
         evidenceType: 'CREDENCIAMENTO',
         officialLinks: [
-          MT_SEFAZ_EPAC,
+          MT_SEFAZ_WEBSERVICE,
           MT_SEFAZ_PORTAL_CONTRIBUINTE,
+          MT_SEFAZ_CREDENCIAMENTO_NFE,
         ],
         tips: [
-          'A senha e-PAC é diferente da senha do certificado digital',
-          'Geralmente é criada no momento do credenciamento',
+          'A senha de contribuinte é diferente da senha do certificado digital',
+          'O login no Webservice é feito com a IE (Inscrição Estadual), não com o CNPJ',
+          'O portal e-PAC exige e-CNPJ (certificado). Use o Webservice se não tiver certificado',
+          'Para verificar credenciamento: Webservice → Consulta Genérica → CREDENCIAMENTOS',
           'Mantenha a senha em local seguro',
         ],
         faq: [
-          { q: 'Esqueci minha senha e-PAC', a: 'Acesse o portal da SEFAZ-MT e utilize a opção de recuperação de senha.' },
+          { q: 'Esqueci minha senha de contribuinte', a: 'Acesse o portal da SEFAZ-MT e utilize a opção de recuperação de senha.' },
+          { q: 'Meu login é o CNPJ ou a IE?', a: 'No Webservice SEFAZ-MT, o login é a Inscrição Estadual (IE). No e-PAC, é o e-CNPJ (certificado digital).' },
         ],
       },
       // Nota Fiscal Avulsa para MEI
@@ -525,13 +537,14 @@ const MT_REQUIREMENTS: UFRequirements = {
   },
   generalNotes: [
     '⚠️ MT possui regras específicas de credenciamento. Verifique seu status ANTES de emitir.',
-    'O credenciamento é feito pelo portal e-PAC da SEFAZ-MT.',
+    'Para consultar seu credenciamento: Webservice SEFAZ-MT → login com IE + senha → Consulta Genérica → CREDENCIAMENTOS.',
+    'O e-PAC exige certificado e-CNPJ. Para consulta sem certificado, use o Webservice SEFAZ-MT.',
     'MEI sem IE: utilize a Nota Fiscal Avulsa (NFA) ao invés de NF-e.',
     'O INDEA-MT é responsável pela emissão de GTA no estado.',
     'Em caso de rejeição (erro 230 ou 203), verifique seu credenciamento.',
   ],
   sefazPortal: 'https://www.sefaz.mt.gov.br/',
-  lastUpdated: '2026-02-01',
+  lastUpdated: '2026-02-06',
 };
 
 const FALLBACK_REQUIREMENTS: UFRequirements = {

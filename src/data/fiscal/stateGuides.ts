@@ -41,13 +41,15 @@ export interface StateGuide {
 }
 
 // ============= MATO GROSSO (MT) - COMPLETO =============
+// Atualizado: 06/02/2026 - Informações confirmadas com atendimento SEFAZ-MT (SAC0055693)
 const MT_GUIDE: StateGuide = {
   uf: 'MT',
   displayName: 'Mato Grosso',
   officialPortals: [
     { title: 'Portal SEFAZ-MT', url: 'https://www.sefaz.mt.gov.br/' },
     { title: 'Credenciamento / Senha Contribuinte', url: 'https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811' },
-    { title: 'Portal e-PAC', url: 'https://www.sefaz.mt.gov.br/epac/' },
+    { title: 'Portal de Atendimento (e-PAC)', url: 'https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte' },
+    { title: 'Webservice SEFAZ-MT (login com IE)', url: 'https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml' },
     { title: 'Consulta Situação Cadastral', url: 'https://www.sefaz.mt.gov.br/csc/consultapublica/' },
   ],
   credentialing: {
@@ -72,10 +74,18 @@ const MT_GUIDE: StateGuide = {
         ],
       },
       {
-        title: '4. Acessar e-PAC',
-        description: 'Com a senha liberada, você pode acessar o portal e-PAC para verificar sua situação cadastral, solicitar credenciamentos e acompanhar processos.',
+        title: '4. Verificar credenciamento NF-e MEI',
+        description: 'Acesse o Webservice SEFAZ-MT (não precisa de certificado). Faça login com sua Inscrição Estadual (IE) e a senha criada. Na "Consulta Genérica do Contribuinte", verifique a seção "CREDENCIAMENTOS" — lá aparece o credenciamento para emissão de NF-e MEI.',
         links: [
-          { title: 'Portal e-PAC', url: 'https://www.sefaz.mt.gov.br/epac/' },
+          { title: 'Webservice SEFAZ-MT (login com IE + senha)', url: 'https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml' },
+          { title: 'Portal de Atendimento ao Contribuinte', url: 'https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte' },
+        ],
+      },
+      {
+        title: '5. Alternativa: e-PAC (requer e-CNPJ)',
+        description: 'O portal e-PAC também permite consultar credenciamentos, mas exige certificado e-CNPJ da empresa para acesso. Use o Webservice (passo 4) se não tiver certificado.',
+        links: [
+          { title: 'Portal e-PAC (requer e-CNPJ)', url: 'https://www.sefaz.mt.gov.br/epac/' },
         ],
       },
     ],
@@ -96,7 +106,8 @@ const MT_GUIDE: StateGuide = {
       ],
       tips: [
         'MEI NÃO é obrigado a emitir NF-e. Pode usar NF-a (Avulsa) no portal SEFAZ.',
-        'Verifique sua situação cadastral antes de tentar emitir.',
+        'Verifique seu credenciamento no Webservice SEFAZ-MT: login com IE + senha → Consulta Genérica → CREDENCIAMENTOS.',
+        'O login do Webservice é a sua IE (não o CNPJ). A senha é a de contribuinte.',
       ],
     },
     NFA: {
@@ -165,7 +176,9 @@ const MT_GUIDE: StateGuide = {
   },
   specialNotes: [
     'MT tem regras específicas para MEI. Consulte a SEFAZ-MT em caso de dúvida.',
-    'O portal e-PAC é a principal ferramenta para acompanhar sua situação cadastral.',
+    'Para verificar seu credenciamento: Webservice SEFAZ-MT → login com IE + senha → Consulta Genérica → CREDENCIAMENTOS.',
+    'O portal e-PAC exige e-CNPJ (certificado). Para consulta sem certificado, use o Webservice.',
+    'Login do Webservice: sua Inscrição Estadual (IE). Senha: a senha de contribuinte.',
   ],
 };
 
