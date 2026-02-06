@@ -6166,6 +6166,56 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_freight_security_log: {
+        Row: {
+          created_at: string
+          document_hash: string | null
+          fingerprint_hash: string
+          freight_id: string | null
+          id: string
+          ip: string
+          metadata: Json | null
+          phone_hash: string | null
+          reason_code: string
+          result: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_hash?: string | null
+          fingerprint_hash: string
+          freight_id?: string | null
+          id?: string
+          ip: string
+          metadata?: Json | null
+          phone_hash?: string | null
+          reason_code: string
+          result: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_hash?: string | null
+          fingerprint_hash?: string
+          freight_id?: string | null
+          id?: string
+          ip?: string
+          metadata?: Json | null
+          phone_hash?: string | null
+          reason_code?: string
+          result?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_freight_security_log_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_requests: {
         Row: {
           city_name: string | null
