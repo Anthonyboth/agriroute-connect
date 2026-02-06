@@ -52,3 +52,33 @@ export {
   sanitizeForDisplay,
   guardStatusDisplay,
 } from './i18nGuard';
+
+// Service Request Workflow Guard (Fretes Urbanos)
+export {
+  canTransitionSR,
+  assertValidTransitionSR,
+  getNextAllowedStatusSR,
+  getAllowedActions as getServiceRequestAllowedActions,
+  getServiceRequestStatusLabelPtBR,
+  getServiceRequestActionLabelPtBR,
+  getServiceTypeLabelPtBR,
+  detectForbiddenServiceTerms,
+  sanitizeServiceUiTextPtBR,
+  canAutoExpire,
+  getExpirationHours,
+  ServiceRequestWorkflowError,
+  SERVICE_REQUEST_WORKFLOW_ORDER,
+  SERVICE_REQUEST_TERMINAL_STATUSES,
+  SERVICE_REQUEST_STATUS_LABELS,
+  SERVICE_REQUEST_ACTION_LABELS,
+  SERVICE_TYPE_LABELS,
+  SERVICE_REQUEST_EXPIRATION_HOURS,
+} from './serviceRequestWorkflowGuard';
+
+export type {
+  ServiceRequestStatus,
+  ServiceRequestType,
+  ServiceRequestRole,
+  ServiceRequestAction,
+  ServiceRequestTransitionValidation,
+} from './serviceRequestWorkflowGuard';

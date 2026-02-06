@@ -54,6 +54,7 @@ const STATUS_DICTIONARY: Record<string, string> = {
 
   // Service statuses
   IN_PROGRESS: 'Em Andamento',
+  ON_THE_WAY: 'A Caminho',
   RESOLVED: 'Resolvido',
 
   // Tracking statuses
@@ -73,6 +74,7 @@ const FORBIDDEN_ENGLISH_TERMS = new Set([
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
+  'ON_THE_WAY',
   'DELIVERED',
   'DELIVERED_PENDING_CONFIRMATION',
   'COMPLETED',
