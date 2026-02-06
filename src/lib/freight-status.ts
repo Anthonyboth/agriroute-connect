@@ -111,45 +111,40 @@ export const getFreightStatusVariant = (status: string): 'default' | 'secondary'
   }
 };
 
+// ✅ SEGURANÇA: Funções NUNCA retornam status cru em inglês.
+// Fallback humaniza o texto ao invés de expor códigos internos.
+
 export const getProposalStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'PENDING':
-      return 'Pendente';
-    case 'ACCEPTED':
-      return 'Aceita';
-    case 'REJECTED':
-      return 'Rejeitada';
-    case 'CANCELLED':
-      return 'Cancelada';
-    default:
-      return status;
-  }
+  const labels: Record<string, string> = {
+    PENDING: 'Pendente',
+    ACCEPTED: 'Aceita',
+    REJECTED: 'Rejeitada',
+    CANCELLED: 'Cancelada',
+    EXPIRED: 'Expirada',
+    COUNTER_PROPOSED: 'Contraproposta',
+  };
+  return labels[status?.toUpperCase()] || status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export const getUserStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'PENDING':
-      return 'Pendente';
-    case 'APPROVED':
-      return 'Aprovado';
-    case 'REJECTED':
-      return 'Rejeitado';
-    default:
-      return status;
-  }
+  const labels: Record<string, string> = {
+    PENDING: 'Pendente',
+    APPROVED: 'Aprovado',
+    REJECTED: 'Rejeitado',
+    ACTIVE: 'Ativo',
+    INACTIVE: 'Inativo',
+    SUSPENDED: 'Suspenso',
+  };
+  return labels[status?.toUpperCase()] || status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export const getValidationStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'PENDING':
-      return 'Pendente';
-    case 'VALIDATED':
-      return 'Validado';
-    case 'REJECTED':
-      return 'Rejeitado';
-    case 'EXPIRED':
-      return 'Expirado';
-    default:
-      return status;
-  }
+  const labels: Record<string, string> = {
+    PENDING: 'Pendente',
+    VALIDATED: 'Validado',
+    REJECTED: 'Rejeitado',
+    EXPIRED: 'Expirado',
+    APPROVED: 'Aprovado',
+  };
+  return labels[status?.toUpperCase()] || status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };

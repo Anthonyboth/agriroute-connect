@@ -1,16 +1,18 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { User, Package, MapPin, Calendar, DollarSign, MessageSquare, Phone, XCircle, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
+import { User, Package, MapPin, Calendar, DollarSign, MessageSquare, Phone, XCircle, TrendingUp, TrendingDown, CheckCircle, Truck } from 'lucide-react';
 import { formatBRL, formatKm, formatDate } from '@/lib/formatters';
 import { UI_TEXTS } from '@/lib/ui-texts';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
+import { guardStatusDisplay } from '@/security/i18nGuard';
+import { formatPriceForUser, type PriceContext } from '@/security/multiTruckPriceGuard';
 
 // Lazy load ProposalChatPanel with retry for chunk loading resilience
 const ProposalChatPanel = lazyWithRetry(() => 
@@ -35,6 +37,7 @@ interface ProposalForModal {
     distance_km: number;
     weight: number;
     producer_id: string;
+    required_trucks?: number;
     producer?: {
       id: string;
       full_name: string;
@@ -73,9 +76,33 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
   onAcceptCounterOffer,
   onRejectCounterOffer,
 }) => {
+  // ✅ SEGURANÇA: Multi-carreta - calcular preço POR CARRETA para o motorista
+  const requiredTrucks = proposal?.freight?.required_trucks || 1;
+  const isMultiTruck = requiredTrucks > 1;
+
+  // ✅ SEGURANÇA: Usar multiTruckPriceGuard para exibir preço correto ao motorista
+  const freightPriceGuard = useMemo(() => formatPriceForUser({
+    freightPrice: proposal?.freight?.price ?? 0,
+    requiredTrucks,
+    agreedPrice: proposal?.proposed_price ?? null,
+    context: 'DRIVER' as PriceContext,
+  }), [proposal?.freight?.price, requiredTrucks, proposal?.proposed_price]);
+
+  // Preço original do frete POR CARRETA (para comparação)
+  const originalPricePerTruck = useMemo(() => {
+    const result = formatPriceForUser({
+      freightPrice: proposal?.freight?.price ?? 0,
+      requiredTrucks,
+      agreedPrice: null,
+      context: 'DRIVER' as PriceContext,
+    });
+    return result;
+  }, [proposal?.freight?.price, requiredTrucks]);
+
   if (!proposal) return null;
 
-  const priceDiff = proposal.proposed_price - proposal.freight.price;
+  // ✅ SEGURANÇA: Diferença de preço calculada POR CARRETA (não total)
+  const priceDiff = proposal.proposed_price - originalPricePerTruck.displayPrice;
   const relevantCounterOffers = counterOffers.filter(co => co.freight_id === proposal.freight_id);
 
   return (
@@ -206,19 +233,40 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
 
           <Separator />
 
-          {/* 3. VALORES */}
+          {/* 3. VALORES - ✅ SEGURANÇA: Usa multiTruckPriceGuard */}
           <div>
+            {/* ✅ Aviso multi-carreta */}
+            {isMultiTruck && (
+              <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-sm font-medium">
+                  <Truck className="h-4 w-4" />
+                  Frete com {requiredTrucks} carretas
+                </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Valores exibidos são <strong>por carreta</strong>.
+                </p>
+              </div>
+            )}
+
             <div className="bg-muted/50 p-4 rounded-lg space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{UI_TEXTS.VALOR_ORIGINAL_FRETE}:</span>
+                <span className="text-sm font-medium flex items-center gap-2">
+                  {UI_TEXTS.VALOR_ORIGINAL_FRETE}:
+                  {isMultiTruck && <Badge variant="outline" className="text-xs">/carreta</Badge>}
+                </span>
                 <span className="text-lg font-semibold">
-                  R$ {formatBRL(proposal.freight.price)}
+                  {/* ✅ SEGURANÇA: Preço por carreta via guard (motorista NUNCA vê total) */}
+                  {originalPricePerTruck.formattedPrice}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Sua Proposta:</span>
+                <span className="text-sm font-medium flex items-center gap-2">
+                  Sua Proposta:
+                  {isMultiTruck && <Badge variant="outline" className="text-xs">/carreta</Badge>}
+                </span>
                 <Badge variant="default" className="text-xl px-4 py-1">
-                  R$ {formatBRL(proposal.proposed_price)}
+                  {/* ✅ SEGURANÇA: Proposta do motorista (já é por carreta) */}
+                  {formatBRL(proposal.proposed_price, true)}
                 </Badge>
               </div>
               {priceDiff !== 0 && (
@@ -228,15 +276,25 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
                     {priceDiff > 0 ? (
                       <div className="flex items-center gap-1">
                         <TrendingUp className="h-3 w-3" />
-                        +R$ {formatBRL(Math.abs(priceDiff))}
+                        +{formatBRL(Math.abs(priceDiff), true)}
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
                         <TrendingDown className="h-3 w-3" />
-                        -R$ {formatBRL(Math.abs(priceDiff))}
+                        -{formatBRL(Math.abs(priceDiff), true)}
                       </div>
                     )}
                   </span>
+                </div>
+              )}
+
+              {/* ✅ Info multi-carreta */}
+              {isMultiTruck && (
+                <div className="mt-2 pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Truck className="h-3 w-3" />
+                    <span>Frete com {requiredTrucks} carretas • Proposta para 1 unidade</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -274,9 +332,13 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
                       className="p-3 bg-primary/10 border border-primary/30 rounded-md"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium">Novo valor sugerido pelo produtor:</span>
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          Novo valor sugerido pelo produtor:
+                          {isMultiTruck && <Badge variant="outline" className="text-xs">/carreta</Badge>}
+                        </span>
                         <Badge variant="default" className="text-base px-3">
-                          R$ {formatBRL(parseFloat(counterOffer.counter_proposed_price))}
+                          {/* ✅ SEGURANÇA: formatBRL já inclui R$ */}
+                          {formatBRL(parseFloat(counterOffer.counter_proposed_price), true)}
                         </Badge>
                       </div>
                       {counterOffer.message && (
@@ -315,7 +377,7 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
             </>
           )}
 
-          {/* 6. STATUS DA PROPOSTA */}
+          {/* 6. STATUS DA PROPOSTA - ✅ SEGURANÇA: Usa i18nGuard, NUNCA fallback em inglês */}
           <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
             <span className="text-sm font-medium">{UI_TEXTS.STATUS}:</span>
             <Badge
@@ -326,7 +388,8 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
             >
               {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
                proposal.status === 'PENDING' ? '⏳ Pendente' :
-               proposal.status === 'REJECTED' ? '❌ Rejeitada' : proposal.status}
+               proposal.status === 'REJECTED' ? '❌ Rejeitada' :
+               `⚠️ ${guardStatusDisplay(proposal.status)}`}
             </Badge>
           </div>
 

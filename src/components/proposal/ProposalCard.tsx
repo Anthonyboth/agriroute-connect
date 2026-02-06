@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
+import { guardStatusDisplay } from '@/security/i18nGuard';
 
 interface Proposal {
   id: string;
@@ -93,7 +94,12 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
     addSuffix: true, 
     locale: ptBR 
   });
-  const canAccept = availableSlots > 0 && freight.status !== 'CANCELLED';
+  // ✅ SEGURANÇA: Verificar status do frete antes de permitir aceitar proposta
+  const freightStatusUpper = freight.status?.toUpperCase?.() || '';
+  const canAccept = availableSlots > 0 && 
+    freightStatusUpper !== 'CANCELLED' && 
+    freightStatusUpper !== 'COMPLETED' && 
+    freightStatusUpper !== 'DELIVERED';
 
   return (
     <Card 
@@ -144,8 +150,9 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               </p>
             </div>
           </div>
+          {/* ✅ SEGURANÇA: Status via i18nGuard - NUNCA exibe inglês cru */}
           <Badge variant={proposal.status === 'PENDING' ? 'default' : proposal.status === 'ACCEPTED' ? 'default' : 'destructive'}>
-            {proposal.status === 'PENDING' ? 'Pendente' : proposal.status === 'ACCEPTED' ? 'Aceita' : 'Rejeitada'}
+            {guardStatusDisplay(proposal.status)}
           </Badge>
         </div>
 
