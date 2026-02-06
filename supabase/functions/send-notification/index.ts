@@ -5,7 +5,7 @@ import { validateInput, uuidSchema, textSchema } from '../_shared/validation.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const NotificationSchema = z.object({
@@ -39,7 +39,6 @@ const checkRateLimit = (ip: string): boolean => {
 };
 
 const log = (level: string, message: string, data?: any) => {
-  // Sanitize data to avoid leaking sensitive info
   const sanitizedData = data ? JSON.stringify(data).substring(0, 500) : '';
   console.log(`[${level}] ${message}`, sanitizedData);
 };
@@ -54,7 +53,7 @@ serve(async (req) => {
     log('INFO', 'Starting notification send process');
 
     // ============================================
-    // SECURITY FIX: Require authentication
+    // SECURITY: Require authentication
     // ============================================
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -78,12 +77,12 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with user's token to validate identity
+    // Initialize Supabase clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    // First, validate the caller's identity using their JWT
+    // Validate the caller's identity using their JWT
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -103,40 +102,165 @@ serve(async (req) => {
     log('INFO', 'Authenticated caller', { callerId: callerId.substring(0, 8) + '...' });
     
     // ============================================
-    // SECURITY FIX: Authorization check
-    // Only allow users to send notifications to themselves OR admins to send to anyone
+    // Parse and validate input
     // ============================================
     const body = await req.json();
     const validated = validateInput(NotificationSchema, body);
     const { user_id, title, message, type, data } = validated;
     
-    // Use service role to check admin status (requires service_role to bypass RLS on user_roles)
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    // Service role client for admin checks and DB operations
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
     
-    // Check if caller is admin
-    const { data: adminCheck } = await adminClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', callerId)
-      .eq('role', 'admin')
-      .maybeSingle();
+    // ============================================
+    // AUTHORIZATION: Check if caller can send to target
+    // Allowed cases:
+    // 1. Sending to yourself
+    // 2. Caller is admin (profiles.role = 'ADMIN')
+    // 3. Caller and target share a freight relationship
+    // 4. Caller and target share a company relationship
+    // 5. Caller and target share a service_request relationship
+    // ============================================
+    let isAuthorized = false;
     
-    const isAdmin = !!adminCheck;
+    // Case 1: Sending to yourself - always allowed
+    if (user_id === callerId) {
+      isAuthorized = true;
+      log('INFO', 'Self-notification authorized');
+    }
     
-    // Check if caller is the target user or has admin role
-    if (user_id !== callerId && !isAdmin) {
+    if (!isAuthorized) {
+      // Resolve caller's profile_id (auth.uid -> profiles.id)
+      const { data: callerProfile } = await adminClient
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', callerId)
+        .maybeSingle();
+      
+      const callerProfileId = callerProfile?.id;
+      const callerRole = callerProfile?.role;
+      
+      // Case 2: Admin check using profiles.role (not deprecated user_roles table)
+      if (callerRole === 'ADMIN') {
+        isAuthorized = true;
+        log('INFO', 'Admin notification authorized');
+      }
+      
+      // Case 3: Freight relationship check
+      if (!isAuthorized && data?.freight_id) {
+        const freightId = data.freight_id;
+        
+        // Check if caller is producer of this freight
+        const { data: freight } = await adminClient
+          .from('freights')
+          .select('id, producer_id')
+          .eq('id', freightId)
+          .maybeSingle();
+        
+        if (freight) {
+          const isCallerProducer = freight.producer_id === callerProfileId;
+          
+          // Check if target is assigned driver on this freight
+          const { data: targetAssignment } = await adminClient
+            .from('freight_assignments')
+            .select('id, driver_profile_id')
+            .eq('freight_id', freightId)
+            .eq('driver_profile_id', user_id)
+            .maybeSingle();
+          
+          // Check if caller is assigned driver on this freight
+          const { data: callerAssignment } = await adminClient
+            .from('freight_assignments')
+            .select('id, driver_profile_id')
+            .eq('freight_id', freightId)
+            .eq('driver_profile_id', callerProfileId)
+            .maybeSingle();
+          
+          const isTargetProducer = freight.producer_id === user_id;
+          
+          // Allow if both are participants of the same freight
+          if ((isCallerProducer && targetAssignment) || 
+              (callerAssignment && isTargetProducer)) {
+            isAuthorized = true;
+            log('INFO', 'Freight relationship authorized', { freightId: freightId.substring(0, 8) + '...' });
+          }
+        }
+      }
+      
+      // Case 4: Company relationship (company owner notifying affiliated driver or vice-versa)
+      if (!isAuthorized && callerProfileId) {
+        const { data: companyRelation } = await adminClient
+          .from('company_drivers')
+          .select('id, company_id, driver_profile_id')
+          .or(`driver_profile_id.eq.${callerProfileId},driver_profile_id.eq.${user_id}`)
+          .eq('status', 'active')
+          .limit(10);
+        
+        if (companyRelation && companyRelation.length > 0) {
+          // Check if both caller and target are in the same company
+          const callerCompanies = companyRelation
+            .filter(r => r.driver_profile_id === callerProfileId)
+            .map(r => r.company_id);
+          const targetInSameCompany = companyRelation
+            .some(r => r.driver_profile_id === user_id && callerCompanies.includes(r.company_id));
+          
+          // Also check if caller owns a company that target is in
+          const { data: callerCompany } = await adminClient
+            .from('transport_companies')
+            .select('id')
+            .eq('owner_profile_id', callerProfileId)
+            .maybeSingle();
+          
+          if (callerCompany) {
+            const targetInCallerCompany = companyRelation
+              .some(r => r.driver_profile_id === user_id && r.company_id === callerCompany.id);
+            if (targetInCallerCompany) {
+              isAuthorized = true;
+              log('INFO', 'Company owner-to-driver notification authorized');
+            }
+          }
+          
+          if (!isAuthorized && targetInSameCompany) {
+            isAuthorized = true;
+            log('INFO', 'Same-company notification authorized');
+          }
+        }
+      }
+      
+      // Case 5: Service request relationship
+      if (!isAuthorized && data?.service_request_id) {
+        const { data: serviceReq } = await adminClient
+          .from('service_requests')
+          .select('id, client_id, provider_id')
+          .eq('id', data.service_request_id)
+          .maybeSingle();
+        
+        if (serviceReq) {
+          const isCallerParticipant = serviceReq.client_id === callerProfileId || serviceReq.provider_id === callerProfileId;
+          const isTargetParticipant = serviceReq.client_id === user_id || serviceReq.provider_id === user_id;
+          
+          if (isCallerParticipant && isTargetParticipant) {
+            isAuthorized = true;
+            log('INFO', 'Service request relationship authorized');
+          }
+        }
+      }
+    }
+    
+    if (!isAuthorized) {
       log('WARN', 'Unauthorized notification attempt', { 
         callerId: callerId.substring(0, 8) + '...', 
         targetId: user_id.substring(0, 8) + '...' 
       });
       return new Response(
-        JSON.stringify({ error: 'You can only send notifications to yourself' }),
+        JSON.stringify({ error: 'You are not authorized to send notifications to this user' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     // ============================================
-    // SECURITY FIX: Validate target user exists
+    // Validate target user exists
     // ============================================
     const { data: targetUser, error: targetError } = await adminClient
       .from('profiles')
@@ -154,11 +278,10 @@ serve(async (req) => {
 
     log('INFO', 'Creating notification', { 
       targetId: user_id.substring(0, 8) + '...', 
-      type,
-      isAdmin 
+      type
     });
 
-    // Insert notification into database using service role
+    // Insert notification using service role
     const { data: notification, error } = await adminClient
       .from('notifications')
       .insert({
@@ -173,7 +296,7 @@ serve(async (req) => {
       .single();
 
     if (error) {
-      log('ERROR', 'Database error when creating notification');
+      log('ERROR', 'Database error when creating notification', { error: error.message });
       return new Response(
         JSON.stringify({ error: 'Failed to create notification' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -197,7 +320,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    log('ERROR', 'Unexpected error in notification send');
+    log('ERROR', 'Unexpected error in notification send', { msg: error?.message });
     return new Response(
       JSON.stringify({ error: 'An unexpected error occurred' }),
       { 
