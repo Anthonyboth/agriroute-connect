@@ -111,3 +111,28 @@ export type {
   MatrixQuery,
   MatrixResult,
 } from './freightActionMatrix';
+
+// Payment Closure Guard (Pagamento, Confirmação, Avaliação e Encerramento)
+export {
+  canCreateExternalPayment,
+  canMarkPaidByProducer,
+  canConfirmReceivedByDriver,
+  assertValidPaymentTransition,
+  canCloseFreightAsCompleted,
+  canCloseMultiTruckFreight,
+  canRateFreight,
+  canRateServiceRequest,
+  getPaymentUILabelPtBR,
+  getPaymentActionLabelPtBR,
+  getPaymentStatusExplanation,
+  PaymentClosureError,
+} from './paymentClosureGuard';
+
+export type {
+  PaymentStatus,
+  PaymentActorRole,
+  FreightClosureStatus,
+  PaymentTransitionValidation,
+  ClosureValidation,
+  RatingValidation,
+} from './paymentClosureGuard';
