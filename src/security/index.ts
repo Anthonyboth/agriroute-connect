@@ -53,6 +53,20 @@ export {
   guardStatusDisplay,
 } from './i18nGuard';
 
+// Freight Action Dispatcher
+export {
+  canDispatch,
+  checkStateConsistency,
+  getAvailableActions,
+} from './freightActionDispatcher';
+
+export type {
+  FreightAction,
+  DispatchInput,
+  DispatchResult,
+  ConsistencyCheck,
+} from './freightActionDispatcher';
+
 // Service Request Workflow Guard (Fretes Urbanos)
 export {
   canTransitionSR,
