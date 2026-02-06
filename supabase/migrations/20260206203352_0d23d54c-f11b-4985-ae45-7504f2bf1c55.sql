@@ -1,0 +1,1 @@
+DELETE FROM freights WHERE id = 'c1d333c6-a89f-497b-857b-38cac6cfc2c4';
