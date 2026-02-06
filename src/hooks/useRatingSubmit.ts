@@ -104,7 +104,7 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
   ): Promise<{ canSubmit: boolean; reason?: string }> => {
     try {
       // 1. Verificar se existe pelo menos um pagamento confirmado para este frete
-      const { data: payment, error: paymentError } = await supabase
+      const { data: confirmedPayment, error: confirmedError } = await supabase
         .from('external_payments')
         .select('id, status')
         .eq('freight_id', freightId)
@@ -112,16 +112,38 @@ export const useRatingSubmit = (): UseRatingSubmitResult => {
         .limit(1)
         .maybeSingle();
 
-      if (paymentError) {
-        console.error('[useRatingSubmit] Erro ao verificar pagamento:', paymentError);
+      if (confirmedError) {
+        console.error('[useRatingSubmit] Erro ao verificar pagamento:', confirmedError);
         return { canSubmit: false, reason: 'Erro ao verificar status do pagamento' };
       }
 
-      if (!payment) {
-        return { 
-          canSubmit: false, 
-          reason: 'O pagamento deste frete ainda não foi confirmado. A avaliação estará disponível após a confirmação do pagamento.' 
-        };
+      if (!confirmedPayment) {
+        // Buscar status atual para dar mensagem contextual
+        const { data: currentPayment } = await supabase
+          .from('external_payments')
+          .select('status')
+          .eq('freight_id', freightId)
+          .limit(1)
+          .maybeSingle();
+
+        const currentStatus = currentPayment?.status?.toLowerCase?.()?.trim?.() || '';
+
+        if (currentStatus === 'paid_by_producer') {
+          return { 
+            canSubmit: false, 
+            reason: 'Aguardando o motorista confirmar o recebimento do pagamento. A avaliação será liberada após a confirmação.' 
+          };
+        } else if (currentStatus === 'proposed') {
+          return { 
+            canSubmit: false, 
+            reason: 'O pagamento ainda não foi efetuado pelo produtor. A avaliação estará disponível após a confirmação mútua do pagamento.' 
+          };
+        } else {
+          return { 
+            canSubmit: false, 
+            reason: 'O pagamento deste frete ainda não foi confirmado. A avaliação estará disponível após a confirmação do pagamento.' 
+          };
+        }
       }
 
       // 2. Verificar se o usuário autenticado pode avaliar
