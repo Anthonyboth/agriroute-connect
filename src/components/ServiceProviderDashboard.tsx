@@ -82,6 +82,8 @@ import { canProviderHandleService } from '@/lib/service-types';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
 import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
+import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
+import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 
 interface ServiceRequest {
   id: string;
@@ -358,10 +360,20 @@ export const ServiceProviderDashboard: React.FC = () => {
   }, [user, profile]);
 
   // Monitorar disponibilidade do serviço em tempo real enquanto modal está aberto
+  // Polling com backoff: 3s → 5s → 10s (máximo)
   useEffect(() => {
     if (!showRequestModal || !selectedRequest?.id) return;
 
-    const checkInterval = setInterval(async () => {
+    let pollCount = 0;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const getNextInterval = () => {
+      if (pollCount < 3) return 3000;  // primeiras 3 vezes: 3s
+      if (pollCount < 8) return 5000;  // próximas 5: 5s
+      return 10000;                     // depois: 10s
+    };
+
+    const checkAvailability = async () => {
       try {
         const { data, error } = await supabase
           .from('service_requests')
@@ -369,30 +381,36 @@ export const ServiceProviderDashboard: React.FC = () => {
           .eq('id', selectedRequest.id)
           .maybeSingle();
 
-        if (error || !data) {
-          console.error('Error checking service availability:', error);
-          return;
-        }
+        if (error || !data) return;
 
-        // Se foi aceito por outro prestador, notificar e fechar modal
+        // Se foi aceito por outro prestador, parar polling e fechar
         if (data.provider_id !== null || data.status !== 'OPEN') {
           toast({
             title: "Serviço Não Disponível",
             description: "Este serviço foi aceito por outro prestador.",
             variant: "destructive",
           });
-          
           setShowRequestModal(false);
           setSelectedRequest(null);
           fetchServiceRequests({ scope: 'all', silent: true });
           refreshCounts();
+          return; // não re-agendar
         }
+
+        // Re-agendar com backoff
+        pollCount++;
+        timeoutId = setTimeout(checkAvailability, getNextInterval());
       } catch (error) {
         console.error('Error checking service availability:', error);
+        pollCount++;
+        timeoutId = setTimeout(checkAvailability, getNextInterval());
       }
-    }, 3000); // Verificar a cada 3 segundos
+    };
 
-    return () => clearInterval(checkInterval);
+    // Iniciar polling
+    timeoutId = setTimeout(checkAvailability, 3000);
+
+    return () => clearTimeout(timeoutId);
   }, [showRequestModal, selectedRequest]);
 
   const fetchServiceRequests = async (options: { 
@@ -827,46 +845,13 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
-  const handleCompleteRequest = async (requestId: string) => {
-    try {
-      const request = [...availableRequests, ...ownRequests].find(r => r.id === requestId);
-      if (!request) throw new Error('Solicitação não encontrada');
+  // handleCompleteRequest REMOVIDO — toda transição de status agora passa pela RPC
+  // transition_service_request_status, chamada pelo componente ServiceWorkflowActions.
 
-      // Validar que o serviço tem informações de cliente
-      if (!request.client_id && !request.contact_name) {
-        throw new Error('Serviço sem informações de cliente. Não é possível concluir.');
-      }
-
-      const { error } = await supabase
-        .from('service_requests')
-        .update({ 
-          status: 'COMPLETED',
-          completed_at: new Date().toISOString(),
-          final_price: request.estimated_price
-        })
-        .eq('id', requestId);
-
-      if (error) throw error;
-
-      // Simular pagamento para o prestador
-      await simulatePayment(requestId, request.estimated_price || 0);
-
-      toast({
-        title: "Sucesso",
-        description: `Serviço concluído! Você receberá R$ ${(request.estimated_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-      });
-      
-      fetchServiceRequests({ scope: 'all', silent: true });
-      refreshCounts();
-      fetchTotalEarnings();
-    } catch (error: any) {
-      console.error('Error completing request:', error);
-      toast({
-        title: "Erro",
-        description: error?.message || "Não foi possível marcar como concluído",
-        variant: "destructive"
-      });
-    }
+  const handleStatusChange = () => {
+    fetchServiceRequests({ scope: 'all', silent: true });
+    refreshCounts();
+    fetchTotalEarnings();
   };
 
   const handleCancelService = async (requestId: string) => {
@@ -881,12 +866,6 @@ export const ServiceProviderDashboard: React.FC = () => {
         });
         return;
       }
-
-      console.log('🚫 [ServiceProviderDashboard] Cancelling service:', {
-        serviceId: requestId,
-        providerId,
-        timestamp: new Date().toISOString()
-      });
 
       const { data, error } = await supabase.rpc('cancel_accepted_service', {
         p_provider_id: providerId,
@@ -905,12 +884,10 @@ export const ServiceProviderDashboard: React.FC = () => {
         description: "O serviço voltou a ficar disponível para outros prestadores.",
       });
 
-      // Fechar dialog e atualizar listas
       setCancelDialogOpen(false);
       setServiceToCancel(null);
       fetchServiceRequests({ scope: 'all', silent: true });
       refreshCounts();
-
     } catch (error: any) {
       console.error('Error canceling service:', error);
       toast({
@@ -920,19 +897,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       });
     } finally {
       setIsCancelling(false);
-    }
-  };
-
-  const simulatePayment = async (requestId: string, amount: number) => {
-    try {
-      // Em um sistema real, aqui seria integrado com Stripe ou outro gateway de pagamento
-      // Por enquanto, vamos apenas log da simulação
-      console.log(`Pagamento simulado: R$ ${amount} para solicitação ${requestId}`);
-      
-      // TODO: Integrar com sistema de pagamentos real
-      // await processPaymentToProvider(providerId, amount, requestId);
-    } catch (error) {
-      console.error('Erro ao processar pagamento:', error);
     }
   };
 
@@ -1000,7 +964,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   }).filter(request => {
     const status = (request.status || '').toUpperCase().trim();
     if (activeTab === 'pending') return !request.provider_id && (status === 'OPEN' || status === 'ABERTO');
-    if (activeTab === 'accepted') return request.provider_id && (status === 'ACCEPTED' || status === 'IN_PROGRESS' || status === 'ACEITO' || status === 'EM_ANDAMENTO');
+    if (activeTab === 'accepted') return request.provider_id && (status === 'ACCEPTED' || status === 'ON_THE_WAY' || status === 'IN_PROGRESS' || status === 'ACEITO' || status === 'A_CAMINHO' || status === 'EM_ANDAMENTO');
     if (activeTab === 'completed') return request.provider_id && (status === 'COMPLETED' || status === 'CONCLUIDO');
     return true;
   }).sort((a, b) => {
@@ -1241,7 +1205,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <h3 className="text-lg font-semibold">Solicitações Disponíveis</h3>
                 <p className="text-xs text-muted-foreground">
                   Atualizado há {Math.floor((new Date().getTime() - lastAvailableRefresh.getTime()) / 60000)} min • 
-                  Auto-refresh a cada 30s
+                  Atualização em tempo real
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1394,18 +1358,12 @@ export const ServiceProviderDashboard: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Serviços em Andamento</h3>
               <Badge variant="secondary" className="text-xs">
-                {ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length}
+                {ownRequests.filter(r => r.provider_id && ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'].includes(r.status?.toUpperCase())).length}
               </Badge>
             </div>
             
             {(() => {
-              const acceptedFiltered = ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS'));
-              console.log('🔍 DEBUG Accepted Tab:', {
-                totalOwn: ownRequests.length,
-                filtered: acceptedFiltered.length,
-                ownStatuses: ownRequests.map(r => ({ id: r.id, status: r.status, hasProvider: !!r.provider_id })),
-                filteredStatuses: acceptedFiltered.map(r => ({ id: r.id, status: r.status }))
-              });
+              const acceptedFiltered = ownRequests.filter(r => r.provider_id && ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'].includes(r.status?.toUpperCase()));
               
               return acceptedFiltered.length > 0 ? (
                 <div className="space-y-4">
@@ -1424,23 +1382,17 @@ export const ServiceProviderDashboard: React.FC = () => {
                             </Badge>
                           )}
                         </div>
-                        <Badge variant="default" className="text-xs bg-orange-100 text-orange-800">
-                          Em Andamento
-                        </Badge>
+                        <ServiceStatusBadge status={request.status} />
                       </div>
                       
-                       {/* Problema 8: Card organizado com todas as informações */}
                        <div className="space-y-3 mb-4">
-                         {/* Descrição do problema */}
                          <div className="bg-muted/50 rounded-lg p-3">
                            <p className="text-sm text-muted-foreground">
                              <strong className="text-foreground">Problema:</strong> {request.problem_description}
                            </p>
                          </div>
                          
-                         {/* Grid de informações organizadas */}
                          <div className="grid grid-cols-2 gap-3">
-                           {/* Localização */}
                            <div className="space-y-1">
                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Localização</p>
                              <p className="text-sm flex items-start gap-1">
@@ -1454,7 +1406,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                              )}
                            </div>
                            
-                           {/* Data/Hora */}
                            <div className="space-y-1">
                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data/Hora</p>
                              <p className="text-sm flex items-center gap-1">
@@ -1463,15 +1414,9 @@ export const ServiceProviderDashboard: React.FC = () => {
                                  ? new Date(request.accepted_at).toLocaleDateString('pt-BR')
                                  : new Date(request.created_at).toLocaleDateString('pt-BR')}
                              </p>
-                             <p className="text-xs text-muted-foreground pl-4">
-                               {request.accepted_at 
-                                 ? new Date(request.accepted_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                                 : new Date(request.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                             </p>
                            </div>
                          </div>
                          
-                         {/* Valor e Status de Pagamento */}
                          <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200/50">
                            <div>
                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Valor do Serviço</p>
@@ -1482,14 +1427,10 @@ export const ServiceProviderDashboard: React.FC = () => {
                                  : 'A combinar'}
                              </p>
                            </div>
-                           <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                             <Clock className="h-3 w-3 mr-1" />
-                             Aguardando
-                           </Badge>
                          </div>
                          
-                         {/* Contato do Cliente */}
-                         {request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS') && (
+                         {/* Contato do Cliente — visível após aceite */}
+                         {request.provider_id && (
                            <ContactInfoCard
                              requesterName={request.profiles?.full_name || request.contact_name}
                              contactPhone={request.contact_phone}
@@ -1499,41 +1440,22 @@ export const ServiceProviderDashboard: React.FC = () => {
                          )}
                        </div>
                       
-                       <div className="flex gap-2">
-                         <Button 
-                           size="sm" 
-                           variant="outline"
-                           className="flex-1"
-                           onClick={() => {
-                             setSelectedChatRequest(request);
-                             setChatDialogOpen(true);
-                           }}
-                         >
-                           <MessageSquare className="h-4 w-4 mr-2" />
-                           {request.client_id ? 'Abrir Chat' : 'Chat Indisponível'}
-                         </Button>
-                         
-                         <Button 
-                           size="sm" 
-                           variant="destructive"
-                           className="flex-1"
-                           onClick={() => {
-                             setServiceToCancel(request);
-                             setCancelDialogOpen(true);
-                           }}
-                         >
-                           <X className="h-4 w-4 mr-2" />
-                           Cancelar
-                         </Button>
-                         
-                         <Button 
-                           size="sm" 
-                           className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                           onClick={() => handleCompleteRequest(request.id)}
-                         >
-                           Concluir Serviço
-                         </Button>
-                       </div>
+                       {/* Botões sequenciais de workflow — via RPC atômica */}
+                       <ServiceWorkflowActions
+                         requestId={request.id}
+                         currentStatus={request.status}
+                         clientId={request.client_id}
+                         estimatedPrice={request.estimated_price}
+                         onStatusChange={handleStatusChange}
+                         onOpenChat={() => {
+                           setSelectedChatRequest(request);
+                           setChatDialogOpen(true);
+                         }}
+                         onCancel={() => {
+                           setServiceToCancel(request);
+                           setCancelDialogOpen(true);
+                         }}
+                       />
                     </CardContent>
                   </Card>
                 ))}

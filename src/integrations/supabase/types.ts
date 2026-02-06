@@ -9711,6 +9711,7 @@ export type Database = {
           estimated_price: number | null
           final_price: number | null
           id: string
+          in_progress_at: string | null
           is_emergency: boolean | null
           location_address: string
           location_address_encrypted: string | null
@@ -9718,6 +9719,7 @@ export type Database = {
           location_lat: number | null
           location_lng: number | null
           location_state: string | null
+          on_the_way_at: string | null
           preferred_datetime: string | null
           problem_description: string
           prospect_user_id: string | null
@@ -9756,6 +9758,7 @@ export type Database = {
           estimated_price?: number | null
           final_price?: number | null
           id?: string
+          in_progress_at?: string | null
           is_emergency?: boolean | null
           location_address: string
           location_address_encrypted?: string | null
@@ -9763,6 +9766,7 @@ export type Database = {
           location_lat?: number | null
           location_lng?: number | null
           location_state?: string | null
+          on_the_way_at?: string | null
           preferred_datetime?: string | null
           problem_description: string
           prospect_user_id?: string | null
@@ -9801,6 +9805,7 @@ export type Database = {
           estimated_price?: number | null
           final_price?: number | null
           id?: string
+          in_progress_at?: string | null
           is_emergency?: boolean | null
           location_address?: string
           location_address_encrypted?: string | null
@@ -9808,6 +9813,7 @@ export type Database = {
           location_lat?: number | null
           location_lng?: number | null
           location_state?: string | null
+          on_the_way_at?: string | null
           preferred_datetime?: string | null
           problem_description?: string
           prospect_user_id?: string | null
@@ -13444,6 +13450,14 @@ export type Database = {
       text_to_freight_status: {
         Args: { p_text: string }
         Returns: Database["public"]["Enums"]["freight_status"]
+      }
+      transition_service_request_status: {
+        Args: {
+          p_final_price?: number
+          p_next_status: string
+          p_request_id: string
+        }
+        Returns: Json
       }
       trigger_cte_polling: { Args: never; Returns: undefined }
       trigger_mdfe_polling: { Args: never; Returns: undefined }
