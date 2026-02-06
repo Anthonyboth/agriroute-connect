@@ -2,7 +2,7 @@
  * Hook para gerenciar expiração automática de fretes e serviços
  * 
  * REGRAS DE EXPIRAÇÃO (baseado em tempo de anúncio):
- * - GUINCHO: 2 horas
+ * - GUINCHO: 4 horas
  * - FRETE_MOTO: 4 horas
  * - Fretes urbanos: 24 horas
  * - MUDANÇA: 48 horas
@@ -21,7 +21,7 @@ import { useMemo, useCallback } from 'react';
 // Configuração de expiração por tipo de serviço (em horas)
 export const EXPIRATION_CONFIG = {
   // Fretes
-  GUINCHO: { hours: 2, label: '2 horas' },
+  GUINCHO: { hours: 4, label: '4 horas' },
   FRETE_MOTO: { hours: 4, label: '4 horas' },
   FRETE_URBANO: { hours: 24, label: '24 horas' },
   MUDANCA: { hours: 48, label: '48 horas' },
