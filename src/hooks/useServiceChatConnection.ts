@@ -14,6 +14,8 @@ export interface ChatMessage {
   file_name?: string;
   file_size?: number;
   created_at: string;
+  read_at?: string;
+  delivered_at?: string;
   sender?: {
     id: string;
     full_name: string;
@@ -124,7 +126,7 @@ export function useServiceChatConnection({
             .from('service_messages')
             .select(`
               id, service_request_id, sender_id, message, message_type,
-              image_url, file_url, file_name, file_size, created_at,
+              image_url, file_url, file_name, file_size, created_at, read_at, delivered_at,
               sender:profiles!service_messages_sender_id_fkey(id, full_name, role, profile_photo_url)
             `)
             .eq('service_request_id', serviceRequestId)
@@ -233,25 +235,16 @@ export function useServiceChatConnection({
 
       if (uploadError) throw uploadError;
 
-      // Gerar URL pública ou assinada
-      const { data: urlData } = supabase.storage
+      // CRÍTICO: Buckets são privados! Sempre usar signed URLs (24h de validade)
+      const { data: signedData, error: signError } = await supabase.storage
         .from(bucket)
-        .getPublicUrl(data.path);
+        .createSignedUrl(data.path, 86400); // 24h
 
-      const url = urlData?.publicUrl;
-      if (!url) {
-        // Fallback para signed URL se bucket não for público
-        const { data: signedData, error: signError } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(data.path, 86400); // 24h
-
-        if (signError || !signedData?.signedUrl) {
-          throw new Error('Falha ao gerar URL de acesso');
-        }
-        return { url: signedData.signedUrl, name: file.name, size: file.size };
+      if (signError || !signedData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
       }
 
-      return { url, name: file.name, size: file.size };
+      return { url: signedData.signedUrl, name: file.name, size: file.size };
     } catch (err: any) {
       console.error('[ServiceChat] Erro no upload:', err);
       toast.error(err.message || 'Erro ao enviar mídia');
@@ -379,18 +372,39 @@ export function useServiceChatConnection({
           const newMsg = payload.new as any;
           if (!isMountedRef.current) return;
 
-          // Otimistic: adicionar direto ao state sem refetch
+          // Refetch completo para ter sender info
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
-            // Buscar sender info via query leve (ou usar cache)
-            fetchMessages(); // fallback: refetch completo
+            fetchMessages();
             return prev;
           });
 
-          // Marcar como lida se não for do próprio usuário
+          // Marcar como entregue e lida se não for do próprio usuário
           if (newMsg.sender_id !== currentUserProfileId) {
+            supabase
+              .from('service_messages')
+              .update({ delivered_at: new Date().toISOString() })
+              .eq('id', newMsg.id)
+              .is('delivered_at', null)
+              .then(() => {});
             markAsRead();
           }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'service_messages',
+          filter: `service_request_id=eq.${serviceRequestId}`,
+        }, (payload) => {
+          const updated = payload.new as any;
+          if (!isMountedRef.current) return;
+
+          // Atualizar read_at/delivered_at em tempo real (checkmarks)
+          setMessages(prev => prev.map(m => 
+            m.id === updated.id 
+              ? { ...m, read_at: updated.read_at, delivered_at: updated.delivered_at } 
+              : m
+          ));
         })
         .subscribe((status: string) => {
           if (isMountedRef.current) {
