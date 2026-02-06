@@ -194,6 +194,19 @@ if (typeof window !== 'undefined') {
     // Capturar rejeições de promessas não tratadas
     window.addEventListener('unhandledrejection', (event) => {
       const message = event.reason?.message || String(event.reason);
+      const errorName = event.reason?.name || '';
+
+      // ✅ Ignorar AbortError - comportamento esperado quando componentes desmontam
+      // MapLibre GL cancela fetches de tiles internamente ao unmount
+      if (
+        errorName === 'AbortError' ||
+        message.includes('signal is aborted without reason') ||
+        message.includes('The operation was aborted') ||
+        /aborted/i.test(message)
+      ) {
+        event.preventDefault?.();
+        return;
+      }
 
       // ✅ Não reportar conflitos esperados (regra de negócio)
       const isExpectedFiscalIssuerConflict =

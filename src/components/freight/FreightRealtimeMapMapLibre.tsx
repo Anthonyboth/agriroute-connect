@@ -493,6 +493,16 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         });
 
         map.on('error', (e) => {
+          // ✅ Ignorar AbortError - ocorre naturalmente quando o mapa desmonta enquanto tiles carregam
+          const errMsg = e.error?.message || '';
+          if (
+            e.error?.name === 'AbortError' ||
+            errMsg.includes('signal is aborted') ||
+            errMsg.includes('The operation was aborted') ||
+            errMsg.includes('Failed to fetch')
+          ) {
+            return; // Erro esperado, não reportar
+          }
           console.error('[FreightRealtimeMapMapLibre] Map error:', e);
           setMapError('Erro ao carregar o mapa');
         });
