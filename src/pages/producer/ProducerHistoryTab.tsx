@@ -1,41 +1,32 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UnifiedHistory } from '@/components/UnifiedHistory';
-import { CompletedOperationsHistory } from '@/components/history/CompletedOperationsHistory';
-import { OperationReportPanel } from '@/components/history/OperationReportPanel';
-import { History, CheckCircle, BarChart3 } from 'lucide-react';
+import { FreightHistoryFromDB } from '@/components/history/FreightHistoryFromDB';
+import { ServiceHistoryFromDB } from '@/components/history/ServiceHistoryFromDB';
+import { History, Truck, Wrench } from 'lucide-react';
 
 export const ProducerHistoryTab: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('freights');
 
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Todos
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="freights" className="flex items-center gap-2">
+            <Truck className="h-4 w-4" />
+            Fretes
           </TabsTrigger>
-          <TabsTrigger value="completed" className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Concluídos
-          </TabsTrigger>
-          <TabsTrigger value="metrics" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Métricas
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Serviços
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-4">
-          <UnifiedHistory userRole="PRODUTOR" />
+        <TabsContent value="freights" className="mt-4">
+          <FreightHistoryFromDB role="PRODUTOR" />
         </TabsContent>
 
-        <TabsContent value="completed" className="mt-4">
-          <CompletedOperationsHistory />
-        </TabsContent>
-
-        <TabsContent value="metrics" className="mt-4">
-          <OperationReportPanel />
+        <TabsContent value="services" className="mt-4">
+          <ServiceHistoryFromDB asClient={true} />
         </TabsContent>
       </Tabs>
     </div>
