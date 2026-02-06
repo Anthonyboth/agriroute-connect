@@ -84,6 +84,7 @@ import { FileText } from 'lucide-react';
 import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
+import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
 
 interface ServiceRequest {
   id: string;
@@ -1605,8 +1606,8 @@ export const ServiceProviderDashboard: React.FC = () => {
 
                 <div className="h-px bg-border" />
 
-                {/* Informações do Cliente (se disponível) */}
-                {selectedRequest.contact_name && (
+                {/* Informações do Cliente (se disponível e se PII é visível) */}
+                {isPiiVisibleForStatus(selectedRequest.status) && selectedRequest.contact_name && (
                   <div className="space-y-2">
                     <h4 className="font-semibold flex items-center gap-2">
                       <User className="h-4 w-4" />
@@ -1635,32 +1636,43 @@ export const ServiceProviderDashboard: React.FC = () => {
                   </h4>
                   <div className="text-sm bg-muted p-3 rounded-lg space-y-2">
                     <p className="font-medium">{getDisplayLocation(selectedRequest)}</p>
-                    {selectedRequest.location_address && 
+                    {/* Endereço completo: SOMENTE após aceite (PII guard) */}
+                    {isPiiVisibleForStatus(selectedRequest.status) &&
+                     selectedRequest.location_address && 
                      selectedRequest.location_address !== getDisplayLocation(selectedRequest) && (
                       <p className="text-xs text-muted-foreground">
                         Local específico: {selectedRequest.location_address}
                       </p>
                     )}
-                    {/* Botão Abrir no Mapa */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2 gap-2"
-                      onClick={() => {
-                        let url: string;
-                        if (selectedRequest.location_lat && selectedRequest.location_lng) {
-                          url = `https://www.google.com/maps/search/?api=1&query=${selectedRequest.location_lat},${selectedRequest.location_lng}`;
-                        } else if (selectedRequest.location_address) {
-                          url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedRequest.location_address)}`;
-                        } else {
-                          url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getDisplayLocation(selectedRequest))}`;
-                        }
-                        window.open(url, '_blank');
-                      }}
-                    >
-                      <Navigation className="h-4 w-4" />
-                      Abrir no Mapa
-                    </Button>
+                    {/* Aviso PII para OPEN */}
+                    {!isPiiVisibleForStatus(selectedRequest.status) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 italic flex items-center gap-1">
+                        <Shield className="h-3 w-3" />
+                        Endereço completo visível após aceitar o serviço.
+                      </p>
+                    )}
+                    {/* Botão Abrir no Mapa — só após aceite para ter coordenadas */}
+                    {isPiiVisibleForStatus(selectedRequest.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 gap-2"
+                        onClick={() => {
+                          let url: string;
+                          if (selectedRequest.location_lat && selectedRequest.location_lng) {
+                            url = `https://www.google.com/maps/search/?api=1&query=${selectedRequest.location_lat},${selectedRequest.location_lng}`;
+                          } else if (selectedRequest.location_address) {
+                            url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedRequest.location_address)}`;
+                          } else {
+                            url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getDisplayLocation(selectedRequest))}`;
+                          }
+                          window.open(url, '_blank');
+                        }}
+                      >
+                        <Navigation className="h-4 w-4" />
+                        Abrir no Mapa
+                      </Button>
+                    )}
                   </div>
                 </div>
 
