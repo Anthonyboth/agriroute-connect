@@ -12786,14 +12786,24 @@ export type Database = {
       get_compliance_kpis: { Args: { p_empresa_id?: string }; Returns: Json }
       get_current_profile_id: { Args: never; Returns: string }
       get_current_user_safe: { Args: never; Returns: string }
-      get_driver_report_charts: {
-        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
-        Returns: Json
-      }
-      get_driver_report_summary: {
-        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
-        Returns: Json
-      }
+      get_driver_report_charts:
+        | {
+            Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+            Returns: Json
+          }
+        | {
+            Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+            Returns: Json
+          }
+      get_driver_report_summary:
+        | {
+            Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+            Returns: Json
+          }
+        | {
+            Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+            Returns: Json
+          }
       get_email_by_document: { Args: { p_doc: string }; Returns: string }
       get_failed_login_attempts: {
         Args: { min_failures?: number; since_timestamp: string }
