@@ -12085,6 +12085,7 @@ export type Database = {
           status: string
         }[]
       }
+      auto_cancel_expired_service_requests: { Args: never; Returns: undefined }
       auto_cancel_overdue_freights: { Args: never; Returns: Json }
       auto_confirm_deliveries: { Args: never; Returns: Json }
       auto_confirm_delivery_and_payments: { Args: never; Returns: undefined }
