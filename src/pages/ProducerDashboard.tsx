@@ -57,7 +57,7 @@ import { ProducerPaymentsTab } from "@/pages/producer/ProducerPaymentsTab";
 import { PendingRatingsPanel } from "@/components/PendingRatingsPanel";
 import { ServicesModal } from "@/components/ServicesModal";
 import { ServiceEditModal } from "@/components/service-wizard/ServiceEditModal";
-import { UnifiedHistory } from "@/components/UnifiedHistory";
+import { ProducerHistoryTab } from "@/pages/producer/ProducerHistoryTab";
 import { showErrorToast } from "@/lib/error-handler";
 import { SystemAnnouncementsBoard } from "@/components/SystemAnnouncementsBoard";
 import { AutoRatingModal } from "@/components/AutoRatingModal";
@@ -2034,7 +2034,7 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            <UnifiedHistory userRole="PRODUTOR" />
+            <ProducerHistoryTab />
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
