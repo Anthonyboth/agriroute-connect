@@ -61,6 +61,63 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 /**
+ * Regenera signed URL para mídias do Supabase Storage.
+ * Extrai bucket/path de URLs expiradas (signed ou public) e gera nova signed URL.
+ */
+const resolveStorageUrl = async (url: string): Promise<string> => {
+  if (!url) return url;
+
+  // Match Supabase storage URLs: /storage/v1/object/(sign|public)/{bucket}/{path}
+  const storageRegex = /\/storage\/v1\/object\/(?:sign|public)\/([^/?]+)\/(.+?)(?:\?|$)/;
+  const match = url.match(storageRegex);
+
+  if (!match) return url; // Não é URL de storage, retorna como está
+
+  const bucket = match[1];
+  const path = decodeURIComponent(match[2]);
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, 86400); // 24h
+
+    if (error || !data?.signedUrl) {
+      console.warn('[ServiceChat] Falha ao renovar signed URL:', error);
+      return url;
+    }
+
+    return data.signedUrl;
+  } catch (err) {
+    console.warn('[ServiceChat] Erro ao renovar signed URL:', err);
+    return url;
+  }
+};
+
+/**
+ * Resolve todas as URLs de mídia em uma lista de mensagens.
+ * Gera signed URLs frescas para evitar erros de expiração.
+ */
+const resolveMessageMediaUrls = async (msgs: any[]): Promise<any[]> => {
+  if (!msgs || msgs.length === 0) return msgs;
+
+  return Promise.all(
+    msgs.map(async (msg) => {
+      // Só processar mensagens com mídia
+      if (msg.message_type === 'TEXT') return msg;
+
+      const resolved = { ...msg };
+      if (resolved.image_url) {
+        resolved.image_url = await resolveStorageUrl(resolved.image_url);
+      }
+      if (resolved.file_url) {
+        resolved.file_url = await resolveStorageUrl(resolved.file_url);
+      }
+      return resolved;
+    })
+  );
+};
+
+/**
  * Hook centralizado para gerenciar a conexão e operações do chat de serviço.
  * 
  * Responsabilidades:
@@ -69,6 +126,7 @@ const ALLOWED_FILE_TYPES = [
  * - Envio de texto, imagens, vídeos e arquivos
  * - Subscription realtime para mensagens novas
  * - Gestão de estado de loading/erro/conexão
+ * - Renovação automática de signed URLs para mídias
  */
 export function useServiceChatConnection({
   serviceRequestId,
@@ -139,8 +197,12 @@ export function useServiceChatConnection({
       );
 
       if (isMountedRef.current) {
-        setMessages((data || []) as ChatMessage[]);
-        setError(null);
+        // Resolver signed URLs expiradas para mídias
+        const resolvedData = await resolveMessageMediaUrls(data || []);
+        if (isMountedRef.current) {
+          setMessages(resolvedData as ChatMessage[]);
+          setError(null);
+        }
       }
     } catch (err: any) {
       console.error('[ServiceChat] Erro ao carregar mensagens:', err);
