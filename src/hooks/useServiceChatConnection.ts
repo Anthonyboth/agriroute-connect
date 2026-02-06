@@ -181,13 +181,14 @@ export function useServiceChatConnection({
       return null;
     }
 
-    // Validação de tipo
+    // Validação de tipo (usa startsWith para suportar codecs, ex: audio/webm;codecs=opus)
     const allowedTypes = type === 'VIDEO' ? ALLOWED_VIDEO_TYPES 
       : type === 'IMAGE' ? ALLOWED_IMAGE_TYPES 
       : type === 'AUDIO' ? ALLOWED_AUDIO_TYPES
       : ALLOWED_FILE_TYPES;
     
-    if (!allowedTypes.includes(file.type)) {
+    const fileBaseType = file.type.split(';')[0].trim();
+    if (!allowedTypes.some(allowed => fileBaseType === allowed || file.type.startsWith(allowed))) {
       const labels = type === 'VIDEO' ? 'MP4, WebM ou MOV' 
         : type === 'IMAGE' ? 'JPEG, PNG, WEBP ou GIF'
         : type === 'AUDIO' ? 'WebM, OGG, MP4, MP3 ou WAV'
