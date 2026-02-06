@@ -230,9 +230,15 @@ if (typeof window !== 'undefined') {
 
 // Componente para setup de monitoramento de erros
 import { useErrorMonitoring } from '@/hooks/useErrorMonitoring';
+import { useSecurityAntiError } from '@/hooks/useSecurityAntiError';
 
 const ErrorMonitoringSetup = () => {
   useErrorMonitoring();
+  return null;
+};
+
+const SecurityAntiErrorSetup = () => {
+  useSecurityAntiError();
   return null;
 };
 
@@ -858,6 +864,7 @@ const App = () => {
                       <AndroidBackButtonHandler />
                       <NativeSplashHandler />
                       <ErrorMonitoringSetup />
+                      <SecurityAntiErrorSetup />
                       <ZipCodeSyncOnReconnect />
                       <FloatingSupportButton />
                       <SilentCityBootstrap />
