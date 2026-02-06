@@ -1011,23 +1011,9 @@ const DriverDashboard = () => {
       console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
       console.log('📍 Role do usuário:', profile.role);
       
-      // Primeiro, vamos verificar se a query simples funciona
-      const { data: allRequests, error: allError } = await supabase
-        .from('service_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-        
-      console.log('📋 Todas as service_requests encontradas:', allRequests?.length || 0);
-      console.log('📊 Dados completos das service_requests:', allRequests);
-      
-      if (allError) {
-        console.error('❌ Erro ao buscar TODAS as service_requests:', allError);
-      }
-      
-      // Agora vamos buscar especificamente GUINCHO/MUDANCA
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
       const { data, error } = await supabase
-        .from('service_requests')
+        .from('service_requests_secure')
         .select('*')
         .in('service_type', ['GUINCHO', 'MUDANCA'])
         .eq('status', 'OPEN')
