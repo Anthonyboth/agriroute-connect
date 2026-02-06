@@ -541,9 +541,11 @@ export function canRateServiceRequest(input: {
   serviceStatus: string;
   actorRole: string;
   hasAlreadyRated?: boolean;
+  paymentStatus?: string | null;
 }): RatingValidation {
-  const { serviceStatus, actorRole, hasAlreadyRated = false } = input;
+  const { serviceStatus, actorRole, hasAlreadyRated = false, paymentStatus } = input;
   const normalizedStatus = serviceStatus.toUpperCase().trim();
+  const normalizedPayment = paymentStatus?.toLowerCase().trim() || '';
 
   if (hasAlreadyRated) {
     return { canRate: false, message: 'Avaliação já enviada.' };
@@ -557,7 +559,30 @@ export function canRateServiceRequest(input: {
     };
   }
 
-  const ratingRoles = ['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA', 'GUEST'];
+  // Gating por pagamento: se existe pagamento, precisa estar confirmed_by_provider
+  if (normalizedPayment && normalizedPayment !== 'confirmed_by_provider' && normalizedPayment !== 'confirmed') {
+    if (normalizedPayment === 'proposed') {
+      return {
+        canRate: false,
+        message: 'Aguardando pagamento do cliente para liberar avaliação.',
+        waitingFor: 'Pagamento pendente',
+      };
+    }
+    if (normalizedPayment === 'paid_by_client') {
+      return {
+        canRate: false,
+        message: 'Aguardando confirmação do prestador para liberar avaliação.',
+        waitingFor: 'Confirmação do prestador',
+      };
+    }
+    return {
+      canRate: false,
+      message: 'Avaliação será liberada após confirmação do pagamento.',
+      waitingFor: `Pagamento: ${normalizedPayment}`,
+    };
+  }
+
+  const ratingRoles = ['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA', 'GUEST', 'PRESTADOR_SERVICOS'];
   if (!ratingRoles.includes(actorRole.toUpperCase().trim())) {
     return { canRate: false, message: 'Você não tem permissão para avaliar este serviço.' };
   }
