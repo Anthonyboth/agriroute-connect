@@ -464,22 +464,100 @@ export function CreateFreightWizard({
         })
       };
 
-      const { data: insertedFreight, error } = await supabase
-        .from('freights')
-        .insert([freightData])
-        .select('id')
-        .single();
+      let createdFreightId: string | null = null;
 
-      if (error) throw error;
+      if (effectiveGuestMode) {
+        // ── FLUXO SEGURO: Guest cria via Edge Function ──
+        logWizardDebug('GUEST_SUBMIT_VIA_EDGE', { guestName: formData.guest_name });
+        
+        const guestPayload = {
+          guest_name: formData.guest_name,
+          guest_phone: formData.guest_phone,
+          guest_email: formData.guest_email || undefined,
+          guest_document: formData.guest_document,
+          ...freightData,
+          // Remove campos que a edge function não espera
+          producer_id: undefined,
+          is_guest_freight: undefined,
+          guest_contact_name: undefined,
+          guest_contact_phone: undefined,
+          guest_contact_email: undefined,
+          guest_contact_document: undefined,
+        };
 
-      // Trigger spatial matching
-      if (insertedFreight?.id) {
-        try {
-          await supabase.functions.invoke('spatial-freight-matching', {
-            body: { freight_id: insertedFreight.id, notify_drivers: true }
-          });
-        } catch (matchingError) {
-          console.error('Spatial matching error:', matchingError);
+        const { data: guestResult, error: guestError } = await supabase.functions.invoke(
+          'create-guest-rural-freight',
+          { body: guestPayload }
+        );
+
+        if (guestError) {
+          throw new Error(guestError.message || 'Erro ao criar frete');
+        }
+
+        if (!guestResult?.success) {
+          const msg = guestResult?.error || guestResult?.message || 'Erro ao criar frete';
+          const code = guestResult?.code || '';
+          
+          if (code === 'RATE_LIMITED' || code === 'RATE_LIMITED_PHONE') {
+            showFormError({
+              field: "Limite",
+              problem: msg,
+              solution: "Aguarde o período indicado antes de criar outro frete.",
+            });
+            return;
+          }
+          if (code === 'CAPTCHA_FAILED') {
+            showFormError({
+              field: "Verificação",
+              problem: "Verificação de segurança falhou.",
+              solution: "Tente novamente.",
+            });
+            return;
+          }
+          if (code === 'INVALID_PHONE') {
+            showFormError({
+              field: "Telefone",
+              problem: msg,
+              solution: "Informe um telefone brasileiro válido com DDD.",
+            });
+            setCurrentStep(1);
+            return;
+          }
+          if (code === 'INVALID_DOCUMENT') {
+            showFormError({
+              field: "Documento",
+              problem: msg,
+              solution: "Verifique o CPF ou CNPJ informado.",
+            });
+            setCurrentStep(1);
+            return;
+          }
+          throw new Error(msg);
+        }
+
+        createdFreightId = guestResult.freight_id;
+        // Matching já foi executado pela edge function
+        logWizardDebug('GUEST_FREIGHT_CREATED', { freight_id: createdFreightId, status: guestResult.status });
+      } else {
+        // ── FLUXO PADRÃO: Produtor autenticado insere direto ──
+        const { data: insertedFreight, error } = await supabase
+          .from('freights')
+          .insert([freightData])
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        createdFreightId = insertedFreight?.id || null;
+
+        // Trigger spatial matching
+        if (createdFreightId) {
+          try {
+            await supabase.functions.invoke('spatial-freight-matching', {
+              body: { freight_id: createdFreightId, notify_drivers: true }
+            });
+          } catch (matchingError) {
+            console.error('Spatial matching error:', matchingError);
+          }
         }
       }
 
