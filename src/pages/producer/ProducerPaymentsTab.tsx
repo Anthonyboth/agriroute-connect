@@ -23,7 +23,7 @@ interface ProducerPaymentsTabProps {
   freightPayments: FreightPayment[];
   paymentLoading: boolean;
   onConfirmExternalPayment: (freightId: string, amount: number) => void;
-  onConfirmPaymentMade: (paymentId: string) => void;
+  onConfirmPaymentMade: (paymentId: string) => Promise<void> | void;
   onProcessStripePayment: (freightId: string, amount: number) => void;
   currentUserProfile?: any;
   onRefresh?: () => void;
@@ -77,8 +77,10 @@ export const ProducerPaymentsTab: React.FC<ProducerPaymentsTabProps> = ({
     setChatModalOpen(true);
   };
 
-  const handleConfirmPayment = (paymentId: string) => {
-    onConfirmPaymentMade(paymentId);
+  const handleConfirmPayment = async (paymentId: string) => {
+    await onConfirmPaymentMade(paymentId);
+    // ✅ Após confirmar pagamento, mover automaticamente para aba "Aguardando"
+    setActiveTab('awaiting');
   };
 
   const handleClearFilters = () => {
