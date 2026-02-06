@@ -9,7 +9,7 @@ import {
   Send, MessageSquare, User, Wrench, 
   Paperclip, Download, FileText, Loader2, WifiOff, 
   RefreshCw, ShieldAlert, Mic, MicOff, Camera, 
-  Square, X, Video as VideoIcon
+  Square, X, Video as VideoIcon, Check, CheckCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -348,9 +348,22 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                         <p className="text-sm whitespace-pre-wrap" translate="no">{msg.message}</p>
                       )}
                       
-                      <p className={`text-xs mt-1 ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        {format(new Date(msg.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                      </p>
+                      <div className={`flex items-center gap-1 mt-1 ${isCurrentUser ? 'justify-end' : ''}`}>
+                        <p className={`text-xs ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                          {format(new Date(msg.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                        {isCurrentUser && (
+                          <span className="flex items-center">
+                            {msg.read_at ? (
+                              <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                            ) : msg.delivered_at ? (
+                              <CheckCheck className="h-3.5 w-3.5 text-primary-foreground/70" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5 text-primary-foreground/70" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

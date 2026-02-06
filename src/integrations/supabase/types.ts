@@ -9442,6 +9442,7 @@ export type Database = {
         Row: {
           chat_closed_by: Json | null
           created_at: string
+          delivered_at: string | null
           file_name: string | null
           file_size: number | null
           file_url: string | null
@@ -9456,6 +9457,7 @@ export type Database = {
         Insert: {
           chat_closed_by?: Json | null
           created_at?: string
+          delivered_at?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string | null
@@ -9470,6 +9472,7 @@ export type Database = {
         Update: {
           chat_closed_by?: Json | null
           created_at?: string
+          delivered_at?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string | null
