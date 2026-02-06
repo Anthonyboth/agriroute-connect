@@ -96,3 +96,18 @@ export type {
   ServiceRequestAction,
   ServiceRequestTransitionValidation,
 } from './serviceRequestWorkflowGuard';
+
+// Freight Action Matrix (Matriz de ações por status × papel)
+export {
+  queryActionMatrix,
+  isActionAllowed,
+  getRolesWithActions,
+  shouldEnterSafeMode,
+} from './freightActionMatrix';
+
+export type {
+  MatrixAction,
+  ActionDefinition,
+  MatrixQuery,
+  MatrixResult,
+} from './freightActionMatrix';
