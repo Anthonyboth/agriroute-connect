@@ -57,7 +57,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useServiceRequestCounts } from '@/hooks/useServiceRequestCounts';
+import { useProviderCardCounts } from '@/hooks/useDashboardCardCounts';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
@@ -241,7 +241,12 @@ export const ServiceProviderDashboard: React.FC = () => {
   };
   
   const providerId = getProviderProfileId();
-  const { counts, refreshCounts } = useServiceRequestCounts(providerId);
+  
+  // ✅ Contagens derivadas dos mesmos arrays que as abas usam (sem drift)
+  const cardCounts = useProviderCardCounts({
+    availableRequests: availableRequests,
+    ownRequests: ownRequests,
+  });
 
   // Contador de mensagens não lidas
   const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
@@ -289,7 +294,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           
           // Recarregar apenas disponíveis
           fetchServiceRequests({ scope: 'available', silent: true });
-          refreshCounts();
         }
       )
       .subscribe();
@@ -309,7 +313,6 @@ export const ServiceProviderDashboard: React.FC = () => {
         (payload) => {
           console.log('Profile update detected for provider, refetching...', payload?.new?.id);
           fetchServiceRequests({ scope: 'available', silent: true });
-          refreshCounts();
         }
       )
       .subscribe();
@@ -335,7 +338,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           
           if (relevantChanges.includes(payload.eventType) || isActiveToggle) {
             fetchServiceRequests({ scope: 'available', silent: true });
-            refreshCounts();
           }
           // Ignorar updates de radius_km - não afetam disponibilidade
         }
@@ -348,7 +350,6 @@ export const ServiceProviderDashboard: React.FC = () => {
     const interval = setInterval(() => {
       console.log('[ServiceProviderDashboard] Auto-refresh (10min)');
       fetchServiceRequests({ scope: 'available', silent: true });
-      refreshCounts();
       fetchTotalEarnings();
     }, AUTO_REFRESH_MS);
 
@@ -394,7 +395,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           setShowRequestModal(false);
           setSelectedRequest(null);
           fetchServiceRequests({ scope: 'all', silent: true });
-          refreshCounts();
           return; // não re-agendar
         }
 
@@ -732,7 +732,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       });
 
       fetchServiceRequests({ scope: 'all', silent: true });
-      refreshCounts();
       fetchTotalEarnings();
     } catch (error: any) {
       console.error('Error accepting request:', error);
@@ -801,7 +800,6 @@ export const ServiceProviderDashboard: React.FC = () => {
         
         setShowRequestModal(false);
         fetchServiceRequests({ scope: 'all', silent: true });
-        refreshCounts();
         return;
       }
 
@@ -815,7 +813,6 @@ export const ServiceProviderDashboard: React.FC = () => {
         
         setShowRequestModal(false);
         fetchServiceRequests({ scope: 'all', silent: true });
-        refreshCounts();
         return;
       }
 
@@ -828,7 +825,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       // Fechar modal e atualizar
       setShowRequestModal(false);
       fetchServiceRequests({ scope: 'all', silent: true });
-      refreshCounts();
       fetchTotalEarnings();
       
       // Mudar para a aba de serviços ativos
@@ -851,7 +847,6 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleStatusChange = () => {
     fetchServiceRequests({ scope: 'all', silent: true });
-    refreshCounts();
     fetchTotalEarnings();
   };
 
@@ -888,7 +883,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       setCancelDialogOpen(false);
       setServiceToCancel(null);
       fetchServiceRequests({ scope: 'all', silent: true });
-      refreshCounts();
     } catch (error: any) {
       console.error('Error canceling service:', error);
       toast({
@@ -1030,7 +1024,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             icon={<Clock className="h-5 w-5" />}
             iconColor="text-primary"
             label="Disponíveis"
-            value={counts.pending}
+            value={cardCounts.available}
             onClick={() => setActiveTab('pending')}
             className="hover:shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
           />
@@ -1040,7 +1034,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             icon={<Play className="h-5 w-5" />}
             iconColor="text-orange-500"
             label="Ativas"
-            value={counts.accepted}
+            value={cardCounts.active}
             onClick={() => setActiveTab('accepted')}
             className="hover:shadow-lg hover:shadow-orange-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
           />
@@ -1050,7 +1044,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             icon={<CheckCircle className="h-5 w-5" />}
             iconColor="text-green-500"
             label="Concluídas"
-            value={counts.completed}
+            value={cardCounts.completed}
             onClick={() => setActiveTab('completed')}
             className="hover:shadow-lg hover:shadow-green-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
           />
@@ -1218,7 +1212,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                   size="sm"
                   onClick={() => {
                     fetchServiceRequests({ scope: 'available', silent: true });
-                    refreshCounts();
                   }}
                   className="text-xs h-7"
                   disabled={inFlightRef.current}
@@ -1315,7 +1308,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </div>
             ) : (
               <Card className="p-8 text-center space-y-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
-                {counts.pending === 0 ? (
+                {cardCounts.available === 0 ? (
                   <>
                     <Settings className="w-16 h-16 mx-auto text-muted-foreground animate-pulse" />
                     <div>
@@ -1546,7 +1539,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                 console.log('Provider cities updated via UserCityManager');
                 // Recarregar solicitações quando cidades forem atualizadas
                 fetchServiceRequests();
-                refreshCounts();
               }}
             />
           </TabsContent>
