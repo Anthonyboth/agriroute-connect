@@ -202,6 +202,41 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         return;
       }
 
+      // ✅ CORREÇÃO: Verificar quais motoristas JÁ possuem pagamento externo (entrega já confirmada)
+      // Se o pagamento já existe, a entrega JÁ FOI confirmada e não deve mais aparecer aqui
+      const pendingDriverFreightPairs = [...pendingMap.values()].map(p => ({
+        freight_id: p.freight_id,
+        driver_id: p.driver_id,
+      }));
+      
+      const uniquePendingFreightIds = [...new Set(pendingDriverFreightPairs.map(p => p.freight_id))];
+      
+      const { data: existingPayments } = await supabase
+        .from('external_payments')
+        .select('freight_id, driver_id')
+        .in('freight_id', uniquePendingFreightIds)
+        .not('status', 'eq', 'cancelled');
+
+      // Criar set de "já confirmados" para lookup rápido
+      const confirmedSet = new Set(
+        (existingPayments || []).map((ep: any) => `${ep.freight_id}_${ep.driver_id}`)
+      );
+
+      // Remover do pendingMap os que já têm pagamento (entrega já confirmada)
+      for (const [key] of pendingMap) {
+        if (confirmedSet.has(key)) {
+          console.log(`[usePendingDeliveryConfirmations] Removendo ${key} - pagamento já existe (entrega confirmada)`);
+          pendingMap.delete(key);
+        }
+      }
+
+      if (pendingMap.size === 0) {
+        console.log('[usePendingDeliveryConfirmations] Todas as entregas já foram confirmadas');
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
       // 5. Buscar dados completos dos fretes
       const uniqueFreightIds = [...new Set([...pendingMap.values()].map(p => p.freight_id))];
       const { data: freightsData, error: freightsDataErr } = await supabase
