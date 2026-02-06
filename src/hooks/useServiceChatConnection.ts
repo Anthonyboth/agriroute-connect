@@ -8,7 +8,7 @@ export interface ChatMessage {
   service_request_id: string;
   sender_id: string;
   message: string;
-  message_type: 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO';
+  message_type: 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO';
   image_url?: string;
   file_url?: string;
   file_name?: string;
@@ -36,7 +36,7 @@ interface ServiceChatConnectionResult {
   error: string | null;
   isParticipant: boolean;
   sendTextMessage: (text: string) => Promise<boolean>;
-  sendMediaMessage: (file: File, type: 'IMAGE' | 'FILE' | 'VIDEO') => Promise<boolean>;
+  sendMediaMessage: (file: File, type: 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO') => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -46,6 +46,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const ALLOWED_AUDIO_TYPES = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav'];
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
   'application/msword',
@@ -164,12 +166,15 @@ export function useServiceChatConnection({
   // ✅ Upload de mídia para storage
   const uploadMedia = useCallback(async (
     file: File, 
-    type: 'IMAGE' | 'FILE' | 'VIDEO'
+    type: 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO'
   ): Promise<{ url: string; name: string; size: number } | null> => {
     if (!currentUserProfileId) return null;
 
     // Validação de tamanho
-    const maxSize = type === 'VIDEO' ? MAX_VIDEO_SIZE : type === 'IMAGE' ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
+    const maxSize = type === 'VIDEO' ? MAX_VIDEO_SIZE 
+      : type === 'AUDIO' ? MAX_AUDIO_SIZE
+      : type === 'IMAGE' ? MAX_IMAGE_SIZE 
+      : MAX_FILE_SIZE;
     if (file.size > maxSize) {
       const maxMB = maxSize / (1024 * 1024);
       toast.error(`Arquivo muito grande. Máximo ${maxMB}MB.`);
@@ -179,11 +184,13 @@ export function useServiceChatConnection({
     // Validação de tipo
     const allowedTypes = type === 'VIDEO' ? ALLOWED_VIDEO_TYPES 
       : type === 'IMAGE' ? ALLOWED_IMAGE_TYPES 
+      : type === 'AUDIO' ? ALLOWED_AUDIO_TYPES
       : ALLOWED_FILE_TYPES;
     
     if (!allowedTypes.includes(file.type)) {
       const labels = type === 'VIDEO' ? 'MP4, WebM ou MOV' 
         : type === 'IMAGE' ? 'JPEG, PNG, WEBP ou GIF'
+        : type === 'AUDIO' ? 'WebM, OGG, MP4, MP3 ou WAV'
         : 'PDF, Word, Excel, TXT ou CSV';
       toast.error(`Tipo não suportado. Use ${labels}.`);
       return null;
@@ -258,7 +265,7 @@ export function useServiceChatConnection({
   // ✅ Enviar mensagem com mídia (imagem, vídeo ou arquivo)
   const sendMediaMessage = useCallback(async (
     file: File, 
-    type: 'IMAGE' | 'FILE' | 'VIDEO'
+    type: 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO'
   ): Promise<boolean> => {
     if (!currentUserProfileId || !serviceRequestId) return false;
 
@@ -269,6 +276,7 @@ export function useServiceChatConnection({
     try {
       const messageLabel = type === 'VIDEO' ? 'Vídeo enviado' 
         : type === 'IMAGE' ? 'Imagem enviada' 
+        : type === 'AUDIO' ? 'Áudio enviado'
         : `Arquivo enviado: ${mediaData.name}`;
 
       const { error: insertError } = await supabase
@@ -278,7 +286,7 @@ export function useServiceChatConnection({
           sender_id: currentUserProfileId,
           message: messageLabel,
           message_type: type,
-          ...(type === 'IMAGE' || type === 'VIDEO' 
+          ...(type === 'IMAGE' || type === 'VIDEO' || type === 'AUDIO'
             ? { image_url: mediaData.url } 
             : { file_url: mediaData.url, file_name: mediaData.name, file_size: mediaData.size }),
         });
@@ -287,6 +295,7 @@ export function useServiceChatConnection({
 
       const successMsg = type === 'VIDEO' ? 'Vídeo enviado!' 
         : type === 'IMAGE' ? 'Imagem enviada!' 
+        : type === 'AUDIO' ? 'Áudio enviado!'
         : 'Arquivo enviado!';
       toast.success(successMsg);
       return true;
