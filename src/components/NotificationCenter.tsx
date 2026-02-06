@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useGlobalRating } from '@/contexts/RatingContext';
+import { useNotificationNavigation } from '@/hooks/useNotificationNavigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { NotificationSound } from './NotificationSound';
@@ -36,7 +36,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const { profile } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const { navigateTo, getDashboardRoute } = useNotificationNavigation();
   const { openServiceRating, openFreightRating } = useGlobalRating();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -151,24 +151,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  const getDashboardRoute = (role?: string) => {
-    switch (role) {
-      case 'driver':
-      case 'MOTORISTA':
-        return '/dashboard/driver';
-      case 'producer':
-      case 'PRODUTOR':
-        return '/dashboard/producer';
-      case 'service_provider':
-      case 'PRESTADOR_SERVICOS':
-        return '/dashboard/service-provider';
-      case 'TRANSPORTADORA':
-        return '/dashboard/company';
-      default:
-        return '/dashboard/producer';
-    }
-  };
-
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.read) {
       await markAsRead(notification.id);
@@ -176,174 +158,66 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     
     const { type, data } = notification;
     
-    switch (type) {
-      case 'rating_pending':
-        if (data?.freight_id && data?.rated_user_id) {
-          const { data: ratedProfile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', data.rated_user_id)
-            .single();
-          
-          openFreightRating(data.freight_id, data.rated_user_id, ratedProfile?.full_name);
-          onClose();
-        }
-        break;
-        
-      case 'delivery_confirmation_required':
-      case 'freight_delivery_reported':
-        if (data?.freight_id) {
-          onClose();
-          
-          const { data: freightData } = await supabase
-            .from('freights')
-            .select(`
-              *,
-              driver_profiles:profiles!left(freights_driver_id_fkey)(
-                id, full_name, contact_phone, email, role
-              )
-            `)
-            .eq('id', data.freight_id)
-            .single();
-          
-          const dashboardRoute = getDashboardRoute(profile?.role);
-          navigate(dashboardRoute, { 
-            state: { 
-              openTab: 'confirm-delivery',
-              highlightFreightId: data.freight_id,
-              freightData: freightData
-            } 
-          });
-        }
-        break;
+    // Ratings need special handling (open modal, not navigate)
+    if (type === 'rating_pending' && data?.freight_id && data?.rated_user_id) {
+      const { data: ratedProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data.rated_user_id)
+        .single();
+      
+      openFreightRating(data.freight_id, data.rated_user_id, ratedProfile?.full_name);
+      onClose();
+      return;
+    }
+    
+    if (type === 'service_rating_pending' && data?.service_request_id && data?.rated_user_id) {
+      const { data: serviceData } = await supabase
+        .from('service_requests')
+        .select('service_type')
+        .eq('id', data.service_request_id)
+        .single();
+      
+      const { data: ratedProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data.rated_user_id)
+        .single();
+      
+      openServiceRating(
+        data.service_request_id, 
+        data.rated_user_id, 
+        ratedProfile?.full_name,
+        serviceData?.service_type
+      );
+      onClose();
+      return;
+    }
 
-      case 'freight_accepted':
-      case 'proposal_received':
-      case 'advance_request':
-      case 'advance_approved':
-      case 'advance_rejected':
-      case 'checkin_confirmation_required':
-      case 'freight_in_transit':
-      case 'freight_created':
-      case 'external_payment_proposed':
-        if (data?.freight_id) {
-          onClose();
-          const dashboardRoute = getDashboardRoute(profile?.role);
-          navigate(dashboardRoute, { 
-            state: { 
-              openFreightId: data.freight_id,
-              notificationType: type 
-            } 
-          });
-        }
-        break;
-        
-      case 'chat_message':
-        if (data?.freight_id) {
-          onClose();
-          const dashboardRoute = getDashboardRoute(profile?.role);
-          navigate(dashboardRoute, { 
-            state: { 
-              openChatFreightId: data.freight_id 
-            } 
-          });
-        }
-        break;
+    // For delivery confirmations, fetch freight data before navigating
+    if ((type === 'delivery_confirmation_required' || type === 'freight_delivery_reported') && data?.freight_id) {
+      onClose();
+      const { data: freightData } = await supabase
+        .from('freights')
+        .select(`
+          *,
+          driver_profiles:profiles!left(freights_driver_id_fkey)(
+            id, full_name, contact_phone, email, role
+          )
+        `)
+        .eq('id', data.freight_id)
+        .single();
       
-      case 'proposal_chat_message':
-        if (data?.proposal_id) {
-          onClose();
-          const dashboardRoute = getDashboardRoute(profile?.role);
-          navigate(dashboardRoute, { 
-            state: { 
-              openProposal: data.proposal_id,
-              openProposalChat: true
-            } 
-          });
-        }
-        break;
-      
-      case 'company_new_proposal':
-      case 'company_freight_status_change':
-      case 'company_driver_assignment':
-      case 'company_delivery_confirmation':
-        onClose();
-        navigate('/dashboard/company', {
-          state: {
-            openFreightId: data?.freight_id,
-            notificationType: type
-          }
-        });
-        break;
-      
-      case 'vehicle_assignment_created':
-      case 'vehicle_assignment_removed':
-        onClose();
-        if (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') {
-          navigate('/dashboard/driver', { 
-            state: { 
-              openTab: 'vehicles',
-              highlightAssignmentId: data?.assignment_id
-            } 
-          });
-        } else {
-          navigate('/dashboard/company', {
-            state: {
-              openTab: 'vinculos',
-              highlightAssignmentId: data?.assignment_id
-            }
-          });
-        }
-        break;
-        
-      case 'service_rating_pending':
-        if (data?.service_request_id && data?.rated_user_id) {
-          const { data: serviceData } = await supabase
-            .from('service_requests')
-            .select('service_type')
-            .eq('id', data.service_request_id)
-            .single();
-          
-          const { data: ratedProfile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', data.rated_user_id)
-            .single();
-          
-          openServiceRating(
-            data.service_request_id, 
-            data.rated_user_id, 
-            ratedProfile?.full_name,
-            serviceData?.service_type
-          );
-          onClose();
-        }
-        break;
-        
-      case 'service_chat_message':
-        if (data?.service_request_id) {
-          onClose();
-          navigate('/dashboard/service-provider', {
-            state: {
-              openServiceChat: data.service_request_id
-            }
-          });
-        }
-        break;
-        
-      case 'payment_completed':
-      case 'payment_confirmation':
-        onClose();
-        const dashboardRoute = getDashboardRoute(profile?.role);
-        navigate(dashboardRoute, {
-          state: {
-            openPaymentHistory: true
-          }
-        });
-        break;
-        
-      default:
-        break;
+      const dashboardRoute = getDashboardRoute(profile?.role);
+      navigateTo(type, { ...data, freightData }, () => onClose());
+      return;
+    }
+    
+    // Use centralized navigation for all other types
+    const navigated = navigateTo(type, data, () => onClose());
+    if (!navigated) {
+      // Fallback: just close the notification center
+      onClose();
     }
   };
 

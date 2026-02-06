@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,8 +6,6 @@ import { useNotifications } from '@/hooks/useNotifications';
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const handleLogout = async () => {
     // ✅ Logout silencioso - sem toasts
@@ -19,12 +16,7 @@ const ServiceProviderDashboard = () => {
     console.log('Menu clicked');
   };
 
-  useEffect(() => {
-    const state = location.state as any;
-    if (state) {
-      navigate(location.pathname, { replace: true, state: null });
-    }
-  }, [location.state, navigate, location.pathname]);
+  // ✅ NÃO limpar state aqui - o componente ServiceDashboard consome via useLocation
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 dark:to-primary/5">

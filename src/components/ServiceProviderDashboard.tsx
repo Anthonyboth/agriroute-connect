@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
@@ -162,6 +162,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Separate states for available and own requests
   const [availableRequests, setAvailableRequests] = useState<ServiceRequest[]>([]);
@@ -224,6 +225,56 @@ export const ServiceProviderDashboard: React.FC = () => {
       if (timeoutId) window.clearTimeout(timeoutId);
     };
   }, []);
+
+  // ✅ Consumir location.state vindo de notificações (abrir aba/chat específico)
+  useEffect(() => {
+    const state = location.state as any;
+    if (!state || !profile?.id) return;
+
+    // Abrir chat de serviço específico
+    if (state.openServiceChat) {
+      const serviceId = state.openServiceChat;
+      // Mudar para aba de aceitos e buscar o serviço
+      setActiveTab('accepted');
+      // Aguardar os dados carregarem e abrir chat
+      const timer = setTimeout(() => {
+        const found = ownRequests.find(r => r.id === serviceId);
+        if (found) {
+          setSelectedChatRequest(found);
+          setChatDialogOpen(true);
+        }
+      }, 500);
+      navigate(location.pathname, { replace: true, state: null });
+      return () => clearTimeout(timer);
+    }
+
+    // Abrir serviço específico
+    if (state.openServiceRequest) {
+      const serviceId = state.openServiceRequest;
+      if (state.openTab) setActiveTab(state.openTab);
+      const timer = setTimeout(() => {
+        const found = ownRequests.find(r => r.id === serviceId);
+        if (found) {
+          setSelectedRequest(found);
+          setShowRequestModal(true);
+        }
+      }, 500);
+      navigate(location.pathname, { replace: true, state: null });
+      return () => clearTimeout(timer);
+    }
+
+    // Abrir aba específica
+    if (state.openTab) {
+      setActiveTab(state.openTab);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+
+    // Abrir histórico de pagamentos
+    if (state.openPaymentHistory) {
+      setActiveTab('payouts');
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, profile?.id, ownRequests, navigate, location.pathname]);
   
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
