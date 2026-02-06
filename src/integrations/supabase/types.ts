@@ -3246,10 +3246,38 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "external_payments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_payments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "external_payments_freight_id_fkey"
             columns: ["freight_id"]
             isOneToOne: false
             referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_payments_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_payments_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
