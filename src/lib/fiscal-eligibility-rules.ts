@@ -78,6 +78,7 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
         ],
         recommendedAlternative: 'Se não possui credenciamento, use NF-a (NFA) que não exige certificado digital.',
         links: [
+          { label: 'Verificar credenciamento (Webservice SEFAZ-MT)', url: 'https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml' },
           { label: 'Emissor NF-e SEBRAE (gratuito)', url: 'https://www.nfe.sebrae.com.br/' },
         ],
       },
@@ -110,6 +111,7 @@ export const PROFILE_ELIGIBILITY: ProfileEligibility[] = [
       '✅ MEI credenciado na SEFAZ pode emitir NF-e normalmente (conforme orientação SEBRAE).',
       '⚠️ MEI sem credenciamento pode usar NF-a (NFA) emitida no portal SEFAZ, sem certificado digital.',
       'Para emitir NF-e é necessário ter IE ativa + credenciamento + certificado A1.',
+      'Para verificar credenciamento: Webservice SEFAZ-MT → login com IE + senha → Consulta Genérica → CREDENCIAMENTOS.',
       'O SEBRAE oferece emissor de NF-e gratuito em nuvem: nfe.sebrae.com.br',
     ],
   },

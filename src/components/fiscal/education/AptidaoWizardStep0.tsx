@@ -260,7 +260,7 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                       Como emitir NF-a no Portal SEFAZ-MT:
                     </p>
                     <ol className="list-decimal list-inside text-sm space-y-2">
-                      <li>Acesse o portal SEFAZ-MT com sua <strong>senha de contribuinte</strong> (e-PAC)</li>
+                      <li>Acesse o portal SEFAZ-MT com sua <strong>senha de contribuinte</strong></li>
                       <li>Navegue até <strong>"NFA-e → Emissão de NFA-e"</strong></li>
                       <li>Preencha os dados da nota (destinatário, produtos, valores)</li>
                       <li>Transmita e imprima o <strong>DANFA-e</strong></li>
@@ -277,8 +277,10 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                     </Button>
                     
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <p>💡 <strong>Primeira vez?</strong> Solicite a senha de contribuinte no <strong>e-PAC</strong> antes.</p>
+                      <p>💡 <strong>Primeira vez?</strong> Solicite a senha de contribuinte no portal SEFAZ-MT.</p>
+                      <p>🔑 <strong>Login:</strong> sua Inscrição Estadual (IE). <strong>Senha:</strong> a senha de contribuinte.</p>
                       <p>🔒 <strong>Não precisa de certificado digital A1</strong> para emitir NF-a como MEI.</p>
+                      <p>📋 <strong>Verificar credenciamento:</strong> Webservice SEFAZ-MT → Consulta Genérica → CREDENCIAMENTOS.</p>
                     </div>
                   </div>
 
@@ -403,10 +405,18 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.open('https://www.sefaz.mt.gov.br/epac/', '_blank')}
+                    onClick={() => window.open('https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml', '_blank')}
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />
-                    Portal e-PAC
+                    Webservice (verificar credenciamento)
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open('https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte', '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Portal de Atendimento
                   </Button>
                 </div>
               </div>

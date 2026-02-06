@@ -119,14 +119,18 @@ export const FiscalPreValidationModal: React.FC<FiscalPreValidationModalProps> =
   const officialLinks = useMemo(() => {
     const links: { label: string; url: string }[] = [];
     
-    // MT - Links específicos
+    // MT - Links específicos (Atualizado 06/02/2026 - SAC0055693)
     links.push({
       label: 'Credenciamento SEFAZ-MT (OFICIAL)',
       url: 'https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811',
     });
     links.push({
-      label: 'Portal e-PAC MT',
-      url: 'https://www.sefaz.mt.gov.br/epac/',
+      label: 'Webservice SEFAZ-MT (verificar credenciamento)',
+      url: 'https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml',
+    });
+    links.push({
+      label: 'Portal de Atendimento ao Contribuinte',
+      url: 'https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte',
     });
     links.push({
       label: 'SINTEGRA (Consulta IE)',

@@ -577,10 +577,17 @@ const MtCredenciamentoSection: React.FC = () => (
         </Button>
         <Button 
           variant="outline"
-          onClick={() => window.open('https://www.sefaz.mt.gov.br/epac/', '_blank')}
+          onClick={() => window.open('https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml', '_blank')}
         >
           <ExternalLink className="h-4 w-4 mr-2" />
-          Portal e-PAC MT
+          Webservice (verificar credenciamento)
+        </Button>
+        <Button 
+          variant="outline"
+          onClick={() => window.open('https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte', '_blank')}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Portal de Atendimento
         </Button>
       </div>
     </CardContent>
