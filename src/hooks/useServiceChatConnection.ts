@@ -188,24 +188,40 @@ export function useServiceChatConnection({
       : ALLOWED_FILE_TYPES;
     
     const fileBaseType = file.type.split(';')[0].trim();
-    if (!allowedTypes.some(allowed => fileBaseType === allowed || file.type.startsWith(allowed))) {
-      const labels = type === 'VIDEO' ? 'MP4, WebM ou MOV' 
-        : type === 'IMAGE' ? 'JPEG, PNG, WEBP ou GIF'
-        : type === 'AUDIO' ? 'WebM, OGG, MP4, MP3 ou WAV'
-        : 'PDF, Word, Excel, TXT ou CSV';
-      toast.error(`Tipo não suportado. Use ${labels}.`);
-      return null;
+    if (!allowedTypes.some(allowed => fileBaseType === allowed || fileBaseType.startsWith(allowed.split('/')[0] + '/') && allowed === fileBaseType)) {
+      // Fallback: checar se o base type está na lista OU se o tipo com codec começa com um tipo permitido
+      const isValid = allowedTypes.some(allowed => {
+        const baseAllowed = allowed.split(';')[0].trim();
+        return fileBaseType === baseAllowed || fileBaseType === allowed;
+      });
+      if (!isValid) {
+        const labels = type === 'VIDEO' ? 'MP4, WebM ou MOV' 
+          : type === 'IMAGE' ? 'JPEG, PNG, WEBP ou GIF'
+          : type === 'AUDIO' ? 'WebM, OGG, MP4, MP3 ou WAV'
+          : 'PDF, Word, Excel, TXT ou CSV';
+        toast.error(`Tipo não suportado. Use ${labels}.`);
+        return null;
+      }
     }
 
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentUserProfileId}/${Date.now()}.${fileExt}`;
+      // Rotear para bucket correto: imagens → chat-interno-images, demais → chat-interno-files
+      // Para áudio/vídeo, usar content type genérico para evitar rejeição do bucket
       const bucket = type === 'IMAGE' ? 'chat-interno-images' : 'chat-interno-files';
+      
+      // Para áudio/vídeo, forçar contentType sem codec para compatibilidade com bucket
+      const uploadContentType = (type === 'AUDIO' || type === 'VIDEO') ? fileBaseType : file.type;
 
       const { data, error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+        .upload(fileName, file, { 
+          cacheControl: '3600', 
+          upsert: false,
+          contentType: uploadContentType,
+        });
 
       if (uploadError) throw uploadError;
 
