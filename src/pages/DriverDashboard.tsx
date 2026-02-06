@@ -1274,23 +1274,48 @@ const DriverDashboard = () => {
     }
   }, [profile?.id]);
 
-  // Função para buscar pagamentos pendentes
+  // Função para buscar pagamentos que o motorista pode confirmar
+  // ✅ CORREÇÃO: Motorista só pode confirmar pagamentos com status 'paid_by_producer'
+  // (o produtor já confirmou que fez o pagamento)
   const fetchPendingPayments = useCallback(async () => {
     if (!profile?.id) return;
     
     try {
-      console.log('🔍 Buscando pagamentos pendentes para driver:', profile.id);
+      console.log('🔍 Buscando pagamentos para confirmar (paid_by_producer) para driver:', profile.id);
       
+      // Buscar pagamentos que o produtor JÁ CONFIRMOU que fez (paid_by_producer)
+      // O motorista agora precisa confirmar o RECEBIMENTO
       const { data, error } = await supabase
         .from('external_payments')
-        .select('*')
+        .select(`
+          *,
+          freight:freights!external_payments_freight_id_fkey(
+            id,
+            cargo_type,
+            origin_city,
+            origin_state,
+            origin_address,
+            destination_city,
+            destination_state,
+            destination_address,
+            pickup_date,
+            status,
+            price
+          ),
+          producer:profiles!external_payments_producer_id_fkey(
+            id,
+            full_name,
+            contact_phone,
+            profile_photo_url
+          )
+        `)
         .eq('driver_id', profile.id)
-        .eq('status', 'proposed')
+        .eq('status', 'paid_by_producer')  // ✅ CORREÇÃO: só pagamentos que o produtor já confirmou
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      console.log('💰 Pagamentos pendentes encontrados:', data?.length || 0);
+      console.log('💰 Pagamentos para confirmar recebimento:', data?.length || 0);
       console.log('📋 Dados dos pagamentos:', data);
       
       if (isMountedRef.current) setPendingPayments(data || []);
@@ -1301,6 +1326,7 @@ const DriverDashboard = () => {
   }, [profile?.id]);
 
   // Função para confirmar recebimento de pagamento e disparar avaliação
+  // ✅ CORREÇÃO: Valida que o status é 'paid_by_producer' antes de confirmar
   const confirmPaymentReceived = async (payment: { id: string; freight_id: string; producer_id: string }) => {
     try {
       // Verificar se o pagamento existe e está no status correto
@@ -1321,14 +1347,25 @@ const DriverDashboard = () => {
         return;
       }
 
+      // ✅ CORREÇÃO: Validar que o produtor já confirmou que fez o pagamento
+      if (existingPayment.status !== 'paid_by_producer') {
+        toast.error('O produtor ainda não confirmou que fez o pagamento.', {
+          description: 'Aguarde o produtor informar que efetuou o pagamento para você confirmar o recebimento.'
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('external_payments')
         .update({ 
           status: 'confirmed',
           accepted_by_driver: true,
-          accepted_at: new Date().toISOString()
+          accepted_at: new Date().toISOString(),
+          confirmed_at: new Date().toISOString(), // ✅ Adicionar timestamp de confirmação
+          updated_at: new Date().toISOString()
         })
-        .eq('id', payment.id);
+        .eq('id', payment.id)
+        .eq('status', 'paid_by_producer'); // ✅ Double check no banco
 
       if (error) {
         console.error('Erro ao confirmar pagamento:', error);
@@ -1336,8 +1373,44 @@ const DriverDashboard = () => {
         return;
       }
 
-      toast.success('Recebimento confirmado com sucesso!');
+      toast.success('Recebimento confirmado com sucesso! 🎉', {
+        description: 'Agora você pode avaliar o produtor.'
+      });
       fetchPendingPayments();
+
+      // ✅ CORREÇÃO: Mover frete para COMPLETED após pagamento confirmado
+      if (payment.freight_id) {
+        try {
+          console.log('🏁 Movendo frete para COMPLETED após pagamento confirmado:', payment.freight_id);
+          
+          const { error: freightUpdateError } = await supabase
+            .from('freights')
+            .update({
+              status: 'COMPLETED',
+              tracking_status: 'COMPLETED',
+              updated_at: new Date().toISOString(),
+              metadata: {
+                payment_confirmed_at: new Date().toISOString(),
+                moved_to_history_at: new Date().toISOString()
+              }
+            })
+            .eq('id', payment.freight_id);
+
+          if (freightUpdateError) {
+            console.warn('Aviso: Erro ao mover frete para histórico:', freightUpdateError);
+            // Não bloquear o fluxo, apenas logar
+          } else {
+            console.log('✅ Frete movido para COMPLETED com sucesso');
+            
+            // Notificar UI que frete foi para histórico
+            window.dispatchEvent(new CustomEvent('freight:movedToHistory', { 
+              detail: { freightId: payment.freight_id } 
+            }));
+          }
+        } catch (freightError) {
+          console.warn('Aviso: Erro ao atualizar status do frete:', freightError);
+        }
+      }
 
       // Disparar modal de avaliação do produtor
       if (payment.freight_id && payment.producer_id) {
