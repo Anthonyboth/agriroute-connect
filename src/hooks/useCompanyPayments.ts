@@ -106,6 +106,8 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
       const driverIds = affiliatedDrivers.map(d => d.driver_profile_id);
 
       // Buscar pagamentos dos motoristas afiliados
+      // ✅ FIX: Buscar pagamentos SEM join em profiles (RLS bloqueia acesso cruzado)
+      // Resolver perfis via profiles_secure em etapa separada
       const { data, error: fetchError } = await supabase
         .from('external_payments')
         .select(`
@@ -121,18 +123,6 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
             status,
             price,
             distance_km
-          ),
-          driver:profiles!external_payments_driver_id_fkey(
-            id,
-            full_name,
-            contact_phone,
-            profile_photo_url
-          ),
-          producer:profiles!external_payments_producer_id_fkey(
-            id,
-            full_name,
-            contact_phone,
-            profile_photo_url
           )
         `)
         .in('driver_id', driverIds)
@@ -146,8 +136,36 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
       }
 
       console.log('[useCompanyPayments] Fetched payments:', data?.length || 0);
-      // Cast para any para evitar erros de tipo - a query funciona mas os tipos não refletem corretamente
-      setPayments((data || []) as unknown as CompanyPayment[]);
+
+      // ✅ FIX: Resolver perfis via profiles_secure (view segura)
+      const allProfileIds = [...new Set([
+        ...(data || []).map((p: any) => p.driver_id),
+        ...(data || []).map((p: any) => p.producer_id),
+      ].filter(Boolean))];
+
+      let profileMap = new Map<string, any>();
+      
+      if (allProfileIds.length > 0) {
+        const { data: profiles, error: profilesErr } = await supabase
+          .from('profiles_secure' as any)
+          .select('id, full_name, profile_photo_url')
+          .in('id', allProfileIds);
+        
+        if (profilesErr) {
+          console.warn('[useCompanyPayments] Erro ao buscar perfis via profiles_secure:', profilesErr.message);
+        } else if (profiles?.length) {
+          (profiles as any[]).forEach((p: any) => profileMap.set(p.id, p));
+        }
+      }
+
+      // Enriquecer pagamentos com dados de motorista e produtor
+      const enrichedPayments = (data || []).map((p: any) => ({
+        ...p,
+        driver: profileMap.get(p.driver_id) || { id: p.driver_id, full_name: 'Motorista' },
+        producer: profileMap.get(p.producer_id) || { id: p.producer_id, full_name: 'Produtor' },
+      }));
+
+      setPayments(enrichedPayments as unknown as CompanyPayment[]);
     } catch (err: any) {
       console.error('[useCompanyPayments] Unexpected error:', err);
       setError(err?.message || 'Erro ao carregar pagamentos');

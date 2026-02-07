@@ -87,6 +87,8 @@ export const useDriverPayments = (): UseDriverPaymentsReturn => {
     try {
       console.log('[useDriverPayments] Fetching payments for driver:', profile.id);
 
+      // ✅ FIX: Buscar pagamentos SEM join em profiles (RLS pode bloquear motorista de ver perfil do produtor)
+      // Resolver perfis via profiles_secure em etapa separada
       const { data, error: fetchError } = await supabase
         .from('external_payments')
         .select(`
@@ -102,12 +104,6 @@ export const useDriverPayments = (): UseDriverPaymentsReturn => {
             status,
             price,
             distance_km
-          ),
-          producer:profiles!external_payments_producer_id_fkey(
-            id,
-            full_name,
-            contact_phone,
-            profile_photo_url
           )
         `)
         .eq('driver_id', profile.id)
@@ -125,8 +121,31 @@ export const useDriverPayments = (): UseDriverPaymentsReturn => {
       }
 
       console.log('[useDriverPayments] Fetched payments:', data?.length || 0);
-      // Cast para any para evitar erros de tipo - a query funciona mas os tipos não refletem corretamente
-      setPayments((data || []) as unknown as DriverPayment[]);
+
+      // ✅ FIX: Resolver perfis de produtores via profiles_secure (view segura)
+      const producerIds = [...new Set((data || []).map((p: any) => p.producer_id).filter(Boolean))];
+      let producerMap = new Map<string, any>();
+      
+      if (producerIds.length > 0) {
+        const { data: producers, error: producersErr } = await supabase
+          .from('profiles_secure' as any)
+          .select('id, full_name, profile_photo_url')
+          .in('id', producerIds);
+        
+        if (producersErr) {
+          console.warn('[useDriverPayments] Erro ao buscar perfis via profiles_secure:', producersErr.message);
+        } else if (producers?.length) {
+          (producers as any[]).forEach((p: any) => producerMap.set(p.id, p));
+        }
+      }
+
+      // Enriquecer pagamentos com dados do produtor
+      const enrichedPayments = (data || []).map((p: any) => ({
+        ...p,
+        producer: producerMap.get(p.producer_id) || { id: p.producer_id, full_name: 'Produtor' },
+      }));
+
+      setPayments(enrichedPayments as unknown as DriverPayment[]);
     } catch (err: any) {
       console.error('[useDriverPayments] Unexpected error:', err);
       setError(err?.message || 'Erro ao carregar pagamentos');
