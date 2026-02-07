@@ -437,7 +437,7 @@ const ProducerDashboard = () => {
             .from('freight_assignments')
             .select('freight_id, driver_id')
             .in('freight_id', freightIdsForAssignments)
-            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION']);
 
           if (assignmentErr) {
             console.warn('[fetchFreights] Falha ao carregar freight_assignments (fallback drivers):', assignmentErr.message);
