@@ -1056,8 +1056,13 @@ const DriverDashboard = () => {
       if (error) throw error;
 
       toast.success('Solicitação aceita com sucesso!');
+      
+      // ✅ PERF: Update otimista — mover da lista de disponíveis para aceitos
+      setTransportRequests(prev => prev.filter(r => r.id !== requestId));
+      
+      // Background refetch
       fetchTransportRequests();
-      await fetchOngoingFreights();
+      fetchOngoingFreights();
       setActiveTab('ongoing');
     } catch (error) {
       console.error('Error accepting transport request:', error);
@@ -1068,6 +1073,11 @@ const DriverDashboard = () => {
   // Marcar serviço como "A Caminho" (para usuários cadastrados)
   const handleMarkServiceOnTheWay = async (requestId: string) => {
     try {
+      // ✅ PERF: Update otimista IMEDIATO
+      setAcceptedServiceRequests(prev => 
+        prev.map(r => r.id === requestId ? { ...r, status: 'ON_THE_WAY', updated_at: new Date().toISOString() } : r)
+      );
+
       const { error } = await supabase
         .from('service_requests')
         .update({ 
@@ -1077,10 +1087,15 @@ const DriverDashboard = () => {
         .eq('id', requestId)
         .eq('provider_id', profile?.id);
 
-      if (error) throw error;
+      if (error) {
+        // Rollback otimista
+        await fetchOngoingFreights();
+        throw error;
+      }
 
       toast.success('Status atualizado: A Caminho!');
-      await fetchOngoingFreights();
+      // Background refetch para consistência
+      setTimeout(() => fetchOngoingFreights(), 500);
     } catch (error) {
       console.error('Error updating service request:', error);
       toast.error('Erro ao atualizar status');
@@ -1090,22 +1105,32 @@ const DriverDashboard = () => {
   // Encerrar/Concluir serviço — usa RPC para garantir atomicidade e criar pagamento
   const handleFinishService = async (requestId: string) => {
     try {
+      // ✅ PERF: Update otimista IMEDIATO — remover da lista de em andamento
+      setAcceptedServiceRequests(prev => prev.filter(r => r.id !== requestId));
+
       const { data, error } = await supabase.rpc('transition_service_request_status', {
         p_request_id: requestId,
         p_next_status: 'COMPLETED',
         p_final_price: null,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Rollback otimista
+        await fetchOngoingFreights();
+        throw error;
+      }
 
       const result = data as any;
       if (!result?.success) {
+        // Rollback otimista
+        await fetchOngoingFreights();
         toast.error(result?.error || 'Não foi possível concluir o serviço');
         return;
       }
 
       toast.success('Serviço concluído com sucesso!');
-      await fetchOngoingFreights();
+      // Background refetch para consistência
+      setTimeout(() => fetchOngoingFreights(), 500);
     } catch (error) {
       console.error('Error finishing service request:', error);
       toast.error('Erro ao finalizar serviço');
