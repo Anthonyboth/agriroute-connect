@@ -101,6 +101,10 @@ interface FreightStatusTrackerProps {
   originLng?: number;
   destinationLat?: number;
   destinationLng?: number;
+  originCity?: string;
+  originState?: string;
+  destinationCity?: string;
+  destinationState?: string;
 }
 
 // Fallback para traduzir status quando não encontrado no fluxo - SEMPRE retorna português
@@ -138,7 +142,11 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   originLat,
   originLng,
   destinationLat,
-  destinationLng
+  destinationLng,
+  originCity,
+  originState,
+  destinationCity,
+  destinationState,
 }) => {
   const { toast } = useToast();
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
@@ -529,6 +537,10 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                   originLng={originLng}
                   destinationLat={destinationLat}
                   destinationLng={destinationLng}
+                  originCity={originCity}
+                  originState={originState}
+                  destinationCity={destinationCity}
+                  destinationState={destinationState}
                 />
               </Suspense>
             </MapErrorBoundary>

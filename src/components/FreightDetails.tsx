@@ -1272,6 +1272,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               originLng={freight?.origin_lng}
               destinationLat={freight?.destination_lat}
               destinationLng={freight?.destination_lng}
+              originCity={freight?.origin_city}
+              originState={freight?.origin_state}
+              destinationCity={freight?.destination_city}
+              destinationState={freight?.destination_state}
               onStatusUpdated={(newStatus) => {
                 // Atualizar estado local do frete
                 setFreight((prev: any) => prev ? { ...prev, status: newStatus } : prev);
