@@ -320,7 +320,12 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             if (!conversationMap.has(msg.service_request_id)) {
               const clientProfile = profileMap.get(service.client_id);
               const providerProfile = profileMap.get(service.provider_id);
-              const isClosed = msg.chat_closed_by?.[userProfileId] === true;
+              const isManualClosed = msg.chat_closed_by?.[userProfileId] === true;
+              
+              // Auto-fechar serviços com status final (mesma lógica dos fretes)
+              const SERVICE_FINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'CONCLUIDO', 'CANCELADO'];
+              const isServiceCompleted = SERVICE_FINAL_STATUSES.includes(service.status);
+              const isClosed = isManualClosed || isServiceCompleted;
               
               // Determinar o "outro participante" baseado no papel do usuário
               const isCurrentUserProvider = service.provider_id === userProfileId;
