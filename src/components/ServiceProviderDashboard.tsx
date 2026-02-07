@@ -325,6 +325,8 @@ export const ServiceProviderDashboard: React.FC = () => {
         (payload) => {
           console.log('Realtime update:', payload);
           
+          const currentProviderId = getProviderProfileId();
+          
           // Se for UPDATE e envolver o serviço selecionado no modal
           if (payload.eventType === 'UPDATE' && 
               selectedRequest?.id === payload.new.id &&
@@ -332,7 +334,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             
             // Verificar se foi aceito por outro prestador
             if (payload.new.provider_id !== null && 
-                payload.new.provider_id !== getProviderProfileId()) {
+                payload.new.provider_id !== currentProviderId) {
               toast({
                 title: "Serviço Não Disponível",
                 description: "Este serviço foi aceito por outro prestador.",
@@ -343,8 +345,18 @@ export const ServiceProviderDashboard: React.FC = () => {
             }
           }
           
-          // Recarregar apenas disponíveis
-          fetchServiceRequests({ scope: 'available', silent: true });
+          // ✅ FIX: Se o update envolve serviço do próprio prestador (status mudou, etc.)
+          // precisamos recarregar TUDO (scope: 'all') para atualizar ownRequests
+          const isOwnService = payload.new && 
+            (payload.new as any).provider_id === currentProviderId;
+          
+          if (isOwnService) {
+            // Serviço do próprio prestador mudou (ex: COMPLETED) → refetch completo
+            fetchServiceRequests({ scope: 'all', silent: true });
+          } else {
+            // Serviço de outro → apenas disponíveis
+            fetchServiceRequests({ scope: 'available', silent: true });
+          }
         }
       )
       .subscribe();
