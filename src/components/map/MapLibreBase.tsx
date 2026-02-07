@@ -90,8 +90,8 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
   onMarkerClick,
   children,
 }, ref) => {
-  // 🔍 DEBUG ETAPA 1: Provar que markers chegam no componente
-  console.log("[MapLibreBase] markers prop:", markers, "count:", markers?.length);
+  // Markers chegam no componente
+  if (markers?.length) console.log("[MapLibreBase] markers count:", markers.length);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 1. Verificar suporte WebGL
@@ -195,13 +195,24 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
   return (
     <div 
       className={cn("relative rounded-lg overflow-hidden", className)}
-      style={{ minHeight: `${minHeight}px` }}
+      style={{ 
+        minHeight: `${minHeight}px`,
+        /* ✅ Containment: isola o mapa de reflows e transforms de ancestrais (Dialog/Drawer) */
+        contain: 'layout style paint',
+        isolation: 'isolate',
+      }}
     >
-      {/* Container do mapa - dimensões explícitas + transform:none para isolar de ancestrais com scale */}
+      {/* Container do mapa - transform:none + contain:strict para barreira completa */}
       <div 
         ref={containerRef}
         className="absolute inset-0"
-        style={{ width: '100%', height: '100%', transform: 'none' }}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          transform: 'none',
+          /* ✅ contain:strict cria containing block próprio - markers posicionam relativo a ESTE elemento */
+          contain: 'strict',
+        }}
       />
 
       {/* Loading overlay - Skeleton padronizado */}
