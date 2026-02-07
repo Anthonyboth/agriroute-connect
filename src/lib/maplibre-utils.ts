@@ -79,11 +79,11 @@ export function createTruckMarkerElement(isOnline: boolean = true): HTMLDivEleme
     </div>
   `;
   
-  // ✅ Garantir SVG com display block
+  // ✅ SVG com dimensões FIXAS em px (nunca 100% — evita herança de scale de ancestrais)
   const svgEl = root.querySelector('svg');
   if (svgEl) {
-    svgEl.setAttribute('width', '100%');
-    svgEl.setAttribute('height', '100%');
+    svgEl.setAttribute('width', '40');
+    svgEl.setAttribute('height', '40');
     svgEl.style.display = 'block';
     svgEl.style.maxWidth = 'none';
     svgEl.style.maxHeight = 'none';
@@ -120,11 +120,11 @@ export function createLocationMarkerElement(type: 'origin' | 'destination'): HTM
     </div>
   `;
   
-  // ✅ Garantir SVG com display block
+  // ✅ SVG com dimensões FIXAS em px (nunca 100% — evita herança de scale de ancestrais)
   const svgEl = root.querySelector('svg');
   if (svgEl) {
-    svgEl.setAttribute('width', '100%');
-    svgEl.setAttribute('height', '100%');
+    svgEl.setAttribute('width', '32');
+    svgEl.setAttribute('height', '40');
     svgEl.style.display = 'block';
     svgEl.style.maxWidth = 'none';
     svgEl.style.maxHeight = 'none';
