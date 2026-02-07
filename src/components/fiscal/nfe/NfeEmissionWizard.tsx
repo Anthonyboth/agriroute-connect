@@ -27,6 +27,7 @@ import { useFiscalPreValidation } from "@/hooks/useFiscalPreValidation";
 import { usePixPayment } from "@/hooks/usePixPayment";
 import { useFiscalDocumentCredits } from "@/hooks/useFiscalDocumentCredits";
 import { AptidaoWizardStep0, StateGuideViewer } from "@/components/fiscal/education";
+import { extractPaymentRequired } from "@/lib/payment-required";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -523,44 +524,28 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         },
       });
 
-      // ✅ Tratamento robusto: erro pode vir em `error` OU em `data`
+      // ✅ FIX B: Tratamento unificado de PAYMENT_REQUIRED (data OU error.context)
+      const paymentCheck = await extractPaymentRequired(data, error);
+      if (paymentCheck.required) {
+        console.log("[NFE] Pagamento obrigatório:", paymentCheck);
+        setPaymentDocumentRef(paymentCheck.document_ref || `nfe_${Date.now()}`);
+        setRequiredAmountCentavos(paymentCheck.amount_centavos ?? null);
+        setShowPixModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Tratamento de erro genérico (não é PAYMENT_REQUIRED)
       if (error) {
         console.error("[NFE] invoke error:", error);
-
         const parsedBody = await extractInvokeErrorBody(error);
         const bodyMsg = parsedBody?.message || parsedBody?.error;
-        const code = parsedBody?.code;
-
-        // ✅ Tratamento especial para PAYMENT_REQUIRED
-        if (code === "PAYMENT_REQUIRED") {
-          console.log("[NFE] Pagamento obrigatório:", parsedBody);
-          const docRef = parsedBody?.document_ref || `nfe_${Date.now()}`;
-          setPaymentDocumentRef(docRef);
-          setRequiredAmountCentavos(
-            typeof parsedBody?.amount_centavos === "number" ? parsedBody.amount_centavos : null,
-          );
-          setShowPixModal(true);
-          setIsSubmitting(false);
-          return;
-        }
-
         const msg = bodyMsg || error.message || "Erro ao chamar o servidor fiscal.";
         throw new Error(msg);
       }
 
-      // ✅ Verifica se data indica erro
+      // Verifica se data indica erro
       if (!data?.success) {
-        // ✅ Tratamento especial para PAYMENT_REQUIRED
-        if (data?.code === 'PAYMENT_REQUIRED') {
-          console.log('[NFE] Pagamento obrigatório (via data):', data);
-          const docRef = data?.document_ref || `nfe_${Date.now()}`;
-          setPaymentDocumentRef(docRef);
-          setRequiredAmountCentavos(typeof data?.amount_centavos === 'number' ? data.amount_centavos : null);
-          setShowPixModal(true);
-          setIsSubmitting(false);
-          return;
-        }
-        
         const errMsg = data?.message || data?.error || "Falha ao emitir NF-e.";
         console.warn("[NFE] Response não-sucesso:", data);
         throw new Error(errMsg);
