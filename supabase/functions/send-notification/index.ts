@@ -164,17 +164,17 @@ serve(async (req) => {
           // Check if target is assigned driver on this freight
           const { data: targetAssignment } = await adminClient
             .from('freight_assignments')
-            .select('id, driver_profile_id')
+            .select('id, driver_id')
             .eq('freight_id', freightId)
-            .eq('driver_profile_id', user_id)
+            .eq('driver_id', user_id)
             .maybeSingle();
           
           // Check if caller is assigned driver on this freight
           const { data: callerAssignment } = await adminClient
             .from('freight_assignments')
-            .select('id, driver_profile_id')
+            .select('id, driver_id')
             .eq('freight_id', freightId)
-            .eq('driver_profile_id', callerProfileId)
+            .eq('driver_id', callerProfileId)
             .maybeSingle();
           
           const isTargetProducer = freight.producer_id === user_id;
