@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useChatAttachments } from '@/hooks/useChatAttachments';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DriverChatTabProps {
   companyId: string;
@@ -25,8 +26,12 @@ export const DriverChatTab = ({
   companyId, 
   driverProfileId, 
   chatEnabledAt,
-  currentUserId
+  currentUserId: propCurrentUserId
 }: DriverChatTabProps) => {
+  const { profile } = useAuth();
+  // Usa prop se disponível, senão resolve via useAuth
+  const currentUserId = propCurrentUserId || profile?.id || null;
+  
   const [newMessage, setNewMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +42,7 @@ export const DriverChatTab = ({
     driverProfileId
   );
   
-  // Hook para upload de anexos
+  // Hook para upload de anexos - usa currentUserId resolvido
   const { uploadImage: uploadImageAttachment, uploadFile: uploadFileAttachment, isUploading } = useChatAttachments(currentUserId || driverProfileId);
 
   // Auto-scroll para última mensagem
