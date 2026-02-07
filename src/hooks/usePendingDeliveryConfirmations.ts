@@ -211,13 +211,17 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       
       const uniquePendingFreightIds = [...new Set(pendingDriverFreightPairs.map(p => p.freight_id))];
       
+      // ✅ CORREÇÃO CRÍTICA: Só filtrar entregas onde o pagamento JÁ FOI PAGO pelo produtor
+      // O status 'proposed' é criado AUTOMATICAMENTE quando o motorista reporta entrega,
+      // então NÃO deve ser usado para filtrar. Só filtramos quando o produtor já agiu
+      // (paid_by_producer, confirmed, accepted) — significando que a entrega já foi confirmada.
       const { data: existingPayments } = await supabase
         .from('external_payments')
-        .select('freight_id, driver_id')
+        .select('freight_id, driver_id, status')
         .in('freight_id', uniquePendingFreightIds)
-        .not('status', 'eq', 'cancelled');
+        .in('status', ['paid_by_producer', 'confirmed', 'accepted']);
 
-      // Criar set de "já confirmados" para lookup rápido
+      // Criar set de "já confirmados pelo produtor" para lookup rápido
       const confirmedSet = new Set(
         (existingPayments || []).map((ep: any) => `${ep.freight_id}_${ep.driver_id}`)
       );
