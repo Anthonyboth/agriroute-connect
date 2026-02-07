@@ -351,11 +351,11 @@ export const ServiceProviderDashboard: React.FC = () => {
             (payload.new as any).provider_id === currentProviderId;
           
           if (isOwnService) {
-            // Serviço do próprio prestador mudou (ex: COMPLETED) → refetch completo
-            fetchServiceRequests({ scope: 'all', silent: true });
+            // Serviço do próprio prestador mudou (ex: COMPLETED) → refetch completo sem spatial
+            fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
           } else {
-            // Serviço de outro → apenas disponíveis
-            fetchServiceRequests({ scope: 'available', silent: true });
+            // Serviço de outro → apenas disponíveis sem spatial
+            fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true });
           }
         }
       )
@@ -375,7 +375,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         },
         (payload) => {
           console.log('Profile update detected for provider, refetching...', payload?.new?.id);
-          fetchServiceRequests({ scope: 'available', silent: true });
+          fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true });
         }
       )
       .subscribe();
@@ -400,7 +400,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             payload.old?.is_active !== payload.new?.is_active;
           
           if (relevantChanges.includes(payload.eventType) || isActiveToggle) {
-            fetchServiceRequests({ scope: 'available', silent: true });
+            fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true });
           }
           // Ignorar updates de radius_km - não afetam disponibilidade
         }
@@ -412,7 +412,7 @@ export const ServiceProviderDashboard: React.FC = () => {
     const AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutos
     const interval = setInterval(() => {
       console.log('[ServiceProviderDashboard] Auto-refresh (10min)');
-      fetchServiceRequests({ scope: 'available', silent: true });
+      fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true });
       fetchTotalEarnings();
     }, AUTO_REFRESH_MS);
 
@@ -457,7 +457,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           });
           setShowRequestModal(false);
           setSelectedRequest(null);
-          fetchServiceRequests({ scope: 'all', silent: true });
+          fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
           return; // não re-agendar
         }
 
@@ -479,13 +479,15 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const fetchServiceRequests = async (options: { 
     scope?: 'all' | 'available'; 
-    silent?: boolean 
+    silent?: boolean;
+    /** ✅ PERF: Pular spatial matching em refetches de status change */
+    skipSpatialMatching?: boolean;
   } = {}) => {
-    const { scope = 'all', silent = true } = options;
+    const { scope = 'all', silent = true, skipSpatialMatching = false } = options;
     
-    // Throttle: minimum 10s between non-manual fetches
+    // ✅ PERF: Throttle reduzido para 3s (era 10s)
     const now = Date.now();
-    if (silent && (now - lastFetchRef.current) < 10000) {
+    if (silent && (now - lastFetchRef.current) < 3000) {
       console.log('Throttled fetch request');
       return;
     }
@@ -518,28 +520,32 @@ export const ServiceProviderDashboard: React.FC = () => {
         timestamp: new Date().toISOString()
       });
 
-      // 1. Execute spatial matching (não crítico se falhar)
-      console.log('🔍 Executing spatial matching for provider...');
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
-          'provider-spatial-matching',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
+      // 1. Execute spatial matching APENAS no carregamento inicial (não em status changes)
+      if (!skipSpatialMatching) {
+        console.log('🔍 Executing spatial matching for provider...');
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
+            'provider-spatial-matching',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
+              }
             }
-          }
-        );
+          );
 
-        if (spatialError) {
-          console.warn('Spatial matching warning:', spatialError);
-        } else {
-          console.log('Spatial matching completed:', spatialData);
+          if (spatialError) {
+            console.warn('Spatial matching warning:', spatialError);
+          } else {
+            console.log('Spatial matching completed:', spatialData);
+          }
+        } catch (spatialError) {
+          console.warn('Spatial matching failed (non-critical):', spatialError);
         }
-      } catch (spatialError) {
-        console.warn('Spatial matching failed (non-critical):', spatialError);
+      } else {
+        console.log('⚡ Skipping spatial matching (status change refetch)');
       }
 
       // 2. Fetch based on scope
@@ -794,7 +800,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         description: "Solicitação aceita com sucesso!",
       });
 
-      fetchServiceRequests({ scope: 'all', silent: true });
+      fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
       fetchTotalEarnings();
     } catch (error: any) {
       console.error('Error accepting request:', error);
@@ -862,7 +868,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         }
         
         setShowRequestModal(false);
-        fetchServiceRequests({ scope: 'all', silent: true });
+        fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
         return;
       }
 
@@ -875,7 +881,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         });
         
         setShowRequestModal(false);
-        fetchServiceRequests({ scope: 'all', silent: true });
+        fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
         return;
       }
 
@@ -887,7 +893,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       // Fechar modal e atualizar
       setShowRequestModal(false);
-      fetchServiceRequests({ scope: 'all', silent: true });
+      fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
       fetchTotalEarnings();
       
       // Mudar para a aba de serviços ativos
@@ -908,9 +914,27 @@ export const ServiceProviderDashboard: React.FC = () => {
   // handleCompleteRequest REMOVIDO — toda transição de status agora passa pela RPC
   // transition_service_request_status, chamada pelo componente ServiceWorkflowActions.
 
-  const handleStatusChange = () => {
-    fetchServiceRequests({ scope: 'all', silent: true });
-    fetchTotalEarnings();
+  const handleStatusChange = (requestId: string, newStatus: string) => {
+    // ✅ PERF: Update otimista IMEDIATO — atualiza UI antes do refetch
+    setOwnRequests(prev => {
+      // Se COMPLETED, remover da aba "em andamento" imediatamente
+      if (newStatus === 'COMPLETED') {
+        const updated = prev.map(r => 
+          r.id === requestId ? { ...r, status: newStatus, completed_at: new Date().toISOString() } : r
+        );
+        return updated;
+      }
+      // Para outras transições (ON_THE_WAY, IN_PROGRESS), atualizar status in-place
+      return prev.map(r => 
+        r.id === requestId ? { ...r, status: newStatus, updated_at: new Date().toISOString() } : r
+      );
+    });
+
+    // Background refetch para consistência (sem spatial matching = rápido)
+    setTimeout(() => {
+      fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
+      fetchTotalEarnings();
+    }, 500);
   };
 
   const handleCancelService = async (requestId: string) => {
@@ -945,7 +969,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       setCancelDialogOpen(false);
       setServiceToCancel(null);
-      fetchServiceRequests({ scope: 'all', silent: true });
+      fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
     } catch (error: any) {
       console.error('Error canceling service:', error);
       toast({
@@ -1274,7 +1298,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    fetchServiceRequests({ scope: 'available', silent: true });
+                    fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true });
                   }}
                   className="text-xs h-7"
                   disabled={inFlightRef.current}

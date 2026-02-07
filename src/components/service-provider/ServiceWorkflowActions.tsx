@@ -34,7 +34,8 @@ interface ServiceWorkflowActionsProps {
   currentStatus: string;
   clientId: string | null;
   estimatedPrice?: number;
-  onStatusChange: () => void;
+  /** Callback com requestId e novo status para update otimista */
+  onStatusChange: (requestId: string, newStatus: string) => void;
   onOpenChat: () => void;
   onCancel: () => void;
 }
@@ -124,7 +125,8 @@ export const ServiceWorkflowActions: React.FC<ServiceWorkflowActionsProps> = ({
         description: result.message,
       });
 
-      onStatusChange();
+      // ✅ PERF: Passa requestId + newStatus para update otimista imediato
+      onStatusChange(requestId, targetStatus);
     } catch (err: any) {
       console.error('Erro na transição:', err);
       toast({
