@@ -2064,7 +2064,7 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-4">
-            <UnifiedChatHub userProfileId={profile?.id} userRole="PRODUTOR" />
+            <UnifiedChatHub userProfileId={profile?.id || ''} userRole="PRODUTOR" />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">

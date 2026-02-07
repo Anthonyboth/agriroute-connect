@@ -38,6 +38,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
   const { data: rawConversations = [], isLoading } = useQuery({
     queryKey: ['unified-chats', userProfileId, userRole],
     queryFn: async () => {
+      console.log('[useUnifiedChats] queryFn executando para:', { userProfileId, userRole });
       const allConversations: ChatConversation[] = [];
 
       // 1. FRETES COM CHAT - Query refatorada em 3 etapas para evitar 400
@@ -277,6 +278,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
         if (servicesError) {
           console.error('[useUnifiedChats] Erro ao buscar serviços:', servicesError);
         }
+        console.log('[useUnifiedChats] Serviços encontrados:', userServices?.length || 0, 'error:', servicesError?.message || 'none');
 
         const serviceIds = (userServices || []).map((s: any) => s.id);
 
@@ -291,6 +293,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           if (messagesError) {
             console.error('[useUnifiedChats] Erro ao buscar service_messages:', messagesError);
           }
+          console.log('[useUnifiedChats] Service messages encontradas:', messages?.length || 0, 'para serviceIds:', serviceIds.length);
 
           // Etapa 3: Buscar perfis necessários (usar profiles_secure para respeitar PII)
           const clientIds = [...new Set((userServices || []).map((s: any) => s.client_id).filter(Boolean))];
@@ -527,6 +530,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       // 5. SOLICITAÇÕES DE DOCUMENTOS agora aparecem dentro do DIRECT_CHAT
       // Não precisamos criar conversas separadas para document_requests
 
+      console.log('[useUnifiedChats] Total conversas retornadas:', allConversations.length, allConversations.map(c => ({ id: c.id, type: c.type, closed: c.isClosed })));
       return allConversations;
     },
     enabled: !!userProfileId && !!userRole,
