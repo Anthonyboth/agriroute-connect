@@ -258,14 +258,21 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       // 2. SERVIÇOS - Query refatorada em 3 etapas
       if (['PRODUTOR', 'PRESTADOR_SERVICO', 'PRESTADOR_SERVICOS'].includes(userRole)) {
         // Etapa 1: Buscar serviços básicos do usuário
-        const { data: userServices, error: servicesError } = await supabase
+        // Determinar se o usuário é prestador ou cliente
+        const isProvider = userRole === 'PRESTADOR_SERVICO' || userRole === 'PRESTADOR_SERVICOS';
+        
+        let serviceQuery = supabase
           .from('service_requests')
-          .select('id, service_type, client_id, provider_id')
-          .or(
-            userRole === 'PRESTADOR_SERVICO'
-              ? `provider_id.eq.${userProfileId}`
-              : `client_id.eq.${userProfileId}`
-          );
+          .select('id, service_type, client_id, provider_id, status');
+
+        if (isProvider) {
+          serviceQuery = serviceQuery.eq('provider_id', userProfileId);
+        } else {
+          // PRODUTOR busca como cliente E também como provider (pode ter ambos os papéis)
+          serviceQuery = serviceQuery.or(`client_id.eq.${userProfileId},provider_id.eq.${userProfileId}`);
+        }
+
+        const { data: userServices, error: servicesError } = await serviceQuery;
 
         if (servicesError) {
           console.error('[useUnifiedChats] Erro ao buscar serviços:', servicesError);
@@ -275,28 +282,35 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
 
         if (serviceIds.length > 0) {
           // Etapa 2: Buscar mensagens SEM JOINS
-          const { data: messages } = await supabase
+          const { data: messages, error: messagesError } = await supabase
             .from('service_messages')
             .select('service_request_id, message, created_at, sender_id, read_at, chat_closed_by')
             .in('service_request_id', serviceIds)
             .order('created_at', { ascending: false });
 
-          // Etapa 3: Buscar perfis necessários
+          if (messagesError) {
+            console.error('[useUnifiedChats] Erro ao buscar service_messages:', messagesError);
+          }
+
+          // Etapa 3: Buscar perfis necessários (usar profiles_secure para respeitar PII)
           const clientIds = [...new Set((userServices || []).map((s: any) => s.client_id).filter(Boolean))];
           const providerIds = [...new Set((userServices || []).map((s: any) => s.provider_id).filter(Boolean))];
+          const allProfileIds = [...new Set([...clientIds, ...providerIds])];
           
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', [...clientIds, ...providerIds]);
+          let profileMap = new Map<string, any>();
+          if (allProfileIds.length > 0) {
+            const { data: profiles } = await (supabase as any)
+              .from('profiles_secure')
+              .select('id, full_name')
+              .in('id', allProfileIds);
+            profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+          }
 
-          // Criar mapa de perfis para lookup rápido
-          const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
           const serviceMap = new Map((userServices || []).map((s: any) => [s.id, s]) || []);
 
           // Agrupar mensagens por service_request_id
           const conversationMap = new Map();
-          messages?.forEach((msg: any) => {
+          (messages || []).forEach((msg: any) => {
             const service = serviceMap.get(msg.service_request_id);
             if (!service) return;
 
@@ -304,6 +318,9 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
               const clientProfile = profileMap.get(service.client_id);
               const providerProfile = profileMap.get(service.provider_id);
               const isClosed = msg.chat_closed_by?.[userProfileId] === true;
+              
+              // Determinar o "outro participante" baseado no papel do usuário
+              const isCurrentUserProvider = service.provider_id === userProfileId;
               
               conversationMap.set(msg.service_request_id, {
                 id: `service-${msg.service_request_id}`,
@@ -313,13 +330,14 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 lastMessageTime: msg.created_at,
                 unreadCount: 0,
                 otherParticipant: {
-                  name: userRole === 'PRESTADOR_SERVICO'
+                  name: isCurrentUserProvider
                     ? clientProfile?.full_name || 'Cliente'
                     : providerProfile?.full_name || 'Prestador',
                 },
                 participants: [
-                  ...(clientProfile ? [{ id: service.client_id, name: clientProfile.full_name || 'Cliente', role: 'PRODUTOR' as const }] : []),
-                  ...(providerProfile ? [{ id: service.provider_id, name: providerProfile.full_name || 'Prestador', role: 'PRESTADOR_SERVICO' as const }] : []),
+                  // Sempre incluir participantes mesmo sem perfil carregado
+                  { id: service.client_id, name: clientProfile?.full_name || 'Cliente', role: 'PRODUTOR' as const },
+                  ...(service.provider_id ? [{ id: service.provider_id, name: providerProfile?.full_name || 'Prestador', role: 'PRESTADOR_SERVICO' as const }] : []),
                 ],
                 metadata: { serviceRequestId: service.id },
                 isClosed,
