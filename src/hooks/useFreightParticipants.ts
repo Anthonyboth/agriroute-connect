@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserDisplayId, maskDisplayId } from '@/lib/user-display-id';
+import { isDriverStillActive, getDriverEffectiveStatus } from '@/lib/driver-effective-status';
 
 // =====================================================
 // TIPOS
@@ -162,13 +163,40 @@ export const useFreightParticipants = ({
 
       if (assignmentsError) throw assignmentsError;
 
+      // 2b. ✅ CORREÇÃO: Cross-reference com driver_trip_progress para obter status REAL
+      // O sync de trip_progress → assignments pode falhar silenciosamente, deixando
+      // assignment.status = 'ACCEPTED' enquanto trip_progress = 'DELIVERED'
+      const driverIdsForProgress = (assignmentsData || [])
+        .map(a => a.driver_id)
+        .filter(Boolean);
+
+      const tripProgressMap = new Map<string, string>();
+      
+      if (driverIdsForProgress.length > 0) {
+        const { data: tripProgressData } = await supabase
+          .from('driver_trip_progress')
+          .select('driver_id, current_status')
+          .eq('freight_id', freightId)
+          .in('driver_id', driverIdsForProgress);
+
+        (tripProgressData || []).forEach(tp => {
+          tripProgressMap.set(tp.driver_id, tp.current_status);
+        });
+      }
+
+      // 2c. Filtrar motoristas que já terminaram (trip_progress diz DELIVERED/COMPLETED/CANCELLED)
+      const activeAssignments = (assignmentsData || []).filter(assignment => {
+        const tripStatus = tripProgressMap.get(assignment.driver_id);
+        return isDriverStillActive(assignment.status, tripStatus);
+      });
+
       // 3. Coletar todos os IDs únicos para buscar perfis
       const allProfileIds = new Set<string>();
       allProfileIds.add(freightData.producer_id);
       
       const companyIds = new Set<string>();
       
-      (assignmentsData || []).forEach(assignment => {
+      activeAssignments.forEach(assignment => {
         if (assignment.driver_id) {
           allProfileIds.add(assignment.driver_id);
         }
@@ -251,7 +279,8 @@ export const useFreightParticipants = ({
       const processedCompanies = new Set<string>();
 
       // 7. Montar motoristas - ✅ Inclui Display ID para tracking interno
-      (assignmentsData || []).forEach(assignment => {
+      // ✅ Usa activeAssignments (filtrado por trip_progress) em vez de assignmentsData
+      activeAssignments.forEach(assignment => {
         const driverProfile = profilesMap.get(assignment.driver_id);
         
         if (driverProfile) {

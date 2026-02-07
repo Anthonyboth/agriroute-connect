@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/maplibre-utils';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 import { toFiniteNumber } from '@/lib/geo/toFiniteNumber';
+import { isDriverStillActive } from '@/lib/driver-effective-status';
 
 export interface DriverLocationData {
   driverId: string;
@@ -81,13 +82,41 @@ export function useMultiDriverLocations(freightId: string | null): UseMultiDrive
       }
 
       const driverIds = assignments.map(a => a.driver_id).filter(Boolean);
-      console.log('[useMultiDriverLocations] Found', driverIds.length, 'assigned drivers');
+
+      // ✅ CORREÇÃO: Cross-reference com driver_trip_progress para excluir motoristas que já entregaram
+      const tripProgressMap = new Map<string, string>();
+      if (driverIds.length > 0) {
+        const { data: tripProgressData } = await supabase
+          .from('driver_trip_progress')
+          .select('driver_id, current_status')
+          .eq('freight_id', freightId)
+          .in('driver_id', driverIds);
+
+        (tripProgressData || []).forEach(tp => {
+          tripProgressMap.set(tp.driver_id, tp.current_status);
+        });
+      }
+
+      // Filtrar assignments cujo trip_progress diz que já entregaram
+      const activeAssignments = assignments.filter(a => {
+        const tripStatus = tripProgressMap.get(a.driver_id);
+        return isDriverStillActive(a.status, tripStatus);
+      });
+
+      const activeDriverIds = activeAssignments.map(a => a.driver_id).filter(Boolean);
+      console.log('[useMultiDriverLocations] Found', activeDriverIds.length, 'active drivers (filtered from', driverIds.length, 'total)');
+
+      if (activeDriverIds.length === 0) {
+        console.log('[useMultiDriverLocations] All drivers have delivered/completed');
+        setDrivers([]);
+        return;
+      }
 
       // 2. Buscar perfis dos motoristas (via view segura)
       const { data: profiles } = await supabase
         .from('profiles_secure')
         .select('id, full_name, profile_photo_url')
-        .in('id', driverIds);
+        .in('id', activeDriverIds);
 
       const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
@@ -95,7 +124,7 @@ export function useMultiDriverLocations(freightId: string | null): UseMultiDrive
       const { data: locations } = await supabase
         .from('driver_current_locations')
         .select('driver_profile_id, lat, lng, last_gps_update')
-        .in('driver_profile_id', driverIds);
+        .in('driver_profile_id', activeDriverIds);
 
       const locationsMap = new Map(locations?.map(l => [l.driver_profile_id, l]) || []);
 
@@ -103,7 +132,7 @@ export function useMultiDriverLocations(freightId: string | null): UseMultiDrive
       const { data: vehicles } = await supabase
         .from('vehicles')
         .select('driver_id, vehicle_type, license_plate')
-        .in('driver_id', driverIds)
+        .in('driver_id', activeDriverIds)
         .eq('status', 'ATIVO');
 
       const vehiclesMap = new Map<string, { vehicle_type: string; license_plate: string }>();
@@ -114,7 +143,7 @@ export function useMultiDriverLocations(freightId: string | null): UseMultiDrive
       });
 
       // 5. Montar dados consolidados
-      const driversData: DriverLocationData[] = assignments.map(assignment => {
+      const driversData: DriverLocationData[] = activeAssignments.map(assignment => {
         const profile = profilesMap.get(assignment.driver_id);
         const location = locationsMap.get(assignment.driver_id);
         const vehicle = vehiclesMap.get(assignment.driver_id);

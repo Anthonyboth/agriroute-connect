@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { TERMINAL_TRIP_STATUSES } from '@/lib/driver-effective-status';
 
 interface ActiveFreightInfo {
   hasActiveFreight: boolean;
@@ -56,17 +57,41 @@ export const useActiveFreight = (): ActiveFreightInfo => {
           .select('id, freight_id, status')
           .eq('driver_id', profile.id)
           .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
-          .limit(1)
-          .maybeSingle();
+          .limit(5);
 
-        if (assignments) {
-          setInfo({
-            hasActiveFreight: true,
-            activeFreightId: assignments.freight_id,
-            activeFreightType: 'assignment',
-            isLoading: false
+        // ✅ CORREÇÃO: Cross-reference com driver_trip_progress para detectar motoristas
+        // que já entregaram mas cujo assignment.status ficou dessincronizado
+        if (assignments && assignments.length > 0) {
+          const freightIdsToCheck = assignments.map(a => a.freight_id);
+          
+          const { data: tripProgress } = await supabase
+            .from('driver_trip_progress')
+            .select('freight_id, current_status')
+            .eq('driver_id', profile.id)
+            .in('freight_id', freightIdsToCheck);
+
+          const tripMap = new Map(
+            (tripProgress || []).map(tp => [tp.freight_id, tp.current_status])
+          );
+
+          // Encontrar o primeiro assignment cujo trip_progress NÃO está em estado terminal
+          const activeAssignment = assignments.find(a => {
+            const tripStatus = tripMap.get(a.freight_id);
+            // Se não há trip_progress, confiar no assignment status
+            if (!tripStatus) return true;
+            // Se trip_progress está em terminal, motorista já entregou
+            return !TERMINAL_TRIP_STATUSES.includes(tripStatus as any);
           });
-          return;
+
+          if (activeAssignment) {
+            setInfo({
+              hasActiveFreight: true,
+              activeFreightId: activeAssignment.freight_id,
+              activeFreightType: 'assignment',
+              isLoading: false
+            });
+            return;
+          }
         }
 
         // Verificar serviços urbanos (GUINCHO/MUDANCA)
