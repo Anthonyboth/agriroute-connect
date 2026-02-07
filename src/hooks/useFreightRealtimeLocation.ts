@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/maplibre-utils';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
+import { isDriverStillActive } from '@/lib/driver-effective-status';
 
 function toFiniteNumber(v: unknown): number | null {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -103,6 +104,9 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           .limit(10);
 
         const assignedDriverIds = assignments?.map(a => a.driver_id).filter(Boolean) || [];
+        const assignmentStatusMap = new Map(
+          (assignments || []).map(a => [a.driver_id, a.status])
+        );
         
         // Adicionar driver_id principal e drivers_assigned se existirem
         if (data?.driver_id) assignedDriverIds.push(data.driver_id);
@@ -111,7 +115,25 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
         }
         
         // Remover duplicatas
-        const uniqueDriverIds = [...new Set(assignedDriverIds)];
+        let uniqueDriverIds = [...new Set(assignedDriverIds)];
+
+        // ✅ CORREÇÃO: Cross-reference com driver_trip_progress para excluir motoristas que já entregaram
+        if (uniqueDriverIds.length > 0) {
+          const { data: tripProgressData } = await supabase
+            .from('driver_trip_progress')
+            .select('driver_id, current_status')
+            .eq('freight_id', freightId)
+            .in('driver_id', uniqueDriverIds);
+
+          if (tripProgressData && tripProgressData.length > 0) {
+            const tripMap = new Map(tripProgressData.map(tp => [tp.driver_id, tp.current_status]));
+            uniqueDriverIds = uniqueDriverIds.filter(id => {
+              const tripStatus = tripMap.get(id);
+              const assignStatus = assignmentStatusMap.get(id);
+              return isDriverStillActive(assignStatus, tripStatus);
+            });
+          }
+        }
         
         // ✅ Salvar IDs para subscription realtime
         setAssignedDriverIds(uniqueDriverIds);
