@@ -26,7 +26,7 @@ import { PixPaymentModal } from "@/components/fiscal/PixPaymentModal";
 import { useFiscalPreValidation } from "@/hooks/useFiscalPreValidation";
 import { usePixPayment } from "@/hooks/usePixPayment";
 import { useFiscalDocumentCredits } from "@/hooks/useFiscalDocumentCredits";
-import { AptidaoWizardStep0, StateGuideViewer } from "@/components/fiscal/education";
+import { AptidaoWizardStep0, StateGuideViewer, MeiCredenciamentoNfeModal } from "@/components/fiscal/education";
 import { extractPaymentRequired } from "@/lib/payment-required";
 
 interface NfeEmissionWizardProps {
@@ -115,6 +115,11 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   const [showAptidaoStep0, setShowAptidaoStep0] = useState(false);
   const [aptidaoStep0Completed, setAptidaoStep0Completed] = useState(false);
   const [showNfaGuide, setShowNfaGuide] = useState(false);
+
+  // ✅ CREDENCIAMENTO MEI: Verificação obrigatória SEFAZ para MEI + NF-e
+  const [showMeiCredenciamento, setShowMeiCredenciamento] = useState(false);
+  const [meiCredenciamentoConfirmed, setMeiCredenciamentoConfirmed] = useState(false);
+  const [userIsMei, setUserIsMei] = useState(false);
 
   const step0HasIE = !!fiscalIssuer?.inscricao_estadual;
   const step0HasCertificate = useMemo(() => {
@@ -336,6 +341,10 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     setAptidaoStep0Completed(false);
     setShowNfaGuide(false);
     setIsPaid(false);
+    // MEI credenciamento deve ser reavaliado a cada abertura
+    setShowMeiCredenciamento(false);
+    setMeiCredenciamentoConfirmed(false);
+    setUserIsMei(false);
   }, [isOpen]);
 
   // Campos que devem ser convertidos para CAIXA ALTA automaticamente
@@ -701,6 +710,12 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     // ✅ Etapa 0 obrigatória: sempre orientar MEI/UF/perfil antes de emitir/pagar
     if (!aptidaoStep0Completed) {
       setShowAptidaoStep0(true);
+      return;
+    }
+
+    // ✅ MEI: Exigir credenciamento SEFAZ antes de qualquer PIX ou emissão
+    if (userIsMei && !meiCredenciamentoConfirmed) {
+      setShowMeiCredenciamento(true);
       return;
     }
 
@@ -1136,9 +1151,19 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
                 setShowNfaGuide(true);
               }
             }}
-            onContinue={async () => {
+            onContinue={async (context) => {
               setAptidaoStep0Completed(true);
               setShowAptidaoStep0(false);
+
+              // ✅ Se MEI identificado, exigir verificação de credenciamento antes de continuar
+              if (context?.isMei) {
+                setUserIsMei(true);
+                if (!meiCredenciamentoConfirmed) {
+                  setShowMeiCredenciamento(true);
+                  return; // Bloqueia até confirmar credenciamento
+                }
+              }
+
               // Depois da etapa 0, seguimos com o fluxo normal (pré-validação, PIX, emissão)
               await submitAfterAptidaoStep0();
             }}
@@ -1162,6 +1187,26 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
           />
         </DialogContent>
       </Dialog>
+
+      {/* ✅ CREDENCIAMENTO MEI: Modal obrigatório para MEI tentando NF-e */}
+      <MeiCredenciamentoNfeModal
+        open={showMeiCredenciamento}
+        onClose={() => setShowMeiCredenciamento(false)}
+        onConfirmed={async () => {
+          setMeiCredenciamentoConfirmed(true);
+          setShowMeiCredenciamento(false);
+          // Continuar com o fluxo normal após confirmação do credenciamento
+          await submitAfterAptidaoStep0();
+        }}
+        onCancelEmission={() => {
+          setShowMeiCredenciamento(false);
+          // Não reseta aptidaoStep0Completed para não forçar refazer
+        }}
+        onUseNfa={() => {
+          setShowMeiCredenciamento(false);
+          setShowNfaGuide(true);
+        }}
+      />
 
       {/* Modal de erro SEFAZ detalhado */}
       <SefazErrorModal
