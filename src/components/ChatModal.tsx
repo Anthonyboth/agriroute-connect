@@ -79,26 +79,42 @@ export const ChatModal = ({
   });
 
   // ✅ SEGURANÇA: Usar view segura - telefone mascarado para não-participantes
+  // ✅ FIX: Queries separadas para evitar FK hints em views (que podem falhar silenciosamente)
   const { data: serviceData } = useQuery({
     queryKey: ['service-chat-data-secure', conversation?.metadata?.serviceRequestId],
     queryFn: async () => {
       if (conversation?.type !== 'SERVICE') return null;
-      const { data } = await supabase
+      
+      // Query 1: Dados básicos do serviço (sem FK joins na view)
+      const { data: serviceReq, error: serviceErr } = await supabase
         .from('service_requests_secure')
-        .select(`
-          id,
-          status,
-          service_type,
-          client_id,
-          provider_id,
-          contact_phone,
-          contact_name,
-          client:profiles!service_requests_client_id_fkey(id, full_name, phone),
-          provider:profiles!service_requests_provider_id_fkey(id, full_name, phone)
-        `)
+        .select('id, status, service_type, client_id, provider_id, contact_phone, contact_name')
         .eq('id', conversation.metadata.serviceRequestId)
         .maybeSingle();
-      return data;
+      
+      if (serviceErr || !serviceReq) {
+        console.error('[ChatModal] Erro ao buscar service_request:', serviceErr);
+        return null;
+      }
+      
+      // Query 2: Buscar perfis dos participantes separadamente (via profiles_secure)
+      const profileIds = [serviceReq.client_id, serviceReq.provider_id].filter(Boolean);
+      let profileMap = new Map<string, any>();
+      
+      if (profileIds.length > 0) {
+        const { data: profiles } = await (supabase as any)
+          .from('profiles_secure')
+          .select('id, full_name, phone')
+          .in('id', profileIds);
+        
+        (profiles || []).forEach((p: any) => profileMap.set(p.id, p));
+      }
+      
+      return {
+        ...serviceReq,
+        client: serviceReq.client_id ? profileMap.get(serviceReq.client_id) || null : null,
+        provider: serviceReq.provider_id ? profileMap.get(serviceReq.provider_id) || null : null,
+      };
     },
     enabled: conversation?.type === 'SERVICE' && isOpen,
   });
@@ -157,7 +173,8 @@ export const ChatModal = ({
         );
 
       case 'SERVICE':
-        if (!serviceData) return <div className="p-4">Carregando...</div>;
+        // ✅ FIX: NÃO bloquear ServiceChat esperando serviceData
+        // ServiceChat tem seu próprio carregamento via useServiceChatConnection
         return (
           <ServiceChat
             serviceRequestId={conversation.metadata.serviceRequestId}
