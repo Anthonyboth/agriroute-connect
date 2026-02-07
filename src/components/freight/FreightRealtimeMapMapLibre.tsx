@@ -829,11 +829,11 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
   return (
     <div className={cn("relative rounded-lg overflow-hidden border border-border", className)} style={{ height: '280px', minHeight: '280px' }}>
-      {/* Mapa - IMPORTANTE: container precisa ter dimensões explícitas para MapLibre */}
+      {/* Mapa - IMPORTANTE: container com transform:none isola de ancestrais com scale */}
       <div 
         ref={mapContainerRef} 
         className="absolute inset-0"
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', transform: 'none' }}
       />
 
       {/* Status overlay */}

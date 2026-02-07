@@ -180,24 +180,34 @@ export function useMapLibreAutoResize(
       log('ResizeObserver configurado');
     }
 
-    // ✅ Listener de transitionend no container pai
-    // Isso captura quando animações de Drawer/Dialog terminam
+    // ✅ Listener de transitionend no container e ancestrais
+    // Captura quando animações de Drawer/Dialog terminam
     const handleTransitionEnd = (e: TransitionEvent) => {
-      // Apenas reagir a transições de transform/opacity (animações de Drawer)
-      if (e.propertyName === 'transform' || e.propertyName === 'opacity') {
+      // Reagir a transições de transform/opacity/translate (animações de Drawer/Dialog)
+      if (
+        e.propertyName === 'transform' ||
+        e.propertyName === 'opacity' ||
+        e.propertyName === 'translate'
+      ) {
         log('TransitionEnd detectado:', e.propertyName);
+        // Burst de resizes para garantir sincronização pós-animação
         raf(() => safeResize(true));
-        
-        // Executar mais alguns resizes para garantir
         timeout(() => safeResize(true), 50);
         timeout(() => safeResize(true), 150);
+        timeout(() => safeResize(true), 250);
+        timeout(() => safeResize(true), 600);
       }
     };
 
-    // Adicionar listener ao container e ancestrais próximos
-    container.addEventListener('transitionend', handleTransitionEnd);
-    container.parentElement?.addEventListener('transitionend', handleTransitionEnd);
-    container.parentElement?.parentElement?.addEventListener('transitionend', handleTransitionEnd);
+    // Adicionar listener ao container e até 4 ancestrais
+    // (Drawer/Dialog podem ter vários wrappers)
+    const ancestors: HTMLElement[] = [];
+    let el: HTMLElement | null = container;
+    for (let i = 0; i < 5 && el; i++) {
+      el.addEventListener('transitionend', handleTransitionEnd);
+      ancestors.push(el);
+      el = el.parentElement;
+    }
 
     // Também ouvir evento de resize da janela
     const handleWindowResize = () => {
@@ -210,9 +220,10 @@ export function useMapLibreAutoResize(
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
       window.removeEventListener('resize', handleWindowResize);
-      container.removeEventListener('transitionend', handleTransitionEnd);
-      container.parentElement?.removeEventListener('transitionend', handleTransitionEnd);
-      container.parentElement?.parentElement?.removeEventListener('transitionend', handleTransitionEnd);
+      // Remover listeners de todos os ancestrais registrados
+      for (const ancestor of ancestors) {
+        ancestor.removeEventListener('transitionend', handleTransitionEnd);
+      }
       log('Cleanup executado');
     };
   }, [mapRef.current, containerRef.current, scheduleResizes, raf, timeout, cancelAll, safeResize, log]);
