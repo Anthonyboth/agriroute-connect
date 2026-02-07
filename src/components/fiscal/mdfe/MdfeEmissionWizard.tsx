@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,9 @@ import { toast } from 'sonner';
 import { PixPaymentModal } from '@/components/fiscal/PixPaymentModal';
 import { FiscalPreValidationModal } from '@/components/fiscal/FiscalPreValidationModal';
 import { useFiscalPreValidation } from '@/hooks/useFiscalPreValidation';
+import { hasValidCertificate } from '@/lib/fiscal-certificate';
+import { extractPaymentRequired } from '@/lib/payment-required';
+import { AptidaoWizardStep0, StateGuideViewer } from '@/components/fiscal/education';
 
 interface MdfeEmissionWizardProps {
   isOpen: boolean;
@@ -56,13 +59,25 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
   // ✅ PRÉ-VALIDAÇÃO FISCAL: Estado do modal
   const [showPreValidationModal, setShowPreValidationModal] = useState(false);
 
+  // ✅ ETAPA 0 OBRIGATÓRIA: Aptidão fiscal (idêntico ao NF-e)
+  const [showAptidaoStep0, setShowAptidaoStep0] = useState(false);
+  const [aptidaoStep0Completed, setAptidaoStep0Completed] = useState(false);
+  const [showNfaGuide, setShowNfaGuide] = useState(false);
+
   // ✅ Hook de pré-validação fiscal para MDF-e
   const { validate, canEmit, blockers, warnings } = useFiscalPreValidation({
     fiscalIssuer,
     documentType: 'MDFE',
   });
 
-  const hasCertificate = !!fiscalIssuer?.certificate_uploaded_at;
+  // ✅ FIX A: Usar helper que verifica campos reais (status/sefaz_status)
+  const hasCertificate = hasValidCertificate(fiscalIssuer);
+
+  // ✅ FIX C: Dados para AptidaoWizardStep0
+  const step0HasIE = !!fiscalIssuer?.inscricao_estadual;
+  const step0HasCertificate = useMemo(() => {
+    return hasValidCertificate(fiscalIssuer);
+  }, [fiscalIssuer?.status, fiscalIssuer?.sefaz_status]);
 
   const handleAddDocumento = () => {
     if (documentos.length < 20) {
@@ -125,15 +140,15 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
         },
       });
 
-      // Tratar erro 402 - Pagamento necessário
-      if (data?.code === 'PAYMENT_REQUIRED') {
-        const docRef = data?.document_ref || `mdfe_${Date.now()}`;
-        const amount = data?.amount_centavos || 1000;
-        setPaymentDocumentRef(docRef);
-        setPaymentAmountCentavos(amount);
+      // ✅ FIX B: Tratamento unificado de PAYMENT_REQUIRED (data OU error.context)
+      const paymentCheck = await extractPaymentRequired(data, error);
+      if (paymentCheck.required) {
+        console.log('[MDFE] Pagamento obrigatório:', paymentCheck);
+        setPaymentDocumentRef(paymentCheck.document_ref || `mdfe_${Date.now()}`);
+        setPaymentAmountCentavos(paymentCheck.amount_centavos || 1000);
         setShowPixModal(true);
         setIsSubmitting(false);
-        return;
+        return; // SEM toast genérico de erro
       }
 
       if (error) throw error;
@@ -156,20 +171,31 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
     }
   }, [freightId, modo, documentos, onClose]);
 
-  const handleSubmit = async () => {
-    // ✅ PRÉ-VALIDAÇÃO FISCAL: ANTES de pagar ou emitir
+  // ✅ FIX C: Fluxo após Etapa 0 de Aptidão (idêntico ao NF-e)
+  const submitAfterAptidaoStep0 = useCallback(async () => {
+    // PRÉ-VALIDAÇÃO FISCAL: ANTES de pagar ou emitir
     if (!handlePreValidation()) {
       return; // Modal de bloqueio será exibido
     }
-    
+
     await executeEmission();
+  }, [handlePreValidation, executeEmission]);
+
+  // ✅ FIX C: handleSubmit verifica aptidão Step 0 ANTES de tudo
+  const handleSubmit = async () => {
+    if (!aptidaoStep0Completed) {
+      setShowAptidaoStep0(true);
+      return;
+    }
+
+    await submitAfterAptidaoStep0();
   };
 
-  // Callback quando pagamento é confirmado
+  // ✅ FIX D: Callback quando pagamento é confirmado → retry automático
   const handlePaymentConfirmed = useCallback(() => {
     setShowPixModal(false);
     toast.success('Pagamento confirmado! Continuando emissão...');
-    // Tentar emitir novamente após pagamento
+    // Reexecutar emissão automaticamente sem reload
     setTimeout(() => {
       executeEmission();
     }, 500);
@@ -181,6 +207,9 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
       setDocumentos([{ tipo: 'CTE', chave: '' }]);
       setShowPixModal(false);
       setShowPreValidationModal(false);
+      setShowAptidaoStep0(false);
+      setAptidaoStep0Completed(false);
+      setShowNfaGuide(false);
       setPaymentDocumentRef('');
       onClose();
     }
@@ -341,6 +370,58 @@ export const MdfeEmissionWizard: React.FC<MdfeEmissionWizardProps> = ({
               </Button>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ FIX C: ETAPA 0 - Documento correto + aptidão (antes de qualquer cobrança/emissão) */}
+      <Dialog open={showAptidaoStep0} onOpenChange={(open) => setShowAptidaoStep0(open)}>
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Documento correto + Aptidão</DialogTitle>
+            <DialogDescription>
+              Para evitar cobrança sem emissão, confirme seu perfil e veja o documento mais adequado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <AptidaoWizardStep0
+            documentType="MDFE"
+            fiscalIssuer={fiscalIssuer}
+            hasCertificate={step0HasCertificate}
+            hasIE={step0HasIE}
+            defaultUf={fiscalIssuer?.uf || 'MT'}
+            onCancel={() => setShowAptidaoStep0(false)}
+            onUseAlternative={(alt) => {
+              if (alt === 'NFA') {
+                setShowAptidaoStep0(false);
+                setShowNfaGuide(true);
+              }
+            }}
+            onContinue={async () => {
+              setAptidaoStep0Completed(true);
+              setShowAptidaoStep0(false);
+              await submitAfterAptidaoStep0();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Guia NF-a (quando recomendado para MEI) */}
+      <Dialog open={showNfaGuide} onOpenChange={(open) => setShowNfaGuide(open)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Como emitir NF-a (Nota Fiscal Avulsa)</DialogTitle>
+            <DialogDescription>
+              A NF-a geralmente é emitida diretamente no portal da SEFAZ do seu estado (fora do AgriRoute).
+            </DialogDescription>
+          </DialogHeader>
+          <StateGuideViewer
+            defaultUf={(fiscalIssuer?.uf || 'MT') as any}
+            filterDocType="NFA"
+          />
         </DialogContent>
       </Dialog>
 
