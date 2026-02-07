@@ -369,8 +369,17 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
   // ✅ CORREÇÃO: Flag para evitar dupla inicialização
   const initializingRef = useRef(false);
+  // ✅ Ref estável para mapCenter - evita re-criar mapa quando centro muda
+  const mapCenterRef = useRef(mapCenter);
+  mapCenterRef.current = mapCenter;
+  const hasAnyValidCoordinateRef = useRef(hasAnyValidCoordinate);
+  hasAnyValidCoordinateRef.current = hasAnyValidCoordinate;
+  const plannedRouteCoordinatesRef = useRef(plannedRouteCoordinates);
+  plannedRouteCoordinatesRef.current = plannedRouteCoordinates;
+  const osrmRouteRef = useRef(osrmRoute);
+  osrmRouteRef.current = osrmRoute;
   
-  // Inicializar MapLibre
+  // Inicializar MapLibre — SEM dependência de mapCenter para evitar re-criação
   useEffect(() => {
     const container = mapContainerRef.current;
     
@@ -392,11 +401,10 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     const rect = container.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) {
       console.log('[FreightRealtimeMapMapLibre] Container has zero dimensions, retrying...', rect);
-      // Agendar retry com contador para evitar loop infinito
       if (retryCount < 10) {
         const retryTimeout = setTimeout(() => {
           setRetryCount(prev => prev + 1);
-        }, 100 + (retryCount * 50)); // Backoff progressivo
+        }, 100 + (retryCount * 50));
         return () => clearTimeout(retryTimeout);
       } else {
         console.warn('[FreightRealtimeMapMapLibre] Max retries reached, container still has zero dimensions');
@@ -410,9 +418,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
     const initMap = async () => {
       try {
-        // ✅ Centro e zoom calculados com fallback inteligente
-        const initialCenter = mapCenter;
-        const initialZoom = hasAnyValidCoordinate ? 10 : 5;
+        const initialCenter = mapCenterRef.current;
+        const initialZoom = hasAnyValidCoordinateRef.current ? 10 : 5;
         
         console.log('[FreightRealtimeMapMapLibre] Creating map at center:', initialCenter, 'zoom:', initialZoom);
         
@@ -430,15 +437,14 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
         // Evento de carregamento
         map.on('load', () => {
-          // ✅ Adicionar layer para rota planejada (cinza, sempre visível)
-          // IMPORTANTE: Só criar LineString se tiver 2+ pontos, senão usar FeatureCollection vazia
-          const plannedRouteData = plannedRouteCoordinates.length >= 2
+          const currentPlannedRoute = plannedRouteCoordinatesRef.current;
+          const plannedRouteData = currentPlannedRoute.length >= 2
             ? {
                 type: 'Feature' as const,
                 properties: {},
                 geometry: {
                   type: 'LineString' as const,
-                  coordinates: plannedRouteCoordinates,
+                  coordinates: currentPlannedRoute,
                 },
               }
             : {
@@ -451,9 +457,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
             data: plannedRouteData,
           });
 
-          // ✅ 🚗 OSRM: Rota real por estradas (sempre verde sólido quando disponível)
-          const hasRealRoute = osrmRoute && osrmRoute.coordinates.length >= 2;
-          
+          const hasRealRoute = osrmRouteRef.current && osrmRouteRef.current.coordinates.length >= 2;
+
           map.addLayer({
             id: 'planned-route-line',
             type: 'line',
@@ -463,15 +468,11 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
               'line-cap': 'round',
             },
             paint: {
-              // Rota OSRM: verde sólido / Sem rota: não exibe nada (array vazio)
               'line-color': MAP_COLORS.primary,
               'line-width': 5,
               'line-opacity': 0.85,
             },
           });
-
-          // ✅ REMOVIDO: Não precisamos de layer 'route' separado
-          // A rota OSRM em 'planned-route' já mostra o caminho correto por estradas
 
           // Adicionar heatmap se habilitado
           if (showHeatmap && stops.length > 0) {
@@ -484,16 +485,15 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           }
 
           setMapLoaded(true);
-          console.log('[FreightRealtimeMapMapLibre] Map initialized successfully at center:', mapCenter);
+          console.log('[FreightRealtimeMapMapLibre] ✅ Map initialized successfully');
 
           // Ajustar bounds após carregar
           setTimeout(() => {
             handleFitBounds();
-          }, 100);
+          }, 300);
         });
 
         map.on('error', (e) => {
-          // ✅ Ignorar AbortError - ocorre naturalmente quando o mapa desmonta enquanto tiles carregam
           const errMsg = e.error?.message || '';
           if (
             e.error?.name === 'AbortError' ||
@@ -501,7 +501,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
             errMsg.includes('The operation was aborted') ||
             errMsg.includes('Failed to fetch')
           ) {
-            return; // Erro esperado, não reportar
+            return;
           }
           console.error('[FreightRealtimeMapMapLibre] Map error:', e);
           setMapError('Erro ao carregar o mapa');
@@ -525,7 +525,6 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
 
-      // Cleanup
       if (cancelAnimationRef.current) {
         cancelAnimationRef.current();
         cancelAnimationRef.current = null;
@@ -551,7 +550,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       initializingRef.current = false;
       setMapLoaded(false);
     };
-  }, [mapCenter, hasAnyValidCoordinate, retryCount]); // ✅ Incluir retryCount para reinicialização
+  }, [retryCount]); // ✅ APENAS retryCount — não re-cria mapa por mudança de centro/coordenadas
 
   // ✅ Garantir resize quando o container muda de tamanho (Tabs/Dialog podem iniciar com 0px)
   useEffect(() => {
@@ -585,26 +584,13 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     };
   }, [mapLoaded]);
 
-  // ========================================
-  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-  // Sem markers de origem/destino - apenas basemap puro
-  // ========================================
+  // ✅ REATIVADO: Markers de origem e destino
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
-    // 🚨 DESATIVADO: Limpar qualquer marker existente
-    originMarkerRef.current?.remove();
-    originMarkerRef.current = null;
-    destinationMarkerRef.current?.remove();
-    destinationMarkerRef.current = null;
-
-    // Retorno antecipado - não criar markers
-    return;
-
-    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     console.log('[FreightRealtimeMapMapLibre] 📍 Creating markers - Origin:', mapOrigin, 'Destination:', mapDestination);
 
-    // Marker de origem (usando effectiveOrigin que inclui fallback de cidade)
+    // Marker de origem
     if (mapOrigin) {
       if (!originMarkerRef.current) {
         const originElement = createLocationMarkerElement('origin');
@@ -624,7 +610,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       }
     }
 
-    // Marker de destino (usando effectiveDestination que inclui fallback de cidade)
+    // Marker de destino
     if (mapDestination) {
       if (!destinationMarkerRef.current) {
         const destinationElement = createLocationMarkerElement('destination');
@@ -643,32 +629,22 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         destinationMarkerRef.current.setLngLat([mapDestination.lng, mapDestination.lat]);
       }
     }
-    */
   }, [mapOrigin, mapDestination, originCity, originState, destinationCity, destinationState, mapLoaded]);
 
-  // ========================================
-  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-  // Sem marker do motorista - apenas basemap puro
-  // ========================================
+  // ✅ REATIVADO: Marker do motorista com animação suave
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
-    // 🚨 DESATIVADO: Limpar markers de motorista
-    driverMarkerRef.current?.remove();
-    driverMarkerRef.current = null;
-    ghostDriverMarkerRef.current?.remove();
-    ghostDriverMarkerRef.current = null;
-    
-    if (cancelAnimationRef.current) {
-      cancelAnimationRef.current();
-      cancelAnimationRef.current = null;
+    // Sem localização do motorista — limpar markers
+    if (!mapDriverLocation) {
+      driverMarkerRef.current?.remove();
+      driverMarkerRef.current = null;
+      ghostDriverMarkerRef.current?.remove();
+      ghostDriverMarkerRef.current = null;
+      return;
     }
 
-    // Retorno antecipado - não criar markers
-    return;
-
-    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
-    // ✅ NOVO: Se motorista está offline, mostrar marker "fantasma" semi-transparente
+    // Motorista OFFLINE: marker "fantasma" semi-transparente
     if (!isDriverReallyOnline) {
       driverMarkerRef.current?.remove();
       driverMarkerRef.current = null;
@@ -695,6 +671,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       return;
     }
 
+    // Motorista ONLINE
     ghostDriverMarkerRef.current?.remove();
     ghostDriverMarkerRef.current = null;
 
@@ -717,6 +694,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       return;
     }
 
+    // Animação suave entre posições
     if (previousLocationRef.current) {
       if (cancelAnimationRef.current) {
         cancelAnimationRef.current();
@@ -737,7 +715,6 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       driverMarkerRef.current.setLngLat([mapDriverLocation.lng, mapDriverLocation.lat]);
       previousLocationRef.current = mapDriverLocation;
     }
-    */
   }, [mapDriverLocation, mapLoaded, isDriverReallyOnline, secondsAgo]);
 
   // ✅ Atualizar rota planejada quando coordenadas mudarem
