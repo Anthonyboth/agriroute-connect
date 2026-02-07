@@ -2951,7 +2951,7 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
-            <DriverChatTab userProfileId={profile?.id || ''} />
+            <DriverChatTab userProfileId={profile?.id || ''} userRole={profile?.active_mode || profile?.role || 'MOTORISTA'} />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">

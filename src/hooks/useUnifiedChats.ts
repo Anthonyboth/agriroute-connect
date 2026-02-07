@@ -358,10 +358,10 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       }
 
       // ... keep existing code (3. CHAT DIRETO, 4. FRETES COMPARTILHADOS, 5. SOLICITAÇÕES DE DOCUMENTOS)
-      if (['MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(userRole)) {
+      if (['MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(userRole)) {
         let directChats: any[] = [];
         
-        if (userRole === 'MOTORISTA_AFILIADO') {
+        if (userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO') {
           // Motorista: buscar por driver_profile_id
           const { data } = await supabase
             .from('company_driver_chats')

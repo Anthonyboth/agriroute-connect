@@ -4,14 +4,15 @@ import { SafeListWrapper } from '@/components/SafeListWrapper';
 
 interface DriverChatTabProps {
   userProfileId: string;
+  userRole?: string;
 }
 
-export const DriverChatTab: React.FC<DriverChatTabProps> = ({ userProfileId }) => {
+export const DriverChatTab: React.FC<DriverChatTabProps> = ({ userProfileId, userRole = 'MOTORISTA' }) => {
   return (
     <SafeListWrapper>
       <UnifiedChatHub
         userProfileId={userProfileId}
-        userRole="MOTORISTA"
+        userRole={userRole}
       />
     </SafeListWrapper>
   );
