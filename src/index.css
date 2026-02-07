@@ -30,6 +30,23 @@
   [data-radix-dialog-content] {
     z-index: 1060 !important;
   }
+
+  /* ===== SONNER TOAST: SEMPRE acima de TUDO ===== */
+  /* Força o container do Sonner acima de todos os portais Radix */
+  [data-sonner-toaster] {
+    z-index: 2147483647 !important;
+    position: fixed !important;
+  }
+
+  [data-sonner-toast] {
+    z-index: 2147483647 !important;
+  }
+
+  /* Garante que a seção de toasts do Sonner não fique presa em stacking contexts */
+  section[data-sonner-toaster] {
+    z-index: 2147483647 !important;
+    isolation: isolate;
+  }
 }
 
 /* AgriRoute Design System - Agricultural Freight Logistics Platform */
