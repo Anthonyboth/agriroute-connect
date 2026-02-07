@@ -30,10 +30,11 @@ interface UseMapLibreAutoResizeOptions {
   burstDuration?: number;
 }
 
-// ✅ Delays otimizados para Dialog/Drawer animations (duration ~200-300ms)
-const DEFAULT_RESIZE_DELAYS = [0, 100, 200, 350, 500];
-const DEFAULT_BURST_DURATION = 500;
-const BURST_FRAME_COUNT = 15; // ~15 frames em 500ms
+// ✅ Delays otimizados para Dialog/Drawer animations (slide-in ~200ms + settle ~300ms)
+// Inclui delays pós-animação para sincronizar com transitionend
+const DEFAULT_RESIZE_DELAYS = [0, 50, 150, 250, 400, 600];
+const DEFAULT_BURST_DURATION = 700;
+const BURST_FRAME_COUNT = 20; // ~20 frames em 700ms para cobrir animações completas
 
 /**
  * Hook que gerencia auto-resize do mapa em containers dinâmicos
@@ -183,27 +184,31 @@ export function useMapLibreAutoResize(
     // ✅ Listener de transitionend no container e ancestrais
     // Captura quando animações de Drawer/Dialog terminam
     const handleTransitionEnd = (e: TransitionEvent) => {
-      // Reagir a transições de transform/opacity/translate (animações de Drawer/Dialog)
+      // Reagir a transições de transform/opacity/translate (animações de Dialog/Drawer)
       if (
         e.propertyName === 'transform' ||
         e.propertyName === 'opacity' ||
         e.propertyName === 'translate'
       ) {
         log('TransitionEnd detectado:', e.propertyName);
-        // Burst de resizes para garantir sincronização pós-animação
+        // ✅ Burst pós-animação mais agressivo para Dialog (slide-in-from-*)
+        // O Dialog usa translate(-50%,-50%) permanente + slide-in temporário
+        // Quando a animação termina, precisamos recalcular IMEDIATAMENTE
         raf(() => safeResize(true));
+        timeout(() => safeResize(true), 16);  // próximo frame
         timeout(() => safeResize(true), 50);
-        timeout(() => safeResize(true), 150);
-        timeout(() => safeResize(true), 250);
+        timeout(() => safeResize(true), 100);
+        timeout(() => safeResize(true), 200);
+        timeout(() => safeResize(true), 350);
         timeout(() => safeResize(true), 600);
       }
     };
 
-    // Adicionar listener ao container e até 4 ancestrais
-    // (Drawer/Dialog podem ter vários wrappers)
+    // Adicionar listener ao container e até 7 ancestrais
+    // (Dialog/Drawer podem ter muitos wrappers: Portal > Overlay > Content > Tabs > TabsContent > Card > div)
     const ancestors: HTMLElement[] = [];
     let el: HTMLElement | null = container;
-    for (let i = 0; i < 5 && el; i++) {
+    for (let i = 0; i < 8 && el; i++) {
       el.addEventListener('transitionend', handleTransitionEnd);
       ancestors.push(el);
       el = el.parentElement;

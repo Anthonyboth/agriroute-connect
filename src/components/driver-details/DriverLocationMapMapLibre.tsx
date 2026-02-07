@@ -8,8 +8,7 @@
 
 import { useMemo, useRef, useCallback } from 'react';
 import { MapLibreBase, type MapLibreBaseRef } from '@/components/map/MapLibreBase';
-import { type MapLibreMarkerData } from '@/hooks/maplibre';
-import { createTruckMarkerElement } from '@/lib/maplibre-utils';
+import { type GeoJSONMarkerData } from '@/hooks/maplibre';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
 
 interface DriverLocationMapMapLibreProps {
@@ -35,14 +34,15 @@ export const DriverLocationMapMapLibre = ({
     return normalizeLatLngPoint({ lat, lng }, 'BR');
   }, [lat, lng]);
 
-  // ✅ REATIVADO: Marker do motorista (usando coordenadas normalizadas)
-  const markers = useMemo<MapLibreMarkerData[]>(() => {
+  // ✅ Marker do motorista via GeoJSON layer (imune a transform de Dialog/Drawer)
+  const markers = useMemo<GeoJSONMarkerData[]>(() => {
     if (!normalizedLocation) return [];
     
     return [{
       id: 'driver-location',
       lat: normalizedLocation.lat,
       lng: normalizedLocation.lng,
+      type: 'truck',
     }];
   }, [normalizedLocation]);
 

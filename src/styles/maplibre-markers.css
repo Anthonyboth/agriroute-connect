@@ -185,3 +185,13 @@
   min-width: 0 !important;
   min-height: 0 !important;
 }
+
+/* ✅ FIX DEFINITIVO: Containment no wrapper de marker MapLibre
+   Previne que transforms de ancestrais (Dialog translate, Drawer slide)
+   afetem o posicionamento calculado pelo MapLibre engine.
+   O maplibregl-marker recebe transform: translate(Xpx, Ypx) do engine. */
+.maplibregl-marker .truck-marker,
+.maplibregl-marker .location-pin-marker {
+  contain: layout style;
+  isolation: isolate;
+}
