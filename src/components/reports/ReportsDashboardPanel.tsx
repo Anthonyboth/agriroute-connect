@@ -93,7 +93,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     const configs: ChartConfig[] = [];
 
     // Receita por mês (all panels)
-    const revenueKey = charts.receita_por_mes ? 'receita_por_mes' : charts.volume_por_dia ? 'volume_por_dia' : null;
     if (charts.receita_por_mes?.length) {
       configs.push({
         title: 'Receita por Mês',
@@ -105,14 +104,34 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Volume por dia (produtor)
+    // Volume por dia (produtor - fretes + serviços separados)
     if (charts.volume_por_dia?.length) {
       configs.push({
         title: 'Operações por Dia',
         type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, total: d.total })),
-        dataKeys: [{ key: 'total', label: 'Operações' }],
+        data: charts.volume_por_dia.map((d: any) => ({ 
+          day: d.dia, 
+          fretes: d.fretes || 0, 
+          servicos: d.servicos || 0,
+          total: d.total || 0 
+        })),
+        dataKeys: [
+          { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
+          { key: 'servicos', label: 'Serviços', color: '#1976D2' },
+        ],
         xAxisKey: 'day',
+      });
+    }
+
+    // Valor por dia (produtor - gastos)
+    if (charts.valor_por_dia?.length) {
+      configs.push({
+        title: 'Valor Gasto por Dia',
+        type: 'bar',
+        data: charts.valor_por_dia.map((d: any) => ({ day: d.dia, valor: d.valor || 0 })),
+        dataKeys: [{ key: 'valor', label: 'Valor (R$)', color: '#FF9800' }],
+        xAxisKey: 'day',
+        valueFormatter: formatBRL,
       });
     }
 

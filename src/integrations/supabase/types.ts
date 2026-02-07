@@ -13306,8 +13306,8 @@ export type Database = {
           p_date_from?: string
           p_date_to?: string
           p_filters?: Json
-          p_panel: string
-          p_profile_id: string
+          p_panel?: string
+          p_profile_id?: string
         }
         Returns: Json
       }
