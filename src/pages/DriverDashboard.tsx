@@ -1087,20 +1087,22 @@ const DriverDashboard = () => {
     }
   };
 
-  // Encerrar/Concluir serviço
+  // Encerrar/Concluir serviço — usa RPC para garantir atomicidade e criar pagamento
   const handleFinishService = async (requestId: string) => {
     try {
-      const { error } = await supabase
-        .from('service_requests')
-        .update({ 
-          status: 'COMPLETED',
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId)
-        .eq('provider_id', profile?.id);
+      const { data, error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: requestId,
+        p_next_status: 'COMPLETED',
+        p_final_price: null,
+      });
 
       if (error) throw error;
+
+      const result = data as any;
+      if (!result?.success) {
+        toast.error(result?.error || 'Não foi possível concluir o serviço');
+        return;
+      }
 
       toast.success('Serviço concluído com sucesso!');
       await fetchOngoingFreights();
