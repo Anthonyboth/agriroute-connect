@@ -13740,6 +13740,7 @@ export type Database = {
         Returns: Json
       }
       process_telegram_queue: { Args: never; Returns: Json }
+      purge_expired_driver_locations: { Args: never; Returns: number }
       release_emission_credit: {
         Args: { p_emission_id: string }
         Returns: boolean
