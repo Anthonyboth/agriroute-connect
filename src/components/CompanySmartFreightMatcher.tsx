@@ -20,6 +20,7 @@ import { getCargoTypesByCategory } from "@/lib/cargo-types";
 import { useTransportCompany } from "@/hooks/useTransportCompany";
 import { useLastUpdate } from "@/hooks/useLastUpdate";
 import { normalizeFreightStatus, isOpenStatus } from "@/lib/freight-status";
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -184,9 +185,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       const freight = compatibleFreights.find((f) => f.freight_id === freightId);
       if (!freight) return;
 
-      // ✅ CRÍTICO: Para fretes multi-carreta, proposed_price deve ser unitário (/carreta)
+      // ✅ Hook centralizado: resolveDriverUnitPrice para proposta unitária
       const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
-      const pricePerTruck = (freight.price || 0) / requiredTrucks;
+      const pricePerTruck = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
 
       const { error } = await supabase.from("freight_proposals").insert({
         freight_id: freightId,

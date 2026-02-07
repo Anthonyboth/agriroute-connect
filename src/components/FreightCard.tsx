@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from "@/lib/formatters";
 import { LABELS } from "@/lib/labels";
 import { getPickupDateBadge } from "@/utils/freightDateHelpers";
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { AlertTriangle } from "lucide-react";
 import { getVehicleTypeLabel } from "@/lib/vehicle-types";
 
@@ -331,8 +332,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         return;
       }
 
-      // ✅ CRÍTICO: Criar assignment COM company_id E driver_id
-      const agreedPerTruck = (freightData.price || 0) / requiredTrucks;
+      // ✅ Hook centralizado: resolveDriverUnitPrice para agreed_price unitário
+      const agreedPerTruck = resolveDriverUnitPrice(0, freightData.price || 0, requiredTrucks);
 
       const { error: assignmentError } = await supabase.from("freight_assignments").upsert(
         {
