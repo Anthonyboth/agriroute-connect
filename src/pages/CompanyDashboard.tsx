@@ -69,7 +69,7 @@ import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
-import { getDriverVisibleFreightPrice } from '@/lib/freight-price-visibility';
+import { calculateVisiblePrice, resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 
 // ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
@@ -335,39 +335,45 @@ const CompanyDashboard = () => {
   const activeFreightsForCards = React.useMemo(() => {
     return managedFreights.map(mf => ({
       ...(() => {
-        // ✅ Consistência: no painel da transportadora, o valor exibido no card deve refletir
-        // o valor unitário acordado (/carreta) quando existir em freight_assignments.
-        // Caso contrário, cai no fallback seguro (base/required_trucks).
+        // ✅ CORREÇÃO: Usar hook calculadora centralizado com role TRANSPORTADORA
         const requiredTrucks = Math.max(mf.requiredTrucks || 1, 1);
+        const freightPrice = mf.rawFreight?.price ?? 0;
 
-        // Preferir preço acordado de motoristas afiliados; se não houver, usar o primeiro disponível.
-        const agreedCandidates = [
-          ...(mf.affiliatedDrivers || []).map((d) => d.agreedPrice),
-          ...(mf.drivers || []).map((d) => d.agreedPrice),
-        ].filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0);
+        // Montar assignments da empresa no formato do calculator
+        const allDrivers = [
+          ...(mf.affiliatedDrivers || []),
+          ...(mf.drivers || []),
+        ];
+        const companyAssignments = allDrivers
+          .filter((d) => typeof d.agreedPrice === 'number' && d.agreedPrice > 0)
+          .map((d) => ({
+            id: d.id || '',
+            driver_id: d.driverId || '',
+            agreed_price: d.agreedPrice || 0,
+            company_id: company?.id || '',
+            pricing_type: 'FIXED' as const,
+            price_per_km: 0,
+            status: d.status || 'ACCEPTED',
+          }));
 
-        // Só usa agreed_price no card quando é consistente (evita mostrar um valor arbitrário
-        // em cenários raros onde cada motorista tem um valor diferente).
-        const agreed = (() => {
-          if (agreedCandidates.length === 0) return undefined;
-          const first = agreedCandidates[0];
-          const tol = 0.01;
-          const allSame = agreedCandidates.every((p) => Math.abs(p - first) <= tol);
-          return allSame ? first : undefined;
-        })();
+        const companyTruckCount = companyAssignments.length || 1;
 
-        const visible = getDriverVisibleFreightPrice({
-          freightPrice: mf.rawFreight?.price,
-          requiredTrucks,
-          assignmentAgreedPrice: agreed,
-        });
+        const visible = calculateVisiblePrice(
+          'TRANSPORTADORA',
+          { id: mf.rawFreight?.id || '', price: freightPrice, required_trucks: requiredTrucks },
+          null,
+          companyAssignments.length > 0 ? companyAssignments : undefined,
+        );
+
+        // Preço unitário para exibição PER_TRUCK no card
+        const unitPrice = companyTruckCount > 0 ? visible.displayPrice / companyTruckCount : visible.displayPrice;
 
         return {
           ...mf.rawFreight,
-          // Valor que o card deve renderizar
-          price: visible.displayPrice,
-          price_display_mode: visible.displayMode,
-          original_required_trucks: visible.originalRequiredTrucks,
+          price: unitPrice,
+          price_display_mode: 'PER_TRUCK' as const,
+          // ✅ CRÍTICO: carretas da EMPRESA, não o total do frete
+          original_required_trucks: companyTruckCount,
         };
       })(),
       // Dados do produtor
@@ -397,7 +403,7 @@ const CompanyDashboard = () => {
       availableSlots: mf.availableSlots,
       isFullyAssigned: mf.isFullyAssigned
     }));
-  }, [managedFreights]);
+  }, [managedFreights, company?.id]);
 
   // ✅ Legacy: manter arrays vazios para compatibilidade com código existente
   const myAssignments: any[] = []; // Não usar mais - fretes já agrupados

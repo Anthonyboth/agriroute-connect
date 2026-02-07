@@ -15,7 +15,7 @@ import { Truck, MapPin, RefreshCw, BarChart, Package, Users } from 'lucide-react
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { isInProgressFreight, isScheduledFreight } from '@/utils/freightDateHelpers';
-import { getDriverVisibleFreightPrice } from '@/lib/freight-price-visibility';
+import { calculateVisiblePrice, resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface CompanyDashboardProps {
   onNavigateToReport?: (tab: string) => void;
@@ -364,13 +364,28 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                   // ✅ CRÍTICO: Número de carretas que a TRANSPORTADORA aceitou (NÃO o total do frete)
                   const companyTruckCount = assignments.length;
                   const totalRequiredTrucks = Math.max((firstAssignment?.freight?.required_trucks ?? 1) || 1, 1);
+                  const freightPrice = firstAssignment?.freight?.price ?? 0;
 
-                  // ✅ Calcular preço unitário por carreta
-                  const visiblePrice = getDriverVisibleFreightPrice({
-                    freightPrice: firstAssignment?.freight?.price,
-                    requiredTrucks: totalRequiredTrucks,
-                    assignmentAgreedPrice: typeof firstAssignment?.agreed_price === 'number' ? firstAssignment.agreed_price : undefined,
-                  });
+                  // ✅ Usar hook calculadora centralizado com role TRANSPORTADORA
+                  const companyAssignments = assignments.map((a: any) => ({
+                    id: a.id || a.assignment_id || '',
+                    driver_id: a.driver_id || '',
+                    agreed_price: a.agreed_price || 0,
+                    company_id: company?.id || '',
+                    pricing_type: 'FIXED' as const,
+                    price_per_km: 0,
+                    status: a.status || 'ACCEPTED',
+                  }));
+
+                  const visiblePrice = calculateVisiblePrice(
+                    'TRANSPORTADORA',
+                    { id: freightId, price: freightPrice, required_trucks: totalRequiredTrucks },
+                    null,
+                    companyAssignments,
+                  );
+
+                  // ✅ Calcular preço unitário para exibição por carreta
+                  const unitPrice = companyTruckCount > 0 ? visiblePrice.displayPrice / companyTruckCount : visiblePrice.displayPrice;
 
                   // ✅ Mapear: price = unitário, original_required_trucks = carretas DA TRANSPORTADORA
                   const mappedFreight = {
@@ -378,8 +393,8 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                     producer: firstAssignment.freight?.producer,
                     driver_profiles: firstAssignment.driver,
                     profiles: firstAssignment.driver,
-                    price: visiblePrice.displayPrice,
-                    price_display_mode: visiblePrice.displayMode,
+                    price: unitPrice,
+                    price_display_mode: 'PER_TRUCK' as const,
                     original_required_trucks: companyTruckCount,
                     required_trucks: 1,
                     assignment_status: firstAssignment.status,
