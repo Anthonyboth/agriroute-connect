@@ -26,17 +26,10 @@ export const useLocationPermission = (mandatory: boolean = true) => {
   const checkLocationPermission = async () => {
     const granted = await checkPermissionSafe();
     if (granted) {
-      try {
-        const pos = await getCurrentPositionSafe();
-        setLocationState({
-          hasPermission: true,
-          isRequesting: false,
-          error: null,
-          coords: pos.coords
-        });
-      } catch (e) {
-        setLocationState(prev => ({ ...prev, hasPermission: true }));
-      }
+      // Apenas marcar permissão como concedida sem requisitar posição GPS no mount
+      // Evita "[Violation] Only request geolocation information in response to a user gesture"
+      // e bloqueio de login por timeout de GPS (até 45s com retries)
+      setLocationState(prev => ({ ...prev, hasPermission: true }));
     } else {
       if (mandatory) setShowPermissionModal(true);
       setLocationState(prev => ({ ...prev, hasPermission: false }));
