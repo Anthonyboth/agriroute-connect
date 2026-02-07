@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 interface DriverFreightsTabProps {
   driverProfileId: string;
+  companyId?: string;
 }
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
@@ -91,7 +92,7 @@ const getServiceLabel = (serviceType: string) => {
   }
 };
 
-export const DriverFreightsTab = ({ driverProfileId }: DriverFreightsTabProps) => {
+export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreightsTabProps) => {
   const queryClient = useQueryClient();
 
   // Fretes atribuídos ao motorista (tabela freights)

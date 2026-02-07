@@ -6,9 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface DriverPerformanceTabProps {
   driverProfileId: string;
+  rating?: number | null;
+  totalRatings?: number | null;
 }
 
-export const DriverPerformanceTab = ({ driverProfileId }: DriverPerformanceTabProps) => {
+export const DriverPerformanceTab = ({ driverProfileId, rating: propRating, totalRatings: propTotalRatings }: DriverPerformanceTabProps) => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['driver-performance', driverProfileId],
     queryFn: async () => {
@@ -30,8 +32,8 @@ export const DriverPerformanceTab = ({ driverProfileId }: DriverPerformanceTabPr
         totalFreights,
         completedFreights,
         totalRevenue,
-        rating: 0,
-        totalRatings: 0,
+        rating: propRating ?? 0,
+        totalRatings: propTotalRatings ?? 0,
         avgDeliveryTime: 0,
         completionRate: totalFreights > 0 ? (completedFreights / totalFreights) * 100 : 0,
       };

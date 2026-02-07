@@ -1,10 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAffiliatedDriverProfile } from "@/hooks/useAffiliatedDriverProfile";
+import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle, Loader2, AlertCircle } from "lucide-react";
+import { useDriverDetailsData } from "@/hooks/useDriverDetailsData";
 import { DriverInfoTab } from "./DriverInfoTab";
 import { DriverLocationTab } from "./DriverLocationTab";
 import { DriverFreightsTab } from "./DriverFreightsTab";
@@ -12,6 +10,8 @@ import { DriverPerformanceTab } from "./DriverPerformanceTab";
 import { DriverVehiclesTab } from "./DriverVehiclesTab";
 import { DriverSettingsTab } from "./DriverSettingsTab";
 import { DriverChatTab } from "./DriverChatTab";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface DriverDetailsModalProps {
   driver: any | null;
@@ -28,57 +28,38 @@ export const DriverDetailsModal = ({
 }: DriverDetailsModalProps) => {
   const driverProfileId = driver?.driver_profile_id || null;
 
-  // ✅ Buscar perfil completo via RPC (resolve problema de RLS)
-  const { driverProfile, isLoading: isLoadingProfile } = useAffiliatedDriverProfile({
+  // ✅ Hook centralizado — resolve perfil via RPC, afiliação, chat e currentUserId
+  const {
+    profile,
+    affiliation,
+    unreadChatCount,
+    currentUserId,
+    isLoading,
+    error,
+    refetchAll,
+  } = useDriverDetailsData({
     driverProfileId,
     companyId,
     enabled: open && !!driverProfileId,
   });
 
-  // Contar mensagens não lidas
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['driver-chat-unread', companyId, driverProfileId],
-    queryFn: async () => {
-      if (!driverProfileId || !companyId) return 0;
-      const { count } = await supabase
-        .from('company_driver_chats')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId)
-        .eq('driver_profile_id', driverProfileId)
-        .eq('sender_type', 'DRIVER')
-        .eq('is_read', false);
-      return count || 0;
-    },
-    enabled: !!driverProfileId && !!companyId && open,
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  // Buscar chat_enabled_at
-  const { data: driverData } = useQuery({
-    queryKey: ['driver-chat-enabled', companyId, driverProfileId],
-    queryFn: async () => {
-      if (!driverProfileId || !companyId) return null;
-      const { data } = await supabase
-        .from('company_drivers')
-        .select('chat_enabled_at')
-        .eq('company_id', companyId)
-        .eq('driver_profile_id', driverProfileId)
-        .single();
-      return data;
-    },
-    enabled: !!driverProfileId && !!companyId && open,
-  });
-
   if (!driverProfileId) return null;
 
-  // Montar objeto combinado para o DriverInfoTab
+  // Montar objeto combinado para as tabs que ainda esperam `driverData`
   // Prioriza dados do hook (RPC) sobre dados passados via props
   const enrichedDriverData = {
+    // Dados de afiliação
     ...driver,
-    driver: driverProfile || driver?.driver || {},
-    driver_profile: driverProfile,
+    driver_profile_id: driverProfileId,
+    status: affiliation?.status || driver?.status,
+    can_accept_freights: affiliation?.can_accept_freights ?? driver?.can_accept_freights,
+    can_manage_vehicles: affiliation?.can_manage_vehicles ?? driver?.can_manage_vehicles,
+    // Perfil completo do motorista (via RPC)
+    driver: profile || driver?.driver || {},
+    driver_profile: profile,
   };
+
+  const driverName = profile?.full_name || driver?.driver?.full_name || 'Motorista';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,15 +67,29 @@ export const DriverDetailsModal = ({
         <DialogHeader>
           <DialogTitle>Detalhes do Motorista</DialogTitle>
           <DialogDescription>
-            Visualize informações completas, localização, fretes, performance e configurações do motorista.
+            Visualize informações completas, localização, fretes, performance e configurações de{' '}
+            <strong>{driverName}</strong>.
           </DialogDescription>
         </DialogHeader>
 
-        {isLoadingProfile ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="ml-2 text-muted-foreground">Carregando dados do motorista...</span>
           </div>
+        ) : error && !profile ? (
+          <Card className="border-destructive/50">
+            <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
+              <AlertCircle className="h-10 w-10 text-destructive" />
+              <p className="text-sm text-destructive font-medium">Erro ao carregar dados do motorista</p>
+              <p className="text-xs text-muted-foreground text-center max-w-md">
+                {error.message || 'Verifique suas permissões ou tente novamente.'}
+              </p>
+              <Button variant="outline" size="sm" onClick={refetchAll}>
+                Tentar Novamente
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="grid w-full grid-cols-7">
@@ -107,9 +102,9 @@ export const DriverDetailsModal = ({
               <TabsTrigger value="chat" className="relative">
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden sm:inline ml-2">Chat</span>
-                {unreadCount > 0 && (
+                {unreadChatCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs absolute -top-1 -right-1">
-                    {unreadCount}
+                    {unreadChatCount}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -122,10 +117,14 @@ export const DriverDetailsModal = ({
               <DriverLocationTab driverProfileId={driverProfileId} companyId={companyId} />
             </TabsContent>
             <TabsContent value="freights" className="mt-4">
-              <DriverFreightsTab driverProfileId={driverProfileId} />
+              <DriverFreightsTab driverProfileId={driverProfileId} companyId={companyId} />
             </TabsContent>
             <TabsContent value="performance" className="mt-4">
-              <DriverPerformanceTab driverProfileId={driverProfileId} />
+              <DriverPerformanceTab 
+                driverProfileId={driverProfileId} 
+                rating={profile?.rating ?? null}
+                totalRatings={profile?.total_ratings ?? null}
+              />
             </TabsContent>
             <TabsContent value="vehicles" className="mt-4">
               <DriverVehiclesTab driverProfileId={driverProfileId} companyId={companyId} />
@@ -137,7 +136,8 @@ export const DriverDetailsModal = ({
               <DriverChatTab 
                 driverProfileId={driverProfileId} 
                 companyId={companyId}
-                chatEnabledAt={driverData?.chat_enabled_at}
+                chatEnabledAt={affiliation?.chat_enabled_at}
+                currentUserId={currentUserId || undefined}
               />
             </TabsContent>
           </Tabs>
