@@ -76,6 +76,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 const CompanyAnalyticsDashboard = lazyWithRetry(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
 const CompanyDriverPerformanceDashboard = lazyWithRetry(() => import('@/components/dashboards/CompanyDriverPerformanceDashboard').then(m => ({ default: m.CompanyDriverPerformanceDashboard })));
 const CompanyFinancialDashboard = lazyWithRetry(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
+const CompanyExternalPaymentsPanel = lazyWithRetry(() => import('@/components/CompanyExternalPaymentsPanel').then(m => ({ default: m.CompanyExternalPaymentsPanel })));
 const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
 
 // Loading fallback for chart components - SEM TEXTO (padrão global)
@@ -884,9 +885,16 @@ const CompanyDashboard = () => {
 
 
           <TabsContent value="payments" className="mt-6">
-            <Suspense fallback={<ChartLoader />}>
-              <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
-            </Suspense>
+            <div className="space-y-8">
+              {/* Pagamentos externos dos motoristas afiliados */}
+              <Suspense fallback={<ChartLoader />}>
+                <CompanyExternalPaymentsPanel />
+              </Suspense>
+              {/* Dashboard financeiro consolidado */}
+              <Suspense fallback={<ChartLoader />}>
+                <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
+              </Suspense>
+            </div>
           </TabsContent>
 
           <TabsContent value="cities" className="mt-6">

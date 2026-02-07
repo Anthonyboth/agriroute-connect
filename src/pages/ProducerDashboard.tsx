@@ -1306,6 +1306,14 @@ const ProducerDashboard = () => {
 
     setPaymentLoading(true);
     try {
+      // Buscar dados do pagamento ANTES de atualizar (para notificar)
+      const { data: paymentData } = await supabase
+        .from("external_payments")
+        .select("id, driver_id, freight_id, amount")
+        .eq("id", paymentId)
+        .eq("producer_id", profile.id)
+        .single();
+
       const { data: updatedRows, error } = await supabase
         .from("external_payments")
         .update({ 
@@ -1336,6 +1344,44 @@ const ProducerDashboard = () => {
       }
 
       console.log("[confirmPaymentMade] ✅ Pagamento atualizado:", updatedRows);
+
+      // ✅ CORREÇÃO: Notificar motorista que o produtor pagou
+      if (paymentData?.driver_id) {
+        const amountStr = paymentData.amount 
+          ? `R$ ${Number(paymentData.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+          : '';
+
+        // Notificar motorista
+        await supabase.from('notifications').insert({
+          user_id: paymentData.driver_id,
+          title: '💰 Pagamento Efetuado pelo Produtor',
+          message: `O produtor informou que efetuou o pagamento de ${amountStr}. Confirme o recebimento no seu painel.`,
+          type: 'payment_paid_by_producer',
+          read: false,
+        });
+
+        // ✅ Notificar transportadora (se motorista afiliado)
+        const { data: affiliation } = await supabase
+          .from('company_drivers')
+          .select('company_id, transport_companies:transport_companies!company_drivers_company_id_fkey(profile_id)')
+          .eq('driver_profile_id', paymentData.driver_id)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (affiliation?.transport_companies) {
+          const companyOwnerProfileId = (affiliation.transport_companies as any)?.profile_id;
+          if (companyOwnerProfileId) {
+            await supabase.from('notifications').insert({
+              user_id: companyOwnerProfileId,
+              title: '💰 Pagamento de Motorista Afiliado',
+              message: `O produtor informou pagamento de ${amountStr} para seu motorista. Acompanhe na aba Pagamentos.`,
+              type: 'payment_paid_by_producer',
+              read: false,
+            });
+          }
+        }
+      }
+
       toast.success("Pagamento confirmado! Aguardando confirmação do motorista.");
       fetchExternalPayments();
     } catch (error) {
