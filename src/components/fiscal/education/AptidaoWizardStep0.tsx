@@ -47,9 +47,15 @@ import {
 } from '@/lib/fiscal-eligibility-rules';
 import { DocumentType, BRAZILIAN_UFS } from '@/lib/fiscal-requirements';
 
+interface AptidaoStep0Context {
+  isMei?: boolean;
+  userType?: string;
+  selectedUf?: string;
+}
+
 interface AptidaoWizardStep0Props {
   documentType: DocumentType;
-  onContinue: () => void;
+  onContinue: (context?: AptidaoStep0Context) => void;
   onCancel: () => void;
   onUseAlternative?: (altDocType: string) => void;
   defaultUf?: string;
@@ -470,7 +476,7 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
             </Button>
           ) : (
             <Button 
-              onClick={onContinue}
+              onClick={() => onContinue({ isMei: isMei === 'sim', userType: userType || undefined, selectedUf })}
               disabled={!canProceed || eligibility === 'NAO_APLICAVEL'}
             >
               Continuar com {documentType}
