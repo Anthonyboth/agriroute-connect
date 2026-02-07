@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatWeight } from '@/lib/freight-calculations';
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { formatKm } from '@/lib/formatters';
 
 interface CompanyFreightAcceptModalProps {
@@ -39,7 +40,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'accept' | 'counter'>('accept');
   const requiredTrucks = useMemo(() => Math.max((freight?.required_trucks ?? 1) || 1, 1), [freight?.required_trucks]);
-  const unitBasePrice = useMemo(() => (freight?.price || 0) / requiredTrucks, [freight?.price, requiredTrucks]);
+  const unitBasePrice = useMemo(() => resolveDriverUnitPrice(0, freight?.price || 0, requiredTrucks), [freight?.price, requiredTrucks]);
 
   const [counterPrice, setCounterPrice] = useState(unitBasePrice);
   const [justification, setJustification] = useState('');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import {
   Dialog,
   DialogContent,
@@ -44,7 +45,7 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
 
   const requiredTrucks = Math.max((freight.required_trucks ?? 1) || 1, 1);
-  const unitPrice = (freight.price || 0) / requiredTrucks;
+  const unitPrice = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
 
   const handleAccept = () => {
     if (selectedDriverId) {

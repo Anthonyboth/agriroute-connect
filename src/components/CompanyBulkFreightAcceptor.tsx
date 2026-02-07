@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Truck, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface CompanyBulkFreightAcceptorProps {
   open: boolean;
@@ -32,8 +33,8 @@ export const CompanyBulkFreightAcceptor = ({
   const [numTrucks, setNumTrucks] = useState(Math.min(availableSlots, 1));
   const [loading, setLoading] = useState(false);
 
-  // Calcula o valor por carreta dividindo o preço total pelo número de carretas necessárias
-  const pricePerTruck = requiredTrucks > 1 ? freight.price / requiredTrucks : freight.price;
+  // ✅ Hook centralizado: resolveDriverUnitPrice para cálculo por carreta
+  const pricePerTruck = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
 
   const handleAccept = async () => {
     setLoading(true);

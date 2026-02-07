@@ -15,6 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL, formatKm } from '@/lib/formatters';
 import { UI_TEXTS } from '@/lib/ui-texts';
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface Proposal {
   id: string;
@@ -230,7 +231,7 @@ export const CompanyProposalsManager: React.FC = () => {
                 <p className="text-lg font-semibold">
                   {(() => {
                     const requiredTrucks = Math.max((proposal.freight as any)?.required_trucks ?? 1, 1);
-                    const perTruck = (proposal.freight.price || 0) / requiredTrucks;
+                    const perTruck = resolveDriverUnitPrice(0, proposal.freight.price || 0, requiredTrucks);
                     return (
                       <>
                         R$ {formatBRL(perTruck)}

@@ -43,6 +43,7 @@ import {
 } from "@/lib/service-type-normalization";
 import { subscriptionWithRetry } from "@/lib/query-utils";
 import { debounce } from "@/lib/utils";
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { normalizeCity, normalizeCityState } from "@/utils/city-normalization";
 import { formatSolicitadoHa } from "@/lib/formatters";
 
@@ -454,9 +455,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           return;
         }
 
-        // ✅ CRÍTICO: Para fretes multi-carreta, proposed_price deve ser unitário (/carreta)
+        // ✅ Hook centralizado: resolveDriverUnitPrice para proposta unitária
         const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
-        const pricePerTruck = (freight.price || 0) / requiredTrucks;
+        const pricePerTruck = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
 
         const { error } = await supabase.from("freight_proposals").insert({
           freight_id: freightId,

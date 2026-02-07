@@ -21,7 +21,7 @@ import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
-import { getDriverVisibleFreightPrice } from "@/lib/freight-price-visibility";
+import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
 
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -187,22 +187,30 @@ export const DriverOngoingTab: React.FC = () => {
                             // O valor mostrado deve ser apenas a porção do motorista (por carreta).
                             ...(() => {
                               const requiredTrucks = (a.freight as any).required_trucks ?? 1;
-                              const price = getDriverVisibleFreightPrice({
-                                freightPrice: (a.freight as any).price,
-                                requiredTrucks,
-                                assignmentAgreedPrice: a.agreed_price,
-                              });
+                              const visible = calculateVisiblePrice(
+                                'MOTORISTA',
+                                {
+                                  id: (a.freight as any).id || '',
+                                  price: (a.freight as any).price || 0,
+                                  required_trucks: requiredTrucks,
+                                },
+                                {
+                                  id: a.id || '',
+                                  driver_id: driverProfileId || '',
+                                  agreed_price: a.agreed_price || 0,
+                                  pricing_type: 'FIXED' as const,
+                                  status: a.status || 'ACCEPTED',
+                                },
+                              );
 
                               return {
                                 // Preserve o frete base
                                 ...a.freight,
                                 status: normalizeFreightStatus(String(a.status || a.freight.status || "")),
-                                price: price.displayPrice,
-                                // Evita que o card tente recalcular/dividir novamente
+                                price: visible.displayPrice,
                                 required_trucks: 1,
-                                // Permite rotular como "/carreta" sem expor total
-                                original_required_trucks: price.originalRequiredTrucks,
-                                price_display_mode: price.displayMode === 'PER_TRUCK' ? 'PER_TRUCK' : undefined,
+                                original_required_trucks: visible.truckCount,
+                                price_display_mode: visible.displayMode === 'PER_TRUCK' ? 'PER_TRUCK' : undefined,
                               };
                             })(),
                           }
@@ -235,12 +243,21 @@ export const DriverOngoingTab: React.FC = () => {
                   const normalizedStatus = normalizeFreightStatus(String(f.status || ""));
                   const requiredTrucks = f.required_trucks ?? 1;
 
-                  const price = getDriverVisibleFreightPrice({
-                    freightPrice: f.price,
-                    requiredTrucks,
-                     // ✅ Regra: para fretes rurais (freights), o hook já calcula driver_unit_price.
-                     assignmentAgreedPrice: (f as any).driver_unit_price ?? undefined,
-                  });
+                  const visible = calculateVisiblePrice(
+                    'MOTORISTA',
+                    {
+                      id: f.id || '',
+                      price: f.price || 0,
+                      required_trucks: requiredTrucks,
+                    },
+                    (f as any).driver_unit_price ? {
+                      id: '',
+                      driver_id: '',
+                      agreed_price: (f as any).driver_unit_price,
+                      pricing_type: 'FIXED' as const,
+                      status: 'ACCEPTED',
+                    } : null,
+                  );
 
                   return (
                     <FreightInProgressCard
@@ -248,13 +265,10 @@ export const DriverOngoingTab: React.FC = () => {
                       freight={{
                         ...f,
                         status: normalizedStatus,
-                        // Mostrar apenas a porção individual do motorista
-                        price: price.displayPrice,
-                        // Evita re-divisão no card
+                        price: visible.displayPrice,
                         required_trucks: 1,
-                        // Permite rotular como "/carreta" sem expor total
-                        original_required_trucks: price.originalRequiredTrucks,
-                        price_display_mode: price.displayMode === 'PER_TRUCK' ? 'PER_TRUCK' : undefined,
+                        original_required_trucks: visible.truckCount,
+                        price_display_mode: visible.displayMode === 'PER_TRUCK' ? 'PER_TRUCK' : undefined,
                       }}
                       onViewDetails={() => {
                         handleOpenDetails(f.id);

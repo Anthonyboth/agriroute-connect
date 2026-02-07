@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Clock, CheckCircle, XCircle, Truck, Star, Building2 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import type { PendingDeliveryItem } from '@/hooks/usePendingDeliveryConfirmations';
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface PendingDeliveryConfirmationCardProps {
   item: PendingDeliveryItem;
@@ -20,31 +21,17 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
   onDispute,
   isHighlighted = false,
 }) => {
-  // Calcular preço individual (prioridade: agreed_price unitário → metadata.price_per_truck → rateio)
-  // Fix: em fretes multi-carreta, freight.price pode ser o TOTAL e metadata.price_per_truck o unitário.
+  // ✅ Hook centralizado: resolveDriverUnitPrice para calcular valor por carreta
   const requiredTrucks = Math.max(item.freight.required_trucks || 1, 1);
-  const metaUnitRaw = (item.freight as any)?.metadata?.price_per_truck;
-  const metaUnit = (typeof metaUnitRaw === 'number' && Number.isFinite(metaUnitRaw) && metaUnitRaw > 0)
-    ? metaUnitRaw
-    : null;
-
   const agreed = (typeof item.agreed_price === 'number' && Number.isFinite(item.agreed_price) && item.agreed_price > 0)
     ? item.agreed_price
-    : null;
+    : 0;
 
-  const individualPrice = (() => {
-    // Se o agreed_price veio como TOTAL (bug comum quando igual ao freight.price), usar o unitário do metadata
-    if (requiredTrucks > 1 && metaUnit && agreed && agreed === item.freight.price) return metaUnit;
-
-    // Caso normal: agreed_price já é unitário
-    if (agreed) return agreed;
-
-    // Fallback: unitário persistido no metadata
-    if (metaUnit) return metaUnit;
-
-    // Último fallback: rateio do total
-    return item.freight.price / requiredTrucks;
-  })();
+  const individualPrice = resolveDriverUnitPrice(
+    agreed,
+    item.freight.price,
+    requiredTrucks,
+  );
   return (
     <Card 
       className={`h-full flex flex-col border-amber-200 ${

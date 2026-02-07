@@ -22,6 +22,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatKm } from '@/lib/formatters';
+import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface ShareFreightToDriverProps {
   freight: {
@@ -57,9 +58,9 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
   onSuccess
 }) => {
   const requiredTrucks = Math.max((freight.required_trucks ?? 1) || 1, 1);
-  const unitOriginalPrice = (freight.price || 0) / requiredTrucks;
+  const unitOriginalPrice = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
   const minAnttPerTruck = typeof freight.minimum_antt_price === 'number'
-    ? (freight.minimum_antt_price || 0) / requiredTrucks
+    ? resolveDriverUnitPrice(0, freight.minimum_antt_price || 0, requiredTrucks)
     : null;
 
   const [showDialog, setShowDialog] = useState(false);
