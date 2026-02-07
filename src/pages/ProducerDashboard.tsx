@@ -779,7 +779,7 @@ const ProducerDashboard = () => {
       fetchOngoingServiceRequests();
     };
 
-    setActiveTab("open");
+    setActiveTab("freights-open");
 
     refetch();
     setTimeout(refetch, 700);
