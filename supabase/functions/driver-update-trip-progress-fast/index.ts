@@ -338,8 +338,22 @@ serve(async (req) => {
               .single();
 
             const agreedPrice = assignmentData?.agreed_price;
-            const fallbackAmount = Math.round((freight.price || 0) / Math.max(freight.required_trucks || 1, 1) * 100) / 100;
-            const amount = (agreedPrice && agreedPrice > 0) ? agreedPrice : fallbackAmount;
+            const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
+            const fallbackAmount = Math.round((freight.price || 0) / requiredTrucks * 100) / 100;
+            
+            // ✅ CORREÇÃO CRÍTICA: Heurística igual a resolveDriverUnitPrice
+            // Se agreed_price ≈ freight.price e multi-carreta, dividir (salvo como total erroneamente)
+            let amount: number;
+            if (agreedPrice && agreedPrice > 0) {
+              if (requiredTrucks > 1 && (freight.price || 0) > 0 && Math.abs(agreedPrice - (freight.price || 0)) <= 0.01) {
+                amount = Math.round((freight.price || 0) / requiredTrucks * 100) / 100;
+                console.log(`[driver-update-trip-progress-fast] agreed_price ≈ freight.price em multi-carreta, dividindo: ${agreedPrice} → ${amount}`);
+              } else {
+                amount = agreedPrice;
+              }
+            } else {
+              amount = fallbackAmount;
+            }
 
             // 3a) Notificar produtor sobre entrega reportada
             await supabaseAdmin.from('notifications').insert({
