@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -176,6 +176,21 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
     };
   }, [company?.id, fetchDashboardData]);
 
+  // ✅ Agrupar assignments por freight_id para evitar cards duplicados
+  // e calcular o número de carretas da TRANSPORTADORA (não o total do frete)
+  const groupedActiveFreights = useMemo(() => {
+    const groupedByFreight = new Map<string, any[]>();
+    activeFreights.forEach((assignment: any) => {
+      const fid = assignment?.freight?.id || assignment?.freight_id;
+      if (!fid) return;
+      if (!groupedByFreight.has(fid)) {
+        groupedByFreight.set(fid, []);
+      }
+      groupedByFreight.get(fid)!.push(assignment);
+    });
+    return Array.from(groupedByFreight.entries());
+  }, [activeFreights]);
+
   if (!company) return null;
 
   if (loading) {
@@ -328,8 +343,8 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
           <CardTitle className="flex items-center gap-2 text-lg">
             <Truck className="h-5 w-5 text-blue-600" />
             Fretes em Andamento
-            {activeFreights.length > 0 && (
-              <Badge variant="default" className="ml-2">{activeFreights.length}</Badge>
+            {groupedActiveFreights.length > 0 && (
+              <Badge variant="default" className="ml-2">{groupedActiveFreights.length}</Badge>
             )}
           </CardTitle>
           <CardDescription>
@@ -337,40 +352,42 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {activeFreights.length === 0 ? (
+          {groupedActiveFreights.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               Nenhum frete em andamento
             </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando fretes ativos...</div>}>
-                {activeFreights.slice(0, 4).map((assignment) => {
-                  const originalRequiredTrucks = Math.max((assignment?.freight?.required_trucks ?? 1) || 1, 1);
+                {groupedActiveFreights.slice(0, 4).map(([freightId, assignments]) => {
+                  const firstAssignment = assignments[0];
+                  // ✅ CRÍTICO: Número de carretas que a TRANSPORTADORA aceitou (NÃO o total do frete)
+                  const companyTruckCount = assignments.length;
+                  const totalRequiredTrucks = Math.max((firstAssignment?.freight?.required_trucks ?? 1) || 1, 1);
 
-                  // ✅ Segurança (Transportadora): nunca renderizar valor TOTAL de multi-carreta.
-                  // Usa heurística defensiva para corrigir dados legados onde agreed_price foi salvo como TOTAL.
+                  // ✅ Calcular preço unitário por carreta
                   const visiblePrice = getDriverVisibleFreightPrice({
-                    freightPrice: assignment?.freight?.price,
-                    requiredTrucks: originalRequiredTrucks,
-                    assignmentAgreedPrice: typeof assignment?.agreed_price === 'number' ? assignment.agreed_price : undefined,
+                    freightPrice: firstAssignment?.freight?.price,
+                    requiredTrucks: totalRequiredTrucks,
+                    assignmentAgreedPrice: typeof firstAssignment?.agreed_price === 'number' ? firstAssignment.agreed_price : undefined,
                   });
 
-                  // Mapear assignment para formato de freight
+                  // ✅ Mapear: price = unitário, original_required_trucks = carretas DA TRANSPORTADORA
                   const mappedFreight = {
-                    ...assignment.freight,
-                    producer: assignment.freight?.producer,
-                    driver_profiles: assignment.driver,
-                    profiles: assignment.driver,
+                    ...firstAssignment.freight,
+                    producer: firstAssignment.freight?.producer,
+                    driver_profiles: firstAssignment.driver,
+                    profiles: firstAssignment.driver,
                     price: visiblePrice.displayPrice,
                     price_display_mode: visiblePrice.displayMode,
-                    original_required_trucks: originalRequiredTrucks,
+                    original_required_trucks: companyTruckCount,
                     required_trucks: 1,
-                    assignment_status: assignment.status,
+                    assignment_status: firstAssignment.status,
                   };
                   
                   return (
                     <FreightInProgressCard
-                      key={assignment.id}
+                      key={freightId}
                       freight={mappedFreight}
                       showActions={false}
                       onViewDetails={() => {
@@ -383,10 +400,10 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
               </SafeListWrapper>
             </div>
           )}
-          {activeFreights.length > 4 && (
+          {groupedActiveFreights.length > 4 && (
             <div className="mt-4 text-center">
               <Button variant="outline" onClick={() => onNavigateToReport?.('active')}>
-                Ver todos os {activeFreights.length} fretes
+                Ver todos os {groupedActiveFreights.length} fretes
               </Button>
             </div>
           )}
