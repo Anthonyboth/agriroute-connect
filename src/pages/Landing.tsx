@@ -93,12 +93,13 @@ import Leaf from 'lucide-react/dist/esm/icons/leaf';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
-import { HERO_BG_DESKTOP, HERO_BG_MOBILE } from '@/lib/hero-assets';
+import { useHeroBackground } from '@/hooks/useHeroBackground';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
   // P0 HOTFIX: Removido authModal state - cadastro agora é via /auth direto
   
+  const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
     isOpen: false,
@@ -248,12 +249,12 @@ const Landing: React.FC = () => {
         <picture>
           <source
             media="(max-width: 640px)"
-            srcSet={HERO_BG_MOBILE}
+            srcSet={heroMobile}
             type="image/webp"
           />
           <img 
-            src={HERO_BG_DESKTOP}
-            srcSet={`${HERO_BG_MOBILE} 640w, ${HERO_BG_DESKTOP} 1920w`}
+            src={heroDesktop}
+            srcSet={`${heroMobile} 640w, ${heroDesktop} 1920w`}
             sizes="100vw"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"

@@ -27,7 +27,7 @@ import { ServicesModal } from '@/components/ServicesModal';
 import { useToast } from '@/hooks/use-toast';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { SISTEMA_IA_LABEL } from '@/lib/ui-labels';
-import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
+import { useHeroBackground } from '@/hooks/useHeroBackground';
 
 interface ServiceProviderStats {
   total_requests: number;
@@ -53,6 +53,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { desktopUrl: heroDesktop } = useHeroBackground();
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -151,7 +152,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         {/* Background Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
+          style={{ backgroundImage: `url(${heroDesktop})` }}
         />
         {/* Overlay */}
         <div className="absolute inset-0 bg-primary/75" />

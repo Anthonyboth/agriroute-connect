@@ -67,7 +67,7 @@ import { FreightProposalsManager } from "@/components/FreightProposalsManager";
 import { UnifiedChatHub } from "@/components/UnifiedChatHub";
 import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
 import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
-import { HERO_BG_DESKTOP } from "@/lib/hero-assets";
+import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { usePendingDeliveryConfirmations } from "@/hooks/usePendingDeliveryConfirmations";
 import { PendingDeliveryConfirmationCard } from "@/components/PendingDeliveryConfirmationCard";
 
@@ -100,6 +100,7 @@ const ProducerDashboard = () => {
 
   const [freights, setFreights] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
+  const { desktopUrl: heroDesktop } = useHeroBackground();
   const [activeTab, setActiveTab] = useState("open");
   const [loading, setLoading] = useState(true);
 
@@ -1389,7 +1390,7 @@ const ProducerDashboard = () => {
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
+          style={{ backgroundImage: `url(${heroDesktop})` }}
         />
         <div className="absolute inset-0 bg-primary/75" />
         <div className="relative z-10 w-full">

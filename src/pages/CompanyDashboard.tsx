@@ -65,7 +65,7 @@ import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
-import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
+import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
@@ -131,6 +131,7 @@ const CompanyDashboard = () => {
   const isTablet = useIsTablet();
   const tabsScrollRef = React.useRef<HTMLDivElement>(null);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  const { desktopUrl: heroDesktop } = useHeroBackground();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [driverFileModalOpen, setDriverFileModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
@@ -602,7 +603,7 @@ const CompanyDashboard = () => {
       <section className="relative py-6 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-30 animate-fade-in"
-          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
+          style={{ backgroundImage: `url(${heroDesktop})` }}
         />
         {/* Overlay verde para melhor contraste - seguindo padrão do DriverDashboard */}
         <div className="absolute inset-0 bg-primary/80" />
