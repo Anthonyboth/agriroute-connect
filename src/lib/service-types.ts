@@ -388,6 +388,26 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: false
   },
   {
+    id: 'ENTREGA_PACOTES',
+    label: 'Entrega de Pacotes',
+    description: 'Entrega rápida de encomendas, documentos e pequenas cargas',
+    icon: Box,
+    color: 'bg-violet-100 text-violet-800 border-violet-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
+  },
+  {
+    id: 'TRANSPORTE_PET',
+    label: 'Transporte de Pet',
+    description: 'Viagem segura e confortável para seu pet 🐾',
+    icon: PawPrint,
+    color: 'bg-pink-100 text-pink-800 border-pink-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
+  },
+  {
     id: 'OUTROS',
     label: 'Outros',
     description: 'Outros serviços não listados',

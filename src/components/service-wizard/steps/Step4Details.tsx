@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ServiceFormData, ServiceType, URGENCY_LABELS, CARGO_TYPES, ADDITIONAL_SERVICES } from '../types';
-import { AlertCircle, Clock, Package, Truck, Wrench } from 'lucide-react';
+import { ServiceFormData, ServiceType, URGENCY_LABELS, CARGO_TYPES, ADDITIONAL_SERVICES, PACKAGE_TYPES, PET_TYPES, PET_SIZES } from '../types';
+import { AlertCircle, Clock, Package, Truck, Wrench, PawPrint, AlertTriangle } from 'lucide-react';
 
 interface Step4Props {
   formData: ServiceFormData;
@@ -349,6 +349,276 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
     </div>
   );
 
+  // ✅ ENTREGA DE PACOTES
+  const renderPackageDetails = () => {
+    const weight = parseFloat(formData.packageDetails?.weight || '0');
+    const isOverweight = weight > 30;
+
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Tipo de Pacote *
+          </Label>
+          <Select
+            value={formData.packageDetails?.packageType || ''}
+            onValueChange={(value) => onUpdate('packageDetails.packageType', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PACKAGE_TYPES).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Peso Aproximado (kg) *</Label>
+            <Input
+              type="number"
+              value={formData.packageDetails?.weight || ''}
+              onChange={(e) => onUpdate('packageDetails.weight', e.target.value)}
+              placeholder="Ex: 5"
+              min="0"
+            />
+            {isOverweight && (
+              <div className="flex items-center gap-1 text-amber-600 text-xs">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Peso acima de 30kg — pode haver taxa adicional</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tamanho</Label>
+            <Select
+              value={formData.packageDetails?.size || ''}
+              onValueChange={(value) => onUpdate('packageDetails.size', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="P">Pequeno (até 30cm)</SelectItem>
+                <SelectItem value="M">Médio (30-60cm)</SelectItem>
+                <SelectItem value="G">Grande (acima de 60cm)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="is-fragile"
+            checked={formData.packageDetails?.isFragile || false}
+            onCheckedChange={(checked) => onUpdate('packageDetails.isFragile', checked)}
+          />
+          <Label htmlFor="is-fragile">É frágil (requer cuidado especial)</Label>
+        </div>
+
+        {formData.packageDetails?.isFragile && (
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">Item frágil — será exibido no resumo para o motorista</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Data Desejada *</Label>
+            <Input
+              type="date"
+              value={formData.packageDetails?.pickupDate || ''}
+              onChange={(e) => onUpdate('packageDetails.pickupDate', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Horário</Label>
+            <Input
+              value={formData.packageDetails?.pickupTime || ''}
+              onChange={(e) => onUpdate('packageDetails.pickupTime', e.target.value)}
+              placeholder="Ex: Manhã, o quanto antes..."
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Valor Sugerido (opcional)</Label>
+          <Input
+            type="number"
+            value={formData.packageDetails?.suggestedPrice || ''}
+            onChange={(e) => onUpdate('packageDetails.suggestedPrice', e.target.value)}
+            placeholder="Deixe vazio para receber propostas"
+            min="0"
+          />
+          <p className="text-xs text-muted-foreground">Se não informar, o motorista enviará uma proposta.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Observações</Label>
+          <Textarea
+            value={formData.packageDetails?.observations || ''}
+            onChange={(e) => onUpdate('packageDetails.observations', e.target.value)}
+            placeholder="Instruções especiais, portaria, horário de funcionamento..."
+            rows={3}
+          />
+        </div>
+
+        {renderUrgencySelector()}
+      </div>
+    );
+  };
+
+  // ✅ TRANSPORTE DE PET
+  const renderPetDetails = () => (
+    <div className="space-y-4">
+      {/* CTA Box */}
+      <Card className="border-pink-200 bg-pink-50 dark:bg-pink-950/20 dark:border-pink-800">
+        <CardContent className="p-4">
+          <p className="text-sm font-semibold text-pink-700 dark:text-pink-300 flex items-center gap-2">
+            🐾 Seu pet vai com segurança e conforto
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <PawPrint className="h-4 w-4" />
+          Tipo de Pet *
+        </Label>
+        <Select
+          value={formData.petDetails?.petType || ''}
+          onValueChange={(value) => onUpdate('petDetails.petType', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(PET_TYPES).map(([key, label]) => (
+              <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Porte *</Label>
+          <Select
+            value={formData.petDetails?.petSize || ''}
+            onValueChange={(value) => onUpdate('petDetails.petSize', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PET_SIZES).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Peso Aproximado (kg)</Label>
+          <Input
+            type="number"
+            value={formData.petDetails?.petWeight || ''}
+            onChange={(e) => onUpdate('petDetails.petWeight', e.target.value)}
+            placeholder="Ex: 12"
+            min="0"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="needs-carrier"
+            checked={formData.petDetails?.needsCarrier || false}
+            onCheckedChange={(checked) => onUpdate('petDetails.needsCarrier', checked)}
+          />
+          <Label htmlFor="needs-carrier">Precisa de caixa de transporte</Label>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="is-aggressive"
+            checked={formData.petDetails?.isAggressiveOrAnxious || false}
+            onCheckedChange={(checked) => onUpdate('petDetails.isAggressiveOrAnxious', checked)}
+          />
+          <Label htmlFor="is-aggressive">O pet é agressivo ou ansioso</Label>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="needs-stops"
+            checked={formData.petDetails?.needsStops || false}
+            onCheckedChange={(checked) => onUpdate('petDetails.needsStops', checked)}
+          />
+          <Label htmlFor="needs-stops">Precisa de paradas durante o trajeto</Label>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Data Desejada *</Label>
+          <Input
+            type="date"
+            value={formData.petDetails?.pickupDate || ''}
+            onChange={(e) => onUpdate('petDetails.pickupDate', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Horário</Label>
+          <Input
+            value={formData.petDetails?.pickupTime || ''}
+            onChange={(e) => onUpdate('petDetails.pickupTime', e.target.value)}
+            placeholder="Ex: Manhã, 14h..."
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Observações</Label>
+        <Textarea
+          value={formData.petDetails?.observations || ''}
+          onChange={(e) => onUpdate('petDetails.observations', e.target.value)}
+          placeholder="Informações sobre o pet, medicação, alimentação, necessidades especiais..."
+          rows={3}
+        />
+      </div>
+
+      {renderUrgencySelector()}
+
+      {/* Declaração obrigatória */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="owner-declaration"
+              checked={formData.petDetails?.ownerDeclaration || false}
+              onCheckedChange={(checked) => onUpdate('petDetails.ownerDeclaration', checked)}
+            />
+            <Label htmlFor="owner-declaration" className="text-sm leading-relaxed cursor-pointer">
+              <strong>Declaração obrigatória:</strong> Declaro que o pet está apto para transporte e sob minha responsabilidade. 
+              Assumo total responsabilidade pela saúde e bem-estar do animal durante o transporte.
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const renderContent = () => {
     switch (serviceType) {
       case 'GUINCHO':
@@ -363,6 +633,10 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
         return renderAgriculturalDetails();
       case 'SERVICO_TECNICO':
         return renderTechnicalDetails();
+      case 'ENTREGA_PACOTES':
+        return renderPackageDetails();
+      case 'TRANSPORTE_PET':
+        return renderPetDetails();
       default:
         return renderCargoDetails();
     }

@@ -10,7 +10,7 @@ import {
   BottomSheetBody,
   BottomSheetFooter 
 } from '@/components/ui/bottom-sheet';
-import { Truck, Package, Home, Wheat, ArrowLeft } from 'lucide-react';
+import { Truck, Package, Home, Wheat, ArrowLeft, Box, PawPrint } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,8 @@ interface FreightServiceCardProps {
   badge: string;
   colorClass: string;
   onClick: (id: string) => void;
+  ctaText?: string;
+  ctaHighlight?: boolean;
 }
 
 const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
@@ -44,6 +46,8 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
   badge,
   colorClass,
   onClick,
+  ctaText,
+  ctaHighlight,
 }) => {
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -82,7 +86,9 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         // Touch
         "active:scale-[0.99]",
-        "cursor-pointer pointer-events-auto"
+        "cursor-pointer pointer-events-auto",
+        // Highlight especial para Pet
+        ctaHighlight && "ring-2 ring-pink-300 dark:ring-pink-600 border-pink-200 dark:border-pink-700"
       )}
     >
       {/* Ícone */}
@@ -100,7 +106,7 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
 
       {/* Conteúdo */}
       <div className="flex-1 min-w-0 text-left">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-150">
             {title}
           </h3>
@@ -111,6 +117,17 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
         <p className="text-sm text-muted-foreground line-clamp-2">
           {description}
         </p>
+        {/* CTA visível para Transporte de Pet */}
+        {ctaText && (
+          <span className={cn(
+            "inline-flex items-center gap-1 mt-2 text-xs font-semibold px-3 py-1 rounded-full",
+            ctaHighlight
+              ? "bg-pink-500 text-white dark:bg-pink-600"
+              : "bg-primary/10 text-primary"
+          )}>
+            🐾 {ctaText}
+          </span>
+        )}
       </div>
     </button>
   );
@@ -125,7 +142,7 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
   
   const [guestServiceModal, setGuestServiceModal] = useState<{
     isOpen: boolean;
-    serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
+    serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' | 'ENTREGA_PACOTES' | 'TRANSPORTE_PET';
     initialSubService?: string;
   }>({ isOpen: false });
 
@@ -149,6 +166,24 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       description: 'Transporte rápido de cargas dentro da cidade',
       colorClass: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-700/50',
       badge: 'Entrega Rápida'
+    },
+    {
+      id: 'ENTREGA_PACOTES',
+      icon: Box,
+      title: 'Entrega de Pacotes',
+      description: 'Entrega rápida de encomendas, documentos e pequenas cargas',
+      colorClass: 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200/60 dark:border-violet-700/50',
+      badge: 'Rápido'
+    },
+    {
+      id: 'TRANSPORTE_PET',
+      icon: PawPrint,
+      title: 'Transporte de Pet',
+      description: 'Viagem segura e confortável para seu pet',
+      colorClass: 'bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400 border border-pink-200/60 dark:border-pink-700/50',
+      badge: 'Pet',
+      ctaText: 'Transportar meu pet',
+      ctaHighlight: true,
     },
     {
       id: 'MUDANCA',
@@ -178,6 +213,18 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         isOpen: true, 
         serviceType: 'GUINCHO',
         initialSubService: 'GUINCHO'
+      });
+    } else if (serviceId === 'ENTREGA_PACOTES') {
+      setGuestServiceModal({ 
+        isOpen: true, 
+        serviceType: 'ENTREGA_PACOTES',
+        initialSubService: 'ENTREGA_PACOTES'
+      });
+    } else if (serviceId === 'TRANSPORTE_PET') {
+      setGuestServiceModal({ 
+        isOpen: true, 
+        serviceType: 'TRANSPORTE_PET',
+        initialSubService: 'TRANSPORTE_PET'
       });
     } else {
       setGuestServiceModal({ 
@@ -238,6 +285,8 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
                   badge={service.badge}
                   colorClass={service.colorClass}
                   onClick={handleServiceSelect}
+                  ctaText={'ctaText' in service ? (service as any).ctaText : undefined}
+                  ctaHighlight={'ctaHighlight' in service ? (service as any).ctaHighlight : undefined}
                 />
               ))}
             </div>
@@ -247,7 +296,7 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         </BottomSheetContent>
       </BottomSheet>
 
-      {/* Guest Service Modal para GUINCHO, FRETE_URBANO, MUDANCA */}
+      {/* Guest Service Modal para GUINCHO, FRETE_URBANO, MUDANCA, ENTREGA_PACOTES, TRANSPORTE_PET */}
       {guestServiceModal.serviceType && (
         <GuestServiceModal
           isOpen={guestServiceModal.isOpen}

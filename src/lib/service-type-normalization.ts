@@ -8,7 +8,7 @@
  * - FRETE_MOTO: Frete por moto
  */
 
-export const CANONICAL_SERVICE_TYPES = ['CARGA', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO'] as const;
+export const CANONICAL_SERVICE_TYPES = ['CARGA', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'] as const;
 export type CanonicalServiceType = typeof CANONICAL_SERVICE_TYPES[number];
 
 /**
@@ -40,6 +40,14 @@ export const normalizeServiceType = (type: string | null | undefined): Canonical
     'FRETE_MOTO': 'FRETE_MOTO',
     'MOTO': 'FRETE_MOTO',
     'MOTOBOY': 'FRETE_MOTO',
+    
+    'ENTREGA_PACOTES': 'ENTREGA_PACOTES',
+    'PACOTES': 'ENTREGA_PACOTES',
+    'ENTREGA': 'ENTREGA_PACOTES',
+    
+    'TRANSPORTE_PET': 'TRANSPORTE_PET',
+    'PET': 'TRANSPORTE_PET',
+    'TRANSPORTE_ANIMAL': 'TRANSPORTE_PET',
   };
   
   return mappings[normalized] || 'CARGA'; // Fallback para CARGA se não reconhecer

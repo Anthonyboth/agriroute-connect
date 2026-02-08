@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, User, MapPin, ClipboardList, Check, Wrench, Tractor, Package, Home, Bike } from 'lucide-react';
+import { Truck, User, MapPin, ClipboardList, Check, Wrench, Tractor, Package, Home, Bike, PawPrint, Box } from 'lucide-react';
 import { ServiceType, ServiceWizardConfig, ServiceWizardStep } from './types';
 
 const createBaseSteps = (step4Title: string = 'Detalhes'): ServiceWizardStep[] => [
@@ -43,6 +43,36 @@ export const SERVICE_WIZARD_CONFIGS: Record<ServiceType, ServiceWizardConfig> = 
     requiresDestination: true,
     category: 'urban',
     steps: createBaseSteps('Carga'),
+  },
+  ENTREGA_PACOTES: {
+    serviceType: 'ENTREGA_PACOTES',
+    title: 'Entrega de Pacotes',
+    description: 'Entrega rápida de encomendas e documentos',
+    icon: '📬',
+    requiresDestination: true,
+    category: 'freight',
+    steps: [
+      { id: 1, title: 'Pacote', description: 'O que enviar', icon: <Box className="h-4 w-4" /> },
+      { id: 2, title: 'Seus Dados', description: 'Contato', icon: <User className="h-4 w-4" /> },
+      { id: 3, title: 'Endereços', description: 'Coleta e entrega', icon: <MapPin className="h-4 w-4" /> },
+      { id: 4, title: 'Detalhes', description: 'Peso e prazo', icon: <Package className="h-4 w-4" /> },
+      { id: 5, title: 'Revisar', description: 'Confirmar', icon: <Check className="h-4 w-4" /> },
+    ],
+  },
+  TRANSPORTE_PET: {
+    serviceType: 'TRANSPORTE_PET',
+    title: 'Transporte de Pet',
+    description: 'Viagem segura e confortável para seu pet 🐾',
+    icon: '🐾',
+    requiresDestination: true,
+    category: 'freight',
+    steps: [
+      { id: 1, title: 'Seu Pet', description: 'Informações', icon: <PawPrint className="h-4 w-4" /> },
+      { id: 2, title: 'Seus Dados', description: 'Contato', icon: <User className="h-4 w-4" /> },
+      { id: 3, title: 'Endereços', description: 'Coleta e destino', icon: <MapPin className="h-4 w-4" /> },
+      { id: 4, title: 'Detalhes', description: 'Cuidados', icon: <PawPrint className="h-4 w-4" /> },
+      { id: 5, title: 'Revisar', description: 'Confirmar', icon: <Check className="h-4 w-4" /> },
+    ],
   },
   MUDANCA_RESIDENCIAL: {
     serviceType: 'MUDANCA_RESIDENCIAL',

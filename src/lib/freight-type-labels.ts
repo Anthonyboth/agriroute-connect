@@ -68,6 +68,8 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   'CARGA_AGRICOLA': 'Carga Agrícola',
   'TRANSPORTE_ANIMAIS': 'Transporte de Animais',
   'TRANSPORTE_MAQUINARIO': 'Transporte de Maquinário',
+  'ENTREGA_PACOTES': 'Entrega de Pacotes',
+  'TRANSPORTE_PET': 'Transporte de Pet',
 };
 
 /**
