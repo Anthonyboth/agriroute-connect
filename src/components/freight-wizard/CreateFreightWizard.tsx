@@ -135,17 +135,27 @@ export function CreateFreightWizard({
   );
 
   // PROBLEMA 9: Auto-save draft every 3 seconds COM currentStep
+  // ✅ FIX: NÃO auto-salvar enquanto o prompt de rascunho estiver visível
+  // (evita sobrescrever o rascunho salvo com dados vazios antes do usuário decidir)
   useEffect(() => {
-    if (!guestMode && isModalOpen && !initialData) {
+    if (!guestMode && isModalOpen && !initialData && !showDraftPrompt) {
       const interval = setInterval(() => {
-        const hasData = Object.values(formData).some(v => v && v !== '');
-        if (hasData) {
-          saveDraft(formData, currentStep); // Salvar etapa atual junto com dados
+        const hasData = Object.values(formData).some(v => {
+          if (typeof v === 'string') return v.trim() !== '';
+          if (typeof v === 'boolean') return false; // ignore booleans like high_performance
+          return v !== undefined && v !== null;
+        });
+        // Só salva se tem dados reais preenchidos pelo usuário (não apenas defaults)
+        const hasRealData = formData.origin_city?.trim() || formData.destination_city?.trim() || 
+                           formData.cargo_type?.trim() || formData.weight?.trim() || 
+                           formData.price?.trim() || formData.description?.trim();
+        if (hasData && hasRealData) {
+          saveDraft(formData, currentStep);
         }
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [formData, guestMode, isModalOpen, initialData, saveDraft, currentStep]);
+  }, [formData, guestMode, isModalOpen, initialData, saveDraft, currentStep, showDraftPrompt]);
 
   const handleInputChange = (field: string, value: any) => {
     logWizardDebug('INPUT_CHANGE', { field, valueType: typeof value, currentStep });
