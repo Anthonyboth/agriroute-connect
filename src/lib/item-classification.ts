@@ -21,6 +21,9 @@ export const FREIGHT_TYPE_IDS: string[] = [
   'MUDANCA_RESIDENCIAL',
   'MUDANCA_COMERCIAL',
   'CARGA_FREIGHT',
+  // Novas modalidades de frete
+  'ENTREGA_PACOTES',
+  'TRANSPORTE_PET',
   // Aliases e variações
   'FRETE_GUINCHO',
   'FRETE_MUDANCA',

@@ -19,7 +19,7 @@ interface GuestServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBack?: () => void;
-  serviceType: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
+  serviceType: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' | 'ENTREGA_PACOTES' | 'TRANSPORTE_PET';
   initialSubService?: string;
 }
 
@@ -34,7 +34,13 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     (initialSubService as ServiceType) || null
   );
 
-  const serviceInfo = {
+  const serviceInfo: Record<string, {
+    title: string;
+    description: string;
+    icon: string;
+    subServices: SubService[];
+    features: string[];
+  }> = {
     GUINCHO: {
       title: 'Solicitar Guincho ou Fretes Urbanos',
       description: 'Precisa de guincho, frete urbano ou mudança? Conectamos você com os melhores profissionais da sua região',
@@ -75,7 +81,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
           price: 'A partir de R$ 300',
           details: 'Profissionais especializados'
         }
-      ] as SubService[],
+      ],
       features: ['Atendimento 24h', 'Profissionais qualificados', 'Preços transparentes', 'Embalagem inclusa']
     },
     MUDANCA: {
@@ -97,10 +103,44 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
         { id: 'FRETE_URBANO' as ServiceType, name: 'Frete de Van/Picape', description: 'Cargas até 1.5 toneladas', price: 'A partir de R$ 45' }
       ],
       features: ['Entrega rápida', 'Rastreamento', 'Carga protegida']
-    }
+    },
+    ENTREGA_PACOTES: {
+      title: 'Entrega de Pacotes',
+      description: 'Entrega rápida e segura de encomendas',
+      icon: '📬',
+      subServices: [
+        { 
+          id: 'ENTREGA_PACOTES' as ServiceType, 
+          name: 'Entrega de Pacotes', 
+          description: 'Documentos, caixas, encomendas até 30kg', 
+          price: 'A partir de R$ 15',
+          details: 'Entrega rápida com cuidado especial para itens frágeis'
+        },
+      ],
+      features: ['Entrega rápida', 'Cuidado com frágeis', 'Rastreamento', 'Até 30kg']
+    },
+    TRANSPORTE_PET: {
+      title: 'Transporte de Pet 🐾',
+      description: 'Seu pet vai com segurança e conforto',
+      icon: '🐾',
+      subServices: [
+        { 
+          id: 'TRANSPORTE_PET' as ServiceType, 
+          name: 'Transporte de Pet', 
+          description: 'Viagem segura para cães, gatos e outros', 
+          price: 'Sob consulta',
+          details: 'Motoristas preparados para transportar seu pet com segurança e carinho'
+        },
+      ],
+      features: ['Segurança garantida', 'Conforto para o pet', 'Motorista preparado', 'Paradas quando necessário']
+    },
   };
 
   const info = serviceInfo[serviceType];
+
+  if (!info) {
+    return null;
+  }
 
   const handleBack = () => {
     if (selectedSubService && !initialSubService) {

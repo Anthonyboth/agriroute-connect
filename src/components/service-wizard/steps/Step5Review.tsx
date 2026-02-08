@@ -2,9 +2,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ServiceFormData, ServiceType, URGENCY_LABELS, ADDITIONAL_SERVICES } from '../types';
+import { ServiceFormData, ServiceType, URGENCY_LABELS, ADDITIONAL_SERVICES, PACKAGE_TYPES, PET_TYPES, PET_SIZES } from '../types';
 import { getServiceConfig } from '../config';
-import { User, MapPin, Package, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, MapPin, Package, Clock, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { toUF } from '@/utils/city-deduplication';
 
 interface Step5Props {
@@ -16,10 +16,8 @@ export const Step5Review: React.FC<Step5Props> = ({ formData, serviceType }) => 
   const config = getServiceConfig(serviceType);
   const urgencyInfo = URGENCY_LABELS[formData.urgency];
 
-  // Formata endereço SEMPRE com UF de 2 letras
   const formatAddress = (address: typeof formData.origin) => {
     if (!address) return 'Não informado';
-    // Converter state para UF
     const uf = address.state ? (toUF(address.state) || address.state) : '';
     const parts = [
       address.street,
@@ -198,6 +196,94 @@ export const Step5Review: React.FC<Step5Props> = ({ formData, serviceType }) => 
                 <div>
                   <span className="text-muted-foreground block mb-1">Serviços Adicionais:</span>
                   <span className="font-medium">{getSelectedServices()}</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Entrega de Pacotes */}
+          {serviceType === 'ENTREGA_PACOTES' && formData.packageDetails && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tipo de Pacote:</span>
+                <span className="font-medium">{PACKAGE_TYPES[formData.packageDetails.packageType as keyof typeof PACKAGE_TYPES] || formData.packageDetails.packageType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Peso:</span>
+                <span className="font-medium">{formData.packageDetails.weight} kg</span>
+              </div>
+              {formData.packageDetails.size && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tamanho:</span>
+                  <span className="font-medium">{formData.packageDetails.size === 'P' ? 'Pequeno' : formData.packageDetails.size === 'M' ? 'Médio' : 'Grande'}</span>
+                </div>
+              )}
+              {formData.packageDetails.isFragile && (
+                <div className="flex items-center gap-2 text-amber-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="font-medium">Item Frágil — cuidado especial</span>
+                </div>
+              )}
+              {formData.packageDetails.pickupDate && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data:</span>
+                  <span className="font-medium">{formData.packageDetails.pickupDate}</span>
+                </div>
+              )}
+              {formData.packageDetails.suggestedPrice && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valor Sugerido:</span>
+                  <span className="font-medium">R$ {parseFloat(formData.packageDetails.suggestedPrice).toLocaleString('pt-BR')}</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Transporte de Pet */}
+          {serviceType === 'TRANSPORTE_PET' && formData.petDetails && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tipo de Pet:</span>
+                <span className="font-medium">{PET_TYPES[formData.petDetails.petType as keyof typeof PET_TYPES] || formData.petDetails.petType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Porte:</span>
+                <span className="font-medium">{PET_SIZES[formData.petDetails.petSize as keyof typeof PET_SIZES] || formData.petDetails.petSize}</span>
+              </div>
+              {formData.petDetails.petWeight && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Peso:</span>
+                  <span className="font-medium">{formData.petDetails.petWeight} kg</span>
+                </div>
+              )}
+              {formData.petDetails.needsCarrier && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span>Precisa de caixa de transporte</span>
+                </div>
+              )}
+              {formData.petDetails.isAggressiveOrAnxious && (
+                <div className="flex items-center gap-2 text-amber-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Pet agressivo/ansioso</span>
+                </div>
+              )}
+              {formData.petDetails.needsStops && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span>Precisa de paradas</span>
+                </div>
+              )}
+              {formData.petDetails.pickupDate && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data:</span>
+                  <span className="font-medium">{formData.petDetails.pickupDate}</span>
+                </div>
+              )}
+              {formData.petDetails.ownerDeclaration && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="text-xs">Declaração de responsabilidade aceita</span>
                 </div>
               )}
             </>

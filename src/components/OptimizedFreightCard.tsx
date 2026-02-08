@@ -31,7 +31,7 @@ interface FreightCardProps {
     status: "OPEN" | "IN_TRANSIT" | "DELIVERED" | "IN_NEGOTIATION" | "ACCEPTED" | "CANCELLED";
     distance_km: number;
     minimum_antt_price: number;
-    service_type?: "CARGA" | "GUINCHO" | "MUDANCA" | "FRETE_MOTO";
+    service_type?: "CARGA" | "GUINCHO" | "MUDANCA" | "FRETE_MOTO" | "ENTREGA_PACOTES" | "TRANSPORTE_PET";
     required_trucks?: number;
     accepted_trucks?: number;
 

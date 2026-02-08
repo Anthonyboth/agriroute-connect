@@ -20,7 +20,7 @@ interface ServiceProposalModalProps {
   onClose: () => void;
   freight: {
     id: string;
-    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
+    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO' | 'ENTREGA_PACOTES' | 'TRANSPORTE_PET';
     price: number;
     distance_km?: number;
     weight?: number;

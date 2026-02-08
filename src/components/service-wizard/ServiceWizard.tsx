@@ -105,6 +105,28 @@ const createInitialFormData = (serviceType: ServiceType): ServiceFormData => ({
     year: "",
     lastMaintenance: "",
   },
+  packageDetails: {
+    packageType: "",
+    weight: "",
+    size: "",
+    isFragile: false,
+    pickupDate: "",
+    pickupTime: "",
+    observations: "",
+    suggestedPrice: "",
+  },
+  petDetails: {
+    petType: "",
+    petSize: "",
+    petWeight: "",
+    needsCarrier: false,
+    isAggressiveOrAnxious: false,
+    needsStops: false,
+    pickupDate: "",
+    pickupTime: "",
+    observations: "",
+    ownerDeclaration: false,
+  },
   additionalInfo: "",
 });
 
