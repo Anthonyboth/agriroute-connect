@@ -389,12 +389,37 @@ export function CreateFreightWizard({
         ? 'FRETE_MOTO' 
         : 'CARGA';
 
+      // ✅ Validação pré-insert: proteger contra NaN e valores fora do range do DB
+      const safePrice = isNaN(calculation.totalPrice) ? 0 : calculation.totalPrice;
+      const safePricePerKm = formData.pricing_type === 'PER_KM' ? (parseFloat(formData.price_per_km) || 0) : null;
+      
+      if (isNaN(totalWeightKg) || totalWeightKg < 100 || totalWeightKg > 90000) {
+        showFormError({
+          field: "Peso da Carga",
+          problem: `Peso inválido: ${isNaN(totalWeightKg) ? 'não numérico' : `${totalWeightTonnes} ton (${totalWeightKg}kg)`}. Permitido: 0.1 a 90 toneladas.`,
+          solution: "Volte à etapa 3 e ajuste o peso total da carga.",
+        });
+        setCurrentStep(3);
+        setLoading(false);
+        return;
+      }
+
+      if (safePrice <= 0) {
+        showFormError({
+          field: "Valor do Frete",
+          problem: "O valor calculado do frete é zero ou inválido.",
+          solution: "Volte à etapa 4 e defina o valor corretamente.",
+        });
+        setCurrentStep(4);
+        setLoading(false);
+        return;
+      }
+
       const freightData = {
         producer_id: effectiveGuestMode ? null : userProfile.id,
         is_guest_freight: effectiveGuestMode,
         cargo_type: formData.cargo_type,
         service_type: serviceType,
-        // ✅ Peso TOTAL em kg (para estatísticas e visão geral)
         weight: totalWeightKg,
         origin_address: buildAddressString(formData.origin_city, formData.origin_state, formData.origin_neighborhood, formData.origin_street, formData.origin_number, formData.origin_complement),
         origin_city: formData.origin_city,
@@ -416,10 +441,10 @@ export function CreateFreightWizard({
         destination_street: formData.destination_street || null,
         destination_number: formData.destination_number || null,
         destination_complement: formData.destination_complement || null,
-        distance_km: calculatedDistance,
+        distance_km: calculatedDistance || 0,
         minimum_antt_price: calculatedAnttPrice,
-        price: calculation.totalPrice,
-        price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
+        price: safePrice,
+        price_per_km: safePricePerKm,
         required_trucks: parseInt(formData.required_trucks) || 1,
         accepted_trucks: 0,
         pickup_date: formData.pickup_date,
@@ -634,6 +659,43 @@ export function CreateFreightWizard({
           solution: "Volte à etapa 4 e defina o valor por km ou valor fixo.",
         });
         setCurrentStep(4);
+      } else if (errorCode === '23514' || errorMessage.includes('violates check constraint')) {
+        // CHECK constraint violations - mapear para campo específico
+        const constraintMsg = errorMessage + ' ' + errorDetails;
+        if (constraintMsg.includes('weight')) {
+          showFormError({
+            field: "Peso da Carga",
+            problem: "Peso fora do intervalo permitido (mínimo 0.1 ton, máximo 90 ton).",
+            solution: "Volte à etapa 3 e ajuste o peso total da carga.",
+          });
+          setCurrentStep(3);
+        } else if (constraintMsg.includes('axles') || constraintMsg.includes('vehicle')) {
+          showFormError({
+            field: "Eixos do Veículo",
+            problem: "Número de eixos inválido.",
+            solution: "Volte à etapa 3 e selecione um tipo de veículo válido.",
+          });
+          setCurrentStep(3);
+        } else if (constraintMsg.includes('service_type')) {
+          showFormError({
+            field: "Tipo de Serviço",
+            problem: "Tipo de serviço inválido.",
+            solution: "Volte à etapa 3 e selecione o tipo de carga novamente.",
+          });
+          setCurrentStep(3);
+        } else if (constraintMsg.includes('visibility')) {
+          showFormError({
+            field: "Visibilidade",
+            problem: "Configuração de visibilidade inválida.",
+            solution: "Volte à etapa 4 e ajuste a visibilidade do frete.",
+          });
+          setCurrentStep(4);
+        } else {
+          showFormError({
+            problem: "Dados fora do intervalo permitido.",
+            solution: `Revise os campos: ${errorMessage}`,
+          });
+        }
       } else if (errorCode === '23502') {
         showFormError({
           problem: "Alguns campos obrigatórios não foram preenchidos.",
