@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,17 @@ interface Step4Props {
 }
 
 export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, serviceType }) => {
+  
+  // ✅ UX: Auto-preencher data de entrega quando data de coleta é selecionada (mudança)
+  useEffect(() => {
+    if ((serviceType === 'MUDANCA_RESIDENCIAL' || serviceType === 'MUDANCA_COMERCIAL') &&
+        formData.mudanca?.pickupDate && !formData.mudanca?.deliveryDate) {
+      const pickup = new Date(formData.mudanca.pickupDate + 'T00:00:00');
+      pickup.setDate(pickup.getDate() + 1);
+      const nextDay = pickup.toISOString().split('T')[0];
+      onUpdate('mudanca.deliveryDate', nextDay);
+    }
+  }, [formData.mudanca?.pickupDate]);
   
   const handleAdditionalServiceChange = (serviceId: string, checked: boolean) => {
     const currentServices = formData.mudanca?.additionalServices || [];

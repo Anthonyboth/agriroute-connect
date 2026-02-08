@@ -240,8 +240,37 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
             showMissingField("name", "Nome Completo");
             return false;
           }
+          if (formData.personal.name.trim().length < 3) {
+            showFormError({
+              field: "Nome Completo",
+              problem: "Nome muito curto (mínimo 3 caracteres).",
+              solution: "Informe seu nome completo para que o prestador possa identificá-lo.",
+            });
+            return false;
+          }
           if (!formData.personal.phone?.trim()) {
             showMissingField("phone", "Telefone");
+            return false;
+          }
+          if (formData.personal.phone.replace(/\D/g, '').length < 10) {
+            showFormError({
+              field: "Telefone",
+              problem: "Telefone incompleto.",
+              solution: "Informe um telefone válido com DDD (ex: 66 99999-0000).",
+            });
+            return false;
+          }
+          if (!formData.personal.document?.trim()) {
+            showMissingField("document", "CPF ou CNPJ");
+            return false;
+          }
+          const docDigits = formData.personal.document.replace(/\D/g, '');
+          if (docDigits.length !== 11 && docDigits.length !== 14) {
+            showFormError({
+              field: "CPF ou CNPJ",
+              problem: "Documento incompleto.",
+              solution: "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.",
+            });
             return false;
           }
           return true;
@@ -253,6 +282,14 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
               field: "Cidade de Origem",
               problem: "Cidade não informada.",
               solution: "Digite o CEP ou selecione a cidade no campo de origem.",
+            });
+            return false;
+          }
+          if (!formData.origin.neighborhood) {
+            showFormError({
+              field: "Bairro",
+              problem: "Bairro de origem não informado.",
+              solution: "Preencha o bairro para que o prestador localize você.",
             });
             return false;
           }
@@ -279,6 +316,14 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
                 field: "Cidade de Destino",
                 problem: "Destino não informado.",
                 solution: "Digite o CEP ou selecione a cidade de destino.",
+              });
+              return false;
+            }
+            if (!formData.destination?.neighborhood) {
+              showFormError({
+                field: "Bairro de Destino",
+                problem: "Bairro de destino não informado.",
+                solution: "Preencha o bairro do endereço de destino.",
               });
               return false;
             }
@@ -315,6 +360,34 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
               });
               return false;
             }
+          }
+          // ✅ Validar datas obrigatórias para Mudança
+          if (serviceType === "MUDANCA_RESIDENCIAL" || serviceType === "MUDANCA_COMERCIAL") {
+            if (!formData.mudanca?.pickupDate) {
+              showFormError({
+                field: "Data de Coleta",
+                problem: "Data de coleta não informada.",
+                solution: "Selecione quando deseja iniciar a mudança.",
+              });
+              return false;
+            }
+            if (!formData.mudanca?.deliveryDate) {
+              showFormError({
+                field: "Data de Entrega",
+                problem: "Data de entrega não informada.",
+                solution: "Selecione quando a mudança deve ser concluída.",
+              });
+              return false;
+            }
+          }
+          // ✅ Validar tipo de carga para frete urbano
+          if ((serviceType === "FRETE_MOTO" || serviceType === "FRETE_URBANO") && !formData.cargo?.type) {
+            showFormError({
+              field: "Tipo de Carga",
+              problem: "Tipo de carga não selecionado.",
+              solution: "Selecione o que será transportado (ex: Documentos, Móveis, etc.).",
+            });
+            return false;
           }
           return true;
         }
