@@ -81,7 +81,7 @@ import { normalizeServiceType } from '@/lib/pt-br-validator';
 import { canProviderHandleService } from '@/lib/service-types';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
-import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
+import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
@@ -161,6 +161,7 @@ const getDisplayLocation = (request: ServiceRequest): string => {
 export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
+  const { desktopUrl: heroDesktop } = useHeroBackground();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -1068,7 +1069,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
+          style={{ backgroundImage: `url(${heroDesktop})` }}
         />
         <div className="absolute inset-0 bg-primary/75" />
         <div className="relative z-10 w-full">

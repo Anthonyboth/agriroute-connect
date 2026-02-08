@@ -3,7 +3,7 @@ import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Users, Star, Wrench } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreateFreightWizardModal } from '@/components/freight-wizard';
-import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
+import { useHeroBackground } from '@/hooks/useHeroBackground';
 
 interface ProducerDashboardHeroProps {
   profile: any;
@@ -20,12 +20,14 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
   onOpenServices,
   onViewRatings,
 }) => {
+  const { desktopUrl: heroDesktop } = useHeroBackground();
+
   return (
     <TooltipProvider>
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
+          style={{ backgroundImage: `url(${heroDesktop})` }}
           role="img"
           aria-label="Imagem de fundo com caminhão"
         />
