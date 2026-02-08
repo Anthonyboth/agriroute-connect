@@ -282,9 +282,40 @@ serve(async (req) => {
       }
     }
 
-    // Background sync (do not block driver UX)
+    // =====================================================
+    // CRITICAL: Sync assignment status (NOT best-effort)
+    // Must run BEFORE returning to prevent desync
+    // =====================================================
+    const assignmentPatch: Record<string, unknown> = { 
+      status: newStatus, 
+      updated_at: ts 
+    };
+    // Also set delivered_at on assignment when delivering
+    if (['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED'].includes(newStatus)) {
+      assignmentPatch.delivered_at = ts;
+    }
+
+    const { error: assignSyncErr } = await supabaseAdmin
+      .from('freight_assignments')
+      .update(assignmentPatch)
+      .eq('id', assignment.id);
+
+    if (assignSyncErr) {
+      console.error('[driver-update-trip-progress-fast] CRITICAL: assignment sync failed:', assignSyncErr.message);
+      // Retry once with a small delay (trigger interference)
+      await new Promise(r => setTimeout(r, 200));
+      const { error: retryErr } = await supabaseAdmin
+        .from('freight_assignments')
+        .update(assignmentPatch)
+        .eq('id', assignment.id);
+      if (retryErr) {
+        console.error('[driver-update-trip-progress-fast] CRITICAL: assignment sync retry also failed:', retryErr.message);
+      }
+    }
+
+    // Background tasks (non-blocking: history + notifications)
     const bg = async () => {
-      // 1) Best-effort insert into freight_status_history (may trigger legacy logic)
+      // 1) Insert into freight_status_history
       try {
         await supabaseAdmin.from('freight_status_history').insert({
           freight_id: freightId,
@@ -299,20 +330,28 @@ serve(async (req) => {
         console.warn('[driver-update-trip-progress-fast] history insert failed', e);
       }
 
-      // 2) Keep assignment status in sync (best-effort)
+      // 2) Verify assignment sync stuck (trigger may have reverted status)
       try {
-        await supabaseAdmin
+        const { data: verifyAssignment } = await supabaseAdmin
           .from('freight_assignments')
-          .update({ status: newStatus, updated_at: ts })
-          .eq('id', assignment.id);
+          .select('status')
+          .eq('id', assignment.id)
+          .single();
+        
+        if (verifyAssignment && verifyAssignment.status !== newStatus) {
+          console.warn(`[driver-update-trip-progress-fast] Assignment status reverted! Expected ${newStatus}, got ${verifyAssignment.status}. Re-applying...`);
+          await supabaseAdmin
+            .from('freight_assignments')
+            .update({ status: newStatus, updated_at: nowIso() })
+            .eq('id', assignment.id);
+        }
       } catch (e) {
-        console.warn('[driver-update-trip-progress-fast] assignment sync failed', e);
+        console.warn('[driver-update-trip-progress-fast] assignment verify failed', e);
       }
 
       // 3) CRÍTICO: Notificar produtor + criar pagamento quando motorista reporta entrega
       if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
         try {
-          // Buscar dados do frete para notificação
           const { data: freight } = await supabaseAdmin
             .from('freights')
             .select('id, producer_id, price, required_trucks, origin_city, destination_city')
@@ -320,7 +359,6 @@ serve(async (req) => {
             .single();
 
           if (freight?.producer_id) {
-            // Buscar nome do motorista
             const { data: driverProfile } = await supabaseAdmin
               .from('profiles')
               .select('full_name')
@@ -330,7 +368,6 @@ serve(async (req) => {
             const driverName = driverProfile?.full_name || 'Motorista';
             const route = `${freight.origin_city || '?'} → ${freight.destination_city || '?'}`;
 
-            // Buscar agreed_price do assignment
             const { data: assignmentData } = await supabaseAdmin
               .from('freight_assignments')
               .select('agreed_price')
@@ -341,8 +378,6 @@ serve(async (req) => {
             const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
             const fallbackAmount = Math.round((freight.price || 0) / requiredTrucks * 100) / 100;
             
-            // ✅ CORREÇÃO CRÍTICA: Heurística igual a resolveDriverUnitPrice
-            // Se agreed_price ≈ freight.price e multi-carreta, dividir (salvo como total erroneamente)
             let amount: number;
             if (agreedPrice && agreedPrice > 0) {
               if (requiredTrucks > 1 && (freight.price || 0) > 0 && Math.abs(agreedPrice - (freight.price || 0)) <= 0.01) {
@@ -372,7 +407,7 @@ serve(async (req) => {
             });
             console.log('[driver-update-trip-progress-fast] Produtor notificado sobre entrega');
 
-            // 3b) Criar external_payment se não existir (para multi-carretas)
+            // 3b) Criar external_payment se não existir
             const { data: existingPayment } = await supabaseAdmin
               .from('external_payments')
               .select('id')
