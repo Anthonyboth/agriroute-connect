@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,7 @@ import {
 import { FreightTemplatesTab } from './freight-templates/FreightTemplatesTab';
 import { CreateFreightWizardModal } from './freight-wizard';
 import { ReopenFreightModal } from './ReopenFreightModal';
-import { FreightChat } from './FreightChat';
+import { FreightChat } from './LazyComponents';
 import { getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
@@ -604,10 +604,12 @@ export const FreightHistory: React.FC = () => {
           </DialogHeader>
           {selectedFreight && profile && (
             <div className="h-[60vh]">
-              <FreightChat 
-                freightId={selectedFreight.id}
-                currentUserProfile={profile}
-              />
+              <Suspense fallback={<CenteredSpinner />}>
+                <FreightChat 
+                  freightId={selectedFreight.id}
+                  currentUserProfile={profile}
+                />
+              </Suspense>
             </div>
           )}
         </DialogContent>

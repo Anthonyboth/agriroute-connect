@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -5,14 +6,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ChatConversation } from '@/hooks/useUnifiedChats';
-import { FreightChat } from './FreightChat';
-import { ServiceChat } from './ServiceChat';
+import { FreightChat, ServiceChat } from './LazyComponents';
 import { DriverChatTab } from './driver-details/DriverChatTab';
 import { FreightShareCard } from './FreightShareCard';
 import { ChatHeader } from './ChatHeader';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 
 interface ChatModalProps {
   conversation: ChatConversation | null;
@@ -166,20 +167,24 @@ export const ChatModal = ({
       case 'FREIGHT':
         if (!freightData) return <div className="p-4">Carregando...</div>;
         return (
-          <FreightChat
-            freightId={conversation.metadata.freightId}
-            currentUserProfile={{ id: userProfileId, role: userRole } as any}
-          />
+          <Suspense fallback={<CenteredSpinner />}>
+            <FreightChat
+              freightId={conversation.metadata.freightId}
+              currentUserProfile={{ id: userProfileId, role: userRole } as any}
+            />
+          </Suspense>
         );
 
       case 'SERVICE':
         // ✅ FIX: NÃO bloquear ServiceChat esperando serviceData
         // ServiceChat tem seu próprio carregamento via useServiceChatConnection
         return (
-          <ServiceChat
-            serviceRequestId={conversation.metadata.serviceRequestId}
-            currentUserProfile={{ id: userProfileId, role: userRole } as any}
-          />
+          <Suspense fallback={<CenteredSpinner />}>
+            <ServiceChat
+              serviceRequestId={conversation.metadata.serviceRequestId}
+              currentUserProfile={{ id: userProfileId, role: userRole } as any}
+            />
+          </Suspense>
         );
 
       case 'DIRECT_CHAT':

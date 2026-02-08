@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { FreightChat } from '@/components/FreightChat';
+import { FreightChat } from '@/components/LazyComponents';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { MessageCircle } from 'lucide-react';
 
 interface PaymentChatModalProps {
@@ -40,10 +41,12 @@ export const PaymentChatModal: React.FC<PaymentChatModalProps> = ({
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden">
-          <FreightChat
-            freightId={freightId}
-            currentUserProfile={currentUserProfile}
-          />
+          <Suspense fallback={<CenteredSpinner />}>
+            <FreightChat
+              freightId={freightId}
+              currentUserProfile={currentUserProfile}
+            />
+          </Suspense>
         </div>
       </DialogContent>
     </Dialog>

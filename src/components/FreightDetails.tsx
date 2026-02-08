@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield, Building2 } from 'lucide-react';
-import { FreightChat } from './FreightChat';
+import { FreightChat } from './LazyComponents';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
 import { FreightRatingModal } from './FreightRatingModal';
@@ -1288,10 +1288,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           </TabsContent>
           
           <TabsContent value="chat" forceMount className="mt-4 data-[state=inactive]:hidden">
-            <FreightChat
-              freightId={freightId}
-              currentUserProfile={currentUserProfile}
-            />
+            <Suspense fallback={<CenteredSpinner />}>
+              <FreightChat
+                freightId={freightId}
+                currentUserProfile={currentUserProfile}
+              />
+            </Suspense>
           </TabsContent>
           
           <TabsContent value="nfes" forceMount className="mt-4 data-[state=inactive]:hidden">
