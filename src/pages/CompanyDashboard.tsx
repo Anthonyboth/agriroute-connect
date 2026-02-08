@@ -830,23 +830,15 @@ const CompanyDashboard = () => {
                               if (!confirm('Cancelar este frete por vencimento?')) return;
                               
                               try {
-                                const { error } = await supabase
-                                  .from('freights')
-                                  .update({
-                                    status: 'CANCELLED',
-                                    cancellation_reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada',
-                                    cancelled_at: new Date().toISOString()
-                                  })
-                                  .eq('id', freight.id);
+                                const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
+                                  body: {
+                                    freight_id: freight.id,
+                                    reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada'
+                                  }
+                                });
 
                                 if (error) throw error;
-
-                                await supabase.from('freight_status_history').insert({
-                                  freight_id: freight.id,
-                                  status: 'CANCELLED',
-                                  changed_by: profile?.id,
-                                  notes: 'Cancelado por vencimento (48h após data de coleta)'
-                                });
+                                if (!(data as any)?.success) throw new Error((data as any)?.error || 'Erro ao cancelar');
 
                                 toast.success('Frete cancelado por vencimento');
                                 refetchActiveFreights();

@@ -473,7 +473,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(
                 <Edit className="h-5 w-5 mr-2" />
                 Editar
               </Button>
-              {freight.status === "OPEN" && (
+              {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION"].includes(freight.status) && (
                 <Button
                   onClick={handleCancel}
                   className="flex-1 btn-accessible text-lg font-semibold"

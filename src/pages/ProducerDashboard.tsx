@@ -1099,17 +1099,14 @@ const ProducerDashboard = () => {
     if (!freightToCancel) return;
 
     const status = String(freightToCancel.status || '').toUpperCase().trim();
-    const canCancelDirectly = ["OPEN", "ACCEPTED", "LOADING"].includes(status);
+    const canCancelDirectly = ["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION"].includes(status);
     if (!canCancelDirectly) {
       toast.error("Este frete está em andamento. Solicite o cancelamento via chat com o motorista.");
       setConfirmDialogOpen(false);
       return;
     }
 
-    // ✅ FIX: Sempre cancelar o frete diretamente via cancel-freight-safe
-    // A edge function cuida de cancelar assignments, trip progress e proposals
-    // ✅ FIX: Sempre cancelar o frete diretamente via cancel-freight-safe
-    // A edge function agora cuida de cancelar assignments, trip progress e proposals
+    // Cancelar via edge function (cuida de assignments, trip progress e proposals)
     try {
       const { data, error } = await supabase.functions.invoke("cancel-freight-safe", {
         body: { freight_id: freightToCancel.id, reason: "Cancelado pelo produtor" },
@@ -1123,8 +1120,8 @@ const ProducerDashboard = () => {
       setFreightToCancel(null);
       fetchFreights();
     } catch (e: any) {
-      console.error("Error processing freight action:", e);
-      toast.error(e?.message || "Erro ao processar ação");
+      console.error("[CANCEL-FREIGHT] Error:", e);
+      toast.error(e?.message || "Erro ao cancelar frete. Tente novamente.");
     }
   };
 

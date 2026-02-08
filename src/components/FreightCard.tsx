@@ -817,8 +817,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               Editar
             </Button>
 
-            {/* Cancelamento direto para OPEN, ACCEPTED, LOADING */}
-            {["OPEN", "ACCEPTED", "LOADING"].includes(freight.status) && (
+            {/* Cancelamento direto para OPEN, ACCEPTED, LOADING, IN_NEGOTIATION */}
+            {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION"].includes(freight.status) && (
               <Button onClick={() => onAction("cancel")} className="flex-1" size="sm" variant="destructive">
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
