@@ -1,4 +1,4 @@
-import { TooltipProvider } from "@/components/ui/tooltip";
+// TooltipProvider deferred to avoid pulling ui-vendor chunk on landing page
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -6,7 +6,8 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { RatingProvider } from "@/contexts/RatingContext";
 import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
 import { GlobalRatingModals } from "@/components/GlobalRatingModals";
-import { Toaster } from "@/components/ui/toaster";
+// Toaster deferred to avoid pulling ui-vendor (Radix Toast) on landing page
+const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
@@ -845,6 +846,21 @@ const NativeSplashHandler = () => {
   return null;
 };
 
+// ✅ PERFORMANCE: Deferred TooltipProvider - avoids loading ui-vendor chunk on landing page
+// Renders children immediately, then wraps with TooltipProvider once loaded (~50ms)
+const DeferredTooltipProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [Provider, setProvider] = React.useState<React.ComponentType<{ children: React.ReactNode }> | null>(null);
+  
+  React.useEffect(() => {
+    import("@/components/ui/tooltip").then(m => {
+      setProvider(() => m.TooltipProvider);
+    });
+  }, []);
+  
+  if (!Provider) return <>{children}</>;
+  return <Provider>{children}</Provider>;
+};
+
 const App = () => {
   React.useEffect(() => {
     // Notificar o overlay que a app pintou
@@ -869,7 +885,7 @@ const App = () => {
               <BootOrchestrator />
               <RatingProviderErrorBoundary>
                 <RatingProvider>
-                  <TooltipProvider>
+                  <DeferredTooltipProvider>
                     <SubscriptionProvider>
                       <ScrollToTop />
                       <DeviceSetup />
@@ -1053,10 +1069,10 @@ const App = () => {
             <GlobalRatingModals />
             <PermissionPrompts />
             <PreviewFreshBuildBanner />
-            <Toaster />
+            <Suspense fallback={null}><LazyToaster /></Suspense>
             <Sonner />
           </SubscriptionProvider>
-                </TooltipProvider>
+                </DeferredTooltipProvider>
               </RatingProvider>
             </RatingProviderErrorBoundary>
           </BrowserRouter>

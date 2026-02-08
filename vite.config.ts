@@ -196,6 +196,12 @@ export default defineConfig(({ mode }) => ({
             return 'supabase-core';
           }
           
+          // @radix-ui/react-slot - standalone primitive used by Button
+          // Separated so pages using only Button (like Landing) don't pull full ui-vendor (50KB)
+          if (id.includes('@radix-ui/react-slot')) {
+            return 'ui-primitives';
+          }
+          
           // ✅ TODOS os componentes Radix UI em um ÚNICO chunk
           // Isso evita o erro "f is not a function" causado por fragmentação de contexto React
           if (id.includes('@radix-ui')) {

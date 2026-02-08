@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
-import { MobileMenu } from '@/components/MobileMenu';
+// MobileMenu lazy-loaded - uses Radix Sheet, defer to avoid ui-vendor chunk on initial load
+const MobileMenu = lazy(() => import('@/components/MobileMenu').then(m => ({ default: m.MobileMenu })));
 // AuthModal lazy-loaded - only needed on user click
 const AuthModal = lazy(() => import('@/components/AuthModal'));
 
@@ -231,10 +232,16 @@ const Landing: React.FC = () => {
             > 
               Entrar
             </Button>
-            <MobileMenu 
-              onContactClick={() => setContactModal(true)}
-              onSignupClick={() => setAuthModal(true)}
-            />
+            <Suspense fallback={
+              <button className="flex-shrink-0 md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md hover:bg-accent/50" aria-label="Menu de navegação">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+              </button>
+            }>
+              <MobileMenu 
+                onContactClick={() => setContactModal(true)}
+                onSignupClick={() => setAuthModal(true)}
+              />
+            </Suspense>
           </div>
         </div>
       </header>
