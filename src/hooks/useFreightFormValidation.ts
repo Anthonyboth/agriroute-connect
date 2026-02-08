@@ -161,7 +161,7 @@ export function useFreightFormValidation() {
           return !isNaN(num) && num > 0;
         },
         problem: 'Peso inválido ou não informado.',
-        solution: 'Informe o peso total da carga em toneladas (ex: 30).',
+        solution: 'Informe o peso TOTAL que deseja transportar em toneladas (ex: 120). Este é o peso total no barracão ou do lote de animais, não o peso por carreta.',
       },
       {
         key: 'vehicle_type_required',
