@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin, Loader2 } from 'lucide-react';
-import { useLocationPermission } from '@/hooks/useLocationPermission';
+import { requestPermissionSafe, getCurrentPositionSafe } from '@/utils/location';
 import { supabase } from '@/integrations/supabase/client';
-import { Geolocation } from '@capacitor/geolocation';
-import { Capacitor } from '@capacitor/core';
 
 interface GPSOriginButtonProps {
   onLocationFilled: (data: { city: string; state: string; lat: number; lng: number }) => void;
@@ -15,6 +13,9 @@ interface GPSOriginButtonProps {
 /**
  * Button 1: "Usar GPS para Origem" - Only fills origin city/state
  * Does NOT fill street, number, or neighborhood
+ * 
+ * Usa requestPermissionSafe + getCurrentPositionSafe diretamente
+ * para evitar chamadas duplicadas ao navigator.geolocation
  */
 export function GPSOriginButton({ 
   onLocationFilled, 
@@ -22,56 +23,35 @@ export function GPSOriginButton({
   className = '' 
 }: GPSOriginButtonProps) {
   const [loading, setLoading] = useState(false);
-  const { requestLocation } = useLocationPermission(false);
 
   const handleClick = async () => {
     setLoading(true);
     
     try {
-      // Request permission
-      const granted = await requestLocation();
+      // Step 1: Request permission (single call)
+      const granted = await requestPermissionSafe();
       if (!granted) {
-        onError?.('Não foi possível acessar sua localização para definir a cidade de origem.');
+        onError?.('Permissão de localização negada. Verifique as configurações do navegador.');
         setLoading(false);
         return;
       }
 
-      // Get current position (Capacitor for native, Web API for browser)
+      // Step 2: Get position using centralized utility (with retries + rate limiting)
       let latitude: number;
       let longitude: number;
 
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const position = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 10000,
-          });
-          latitude = position.coords.latitude;
-          longitude = position.coords.longitude;
-        } catch (capacitorError) {
-          console.error('Capacitor Geolocation error:', capacitorError);
-          onError?.('Não foi possível acessar sua localização para definir a cidade de origem.');
-          return;
-        }
-      } else {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 60000
-            });
-          });
-          latitude = position.coords.latitude;
-          longitude = position.coords.longitude;
-        } catch (webError) {
-          console.error('Web Geolocation error:', webError);
-          onError?.('Não foi possível acessar sua localização para definir a cidade de origem.');
-          return;
-        }
+      try {
+        const position = await getCurrentPositionSafe(3);
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (posError: any) {
+        console.error('GPS position error:', posError?.message || posError);
+        onError?.('Não foi possível obter sua localização. Mova-se para uma área aberta e tente novamente.');
+        setLoading(false);
+        return;
       }
 
-      // Reverse geocode - only need city and state
+      // Step 3: Reverse geocode - only need city and state
       try {
         const { data, error } = await supabase.functions.invoke('reverse-geocode', {
           body: { lat: latitude, lng: longitude }

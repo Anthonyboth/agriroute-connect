@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Navigation, Loader2 } from 'lucide-react';
-import { useLocationPermission } from '@/hooks/useLocationPermission';
+import { requestPermissionSafe, getCurrentPositionSafe } from '@/utils/location';
 import { supabase } from '@/integrations/supabase/client';
-import { Geolocation } from '@capacitor/geolocation';
-import { Capacitor } from '@capacitor/core';
 
 interface AddressData {
   city?: string;
@@ -28,6 +26,9 @@ interface GPSAddressButtonProps {
  * Fills: city, state, street, number, neighborhood (when available)
  * If number not available, leaves empty or uses "s/n"
  * If only city found, fills only city
+ * 
+ * Usa requestPermissionSafe + getCurrentPositionSafe diretamente
+ * para evitar chamadas duplicadas ao navigator.geolocation
  */
 export function GPSAddressButton({ 
   onLocationFilled, 
@@ -36,56 +37,35 @@ export function GPSAddressButton({
   className = '' 
 }: GPSAddressButtonProps) {
   const [loading, setLoading] = useState(false);
-  const { requestLocation } = useLocationPermission(false);
 
   const handleClick = async () => {
     setLoading(true);
     
     try {
-      // Request permission
-      const granted = await requestLocation();
+      // Step 1: Request permission (single call)
+      const granted = await requestPermissionSafe();
       if (!granted) {
-        onError?.('Não foi possível acessar sua localização para preencher o endereço.');
+        onError?.('Permissão de localização negada. Verifique as configurações do navegador.');
         setLoading(false);
         return;
       }
 
-      // Get current position (Capacitor for native, Web API for browser)
+      // Step 2: Get position using centralized utility (with retries + rate limiting)
       let latitude: number;
       let longitude: number;
 
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const position = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 10000,
-          });
-          latitude = position.coords.latitude;
-          longitude = position.coords.longitude;
-        } catch (capacitorError) {
-          console.error('Capacitor Geolocation error:', capacitorError);
-          onError?.('Não foi possível acessar sua localização para preencher o endereço.');
-          return;
-        }
-      } else {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 60000
-            });
-          });
-          latitude = position.coords.latitude;
-          longitude = position.coords.longitude;
-        } catch (webError) {
-          console.error('Web Geolocation error:', webError);
-          onError?.('Não foi possível acessar sua localização para preencher o endereço.');
-          return;
-        }
+      try {
+        const position = await getCurrentPositionSafe(3);
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (posError: any) {
+        console.error('GPS position error:', posError?.message || posError);
+        onError?.('Não foi possível obter sua localização. Mova-se para uma área aberta e tente novamente.');
+        setLoading(false);
+        return;
       }
 
-      // Full reverse geocode
+      // Step 3: Full reverse geocode
       try {
         const { data, error } = await supabase.functions.invoke('reverse-geocode', {
           body: { lat: latitude, lng: longitude }
@@ -106,7 +86,6 @@ export function GPSAddressButton({
           state: data?.state || undefined,
           neighborhood: data?.neighborhood || undefined,
           street: data?.street || undefined,
-          // If no number, leave undefined (UI can show empty or handle it)
           number: data?.number || undefined,
         };
 
