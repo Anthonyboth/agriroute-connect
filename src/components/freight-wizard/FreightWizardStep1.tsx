@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { GPSOriginButton } from './GPSOriginButton';
 import { UnifiedLocationInput, type LocationData } from '@/components/UnifiedLocationInput';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, MapPin, AlertCircle } from 'lucide-react';
+import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface FreightWizardStep1Props {
@@ -12,6 +13,29 @@ interface FreightWizardStep1Props {
   onNext: () => void;
   guestMode?: boolean;
 }
+
+const formatPhone = (value: string) => {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 2) return numbers;
+  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+};
+
+const formatDocument = (value: string) => {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 11) {
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+    if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+  } else {
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
+  }
+};
 
 export function FreightWizardStep1({ 
   formData, 
@@ -64,7 +88,6 @@ export function FreightWizardStep1({
 
   const handleGPSOriginFilled = (data: { city: string; state: string; lat: number; lng: number }) => {
     setGpsError(null);
-    // ONLY fill city and state - NOT street, number, or neighborhood
     onInputChange('origin_city', data.city);
     onInputChange('origin_state', data.state);
     onInputChange('origin_lat', data.lat);
@@ -87,7 +110,7 @@ export function FreightWizardStep1({
         </p>
       </div>
 
-      {/* GPS Error Alert - only shows when there's an error */}
+      {/* GPS Error Alert */}
       {gpsError && (
         <Alert variant="destructive" className="animate-in fade-in">
           <AlertCircle className="h-4 w-4" />
@@ -143,6 +166,61 @@ export function FreightWizardStep1({
             ✓ Rota: <strong>{formData.origin_city}/{formData.origin_state}</strong> → <strong>{formData.destination_city}/{formData.destination_state}</strong>
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* ── Guest Contact Fields ── */}
+      {guestMode && (
+        <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <Label className="text-base font-semibold flex items-center gap-2">
+            <User className="h-5 w-5 text-blue-600" />
+            Seus Dados de Contato
+          </Label>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Como você não está cadastrado, precisamos dos seus dados para contato.
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="guest_name" className="flex items-center gap-2 text-sm">
+              <User className="h-3.5 w-3.5" />
+              Nome Completo *
+            </Label>
+            <Input
+              id="guest_name"
+              value={formData.guest_name || ''}
+              onChange={(e) => onInputChange('guest_name', e.target.value)}
+              placeholder="Seu nome completo"
+              maxLength={100}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="guest_phone" className="flex items-center gap-2 text-sm">
+              <Phone className="h-3.5 w-3.5" />
+              WhatsApp / Telefone *
+            </Label>
+            <Input
+              id="guest_phone"
+              value={formData.guest_phone || ''}
+              onChange={(e) => onInputChange('guest_phone', formatPhone(e.target.value))}
+              placeholder="(66) 99999-9999"
+              maxLength={15}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="guest_document" className="flex items-center gap-2 text-sm">
+              <FileText className="h-3.5 w-3.5" />
+              CPF ou CNPJ *
+            </Label>
+            <Input
+              id="guest_document"
+              value={formData.guest_document || ''}
+              onChange={(e) => onInputChange('guest_document', formatDocument(e.target.value))}
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              maxLength={18}
+            />
+          </div>
+        </div>
       )}
 
       <div className="flex justify-end pt-4">
