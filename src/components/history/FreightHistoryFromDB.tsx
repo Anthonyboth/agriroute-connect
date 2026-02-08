@@ -46,14 +46,24 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
  * Mapeia um item do histórico imutável para o formato esperado pelo ReopenFreightModal
  */
 function mapHistoryToFreight(item: FreightHistoryItem): any {
+  // Construir endereços a partir de cidade/estado quando origin_address não está disponível no histórico
+  const originAddress = item.origin_city 
+    ? `${item.origin_city}${item.origin_state ? ', ' + item.origin_state : ''}`
+    : '';
+  const destinationAddress = item.destination_city
+    ? `${item.destination_city}${item.destination_state ? ', ' + item.destination_state : ''}`
+    : '';
+
   return {
     id: item.freight_id,
     status: item.status_final,
     producer_id: item.producer_id,
     cargo_type: item.cargo_type,
     weight: item.weight,
+    origin_address: originAddress,
     origin_city: item.origin_city,
     origin_state: item.origin_state,
+    destination_address: destinationAddress,
     destination_city: item.destination_city,
     destination_state: item.destination_state,
     distance_km: item.distance_km,
@@ -65,6 +75,8 @@ function mapHistoryToFreight(item: FreightHistoryItem): any {
     description: '',
     urgency: 'MEDIUM',
     service_type: 'CARGA',
+    // Flag para indicar que veio do histórico (dados parciais)
+    _from_history: true,
   };
 }
 
