@@ -158,10 +158,13 @@ export function useFreightFormValidation() {
         check: (v) => {
           if (!v) return false;
           const num = parseFloat(v);
-          return !isNaN(num) && num > 0;
+          if (isNaN(num) || num <= 0) return false;
+          const weightKg = num * 1000;
+          // DB constraint: weight >= 100kg AND weight <= 90000kg
+          return weightKg >= 100 && weightKg <= 90000;
         },
-        problem: 'Peso inválido ou não informado.',
-        solution: 'Informe o peso TOTAL que deseja transportar em toneladas (ex: 120). Este é o peso total no barracão ou do lote de animais, não o peso por carreta.',
+        problem: 'Peso inválido. Permitido: 0.1 a 90 toneladas.',
+        solution: 'Informe o peso TOTAL em toneladas (ex: 30). Mínimo 0.1 ton (100kg), máximo 90 ton.',
       },
       {
         key: 'vehicle_type_required',
