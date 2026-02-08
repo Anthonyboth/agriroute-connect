@@ -46,46 +46,50 @@ async function ensureFreshPreviewBuild() {
       } catch {}
     }
 
-    // Se já tentamos o máximo E não há SW ativo/registrado, podemos seguir
-    if (attempts >= MAX_PREVIEW_ATTEMPTS && !hasActiveSW && !hasRegisteredSW) {
-      console.log('[Preview] Max tentativas atingidas, sem SW - continuando');
+    // Se não há SW ativo nem registrado, não há nada para limpar - seguir direto
+    if (!hasActiveSW && !hasRegisteredSW) {
+      console.log('[Preview] Sem SW ativo/registrado - continuando sem limpeza');
       return;
     }
 
-    // ✅ SEMPRE executar limpeza no Preview se houver qualquer SW
-    if (hasActiveSW || hasRegisteredSW || attempts === 0) {
-      attempts++;
-      sessionStorage.setItem(PREVIEW_ATTEMPTS_KEY, String(attempts));
-      sessionStorage.setItem(PREVIEW_LAST_TS_KEY, String(now));
+    // Se já tentamos o máximo, seguir mesmo com SW
+    if (attempts >= MAX_PREVIEW_ATTEMPTS) {
+      console.log('[Preview] Max tentativas atingidas - continuando');
+      return;
+    }
 
-      console.log(`[Preview] Limpeza de cache (tentativa ${attempts}/${MAX_PREVIEW_ATTEMPTS}, activeSW=${hasActiveSW}, registeredSW=${hasRegisteredSW})`);
+    // Executar limpeza apenas se houver SW para limpar
+    attempts++;
+    sessionStorage.setItem(PREVIEW_ATTEMPTS_KEY, String(attempts));
+    sessionStorage.setItem(PREVIEW_LAST_TS_KEY, String(now));
 
-      // Desregistrar todos os SWs
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        if (regs.length > 0) {
-          await Promise.all(regs.map(r => r.unregister()));
-          console.log('[Preview] SWs desregistrados:', regs.length);
-        }
+    console.log(`[Preview] Limpeza de cache (tentativa ${attempts}/${MAX_PREVIEW_ATTEMPTS}, activeSW=${hasActiveSW}, registeredSW=${hasRegisteredSW})`);
+
+    // Desregistrar todos os SWs
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      if (regs.length > 0) {
+        await Promise.all(regs.map(r => r.unregister()));
+        console.log('[Preview] SWs desregistrados:', regs.length);
       }
+    }
 
-      // Limpar todos os caches
-      if ('caches' in window) {
-        const names = await caches.keys();
-        if (names.length > 0) {
-          await Promise.all(names.map(n => caches.delete(n)));
-          console.log('[Preview] Caches limpos:', names.length);
-        }
+    // Limpar todos os caches
+    if ('caches' in window) {
+      const names = await caches.keys();
+      if (names.length > 0) {
+        await Promise.all(names.map(n => caches.delete(n)));
+        console.log('[Preview] Caches limpos:', names.length);
       }
+    }
 
-      // Se havia SW (ativo ou registrado), fazer reload para aplicar limpeza
-      if ((hasActiveSW || hasRegisteredSW) && attempts <= MAX_PREVIEW_ATTEMPTS) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('__preview', String(now));
-        console.log('[Preview] Recarregando para aplicar limpeza...');
-        window.location.replace(url.toString());
-        return; // Interrompe - a página vai recarregar
-      }
+    // Reload para aplicar limpeza
+    if (attempts <= MAX_PREVIEW_ATTEMPTS) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('__preview', String(now));
+      console.log('[Preview] Recarregando para aplicar limpeza...');
+      window.location.replace(url.toString());
+      return;
     }
   } catch (error) {
     console.warn('[Preview] Erro na limpeza:', error);
