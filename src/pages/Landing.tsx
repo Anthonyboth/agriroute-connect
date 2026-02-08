@@ -8,7 +8,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
-import AuthModal from '@/components/AuthModal';
+// AuthModal lazy-loaded - only needed on user click
+const AuthModal = lazy(() => import('@/components/AuthModal'));
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -79,8 +80,8 @@ const ServicesModal = lazy(() => import('@/components/ServicesModal').then(m => 
 const ServiceRequestModal = lazy(() => import('@/components/ServiceRequestModal'));
 const ReportModal = lazy(() => import('@/components/ReportModal'));
 
-// P0 HOTFIX: Modal de Contato novo, simples, inline - sem Radix, sem lazy
-import { ContactSupportModal } from '@/components/contact/ContactSupportModal';
+// ContactSupportModal lazy-loaded - only needed on user click
+const ContactSupportModal = lazy(() => import('@/components/contact/ContactSupportModal').then(m => ({ default: m.ContactSupportModal })));
 
 // Lazy load icons - only import what's needed
 import Truck from 'lucide-react/dist/esm/icons/truck';
@@ -188,7 +189,7 @@ const Landing: React.FC = () => {
   return (
     <div className="min-h-screen bg-background isolate" style={{ contain: 'layout' }}>
       {/* Header - Fixed height to prevent CLS. z-50 is sufficient since Sheet uses z-[9998+] */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 h-[72px]">
+      <header className="border-b bg-card/80 sticky top-0 z-50 h-[72px] supports-[backdrop-filter]:bg-card/50 supports-[backdrop-filter]:backdrop-blur-sm">
         <div className="container mx-auto px-4 pr-2 sm:pr-4 flex items-center justify-between h-full">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="flex items-center space-x-2">
@@ -314,8 +315,8 @@ const Landing: React.FC = () => {
   {/* Stats Section - Deferred until visible */}
       <LazyStatsSection />
 
-      {/* Features Section */}
-      <section id="features" className="py-20">
+      {/* Features Section - deferred rendering until scrolled into view */}
+      <section id="features" className="py-20" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
@@ -346,8 +347,8 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA Section - P0 HOTFIX: Botão "Começar Agora" navega direto para /auth */}
-      <section className="py-20 gradient-hero">
+      {/* CTA Section */}
+      <section className="py-20 gradient-hero" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}>
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-12 drop-shadow-lg">
             Pronto para organizar seu transporte com mais eficiência?
@@ -369,7 +370,7 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-card border-t py-12">
+      <footer className="bg-card border-t py-12" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 400px' }}>
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -488,19 +489,29 @@ const Landing: React.FC = () => {
         />
       </Suspense>
 
-      {/* P0 HOTFIX: Modal de Contato NOVO - inline, sem Radix, sem Portal */}
-      <ContactSupportModal
-        isOpen={contactModal}
-        onClose={() => setContactModal(false)}
-      />
+      {/* Modal de Contato - lazy loaded */}
+      {contactModal && (
+        <Suspense fallback={null}>
+          <ContactSupportModal
+            isOpen={contactModal}
+            onClose={() => setContactModal(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* P0 HOTFIX: SafeAuthModal para cadastro com seleção por cards */}
-      <AuthModal
-        isOpen={authModal}
-        onClose={() => setAuthModal(false)}
-        initialTab="signup"
-        renderMode="inline"
-      />
+
+      {/* AuthModal - lazy loaded */}
+      {authModal && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={authModal}
+            onClose={() => setAuthModal(false)}
+            initialTab="signup"
+            renderMode="inline"
+          />
+        </Suspense>
+      )}
+
     </div>
   );
 };
