@@ -19,6 +19,7 @@ import { cargoRequiresAxles } from '@/lib/cargo-types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useFormNotification } from '@/hooks/useFormNotification';
+import { useFreightFormValidation } from '@/hooks/useFreightFormValidation';
 
 
 interface CreateFreightWizardProps {
@@ -92,6 +93,7 @@ export function CreateFreightWizard({
   initialData
 }: CreateFreightWizardProps) {
   const { showFormError, showSuccess } = useFormNotification();
+  const { validateFreightForm } = useFreightFormValidation();
   
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -307,54 +309,12 @@ export function CreateFreightWizard({
       return;
     }
 
-    // Validação de campos obrigatórios com notificações claras
-    if (!formData.pickup_date) {
-      showFormError({
-        field: "Data de Coleta",
-        problem: "Campo obrigatório não preenchido.",
-        solution: "Selecione a data prevista para retirada da carga.",
-      });
-      setCurrentStep(4);
-      return;
-    }
-
-    if (!formData.delivery_date) {
-      showFormError({
-        field: "Data de Entrega",
-        problem: "Campo obrigatório não preenchido.",
-        solution: "Selecione a data prevista para entrega da carga.",
-      });
-      setCurrentStep(4);
-      return;
-    }
-
-    if (!formData.origin_city || !formData.destination_city) {
-      showFormError({
-        field: "Rota",
-        problem: "Origem e/ou destino não informados.",
-        solution: "Volte à etapa 1 e selecione as cidades de origem e destino.",
-      });
-      setCurrentStep(1);
-      return;
-    }
-
-    if (!formData.origin_neighborhood) {
-      showFormError({
-        field: "Bairro/Fazenda de Origem",
-        problem: "Localização de origem incompleta.",
-        solution: "Informe o bairro, fazenda ou ponto de referência de onde sai a carga.",
-      });
-      setCurrentStep(2);
-      return;
-    }
-
-    if (!formData.destination_neighborhood) {
-      showFormError({
-        field: "Bairro/Fazenda de Destino",
-        problem: "Localização de destino incompleta.",
-        solution: "Informe o bairro, fazenda ou ponto de referência de entrega.",
-      });
-      setCurrentStep(2);
+    // ✅ Validação centralizada de TODOS os campos obrigatórios
+    const validation = validateFreightForm(formData, guestMode);
+    if (!validation.valid) {
+      if (validation.step) {
+        setCurrentStep(validation.step);
+      }
       return;
     }
 
