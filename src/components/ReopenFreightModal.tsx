@@ -104,8 +104,22 @@ export const ReopenFreightModal: React.FC<ReopenFreightModalProps> = ({
     }
   };
 
-  // ✅ Handler para DUPLICAR frete (criar novo baseado no antigo)
+  // ✅ Helper: buscar dados completos do frete original quando necessário
+  const fetchFullFreightData = async (freightId: string) => {
+    const { data, error } = await supabase
+      .from('freights')
+      .select('*')
+      .eq('id', freightId)
+      .single();
+    
+    if (error || !data) {
+      console.warn('[ReopenFreightModal] Could not fetch full freight data:', error);
+      return null;
+    }
+    return data;
+  };
 
+  // ✅ Handler para DUPLICAR frete (criar novo baseado no antigo)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -129,79 +143,66 @@ export const ReopenFreightModal: React.FC<ReopenFreightModalProps> = ({
     setLoading(true);
 
     try {
-      // Chamar RPC para reabrir frete com novas datas
-      // Usar type assertion porque a RPC pode não existir ainda
-      const { data, error } = await (supabase.rpc as any)('reopen_freight_v2', { 
-        p_freight_id: freight.id,
-        p_pickup_date: formData.pickup_date.toISOString().split('T')[0],
-        p_delivery_date: formData.delivery_date.toISOString().split('T')[0],
-        p_updates: JSON.stringify({
-          price: formData.price ? Number(formData.price) : freight.price,
-          description: formData.description || freight.description
+      // Buscar dados completos do frete original (garante origin_address, etc.)
+      const fullFreight = await fetchFullFreightData(freight.id);
+      const source = fullFreight || freight;
+      
+      // Validar campos obrigatórios antes de inserir
+      const originAddress = source.origin_address || 
+        (source.origin_city ? `${source.origin_city}${source.origin_state ? ', ' + source.origin_state : ''}` : null);
+      const destinationAddress = source.destination_address ||
+        (source.destination_city ? `${source.destination_city}${source.destination_state ? ', ' + source.destination_state : ''}` : null);
+      
+      if (!originAddress || !destinationAddress) {
+        toast.error('Erro: endereço de origem ou destino não encontrado. Crie um novo frete manualmente.');
+        return;
+      }
+
+      const { data: newFreight, error: insertError } = await supabase
+        .from('freights')
+        .insert({
+          producer_id: source.producer_id,
+          cargo_type: source.cargo_type,
+          weight: source.weight,
+          origin_address: originAddress,
+          origin_city: source.origin_city,
+          origin_state: source.origin_state,
+          origin_lat: source.origin_lat || null,
+          origin_lng: source.origin_lng || null,
+          destination_address: destinationAddress,
+          destination_city: source.destination_city,
+          destination_state: source.destination_state,
+          destination_lat: source.destination_lat || null,
+          destination_lng: source.destination_lng || null,
+          distance_km: source.distance_km,
+          price: formData.price ? Number(formData.price) : (source.price || source.price_total),
+          pickup_date: formData.pickup_date.toISOString().split('T')[0],
+          delivery_date: formData.delivery_date.toISOString().split('T')[0],
+          description: formData.description || source.description || '',
+          urgency: source.urgency || 'MEDIUM',
+          required_trucks: source.required_trucks || 1,
+          accepted_trucks: 0,
+          status: 'OPEN',
+          vehicle_type_required: source.vehicle_type_required || null,
+          vehicle_axles_required: source.vehicle_axles_required || null,
+          minimum_antt_price: source.minimum_antt_price || null,
+          service_type: source.service_type || 'CARGA',
+          metadata: {
+            reopened_from: freight.id,
+            reopened_at: new Date().toISOString()
+          }
         })
-      });
-      
-      if (error) throw error;
-      
-      toast.success('Frete reaberto com sucesso! O frete está disponível para motoristas.');
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast.success('Frete duplicado com sucesso!');
       onSuccess();
       handleClose();
     } catch (error: any) {
-      console.error('Erro ao reabrir frete:', error);
-      
-      // Fallback: tentar RPC antiga
-      if (error.message?.includes('reopen_freight_v2') || error.code === '42883') {
-        try {
-          // RPC v2 não existe ainda, usar insert direto
-          const { data: newFreight, error: insertError } = await supabase
-            .from('freights')
-            .insert({
-              producer_id: freight.producer_id,
-              cargo_type: freight.cargo_type,
-              weight: freight.weight,
-              origin_address: freight.origin_address,
-              origin_city: freight.origin_city,
-              origin_state: freight.origin_state,
-              origin_lat: freight.origin_lat,
-              origin_lng: freight.origin_lng,
-              destination_address: freight.destination_address,
-              destination_city: freight.destination_city,
-              destination_state: freight.destination_state,
-              destination_lat: freight.destination_lat,
-              destination_lng: freight.destination_lng,
-              distance_km: freight.distance_km,
-              price: formData.price ? Number(formData.price) : freight.price,
-              pickup_date: formData.pickup_date.toISOString().split('T')[0],
-              delivery_date: formData.delivery_date.toISOString().split('T')[0],
-              description: formData.description || freight.description,
-              urgency: freight.urgency,
-              required_trucks: freight.required_trucks || 1,
-              accepted_trucks: 0,
-              status: 'OPEN',
-              vehicle_type_required: freight.vehicle_type_required,
-              vehicle_axles_required: freight.vehicle_axles_required,
-              minimum_antt_price: freight.minimum_antt_price,
-              service_type: freight.service_type,
-              metadata: {
-                reopened_from: freight.id,
-                reopened_at: new Date().toISOString()
-              }
-            })
-            .select()
-            .single();
-
-          if (insertError) throw insertError;
-
-          toast.success('Frete reaberto com sucesso!');
-          onSuccess();
-          handleClose();
-        } catch (fallbackError: any) {
-          console.error('Erro no fallback:', fallbackError);
-          toast.error(fallbackError.message || 'Erro ao reabrir frete');
-        }
-      } else {
-        toast.error(error.message || 'Erro ao reabrir frete');
-      }
+      console.error('Erro ao duplicar frete:', error);
+      toast.error(error.message || 'Erro ao criar cópia do frete');
     } finally {
       setLoading(false);
     }
