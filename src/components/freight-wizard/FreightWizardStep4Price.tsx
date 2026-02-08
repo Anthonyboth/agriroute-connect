@@ -123,12 +123,27 @@ export function FreightWizardStep4Price({
           type="number"
           min="1"
           step="1"
-          value={formData.required_trucks || '1'}
+          value={formData.required_trucks}
           onChange={(e) => {
-            const value = parseInt(e.target.value) || 1;
-            onInputChange('required_trucks', String(Math.max(1, value)));
+            const raw = e.target.value;
+            // Allow empty field so user can clear and type a new number
+            if (raw === '') {
+              onInputChange('required_trucks', '');
+              return;
+            }
+            const parsed = parseInt(raw, 10);
+            if (!isNaN(parsed) && parsed >= 1) {
+              onInputChange('required_trucks', String(parsed));
+            }
           }}
-          placeholder="Digite a quantidade"
+          onBlur={() => {
+            // On blur, if empty or invalid, reset to 1
+            const val = parseInt(formData.required_trucks, 10);
+            if (!val || val < 1) {
+              onInputChange('required_trucks', '1');
+            }
+          }}
+          placeholder="Ex: 3"
         />
         <p className="text-xs text-muted-foreground">
           Informe quantos veículos são necessários para este frete
