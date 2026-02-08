@@ -98,6 +98,8 @@ export function CreateFreightWizard({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  // Rastreia o passo mais alto alcançado para proteger o draft de regressões por erro
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [formData, setFormData] = useState({ ...formDataInitial, ...initialData });
   const [calculatedDistance, setCalculatedDistance] = useState(0);
   const [calculatedAnttPrice, setCalculatedAnttPrice] = useState<number | null>(null);
@@ -117,7 +119,11 @@ export function CreateFreightWizard({
   }, [isModalOpen]);
 
   useEffect(() => {
-    logWizardDebug('STEP_CHANGED', { currentStep, formData: { origin: formData.origin_city, destination: formData.destination_city } });
+    logWizardDebug('STEP_CHANGED', { currentStep, maxStepReached, formData: { origin: formData.origin_city, destination: formData.destination_city } });
+    // Atualiza maxStepReached quando o usuário avança (navegação normal)
+    if (currentStep > maxStepReached) {
+      setMaxStepReached(currentStep);
+    }
   }, [currentStep]);
 
   const { 
@@ -150,12 +156,14 @@ export function CreateFreightWizard({
                            formData.cargo_type?.trim() || formData.weight?.trim() || 
                            formData.price?.trim() || formData.description?.trim();
         if (hasData && hasRealData) {
-          saveDraft(formData, currentStep);
+          // Salva com maxStepReached para que erros de validação
+          // que navegam para steps anteriores não corrompam o draft
+          saveDraft(formData, maxStepReached);
         }
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [formData, guestMode, isModalOpen, initialData, saveDraft, currentStep, showDraftPrompt]);
+  }, [formData, guestMode, isModalOpen, initialData, saveDraft, maxStepReached, showDraftPrompt]);
 
   const handleInputChange = (field: string, value: any) => {
     logWizardDebug('INPUT_CHANGE', { field, valueType: typeof value, currentStep });
@@ -181,6 +189,7 @@ export function CreateFreightWizard({
       // 2. Navegar para a etapa onde o usuário parou
       const targetStep = restored.currentStep || 1;
       setCurrentStep(targetStep);
+      setMaxStepReached(targetStep);
       
       // 3. Feedback visual detalhado
       toast.success(`Rascunho restaurado! Voltando para etapa ${targetStep} de 5`, {
@@ -539,6 +548,7 @@ export function CreateFreightWizard({
       handleModalClose();
       setFormData({ ...formDataInitial });
       setCurrentStep(1);
+      setMaxStepReached(1);
       onFreightCreated();
     } catch (error: any) {
       console.error('[FreightWizard] Erro ao criar frete:', error);
