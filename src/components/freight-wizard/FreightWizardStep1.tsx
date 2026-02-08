@@ -21,8 +21,20 @@ export function FreightWizardStep1({
 }: FreightWizardStep1Props) {
   const [gpsError, setGpsError] = useState<string | null>(null);
   
-  const canProceed = formData.origin_city && formData.origin_state && 
+  // Validação básica: cidades obrigatórias + campos guest se aplicável
+  const baseCanProceed = formData.origin_city && formData.origin_state && 
                      formData.destination_city && formData.destination_state;
+  
+  const guestFieldsOk = !guestMode || (
+    formData.guest_name?.trim()?.length >= 3 &&
+    formData.guest_phone?.replace(/\D/g, '')?.length >= 10 &&
+    (() => {
+      const digits = formData.guest_document?.replace(/\D/g, '') || '';
+      return digits.length === 11 || digits.length === 14;
+    })()
+  );
+
+  const canProceed = baseCanProceed && guestFieldsOk;
 
   const handleOriginChange = (value: string, locationData?: LocationData) => {
     if (locationData) {

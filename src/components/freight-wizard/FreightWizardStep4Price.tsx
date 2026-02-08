@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,6 +30,16 @@ export function FreightWizardStep4Price({
 
   // delivery_date é obrigatório no banco (NOT NULL)
   const canProceed = hasPrice && formData.pickup_date && formData.delivery_date;
+
+  // ✅ UX: Auto-preencher data de entrega como pickup_date + 1 dia quando pickup é selecionado
+  useEffect(() => {
+    if (formData.pickup_date && !formData.delivery_date) {
+      const pickup = new Date(formData.pickup_date + 'T00:00:00');
+      pickup.setDate(pickup.getDate() + 1);
+      const nextDay = pickup.toISOString().split('T')[0];
+      onInputChange('delivery_date', nextDay);
+    }
+  }, [formData.pickup_date]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
