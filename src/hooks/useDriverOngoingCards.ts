@@ -182,7 +182,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       // 3) ASSIGNMENTS (freight_assignments) - busca separada para evitar problemas de RLS
       const { data: assignmentsRaw, error: asgErr } = await supabase
         .from("freight_assignments")
-        .select("id, status, agreed_price, accepted_at, company_id, freight_id")
+        .select("id, status, agreed_price, accepted_at, company_id, freight_id, driver_id")
         .eq("driver_id", driverProfileId)
         .in("status", assignmentOngoingStatuses)
         .order("accepted_at", { ascending: false });
@@ -191,11 +191,72 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         console.warn("[useDriverOngoingCards] Falha ao buscar assignments:", asgErr);
       }
 
-      // Buscar os fretes dos assignments separadamente (evita join que pode falhar por RLS)
+      // ✅ FIX CRÍTICO: Cross-reference com driver_trip_progress e external_payments
+      // Para detectar assignments que estão desincronizados (status: ACCEPTED mas já entregues/pagos)
       const assignmentFreightIds = (assignmentsRaw || []).map(a => a.freight_id).filter(Boolean);
-      let assignmentFreightsMap: Record<string, OngoingFreightRow> = {};
+      let effectiveAssignments = assignmentsRaw || [];
 
       if (assignmentFreightIds.length > 0) {
+        // Buscar trip_progress para todos os fretes
+        const { data: tripProgressData } = await supabase
+          .from("driver_trip_progress")
+          .select("freight_id, driver_id, current_status")
+          .eq("driver_id", driverProfileId)
+          .in("freight_id", assignmentFreightIds);
+
+        // Buscar pagamentos terminais para este motorista
+        const { data: terminalPayments } = await supabase
+          .from("external_payments")
+          .select("freight_id, driver_id, status")
+          .eq("driver_id", driverProfileId)
+          .in("freight_id", assignmentFreightIds)
+          .in("status", ["paid_by_producer", "confirmed", "accepted"]);
+
+        const tripMap = new Map(
+          (tripProgressData || []).map(tp => [`${tp.freight_id}_${tp.driver_id}`, tp.current_status])
+        );
+        const paidSet = new Set(
+          (terminalPayments || []).map(ep => `${ep.freight_id}_${ep.driver_id}`)
+        );
+
+        // Filtrar assignments já completados (trip DELIVERED/COMPLETED + pagamento terminal)
+        effectiveAssignments = effectiveAssignments.filter(a => {
+          const key = `${a.freight_id}_${a.driver_id || driverProfileId}`;
+          const tripStatus = tripMap.get(key);
+          const hasPaid = paidSet.has(key);
+
+          // Se trip_progress mostra DELIVERED/COMPLETED E pagamento já foi feito → remover do "em andamento"
+          if (tripStatus && ['DELIVERED', 'COMPLETED'].includes(tripStatus) && hasPaid) {
+            console.log(`[useDriverOngoingCards] Filtrando assignment ${a.id} - trip=${tripStatus}, pago=${hasPaid}`);
+            return false;
+          }
+          return true;
+        });
+
+        // ✅ Atualizar o status efetivo do assignment usando trip_progress como fonte de verdade
+        effectiveAssignments = effectiveAssignments.map(a => {
+          const key = `${a.freight_id}_${a.driver_id || driverProfileId}`;
+          const tripStatus = tripMap.get(key);
+          
+          // Se trip_progress existe e tem status mais avançado, usar esse status na UI
+          if (tripStatus && tripStatus !== a.status) {
+            const statusOrder = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED'];
+            const tripIdx = statusOrder.indexOf(tripStatus);
+            const assignIdx = statusOrder.indexOf(a.status);
+            
+            if (tripIdx > assignIdx) {
+              return { ...a, status: tripStatus, _effectiveFromTrip: true };
+            }
+          }
+          return a;
+        });
+      }
+
+      // Buscar os fretes dos assignments separadamente (evita join que pode falhar por RLS)
+      const filteredFreightIds = effectiveAssignments.map(a => a.freight_id).filter(Boolean);
+      let assignmentFreightsMap: Record<string, OngoingFreightRow> = {};
+
+      if (filteredFreightIds.length > 0) {
         const { data: assignmentFreights, error: afErr } = await supabase
           .from("freights")
           .select(`
@@ -231,7 +292,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
             last_location_update,
             tracking_status
           `)
-          .in("id", assignmentFreightIds);
+          .in("id", filteredFreightIds);
 
         if (!afErr && assignmentFreights) {
           assignmentFreightsMap = Object.fromEntries(
@@ -243,7 +304,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       }
 
       // Montar assignments com dados dos fretes
-      const assignments = (assignmentsRaw || [])
+      const assignments = effectiveAssignments
         .filter(a => a.freight_id && assignmentFreightsMap[a.freight_id])
         .map(a => ({
           id: a.id,
