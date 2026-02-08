@@ -415,12 +415,12 @@ export function CreateFreightWizard({
         destination_neighborhood: formData.destination_neighborhood || null,
         destination_street: formData.destination_street || null,
         destination_number: formData.destination_number || null,
-        destination_complement: formData.destination_number || null,
+        destination_complement: formData.destination_complement || null,
         distance_km: calculatedDistance,
         minimum_antt_price: calculatedAnttPrice,
         price: calculation.totalPrice,
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
-        required_trucks: parseInt(formData.required_trucks),
+        required_trucks: parseInt(formData.required_trucks) || 1,
         accepted_trucks: 0,
         pickup_date: formData.pickup_date,
         delivery_date: formData.delivery_date,
@@ -552,11 +552,20 @@ export function CreateFreightWizard({
       onFreightCreated();
     } catch (error: any) {
       console.error('[FreightWizard] Erro ao criar frete:', error);
+      console.error('[FreightWizard] Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        statusCode: error?.statusCode,
+        name: error?.name,
+        stack: error?.stack?.substring(0, 300),
+      });
       
       // Extrair mensagem do erro
       const errorMessage = error?.message || '';
       const errorCode = error?.code || '';
-      const errorDetails = error?.details || '';
+      const errorDetails = error?.details || error?.hint || '';
       
       // ✅ Tratamento específico para erro de RLS - notificação clara
       if (errorMessage.includes('row-level security') || errorMessage.includes('row level security') || errorMessage.includes('permission denied')) {
@@ -641,9 +650,10 @@ export function CreateFreightWizard({
           solution: "Verifique sua conexão e tente novamente em alguns segundos.",
         });
       } else {
+        console.error('[FreightWizard] Erro genérico não mapeado:', { errorMessage, errorCode, errorDetails, fullError: JSON.stringify(error) });
         showFormError({
           problem: "Não foi possível criar o frete.",
-          solution: "Verifique se todos os campos estão preenchidos corretamente e tente novamente.",
+          solution: `Erro: ${errorMessage || 'desconhecido'}. Verifique os campos e tente novamente.`,
         });
       }
     } finally {
