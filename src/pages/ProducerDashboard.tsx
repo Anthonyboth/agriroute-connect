@@ -1106,48 +1106,19 @@ const ProducerDashboard = () => {
       return;
     }
 
-    // ✅ Quando o frete já tem motorista aceito (ACCEPTED/LOADING),
-    // o botão do card do PRODUTOR deve "liberar o motorista" (cancelar a atribuição daquele motorista)
-    // e reabrir o frete para outros motoristas — NÃO cancelar o frete inteiro.
-    const assignedDriverId: string | null =
-      (typeof freightToCancel.driver_id === 'string' && freightToCancel.driver_id.length > 0)
-        ? freightToCancel.driver_id
-        : (Array.isArray(freightToCancel.drivers_assigned) && typeof freightToCancel.drivers_assigned?.[0] === 'string')
-          ? freightToCancel.drivers_assigned[0]
-          : null;
-
-    const requiredTrucks = Number((freightToCancel as any).required_trucks ?? 1);
-    const acceptedTrucks = Number((freightToCancel as any).accepted_trucks ?? 0);
-
-    // ✅ Multi-carreta: o status global pode continuar OPEN por design para manter visibilidade no marketplace.
-    // Nesses casos, ao clicar em cancelar na aba de andamento, a ação correta é liberar o motorista
-    // (cancelar a atribuição dele) e reabrir o frete — NÃO cancelar o frete inteiro.
-    const shouldReleaseDriver = !!assignedDriverId && (
-      ["ACCEPTED", "LOADING"].includes(status) ||
-      (status === "OPEN" && requiredTrucks > 1 && acceptedTrucks > 0)
-    );
-
+    // ✅ FIX: Sempre cancelar o frete diretamente via cancel-freight-safe
+    // A edge function cuida de cancelar assignments, trip progress e proposals
+    // ✅ FIX: Sempre cancelar o frete diretamente via cancel-freight-safe
+    // A edge function agora cuida de cancelar assignments, trip progress e proposals
     try {
-      const { data, error } = shouldReleaseDriver
-        ? await supabase.functions.invoke("producer-release-driver", {
-            body: {
-              freight_id: freightToCancel.id,
-              driver_id: assignedDriverId,
-              reason: "Motorista liberado pelo produtor",
-            },
-          })
-        : await supabase.functions.invoke("cancel-freight-safe", {
-            body: { freight_id: freightToCancel.id, reason: "Cancelado pelo produtor" },
-          });
+      const { data, error } = await supabase.functions.invoke("cancel-freight-safe", {
+        body: { freight_id: freightToCancel.id, reason: "Cancelado pelo produtor" },
+      });
 
       if (error) throw error;
       if (!(data as any)?.success) throw new Error((data as any)?.error || "Erro ao processar ação");
 
-      toast.success(
-        shouldReleaseDriver
-          ? "Motorista removido. Frete reaberto para outros motoristas."
-          : "Frete cancelado com sucesso!",
-      );
+      toast.success("Frete cancelado com sucesso!");
       setConfirmDialogOpen(false);
       setFreightToCancel(null);
       fetchFreights();
@@ -2164,21 +2135,9 @@ const ProducerDashboard = () => {
         isOpen={confirmDialogOpen}
         onClose={() => setConfirmDialogOpen(false)}
         onConfirm={confirmCancelFreight}
-        title={
-          freightToCancel && ["ACCEPTED", "LOADING"].includes(String(freightToCancel.status || '').toUpperCase().trim())
-            ? "Liberar Motorista"
-            : "Cancelar Frete"
-        }
-        description={
-          freightToCancel && ["ACCEPTED", "LOADING"].includes(String(freightToCancel.status || '').toUpperCase().trim())
-            ? "Isso remove o motorista atual deste frete e reabre o frete para que outros motoristas possam aceitar."
-            : "Tem certeza que deseja cancelar este frete? Esta ação não pode ser desfeita."
-        }
-        confirmText={
-          freightToCancel && ["ACCEPTED", "LOADING"].includes(String(freightToCancel.status || '').toUpperCase().trim())
-            ? "Sim, liberar"
-            : "Sim, cancelar"
-        }
+        title="Cancelar Frete"
+        description="Tem certeza que deseja cancelar este frete? Todos os motoristas atribuídos serão liberados. Esta ação não pode ser desfeita."
+        confirmText="Sim, cancelar"
         cancelText="Não, manter"
         variant="destructive"
       />
