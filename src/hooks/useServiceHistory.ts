@@ -36,6 +36,9 @@ export function useServiceHistory(options: UseServiceHistoryOptions = {}) {
   const { profile } = useAuth();
   const { asClient = false, limit = 100 } = options;
 
+  // PET e Pacotes são classificados como "Fretes" para fins de histórico
+  const TRANSPORT_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES'];
+
   const query = useQuery({
     queryKey: ['service-request-history', profile?.id, asClient, limit],
     queryFn: async () => {
@@ -44,6 +47,7 @@ export function useServiceHistory(options: UseServiceHistoryOptions = {}) {
       let q = supabase
         .from('service_request_history')
         .select('*')
+        .not('service_type', 'in', `(${TRANSPORT_TYPES.join(',')})`)
         .order('completed_at', { ascending: false, nullsFirst: false })
         .limit(limit);
 

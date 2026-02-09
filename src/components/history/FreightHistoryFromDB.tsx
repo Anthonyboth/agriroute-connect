@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Button } from '@/components/ui/button';
 import {
-  Truck, MapPin, Calendar, DollarSign, Package, CheckCircle, XCircle, RefreshCw
+  Truck, MapPin, Calendar, DollarSign, Package, CheckCircle, XCircle, RefreshCw, PawPrint
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -81,7 +81,7 @@ function mapHistoryToFreight(item: FreightHistoryItem): any {
 }
 
 export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role, companyId }) => {
-  const { freightHistory, assignmentHistory, isLoading, refetch } = useFreightHistory({ role, companyId });
+  const { freightHistory, assignmentHistory, transportHistory, isLoading, refetch } = useFreightHistory({ role, companyId });
   const [reopenModalOpen, setReopenModalOpen] = useState(false);
   const [freightToReopen, setFreightToReopen] = useState<any>(null);
 
@@ -108,8 +108,9 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
   // Para motorista/transportadora: mostrar freight_assignment_history
   const items = isProducer ? freightHistory : [];
   const assignments = !isProducer ? assignmentHistory : [];
+  const transports = transportHistory || [];
 
-  const totalItems = items.length + assignments.length;
+  const totalItems = items.length + assignments.length + transports.length;
 
   if (totalItems === 0) {
     return (
@@ -157,6 +158,11 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
       {/* Motorista/Transportadora: assignment_history */}
       {assignments.map((item) => (
         <AssignmentHistoryCard key={item.id} item={item} />
+      ))}
+
+      {/* Transportes (PET, Pacotes) solicitados como cliente */}
+      {transports.map((item: any) => (
+        <TransportHistoryCard key={item.id} item={item} />
       ))}
 
       {/* Modal de Reabrir Frete */}
@@ -320,3 +326,63 @@ const AssignmentHistoryCard: React.FC<{ item: FreightAssignmentHistoryItem }> = 
     </CardContent>
   </Card>
 );
+
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  TRANSPORTE_PET: 'Transporte Pet',
+  ENTREGA_PACOTES: 'Entrega de Pacotes',
+};
+
+const TransportHistoryCard: React.FC<{ item: any }> = ({ item }) => {
+  const isPet = item.service_type === 'TRANSPORTE_PET';
+  const Icon = isPet ? PawPrint : Truck;
+  const label = SERVICE_TYPE_LABELS[item.service_type] || item.service_type;
+  const isCompleted = item.status_final === 'COMPLETED';
+  const isCancelled = item.status_final === 'CANCELLED';
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <Icon className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base">{label}</CardTitle>
+              <Badge
+                variant={isCompleted ? 'outline' : isCancelled ? 'destructive' : 'secondary'}
+                className={isCompleted ? 'bg-green-50 text-green-700 border-green-200' : ''}
+              >
+                {isCompleted ? <CheckCircle className="h-3 w-3 mr-1" /> : isCancelled ? <XCircle className="h-3 w-3 mr-1" /> : null}
+                {isCompleted ? 'Concluído' : isCancelled ? 'Cancelado' : item.status_final}
+              </Badge>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-bold text-primary">
+              {formatBRL(item.final_price || item.estimated_price || 0)}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+          {item.city && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3 w-3 text-primary" />
+              <span className="text-muted-foreground truncate">
+                {item.city}{item.state ? `/${item.state}` : ''}
+              </span>
+            </div>
+          )}
+          {item.completed_at && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Concluído em {format(new Date(item.completed_at), "dd/MM/yyyy", { locale: ptBR })}
+              </span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
