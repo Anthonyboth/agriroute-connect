@@ -12,7 +12,20 @@ interface ServiceRequestModalProps {
   category: "freight" | "technical" | "agricultural" | "logistics" | "urban";
 }
 
-// ✅ Mapear categorias para ServiceType (fallback seguro)
+// ✅ IDs de serviço que são diretamente um ServiceType válido
+const DIRECT_SERVICE_TYPE_MAP: Record<string, ServiceType> = {
+  ENTREGA_PACOTES: "ENTREGA_PACOTES",
+  TRANSPORTE_PET: "TRANSPORTE_PET",
+  GUINCHO: "GUINCHO",
+  FRETE_MOTO: "FRETE_MOTO",
+  FRETE_URBANO: "FRETE_URBANO",
+  MUDANCA_RESIDENCIAL: "MUDANCA_RESIDENCIAL",
+  MUDANCA_COMERCIAL: "MUDANCA_COMERCIAL",
+  SERVICO_AGRICOLA: "SERVICO_AGRICOLA",
+  SERVICO_TECNICO: "SERVICO_TECNICO",
+};
+
+// ✅ Fallback por categoria (quando serviceId não é um ServiceType direto)
 const categoryToServiceType: Record<ServiceRequestModalProps["category"], ServiceType> = {
   freight: "FRETE_URBANO",
   technical: "SERVICO_TECNICO",
@@ -29,8 +42,13 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   serviceDescription,
   category,
 }) => {
-  // ✅ Determinar o tipo de serviço baseado na categoria
+  // ✅ Determinar o tipo de serviço: priorizar serviceId se for um ServiceType válido
   const serviceType = useMemo<ServiceType>(() => {
+    // Se o serviceId é diretamente um ServiceType reconhecido, usar ele
+    if (DIRECT_SERVICE_TYPE_MAP[serviceId]) {
+      return DIRECT_SERVICE_TYPE_MAP[serviceId];
+    }
+    // Fallback por categoria
     return categoryToServiceType[category] ?? "SERVICO_TECNICO";
   }, [category]);
 
