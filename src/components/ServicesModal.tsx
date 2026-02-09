@@ -276,13 +276,13 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
 
       {/* Modal de solicitação de serviços */}
       {!onSelect && (
-        <ServiceRequestModal
-          isOpen={serviceRequestModal.isOpen && !!serviceRequestModal.serviceId}
+      <ServiceRequestModal
+          isOpen={serviceRequestModal.isOpen}
           serviceId={serviceRequestModal.serviceId || ""}
           serviceLabel={serviceRequestModal.serviceLabel || ""}
           serviceDescription={serviceRequestModal.serviceDescription || ""}
           category={serviceRequestModal.category || "technical"}
-          onClose={() => setServiceRequestModal({ isOpen: false })}
+          onClose={() => setServiceRequestModal(prev => ({ ...prev, isOpen: false }))}
         />
       )}
     </>
