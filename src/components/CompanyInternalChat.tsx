@@ -699,28 +699,26 @@ export function CompanyInternalChat() {
       </Card>
 
       {/* Modal de Aceite para Transportadora */}
-      {companyId && selectedSharedFreight && (
-        <CompanyFreightAcceptModal
-          isOpen={acceptModalOpen}
-          onClose={() => {
-            setAcceptModalOpen(false);
-            handleAcceptSuccess();
-          }}
-          freight={{
-            id: selectedSharedFreight.freight_id,
-            cargo_type: 'Frete',
-            weight: 0,
-            origin_address: '',
-            destination_address: '',
-            pickup_date: new Date().toISOString(),
-            price: 0
-          }}
-          driverId={selectedSharedFreight.driver_id}
-          driverName="Motorista"
-          companyOwnerId={profile?.id || ''}
-          companyId={companyId}
-        />
-      )}
+      <CompanyFreightAcceptModal
+        isOpen={acceptModalOpen && !!companyId && !!selectedSharedFreight}
+        onClose={() => {
+          setAcceptModalOpen(false);
+          handleAcceptSuccess();
+        }}
+        freight={{
+          id: selectedSharedFreight?.freight_id || '',
+          cargo_type: 'Frete',
+          weight: 0,
+          origin_address: '',
+          destination_address: '',
+          pickup_date: new Date().toISOString(),
+          price: 0
+        }}
+        driverId={selectedSharedFreight?.driver_id || ''}
+        driverName="Motorista"
+        companyOwnerId={profile?.id || ''}
+        companyId={companyId || ''}
+      />
     </div>
   );
 }
