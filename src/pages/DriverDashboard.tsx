@@ -837,7 +837,7 @@ const DriverDashboard = () => {
         .from('service_requests_secure')
         .select('*')
         .eq('provider_id', profile.id)
-        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO'])
+        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'])
         .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
         .order('accepted_at', { ascending: false })
         .limit(50);
@@ -1842,10 +1842,13 @@ const DriverDashboard = () => {
     // Contar assignments ativos (usando a lista filtrada)
     const activeAssignmentsCount = activeAssignments.length;
     
-    // Total de viagens ativas = fretes diretos + assignments
-    const activeTripsCount = activeFreightsCount + activeAssignmentsCount;
+    // Contar service requests ativos (GUINCHO, MUDANÇA, PET, PACOTES, etc.)
+    const activeServiceRequestsCount = acceptedServiceRequests.length;
     
-    console.log('[stats] activeFreightsCount:', activeFreightsCount, 'activeAssignmentsCount:', activeAssignmentsCount, 'total:', activeTripsCount);
+    // Total de viagens ativas = fretes diretos + assignments + service requests
+    const activeTripsCount = activeFreightsCount + activeAssignmentsCount + activeServiceRequestsCount;
+    
+    console.log('[stats] activeFreightsCount:', activeFreightsCount, 'activeAssignmentsCount:', activeAssignmentsCount, 'activeServiceRequests:', activeServiceRequestsCount, 'total:', activeTripsCount);
     
     return {
       activeTrips: activeTripsCount,
@@ -1857,7 +1860,7 @@ const DriverDashboard = () => {
       totalCheckins: totalCheckins,
       pendingProposals: pendingProposalsCount,
     };
-  }, [myProposals, availableFreights, totalCheckins, visibleOngoing, activeAssignments]);
+  }, [myProposals, availableFreights, totalCheckins, visibleOngoing, activeAssignments, acceptedServiceRequests]);
 
   const handleLogout = async () => {
     // ✅ Logout silencioso - sem toasts
