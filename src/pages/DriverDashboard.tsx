@@ -1043,15 +1043,10 @@ const DriverDashboard = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('service_requests')
-        .update({ 
-          provider_id: profile.id,
-          status: 'ACCEPTED',
-          accepted_at: new Date().toISOString()
-        })
-        .eq('id', requestId)
-        .eq('status', 'OPEN'); // Garantir que ainda está disponível
+      const { data, error } = await supabase.rpc('accept_service_request', {
+        p_provider_id: profile.id,
+        p_request_id: requestId,
+      });
 
       if (error) throw error;
 
@@ -1078,14 +1073,10 @@ const DriverDashboard = () => {
         prev.map(r => r.id === requestId ? { ...r, status: 'ON_THE_WAY', updated_at: new Date().toISOString() } : r)
       );
 
-      const { error } = await supabase
-        .from('service_requests')
-        .update({ 
-          status: 'ON_THE_WAY',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId)
-        .eq('provider_id', profile?.id);
+      const { data, error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: requestId,
+        p_next_status: 'ON_THE_WAY',
+      });
 
       if (error) {
         // Rollback otimista
