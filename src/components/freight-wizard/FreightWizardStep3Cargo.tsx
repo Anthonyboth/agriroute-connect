@@ -1,8 +1,9 @@
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Package } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Package, Truck } from 'lucide-react';
 import { WeightInput } from '@/components/WeightInput';
 import { CARGO_CATEGORIES, getCargoTypesByCategory, cargoRequiresAxles, AXLE_OPTIONS, VEHICLE_TYPES_URBAN } from '@/lib/cargo-types';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -69,6 +70,43 @@ export function FreightWizardStep3Cargo({
           value={formData.weight}
           onChange={(value, isValid) => onInputChange('weight', value)}
         />
+      </div>
+
+      {/* Quantidade de Carretas/Veículos */}
+      <div className="space-y-2">
+        <Label htmlFor="required_trucks" className="flex items-center gap-2">
+          <Truck className="h-4 w-4" />
+          Quantidade de Carretas/Veículos *
+        </Label>
+        <Input
+          id="required_trucks"
+          type="number"
+          min="1"
+          step="1"
+          value={formData.required_trucks}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === '') {
+              onInputChange('required_trucks', '');
+              return;
+            }
+            const parsed = parseInt(raw, 10);
+            if (!isNaN(parsed) && parsed >= 1) {
+              onInputChange('required_trucks', String(parsed));
+            }
+          }}
+          onBlur={() => {
+            const val = parseInt(formData.required_trucks, 10);
+            if (!val || val < 1) {
+              onInputChange('required_trucks', '1');
+            }
+          }}
+          placeholder="1"
+          className="text-lg"
+        />
+        <p className="text-xs text-muted-foreground">
+          💡 Quantas carretas ou veículos você precisa para transportar essa carga?
+        </p>
       </div>
 
       {/* Seletor de Eixos (para cargas que exigem) */}
