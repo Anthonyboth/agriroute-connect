@@ -12,7 +12,7 @@ import { ServiceFormData, ServiceType } from "./types";
 import { getServiceConfig } from "./config";
 import { supabase } from "@/integrations/supabase/client";
 import { showErrorToast } from "@/lib/error-handler";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthenticatedUser } from "@/hooks/useAuthenticatedUser";
 import { usePrefilledUserData } from "@/hooks/usePrefilledUserData";
 import { useFormNotification } from "@/hooks/useFormNotification";
 
@@ -139,12 +139,9 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   catalogServiceLabel,
   catalogServiceDescription,
 }) => {
-  const { profile } = useAuth();
+  const { isLoggedInWithProfile, profile } = useAuthenticatedUser();
   const { personal: prefilledPersonal, address: prefilledAddress, loading: prefillLoading } = usePrefilledUserData();
   const { showFormError, showMissingField, showSuccess } = useFormNotification();
-
-  // ✅ Usuário logado com perfil = pular etapa 2 (dados pessoais)
-  const isLoggedInWithProfile = !!(profile?.id && profile?.full_name);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(serviceType));
