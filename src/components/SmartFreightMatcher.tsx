@@ -533,6 +533,20 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             <span className="truncate">Moto</span>
           </Badge>
         );
+      case "ENTREGA_PACOTES":
+        return (
+          <Badge className="bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
+            <Package className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Pacotes 📦</span>
+          </Badge>
+        );
+      case "TRANSPORTE_PET":
+        return (
+          <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
+            <Package className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Pet 🐾</span>
+          </Badge>
+        );
       default:
         return (
           <Badge variant="secondary" className="truncate max-w-fit whitespace-nowrap">
@@ -661,6 +675,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                   <SelectItem value="FRETE_MOTO">🏍️ Moto</SelectItem>
                   <SelectItem value="GUINCHO">🚗 Guincho</SelectItem>
                   <SelectItem value="MUDANCA">📦 Mudança</SelectItem>
+                  <SelectItem value="ENTREGA_PACOTES">📬 Pacotes</SelectItem>
+                  <SelectItem value="TRANSPORTE_PET">🐾 Pet</SelectItem>
                 </SelectContent>
               </Select>
             </div>
