@@ -63,7 +63,13 @@ const GuestServiceRequestSchema = z.object({
   state: z.string().optional().nullable(),
   preferred_datetime: z.string().optional().nullable(),
   estimated_price: z.number().positive().optional().nullable(),
-  additional_info: z.any().optional().nullable()
+  additional_info: z.any().optional().nullable(),
+  // Destination fields
+  destination_address: z.string().max(500).optional().nullable(),
+  destination_city: z.string().max(200).optional().nullable(),
+  destination_state: z.string().max(50).optional().nullable(),
+  destination_lat: z.number().min(-90).max(90).optional().nullable(),
+  destination_lng: z.number().min(-180).max(180).optional().nullable(),
 });
 
 serve(async (req) => {
@@ -146,7 +152,12 @@ serve(async (req) => {
         state: data.state,
         preferred_datetime: data.preferred_datetime,
         estimated_price: data.estimated_price || null,
-        additional_info: data.additional_info ? JSON.stringify(data.additional_info) : null
+        additional_info: data.additional_info ? JSON.stringify(data.additional_info) : null,
+        destination_address: data.destination_address || null,
+        destination_city: data.destination_city || null,
+        destination_state: data.destination_state || null,
+        destination_lat: data.destination_lat || null,
+        destination_lng: data.destination_lng || null,
       }])
       .select()
       .single();

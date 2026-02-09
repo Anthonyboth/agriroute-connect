@@ -10096,6 +10096,11 @@ export type Database = {
           contact_phone: string
           contact_phone_encrypted: string | null
           created_at: string
+          destination_address: string | null
+          destination_city: string | null
+          destination_lat: number | null
+          destination_lng: number | null
+          destination_state: string | null
           estimated_price: number | null
           final_price: number | null
           id: string
@@ -10143,6 +10148,11 @@ export type Database = {
           contact_phone: string
           contact_phone_encrypted?: string | null
           created_at?: string
+          destination_address?: string | null
+          destination_city?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          destination_state?: string | null
           estimated_price?: number | null
           final_price?: number | null
           id?: string
@@ -10190,6 +10200,11 @@ export type Database = {
           contact_phone?: string
           contact_phone_encrypted?: string | null
           created_at?: string
+          destination_address?: string | null
+          destination_city?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          destination_state?: string | null
           estimated_price?: number | null
           final_price?: number | null
           id?: string
