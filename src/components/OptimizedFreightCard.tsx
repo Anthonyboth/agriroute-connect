@@ -10,7 +10,7 @@ import { MapPin, Package, Truck, Calendar, DollarSign, ArrowRight, Wrench, Home,
 import { getCargoTypeLabel } from "@/lib/cargo-types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatTons, formatKm, formatBRL, formatDate, formatSolicitadoHa } from "@/lib/formatters";
+import { formatTons, formatKm, formatBRL, formatDate, formatSolicitadoHa, getPricePerTruck } from "@/lib/formatters";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FreightCardProps {
@@ -376,7 +376,21 @@ const OptimizedFreightCard = memo<FreightCardProps>(
         <CardFooter className="pt-6 pb-6 flex-shrink-0 mt-auto">
           <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
             <div className="text-left">
-              <p className="font-bold text-3xl text-primary">{formatBRL(freight.price, true)}</p>
+              {(() => {
+                const requiredTrucks = freight.required_trucks || 1;
+                const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+                const hasMultipleTrucks = requiredTrucks > 1;
+                return (
+                  <>
+                    <p className="font-bold text-3xl text-primary">
+                      {formatBRL(pricePerTruck, true)}
+                      {hasMultipleTrucks && (
+                        <span className="text-sm font-normal text-muted-foreground ml-1">/carreta</span>
+                      )}
+                    </p>
+                  </>
+                );
+              })()}
               {freight.service_type === "FRETE_MOTO" ? (
                 <p className="text-base text-blue-600 dark:text-blue-400 mt-2 font-semibold">Mínimo: R$ 10,00</p>
               ) : (
