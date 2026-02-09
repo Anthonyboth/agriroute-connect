@@ -180,7 +180,7 @@ export function CreateFreightWizard({
   };
 
   // PROBLEMA 9: Restaurar draft E navegar para etapa correta
-  const handleRestoreDraft = () => {
+  const handleRestoreDraft = async () => {
     const restored = restoreDraft();
     if (restored && restored.data) {
       // 1. Restaurar dados do formulário
@@ -191,7 +191,25 @@ export function CreateFreightWizard({
       setCurrentStep(targetStep);
       setMaxStepReached(targetStep);
       
-      // 3. Feedback visual detalhado
+      // 3. Recalcular distância se tiver dados de origem/destino
+      if (restored.data.origin_city && restored.data.destination_city) {
+        try {
+          const origin = `${restored.data.origin_city}, ${restored.data.origin_state}`;
+          const destination = `${restored.data.destination_city}, ${restored.data.destination_state}`;
+          
+          const { data, error } = await supabase.functions.invoke('calculate-route', {
+            body: { origin, destination }
+          });
+          
+          if (!error && data?.distance_km) {
+            setCalculatedDistance(data.distance_km);
+          }
+        } catch (err) {
+          console.error('[DRAFT_RESTORE] Error recalculating distance:', err);
+        }
+      }
+      
+      // 4. Feedback visual detalhado
       toast.success(`Rascunho restaurado! Voltando para etapa ${targetStep} de 5`, {
         duration: 4000,
         icon: '📂'
