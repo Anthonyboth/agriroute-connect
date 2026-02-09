@@ -19,16 +19,14 @@ interface AutoRatingModalProps {
   currentUserProfile: any;
 }
 
-const EMPTY_USER = { id: '', full_name: '', role: 'PRODUTOR' as const };
-
 export const AutoRatingModal: React.FC<AutoRatingModalProps> = ({
   isOpen,
   onClose,
   freightId,
-  userToRate: userToRateProp,
+  userToRate,
   currentUserProfile
 }) => {
-  const userToRate = userToRateProp || EMPTY_USER;
+  
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
