@@ -72,35 +72,6 @@ export function FreightWizardStep3Cargo({
         />
       </div>
 
-      {/* Quantidade de Carretas/Veículos */}
-      <div className="space-y-2">
-        <Label htmlFor="required_trucks" className="flex items-center gap-2">
-          <Truck className="h-4 w-4" />
-          Quantidade de Carretas/Veículos *
-        </Label>
-        <Input
-          id="required_trucks"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={formData.required_trucks}
-          onChange={(e) => {
-            const raw = e.target.value.replace(/[^0-9]/g, '');
-            onInputChange('required_trucks', raw);
-          }}
-          onBlur={() => {
-            const val = parseInt(formData.required_trucks, 10);
-            if (!val || val < 1) {
-              onInputChange('required_trucks', '1');
-            }
-          }}
-          placeholder="1"
-          className="text-lg"
-        />
-        <p className="text-xs text-muted-foreground">
-          💡 Quantas carretas ou veículos você precisa para transportar essa carga?
-        </p>
-      </div>
 
       {/* Seletor de Eixos (para cargas que exigem) */}
       {showAxlesSelector && (
