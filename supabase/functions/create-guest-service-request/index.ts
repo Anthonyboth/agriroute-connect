@@ -12,6 +12,48 @@ const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 5; // Max 5 requests per minute per IP
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
+// Default description based on service type
+function getDefaultDescription(serviceType: string): string {
+  const descriptions: Record<string, string> = {
+    GUINCHO: 'Solicitação de Guincho',
+    FRETE_MOTO: 'Solicitação de Frete Moto',
+    FRETE_URBANO: 'Solicitação de Frete Urbano',
+    MUDANCA_RESIDENCIAL: 'Solicitação de Mudança Residencial',
+    MUDANCA_COMERCIAL: 'Solicitação de Mudança Comercial',
+    SERVICO_AGRICOLA: 'Solicitação de Serviço Agrícola',
+    SERVICO_TECNICO: 'Solicitação de Serviço Técnico',
+    TRANSPORTE_PET: 'Solicitação de Transporte de Pet',
+    ENTREGA_PACOTES: 'Solicitação de Entrega de Pacotes',
+    MECANICO: 'Solicitação de Mecânico',
+    BORRACHEIRO: 'Solicitação de Borracheiro',
+    ELETRICISTA: 'Solicitação de Eletricista',
+    SOCORRO_MECANICO: 'Solicitação de Socorro Mecânico',
+    AGRONOMO: 'Solicitação de Agrônomo',
+    VETERINARIO: 'Solicitação de Veterinário',
+    ANALISE_SOLO: 'Solicitação de Análise de Solo',
+    PULVERIZACAO: 'Solicitação de Pulverização',
+    COLHEITA: 'Solicitação de Colheita',
+    PLANTIO: 'Solicitação de Plantio',
+    IRRIGACAO: 'Solicitação de Irrigação',
+    TOPOGRAFIA: 'Solicitação de Topografia',
+    CONSULTORIA_RURAL: 'Solicitação de Consultoria Rural',
+    MANUTENCAO_MAQUINAS: 'Solicitação de Manutenção de Máquinas',
+    CARREGAMENTO: 'Solicitação de Carregamento',
+    CARREGAMENTO_URB: 'Solicitação de Carregamento',
+    DESCARREGAMENTO: 'Solicitação de Descarregamento',
+    DESCARREGAMENTO_URB: 'Solicitação de Descarregamento',
+    MONTAGEM: 'Solicitação de Montagem',
+    MONTAGEM_URB: 'Solicitação de Montagem',
+    DESMONTAGEM: 'Solicitação de Desmontagem',
+    DESMONTAGEM_URB: 'Solicitação de Desmontagem',
+    EMBALAGEM: 'Solicitação de Embalagem',
+    EMBALAGEM_URB: 'Solicitação de Embalagem',
+    LIMPEZA_POS: 'Solicitação de Limpeza Pós-Mudança',
+    LIMPEZA_POS_URB: 'Solicitação de Limpeza Pós-Mudança',
+  };
+  return descriptions[serviceType] || `Solicitação de ${serviceType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}`;
+}
+
 function getClientIP(req: Request): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
          req.headers.get('x-real-ip') || 
@@ -144,7 +186,7 @@ serve(async (req) => {
         location_address: data.location_address,
         location_lat: data.location_lat,
         location_lng: data.location_lng,
-        problem_description: data.problem_description || 'Solicitação de serviço',
+        problem_description: data.problem_description || getDefaultDescription(data.service_type),
         urgency: data.urgency,
         status: 'OPEN',
         city_name: data.city_name,
