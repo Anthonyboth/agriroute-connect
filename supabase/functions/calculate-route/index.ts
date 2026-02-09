@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { validateInput } from '../_shared/validation.ts';
 
@@ -23,14 +24,12 @@ interface RouteResponse {
 
 // Fórmula de Haversine para calcular distância entre duas coordenadas
 function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Raio da Terra em km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -39,7 +38,7 @@ function toRad(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
 
-// Coordenadas aproximadas de capitais e cidades brasileiras importantes
+// Dicionário local de cidades brasileiras (fallback quando não encontrar no banco)
 const cityCoordinates: Record<string, { lat: number; lng: number }> = {
   'são paulo': { lat: -23.5505, lng: -46.6333 },
   'rio de janeiro': { lat: -22.9068, lng: -43.1729 },
@@ -86,51 +85,86 @@ const cityCoordinates: Record<string, { lat: number; lng: number }> = {
   'macapá': { lat: 0.0389, lng: -51.0664 },
 };
 
-// Extrair cidade do endereço
+function normalizeCity(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Extrair nome da cidade do endereço
 function extractCityFromAddress(address: string): string | null {
-  const normalizedAddress = address.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
-  
+  const normalized = normalizeCity(address);
   for (const city of Object.keys(cityCoordinates)) {
-    const normalizedCity = city.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (normalizedAddress.includes(normalizedCity)) {
+    if (normalized.includes(normalizeCity(city))) {
       return city;
     }
   }
-  
   return null;
 }
 
-// Calcular distância usando fallback Haversine com fator rodoviário
-function calculateFallbackDistance(origin: string, destination: string): number {
-  const originCity = extractCityFromAddress(origin);
-  const destinationCity = extractCityFromAddress(destination);
-  
-  console.log('[CALCULATE-ROUTE] Fallback - Origin city:', originCity, 'Destination city:', destinationCity);
-  
-  if (originCity && destinationCity && cityCoordinates[originCity] && cityCoordinates[destinationCity]) {
-    const originCoords = cityCoordinates[originCity];
-    const destCoords = cityCoordinates[destinationCity];
+// Buscar coordenadas no banco (tabela cities) via Supabase
+async function getCoordsFromDB(cityName: string, state: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) return null;
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
     
-    const haversineDistance = calculateHaversineDistance(
-      originCoords.lat, originCoords.lng,
-      destCoords.lat, destCoords.lng
-    );
+    // Busca por nome da cidade + estado
+    const cleanCity = cityName.trim();
+    const cleanState = state.trim().toUpperCase();
     
-    // Fator de correção rodoviário (1.3 é um fator comum para estradas brasileiras)
-    const roadFactor = 1.3;
-    const estimatedDistance = Math.round(haversineDistance * roadFactor);
-    
-    console.log('[CALCULATE-ROUTE] Haversine distance:', haversineDistance.toFixed(2), 'km, Estimated road distance:', estimatedDistance, 'km');
-    
-    return estimatedDistance;
+    const { data, error } = await supabase
+      .from('cities')
+      .select('lat, lng')
+      .ilike('name', cleanCity)
+      .eq('state', cleanState)
+      .not('lat', 'is', null)
+      .not('lng', 'is', null)
+      .limit(1)
+      .single();
+
+    if (!error && data?.lat && data?.lng) {
+      console.log(`[CALCULATE-ROUTE] DB coords found for ${cleanCity}/${cleanState}: ${data.lat}, ${data.lng}`);
+      return { lat: data.lat, lng: data.lng };
+    }
+  } catch (e) {
+    console.warn('[CALCULATE-ROUTE] DB lookup failed:', e);
   }
-  
-  // Se não encontrou as cidades, usar estimativa baseada em média nacional
-  // Distância média entre cidades brasileiras: 400-600km
-  console.log('[CALCULATE-ROUTE] Cities not found in database, using average estimate');
-  return 450;
+  return null;
+}
+
+// Extrair cidade e estado do formato "Cidade, UF" ou "Cidade, Estado"
+function parseCityState(address: string): { city: string; state: string } | null {
+  // Formato: "Cidade, UF" ou "Cidade, Estado"
+  const parts = address.split(',').map(s => s.trim());
+  if (parts.length >= 2) {
+    return { city: parts[0], state: parts[parts.length - 1] };
+  }
+  // Formato: "Cidade/UF"
+  const slashParts = address.split('/').map(s => s.trim());
+  if (slashParts.length >= 2) {
+    return { city: slashParts[0], state: slashParts[slashParts.length - 1] };
+  }
+  return null;
+}
+
+// Resolver coordenadas: 1) banco de dados, 2) dicionário local, 3) null
+async function resolveCoords(address: string): Promise<{ lat: number; lng: number } | null> {
+  // 1. Tentar buscar no banco
+  const parsed = parseCityState(address);
+  if (parsed) {
+    const dbCoords = await getCoordsFromDB(parsed.city, parsed.state);
+    if (dbCoords) return dbCoords;
+  }
+
+  // 2. Tentar dicionário local
+  const localCity = extractCityFromAddress(address);
+  if (localCity && cityCoordinates[localCity]) {
+    console.log(`[CALCULATE-ROUTE] Local dict coords for "${localCity}"`);
+    return cityCoordinates[localCity];
+  }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -144,105 +178,29 @@ serve(async (req) => {
     
     console.log('[CALCULATE-ROUTE] Calculating route from', origin, 'to', destination);
 
-    const googleMapsApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
-    
-    if (!googleMapsApiKey) {
-      console.warn('[CALCULATE-ROUTE] Google Maps API key not configured, using Haversine fallback');
-      
-      // PROBLEMA 7 CORRIGIDO: Usar Haversine em vez de valor aleatório
-      const distance_km = calculateFallbackDistance(origin, destination);
-      const duration_hours = Math.round((distance_km / 80) * 10) / 10;
-      const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
-      const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
-      
-      return new Response(JSON.stringify({
-        distance_km,
-        duration_hours,
-        toll_cost,
-        fuel_cost,
-        route_points: [],
-        is_simulation: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Resolver coordenadas de origem e destino
+    const originCoords = await resolveCoords(origin);
+    const destCoords = await resolveCoords(destination);
+
+    let distance_km: number;
+
+    if (originCoords && destCoords) {
+      const haversine = calculateHaversineDistance(
+        originCoords.lat, originCoords.lng,
+        destCoords.lat, destCoords.lng
+      );
+      // Fator de correção rodoviário (1.3 para estradas brasileiras)
+      distance_km = Math.round(haversine * 1.3);
+      console.log(`[CALCULATE-ROUTE] Haversine: ${haversine.toFixed(2)} km, Road estimate: ${distance_km} km`);
+    } else {
+      // Fallback: estimativa média
+      console.warn('[CALCULATE-ROUTE] Could not resolve coords, using average estimate');
+      distance_km = 450;
     }
 
-    // Usar Google Maps Distance Matrix API
-    const distanceMatrixUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${googleMapsApiKey}&language=pt-BR`;
-    
-    console.log('[CALCULATE-ROUTE] Calling Google Maps Distance Matrix API');
-    const googleResponse = await fetch(distanceMatrixUrl);
-    
-    if (!googleResponse.ok) {
-      throw new Error(`Google Maps API error: ${googleResponse.status}`);
-    }
-    
-    const googleData = await googleResponse.json();
-    
-    console.log('[CALCULATE-ROUTE] Google API response status:', googleData.status);
-    
-    // If Google Maps API returns an error, use Haversine fallback
-    if (googleData.status !== 'OK' || !googleData.rows?.[0]?.elements?.[0]) {
-      console.warn('[CALCULATE-ROUTE] Google Maps API error, using Haversine fallback. Status:', googleData.status, 'Error:', googleData.error_message);
-      
-      const distance_km = calculateFallbackDistance(origin, destination);
-      const duration_hours = Math.round((distance_km / 80) * 10) / 10;
-      const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
-      const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
-      
-      return new Response(JSON.stringify({
-        distance_km,
-        duration_hours,
-        toll_cost,
-        fuel_cost,
-        route_points: [],
-        is_simulation: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    const element = googleData.rows[0].elements[0];
-    
-    // If the specific route element has an error, use Haversine fallback
-    if (element.status !== 'OK') {
-      console.warn('[CALCULATE-ROUTE] Element status error, using Haversine fallback. Element status:', element.status);
-      
-      const distance_km = calculateFallbackDistance(origin, destination);
-      const duration_hours = Math.round((distance_km / 80) * 10) / 10;
-      const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
-      const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
-      
-      return new Response(JSON.stringify({
-        distance_km,
-        duration_hours,
-        toll_cost,
-        fuel_cost,
-        route_points: [],
-        is_simulation: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Extrair distância e duração reais
-    const distance_km = Math.round((element.distance.value / 1000) * 100) / 100; // metros para km
-    const duration_hours = Math.round((element.duration.value / 3600) * 10) / 10; // segundos para horas
-    
-    // Calcular custos estimados
-    const toll_rate = 0.20; // R$ 0.20 por km (estimativa)
-    const toll_cost = Math.round(distance_km * toll_rate * 100) / 100;
-    
-    const fuel_consumption = 3.5; // km/l
-    const fuel_price = 6.50; // R$/l
-    const fuel_cost = Math.round((distance_km / fuel_consumption) * fuel_price * 100) / 100;
-    
-    console.log('[CALCULATE-ROUTE] Route calculated successfully:', {
-      distance_km,
-      duration_hours,
-      toll_cost,
-      fuel_cost
-    });
+    const duration_hours = Math.round((distance_km / 80) * 10) / 10;
+    const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
+    const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
 
     const response: RouteResponse = {
       distance_km,
@@ -250,8 +208,10 @@ serve(async (req) => {
       toll_cost,
       fuel_cost,
       route_points: [],
-      is_simulation: false
+      is_simulation: true
     };
+
+    console.log('[CALCULATE-ROUTE] Result:', response);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
