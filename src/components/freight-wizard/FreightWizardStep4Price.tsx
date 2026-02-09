@@ -131,24 +131,15 @@ export function FreightWizardStep4Price({
         <Label htmlFor="required_trucks">Quantidade de Veículos</Label>
         <Input
           id="required_trucks"
-          type="number"
-          min="1"
-          step="1"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={formData.required_trucks}
           onChange={(e) => {
-            const raw = e.target.value;
-            // Allow empty field so user can clear and type a new number
-            if (raw === '') {
-              onInputChange('required_trucks', '');
-              return;
-            }
-            const parsed = parseInt(raw, 10);
-            if (!isNaN(parsed) && parsed >= 1) {
-              onInputChange('required_trucks', String(parsed));
-            }
+            const raw = e.target.value.replace(/[^0-9]/g, '');
+            onInputChange('required_trucks', raw);
           }}
           onBlur={() => {
-            // On blur, if empty or invalid, reset to 1
             const val = parseInt(formData.required_trucks, 10);
             if (!val || val < 1) {
               onInputChange('required_trucks', '1');
