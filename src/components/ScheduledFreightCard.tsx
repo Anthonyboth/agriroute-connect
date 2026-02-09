@@ -7,6 +7,7 @@ import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
 import { ChatModal } from '@/components/ChatModal';
+import { ParticipantProfileModal } from '@/components/freight/ParticipantProfileModal';
 import type { ChatConversation } from '@/hooks/useUnifiedChats';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
@@ -28,6 +29,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
 }) => {
   const [showChatModal, setShowChatModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [profileModal, setProfileModal] = useState<{ userId: string; userType: 'driver' | 'producer'; userName: string } | null>(null);
   
   // Construir conversação para o ChatModal
   const conversation: ChatConversation = {
@@ -39,7 +41,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
     unreadCount: 0,
     otherParticipant: {
       name: userRole === 'PRODUTOR' 
-        ? (freight.assigned_drivers?.[0]?.driver_profile?.full_name || freight.profiles?.full_name || 'Motorista')
+        ? (freight.assigned_drivers?.[0]?.driver_profile?.full_name || 'Motorista')
         : (freight.producer?.full_name || 'Produtor')
     },
     participants: [],
@@ -52,7 +54,6 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
   // Determinar participantes a exibir
   const producer = freight.producer;
   const assignedDrivers: any[] = freight.assigned_drivers || [];
-  const primaryDriver = assignedDrivers[0]?.driver_profile || null;
   const primaryDriverId = assignedDrivers[0]?.driver_id || freight.driver_id || null;
   const requiredTrucks = freight.required_trucks ?? 1;
   const isMultiTruck = requiredTrucks > 1;
@@ -106,11 +107,14 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
             </span>
           </div>
 
-          {/* ✅ Informações dos Participantes */}
+          {/* ✅ Informações dos Participantes - CLICÁVEIS */}
           <div className="border-t pt-3 space-y-3">
             {/* Motorista vendo Produtor */}
             {(userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO') && producer && (
-              <div className="flex items-center gap-3">
+              <div 
+                className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-1.5 -m-1.5 transition-colors"
+                onClick={() => setProfileModal({ userId: freight.producer_id, userType: 'producer', userName: producer.full_name })}
+              >
                 {producer.profile_photo_url ? (
                   <img 
                     src={producer.profile_photo_url} 
@@ -147,7 +151,11 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
                   const driver = assignment.driver_profile;
                   if (!driver) return null;
                   return (
-                    <div key={assignment.driver_id || idx} className="flex items-center gap-3">
+                    <div 
+                      key={assignment.driver_id || idx} 
+                      className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-1.5 -m-1.5 transition-colors"
+                      onClick={() => setProfileModal({ userId: assignment.driver_id, userType: 'driver', userName: driver.full_name })}
+                    >
                       {driver.profile_photo_url ? (
                         <img 
                           src={driver.profile_photo_url} 
@@ -269,7 +277,23 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
           setShowDetailsModal(false);
           onWithdraw(freight.id);
         } : undefined}
+        onOpenProfile={(userId, userType, userName) => {
+          setShowDetailsModal(false);
+          setProfileModal({ userId, userType, userName });
+        }}
       />
+
+      {/* ✅ Modal de Perfil do Participante */}
+      {profileModal && (
+        <ParticipantProfileModal
+          isOpen={true}
+          onClose={() => setProfileModal(null)}
+          userId={profileModal.userId}
+          userType={profileModal.userType}
+          userName={profileModal.userName}
+          freightId={freight.id}
+        />
+      )}
     </>
   );
 };

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Weight, TrendingUp, Calendar, User, Phone, MessageSquare, XCircle, Star, ShieldCheck, Truck as TruckIcon } from 'lucide-react';
+import { MapPin, Weight, TrendingUp, Calendar, User, MessageSquare, XCircle, Star, Truck as TruckIcon } from 'lucide-react';
 import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
@@ -14,6 +14,7 @@ interface ScheduledFreightDetailsModalProps {
   userRole: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO';
   onOpenChat?: () => void;
   onWithdraw?: () => void;
+  onOpenProfile?: (userId: string, userType: 'driver' | 'producer', userName: string) => void;
 }
 
 export const ScheduledFreightDetailsModal = ({
@@ -22,7 +23,8 @@ export const ScheduledFreightDetailsModal = ({
   freight,
   userRole,
   onOpenChat,
-  onWithdraw
+  onWithdraw,
+  onOpenProfile
 }: ScheduledFreightDetailsModalProps) => {
   const badgeInfo = getPickupDateBadge(freight.pickup_date || freight.scheduled_date);
   const producer = freight.producer;
@@ -98,7 +100,7 @@ export const ScheduledFreightDetailsModal = ({
           </div>
         </div>
 
-        {/* SEÇÃO 3: PARTICIPANTES */}
+        {/* SEÇÃO 3: PARTICIPANTES - CLICÁVEIS */}
         <div className="space-y-4 border-b pb-4">
           {/* Motorista vendo Produtor */}
           {isDriverView && (
@@ -108,7 +110,10 @@ export const ScheduledFreightDetailsModal = ({
                 Produtor
               </h3>
               {producer ? (
-                <div className="flex items-center gap-4">
+                <div 
+                  className="flex items-center gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors"
+                  onClick={() => onOpenProfile?.(freight.producer_id, 'producer', producer.full_name)}
+                >
                   {producer.profile_photo_url ? (
                     <img
                       src={producer.profile_photo_url}
@@ -126,7 +131,7 @@ export const ScheduledFreightDetailsModal = ({
                     <div className="flex items-center gap-3 mt-1">
                       {producer.rating ? (
                         <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                           {Number(producer.rating).toFixed(1)} ({producer.total_ratings || 0})
                         </span>
                       ) : (
@@ -134,6 +139,7 @@ export const ScheduledFreightDetailsModal = ({
                       )}
                     </div>
                   </div>
+                  <span className="text-xs text-muted-foreground">Ver perfil →</span>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground italic">Dados do produtor não disponíveis</p>
@@ -151,12 +157,16 @@ export const ScheduledFreightDetailsModal = ({
                   : 'Motorista'}
               </h3>
               {assignedDrivers.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {assignedDrivers.map((assignment: any, idx: number) => {
                     const driver = assignment.driver_profile;
                     if (!driver) return null;
                     return (
-                      <div key={assignment.driver_id || idx} className="flex items-center gap-4">
+                      <div 
+                        key={assignment.driver_id || idx} 
+                        className="flex items-center gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors"
+                        onClick={() => onOpenProfile?.(assignment.driver_id, 'driver', driver.full_name)}
+                      >
                         {driver.profile_photo_url ? (
                           <img
                             src={driver.profile_photo_url}
@@ -174,7 +184,7 @@ export const ScheduledFreightDetailsModal = ({
                           <div className="flex items-center gap-3 mt-1">
                             {driver.rating ? (
                               <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                                 {Number(driver.rating).toFixed(1)} ({driver.total_ratings || 0})
                               </span>
                             ) : (
@@ -187,6 +197,7 @@ export const ScheduledFreightDetailsModal = ({
                             {formatBRL(assignment.agreed_price)}
                           </span>
                         )}
+                        <span className="text-xs text-muted-foreground">Ver →</span>
                       </div>
                     );
                   })}
