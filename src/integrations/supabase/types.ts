@@ -13092,6 +13092,7 @@ export type Database = {
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
+          accepted_trucks: number
           cargo_type: string
           created_at: string
           delivery_date: string
@@ -13101,11 +13102,13 @@ export type Database = {
           distance_km: number
           distance_to_origin_km: number
           id: string
+          minimum_antt_price: number
           origin_address: string
           origin_city: string
           origin_state: string
           pickup_date: string
           price: number
+          required_trucks: number
           service_type: string
           status: string
           urgency: string
