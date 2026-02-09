@@ -1677,7 +1677,7 @@ const ProducerDashboard = () => {
                           freight={{
                             id: freight.id,
                             cargo_type: freight.cargo_type,
-                            weight: freight.weight ? freight.weight / 1000 : 0,
+                            weight: freight.weight || 0,
                             distance_km: freight.distance_km,
                             origin_address: freight.origin_address,
                             destination_address: freight.destination_address,
