@@ -52,7 +52,8 @@ import {
   Banknote,
   Shield,
   Users,
-  Navigation
+  Navigation,
+  ClipboardList
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,6 +83,7 @@ import { canProviderHandleService } from '@/lib/service-types';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
+import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
@@ -1266,6 +1268,13 @@ export const ServiceProviderDashboard: React.FC = () => {
                 )}
               </TabsTrigger>
               <TabsTrigger 
+                value="my-requests" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+              >
+                <ClipboardList className="h-3 w-3 mr-1" />
+                Solicitações
+              </TabsTrigger>
+              <TabsTrigger 
                 value="fiscal" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
@@ -1640,6 +1649,10 @@ export const ServiceProviderDashboard: React.FC = () => {
               userProfileId={profile?.id || ''}
               userRole="PRESTADOR_SERVICOS"
             />
+          </TabsContent>
+
+          <TabsContent value="my-requests" className="space-y-4">
+            <MyRequestsTab />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
