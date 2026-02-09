@@ -23,7 +23,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, ClipboardList } from 'lucide-react';
 import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
@@ -36,6 +36,7 @@ import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { UnifiedTrackingControl } from '@/components/UnifiedTrackingControl';
 import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
+import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
@@ -2430,6 +2431,14 @@ const DriverDashboard = () => {
                 <span className="sm:hidden" translate="no">Serviços</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="my-requests" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <ClipboardList className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline" translate="no">Solicitações</span>
+                <span className="sm:hidden" translate="no">Solicitações</span>
+              </TabsTrigger>
+              <TabsTrigger
                 value="vehicles" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -2619,6 +2628,10 @@ const DriverDashboard = () => {
 
           <TabsContent value="services">
             <DriverServicesTab />
+          </TabsContent>
+
+          <TabsContent value="my-requests">
+            <MyRequestsTab />
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-6">

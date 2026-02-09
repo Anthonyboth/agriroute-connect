@@ -26,7 +26,8 @@ import {
   Star,
   Clock,
   BarChart,
-  Brain
+  Brain,
+  ClipboardList
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +70,7 @@ import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
+import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { calculateVisiblePrice, resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 
@@ -119,6 +121,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     badge: chatCount > 0 ? chatCount : undefined
   },
   { value: 'services', label: 'Serviços', shortLabel: 'Serviços', icon: Wrench, badge: undefined },
+  { value: 'my-requests', label: 'Solicitações', shortLabel: 'Solicitações', icon: ClipboardList, badge: undefined },
   { value: 'fiscal', label: 'Fiscal', shortLabel: 'Fiscal', icon: FileText, badge: undefined },
   { value: 'reports', label: 'Relatórios', shortLabel: 'Relatórios', icon: BarChart, badge: undefined }
 ];
@@ -916,6 +919,10 @@ const CompanyDashboard = () => {
             <UnifiedChatHub userProfileId={profile.id} userRole="TRANSPORTADORA" />
           </TabsContent>
           
+          <TabsContent value="my-requests" className="mt-6">
+            <MyRequestsTab />
+          </TabsContent>
+
           {/* Aba de Relatórios Analytics */}
           <TabsContent value="reports" className="mt-6">
             <Suspense fallback={<ChartLoader />}>
