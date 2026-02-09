@@ -88,34 +88,23 @@ interface FreightInProgressCardProps {
     pickup_date: string | null;
     price: number | null;
     required_trucks?: number | null;
-    /**
-     * Opcional: modo de exibição do preço.
-     * - 'PER_TRUCK': preço já é unitário do motorista (não deve mostrar total)
-     * - 'TOTAL': comportamento padrão existente
-     */
     price_display_mode?: 'TOTAL' | 'PER_TRUCK';
-    /** Mantém o required_trucks original apenas para rotulagem (ex: mostrar "/carreta") */
     original_required_trucks?: number | null;
     status: string;
-    // Pode variar (ex: "CARGA"/"FRETE_MOTO"/"GUINCHO"/"MUDANCA"/etc). Mantemos flexível.
     service_type?: string | null;
     driver_profiles?: {
       full_name: string;
       profile_photo_url?: string;
     } | null;
-    // ✅ Produtor - exibido no painel do MOTORISTA
     producer?: {
       id?: string;
       full_name: string;
       profile_photo_url?: string;
     } | null;
-    // ✅ producer_id direto do frete
     producer_id?: string | null;
-    // ✅ Flag de frete convidado
     is_guest_freight?: boolean;
     driver_id?: string;
     drivers_assigned?: string[];
-    // Multi-carreta (opcional): alguns lugares usam para UX/estado
     accepted_trucks?: number | null;
     deliveryDeadline?: {
       hoursRemaining: number;
@@ -123,7 +112,6 @@ interface FreightInProgressCardProps {
       isCritical: boolean;
       displayText: string;
     };
-    // Campos de tracking
     current_lat?: number;
     current_lng?: number;
     last_location_update?: string;
@@ -133,6 +121,8 @@ interface FreightInProgressCardProps {
   onRequestCancel?: () => void;
   showActions?: boolean;
   highlightFreightId?: string;
+  /** Ações customizadas de workflow para serviços (PET, Pacotes, etc.) - renderiza dentro do card */
+  serviceWorkflowActions?: React.ReactNode;
 }
 
 const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
@@ -141,6 +131,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   onRequestCancel,
   showActions = true,
   highlightFreightId,
+  serviceWorkflowActions,
 }) => {
   const { profile } = useAuth();
   // ✅ Regra de exibição de valores:
@@ -559,8 +550,12 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               </>
             )}
 
-            {/* Botões de ação */}
-            {showActions && (
+            {/* Botões de ação - padrão ou customizado para serviços */}
+            {serviceWorkflowActions ? (
+              <div className="mt-auto pt-3 space-y-2">
+                {serviceWorkflowActions}
+              </div>
+            ) : showActions && (
               <div className="mt-auto grid grid-cols-2 gap-3 pt-3">
                 <Button
                   size="sm"

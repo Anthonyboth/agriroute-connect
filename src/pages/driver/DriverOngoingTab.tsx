@@ -322,6 +322,9 @@ export const DriverOngoingTab: React.FC = () => {
                   const destCity = destination?.city || originCity;
                   const destState = destination?.state || originState;
 
+                  // Descrição do serviço para exibir no card
+                  const serviceDescription = r.problem_description || null;
+
                   return (
                     <div key={r.id} className="space-y-2">
                       <FreightInProgressCard
@@ -343,45 +346,52 @@ export const DriverOngoingTab: React.FC = () => {
                           status: mapServiceStatusToFreightStatus(r.status),
                           service_type: r.service_type,
                         }}
-                        showActions={false}
+                        onViewDetails={() => {
+                          // Abrir detalhes do serviço (reutiliza o modal genérico)
+                          handleStatusUpdate();
+                        }}
+                        serviceWorkflowActions={
+                          <div className="space-y-2">
+                            {serviceDescription && (
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                📝 {serviceDescription}
+                              </p>
+                            )}
+                            {r.status === "ACCEPTED" && (
+                              <Button
+                                className="w-full"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleTransitionService(r.id, "ON_THE_WAY", "A caminho do local!")}
+                              >
+                                <Play className="h-4 w-4 mr-2" />
+                                A Caminho da Coleta
+                              </Button>
+                            )}
+                            {r.status === "ON_THE_WAY" && (
+                              <Button
+                                className="w-full"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Em trânsito!")}
+                              >
+                                <Truck className="h-4 w-4 mr-2" />
+                                Em Trânsito
+                              </Button>
+                            )}
+                            {r.status === "IN_PROGRESS" && (
+                              <Button
+                                className="w-full"
+                                size="sm"
+                                onClick={() => handleTransitionService(r.id, "COMPLETED", "Entrega finalizada com sucesso!")}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Reportar Entrega
+                              </Button>
+                            )}
+                          </div>
+                        }
                       />
-                      {/* Botões de workflow do serviço */}
-                      <Card className="p-3">
-                        {r.problem_description && (
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            📝 {r.problem_description}
-                          </p>
-                        )}
-                        {r.status === "ACCEPTED" && (
-                          <Button
-                            className="w-full"
-                            variant="secondary"
-                            onClick={() => handleTransitionService(r.id, "ON_THE_WAY", "A caminho do local!")}
-                          >
-                            <Play className="h-4 w-4 mr-2" />
-                            A Caminho da Coleta
-                          </Button>
-                        )}
-                        {r.status === "ON_THE_WAY" && (
-                          <Button
-                            className="w-full"
-                            variant="secondary"
-                            onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Em trânsito!")}
-                          >
-                            <Truck className="h-4 w-4 mr-2" />
-                            Em Trânsito
-                          </Button>
-                        )}
-                        {r.status === "IN_PROGRESS" && (
-                          <Button
-                            className="w-full"
-                            onClick={() => handleTransitionService(r.id, "COMPLETED", "Entrega finalizada com sucesso!")}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Reportar Entrega
-                          </Button>
-                        )}
-                      </Card>
                     </div>
                   );
                 })}
