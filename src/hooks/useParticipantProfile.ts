@@ -102,15 +102,26 @@ export const useParticipantProfile = (
         return;
       }
 
-      // Buscar contagem de fretes completados
+      // Buscar contagem de fretes completados e rating real
       let completedFreights = 0;
+      let realRating = resolvedProfile.rating || 0;
+      let realTotalRatings = resolvedProfile.total_ratings || 0;
+
       if (userType === 'driver') {
-        const { count } = await supabase
-          .from('freights')
-          .select('*', { count: 'exact', head: true })
-          .eq('driver_id', userId)
-          .in('status', ['DELIVERED', 'COMPLETED']);
-        completedFreights = count || 0;
+        // Contar fretes diretos (driver_id) + atribuições via freight_assignments
+        const [directResult, assignmentResult] = await Promise.all([
+          supabase
+            .from('freights')
+            .select('*', { count: 'exact', head: true })
+            .eq('driver_id', userId)
+            .in('status', ['DELIVERED', 'COMPLETED']),
+          supabase
+            .from('freight_assignments')
+            .select('*', { count: 'exact', head: true })
+            .eq('driver_id', userId)
+            .in('status', ['DELIVERED', 'COMPLETED'])
+        ]);
+        completedFreights = (directResult.count || 0) + (assignmentResult.count || 0);
       } else {
         const { count } = await supabase
           .from('freights')
@@ -118,6 +129,17 @@ export const useParticipantProfile = (
           .eq('producer_id', userId)
           .in('status', ['DELIVERED', 'COMPLETED']);
         completedFreights = count || 0;
+      }
+
+      // Calcular rating real a partir de freight_ratings (fonte de verdade)
+      const { data: ratingsData } = await supabase
+        .from('freight_ratings')
+        .select('rating')
+        .eq('rated_user_id', userId);
+
+      if (ratingsData && ratingsData.length > 0) {
+        realTotalRatings = ratingsData.length;
+        realRating = ratingsData.reduce((sum, r) => sum + (r.rating || 0), 0) / ratingsData.length;
       }
 
       // Avatar URL - usar apenas profile_photo_url (selfie_url não está disponível na view segura)
@@ -130,8 +152,8 @@ export const useParticipantProfile = (
         role: userType === 'driver' ? 'MOTORISTA' : 'PRODUTOR', // Inferir role do tipo passado
         created_at: resolvedProfile.created_at,
         completed_freights: completedFreights,
-        average_rating: resolvedProfile.rating || 0,
-        total_ratings: resolvedProfile.total_ratings || 0,
+        average_rating: realRating,
+        total_ratings: realTotalRatings,
         is_verified: resolvedProfile.status === 'APPROVED'
       });
 
