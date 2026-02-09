@@ -93,16 +93,17 @@ export const DriverDashboardModals: React.FC<DriverDashboardModalsProps> = ({
 }) => {
   return (
     <>
-      {/* Modal de Check-in - sempre montado, visibilidade via isOpen */}
-      <FreightCheckinModal
-        key={selectedFreightForCheckin || 'checkin-modal'}
-        isOpen={showCheckinModal && !!selectedFreightForCheckin}
-        onClose={onCheckinClose}
-        freightId={selectedFreightForCheckin || ''}
-        currentUserProfile={profile}
-        initialType={initialCheckinType || undefined}
-        onCheckinCreated={onCheckinCreated}
-      />
+      {/* Modal de Check-in */}
+      {selectedFreightForCheckin && (
+        <FreightCheckinModal
+          isOpen={showCheckinModal}
+          onClose={onCheckinClose}
+          freightId={selectedFreightForCheckin}
+          currentUserProfile={profile}
+          initialType={initialCheckinType || undefined}
+          onCheckinCreated={onCheckinCreated}
+        />
+      )}
 
       {/* Modal de Desistência */}
       <FreightWithdrawalModal
@@ -150,22 +151,24 @@ export const DriverDashboardModals: React.FC<DriverDashboardModalsProps> = ({
         onConsent={onTrackingConsent}
       />
 
-      {/* Modal de Avaliação Automática - sempre montado */}
-      <AutoRatingModal
-        isOpen={!!activeFreightForRating}
-        onClose={onRatingClose}
-        freightId={activeFreightForRating?.id || ''}
-        userToRate={
-          activeFreightForRating?.producer
-            ? {
-                id: activeFreightForRating.producer.id,
-                full_name: activeFreightForRating.producer.full_name,
-                role: 'PRODUTOR' as const
-              }
-            : { id: '', full_name: '', role: 'PRODUTOR' as const }
-        }
-        currentUserProfile={profile}
-      />
+      {/* Modal de Avaliação Automática */}
+      {activeFreightForRating && (
+        <AutoRatingModal
+          isOpen={true}
+          onClose={onRatingClose}
+          freightId={activeFreightForRating.id}
+          userToRate={
+            activeFreightForRating.producer
+              ? {
+                  id: activeFreightForRating.producer.id,
+                  full_name: activeFreightForRating.producer.full_name,
+                  role: 'PRODUTOR' as const
+                }
+              : null
+          }
+          currentUserProfile={profile}
+        />
+      )}
 
       {/* Modal de Detalhes da Proposta */}
       <DriverProposalDetailsModal

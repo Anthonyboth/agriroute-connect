@@ -299,16 +299,18 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       </BottomSheet>
 
       {/* Guest Service Modal para GUINCHO, FRETE_URBANO, MUDANCA, ENTREGA_PACOTES, TRANSPORTE_PET */}
-      <GuestServiceModal
-        isOpen={guestServiceModal.isOpen}
-        onClose={() => {
-          setGuestServiceModal(prev => ({ ...prev, isOpen: false }));
-          onClose();
-        }}
-        onBack={() => setGuestServiceModal(prev => ({ ...prev, isOpen: false }))}
-        serviceType={guestServiceModal.serviceType || 'GUINCHO'}
-        initialSubService={guestServiceModal.initialSubService}
-      />
+      {guestServiceModal.isOpen && guestServiceModal.serviceType && (
+        <GuestServiceModal
+          isOpen={true}
+          onClose={() => {
+            setGuestServiceModal({ isOpen: false });
+            onClose();
+          }}
+          onBack={() => setGuestServiceModal({ isOpen: false })}
+          serviceType={guestServiceModal.serviceType}
+          initialSubService={guestServiceModal.initialSubService}
+        />
+      )}
 
       {/* CreateFreightWizardModal para FRETE_RURAL */}
       <CreateFreightWizardModal
