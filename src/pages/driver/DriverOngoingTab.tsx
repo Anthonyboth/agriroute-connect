@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { 
   Truck, Wrench, Bike, RefreshCw, 
-  Play, CheckCircle, PawPrint, Package
+  Play, CheckCircle, PawPrint, Package,
+  Banknote, ShieldCheck, DollarSign
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDriverTransportCompanyLink } from "@/hooks/useDriverTransportCompanyLink";
@@ -80,6 +81,7 @@ export const DriverOngoingTab: React.FC = () => {
   const queryClient = useQueryClient();
   const driverProfileId = profile?.id;
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
+  const [confirmingReceiptId, setConfirmingReceiptId] = useState<string | null>(null);
 
   // ✅ GUARD: Valida integridade do componente - evita regressões
   useDashboardIntegrityGuard('driver_ongoing', 'DriverOngoingTab');
@@ -90,21 +92,72 @@ export const DriverOngoingTab: React.FC = () => {
   const assignments = data?.assignments ?? [];
   const serviceRequests = data?.serviceRequests ?? [];
 
+  // ✅ Buscar serviços PET/Pacote concluídos com pagamento pendente de confirmação pelo motorista
+  const { data: pendingServicePayments } = useQuery({
+    queryKey: ['driver-pending-service-payments', driverProfileId],
+    queryFn: async () => {
+      if (!driverProfileId) return [];
+      
+      const { data: completedServices } = await supabase
+        .from('service_requests')
+        .select('id, service_type, problem_description, location_city, location_state, estimated_price, final_price, updated_at')
+        .eq('provider_id', driverProfileId)
+        .eq('status', 'COMPLETED')
+        .in('service_type', ['TRANSPORTE_PET', 'ENTREGA_PACOTES']);
+
+      if (!completedServices?.length) return [];
+
+      const serviceIds = completedServices.map(s => s.id);
+      const { data: payments } = await supabase
+        .from('service_payments')
+        .select('service_request_id, status, amount')
+        .in('service_request_id', serviceIds)
+        .eq('status', 'paid_by_client');
+
+      if (!payments?.length) return [];
+
+      const paymentMap = new Map(payments.map(p => [p.service_request_id, p]));
+      return completedServices
+        .filter(sr => paymentMap.has(sr.id))
+        .map(sr => ({ ...sr, payment: paymentMap.get(sr.id) }));
+    },
+    enabled: !!driverProfileId,
+    staleTime: 30 * 1000,
+  });
+
   // ✅ USAR HOOK DEDICADO para verificar vínculos com transportadora
   const { hasActiveLink, activeLinks } = useDriverTransportCompanyLink();
   
   // ✅ LÓGICA CORRIGIDA: Usar o hook dedicado ao invés de verificações locais
   const hasTransportCompanyLink = useMemo(() => {
-    // Verificar se algum assignment veio de uma transportadora específica
     const anyAssignmentHasCompany = assignments.some((a: any) => {
       if (!a?.company_id) return false;
-      // Verificar se o motorista realmente está vinculado a esta transportadora
       return activeLinks.some(link => link.companyId === a.company_id);
     });
     return anyAssignmentHasCompany || hasActiveLink;
   }, [assignments, activeLinks, hasActiveLink]);
 
-  const totalCount = freights.length + assignments.length + serviceRequests.length;
+  const pendingReceipts = pendingServicePayments || [];
+  const totalCount = freights.length + assignments.length + serviceRequests.length + pendingReceipts.length;
+
+  const handleConfirmServiceReceipt = useCallback(async (serviceRequestId: string) => {
+    setConfirmingReceiptId(serviceRequestId);
+    try {
+      const { data, error } = await supabase.rpc('confirm_service_payment_receipt', {
+        p_service_request_id: serviceRequestId,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (!result?.success) throw new Error(result?.error || 'Erro ao confirmar');
+      toast.success(result.message || 'Recebimento confirmado!');
+      queryClient.invalidateQueries({ queryKey: ['driver-pending-service-payments'] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao confirmar recebimento');
+    } finally {
+      setConfirmingReceiptId(null);
+    }
+  }, [queryClient, refetch]);
 
   const handleStatusUpdate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["driver-ongoing-cards"] });
@@ -393,6 +446,66 @@ export const DriverOngoingTab: React.FC = () => {
                         }
                       />
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ✅ Confirmação de Recebimento (PET/Pacotes) */}
+          {pendingReceipts.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-green-600" />
+                Confirmar Recebimento ({pendingReceipts.length})
+              </h4>
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-800 dark:text-green-300">
+                <ShieldCheck className="h-4 w-4 inline mr-1" />
+                O cliente confirmou a entrega e o pagamento. Confirme que recebeu o valor.
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {pendingReceipts.map((sr: any) => {
+                  const isPet = sr.service_type === 'TRANSPORTE_PET';
+                  const SrIcon = isPet ? PawPrint : Package;
+                  return (
+                    <Card key={sr.id} className="border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-900/10">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <SrIcon className={`h-5 w-5 ${isPet ? 'text-purple-600' : 'text-amber-600'}`} />
+                            <div>
+                              <h5 className="font-semibold text-sm">
+                                {isPet ? 'Transporte de Pet 🐾' : 'Entrega de Pacotes 📦'}
+                              </h5>
+                              <p className="text-xs text-muted-foreground">
+                                Cliente confirmou pagamento
+                              </p>
+                            </div>
+                          </div>
+                          {sr.payment?.amount > 0 && (
+                            <span className="text-lg font-bold text-green-600">
+                              R$ {Number(sr.payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+
+                        {sr.problem_description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {sr.problem_description}
+                          </p>
+                        )}
+
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          size="sm"
+                          disabled={confirmingReceiptId === sr.id}
+                          onClick={() => handleConfirmServiceReceipt(sr.id)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          {confirmingReceiptId === sr.id ? 'Confirmando...' : 'Confirmar Recebimento'}
+                        </Button>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>

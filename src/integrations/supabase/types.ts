@@ -12654,6 +12654,14 @@ export type Database = {
         Args: { p_emission_id: string }
         Returns: boolean
       }
+      confirm_service_delivery: {
+        Args: { p_notes?: string; p_service_request_id: string }
+        Returns: Json
+      }
+      confirm_service_payment_receipt: {
+        Args: { p_service_request_id: string }
+        Returns: Json
+      }
       create_additional_profile: {
         Args: {
           p_document?: string
