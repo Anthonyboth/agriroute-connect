@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Weight, TrendingUp, Calendar, User, Phone, MessageSquare, XCircle } from 'lucide-react';
-import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
+import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
@@ -122,8 +122,25 @@ export const ScheduledFreightDetailsModal = ({
 
         {/* SEÇÃO 4: VALOR */}
         <div className="bg-primary/5 p-4 rounded-lg">
-          <p className="text-sm text-muted-foreground">Valor do Frete</p>
-          <p className="text-3xl font-bold text-primary">{formatBRL(freight.price)}</p>
+          {(() => {
+            const requiredTrucks = freight.required_trucks || 1;
+            const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+            const hasMultipleTrucks = requiredTrucks > 1;
+            const isProducer = userRole === 'PRODUTOR';
+            return (
+              <>
+                <p className="text-sm text-muted-foreground">Valor do Frete{hasMultipleTrucks && !isProducer ? ' (por carreta)' : ''}</p>
+                <p className="text-3xl font-bold text-primary">
+                  {formatBRL(isProducer ? freight.price : pricePerTruck)}
+                </p>
+                {hasMultipleTrucks && isProducer && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {requiredTrucks} carretas × {formatBRL(pricePerTruck)} por carreta
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* DESCRIÇÃO (se houver) */}
