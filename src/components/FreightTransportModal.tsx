@@ -88,7 +88,7 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
         "active:scale-[0.99]",
         "cursor-pointer pointer-events-auto",
         // Highlight especial para Pet
-        ctaHighlight && "ring-2 ring-pink-300 dark:ring-pink-600 border-pink-200 dark:border-pink-700"
+        ctaHighlight && "ring-2 ring-gray-400 dark:ring-gray-500 border-gray-400 dark:border-gray-500"
       )}
     >
       {/* Ícone */}

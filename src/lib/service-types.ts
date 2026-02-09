@@ -402,7 +402,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     label: 'Transporte de Pet',
     description: 'Viagem segura e confortável para seu pet 🐾',
     icon: PawPrint,
-    color: 'bg-pink-100 text-pink-800 border-pink-200',
+    color: 'bg-gray-100 text-gray-800 border-gray-300',
     category: 'freight',
     clientVisible: true,
     providerVisible: false

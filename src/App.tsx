@@ -1,4 +1,5 @@
 // TooltipProvider deferred to avoid pulling ui-vendor chunk on landing page
+import React, { lazy, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -15,7 +16,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
-import React, { lazy, Suspense } from 'react';
 
 // Import Landing directly (not lazy) - it's the LCP element
 import Landing from "./pages/Landing";

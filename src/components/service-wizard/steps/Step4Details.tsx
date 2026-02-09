@@ -482,9 +482,9 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
   const renderPetDetails = () => (
     <div className="space-y-4">
       {/* CTA Box */}
-      <Card className="border-pink-200 bg-pink-50 dark:bg-pink-950/20 dark:border-pink-800">
+      <Card className="border-gray-300 bg-gray-50 dark:bg-gray-950/20 dark:border-gray-700">
         <CardContent className="p-4">
-          <p className="text-sm font-semibold text-pink-700 dark:text-pink-300 flex items-center gap-2">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
             🐾 Seu pet vai com segurança e conforto
           </p>
         </CardContent>
