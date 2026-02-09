@@ -1,10 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Weight, TrendingUp, Calendar, User, Phone, MessageSquare, XCircle } from 'lucide-react';
+import { MapPin, Weight, TrendingUp, Calendar, User, Phone, MessageSquare, XCircle, Star, ShieldCheck, Truck as TruckIcon } from 'lucide-react';
 import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
+import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
 
 interface ScheduledFreightDetailsModalProps {
   isOpen: boolean;
@@ -24,6 +25,12 @@ export const ScheduledFreightDetailsModal = ({
   onWithdraw
 }: ScheduledFreightDetailsModalProps) => {
   const badgeInfo = getPickupDateBadge(freight.pickup_date || freight.scheduled_date);
+  const producer = freight.producer;
+  const assignedDrivers: any[] = freight.assigned_drivers || [];
+  const requiredTrucks = freight.required_trucks ?? 1;
+  const isMultiTruck = requiredTrucks > 1;
+  const isDriverView = userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO';
+  const isProducerView = userRole === 'PRODUTOR';
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -31,14 +38,11 @@ export const ScheduledFreightDetailsModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-4">
             <span>{getCargoTypeLabel(freight.cargo_type)}</span>
-            {badgeInfo && (() => {
-              const iconMap = { AlertTriangle: null, Clock: null, Calendar: null };
-              return (
-                <Badge variant={badgeInfo.variant} className="whitespace-nowrap">
-                  {badgeInfo.text}
-                </Badge>
-              );
-            })()}
+            {badgeInfo && (
+              <Badge variant={badgeInfo.variant} className="whitespace-nowrap">
+                {badgeInfo.text}
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -94,46 +98,127 @@ export const ScheduledFreightDetailsModal = ({
           </div>
         </div>
 
-        {/* SEÇÃO 3: INFORMAÇÕES DO PRODUTOR/MOTORISTA */}
+        {/* SEÇÃO 3: PARTICIPANTES */}
         <div className="space-y-4 border-b pb-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <User className="h-5 w-5" />
-            {userRole === 'PRODUTOR' ? 'Motorista' : 'Produtor'}
-          </h3>
-          <div className="space-y-2">
-            <p className="font-medium">
-              {userRole === 'PRODUTOR' 
-                ? (freight.profiles?.full_name || 'Motorista')
-                : (freight.producer?.full_name || 'Produtor')}
-            </p>
-            {(freight.profiles?.phone || freight.producer?.phone) && (
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4" />
-                <a 
-                  href={`tel:${userRole === 'PRODUTOR' ? freight.profiles?.phone : freight.producer?.phone}`} 
-                  className="text-primary hover:underline"
-                >
-                  {userRole === 'PRODUTOR' ? freight.profiles?.phone : freight.producer?.phone}
-                </a>
-              </div>
-            )}
-          </div>
+          {/* Motorista vendo Produtor */}
+          {isDriverView && (
+            <>
+              <h3 className="font-semibold flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Produtor
+              </h3>
+              {producer ? (
+                <div className="flex items-center gap-4">
+                  {producer.profile_photo_url ? (
+                    <img
+                      src={producer.profile_photo_url}
+                      alt="Foto do produtor"
+                      className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-base">{producer.full_name}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      {producer.rating ? (
+                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                          {Number(producer.rating).toFixed(1)} ({producer.total_ratings || 0})
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Sem avaliações</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Dados do produtor não disponíveis</p>
+              )}
+            </>
+          )}
+
+          {/* Produtor vendo Motorista(s) */}
+          {isProducerView && (
+            <>
+              <h3 className="font-semibold flex items-center gap-2">
+                <TruckIcon className="h-5 w-5" />
+                {isMultiTruck 
+                  ? `Motoristas (${assignedDrivers.length}/${requiredTrucks} carretas)` 
+                  : 'Motorista'}
+              </h3>
+              {assignedDrivers.length > 0 ? (
+                <div className="space-y-4">
+                  {assignedDrivers.map((assignment: any, idx: number) => {
+                    const driver = assignment.driver_profile;
+                    if (!driver) return null;
+                    return (
+                      <div key={assignment.driver_id || idx} className="flex items-center gap-4">
+                        {driver.profile_photo_url ? (
+                          <img
+                            src={driver.profile_photo_url}
+                            alt="Foto do motorista"
+                            className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                            <User className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-base">{driver.full_name}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            {driver.rating ? (
+                              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                {Number(driver.rating).toFixed(1)} ({driver.total_ratings || 0})
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Sem avaliações</span>
+                            )}
+                          </div>
+                        </div>
+                        {assignment.agreed_price && (
+                          <span className="text-sm text-primary font-bold whitespace-nowrap">
+                            {formatBRL(assignment.agreed_price)}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Preview do veículo do primeiro motorista */}
+                  {assignedDrivers[0]?.driver_id && (
+                    <DriverVehiclePreview driverId={assignedDrivers[0].driver_id} />
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 py-2">
+                  <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center border border-dashed">
+                    <TruckIcon className="h-6 w-6 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-sm text-muted-foreground italic">Aguardando motorista</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* SEÇÃO 4: VALOR */}
         <div className="bg-primary/5 p-4 rounded-lg">
           {(() => {
-            const requiredTrucks = freight.required_trucks || 1;
             const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
-            const hasMultipleTrucks = requiredTrucks > 1;
-            const isProducer = userRole === 'PRODUTOR';
             return (
               <>
-                <p className="text-sm text-muted-foreground">Valor do Frete{hasMultipleTrucks && !isProducer ? ' (por carreta)' : ''}</p>
+                <p className="text-sm text-muted-foreground">Valor do Frete{isMultiTruck && !isProducerView ? ' (por carreta)' : ''}</p>
                 <p className="text-3xl font-bold text-primary">
-                  {formatBRL(isProducer ? freight.price : pricePerTruck)}
+                  {formatBRL(isProducerView ? freight.price : pricePerTruck)}
                 </p>
-                {hasMultipleTrucks && isProducer && (
+                {isMultiTruck && isProducerView && (
                   <p className="text-sm text-muted-foreground mt-1">
                     {requiredTrucks} carretas × {formatBRL(pricePerTruck)} por carreta
                   </p>
