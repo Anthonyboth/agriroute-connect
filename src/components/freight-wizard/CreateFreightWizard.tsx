@@ -393,11 +393,11 @@ export function CreateFreightWizard({
       const safePrice = isNaN(calculation.totalPrice) ? 0 : calculation.totalPrice;
       const safePricePerKm = formData.pricing_type === 'PER_KM' ? (parseFloat(formData.price_per_km) || 0) : null;
       
-      if (isNaN(totalWeightKg) || totalWeightKg < 100 || totalWeightKg > 90000) {
+      if (isNaN(totalWeightKg) || totalWeightKg < 100 || totalWeightKg > 10000000) {
         showFormError({
           field: "Peso da Carga",
-          problem: `Peso inválido: ${isNaN(totalWeightKg) ? 'não numérico' : `${totalWeightTonnes} ton (${totalWeightKg}kg)`}. Permitido: 0.1 a 90 toneladas.`,
-          solution: "Volte à etapa 3 e ajuste o peso total da carga.",
+          problem: `Peso inválido: ${isNaN(totalWeightKg) ? 'não numérico' : `${totalWeightTonnes} ton (${totalWeightKg}kg)`}. Permitido: 0.1 a 10.000 toneladas.`,
+          solution: "Volte à etapa 3 e ajuste o peso total aproximado da carga.",
         });
         setCurrentStep(3);
         setLoading(false);
