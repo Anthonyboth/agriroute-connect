@@ -122,7 +122,7 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
           <span className={cn(
             "inline-flex items-center gap-1 mt-2 text-xs font-semibold px-3 py-1 rounded-full",
             ctaHighlight
-              ? "bg-pink-500 text-white dark:bg-pink-600"
+              ? "bg-gray-900 text-white dark:bg-gray-700"
               : "bg-primary/10 text-primary"
           )}>
             🐾 {ctaText}
@@ -180,7 +180,7 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: PawPrint,
       title: 'Transporte de Pet',
       description: 'Viagem segura e confortável para seu pet',
-      colorClass: 'bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400 border border-pink-200/60 dark:border-pink-700/50',
+      colorClass: 'bg-gray-100 dark:bg-gray-800/60 text-gray-900 dark:text-gray-200 border border-gray-300/60 dark:border-gray-600/50',
       badge: 'Pet',
       ctaText: 'Transportar meu pet',
       ctaHighlight: true,
