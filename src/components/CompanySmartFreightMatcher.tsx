@@ -396,7 +396,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                   freight={{
                     id: freight.freight_id,
                     cargo_type: freight.cargo_type,
-                    weight: Number(freight.weight ?? 0) / 1000 || 0,
+                    weight: Number(freight.weight ?? 0) || 0,
                     origin_address: freight.origin_address,
                     destination_address: freight.destination_address,
                     origin_city: freight.origin_city,
