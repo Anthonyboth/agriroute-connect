@@ -28,6 +28,7 @@ import {
   Clock,
   DollarSign,
   Bike,
+  PawPrint,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -543,7 +544,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       case "TRANSPORTE_PET":
         return (
           <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <Package className="h-3 w-3 flex-shrink-0" />
+            <PawPrint className="h-3 w-3 flex-shrink-0" />
             <span className="truncate">Pet 🐾</span>
           </Badge>
         );

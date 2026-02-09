@@ -412,6 +412,44 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
             });
             return false;
           }
+          // ✅ Validar campos obrigatórios para Entrega de Pacotes
+          if (serviceType === "ENTREGA_PACOTES") {
+            if (!formData.packageDetails?.packageType) {
+              showFormError({
+                field: "Tipo de Pacote",
+                problem: "Tipo de pacote não selecionado.",
+                solution: "Selecione o tipo de item que será entregue.",
+              });
+              return false;
+            }
+          }
+          // ✅ Validar campos obrigatórios para Transporte de Pet
+          if (serviceType === "TRANSPORTE_PET") {
+            if (!formData.petDetails?.petType) {
+              showFormError({
+                field: "Tipo de Pet",
+                problem: "Tipo de pet não informado.",
+                solution: "Selecione se é cachorro, gato ou outro.",
+              });
+              return false;
+            }
+            if (!formData.petDetails?.petSize) {
+              showFormError({
+                field: "Porte do Pet",
+                problem: "Porte do pet não selecionado.",
+                solution: "Selecione o porte: Pequeno, Médio ou Grande.",
+              });
+              return false;
+            }
+            if (!formData.petDetails?.ownerDeclaration) {
+              showFormError({
+                field: "Declaração de Responsabilidade",
+                problem: "Declaração obrigatória não aceita.",
+                solution: "Marque a declaração de responsabilidade para continuar.",
+              });
+              return false;
+            }
+          }
           return true;
         }
 
@@ -579,6 +617,8 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         "MUDANCA_COMERCIAL",
         "FRETE_URBANO",
         "FRETE_MOTO",
+        "ENTREGA_PACOTES",
+        "TRANSPORTE_PET",
       ].includes(serviceType)
         ? "Motoristas"
         : "Prestadores";
