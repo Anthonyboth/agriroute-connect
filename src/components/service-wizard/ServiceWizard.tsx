@@ -589,6 +589,12 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
           state: formData.origin.state,
           city_id: formData.origin.city_id || null,
           estimated_price: suggestedPrice && suggestedPrice > 0 ? suggestedPrice : null,
+          // Destination fields (top-level for DB columns)
+          destination_address: destinationAddress || null,
+          destination_city: formData.destination?.city || null,
+          destination_state: formData.destination?.state || null,
+          destination_lat: formData.destination?.lat || null,
+          destination_lng: formData.destination?.lng || null,
           additional_info: {
             ...additionalInfo,
             catalog: catalogServiceId

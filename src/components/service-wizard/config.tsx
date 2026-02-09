@@ -16,7 +16,7 @@ export const SERVICE_WIZARD_CONFIGS: Record<ServiceType, ServiceWizardConfig> = 
     title: 'Solicitar Guincho',
     description: 'Reboque e socorro 24h para qualquer tipo de veículo',
     icon: '🚛',
-    requiresDestination: false, // Guincho só precisa de origem
+    requiresDestination: true, // Guincho precisa de destino (para onde levar o veículo)
     category: 'urban',
     steps: [
       { id: 1, title: 'Situação', description: 'Tipo de problema', icon: <Truck className="h-4 w-4" /> },

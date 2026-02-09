@@ -503,14 +503,53 @@ export const MyRequestsTab: React.FC = () => {
                             </p>
                           )}
 
-                          {/* Details row */}
+                          {/* Origin & Destination */}
+                          <div className="space-y-2">
+                            {/* Origem */}
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase">Origem</span>
+                                {(request as any).city_name && (
+                                  <p className="text-sm font-bold text-foreground">
+                                    {String((request as any).city_name).toUpperCase()} — {(request as any).state || ''}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground line-clamp-1">
+                                  {request.location_address || 'Endereço não informado'}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Destino */}
+                            {(() => {
+                              const ai = typeof request.additional_info === 'string'
+                                ? (() => { try { return JSON.parse(request.additional_info); } catch { return null; } })()
+                                : request.additional_info;
+                              const destCity = (request as any).destination_city || ai?.destination?.city;
+                              const destState = (request as any).destination_state || ai?.destination?.state;
+                              const destAddr = (request as any).destination_address || ai?.destination?.full_address;
+                              if (!destCity && !destAddr) return null;
+                              return (
+                                <div className="flex items-start gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-semibold text-muted-foreground uppercase">Destino</span>
+                                    {destCity && (
+                                      <p className="text-sm font-bold text-foreground">
+                                        {String(destCity).toUpperCase()} — {destState || ''}
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground line-clamp-1">
+                                      {destAddr || 'Endereço não informado'}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Meta info */}
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                            {request.location_city && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {request.location_city}/{request.location_state}
-                              </span>
-                            )}
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {new Date(request.created_at).toLocaleDateString('pt-BR')}
