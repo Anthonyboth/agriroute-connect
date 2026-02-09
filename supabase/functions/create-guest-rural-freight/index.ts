@@ -99,6 +99,26 @@ function isValidDocument(doc: string): boolean {
   return false;
 }
 
+// ─── HTML/XSS Sanitization ───
+function stripHtml(input: string): string {
+  // Remove HTML tags, script content, and event handlers
+  return input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/data\s*:/gi, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>') // decode then re-strip
+    .replace(/<[^>]*>/g, '')
+    .trim();
+}
+
+function sanitizeTextField(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const cleaned = stripHtml(value);
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 // ─── CAPTCHA ───
 async function verifyCaptcha(token: string): Promise<boolean> {
   const secret = Deno.env.get('HCAPTCHA_SECRET_KEY');
@@ -392,34 +412,49 @@ serve(async (req) => {
       );
     }
 
+    // ─── Sanitize text fields before insertion ───
+    const safeName = stripHtml(data.guest_name);
+    const safeCargoType = stripHtml(data.cargo_type);
+    const safeDescription = sanitizeTextField(data.description);
+    const safeOriginAddress = sanitizeTextField(data.origin_address);
+    const safeDestAddress = sanitizeTextField(data.destination_address);
+    const safeOriginNeighborhood = sanitizeTextField(data.origin_neighborhood);
+    const safeOriginStreet = sanitizeTextField(data.origin_street);
+    const safeOriginNumber = sanitizeTextField(data.origin_number);
+    const safeOriginComplement = sanitizeTextField(data.origin_complement);
+    const safeDestNeighborhood = sanitizeTextField(data.destination_neighborhood);
+    const safeDestStreet = sanitizeTextField(data.destination_street);
+    const safeDestNumber = sanitizeTextField(data.destination_number);
+    const safeDestComplement = sanitizeTextField(data.destination_complement);
+
     // ─── Create freight (service_role bypasses RLS) ───
     const freightInsert: Record<string, unknown> = {
       producer_id: null,
       is_guest_freight: true,
       prospect_user_id: prospectId,
-      cargo_type: data.cargo_type,
+      cargo_type: safeCargoType,
       service_type: data.service_type,
       weight: data.weight,
-      origin_address: data.origin_address || `${data.origin_city} — ${data.origin_state}`,
-      origin_city: data.origin_city,
+      origin_address: safeOriginAddress || `${data.origin_city} — ${data.origin_state}`,
+      origin_city: stripHtml(data.origin_city),
       origin_state: data.origin_state,
       origin_city_id: data.origin_city_id || null,
       origin_lat: data.origin_lat || null,
       origin_lng: data.origin_lng || null,
-      origin_neighborhood: data.origin_neighborhood || null,
-      origin_street: data.origin_street || null,
-      origin_number: data.origin_number || null,
-      origin_complement: data.origin_complement || null,
-      destination_address: data.destination_address || `${data.destination_city} — ${data.destination_state}`,
-      destination_city: data.destination_city,
+      origin_neighborhood: safeOriginNeighborhood,
+      origin_street: safeOriginStreet,
+      origin_number: safeOriginNumber,
+      origin_complement: safeOriginComplement,
+      destination_address: safeDestAddress || `${data.destination_city} — ${data.destination_state}`,
+      destination_city: stripHtml(data.destination_city),
       destination_state: data.destination_state,
       destination_city_id: data.destination_city_id || null,
       destination_lat: data.destination_lat || null,
       destination_lng: data.destination_lng || null,
-      destination_neighborhood: data.destination_neighborhood || null,
-      destination_street: data.destination_street || null,
-      destination_number: data.destination_number || null,
-      destination_complement: data.destination_complement || null,
+      destination_neighborhood: safeDestNeighborhood,
+      destination_street: safeDestStreet,
+      destination_number: safeDestNumber,
+      destination_complement: safeDestComplement,
       distance_km: data.distance_km || 0,
       minimum_antt_price: data.minimum_antt_price || null,
       price: data.price,
@@ -429,14 +464,14 @@ serve(async (req) => {
       pickup_date: data.pickup_date,
       delivery_date: data.delivery_date,
       urgency: data.urgency,
-      description: data.description || null,
-      vehicle_type_required: data.vehicle_type_required || null,
+      description: safeDescription,
+      vehicle_type_required: sanitizeTextField(data.vehicle_type_required),
       vehicle_axles_required: data.vehicle_axles_required || null,
       high_performance: data.high_performance,
       status: 'OPEN',
       visibility_type: data.visibility_type,
       min_driver_rating: data.min_driver_rating || null,
-      guest_contact_name: data.guest_name,
+      guest_contact_name: safeName,
       guest_contact_phone: data.guest_phone,
       guest_contact_email: data.guest_email || null,
       guest_contact_document: data.guest_document,
