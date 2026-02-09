@@ -280,6 +280,12 @@ export const Step5Review: React.FC<Step5Props> = ({ formData, serviceType }) => 
                   <span className="font-medium">{formData.petDetails.pickupDate}</span>
                 </div>
               )}
+              {formData.petDetails.suggestedPrice && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valor Sugerido:</span>
+                  <span className="font-medium">R$ {parseFloat(formData.petDetails.suggestedPrice).toLocaleString('pt-BR')}</span>
+                </div>
+              )}
               {formData.petDetails.ownerDeclaration && (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="h-4 w-4" />

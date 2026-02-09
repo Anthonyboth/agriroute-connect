@@ -62,6 +62,7 @@ const GuestServiceRequestSchema = z.object({
   city_id: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
   preferred_datetime: z.string().optional().nullable(),
+  estimated_price: z.number().positive().optional().nullable(),
   additional_info: z.any().optional().nullable()
 });
 
@@ -144,6 +145,7 @@ serve(async (req) => {
         city_id: data.city_id,
         state: data.state,
         preferred_datetime: data.preferred_datetime,
+        estimated_price: data.estimated_price || null,
         additional_info: data.additional_info ? JSON.stringify(data.additional_info) : null
       }])
       .select()
