@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/bottom-sheet';
 import { Truck, Package, Home, Wheat, ArrowLeft, Box, PawPrint } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser';
 import { cn } from '@/lib/utils';
 
 // ============================================
@@ -147,6 +148,7 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
   }>({ isOpen: false });
 
   const [guestFreightModal, setGuestFreightModal] = useState(false);
+  const { isLoggedInWithProfile } = useAuthenticatedUser();
 
   const isProducer = profile?.role === 'PRODUTOR' || profile?.active_mode === 'PRODUTOR';
 
@@ -320,9 +322,9 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
           setGuestFreightModal(false);
           onClose();
         }}
-        userProfile={isProducer ? profile : null}
+        userProfile={isLoggedInWithProfile ? profile : (isProducer ? profile : null)}
         trigger={null}
-        guestMode={!isProducer}
+        guestMode={!isLoggedInWithProfile}
       />
     </>
   );
