@@ -1822,99 +1822,107 @@ const ProducerDashboard = () => {
                     </h4>
 
                     <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                      {ongoingServiceRequests.map((sr: any) => (
-                        <Card key={sr.id} className="border-l-4 border-l-primary">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                {sr.service_type === "GUINCHO" && <Truck className="h-5 w-5 text-orange-500" />}
-                                {sr.service_type === "FRETE_MOTO" && <Bike className="h-5 w-5 text-blue-500" />}
-                                {sr.service_type !== "GUINCHO" && sr.service_type !== "FRETE_MOTO" && (
-                                  <Package className="h-5 w-5 text-purple-500" />
+                      {ongoingServiceRequests.map((sr: any) => {
+                        // Extrair destino do additional_info
+                        let additionalInfo: any = null;
+                        try {
+                          additionalInfo = typeof sr.additional_info === 'string'
+                            ? JSON.parse(sr.additional_info)
+                            : (typeof sr.additional_info === 'object' ? sr.additional_info : null);
+                        } catch { /* ignore */ }
+                        const destination = additionalInfo?.destination || null;
+
+                        const originLat = sr.location_lat || sr.city_lat || null;
+                        const originLng = sr.location_lng || sr.city_lng || null;
+                        const destLat = destination?.lat || null;
+                        const destLng = destination?.lng || null;
+                        const originCity = sr.city_name || sr.location_city || '';
+                        const originState = sr.state || sr.location_state || '';
+                        const destCity = destination?.city || originCity;
+                        const destState = destination?.state || originState;
+
+                        // Mapear status de service para status de frete
+                        const statusMap: Record<string, string> = {
+                          ACCEPTED: 'ACCEPTED',
+                          ON_THE_WAY: 'LOADING',
+                          IN_PROGRESS: 'IN_TRANSIT',
+                        };
+                        const mappedStatus = statusMap[sr.status] || sr.status;
+
+                        return (
+                          <FreightInProgressCard
+                            key={sr.id}
+                            freight={{
+                              id: sr.id,
+                              origin_city: originCity,
+                              origin_state: originState,
+                              destination_city: destCity,
+                              destination_state: destState,
+                              origin_lat: originLat,
+                              origin_lng: originLng,
+                              destination_lat: destLat,
+                              destination_lng: destLng,
+                              weight: null,
+                              distance_km: null,
+                              pickup_date: sr.accepted_at || sr.created_at,
+                              price: sr.estimated_price,
+                              required_trucks: 1,
+                              status: mappedStatus,
+                              service_type: sr.service_type,
+                              driver_profiles: sr.provider ? {
+                                full_name: sr.provider.full_name,
+                              } : null,
+                              driver_id: sr.provider_id,
+                            }}
+                            serviceWorkflowActions={
+                              <div className="space-y-2">
+                                {sr.problem_description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    📝 {sr.problem_description}
+                                  </p>
                                 )}
-                                <span className="font-semibold">
-                                  {sr.service_type === "GUINCHO"
-                                    ? "Guincho"
-                                    : sr.service_type === "FRETE_MOTO"
-                                      ? "Frete por Moto"
-                                      : sr.service_type}
-                                </span>
-                              </div>
-
-                              <Badge
-                                variant={
-                                  sr.status === "ACCEPTED"
-                                    ? "default"
-                                    : sr.status === "ON_THE_WAY"
-                                      ? "secondary"
-                                      : "outline"
-                                }
-                              >
-                                {sr.status === "ACCEPTED"
-                                  ? "Aceito"
-                                  : sr.status === "ON_THE_WAY"
-                                    ? "A caminho"
-                                    : sr.status === "IN_PROGRESS"
-                                      ? "Em progresso"
-                                      : sr.status}
-                              </Badge>
-                            </div>
-
-                            <div className="text-sm text-muted-foreground space-y-1 mb-3">
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="truncate">{sr.location_address || sr.city_name}</span>
-                              </div>
-                              {sr.accepted_at && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>Aceito em {formatDate(sr.accepted_at)}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {sr.provider && (
-                              <div className="bg-secondary/50 rounded-lg p-2 flex items-center gap-2">
-                                <Users className="h-4 w-4 text-primary" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm truncate">{sr.provider.full_name}</p>
-                                  {sr.provider.phone && (
-                                    <a
-                                      href={`tel:${sr.provider.phone}`}
-                                      className="text-xs text-primary hover:underline flex items-center gap-1"
-                                    >
-                                      <Phone className="h-3 w-3" />
-                                      {sr.provider.phone}
-                                    </a>
-                                  )}
-                                </div>
-                                {sr.provider.rating && (
-                                  <div className="flex items-center gap-1">
-                                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                    <span className="text-sm font-medium">{Number(sr.provider.rating).toFixed(1)}</span>
+                                {sr.provider && (
+                                  <div className="bg-secondary/50 rounded-lg p-2 flex items-center gap-2">
+                                    <Users className="h-4 w-4 text-primary" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm truncate">{sr.provider.full_name}</p>
+                                      {sr.provider.phone && (
+                                        <a
+                                          href={`tel:${sr.provider.phone}`}
+                                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                                        >
+                                          <Phone className="h-3 w-3" />
+                                          {sr.provider.phone}
+                                        </a>
+                                      )}
+                                    </div>
+                                    {sr.provider.rating && (
+                                      <div className="flex items-center gap-1">
+                                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                        <span className="text-sm font-medium">{Number(sr.provider.rating).toFixed(1)}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
+                                {sr.provider_id && sr.client_id && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => {
+                                      setSelectedChatServiceRequest(sr);
+                                      setServiceChatOpen(true);
+                                    }}
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Abrir Chat
+                                  </Button>
+                                )}
                               </div>
-                            )}
-
-                            {/* Botão de Chat */}
-                            {sr.provider_id && sr.client_id && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full mt-2"
-                                onClick={() => {
-                                  setSelectedChatServiceRequest(sr);
-                                  setServiceChatOpen(true);
-                                }}
-                              >
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Abrir Chat
-                              </Button>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
+                            }
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
