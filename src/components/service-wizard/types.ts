@@ -116,6 +116,7 @@ export interface PetDetails {
   pickupTime: string;
   observations: string;
   ownerDeclaration: boolean; // checkbox obrigatório
+  suggestedPrice: string; // opcional - valor sugerido pelo usuário
 }
 
 export interface ServiceFormData {

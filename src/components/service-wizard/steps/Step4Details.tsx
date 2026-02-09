@@ -598,6 +598,18 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
         />
       </div>
 
+      <div className="space-y-2">
+        <Label>Valor Sugerido (opcional)</Label>
+        <Input
+          type="number"
+          value={formData.petDetails?.suggestedPrice || ''}
+          onChange={(e) => onUpdate('petDetails.suggestedPrice', e.target.value)}
+          placeholder="Deixe vazio para receber propostas"
+          min="0"
+        />
+        <p className="text-xs text-muted-foreground">Se não informar, o motorista enviará uma proposta.</p>
+      </div>
+
       {renderUrgencySelector()}
 
       {/* Declaração obrigatória */}

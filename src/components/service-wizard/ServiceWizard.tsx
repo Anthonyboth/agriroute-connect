@@ -126,6 +126,7 @@ const createInitialFormData = (serviceType: ServiceType): ServiceFormData => ({
     pickupTime: "",
     observations: "",
     ownerDeclaration: false,
+    suggestedPrice: "",
   },
   additionalInfo: "",
 });
@@ -513,6 +514,10 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         additionalInfo.agriculturalDetails = formData.agricultural;
       } else if (serviceType === "SERVICO_TECNICO") {
         additionalInfo.technicalDetails = formData.technical;
+      } else if (serviceType === "ENTREGA_PACOTES") {
+        additionalInfo.packageDetails = formData.packageDetails;
+      } else if (serviceType === "TRANSPORTE_PET") {
+        additionalInfo.petDetails = formData.petDetails;
       }
 
       // ✅ FIX: Usar getFinalServiceType() que prioriza catalogServiceId
@@ -520,12 +525,19 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
       // sejam usados em vez de tipos genéricos (SERVICO_AGRICOLA)
       const finalServiceType = getFinalServiceType();
 
+      // ✅ Extrair valor sugerido pelo usuário (PET ou Pacotes)
+      const suggestedPrice = 
+        serviceType === "ENTREGA_PACOTES" && formData.packageDetails?.suggestedPrice
+          ? parseFloat(formData.packageDetails.suggestedPrice)
+          : serviceType === "TRANSPORTE_PET" && formData.petDetails?.suggestedPrice
+            ? parseFloat(formData.petDetails.suggestedPrice)
+            : null;
+
       const { data, error } = await supabase.functions.invoke("create-guest-service-request", {
         body: {
           prospect_user_id: profile?.id ? null : 'guest_user',
-          client_id: profile?.id || null, // ✅ null para convidados, profile.id para logados
-          service_type: finalServiceType, // ✅ agora usa catalogServiceId quando disponível
-          // ✅ se você quiser guardar referência do catálogo, vai em additional_info
+          client_id: profile?.id || null,
+          service_type: finalServiceType,
           contact_name: formData.personal.name,
           contact_phone: formData.personal.phone,
           contact_email: formData.personal.email || null,
@@ -538,6 +550,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
           city_name: formData.origin.city,
           state: formData.origin.state,
           city_id: formData.origin.city_id || null,
+          estimated_price: suggestedPrice && suggestedPrice > 0 ? suggestedPrice : null,
           additional_info: {
             ...additionalInfo,
             catalog: catalogServiceId

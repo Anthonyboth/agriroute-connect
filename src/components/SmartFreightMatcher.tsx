@@ -808,7 +808,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                       ? "Frete Moto"
                                       : r.service_type === "MUDANCA"
                                         ? "Mudança"
-                                        : "Serviço"}
+                                        : r.service_type === "TRANSPORTE_PET"
+                                          ? "Transporte de Pet 🐾"
+                                          : r.service_type === "ENTREGA_PACOTES"
+                                            ? "Entrega de Pacotes 📦"
+                                            : "Serviço"}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
                               </div>
