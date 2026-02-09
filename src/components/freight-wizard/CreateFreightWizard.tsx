@@ -683,7 +683,7 @@ export function CreateFreightWizard({
         if (constraintMsg.includes('weight')) {
           showFormError({
             field: "Peso da Carga",
-            problem: "Peso fora do intervalo permitido (mínimo 0.1 ton, máximo 90 ton).",
+            problem: "Peso inválido (mínimo 0.1 tonelada / 100kg).",
             solution: "Volte à etapa 3 e ajuste o peso total da carga.",
           });
           setCurrentStep(3);
