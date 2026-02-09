@@ -4,6 +4,8 @@
  * Aba "Solicitações" — exibe fretes e serviços que o usuário solicitou como CLIENTE.
  * Usada nos dashboards de Motorista, Prestador de Serviços e Transportadora.
  * Padrão visual e funcional igual ao painel do Produtor (edit/cancel).
+ * 
+ * ✅ Inclui fluxo de confirmação de entrega para PET e Pacotes.
  */
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,8 +20,12 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ServiceEditModal } from '@/components/service-wizard/ServiceEditModal';
 import { FreightCard } from '@/components/FreightCard';
-import { Package, Wrench, MapPin, Clock, DollarSign, Truck, PawPrint, AlertTriangle, Edit, X } from 'lucide-react';
-import { getCargoTypeLabel } from '@/lib/cargo-types';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  Package, Wrench, MapPin, Clock, DollarSign, Truck, PawPrint, 
+  AlertTriangle, Edit, X, CheckCircle, ShieldCheck, Banknote
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
@@ -29,8 +35,8 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   ELETRICISTA: 'Eletricista',
   SOCORRO_MECANICO: 'Socorro Mecânico',
   MUDANCA: 'Mudança',
-  TRANSPORTE_PET: 'Transporte Pet',
-  ENTREGA_PACOTES: 'Entrega de Pacotes',
+  TRANSPORTE_PET: 'Transporte Pet 🐾',
+  ENTREGA_PACOTES: 'Entrega de Pacotes 📦',
   SERVICO_AGRICOLA: 'Serviço Agrícola',
   FRETE_URBANO: 'Frete Urbano',
   MOTO_FRETE: 'Moto Frete',
@@ -50,6 +56,12 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secon
   EXPIRED: { label: 'Expirado', variant: 'destructive' },
 };
 
+const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  proposed: { label: 'Aguardando Confirmação de Entrega', color: 'bg-amber-100 text-amber-800 border-amber-300' },
+  paid_by_client: { label: 'Pagamento Confirmado pelo Cliente', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+  confirmed_by_provider: { label: 'Pagamento Recebido ✅', color: 'bg-green-100 text-green-800 border-green-300' },
+};
+
 function getStatusConfig(status: string) {
   return STATUS_CONFIG[status] || { label: status, variant: 'secondary' as const };
 }
@@ -61,6 +73,9 @@ function getServiceLabel(type: string) {
 // Statuses considered "active" (not finalized)
 const ACTIVE_SERVICE_STATUSES = ['PENDING', 'OPEN', 'ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'];
 const ACTIVE_FREIGHT_STATUSES = ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION', 'LOADING', 'IN_TRANSIT'] as const;
+
+// Transport types that require delivery confirmation
+const TRANSPORT_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES'];
 
 // Statuses that allow direct cancellation
 const CANCELLABLE_SERVICE_STATUSES = ['PENDING', 'OPEN'];
@@ -81,6 +96,12 @@ export const MyRequestsTab: React.FC = () => {
   const [confirmCancelServiceOpen, setConfirmCancelServiceOpen] = useState(false);
   const [serviceToCancel, setServiceToCancel] = useState<any>(null);
 
+  // Delivery confirmation state
+  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
+  const [serviceToConfirm, setServiceToConfirm] = useState<any>(null);
+  const [confirmNotes, setConfirmNotes] = useState('');
+  const [confirming, setConfirming] = useState(false);
+
   // Fetch service requests where user is the client (active only)
   const { data: myServiceRequests, isLoading: loadingServices } = useQuery({
     queryKey: ['my-client-service-requests', profile?.id],
@@ -97,6 +118,52 @@ export const MyRequestsTab: React.FC = () => {
     },
     enabled: !!profile?.id,
     staleTime: 2 * 60 * 1000,
+  });
+
+  // Fetch COMPLETED PET/Package services that need delivery confirmation
+  const { data: pendingDeliveryServices, isLoading: loadingPending } = useQuery({
+    queryKey: ['my-pending-delivery-services', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      
+      // Fetch completed PET/Package services where client is current user
+      const { data: completedServices, error: srError } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('client_id', profile.id)
+        .eq('status', 'COMPLETED')
+        .in('service_type', TRANSPORT_TYPES)
+        .order('updated_at', { ascending: false });
+
+      if (srError) throw srError;
+      if (!completedServices?.length) return [];
+
+      // Get payment status for each
+      const serviceIds = completedServices.map(s => s.id);
+      const { data: payments } = await supabase
+        .from('service_payments')
+        .select('service_request_id, status, amount')
+        .in('service_request_id', serviceIds);
+
+      const paymentMap = new Map(
+        (payments || []).map(p => [p.service_request_id, p])
+      );
+
+      // Only show services where payment is NOT fully confirmed yet
+      return completedServices
+        .map(sr => ({
+          ...sr,
+          payment: paymentMap.get(sr.id) || null,
+        }))
+        .filter(sr => {
+          const ps = sr.payment?.status;
+          // Show if payment is proposed (client needs to confirm delivery)
+          // or paid_by_client (waiting for driver to confirm receipt)
+          return ps === 'proposed' || ps === 'paid_by_client' || !ps;
+        });
+    },
+    enabled: !!profile?.id,
+    staleTime: 30 * 1000,
   });
 
   // Fetch freights where user is the producer (PET, packages, etc.) - active only
@@ -121,6 +188,7 @@ export const MyRequestsTab: React.FC = () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['my-client-service-requests', profile?.id] }),
       queryClient.invalidateQueries({ queryKey: ['my-client-freights', profile?.id] }),
+      queryClient.invalidateQueries({ queryKey: ['my-pending-delivery-services', profile?.id] }),
     ]);
   };
 
@@ -201,10 +269,42 @@ export const MyRequestsTab: React.FC = () => {
     }
   };
 
-  const isLoading = loadingServices || loadingFreights;
+  // === Delivery Confirmation (PET/Package) ===
+  const handleConfirmDelivery = async () => {
+    if (!serviceToConfirm) return;
+    setConfirming(true);
+
+    try {
+      const { data, error } = await supabase.rpc('confirm_service_delivery', {
+        p_service_request_id: serviceToConfirm.id,
+        p_notes: confirmNotes || null,
+      });
+
+      if (error) throw error;
+
+      const result = data as any;
+      if (!result?.success) {
+        throw new Error(result?.error || 'Erro ao confirmar entrega');
+      }
+
+      toast.success(result.message || 'Entrega confirmada com sucesso!');
+      setConfirmDeliveryOpen(false);
+      setServiceToConfirm(null);
+      setConfirmNotes('');
+      await refetchAll();
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao confirmar entrega');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const isLoading = loadingServices || loadingFreights || loadingPending;
   const serviceRequests = myServiceRequests || [];
   const freights = myFreights || [];
-  const totalCount = serviceRequests.length + freights.length;
+  const pendingDeliveries = pendingDeliveryServices || [];
+  const totalActive = serviceRequests.length + freights.length;
+  const totalCount = totalActive + pendingDeliveries.length;
 
   if (isLoading) {
     return (
@@ -230,58 +330,56 @@ export const MyRequestsTab: React.FC = () => {
 
   return (
     <SafeListWrapper>
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Minhas Solicitações</h3>
-          <Badge variant="secondary">{totalCount} ativa{totalCount !== 1 ? 's' : ''}</Badge>
+          <Badge variant="secondary">{totalCount} item{totalCount !== 1 ? 's' : ''}</Badge>
         </div>
 
-        {/* Freights (PET, Pacotes, etc.) — uses FreightCard with producer actions */}
-        {freights.length > 0 && (
+        {/* ============================================================ */}
+        {/* SEÇÃO: CONFIRMAR ENTREGAS (PET/Pacotes com entrega pendente) */}
+        {/* ============================================================ */}
+        {pendingDeliveries.length > 0 && (
           <div className="space-y-3">
-            {freights.map((freight) => (
-              <FreightCard
-                key={freight.id}
-                freight={freight as any}
-                showProducerActions
-                onAction={(action) => handleFreightAction(action, freight)}
-              />
-            ))}
-          </div>
-        )}
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-amber-600" />
+              <h4 className="font-semibold text-amber-800 dark:text-amber-400">
+                Confirmar Entregas ({pendingDeliveries.length})
+              </h4>
+            </div>
+            
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="h-4 w-4 inline mr-1" />
+              O motorista reportou a entrega. Confirme que recebeu seu pet ou pacote em segurança.
+            </div>
 
-        {/* Service Requests — cards with edit/cancel like producer */}
-        {serviceRequests.length > 0 && (
-          <div className="space-y-3">
-            {serviceRequests.map((request) => {
-              const statusConfig = getStatusConfig(request.status);
-              const isTransport = ['TRANSPORTE_PET', 'ENTREGA_PACOTES'].includes(request.service_type);
-              const Icon = isTransport
-                ? (request.service_type === 'TRANSPORTE_PET' ? PawPrint : Truck)
-                : Wrench;
-              const canCancel = CANCELLABLE_SERVICE_STATUSES.includes(request.status);
+            {pendingDeliveries.map((request) => {
+              const isTransportPet = request.service_type === 'TRANSPORTE_PET';
+              const Icon = isTransportPet ? PawPrint : Package;
+              const paymentStatus = request.payment?.status || 'proposed';
+              const paymentInfo = PAYMENT_STATUS_LABELS[paymentStatus] || PAYMENT_STATUS_LABELS.proposed;
 
               return (
-                <Card key={request.id} className="overflow-hidden">
+                <Card key={request.id} className="overflow-hidden border-l-4 border-l-amber-500">
                   <CardContent className="p-0">
-                    {/* Header with status */}
-                    <div className="p-4 pb-3 space-y-3">
+                    <div className="p-4 space-y-3">
+                      {/* Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Icon className="h-5 w-5 text-primary" />
+                          <div className={`p-2 rounded-lg ${isTransportPet ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+                            <Icon className={`h-5 w-5 ${isTransportPet ? 'text-purple-600' : 'text-amber-600'}`} />
                           </div>
                           <div>
                             <h4 className="font-semibold text-sm">
                               {getServiceLabel(request.service_type)}
                             </h4>
                             <p className="text-xs text-muted-foreground">
-                              Solicitação de serviço
+                              Entrega reportada pelo motorista
                             </p>
                           </div>
                         </div>
-                        <Badge variant={statusConfig.variant}>
-                          {statusConfig.label}
+                        <Badge className={paymentInfo.color}>
+                          {paymentInfo.label}
                         </Badge>
                       </div>
 
@@ -292,7 +390,7 @@ export const MyRequestsTab: React.FC = () => {
                         </p>
                       )}
 
-                      {/* Details row */}
+                      {/* Details */}
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         {request.location_city && (
                           <span className="flex items-center gap-1">
@@ -302,66 +400,275 @@ export const MyRequestsTab: React.FC = () => {
                         )}
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {new Date(request.created_at).toLocaleDateString('pt-BR')}
+                          Concluído em {new Date(request.updated_at).toLocaleDateString('pt-BR')}
                         </span>
-                        {(request.estimated_price ?? 0) > 0 && (
+                        {(request.final_price || request.estimated_price) > 0 && (
                           <span className="flex items-center gap-1 font-medium text-foreground">
                             <DollarSign className="h-3 w-3" />
-                            R$ {Number(request.estimated_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            R$ {Number(request.final_price || request.estimated_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         )}
                       </div>
+                    </div>
 
-                      {request.is_emergency && (
-                        <div className="flex items-center gap-1 text-xs text-destructive font-medium">
-                          <AlertTriangle className="h-3 w-3" />
-                          Emergência
+                    {/* Action buttons */}
+                    <div className="px-4 pb-4">
+                      {paymentStatus === 'proposed' && (
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          size="sm"
+                          onClick={() => {
+                            setServiceToConfirm(request);
+                            setConfirmDeliveryOpen(true);
+                          }}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Confirmar Entrega e Pagamento
+                        </Button>
+                      )}
+                      {paymentStatus === 'paid_by_client' && (
+                        <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <Banknote className="h-5 w-5 mx-auto mb-1 text-blue-600" />
+                          <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                            Aguardando confirmação de recebimento pelo motorista
+                          </p>
                         </div>
                       )}
                     </div>
-
-                    {/* Action buttons — same pattern as FreightCard producer actions */}
-                    {request.status !== 'CANCELLED' && (
-                      <div className="px-4 pb-4">
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => handleServiceAction('edit', request)}
-                            className="flex-1"
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </Button>
-                          {canCancel && (
-                            <Button
-                              onClick={() => handleServiceAction('cancel', request)}
-                              className="flex-1"
-                              size="sm"
-                              variant="destructive"
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Cancelar
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {request.status === 'CANCELLED' && (
-                      <div className="px-4 pb-4">
-                        <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                          <p className="text-sm text-red-600 dark:text-red-400">Solicitação cancelada</p>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
             })}
           </div>
         )}
+
+        {/* ============================================================ */}
+        {/* SEÇÃO: SOLICITAÇÕES ATIVAS                                   */}
+        {/* ============================================================ */}
+        {totalActive > 0 && (
+          <>
+            {/* Freights (PET, Pacotes, etc.) — uses FreightCard with producer actions */}
+            {freights.length > 0 && (
+              <div className="space-y-3">
+                {freights.map((freight) => (
+                  <FreightCard
+                    key={freight.id}
+                    freight={freight as any}
+                    showProducerActions
+                    onAction={(action) => handleFreightAction(action, freight)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Service Requests — cards with edit/cancel like producer */}
+            {serviceRequests.length > 0 && (
+              <div className="space-y-3">
+                {serviceRequests.map((request) => {
+                  const statusConfig = getStatusConfig(request.status);
+                  const isTransport = TRANSPORT_TYPES.includes(request.service_type);
+                  const Icon = isTransport
+                    ? (request.service_type === 'TRANSPORTE_PET' ? PawPrint : Truck)
+                    : Wrench;
+                  const canCancel = CANCELLABLE_SERVICE_STATUSES.includes(request.status);
+
+                  return (
+                    <Card key={request.id} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        {/* Header with status */}
+                        <div className="p-4 pb-3 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Icon className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm">
+                                  {getServiceLabel(request.service_type)}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  Solicitação de serviço
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant={statusConfig.variant}>
+                              {statusConfig.label}
+                            </Badge>
+                          </div>
+
+                          {/* Description */}
+                          {request.problem_description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {request.problem_description}
+                            </p>
+                          )}
+
+                          {/* Details row */}
+                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            {request.location_city && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {request.location_city}/{request.location_state}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(request.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                            {(request.estimated_price ?? 0) > 0 && (
+                              <span className="flex items-center gap-1 font-medium text-foreground">
+                                <DollarSign className="h-3 w-3" />
+                                R$ {Number(request.estimated_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </div>
+
+                          {request.is_emergency && (
+                            <div className="flex items-center gap-1 text-xs text-destructive font-medium">
+                              <AlertTriangle className="h-3 w-3" />
+                              Emergência
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action buttons — same pattern as FreightCard producer actions */}
+                        {request.status !== 'CANCELLED' && (
+                          <div className="px-4 pb-4">
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => handleServiceAction('edit', request)}
+                                className="flex-1"
+                                size="sm"
+                                variant="outline"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </Button>
+                              {canCancel && (
+                                <Button
+                                  onClick={() => handleServiceAction('cancel', request)}
+                                  className="flex-1"
+                                  size="sm"
+                                  variant="destructive"
+                                >
+                                  <X className="h-4 w-4 mr-2" />
+                                  Cancelar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {request.status === 'CANCELLED' && (
+                          <div className="px-4 pb-4">
+                            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                              <p className="text-sm text-red-600 dark:text-red-400">Solicitação cancelada</p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
+
+      {/* ============================================================ */}
+      {/* MODAL: Confirmar Entrega (PET/Pacote)                        */}
+      {/* ============================================================ */}
+      <Dialog open={confirmDeliveryOpen} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmDeliveryOpen(false);
+          setServiceToConfirm(null);
+          setConfirmNotes('');
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Confirmar Entrega
+            </DialogTitle>
+          </DialogHeader>
+
+          {serviceToConfirm && (
+            <div className="space-y-4">
+              {/* Service info */}
+              <div className="p-3 bg-muted rounded-lg space-y-2">
+                <div className="flex items-center gap-2">
+                  {serviceToConfirm.service_type === 'TRANSPORTE_PET' 
+                    ? <PawPrint className="h-4 w-4 text-purple-600" />
+                    : <Package className="h-4 w-4 text-amber-600" />
+                  }
+                  <span className="font-medium">
+                    {getServiceLabel(serviceToConfirm.service_type)}
+                  </span>
+                </div>
+                {serviceToConfirm.problem_description && (
+                  <p className="text-sm text-muted-foreground">{serviceToConfirm.problem_description}</p>
+                )}
+                {(serviceToConfirm.final_price || serviceToConfirm.estimated_price) > 0 && (
+                  <p className="text-sm font-semibold text-green-600">
+                    Valor: R$ {Number(serviceToConfirm.final_price || serviceToConfirm.estimated_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+
+              {/* Important warning */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <h4 className="font-medium text-blue-900 dark:text-blue-300 text-sm mb-1">Importante</h4>
+                <ul className="text-xs text-blue-800 dark:text-blue-400 space-y-1">
+                  <li>• Confirme apenas se {serviceToConfirm.service_type === 'TRANSPORTE_PET' ? 'seu pet foi entregue em segurança' : 'seu pacote foi entregue corretamente'}</li>
+                  <li>• Após a confirmação, o pagamento será liberado para o motorista</li>
+                  <li>• Você poderá avaliar o serviço após a confirmação do motorista</li>
+                </ul>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Observações (opcional)
+                </label>
+                <Textarea
+                  placeholder={serviceToConfirm.service_type === 'TRANSPORTE_PET' 
+                    ? 'Ex: Pet chegou bem, sem estresse...' 
+                    : 'Ex: Pacote entregue sem danos...'
+                  }
+                  value={confirmNotes}
+                  onChange={(e) => setConfirmNotes(e.target.value)}
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setConfirmDeliveryOpen(false);
+                    setServiceToConfirm(null);
+                    setConfirmNotes('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  onClick={handleConfirmDelivery}
+                  disabled={confirming}
+                >
+                  {confirming ? 'Confirmando...' : 'Confirmar Entrega'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Freight Edit Modal */}
       <EditFreightModal
