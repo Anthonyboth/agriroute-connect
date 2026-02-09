@@ -393,10 +393,10 @@ export function CreateFreightWizard({
       const safePrice = isNaN(calculation.totalPrice) ? 0 : calculation.totalPrice;
       const safePricePerKm = formData.pricing_type === 'PER_KM' ? (parseFloat(formData.price_per_km) || 0) : null;
       
-      if (isNaN(totalWeightKg) || totalWeightKg < 100 || totalWeightKg > 10000000) {
+      if (isNaN(totalWeightKg) || totalWeightKg < 100) {
         showFormError({
           field: "Peso da Carga",
-          problem: `Peso inválido: ${isNaN(totalWeightKg) ? 'não numérico' : `${totalWeightTonnes} ton (${totalWeightKg}kg)`}. Permitido: 0.1 a 10.000 toneladas.`,
+          problem: `Peso inválido: ${isNaN(totalWeightKg) ? 'não numérico' : `${totalWeightTonnes} ton (${totalWeightKg}kg)`}. Mínimo: 0.1 tonelada.`,
           solution: "Volte à etapa 3 e ajuste o peso total aproximado da carga.",
         });
         setCurrentStep(3);
