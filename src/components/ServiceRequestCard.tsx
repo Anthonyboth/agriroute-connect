@@ -61,20 +61,27 @@
      return fallback;
    };
  
-   const origin = safeParseLocation(sr.location_address || sr.origin);
-   const destination = safeParseLocation(sr.destination_address || sr.destination);
-   const cargoTitle = sr.problem_description || sr.service_type || "Serviço solicitado";
-   
-   const serviceTypeLabels: Record<string, string> = {
-     GUINCHO: "Guincho",
-     MUDANCA_RESIDENCIAL: "Mudança Residencial",
-     MUDANCA_COMERCIAL: "Mudança Comercial",
-     SERVICO_AGRICOLA: "Serviço Agrícola",
-     SERVICO_TECNICO: "Serviço Técnico",
-     FRETE_URBANO: "Frete Urbano",
-   };
- 
-   const serviceTypeLabel = serviceTypeLabels[sr.service_type] || sr.service_type;
+    const origin = safeParseLocation(sr.location_address || sr.origin);
+    const destination = safeParseLocation(sr.destination_address || sr.destination);
+    
+    const serviceTypeLabels: Record<string, string> = {
+      GUINCHO: "Guincho",
+      MUDANCA_RESIDENCIAL: "Mudança Residencial",
+      MUDANCA_COMERCIAL: "Mudança Comercial",
+      SERVICO_AGRICOLA: "Serviço Agrícola",
+      SERVICO_TECNICO: "Serviço Técnico",
+      FRETE_URBANO: "Frete Urbano",
+      FRETE_MOTO: "Frete Moto",
+      TRANSPORTE_PET: "Transporte de Pet",
+      ENTREGA_PACOTES: "Entrega de Pacotes",
+      MECANICO: "Mecânico",
+      BORRACHEIRO: "Borracheiro",
+      ELETRICISTA: "Eletricista",
+      SOCORRO_MECANICO: "Socorro Mecânico",
+    };
+
+    const serviceTypeLabel = serviceTypeLabels[sr.service_type] || sr.service_type;
+    const cargoTitle = sr.problem_description || (serviceTypeLabel ? `Solicitação de ${serviceTypeLabel}` : sr.service_type) || "Serviço solicitado";
  
    const statusLabels: Record<string, { label: string; color: string }> = {
      OPEN: { label: "Aberto", color: "bg-blue-100 text-blue-800" },
