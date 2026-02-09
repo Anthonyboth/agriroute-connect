@@ -203,30 +203,14 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
     },
   });
 
-  // ✅ Aceitar solicitação de serviço (inclui FRETE_MOTO)
   const acceptServiceMutation = useMutation({
     mutationFn: async (serviceRequestId: string) => {
-      const nowIso = new Date().toISOString();
-
-      const { data, error } = await supabase
-        .from("service_requests")
-        .update({
-          status: "ACCEPTED",
-          provider_id: driverProfileId,
-          accepted_at: nowIso,
-          updated_at: nowIso,
-        } as any)
-        .eq("id", serviceRequestId)
-        .eq("status", "OPEN")
-        .select("id")
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('accept_service_request', {
+        p_provider_id: driverProfileId || '',
+        p_request_id: serviceRequestId,
+      });
 
       if (error) throw error;
-
-      if (!data?.id) {
-        throw new Error("Este serviço não está mais disponível (provavelmente já foi aceito).");
-      }
-
       return data;
     },
     onSuccess: () => {
