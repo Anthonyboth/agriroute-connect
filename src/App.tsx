@@ -678,7 +678,7 @@ const RedirectIfAuthed = () => {
             <Button onClick={async () => {
               console.log('🚪 [RedirectIfAuthed] Fazendo logout...');
               await supabase.auth.signOut({ scope: 'local' });
-              window.location.href = '/auth';
+              window.location.href = '/';
             }} variant="outline">
               Fazer Login Novamente
             </Button>

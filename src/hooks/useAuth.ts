@@ -570,7 +570,7 @@ const useAuthInternal = () => {
                 localStorage.setItem('redirect_after_login', path);
               } catch {}
               setTimeout(() => {
-                window.location.replace('/auth');
+                window.location.replace('/');
               }, 0);
             }
           }
