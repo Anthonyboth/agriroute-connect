@@ -1392,7 +1392,7 @@ const ProducerDashboard = () => {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
           style={{ backgroundImage: `url(${heroDesktop})` }}
         />
-        <div className="absolute inset-0 bg-primary/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
             <h1 className="text-2xl md:text-3xl font-bold mb-2">Painel de Gerenciamento</h1>

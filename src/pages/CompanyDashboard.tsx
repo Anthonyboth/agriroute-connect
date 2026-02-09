@@ -602,11 +602,11 @@ const CompanyDashboard = () => {
       
       <section className="relative py-6 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-30 animate-fade-in"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
           style={{ backgroundImage: `url(${heroDesktop})` }}
         />
         {/* Overlay verde para melhor contraste - seguindo padrão do DriverDashboard */}
-        <div className="absolute inset-0 bg-primary/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         <div className="container relative z-10 mx-auto px-4">
           <div className="max-w-5xl mx-auto space-y-4">
             {/* Hero layout: Logo e título à esquerda, info da empresa à direita */}

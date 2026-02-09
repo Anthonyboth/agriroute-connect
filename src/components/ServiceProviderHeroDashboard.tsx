@@ -155,7 +155,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
           style={{ backgroundImage: `url(${heroDesktop})` }}
         />
         {/* Overlay */}
-        <div className="absolute inset-0 bg-primary/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         
         <div className="relative container mx-auto px-4 py-12 md:py-16">
           <div className="text-center">
