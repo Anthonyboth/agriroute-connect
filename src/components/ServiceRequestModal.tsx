@@ -67,7 +67,12 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-w-2xl h-[90vh] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent
+        className="max-w-2xl h-[90vh] max-h-[90vh] flex flex-col p-0 overflow-hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
           <ServiceWizard
             serviceType={serviceType}
