@@ -143,12 +143,22 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   const { personal: prefilledPersonal, address: prefilledAddress, loading: prefillLoading } = usePrefilledUserData();
   const { showFormError, showMissingField, showSuccess } = useFormNotification();
 
+  // ✅ Usuário logado com perfil = pular etapa 2 (dados pessoais)
+  const isLoggedInWithProfile = !!(profile?.id && profile?.full_name);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(serviceType));
   const [loading, setLoading] = useState(false);
   const [hasPrefilled, setHasPrefilled] = useState(false);
 
   const config = useMemo(() => getServiceConfig(serviceType), [serviceType]);
+  // Se logado, filtra step 2 do progresso
+  const visibleSteps = useMemo(() => {
+    if (isLoggedInWithProfile) {
+      return config.steps.filter(s => s.id !== 2);
+    }
+    return config.steps;
+  }, [config.steps, isLoggedInWithProfile]);
   const totalSteps = config.steps.length;
 
   // ✅ PREFILL AUTOMÁTICO: Preencher dados pessoais e endereço quando disponíveis
@@ -259,6 +269,8 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         }
 
         case 2: {
+          // Usuários logados com perfil não passam por esta etapa
+          if (isLoggedInWithProfile) return true;
           if (!formData.personal.name?.trim()) {
             showMissingField("name", "Nome Completo");
             return false;
@@ -465,13 +477,24 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
 
   const handleNext = () => {
     if (!validateStep(currentStep)) return;
-    if (currentStep < totalSteps) setCurrentStep((prev) => prev + 1);
+    if (currentStep < totalSteps) {
+      let next = currentStep + 1;
+      // Pular step 2 para usuários logados com perfil
+      if (isLoggedInWithProfile && next === 2) next = 3;
+      setCurrentStep(next);
+    }
   };
 
   const handleBack = () => {
     if (loading) return;
-    if (currentStep > 1) setCurrentStep((prev) => prev - 1);
-    else onClose();
+    if (currentStep > 1) {
+      let prev = currentStep - 1;
+      // Pular step 2 para usuários logados com perfil
+      if (isLoggedInWithProfile && prev === 2) prev = 1;
+      setCurrentStep(prev);
+    } else {
+      onClose();
+    }
   };
 
   // ✅ NORMALIZADOR para "MUDANCA" (se existir no banco como MUDANCA_RESIDENCIAL/COMERCIAL)
@@ -654,6 +677,8 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
       case 1:
         return <Step1ServiceType formData={formData} onUpdate={handleUpdate} serviceType={serviceType} />;
       case 2:
+        // Usuários logados com perfil nunca devem ver esta tela
+        if (isLoggedInWithProfile) return null;
         return <Step2PersonalData formData={formData} onUpdate={handleUpdate} serviceType={serviceType} />;
       case 3:
         return (
@@ -695,7 +720,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
 
       {/* Progress - FIXO */}
       <div className="px-4 py-2 shrink-0 border-b">
-        <WizardProgress steps={config.steps} currentStep={currentStep} variant="compact" />
+        <WizardProgress steps={visibleSteps} currentStep={currentStep} variant="compact" />
       </div>
 
       {/* Step Content - SCROLLABLE */}
