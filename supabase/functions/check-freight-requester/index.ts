@@ -84,7 +84,7 @@ serve(async (req) => {
           id,
           status,
           client_id,
-          client:profiles!service_requests_client_id_fkey (
+          client:profiles!fk_service_requests_client (
             id,
             user_id,
             full_name,
