@@ -213,6 +213,8 @@ export const ONGOING_SERVICE_TYPES = [
   'MUDANCA',
   'FRETE_URBANO',
   'FRETE_MOTO',
+  'TRANSPORTE_PET',
+  'ENTREGA_PACOTES',
 ] as const;
 
 /**
