@@ -154,23 +154,26 @@ export function isFreightOngoing(
 
 /**
  * Limite de fretes ativos simultâneos por tipo de usuário.
- * - Motoristas (autônomos ou afiliados): 1 frete ativo
+ * - Motoristas (autônomos ou afiliados): Múltiplos fretes permitidos
+ *   (ex: frete rural + pacotes + PET simultaneamente)
  * - Transportadoras: Ilimitado (gestão de frota)
  */
 export const CONCURRENT_FREIGHT_LIMITS = {
-  MOTORISTA: 1,
-  MOTORISTA_AFILIADO: 1,
+  MOTORISTA: Infinity,
+  MOTORISTA_AFILIADO: Infinity,
   TRANSPORTADORA: Infinity,
 } as const;
 
 /**
  * Verifica se um motorista pode aceitar um novo frete.
+ * Regra atualizada: motoristas podem ter múltiplos fretes ativos,
+ * especialmente para combinar frete rural com pacotes e PET.
  */
 export function canDriverAcceptNewFreight(
   currentActiveFreights: number,
   role: 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'TRANSPORTADORA' = 'MOTORISTA'
 ): boolean {
-  const limit = CONCURRENT_FREIGHT_LIMITS[role] || 1;
+  const limit = CONCURRENT_FREIGHT_LIMITS[role] || Infinity;
   return currentActiveFreights < limit;
 }
 

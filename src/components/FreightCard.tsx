@@ -185,15 +185,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           return pickupDate && pickupDate <= today;
         });
 
-        const totalInProgress = inProgressFreights.length + inProgressAssignments.length;
-
-        if (totalInProgress > 0) {
-          const currentCargo = inProgressFreights[0]?.cargo_type || "Carga";
-          toast.error("Você já possui um frete em andamento", {
-            description: `Complete a entrega atual (${currentCargo}) antes de aceitar um novo frete.`,
-          });
-          return;
-        }
+        // Regra atualizada: motoristas podem ter múltiplos fretes ativos
+        // (ex: frete rural + pacotes + PET simultaneamente)
+        // A verificação de limite foi removida para permitir concorrência
       }
 
       const { data: acceptData, error: acceptError } = await supabase.functions.invoke("accept-freight-multiple", {

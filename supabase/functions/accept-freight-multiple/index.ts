@@ -481,21 +481,9 @@ serve(async (req) => {
 
       const totalActive = (activeFreights?.length || 0) + (activeAssignmentsCheck?.length || 0);
 
-      if (totalActive > 0) {
-        const currentFreight = activeFreights?.[0] || (activeAssignmentsCheck?.[0]?.freight as any);
-        console.log(`[VALIDATION] Driver ${profile.id} already has ${totalActive} active freight(s)`);
-        
-        return new Response(
-          JSON.stringify({ 
-            error: "Você já possui um frete em andamento",
-            details: `Você já está com um frete ativo (${currentFreight?.cargo_type || 'Carga'}). Complete a entrega atual antes de aceitar um novo frete.`,
-            current_freight_id: currentFreight?.id,
-            active_freight_count: totalActive,
-            code: "ACTIVE_FREIGHT_EXISTS"
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      // ✅ Regra atualizada: motoristas podem ter múltiplos fretes ativos
+      // (ex: frete rural + pacotes + PET simultaneamente)
+      console.log(`[VALIDATION] Driver ${profile.id} has ${totalActive} active freight(s) - multiple allowed`);
     }
 
     // ===== VALIDAÇÃO DE VEÍCULOS DISPONÍVEIS (TRANSPORTADORAS) =====

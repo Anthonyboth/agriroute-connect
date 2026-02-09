@@ -154,19 +154,9 @@ if (!consent?.consent_given) {
       );
     }
 
-    if (activeFreights && activeFreights.length > 0) {
-      const currentFreight = activeFreights[0];
-      return new Response(
-        JSON.stringify({ 
-          error: "Você já possui um frete em andamento",
-          details: `Você já está com um frete ativo (${currentFreight.cargo_type || 'Carga'}). Complete a entrega atual antes de aceitar um novo frete.`,
-          current_freight_id: currentFreight.id,
-          current_freight_status: currentFreight.status,
-          code: "ACTIVE_FREIGHT_EXISTS"
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // ✅ Regra atualizada: motoristas podem ter múltiplos fretes ativos
+    // (ex: frete rural + pacotes + PET simultaneamente)
+    console.log(`[VALIDATION] Driver has ${activeFreights?.length || 0} active freight(s) - multiple allowed`);
 
     // Fetch freight
     const { data: freight, error: freightFetchErr } = await supabase
