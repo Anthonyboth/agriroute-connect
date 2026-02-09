@@ -75,9 +75,9 @@ serve(async (req) => {
       throw balanceError;
     }
 
-    // Buscar histórico recente de transações usando admin client
+    // Buscar histórico recente via view segura (mascara Stripe IDs e saldos antigos)
     const { data: recentTransactions, error: transactionsError } = await supabaseAdmin
-      .from("balance_transactions")
+      .from("balance_transactions_secure")
       .select("*")
       .eq("provider_id", profile.id)
       .order("created_at", { ascending: false })

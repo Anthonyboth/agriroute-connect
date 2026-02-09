@@ -11756,8 +11756,8 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
-          balance_after?: number | null
-          balance_before?: number | null
+          balance_after?: never
+          balance_before?: never
           created_at?: string | null
           description?: string | null
           id?: string | null
@@ -11772,8 +11772,8 @@ export type Database = {
         }
         Update: {
           amount?: number | null
-          balance_after?: number | null
-          balance_before?: number | null
+          balance_after?: never
+          balance_before?: never
           created_at?: string | null
           description?: string | null
           id?: string | null
