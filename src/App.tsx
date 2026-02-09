@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { RatingProvider } from "@/contexts/RatingContext";
 import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
-import { GlobalRatingModals } from "@/components/GlobalRatingModals";
+// GlobalRatingModals deferred - uses Radix Dialog which pulls ui-vendor chunk (50KB)
+// Only needed after authentication, not on landing page
+const GlobalRatingModals = lazy(() => import("@/components/GlobalRatingModals").then(m => ({ default: m.GlobalRatingModals })));
 // Toaster deferred to avoid pulling ui-vendor (Radix Toast) on landing page
 const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -1066,7 +1068,7 @@ const App = () => {
                         <Route path="*" element={<SmartFallback />} />
                       </Routes>
                     </main>
-            <GlobalRatingModals />
+            <Suspense fallback={null}><GlobalRatingModals /></Suspense>
             <PermissionPrompts />
             <PreviewFreshBuildBanner />
             <Suspense fallback={null}><LazyToaster /></Suspense>
