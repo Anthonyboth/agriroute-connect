@@ -133,7 +133,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     try {
       let effectiveTypes = allowedTypesFromProfile;
       if (!isCompany && (!effectiveTypes || effectiveTypes.length === 0)) {
-        effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO"] as CanonicalServiceType[];
+        effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO", "ENTREGA_PACOTES", "TRANSPORTE_PET"] as CanonicalServiceType[];
         toast.info("Seus tipos de serviço não estão configurados. Mostrando todos por enquanto.", { duration: 3500 });
       }
 

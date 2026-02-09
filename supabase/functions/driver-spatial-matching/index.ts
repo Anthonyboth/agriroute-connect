@@ -219,6 +219,8 @@ serve(async (req) => {
       'FRETE_URBANO',
       'MOTO',
       'GUINCHO_URBANO',
+      'ENTREGA_PACOTES',
+      'TRANSPORTE_PET',
     ];
 
     const SERVICE_LIMIT = 200;
