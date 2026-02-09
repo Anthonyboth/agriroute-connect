@@ -463,32 +463,28 @@ const Landing: React.FC = () => {
         />
       </Suspense>
 
-      {selectedService && requestModalOpen && (
-        <Suspense fallback={null}>
-          <ServiceRequestModal
-            isOpen={true}
-            onClose={() => {
-              setRequestModalOpen(false);
-              setSelectedService(null);
-            }}
-            serviceId={selectedService.id}
-            serviceLabel={selectedService.label}
-            serviceDescription={selectedService.description}
-            category={selectedService.category}
-          />
-        </Suspense>
-      )}
+      <Suspense fallback={null}>
+        <ServiceRequestModal
+          isOpen={requestModalOpen && !!selectedService}
+          onClose={() => {
+            setRequestModalOpen(false);
+            setSelectedService(null);
+          }}
+          serviceId={selectedService?.id || ""}
+          serviceLabel={selectedService?.label || ""}
+          serviceDescription={selectedService?.description || ""}
+          category={selectedService?.category || "technical"}
+        />
+      </Suspense>
 
-      {howItWorksModal.isOpen && (
-        <Suspense fallback={null}>
-          <HowItWorksModal
-            isOpen={howItWorksModal.isOpen}
-            onClose={closeHowItWorksModal}
-            userType={howItWorksModal.userType || 'PRODUTOR'}
-            onProceed={handleProceedToDashboard}
-          />
-        </Suspense>
-      )}
+      <Suspense fallback={null}>
+        <HowItWorksModal
+          isOpen={howItWorksModal.isOpen}
+          onClose={closeHowItWorksModal}
+          userType={howItWorksModal.userType || 'PRODUTOR'}
+          onProceed={handleProceedToDashboard}
+        />
+      </Suspense>
       
       <Suspense fallback={null}>
         <ReportModal
@@ -498,14 +494,12 @@ const Landing: React.FC = () => {
       </Suspense>
 
       {/* Modal de Contato - lazy loaded */}
-      {contactModal && (
-        <Suspense fallback={null}>
-          <ContactSupportModal
-            isOpen={contactModal}
-            onClose={() => setContactModal(false)}
-          />
-        </Suspense>
-      )}
+      <Suspense fallback={null}>
+        <ContactSupportModal
+          isOpen={contactModal}
+          onClose={() => setContactModal(false)}
+        />
+      </Suspense>
 
 
       {/* AuthModal - lazy loaded */}
