@@ -160,12 +160,11 @@ export function useFreightFormValidation() {
           const num = parseFloat(v);
           if (isNaN(num) || num <= 0) return false;
           const weightKg = num * 1000;
-          // Weight is TOTAL cargo weight (distributed across multiple trucks)
-          // Min: 100kg (0.1 ton), Max: 10,000,000kg (10,000 tons)
-          return weightKg >= 100 && weightKg <= 10000000;
+          // No max limit - weight is TOTAL cargo the producer wants to transport
+          return weightKg >= 100;
         },
-        problem: 'Peso inválido. Permitido: 0.1 a 10.000 toneladas.',
-        solution: 'Informe o peso TOTAL aproximado em toneladas que deseja transportar (ex: 300). Mínimo 0.1 ton, máximo 10.000 ton.',
+        problem: 'Peso inválido. Mínimo: 0.1 tonelada (100kg).',
+        solution: 'Informe o peso TOTAL aproximado em toneladas que deseja transportar (ex: 300, 1000, 5000).',
       },
       {
         key: 'vehicle_type_required',
