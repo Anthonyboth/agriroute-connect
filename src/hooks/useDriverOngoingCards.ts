@@ -92,13 +92,19 @@ export type OngoingServiceRequestRow = {
   status: string;
   service_type: string | null;
   location_address: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   city_name: string | null;
+  city_lat: number | null;
+  city_lng: number | null;
   state: string | null;
   problem_description: string | null;
   estimated_price: number | null;
   urgency: string | null;
   is_emergency: boolean | null;
   accepted_at: string | null;
+  additional_info: any | null;
+  client_id: string | null;
 };
 
 export const useDriverOngoingCards = (driverProfileId?: string | null) => {

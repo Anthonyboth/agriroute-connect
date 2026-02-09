@@ -1,14 +1,14 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { 
-  Truck, Wrench, Bike, MapPin, Clock, RefreshCw, 
-  Play, CheckCircle
+  Truck, Wrench, Bike, RefreshCw, 
+  Play, CheckCircle, PawPrint, Package
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDriverTransportCompanyLink } from "@/hooks/useDriverTransportCompanyLink";
@@ -43,17 +43,25 @@ const statusLabel = (status: string) => {
   return map[status] || status;
 };
 
-const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  if (["COMPLETED", "DELIVERED"].includes(status)) return "default";
-  if (["IN_TRANSIT", "LOADING", "IN_PROGRESS", "ACCEPTED", "LOADED", "ON_THE_WAY"].includes(status)) return "secondary";
-  if (["CANCELLED", "REJECTED"].includes(status)) return "destructive";
-  return "outline";
+/**
+ * Mapeia status de service_request para status equivalente de frete rural
+ * para que o FreightInProgressCard exiba os botões corretos de progressão.
+ */
+const mapServiceStatusToFreightStatus = (status: string): string => {
+  const map: Record<string, string> = {
+    ACCEPTED: 'ACCEPTED',
+    ON_THE_WAY: 'LOADING',    // "A Caminho" = equivalente a "A Caminho da Coleta"
+    IN_PROGRESS: 'IN_TRANSIT', // "Em Andamento" = equivalente a "Em Transporte"
+  };
+  return map[status] || status;
 };
 
 const serviceIcon = (serviceType?: string | null) => {
   const t = String(serviceType || "").toUpperCase();
   if (t.includes("GUINCHO")) return <Wrench className="h-5 w-5" />;
   if (t.includes("MOTO")) return <Bike className="h-5 w-5" />;
+  if (t.includes("PET")) return <PawPrint className="h-5 w-5" />;
+  if (t.includes("PACOTE")) return <Package className="h-5 w-5" />;
   return <Truck className="h-5 w-5" />;
 };
 
@@ -62,6 +70,8 @@ const serviceTitle = (serviceType?: string | null) => {
   if (t.includes("GUINCHO")) return "Guincho";
   if (t.includes("MOTO")) return "Frete Moto";
   if (t.includes("MUDANCA")) return "Mudança";
+  if (t.includes("PET")) return "Transporte de Pet";
+  if (t.includes("PACOTE")) return "Entrega de Pacotes";
   return "Serviço";
 };
 
@@ -284,59 +294,64 @@ export const DriverOngoingTab: React.FC = () => {
             </div>
           )}
 
-          {/* Service Requests (Moto/Guincho/Mudança) */}
+          {/* Service Requests (PET/Pacotes/Moto/Guincho/Mudança) - Padrão igual frete rural */}
           {serviceRequests.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <Bike className="h-4 w-4" />
-                Chamados Urbanos ({serviceRequests.length})
+                Chamados e Serviços ({serviceRequests.length})
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {serviceRequests.map((r) => (
-                  <Card key={r.id} className="overflow-hidden border-l-4 border-l-orange-500">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          {serviceIcon(r.service_type)}
-                          <CardTitle className="text-base">{serviceTitle(r.service_type)}</CardTitle>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge variant={statusVariant(r.status)}>{statusLabel(r.status)}</Badge>
-                          {r.is_emergency && <Badge variant="destructive">🚨 Emergência</Badge>}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
-                        <div className="text-sm">
-                          <p className="font-medium">
-                            {(r.city_name || "Cidade não informada").toUpperCase()} {r.state ? `- ${r.state}` : ""}
+                {serviceRequests.map((r) => {
+                  // Extrair destino do additional_info (salvo pelo ServiceWizard como JSON string)
+                  let additionalInfo: any = null;
+                  try {
+                    additionalInfo = typeof r.additional_info === 'string' 
+                      ? JSON.parse(r.additional_info) 
+                      : (typeof r.additional_info === 'object' ? r.additional_info : null);
+                  } catch { /* ignore parse errors */ }
+                  const destination = additionalInfo?.destination || null;
+                  
+                  const originLat = r.location_lat || r.city_lat || null;
+                  const originLng = r.location_lng || r.city_lng || null;
+                  const destLat = destination?.lat || null;
+                  const destLng = destination?.lng || null;
+
+                  const originCity = r.city_name || '';
+                  const originState = r.state || '';
+                  const destCity = destination?.city || originCity;
+                  const destState = destination?.state || originState;
+
+                  return (
+                    <div key={r.id} className="space-y-2">
+                      <FreightInProgressCard
+                        freight={{
+                          id: r.id,
+                          origin_city: originCity,
+                          origin_state: originState,
+                          destination_city: destCity,
+                          destination_state: destState,
+                          origin_lat: originLat,
+                          origin_lng: originLng,
+                          destination_lat: destLat,
+                          destination_lng: destLng,
+                          weight: null,
+                          distance_km: null,
+                          pickup_date: r.accepted_at || r.created_at,
+                          price: r.estimated_price,
+                          required_trucks: 1,
+                          status: mapServiceStatusToFreightStatus(r.status),
+                          service_type: r.service_type,
+                        }}
+                        showActions={false}
+                      />
+                      {/* Botões de workflow do serviço */}
+                      <Card className="p-3">
+                        {r.problem_description && (
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                            📝 {r.problem_description}
                           </p>
-                          <p className="text-muted-foreground line-clamp-2">
-                            {r.location_address || "Endereço não informado"}
-                          </p>
-                        </div>
-                      </div>
-                      {r.problem_description && (
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">Descrição: </span>
-                          <span className="line-clamp-2">{r.problem_description}</span>
-                        </div>
-                      )}
-                      {typeof r.estimated_price === "number" && (
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">Valor: </span>
-                          <span className="font-semibold text-primary">
-                            {formatBRL(r.estimated_price, true)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>Aceito em {new Date(r.accepted_at || r.created_at).toLocaleString("pt-BR")}</span>
-                      </div>
-                      <div className="space-y-2 pt-2">
+                        )}
                         {r.status === "ACCEPTED" && (
                           <Button
                             className="w-full"
@@ -344,32 +359,32 @@ export const DriverOngoingTab: React.FC = () => {
                             onClick={() => handleTransitionService(r.id, "ON_THE_WAY", "A caminho do local!")}
                           >
                             <Play className="h-4 w-4 mr-2" />
-                            A Caminho
+                            A Caminho da Coleta
                           </Button>
                         )}
                         {r.status === "ON_THE_WAY" && (
                           <Button
                             className="w-full"
                             variant="secondary"
-                            onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Atendimento iniciado!")}
+                            onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Em trânsito!")}
                           >
-                            <Play className="h-4 w-4 mr-2" />
-                            Iniciar Atendimento
+                            <Truck className="h-4 w-4 mr-2" />
+                            Em Trânsito
                           </Button>
                         )}
                         {r.status === "IN_PROGRESS" && (
                           <Button
                             className="w-full"
-                            onClick={() => handleTransitionService(r.id, "COMPLETED", "Chamado finalizado com sucesso!")}
+                            onClick={() => handleTransitionService(r.id, "COMPLETED", "Entrega finalizada com sucesso!")}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Finalizar Chamado
+                            Reportar Entrega
                           </Button>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </Card>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
