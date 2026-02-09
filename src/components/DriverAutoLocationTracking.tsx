@@ -131,7 +131,7 @@ export const DriverAutoLocationTracking = () => {
     }
   };
 
-  if (!hasActiveFreight || !profile || !['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role)) {
+  if (!hasActiveFreight || !profile || !['MOTORISTA', 'MOTORISTA_AFILIADO', 'GUINCHO', 'MOTO_FRETE'].includes(profile.role)) {
     return null;
   }
 
