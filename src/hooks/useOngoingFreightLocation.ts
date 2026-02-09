@@ -107,6 +107,8 @@ export const useOngoingFreightLocation = ({
       }
 
       // 3. Salvar no histórico (para auditoria e tracking detalhado)
+      // Funciona tanto para freights quanto para service_requests (PET/Pacotes)
+      // O freightId pode ser um freight.id ou service_request.id
       if (freightId) {
         const { error: historyError } = await supabase.rpc('insert_driver_location_history', {
           p_driver_profile_id: driverProfileId,
@@ -120,7 +122,24 @@ export const useOngoingFreightLocation = ({
 
         if (historyError) {
           // Não falhar se o histórico não puder ser salvo
-          console.warn('[OngoingFreightLocation] Erro ao salvar histórico:', historyError.message);
+          // Para service_requests, freight_id FK pode não existir - salvar sem FK
+          if (historyError.message?.includes('foreign key') || historyError.message?.includes('violates')) {
+            console.warn('[OngoingFreightLocation] FK constraint - salvando histórico sem freight_id');
+            const { error: historyRetryError } = await supabase.rpc('insert_driver_location_history', {
+              p_driver_profile_id: driverProfileId,
+              p_freight_id: null,
+              p_lat: location.lat,
+              p_lng: location.lng,
+              p_accuracy: location.accuracy ?? null,
+              p_heading: location.heading ?? null,
+              p_speed: location.speed ?? null
+            });
+            if (historyRetryError) {
+              console.warn('[OngoingFreightLocation] Erro ao salvar histórico (retry):', historyRetryError.message);
+            }
+          } else {
+            console.warn('[OngoingFreightLocation] Erro ao salvar histórico:', historyError.message);
+          }
         }
       }
 

@@ -94,12 +94,12 @@ export const useActiveFreight = (): ActiveFreightInfo => {
           }
         }
 
-        // Verificar serviços urbanos (GUINCHO/MUDANCA)
+        // Verificar serviços urbanos (GUINCHO/MUDANCA/PET/PACOTES)
         const { data: services } = await supabase
           .from('service_requests')
           .select('id, status')
           .eq('provider_id', profile.id)
-          .in('status', ['ACCEPTED', 'IN_PROGRESS'])
+          .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
           .limit(1)
           .maybeSingle();
 
