@@ -54,7 +54,7 @@ function getServiceLabel(type: string) {
 }
 
 // Statuses considered "active" (not finalized)
-const ACTIVE_SERVICE_STATUSES = ['PENDING', 'ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'];
+const ACTIVE_SERVICE_STATUSES = ['PENDING', 'OPEN', 'ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'];
 const ACTIVE_FREIGHT_STATUSES = ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION', 'LOADING', 'IN_TRANSIT'] as const;
 
 export const MyRequestsTab: React.FC = () => {

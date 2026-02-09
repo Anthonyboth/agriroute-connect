@@ -124,15 +124,37 @@ export function useFreightHistory(options: UseFreightHistoryOptions = {}) {
     staleTime: 2 * 60 * 1000,
   });
 
+  // Query para transportes (PET, Pacotes) do service_request_history — onde o usuário é o client_id
+  const TRANSPORT_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES'];
+  const transportHistoryQuery = useQuery({
+    queryKey: ['transport-history-as-client', profile?.id, limit],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from('service_request_history')
+        .select('*')
+        .eq('client_id', profile.id)
+        .in('service_type', TRANSPORT_TYPES)
+        .order('completed_at', { ascending: false, nullsFirst: false })
+        .limit(limit);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+    staleTime: 2 * 60 * 1000,
+  });
+
   return {
     freightHistory: freightHistoryQuery.data || [],
     assignmentHistory: assignmentHistoryQuery.data || [],
-    isLoading: freightHistoryQuery.isLoading || assignmentHistoryQuery.isLoading,
-    isError: freightHistoryQuery.isError || assignmentHistoryQuery.isError,
-    error: freightHistoryQuery.error || assignmentHistoryQuery.error,
+    transportHistory: transportHistoryQuery.data || [],
+    isLoading: freightHistoryQuery.isLoading || assignmentHistoryQuery.isLoading || transportHistoryQuery.isLoading,
+    isError: freightHistoryQuery.isError || assignmentHistoryQuery.isError || transportHistoryQuery.isError,
+    error: freightHistoryQuery.error || assignmentHistoryQuery.error || transportHistoryQuery.error,
     refetch: () => {
       freightHistoryQuery.refetch();
       assignmentHistoryQuery.refetch();
+      transportHistoryQuery.refetch();
     },
   };
 }
