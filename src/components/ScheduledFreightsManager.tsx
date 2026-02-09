@@ -16,6 +16,75 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ScheduledFreightCard } from './ScheduledFreightCard';
 import { getDaysUntilPickup, isScheduledFreight } from '@/utils/freightDateHelpers';
 
+/**
+ * Enriquece fretes com dados dos participantes (produtor e motorista)
+ * para exibição no card de fretes agendados.
+ */
+const enrichFreightsWithParticipants = async (freights: any[], profile: any) => {
+  if (!freights.length) return freights;
+
+  // Coletar IDs de produtores e fretes
+  const producerIds = [...new Set(freights.map(f => f.producer_id).filter(Boolean))];
+  const freightIds = freights.map(f => f.id);
+
+  // Buscar perfis de produtores
+  let producerMap: Record<string, any> = {};
+  if (producerIds.length > 0) {
+    const { data: producers } = await (supabase as any)
+      .from('profiles_secure')
+      .select('id, full_name, profile_photo_url, rating, total_ratings')
+      .in('id', producerIds);
+    if (producers) {
+      producerMap = Object.fromEntries(producers.map((p: any) => [p.id, p]));
+    }
+  }
+
+  // Buscar motoristas atribuídos via freight_assignments
+  let driverAssignments: Record<string, any[]> = {};
+  if (freightIds.length > 0) {
+    const { data: assignments } = await supabase
+      .from('freight_assignments')
+      .select('freight_id, driver_id, agreed_price, status')
+      .in('freight_id', freightIds)
+      .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT']);
+
+    if (assignments && assignments.length > 0) {
+      // Agrupar por freight_id
+      for (const a of assignments) {
+        if (!driverAssignments[a.freight_id]) driverAssignments[a.freight_id] = [];
+        driverAssignments[a.freight_id].push(a);
+      }
+
+      // Buscar perfis dos motoristas
+      const driverIds = [...new Set(assignments.map(a => a.driver_id).filter(Boolean))];
+      if (driverIds.length > 0) {
+        const { data: drivers } = await (supabase as any)
+          .from('profiles_secure')
+          .select('id, full_name, profile_photo_url, rating, total_ratings')
+          .in('id', driverIds);
+        
+        if (drivers) {
+          const driverMap = Object.fromEntries(drivers.map((d: any) => [d.id, d]));
+          // Enriquecer assignments com perfil do motorista
+          for (const freightId of Object.keys(driverAssignments)) {
+            driverAssignments[freightId] = driverAssignments[freightId].map(a => ({
+              ...a,
+              driver_profile: driverMap[a.driver_id] || null,
+            }));
+          }
+        }
+      }
+    }
+  }
+
+  // Enriquecer cada frete
+  return freights.map(f => ({
+    ...f,
+    producer: f.producer_id ? producerMap[f.producer_id] || null : null,
+    assigned_drivers: driverAssignments[f.id] || [],
+  }));
+};
+
 // Helper para obter data efetiva (scheduled_date ou pickup_date como fallback)
 const getEffectiveDate = (freight: any): string | null => {
   return freight.scheduled_date || freight.pickup_date || null;
@@ -204,7 +273,9 @@ export const ScheduledFreightsManager: React.FC = () => {
           dates: freightsData.map((f: any) => ({ id: f.id, pickup_date: f.pickup_date, status: f.status }))
         });
 
-        setScheduledFreights(freightsData);
+        // ✅ Enriquecer com dados dos participantes (produtor/motorista)
+        const enrichedFreights = await enrichFreightsWithParticipants(freightsData, profile);
+        setScheduledFreights(enrichedFreights);
       } catch (queryError) {
         console.error('Erro na query de agendados:', queryError);
         throw queryError;

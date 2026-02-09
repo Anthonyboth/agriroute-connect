@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle, User, Truck as TruckIcon } from 'lucide-react';
 import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
 import { ChatModal } from '@/components/ChatModal';
 import type { ChatConversation } from '@/hooks/useUnifiedChats';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
+import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
 
 interface ScheduledFreightCardProps {
   freight: any;
@@ -38,7 +39,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
     unreadCount: 0,
     otherParticipant: {
       name: userRole === 'PRODUTOR' 
-        ? (freight.profiles?.full_name || 'Motorista')
+        ? (freight.assigned_drivers?.[0]?.driver_profile?.full_name || freight.profiles?.full_name || 'Motorista')
         : (freight.producer?.full_name || 'Produtor')
     },
     participants: [],
@@ -47,6 +48,14 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
   };
 
   const badgeInfo = getPickupDateBadge(freight.pickup_date || freight.scheduled_date);
+
+  // Determinar participantes a exibir
+  const producer = freight.producer;
+  const assignedDrivers: any[] = freight.assigned_drivers || [];
+  const primaryDriver = assignedDrivers[0]?.driver_profile || null;
+  const primaryDriverId = assignedDrivers[0]?.driver_id || freight.driver_id || null;
+  const requiredTrucks = freight.required_trucks ?? 1;
+  const isMultiTruck = requiredTrucks > 1;
 
   return (
     <>
@@ -77,6 +86,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-3 flex-1 overflow-hidden">
+          {/* Detalhes do Frete */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">
               <Weight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -96,10 +106,108 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
             </span>
           </div>
 
+          {/* ✅ Informações dos Participantes */}
+          <div className="border-t pt-3 space-y-3">
+            {/* Motorista vendo Produtor */}
+            {(userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO') && producer && (
+              <div className="flex items-center gap-3">
+                {producer.profile_photo_url ? (
+                  <img 
+                    src={producer.profile_photo_url} 
+                    alt="Foto do produtor"
+                    className="h-8 w-8 rounded-full object-cover border"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Produtor</p>
+                  <p className="text-sm font-medium truncate">{producer.full_name}</p>
+                  {producer.rating && (
+                    <p className="text-xs text-muted-foreground">
+                      ⭐ {Number(producer.rating).toFixed(1)} ({producer.total_ratings || 0})
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Produtor vendo Motorista(s) */}
+            {userRole === 'PRODUTOR' && assignedDrivers.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">
+                  {isMultiTruck 
+                    ? `Motoristas (${assignedDrivers.length}/${requiredTrucks} carretas)` 
+                    : 'Motorista'}
+                </p>
+                {assignedDrivers.map((assignment: any, idx: number) => {
+                  const driver = assignment.driver_profile;
+                  if (!driver) return null;
+                  return (
+                    <div key={assignment.driver_id || idx} className="flex items-center gap-3">
+                      {driver.profile_photo_url ? (
+                        <img 
+                          src={driver.profile_photo_url} 
+                          alt="Foto do motorista"
+                          className="h-8 w-8 rounded-full object-cover border"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{driver.full_name}</p>
+                        {driver.rating && (
+                          <p className="text-xs text-muted-foreground">
+                            ⭐ {Number(driver.rating).toFixed(1)} ({driver.total_ratings || 0})
+                          </p>
+                        )}
+                      </div>
+                      {assignment.agreed_price && (
+                        <span className="text-xs text-primary font-medium whitespace-nowrap">
+                          {formatBRL(assignment.agreed_price)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Produtor sem motorista atribuído */}
+            {userRole === 'PRODUTOR' && assignedDrivers.length === 0 && (
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center border border-dashed">
+                  <TruckIcon className="h-4 w-4 text-muted-foreground/50" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Motorista</p>
+                  <p className="text-sm text-muted-foreground italic">Aguardando motorista</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ✅ Preview do veículo do motorista (para produtor) */}
+          {userRole === 'PRODUTOR' && primaryDriverId && (
+            <DriverVehiclePreview driverId={primaryDriverId} />
+          )}
+
+          {/* ✅ Valor do Frete */}
           <div className="pt-2 border-t">
             <div className="text-2xl font-bold text-primary">
               {formatBRL(freight.price)}
             </div>
+            {isMultiTruck && (
+              <p className="text-xs text-muted-foreground">
+                {requiredTrucks} carretas × {formatBRL(freight.price / requiredTrucks)} por carreta
+              </p>
+            )}
           </div>
         </CardContent>
 
@@ -166,7 +274,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
   );
 };
 
-// ✅ PHASE 1: Memoização para evitar re-renders desnecessários em listas
+// ✅ Memoização para evitar re-renders desnecessários em listas
 export const ScheduledFreightCard = React.memo(ScheduledFreightCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.freight.id === nextProps.freight.id &&
@@ -175,6 +283,8 @@ export const ScheduledFreightCard = React.memo(ScheduledFreightCardComponent, (p
     prevProps.freight.pickup_date === nextProps.freight.pickup_date &&
     prevProps.userRole === nextProps.userRole &&
     prevProps.userProfileId === nextProps.userProfileId &&
-    prevProps.onWithdraw === nextProps.onWithdraw
+    prevProps.onWithdraw === nextProps.onWithdraw &&
+    prevProps.freight.assigned_drivers?.length === nextProps.freight.assigned_drivers?.length &&
+    prevProps.freight.producer?.full_name === nextProps.freight.producer?.full_name
   );
 });
