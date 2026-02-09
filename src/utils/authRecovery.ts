@@ -32,7 +32,7 @@ export function clearSupabaseAuthStorage() {
   } catch {}
 }
 
-export async function forceLogoutAndRedirect(redirectTo: string = '/auth') {
+export async function forceLogoutAndRedirect(redirectTo: string = '/') {
   try {
     await supabase.auth.signOut({ scope: 'local' });
   } catch {}

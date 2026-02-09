@@ -135,7 +135,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!accessToken) {
           console.warn('[SubscriptionContext] No valid access token available');
           // Se o app acredita que há usuário mas não há token válido, forçar logout.
-          await forceLogoutAndRedirect('/auth');
+          await forceLogoutAndRedirect('/');
           break;
         }
         
@@ -166,7 +166,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Sessão inválida e não conseguimos recuperar → logout para evitar loop de 401.
           if (isSessionError) {
-            await forceLogoutAndRedirect('/auth');
+            await forceLogoutAndRedirect('/');
             return;
           }
           
