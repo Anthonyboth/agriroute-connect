@@ -72,16 +72,63 @@ serve(async (req) => {
         )
       `)
       .eq("id", freight_id)
-      .single();
+      .maybeSingle();
 
-    if (freightError || !freight) {
-      console.error(`[CHECK-FREIGHT-REQUESTER] Frete não encontrado - ${freightError?.message}`);
+    // ✅ Se não encontrou em freights, tentar em service_requests (PET, Pacotes, etc.)
+    if (!freight) {
+      console.log(`[CHECK-FREIGHT-REQUESTER] Não encontrado em freights, buscando em service_requests...`);
+      
+      const { data: serviceRequest, error: srError } = await supabase
+        .from("service_requests")
+        .select(`
+          id,
+          status,
+          client_id,
+          client:profiles!service_requests_client_id_fkey (
+            id,
+            user_id,
+            full_name,
+            status
+          )
+        `)
+        .eq("id", freight_id)
+        .maybeSingle();
+
+      if (srError || !serviceRequest) {
+        console.error(`[CHECK-FREIGHT-REQUESTER] Também não encontrado em service_requests - freights: ${freightError?.message}, sr: ${srError?.message}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: "Frete ou solicitação não encontrado" 
+          }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Service request encontrada - client_id é o solicitante
+      const client = serviceRequest.client as any;
+      const clientExists = client != null && client.id != null;
+      const requesterType = clientExists ? 'REGISTERED' : 'GUEST';
+      
+      console.log(`[CHECK-FREIGHT-REQUESTER] Service request encontrada:`, JSON.stringify({
+        service_request_id: freight_id,
+        client_id: serviceRequest.client_id,
+        client_exists: clientExists,
+        requester_type: requesterType,
+      }));
+
       return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: "Frete não encontrado" 
+        JSON.stringify({
+          success: true,
+          requester: {
+            type: requesterType,
+            has_registration: clientExists,
+            producer_id: serviceRequest.client_id,
+            producer_name: client?.full_name || null,
+            producer_status: client?.status || null
+          }
         }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
