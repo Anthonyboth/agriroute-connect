@@ -31,6 +31,7 @@ const statusLabel = (status: string) => {
     LOADING: "A Caminho da Coleta",
     LOADED: "Carregado",
     IN_TRANSIT: "Em Transporte",
+    ON_THE_WAY: "A Caminho",
     DELIVERED: "Entregue",
     DELIVERED_PENDING_CONFIRMATION: "Entrega Reportada",
     COMPLETED: "Concluído",
@@ -44,7 +45,7 @@ const statusLabel = (status: string) => {
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   if (["COMPLETED", "DELIVERED"].includes(status)) return "default";
-  if (["IN_TRANSIT", "LOADING", "IN_PROGRESS", "ACCEPTED", "LOADED"].includes(status)) return "secondary";
+  if (["IN_TRANSIT", "LOADING", "IN_PROGRESS", "ACCEPTED", "LOADED", "ON_THE_WAY"].includes(status)) return "secondary";
   if (["CANCELLED", "REJECTED"].includes(status)) return "destructive";
   return "outline";
 };
@@ -104,20 +105,19 @@ export const DriverOngoingTab: React.FC = () => {
     setSelectedFreightId(freightId);
   }, []);
 
-  const handleCompleteService = useCallback(async (serviceId: string) => {
+  const handleTransitionService = useCallback(async (serviceId: string, targetStatus: string, successMsg: string) => {
     try {
-      const { error } = await supabase
-        .from("service_requests")
-        .update({ status: "COMPLETED" })
-        .eq("id", serviceId)
-        .eq("provider_id", driverProfileId);
+      const { data, error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: serviceId,
+        p_next_status: targetStatus,
+      });
 
       if (error) throw error;
-      toast.success("Chamado finalizado com sucesso!");
+      toast.success(successMsg);
       refetch();
     } catch (e: any) {
       console.error(e);
-      toast.error("Falha ao finalizar o chamado.");
+      toast.error("Falha ao atualizar status do chamado.");
     }
   }, [driverProfileId, refetch]);
 
@@ -341,22 +341,17 @@ export const DriverOngoingTab: React.FC = () => {
                           <Button
                             className="w-full"
                             variant="secondary"
-                            onClick={async () => {
-                              try {
-                                const { error } = await supabase
-                                  .from("service_requests")
-                                  .update({ status: "IN_PROGRESS" })
-                                  .eq("id", r.id)
-                                  .eq("provider_id", driverProfileId)
-                                  .in("status", ["ACCEPTED"]);
-                                if (error) throw error;
-                                toast.success("Atendimento iniciado!");
-                                refetch();
-                              } catch (e: any) {
-                                console.error(e);
-                                toast.error("Falha ao atualizar status do chamado.");
-                              }
-                            }}
+                            onClick={() => handleTransitionService(r.id, "ON_THE_WAY", "A caminho do local!")}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            A Caminho
+                          </Button>
+                        )}
+                        {r.status === "ON_THE_WAY" && (
+                          <Button
+                            className="w-full"
+                            variant="secondary"
+                            onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Atendimento iniciado!")}
                           >
                             <Play className="h-4 w-4 mr-2" />
                             Iniciar Atendimento
@@ -365,7 +360,7 @@ export const DriverOngoingTab: React.FC = () => {
                         {r.status === "IN_PROGRESS" && (
                           <Button
                             className="w-full"
-                            onClick={() => handleCompleteService(r.id)}
+                            onClick={() => handleTransitionService(r.id, "COMPLETED", "Chamado finalizado com sucesso!")}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Finalizar Chamado
