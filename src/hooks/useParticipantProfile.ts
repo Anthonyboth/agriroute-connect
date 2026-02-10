@@ -123,11 +123,13 @@ export const useParticipantProfile = (
         ]);
         completedFreights = (directResult.count || 0) + (assignmentResult.count || 0);
       } else {
+        // Para produtores, "Fretes Contratados" = todos os fretes que tiveram motorista aceito
+        // (não apenas DELIVERED/COMPLETED, mas qualquer status pós-aceitação)
         const { count } = await supabase
           .from('freights')
           .select('*', { count: 'exact', head: true })
           .eq('producer_id', userId)
-          .in('status', ['DELIVERED', 'COMPLETED']);
+          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']);
         completedFreights = count || 0;
       }
 
