@@ -25,6 +25,7 @@ import { NotificationPreferencesModal } from '@/components/NotificationPreferenc
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { AffiliationDetailsModal } from '@/components/AffiliationDetailsModal';
 import { playSoundNotification } from '@/utils/playSound';
+import { TutorialReplayButton } from '@/tutorial';
 
 interface User {
   name: string;
@@ -173,6 +174,9 @@ const Header: React.FC<HeaderProps> = ({
             
             {/* Spacer - pushes navigation to right */}
             <div className="flex-1" />
+
+            {/* Tutorial Replay Button */}
+            <TutorialReplayButton className="mr-2" />
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">

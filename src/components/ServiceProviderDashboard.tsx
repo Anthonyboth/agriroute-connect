@@ -1202,6 +1202,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             <TabsTrigger 
                 value="pending" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                data-tutorial="sp-available"
               >
                 <Brain className="h-3 w-3 mr-1" />
                 Disponível
@@ -1209,6 +1210,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <TabsTrigger
                 value="accepted" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                data-tutorial="tab-ongoing"
               >
                 <Play className="h-3 w-3 mr-1" />
                 Em Andamento
@@ -1216,6 +1218,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <TabsTrigger 
                 value="completed" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                data-tutorial="tab-completed"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Concluídos
@@ -1284,6 +1287,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <TabsTrigger
                 value="reports" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                data-tutorial="tab-reports"
               >
                 <TrendingUp className="h-3 w-3 mr-1" />
                 Relatórios

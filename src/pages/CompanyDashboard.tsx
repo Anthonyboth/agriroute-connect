@@ -689,6 +689,11 @@ const CompanyDashboard = () => {
                     key={tab.value}
                     value={tab.value}
                     className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    {...(tab.value === 'freights' ? { 'data-tutorial': 'company-freights' } :
+                         tab.value === 'drivers' ? { 'data-tutorial': 'company-drivers' } :
+                         tab.value === 'ongoing' ? { 'data-tutorial': 'tab-ongoing' } :
+                         tab.value === 'history' ? { 'data-tutorial': 'tab-history' } :
+                         tab.value === 'reports' ? { 'data-tutorial': 'tab-reports' } : {})}
                   >
                     <Icon className="h-3 w-3 mr-1" />
                     <span className="hidden sm:inline" translate="no">{tab.label}</span>

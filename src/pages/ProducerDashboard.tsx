@@ -1541,6 +1541,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="ongoing"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-ongoing"
               >
                 <Play className="h-3 w-3 mr-1" />
                 Em Andamento
@@ -1578,6 +1579,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="history"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-history"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Histórico
@@ -1623,6 +1625,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="reports"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-reports"
               >
                 <BarChart className="h-3 w-3 mr-1" />
                 Relatórios
