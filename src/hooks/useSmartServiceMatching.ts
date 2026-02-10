@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useMatchExposures } from './useMatchExposures';
+import { useMatchDebug } from './useMatchDebug';
 
 export interface MatchedService {
   id: string;
@@ -52,6 +53,7 @@ export interface SmartServiceMatchingResult {
 export const useSmartServiceMatching = (): SmartServiceMatchingResult => {
   const { profile } = useAuth();
   const { registerExposures, clearExpiredExposures } = useMatchExposures();
+  const { startDebug, finishDebug } = useMatchDebug();
   const [services, setServices] = useState<MatchedService[]>([]);
   const [userCities, setUserCities] = useState<UserCityConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +111,6 @@ export const useSmartServiceMatching = (): SmartServiceMatchingResult => {
     setError(null);
 
     try {
-      // Buscar configuração de cidades em paralelo com serviços
       const [citiesResult, servicesResult] = await Promise.all([
         fetchUserCities(),
         supabase.rpc('get_services_for_provider', { p_provider_id: profile.id })
@@ -117,35 +118,45 @@ export const useSmartServiceMatching = (): SmartServiceMatchingResult => {
 
       setUserCities(citiesResult);
 
+      const debugFilters = {
+        radius_km: 300,
+        city_ids: citiesResult.map(c => c.city_id),
+        service_types: profile?.service_types || [],
+        only_status: ['OPEN'],
+      };
+      const debugRequestId = await startDebug('PROVIDER_FEED', debugFilters);
+
       if (servicesResult.error) throw servicesResult.error;
 
-      // A RPC já faz toda a filtragem - confiar nos resultados!
       const matchedServices = (servicesResult.data || []).map((s: any) => ({
-        id: s.id,
-        service_type: s.service_type,
-        location_address: s.location_address,
-        problem_description: s.problem_description,
-        urgency: s.urgency,
-        contact_phone: s.contact_phone,
-        contact_name: s.contact_name,
-        status: s.status,
-        created_at: s.created_at,
-        client_id: s.client_id,
-        city_name: s.city_name,
-        state: s.state,
-        location_lat: s.location_lat,
-        location_lng: s.location_lng,
-        distance_km: s.distance_km
+        id: s.id, service_type: s.service_type, location_address: s.location_address,
+        problem_description: s.problem_description, urgency: s.urgency,
+        contact_phone: s.contact_phone, contact_name: s.contact_name,
+        status: s.status, created_at: s.created_at, client_id: s.client_id,
+        city_name: s.city_name, state: s.state,
+        location_lat: s.location_lat, location_lng: s.location_lng, distance_km: s.distance_km
       }));
 
       setServices(matchedServices);
-
-      // Registrar exposures para dedupe
       registerExposures(matchedServices.map(s => ({ item_type: 'SERVICE' as const, item_id: s.id })));
+
+      // Debug finish
+      if (debugRequestId) {
+        await finishDebug(debugRequestId, {
+          candidates: -1, filtered_by_type: 0, filtered_by_city: 0,
+          filtered_by_radius: 0, filtered_by_status: 0, filtered_by_exposure: 0,
+          returned: matchedServices.length,
+        }, {
+          included: matchedServices.slice(0, 10).map(s => ({
+            item_type: 'SERVICE' as const, item_id: s.id,
+            reason: { matched_service_type: s.service_type, city_name: s.city_name, distance_km: s.distance_km },
+          })),
+          excluded: [],
+        });
+      }
 
       if (import.meta.env.DEV) {
         console.log('[useSmartServiceMatching] Serviços matched:', matchedServices.length);
-        console.log('[useSmartServiceMatching] Cidades configuradas:', citiesResult.length);
       }
     } catch (err: any) {
       console.error('[useSmartServiceMatching] Erro:', err);

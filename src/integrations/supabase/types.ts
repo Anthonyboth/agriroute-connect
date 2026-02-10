@@ -6881,6 +6881,48 @@ export type Database = {
         }
         Relationships: []
       }
+      match_debug_logs: {
+        Row: {
+          error: string | null
+          feed_type: string
+          filters: Json
+          finished_at: string | null
+          id: string
+          request_id: string
+          sample: Json
+          started_at: string
+          stats: Json
+          viewer_role: string
+          viewer_user_id: string
+        }
+        Insert: {
+          error?: string | null
+          feed_type: string
+          filters?: Json
+          finished_at?: string | null
+          id?: string
+          request_id?: string
+          sample?: Json
+          started_at?: string
+          stats?: Json
+          viewer_role: string
+          viewer_user_id: string
+        }
+        Update: {
+          error?: string | null
+          feed_type?: string
+          filters?: Json
+          finished_at?: string | null
+          id?: string
+          request_id?: string
+          sample?: Json
+          started_at?: string
+          stats?: Json
+          viewer_role?: string
+          viewer_user_id?: string
+        }
+        Relationships: []
+      }
       match_exposures: {
         Row: {
           city_id: string | null
@@ -12705,6 +12747,7 @@ export type Database = {
       }
       clean_expired_zip_cache: { Args: never; Returns: undefined }
       cleanup_expired_requests: { Args: never; Returns: undefined }
+      cleanup_match_debug_logs: { Args: never; Returns: number }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_location_history: { Args: never; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: number }
@@ -12952,6 +12995,15 @@ export type Database = {
           service_match: boolean
           service_types: string[]
         }[]
+      }
+      finish_match_debug: {
+        Args: {
+          p_error?: string
+          p_request_id: string
+          p_sample?: Json
+          p_stats?: Json
+        }
+        Returns: undefined
       }
       fix_freight_status_for_partial_bookings: {
         Args: never
@@ -13990,6 +14042,10 @@ export type Database = {
           p_type?: string
           p_user_id: string
         }
+        Returns: string
+      }
+      start_match_debug: {
+        Args: { p_feed_type: string; p_filters?: Json }
         Returns: string
       }
       sync_assignment_status_bulk: {

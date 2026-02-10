@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useMatchExposures } from './useMatchExposures';
+import { useMatchDebug, isMatchDebugEnabled } from './useMatchDebug';
 
 export interface MatchedFreight {
   id: string;
@@ -56,6 +57,7 @@ export interface SmartFreightMatchingResult {
 export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchingResult => {
   const { profile } = useAuth();
   const { registerExposures, clearExpiredExposures } = useMatchExposures();
+  const { startDebug, finishDebug } = useMatchDebug();
   const [freights, setFreights] = useState<MatchedFreight[]>([]);
   const [userCities, setUserCities] = useState<UserCityConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,8 +118,19 @@ export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchin
       const citiesResult = await fetchUserCities();
       setUserCities(citiesResult);
 
+      const feedType = companyId ? 'COMPANY_FEED' : 'DRIVER_FEED';
+      const debugFilters = {
+        radius_km: 300,
+        city_ids: citiesResult.map(c => c.city_id),
+        service_types: profile?.service_types || [],
+        only_status: ['OPEN'],
+        company_id: companyId || null,
+      };
+
+      // Start debug if enabled
+      const debugRequestId = await startDebug(feedType as any, debugFilters);
+
       if (companyId) {
-        // Fretes da transportadora - busca direta
         const { data, error: fetchError } = await supabase
           .from('freights')
           .select('*')
@@ -128,68 +141,66 @@ export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchin
         if (fetchError) throw fetchError;
 
         const mappedFreights = (data || []).map((f: any) => ({
-          id: f.id,
-          cargo_type: f.cargo_type,
-          weight: f.weight,
-          origin_address: f.origin_address,
-          origin_city: f.origin_city,
-          origin_state: f.origin_state,
-          destination_address: f.destination_address,
-          destination_city: f.destination_city,
-          destination_state: f.destination_state,
-          price: f.price,
-          distance_km: f.distance_km,
-          pickup_date: f.pickup_date,
-          delivery_date: f.delivery_date,
-          urgency: f.urgency,
-          status: f.status,
-          service_type: f.service_type,
-          created_at: f.created_at,
+          id: f.id, cargo_type: f.cargo_type, weight: f.weight,
+          origin_address: f.origin_address, origin_city: f.origin_city, origin_state: f.origin_state,
+          destination_address: f.destination_address, destination_city: f.destination_city, destination_state: f.destination_state,
+          price: f.price, distance_km: f.distance_km, pickup_date: f.pickup_date, delivery_date: f.delivery_date,
+          urgency: f.urgency, status: f.status, service_type: f.service_type, created_at: f.created_at,
           distance_to_origin_km: null
         }));
 
         setFreights(mappedFreights);
-
-        // Registrar exposures para dedupe
         registerExposures(mappedFreights.map(f => ({ item_type: 'FREIGHT' as const, item_id: f.id })));
+
+        // Debug: company feed returns all OPEN for company
+        if (debugRequestId) {
+          await finishDebug(debugRequestId, {
+            candidates: mappedFreights.length, filtered_by_type: 0, filtered_by_city: 0,
+            filtered_by_radius: 0, filtered_by_status: 0, filtered_by_exposure: 0, returned: mappedFreights.length,
+          }, {
+            included: mappedFreights.slice(0, 10).map(f => ({
+              item_type: 'FREIGHT' as const, item_id: f.id,
+              reason: { source: 'company_direct', city: f.origin_city, state: f.origin_state },
+            })),
+            excluded: [],
+          });
+        }
       } else {
-        // Usar RPC para motoristas independentes - já filtra por cidade e tipo
         const { data, error: rpcError } = await supabase.rpc(
-          'get_freights_for_driver',
-          { p_driver_id: profile.id }
+          'get_freights_for_driver', { p_driver_id: profile.id }
         );
 
         if (rpcError) throw rpcError;
 
         const mappedFreights = (data || []).map((f: any) => ({
-          id: f.id,
-          cargo_type: f.cargo_type,
-          weight: f.weight,
-          origin_address: f.origin_address,
-          origin_city: f.origin_city,
-          origin_state: f.origin_state,
-          destination_address: f.destination_address,
-          destination_city: f.destination_city,
-          destination_state: f.destination_state,
-          price: f.price,
-          distance_km: f.distance_km,
-          pickup_date: f.pickup_date,
-          delivery_date: f.delivery_date,
-          urgency: f.urgency,
-          status: f.status,
-          service_type: f.service_type,
-          created_at: f.created_at,
+          id: f.id, cargo_type: f.cargo_type, weight: f.weight,
+          origin_address: f.origin_address, origin_city: f.origin_city, origin_state: f.origin_state,
+          destination_address: f.destination_address, destination_city: f.destination_city, destination_state: f.destination_state,
+          price: f.price, distance_km: f.distance_km, pickup_date: f.pickup_date, delivery_date: f.delivery_date,
+          urgency: f.urgency, status: f.status, service_type: f.service_type, created_at: f.created_at,
           distance_to_origin_km: f.distance_to_origin_km
         }));
 
         setFreights(mappedFreights);
-
-        // Registrar exposures para dedupe
         registerExposures(mappedFreights.map(f => ({ item_type: 'FREIGHT' as const, item_id: f.id })));
+
+        // Debug: RPC already filters by city + type + exposure
+        if (debugRequestId) {
+          await finishDebug(debugRequestId, {
+            candidates: -1, // unknown pre-filter count from RPC
+            filtered_by_type: 0, filtered_by_city: 0, filtered_by_radius: 0,
+            filtered_by_status: 0, filtered_by_exposure: 0, returned: mappedFreights.length,
+          }, {
+            included: mappedFreights.slice(0, 10).map(f => ({
+              item_type: 'FREIGHT' as const, item_id: f.id,
+              reason: { matched_city: f.origin_city, matched_state: f.origin_state, distance_km: f.distance_km },
+            })),
+            excluded: [],
+          });
+        }
 
         if (import.meta.env.DEV) {
           console.log('[useSmartFreightMatching] Fretes matched:', mappedFreights.length);
-          console.log('[useSmartFreightMatching] Cidades configuradas:', citiesResult.length);
         }
       }
     } catch (err: any) {
