@@ -23,7 +23,7 @@ interface RouteResponse {
   geocoding_source?: { origin: string; destination: string };
 }
 
-// Fórmula de Haversine para calcular distância entre duas coordenadas
+// Fórmula de Haversine (fallback apenas se OSRM falhar)
 function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = toRad(lat2 - lat1);
@@ -37,6 +37,58 @@ function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lo
 
 function toRad(degrees: number): number {
   return degrees * (Math.PI / 180);
+}
+
+// Roteamento real via OSRM (Open Source Routing Machine) - distância por estradas reais
+async function fetchOSRMRoute(originLat: number, originLng: number, destLat: number, destLng: number): Promise<{ distance_km: number; duration_hours: number; route_points: Array<{ lat: number; lng: number }> } | null> {
+  try {
+    const coords = `${originLng},${originLat};${destLng},${destLat}`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+    
+    console.log(`[CALCULATE-ROUTE] OSRM request: ${url}`);
+    
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'AgriRoute/1.0' },
+    });
+
+    if (!response.ok) {
+      console.warn(`[CALCULATE-ROUTE] OSRM HTTP ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+      console.warn(`[CALCULATE-ROUTE] OSRM no route: ${data.code} - ${data.message || ''}`);
+      return null;
+    }
+
+    const route = data.routes[0];
+    const distance_km = Math.round(route.distance / 1000);
+    const duration_hours = Math.round((route.duration / 3600) * 10) / 10;
+    
+    // Extrair pontos da rota (simplificados)
+    const route_points: Array<{ lat: number; lng: number }> = [];
+    if (route.geometry?.coordinates) {
+      const coords = route.geometry.coordinates;
+      // Pegar no máximo 100 pontos para não sobrecarregar
+      const step = Math.max(1, Math.floor(coords.length / 100));
+      for (let i = 0; i < coords.length; i += step) {
+        route_points.push({ lat: coords[i][1], lng: coords[i][0] });
+      }
+      // Garantir que o último ponto está incluído
+      if (route_points.length > 0) {
+        const last = coords[coords.length - 1];
+        route_points.push({ lat: last[1], lng: last[0] });
+      }
+    }
+
+    console.log(`[CALCULATE-ROUTE] OSRM result: ${distance_km} km, ${duration_hours}h, ${route_points.length} points`);
+    return { distance_km, duration_hours, route_points };
+  } catch (e) {
+    console.warn('[CALCULATE-ROUTE] OSRM fetch failed:', e);
+    return null;
+  }
 }
 
 function normalizeCity(name: string): string {
@@ -199,22 +251,41 @@ serve(async (req) => {
     const originCoords = await resolveCoords(origin);
     const destCoords = await resolveCoords(destination);
 
-    let distance_km: number;
+    let distance_km: number = 0;
+    let duration_hours: number = 0;
+    let route_points: Array<{ lat: number; lng: number }> = [];
+    let routeSource: string = 'none';
     const geocodingSource = {
       origin: originCoords?.source || 'not_found',
       destination: destCoords?.source || 'not_found',
     };
 
     if (originCoords && destCoords) {
-      const haversine = calculateHaversineDistance(
+      // 1. Tentar OSRM (roteamento real por estradas) - MÉTODO PRIMÁRIO
+      const osrmResult = await fetchOSRMRoute(
         originCoords.lat, originCoords.lng,
         destCoords.lat, destCoords.lng
       );
-      // Fator de correção rodoviário (1.3x para estradas brasileiras)
-      distance_km = Math.round(haversine * 1.3);
-      console.log(`[CALCULATE-ROUTE] Haversine: ${haversine.toFixed(2)} km, Road estimate: ${distance_km} km (sources: ${geocodingSource.origin}, ${geocodingSource.destination})`);
+
+      if (osrmResult) {
+        distance_km = osrmResult.distance_km;
+        duration_hours = osrmResult.duration_hours;
+        route_points = osrmResult.route_points;
+        routeSource = 'osrm';
+        console.log(`[CALCULATE-ROUTE] ✅ OSRM real road distance: ${distance_km} km, ${duration_hours}h`);
+      } else {
+        // 2. Fallback: Haversine × 1.3 (estimativa)
+        const haversine = calculateHaversineDistance(
+          originCoords.lat, originCoords.lng,
+          destCoords.lat, destCoords.lng
+        );
+        distance_km = Math.round(haversine * 1.3);
+        duration_hours = Math.round((distance_km / 80) * 10) / 10;
+        routeSource = 'haversine_fallback';
+        console.warn(`[CALCULATE-ROUTE] ⚠️ OSRM failed, using Haversine fallback: ${distance_km} km`);
+      }
     } else {
-      // ERRO: Não conseguiu resolver coordenadas - retornar erro em vez de valor fixo falso
+      // ERRO: Não conseguiu resolver coordenadas
       console.error(`[CALCULATE-ROUTE] FAILED to resolve coordinates. Origin: ${originCoords ? 'OK' : 'MISSING'}, Dest: ${destCoords ? 'OK' : 'MISSING'}`);
       return new Response(JSON.stringify({
         error: 'Não foi possível calcular a distância',
@@ -231,7 +302,6 @@ serve(async (req) => {
       });
     }
 
-    const duration_hours = Math.round((distance_km / 80) * 10) / 10;
     const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
     const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
 
@@ -240,12 +310,12 @@ serve(async (req) => {
       duration_hours,
       toll_cost,
       fuel_cost,
-      route_points: [],
-      is_simulation: true,
+      route_points,
+      is_simulation: routeSource !== 'osrm',
       geocoding_source: geocodingSource,
     };
 
-    console.log('[CALCULATE-ROUTE] Result:', response);
+    console.log(`[CALCULATE-ROUTE] Result (${routeSource}):`, { distance_km, duration_hours, toll_cost, fuel_cost });
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
