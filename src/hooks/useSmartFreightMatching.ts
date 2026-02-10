@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useMatchExposures } from './useMatchExposures';
 
 export interface MatchedFreight {
   id: string;
@@ -54,6 +55,7 @@ export interface SmartFreightMatchingResult {
  */
 export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchingResult => {
   const { profile } = useAuth();
+  const { registerExposures, clearExpiredExposures } = useMatchExposures();
   const [freights, setFreights] = useState<MatchedFreight[]>([]);
   const [userCities, setUserCities] = useState<UserCityConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,6 +149,9 @@ export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchin
         }));
 
         setFreights(mappedFreights);
+
+        // Registrar exposures para dedupe
+        registerExposures(mappedFreights.map(f => ({ item_type: 'FREIGHT' as const, item_id: f.id })));
       } else {
         // Usar RPC para motoristas independentes - já filtra por cidade e tipo
         const { data, error: rpcError } = await supabase.rpc(
@@ -179,6 +184,9 @@ export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchin
 
         setFreights(mappedFreights);
 
+        // Registrar exposures para dedupe
+        registerExposures(mappedFreights.map(f => ({ item_type: 'FREIGHT' as const, item_id: f.id })));
+
         if (import.meta.env.DEV) {
           console.log('[useSmartFreightMatching] Fretes matched:', mappedFreights.length);
           console.log('[useSmartFreightMatching] Cidades configuradas:', citiesResult.length);
@@ -203,12 +211,17 @@ export const useSmartFreightMatching = (companyId?: string): SmartFreightMatchin
     (profile?.service_types && profile.service_types.length > 0) ||
     userCities.some(uc => uc.service_types && uc.service_types.length > 0);
 
+  const handleRefetch = useCallback(async () => {
+    await clearExpiredExposures();
+    await fetchFreights();
+  }, [clearExpiredExposures, fetchFreights]);
+
   return {
     freights,
     userCities,
     loading,
     error,
-    refetch: fetchFreights,
+    refetch: handleRefetch,
     hasConfiguredCities,
     hasConfiguredServiceTypes
   };
