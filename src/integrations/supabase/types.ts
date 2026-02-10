@@ -12885,11 +12885,11 @@ export type Database = {
       execute_freight_matching: {
         Args: { freight_uuid: string }
         Returns: {
-          distance_m: number
-          driver_area_id: string
-          driver_id: string
-          match_score: number
-          match_type: string
+          out_distance_m: number
+          out_driver_area_id: string
+          out_driver_id: string
+          out_match_score: number
+          out_match_type: string
         }[]
       }
       execute_service_matching: {
