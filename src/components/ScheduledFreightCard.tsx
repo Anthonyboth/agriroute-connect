@@ -223,7 +223,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
                   </div>
                   {isMultiTruck && isDriver && (
                     <p className="text-xs text-muted-foreground">
-                      Valor por carreta (total: {formatBRL(freight.price)})
+                      Valor por carreta
                     </p>
                   )}
                   {isMultiTruck && !isDriver && (
