@@ -305,6 +305,8 @@ export function useUnifiedMatchFeed({
       origin_address: f.origin_address,
       destination_address: f.destination_address,
       distance_to_origin_km: f.distance_to_origin_km,
+      vehicle_type_required: f.vehicle_type_required || undefined,
+      vehicle_axles_required: f.vehicle_axles_required || undefined,
     },
   });
 

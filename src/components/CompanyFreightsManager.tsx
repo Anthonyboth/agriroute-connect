@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, MapPin, UserPlus, XCircle } from 'lucide-react';
+import { Package, MapPin, UserPlus, XCircle, Truck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
+import { getVehicleTypeLabel } from '@/lib/vehicle-types';
 
 export const CompanyFreightsManager: React.FC = () => {
   const { company } = useTransportCompany();
@@ -194,6 +195,18 @@ export const CompanyFreightsManager: React.FC = () => {
                   <p className="text-muted-foreground">Data de Coleta</p>
                   <p className="font-medium">{formatDate(freight.pickup_date)}</p>
                 </div>
+                {freight.vehicle_type_required && (
+                  <div>
+                    <p className="text-muted-foreground">Veículo Preferencial</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Truck className="h-3 w-3 text-primary" />
+                      {getVehicleTypeLabel(freight.vehicle_type_required)}
+                      {freight.vehicle_axles_required > 0 && (
+                        <span className="text-xs text-muted-foreground">({freight.vehicle_axles_required} eixos)</span>
+                      )}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-muted-foreground">Motorista</p>
                   <p className="font-medium">{freight.driver?.full_name || 'Aguardando'}</p>
