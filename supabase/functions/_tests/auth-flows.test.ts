@@ -336,7 +336,7 @@ describe('Redirect Logic', () => {
     });
     
     it('deve mapear MOTORISTA_AFILIADO para /dashboard/driver', () => {
-      const role = 'MOTORISTA_AFILIADO';
+      const role: string = 'MOTORISTA_AFILIADO';
       let targetRoute = '/';
       
       if (role === 'MOTORISTA' || role === 'MOTORISTA_AFILIADO') {
