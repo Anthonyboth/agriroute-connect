@@ -13259,6 +13259,8 @@ export type Database = {
           service_type: string
           status: string
           urgency: string
+          vehicle_axles_required: number
+          vehicle_type_required: string
           weight: number
         }[]
       }

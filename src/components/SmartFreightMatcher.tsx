@@ -68,6 +68,8 @@ interface CompatibleFreight {
   required_trucks: number;
   accepted_trucks: number;
   created_at: string;
+  vehicle_type_required?: string;
+  vehicle_axles_required?: number;
 }
 
 interface SmartFreightMatcherProps {
@@ -222,6 +224,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           required_trucks: f.required_trucks || 1,
           accepted_trucks: f.accepted_trucks || 0,
           created_at: f.created_at,
+          vehicle_type_required: f.vehicle_type_required || undefined,
+          vehicle_axles_required: f.vehicle_axles_required || undefined,
         }));
 
         // Check if driver has cities configured (empty result = no cities)
@@ -272,6 +276,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             required_trucks: f.required_trucks || 1,
             accepted_trucks: f.accepted_trucks || 0,
             created_at: f.created_at,
+            vehicle_type_required: f.vehicle_type_required || undefined,
+            vehicle_axles_required: f.vehicle_axles_required || undefined,
           }));
       }
 
@@ -761,6 +767,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                           required_trucks: freight.required_trucks,
                           accepted_trucks: freight.accepted_trucks,
                           service_type: freight.service_type as any,
+                          vehicle_type_required: freight.vehicle_type_required,
+                          vehicle_axles_required: freight.vehicle_axles_required,
                         }}
                         onAction={(action) => handleFreightAction(freight.freight_id, action)}
                         showActions={true}
