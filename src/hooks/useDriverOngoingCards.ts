@@ -7,6 +7,7 @@ import {
   ONGOING_SERVICE_TYPES,
   SERVICE_ONGOING_STATUSES,
 } from "@/constants/freightRules";
+import { isInProgressFreight } from "@/utils/freightDateHelpers";
 
 /**
  * ========================================================================
@@ -348,9 +349,15 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       );
       const freightsWithoutAssignmentDuplicates = uniqueFreights.filter((f) => !assignmentFreightIdsSet.has(f.id));
 
+      // ✅ REGRA CRÍTICA: Fretes ACCEPTED com pickup_date futura são AGENDADOS, não "Em Andamento"
+      // Usar isInProgressFreight para filtrar corretamente
+      const freightsInProgress = freightsWithoutAssignmentDuplicates.filter((f) =>
+        isInProgressFreight(f.pickup_date, f.status)
+      );
+
       // ✅ FALLBACK: Buscar dados dos produtores via profiles_secure (evita bloqueio por RLS)
       const allFreightsForProducerLookup = [
-        ...freightsWithoutAssignmentDuplicates,
+        ...freightsInProgress,
         ...(assignments || []).map((a: any) => a.freight).filter(Boolean)
       ];
       const producerIds = [...new Set(allFreightsForProducerLookup.map(f => f.producer_id).filter(Boolean))];
@@ -370,7 +377,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       }
 
       // Enriquecer fretes com dados do produtor
-      const enrichedFreights = freightsWithoutAssignmentDuplicates.map(f => ({
+      const enrichedFreights = freightsInProgress.map(f => ({
         ...f,
         producer: f.producer_id ? producerMap[f.producer_id] || null : null,
         // ✅ REGRA: preferir o valor unitário persistido na criação (metadata.price_per_truck)
@@ -385,7 +392,12 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         })(),
       }));
 
-      const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).map((a: any) => ({
+      const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).filter((a: any) => {
+        // ✅ REGRA CRÍTICA: Assignments com pickup_date futura e status ACCEPTED são AGENDADOS
+        const freight = a.freight;
+        if (!freight) return false;
+        return isInProgressFreight(freight.pickup_date, a.status);
+      }).map((a: any) => ({
         ...a,
         freight: a.freight ? {
           ...a.freight,
