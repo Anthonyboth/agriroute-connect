@@ -53,7 +53,7 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Delay to let dashboard render
     const timer = setTimeout(() => {
-      if (shouldAutoStartTutorial(profileId)) {
+      if (shouldAutoStartTutorial(profileId, createdAt)) {
         const roleSteps = getStepsForRole(role);
         setSteps(roleSteps);
         setCurrentStep(0);
@@ -63,7 +63,7 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [profileId, role]);
+  }, [profileId, role, createdAt]);
 
   const startTutorial = useCallback(() => {
     if (!profileId || !role) return;
