@@ -62,10 +62,25 @@ serve(async (req) => {
       query = query.eq('freight_id', freight_id);
     }
 
-    const { data: mdfe, error: mdfeError } = await query.single();
+    const { data: mdfe, error: mdfeError } = await query.maybeSingle();
 
-    if (mdfeError || !mdfe) {
-      throw new Error('MDFe não encontrado');
+    if (mdfeError) {
+      console.error('[MDFe Consultar] Erro na query:', mdfeError);
+      throw new Error('Erro ao consultar MDFe');
+    }
+
+    if (!mdfe) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mdfe: null,
+          message: 'Nenhum MDFe encontrado para este frete',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
     }
 
     // Check user permission to view
