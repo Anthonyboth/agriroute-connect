@@ -12,7 +12,7 @@ export const RURAL_STYLE_URL = '/styles/rural-dark.json';
 export const RURAL_STYLE_INLINE: maplibregl.StyleSpecification = {
   version: 8,
   name: 'AgriRoute Rural',
-  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+  glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
   sources: {
     carto: {
       type: 'raster',

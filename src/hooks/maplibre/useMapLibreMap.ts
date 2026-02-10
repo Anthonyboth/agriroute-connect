@@ -69,6 +69,7 @@ function isNetworkTileError(error: any): boolean {
   if (url.includes('tile.openstreetmap.org')) return true;
   if (url.includes('basemaps.cartocdn.com')) return true;
   if (url.includes('demotiles.maplibre.org')) return true;
+  if (url.includes('fonts.openmaptiles.org')) return true;
   
   return false;
 }
