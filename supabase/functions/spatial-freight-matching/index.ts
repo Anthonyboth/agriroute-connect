@@ -154,8 +154,15 @@ serve(async (req) => {
 
       console.log(`[Spatial Matching] Found ${matchResults?.length || 0} potential matches`);
 
-      // Enrich matches with driver information
-      const driverIds = [...new Set((matchResults || []).map((match: any) => match.driver_id))];
+      // Map output column names (out_driver_id -> driver_id) from the RPC
+      const normalizedResults = (matchResults || []).map((m: any) => ({
+        driver_id: m.out_driver_id || m.driver_id,
+        driver_area_id: m.out_driver_area_id || m.driver_area_id,
+        match_type: m.out_match_type || m.match_type,
+        distance_m: m.out_distance_m ?? m.distance_m,
+        match_score: m.out_match_score ?? m.match_score,
+      }));
+      const driverIds = [...new Set(normalizedResults.map((match: any) => match.driver_id))];
       
       let enrichedMatches: DriverAreaData[] = [];
       if (driverIds.length > 0) {
@@ -166,7 +173,7 @@ serve(async (req) => {
           .eq('role', 'MOTORISTA')
           .eq('status', 'APPROVED');
 
-        const areaIds = (matchResults || []).map((match: any) => match.driver_area_id);
+        const areaIds = normalizedResults.map((match: any) => match.driver_area_id);
         const { data: userCities } = await supabaseService
           .from('user_cities')
           .select(`
@@ -176,7 +183,7 @@ serve(async (req) => {
           `)
           .in('id', areaIds);
 
-        enrichedMatches = (matchResults || []).map((match: any) => {
+        enrichedMatches = normalizedResults.map((match: any) => {
           const driverProfile = driverProfiles?.find(p => p.id === match.driver_id);
           const userCity = userCities?.find((uc: any) => uc.id === match.driver_area_id);
 
