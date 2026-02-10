@@ -1515,6 +1515,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="freights-open"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-freights-open"
               >
                 <Truck className="h-3 w-3 mr-1" />
                 Fretes
@@ -1528,6 +1529,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="services-open"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-services-open"
               >
                 <Wrench className="h-3 w-3 mr-1" />
                 Serviços
@@ -1550,6 +1552,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="confirm-delivery"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-confirm-delivery"
               >
                 <Clock className="h-3 w-3 mr-1" />
                 Confirmar Entrega
@@ -1563,6 +1566,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="proposals"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-proposals"
               >
                 <Users className="h-3 w-3 mr-1" />
                 Propostas
@@ -1588,6 +1592,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="payments"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-payments"
               >
                 <CreditCard className="h-3 w-3 mr-1" />
                 Pagamentos
@@ -1604,6 +1609,7 @@ const ProducerDashboard = () => {
               <TabsTrigger
                 value="chat"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-chat"
               >
                 <MessageCircle className="h-3 w-3 mr-1" />
                 Chat

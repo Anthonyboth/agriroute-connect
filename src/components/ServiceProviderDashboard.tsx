@@ -1240,6 +1240,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <TabsTrigger 
                 value="ratings" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                data-tutorial="tab-ratings-sp"
               >
                 <Star className="h-3 w-3 mr-1" />
                 Avaliações
@@ -1273,6 +1274,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <TabsTrigger 
                 value="my-requests" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                data-tutorial="tab-my-requests-sp"
               >
                 <ClipboardList className="h-3 w-3 mr-1" />
                 Solicitações
