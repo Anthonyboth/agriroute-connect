@@ -24,44 +24,46 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<'bottom' | 'top'>('bottom');
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
   const isFirst = currentStep === 0;
 
   const updateTarget = useCallback(() => {
-    if (!step?.targetSelector) {
-      setTargetRect(null);
-      return;
-    }
-    const el = document.querySelector(step.targetSelector);
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      setTargetRect(rect);
-      
-      // Determine tooltip position
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setTooltipPosition(spaceBelow > 220 ? 'bottom' : 'top');
-
-      // Scroll element into view if needed
-      if (rect.top < 0 || rect.bottom > window.innerHeight) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Cancel any pending RAF to debounce
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      if (!step?.targetSelector) {
+        setTargetRect(null);
+        return;
       }
-    } else {
-      setTargetRect(null);
-    }
+      const el = document.querySelector(step.targetSelector);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setTargetRect(rect);
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setTooltipPosition(spaceBelow > 220 ? 'bottom' : 'top');
+        if (rect.top < 0 || rect.bottom > window.innerHeight) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } else {
+        setTargetRect(null);
+      }
+    });
   }, [step]);
 
   useEffect(() => {
     updateTarget();
-    // Observe DOM changes and resize
+    // Observe only childList (not attributes) to reduce jank on Android
     const observer = new MutationObserver(updateTarget);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', updateTarget);
     window.addEventListener('scroll', updateTarget, true);
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', updateTarget);
       window.removeEventListener('scroll', updateTarget, true);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [updateTarget]);
 
@@ -71,13 +73,15 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   return (
     <div className="fixed inset-0 z-[9999]" role="dialog" aria-label="Tutorial guiado">
-      {/* Backdrop overlay */}
-      <div className="absolute inset-0 bg-black/50 transition-opacity duration-300" />
+      {/* Single backdrop - only shown when no target is highlighted */}
+      {!targetRect && (
+        <div className="absolute inset-0 bg-black/50 transition-opacity duration-300" />
+      )}
 
-      {/* Highlight cutout */}
+      {/* Highlight cutout with box-shadow overlay */}
       {targetRect && (
         <div
-          className="absolute border-2 border-primary rounded-lg shadow-[0_0_0_4000px_rgba(0,0,0,0.5)] transition-all duration-300 pointer-events-none"
+          className="absolute border-2 border-primary rounded-lg transition-all duration-300 pointer-events-none"
           style={{
             top: targetRect.top - padding,
             left: targetRect.left - padding,
@@ -85,6 +89,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
             height: targetRect.height + padding * 2,
             zIndex: 10000,
             background: 'transparent',
+            boxShadow: '0 0 0 4000px rgba(0,0,0,0.5)',
           }}
         />
       )}
