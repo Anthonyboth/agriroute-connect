@@ -41,6 +41,7 @@ import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
 import { LoopPreventionBoundary } from '@/components/LoopPreventionBoundary';
+import { TutorialProvider } from '@/tutorial';
 
 // ✅ RELEASE HARDENING: Import centralized env config and health check
 import { ENV, PLATFORM, validateEnvironment } from '@/config/env';
@@ -890,6 +891,7 @@ const App = () => {
                 <RatingProvider>
                   <DeferredTooltipProvider>
                     <SubscriptionProvider>
+                    <TutorialProvider>
                       <ScrollToTop />
                       <DeviceSetup />
                       <SessionManager />
@@ -1075,6 +1077,7 @@ const App = () => {
             <Suspense fallback={null}><LazyToaster /></Suspense>
             <Sonner />
             <Suspense fallback={null}><LazyMatchDebugPanel /></Suspense>
+          </TutorialProvider>
           </SubscriptionProvider>
                 </DeferredTooltipProvider>
               </RatingProvider>

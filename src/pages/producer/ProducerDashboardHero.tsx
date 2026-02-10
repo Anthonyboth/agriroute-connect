@@ -24,7 +24,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
 
   return (
     <TooltipProvider>
-      <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
+      <section data-tutorial="producer-hero" className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
           style={{ backgroundImage: `url(${heroDesktop})` }}
@@ -52,6 +52,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
                     onClick={onViewProposals}
                     icon={<Users className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Ver propostas de motoristas para seus fretes"
+                    data-tutorial="producer-proposals"
                   >
                     Ver Propostas
                   </HeroActionButton>
@@ -67,6 +68,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
                     onClick={onOpenServices}
                     icon={<Wrench className="h-4 w-4" aria-hidden="true" />}
                     aria-label="Solicitar serviços como guincho, mudança ou frete urbano"
+                    data-tutorial="producer-services"
                   >
                     Solicitar Serviços
                   </HeroActionButton>

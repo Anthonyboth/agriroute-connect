@@ -60,6 +60,7 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
                       onClick={() => onTabChange('available')}
                       icon={<Brain className="h-4 w-4" aria-hidden="true" />}
                       aria-label="Ver fretes disponíveis selecionados pela inteligência artificial"
+                      data-tutorial="driver-freights"
                     >
                       {VER_FRETES_IA_LABEL}
                     </HeroActionButton>
@@ -72,10 +73,11 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <HeroActionButton 
-                    onClick={() => onTabChange('cities')}
-                    icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
-                    aria-label="Configurar cidades e regiões de atuação"
+                    <HeroActionButton 
+                      onClick={() => onTabChange('cities')}
+                      icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
+                      aria-label="Configurar cidades e regiões de atuação"
+                      data-tutorial="driver-region"
                   >
                     Configurar Região
                   </HeroActionButton>
