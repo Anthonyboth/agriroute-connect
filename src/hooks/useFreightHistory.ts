@@ -64,27 +64,26 @@ export function useFreightHistory(options: UseFreightHistoryOptions = {}) {
 
   const effectiveRole = role || (profile?.role as any) || 'MOTORISTA';
 
-  // Query para fretes (produtor vê por producer_id, motorista/empresa por assignment)
+  // Query para fretes criados pelo usuário (como producer) — independente do role
+  // Motoristas que criam fretes (ex: entrega de pacotes) também devem ver no histórico
   const freightHistoryQuery = useQuery({
     queryKey: ['freight-history', profile?.id, effectiveRole, companyId, limit],
     queryFn: async () => {
       if (!profile?.id) return [];
 
-      if (effectiveRole === 'PRODUTOR') {
-        const { data, error } = await supabase
-          .from('freight_history')
-          .select('*')
-          .eq('producer_id', profile.id)
-          .order('completed_at', { ascending: false, nullsFirst: false })
-          .limit(limit);
+      // Produtor vê por producer_id
+      // Motorista/outros também veem fretes que ELES criaram (producer_id)
+      const { data, error } = await supabase
+        .from('freight_history')
+        .select('*')
+        .eq('producer_id', profile.id)
+        .order('completed_at', { ascending: false, nullsFirst: false })
+        .limit(limit);
 
-        if (error) throw error;
-        return (data || []) as FreightHistoryItem[];
-      }
-
-      return [] as FreightHistoryItem[];
+      if (error) throw error;
+      return (data || []) as FreightHistoryItem[];
     },
-    enabled: !!profile?.id && effectiveRole === 'PRODUTOR',
+    enabled: !!profile?.id,
     staleTime: 2 * 60 * 1000,
   });
 
