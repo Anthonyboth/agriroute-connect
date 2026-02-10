@@ -244,7 +244,7 @@
   width: 100% !important;
   height: 100% !important;
   /* ✅ Containment isola o mapa de transforms em ancestrais (Dialog/Drawer) */
-  contain: layout style paint;
+  contain: layout paint;
   isolation: isolate;
 }
 

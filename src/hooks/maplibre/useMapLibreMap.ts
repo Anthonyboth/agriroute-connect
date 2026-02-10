@@ -148,7 +148,7 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
           style,
           center,
           zoom,
-          attributionControl: attributionControl ? {} : false,
+          attributionControl: attributionControl ? { compact: true } : false,
           pixelRatio: window.devicePixelRatio || 1,
         });
 

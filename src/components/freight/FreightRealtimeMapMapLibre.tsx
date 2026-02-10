@@ -428,7 +428,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           style: RURAL_STYLE_INLINE,
           center: initialCenter,
           zoom: initialZoom,
-          attributionControl: {},
+          attributionControl: { compact: true },
           pixelRatio: window.devicePixelRatio || 1,
         });
 

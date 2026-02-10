@@ -88,7 +88,7 @@ export function RouteReplayPlayerMapLibre({
           style: RURAL_STYLE_INLINE,
           center: initialCenter,
           zoom: 12,
-          attributionControl: {},
+          attributionControl: { compact: true },
         });
 
         map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -125,13 +125,9 @@ export function RouteReplayPlayerMapLibre({
             },
           });
 
-          // ========================================
-          // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-          // Sem markers - apenas basemap puro
-          // ========================================
-          // NÃO criar nenhum marker - apenas o mapa
-          
-          /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
+          // Layer do progresso (verde)
+          map.addLayer(ROUTE_LINE_LAYER_CONFIG('progress-path-line', 'progress-path', MAP_COLORS.route.progress, 1));
+
           // Criar marker do caminhão - ✅ anchor: 'center' para ícones circulares
           markerRef.current = new maplibregl.Marker({
             element: createTruckMarkerElement(true),
@@ -158,7 +154,6 @@ export function RouteReplayPlayerMapLibre({
               .setLngLat([destinationLng, destinationLat])
               .addTo(map);
           }
-          */
 
           // Ajustar bounds
           const bounds = new maplibregl.LngLatBounds();
