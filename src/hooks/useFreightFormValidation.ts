@@ -170,7 +170,13 @@ export function useFreightFormValidation() {
         key: 'vehicle_type_required',
         label: 'Tipo de Veículo',
         step: 3,
-        check: (v) => !!v && v.trim().length > 0,
+        check: (v, fd) => {
+          // Se eixos estão preenchidos (carga rural), não exigir vehicle_type separado
+          if (fd.vehicle_axles_required && String(fd.vehicle_axles_required).trim().length > 0) {
+            return true;
+          }
+          return !!v && v.trim().length > 0;
+        },
         solution: 'Selecione o tipo de veículo necessário (ex: Carreta, Truck, Bitrem).',
       },
 
