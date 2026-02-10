@@ -54,9 +54,21 @@ export function canReplayTutorial(profileId: string, createdAt?: string): boolea
   return false;
 }
 
-export function shouldAutoStartTutorial(profileId: string): boolean {
+export function shouldAutoStartTutorial(profileId: string, createdAt?: string): boolean {
   const state = getTutorialState(profileId);
-  return !state.completed_at && !state.skipped_at && !state.started_at;
+  
+  // Never auto-start if already started, completed or skipped
+  if (state.completed_at || state.skipped_at || state.started_at) return false;
+  
+  // Only auto-start for accounts created in the last 5 minutes (first login after signup)
+  if (createdAt) {
+    const created = new Date(createdAt).getTime();
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    return (now - created) < fiveMinutes;
+  }
+  
+  return false;
 }
 
 export function initTutorialReplayWindow(profileId: string, createdAt: string) {
