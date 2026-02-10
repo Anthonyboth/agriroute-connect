@@ -13251,6 +13251,7 @@ export type Database = {
           minimum_antt_price: number
           origin_address: string
           origin_city: string
+          origin_city_id: string
           origin_state: string
           pickup_date: string
           price: number
