@@ -104,9 +104,9 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
   const isProducer = role === 'PRODUTOR';
   const isDriver = role === 'MOTORISTA' || !role;
 
-  // Para produtor: mostrar freight_history
-  // Para motorista/transportadora: mostrar freight_assignment_history
-  const items = isProducer ? freightHistory : [];
+  // Mostrar freight_history para todos (fretes criados pelo usuário como producer)
+  // + assignment_history para motorista/transportadora
+  const items = freightHistory;
   const assignments = !isProducer ? assignmentHistory : [];
   const transports = transportHistory || [];
 
@@ -145,13 +145,13 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
         </Button>
       </div>
 
-      {/* Produtor: freight_history */}
+      {/* Fretes criados pelo usuário (freight_history) */}
       {items.map((item) => (
         <FreightHistoryCard
           key={item.id}
           item={item}
-          isProducer
-          onReopen={isProducer ? () => handleReopenFreight(item) : undefined}
+          isProducer={true}
+          onReopen={() => handleReopenFreight(item)}
         />
       ))}
 
