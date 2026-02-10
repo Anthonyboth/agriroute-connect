@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useMatchExposures } from './useMatchExposures';
 
 export interface MatchedService {
   id: string;
@@ -50,6 +51,7 @@ export interface SmartServiceMatchingResult {
  */
 export const useSmartServiceMatching = (): SmartServiceMatchingResult => {
   const { profile } = useAuth();
+  const { registerExposures, clearExpiredExposures } = useMatchExposures();
   const [services, setServices] = useState<MatchedService[]>([]);
   const [userCities, setUserCities] = useState<UserCityConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +140,9 @@ export const useSmartServiceMatching = (): SmartServiceMatchingResult => {
 
       setServices(matchedServices);
 
+      // Registrar exposures para dedupe
+      registerExposures(matchedServices.map(s => ({ item_type: 'SERVICE' as const, item_id: s.id })));
+
       if (import.meta.env.DEV) {
         console.log('[useSmartServiceMatching] Serviços matched:', matchedServices.length);
         console.log('[useSmartServiceMatching] Cidades configuradas:', citiesResult.length);
@@ -161,12 +166,17 @@ export const useSmartServiceMatching = (): SmartServiceMatchingResult => {
     (profile?.service_types && profile.service_types.length > 0) ||
     userCities.some(uc => uc.service_types && uc.service_types.length > 0);
 
+  const handleRefetch = useCallback(async () => {
+    await clearExpiredExposures();
+    await fetchServices();
+  }, [clearExpiredExposures, fetchServices]);
+
   return {
     services,
     userCities,
     loading,
     error,
-    refetch: fetchServices,
+    refetch: handleRefetch,
     hasConfiguredCities,
     hasConfiguredServiceTypes
   };
