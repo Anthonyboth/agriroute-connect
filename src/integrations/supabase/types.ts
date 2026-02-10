@@ -6881,6 +6881,54 @@ export type Database = {
         }
         Relationships: []
       }
+      match_exposures: {
+        Row: {
+          city_id: string | null
+          distance_km: number | null
+          expires_at: string
+          first_seen_at: string
+          id: string
+          item_id: string
+          item_type: string
+          last_seen_at: string
+          meta: Json
+          score: number | null
+          seen_count: number
+          status: string
+          viewer_user_id: string
+        }
+        Insert: {
+          city_id?: string | null
+          distance_km?: number | null
+          expires_at?: string
+          first_seen_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          last_seen_at?: string
+          meta?: Json
+          score?: number | null
+          seen_count?: number
+          status?: string
+          viewer_user_id: string
+        }
+        Update: {
+          city_id?: string | null
+          distance_km?: number | null
+          expires_at?: string
+          first_seen_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          last_seen_at?: string
+          meta?: Json
+          score?: number | null
+          seen_count?: number
+          status?: string
+          viewer_user_id?: string
+        }
+        Relationships: []
+      }
       mdfe_condutores: {
         Row: {
           cpf: string
@@ -12485,6 +12533,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_match_exposure: {
+        Args: { p_item_id: string; p_item_type: string }
+        Returns: undefined
+      }
       accept_service_request: {
         Args: { p_provider_id: string; p_request_id: string }
         Returns: {
@@ -12656,6 +12708,7 @@ export type Database = {
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_location_history: { Args: never; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: number }
+      clear_expired_exposures: { Args: never; Returns: number }
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean
@@ -12714,6 +12767,10 @@ export type Database = {
           p_admin_profile_id: string
           p_details?: Json
         }
+        Returns: undefined
+      }
+      dismiss_match_exposure: {
+        Args: { p_item_id: string; p_item_type: string }
         Returns: undefined
       }
       driver_update_freight_status: {
@@ -13823,6 +13880,40 @@ export type Database = {
       }
       process_telegram_queue: { Args: never; Returns: Json }
       purge_expired_driver_locations: { Args: never; Returns: number }
+      register_match_exposure: {
+        Args: {
+          p_city_id?: string
+          p_distance_km?: number
+          p_item_id: string
+          p_item_type: string
+          p_ttl_minutes?: number
+        }
+        Returns: {
+          city_id: string | null
+          distance_km: number | null
+          expires_at: string
+          first_seen_at: string
+          id: string
+          item_id: string
+          item_type: string
+          last_seen_at: string
+          meta: Json
+          score: number | null
+          seen_count: number
+          status: string
+          viewer_user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "match_exposures"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      register_match_exposures_batch: {
+        Args: { p_items: Json; p_ttl_minutes?: number }
+        Returns: number
+      }
       release_emission_credit: {
         Args: { p_emission_id: string }
         Returns: boolean
