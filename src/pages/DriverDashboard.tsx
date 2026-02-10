@@ -2407,6 +2407,7 @@ const DriverDashboard = () => {
               <TabsTrigger 
                 value="cities" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-cities"
               >
                 <MapPin className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Cidades</span>
@@ -2426,6 +2427,7 @@ const DriverDashboard = () => {
               <TabsTrigger 
                 value="services" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-services"
               >
                 <Settings className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline" translate="no">Serviços</span>
@@ -2434,6 +2436,7 @@ const DriverDashboard = () => {
               <TabsTrigger 
                 value="my-requests" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-my-requests"
               >
                 <ClipboardList className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline" translate="no">Solicitações</span>
@@ -2442,6 +2445,7 @@ const DriverDashboard = () => {
               <TabsTrigger
                 value="vehicles" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-vehicles"
               >
                 <Truck className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline" translate="no">Meus Veículos</span>
@@ -2479,6 +2483,7 @@ const DriverDashboard = () => {
               <TabsTrigger 
                 value="chat" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                data-tutorial="tab-chat"
               >
                 <MessageSquare className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline" translate="no">Chat</span>

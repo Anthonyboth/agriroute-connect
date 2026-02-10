@@ -692,7 +692,10 @@ const CompanyDashboard = () => {
                     {...(tab.value === 'freights' ? { 'data-tutorial': 'company-freights' } :
                          tab.value === 'drivers' ? { 'data-tutorial': 'company-drivers' } :
                          tab.value === 'ongoing' ? { 'data-tutorial': 'tab-ongoing' } :
+                         tab.value === 'my-requests' ? { 'data-tutorial': 'tab-my-requests-co' } :
+                         tab.value === 'vehicles' ? { 'data-tutorial': 'tab-vehicles-co' } :
                          tab.value === 'history' ? { 'data-tutorial': 'tab-history' } :
+                         tab.value === 'chat' ? { 'data-tutorial': 'tab-chat-co' } :
                          tab.value === 'reports' ? { 'data-tutorial': 'tab-reports' } : {})}
                   >
                     <Icon className="h-3 w-3 mr-1" />
