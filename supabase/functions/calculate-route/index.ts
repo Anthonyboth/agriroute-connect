@@ -20,6 +20,7 @@ interface RouteResponse {
   fuel_cost: number;
   route_points: Array<{ lat: number; lng: number }>;
   is_simulation?: boolean;
+  geocoding_source?: { origin: string; destination: string };
 }
 
 // Fórmula de Haversine para calcular distância entre duas coordenadas
@@ -38,66 +39,8 @@ function toRad(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
 
-// Dicionário local de cidades brasileiras (fallback quando não encontrar no banco)
-const cityCoordinates: Record<string, { lat: number; lng: number }> = {
-  'são paulo': { lat: -23.5505, lng: -46.6333 },
-  'rio de janeiro': { lat: -22.9068, lng: -43.1729 },
-  'belo horizonte': { lat: -19.9167, lng: -43.9345 },
-  'brasília': { lat: -15.7801, lng: -47.9292 },
-  'salvador': { lat: -12.9714, lng: -38.5014 },
-  'fortaleza': { lat: -3.7172, lng: -38.5433 },
-  'curitiba': { lat: -25.4284, lng: -49.2733 },
-  'recife': { lat: -8.0476, lng: -34.8770 },
-  'porto alegre': { lat: -30.0346, lng: -51.2177 },
-  'manaus': { lat: -3.1190, lng: -60.0217 },
-  'goiânia': { lat: -16.6869, lng: -49.2648 },
-  'belém': { lat: -1.4558, lng: -48.4902 },
-  'campinas': { lat: -22.9099, lng: -47.0626 },
-  'campo grande': { lat: -20.4697, lng: -54.6201 },
-  'cuiabá': { lat: -15.6010, lng: -56.0974 },
-  'londrina': { lat: -23.3045, lng: -51.1696 },
-  'maringá': { lat: -23.4273, lng: -51.9375 },
-  'ribeirão preto': { lat: -21.1775, lng: -47.8103 },
-  'uberlândia': { lat: -18.9186, lng: -48.2772 },
-  'rondonópolis': { lat: -16.4673, lng: -54.6372 },
-  'sinop': { lat: -11.8614, lng: -55.5035 },
-  'sorriso': { lat: -12.5463, lng: -55.7089 },
-  'lucas do rio verde': { lat: -13.0587, lng: -55.9040 },
-  'primavera do leste': { lat: -15.5439, lng: -54.2968 },
-  'dourados': { lat: -22.2231, lng: -54.8118 },
-  'cascavel': { lat: -24.9578, lng: -53.4595 },
-  'passo fundo': { lat: -28.2576, lng: -52.4091 },
-  'chapecó': { lat: -27.0963, lng: -52.6158 },
-  'paranaguá': { lat: -25.5205, lng: -48.5095 },
-  'santos': { lat: -23.9608, lng: -46.3336 },
-  'vitória': { lat: -20.3155, lng: -40.3128 },
-  'florianópolis': { lat: -27.5954, lng: -48.5480 },
-  'natal': { lat: -5.7945, lng: -35.2110 },
-  'joão pessoa': { lat: -7.1195, lng: -34.8450 },
-  'maceió': { lat: -9.6498, lng: -35.7089 },
-  'aracaju': { lat: -10.9472, lng: -37.0731 },
-  'teresina': { lat: -5.0892, lng: -42.8019 },
-  'são luís': { lat: -2.5307, lng: -44.3068 },
-  'palmas': { lat: -10.2491, lng: -48.3243 },
-  'porto velho': { lat: -8.7612, lng: -63.9004 },
-  'rio branco': { lat: -9.9754, lng: -67.8249 },
-  'boa vista': { lat: 2.8235, lng: -60.6758 },
-  'macapá': { lat: 0.0389, lng: -51.0664 },
-};
-
 function normalizeCity(name: string): string {
   return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-// Extrair nome da cidade do endereço
-function extractCityFromAddress(address: string): string | null {
-  const normalized = normalizeCity(address);
-  for (const city of Object.keys(cityCoordinates)) {
-    if (normalized.includes(normalizeCity(city))) {
-      return city;
-    }
-  }
-  return null;
 }
 
 // Buscar coordenadas no banco (tabela cities) via Supabase
@@ -109,7 +52,6 @@ async function getCoordsFromDB(cityName: string, state: string): Promise<{ lat: 
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Busca por nome da cidade + estado
     const cleanCity = cityName.trim();
     const cleanState = state.trim().toUpperCase();
     
@@ -133,9 +75,80 @@ async function getCoordsFromDB(cityName: string, state: string): Promise<{ lat: 
   return null;
 }
 
-// Extrair cidade e estado do formato "Cidade, UF" ou "Cidade, Estado"
+// Geocodificar via OpenStreetMap Nominatim (fallback)
+async function geocodeViaNominatim(cityName: string, state: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const query = `${cityName}, ${state}, Brazil`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=br`;
+    
+    console.log(`[CALCULATE-ROUTE] Nominatim geocoding: "${query}"`);
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'AgriRoute/1.0 (freight-routing)',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`[CALCULATE-ROUTE] Nominatim HTTP ${response.status}`);
+      return null;
+    }
+
+    const results = await response.json();
+    if (results && results.length > 0) {
+      const lat = parseFloat(results[0].lat);
+      const lng = parseFloat(results[0].lon);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        console.log(`[CALCULATE-ROUTE] Nominatim found: ${lat}, ${lng} for "${query}"`);
+        
+        // Salvar no banco para futuras consultas
+        await saveCoordsToDBAsync(cityName, state, lat, lng);
+        
+        return { lat, lng };
+      }
+    }
+    console.warn(`[CALCULATE-ROUTE] Nominatim: no results for "${query}"`);
+  } catch (e) {
+    console.warn('[CALCULATE-ROUTE] Nominatim geocoding failed:', e);
+  }
+  return null;
+}
+
+// Salvar coordenadas geocodificadas no banco (fire-and-forget)
+async function saveCoordsToDBAsync(cityName: string, state: string, lat: number, lng: number): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) return;
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const cleanCity = cityName.trim();
+    const cleanState = state.trim().toUpperCase();
+
+    const { error } = await supabase
+      .from('cities')
+      .update({ lat, lng, updated_at: new Date().toISOString() })
+      .ilike('name', cleanCity)
+      .eq('state', cleanState)
+      .is('lat', null);
+
+    if (!error) {
+      console.log(`[CALCULATE-ROUTE] Saved coords to DB for ${cleanCity}/${cleanState}: ${lat}, ${lng}`);
+    }
+  } catch (e) {
+    console.warn('[CALCULATE-ROUTE] Failed to save coords to DB:', e);
+  }
+}
+
+// Extrair cidade e estado do formato "Cidade, UF" ou "Cidade/UF" ou "Cidade — UF"
 function parseCityState(address: string): { city: string; state: string } | null {
-  // Formato: "Cidade, UF" ou "Cidade, Estado"
+  // Formato: "Cidade — UF"
+  const dashParts = address.split('—').map(s => s.trim());
+  if (dashParts.length >= 2) {
+    return { city: dashParts[0], state: dashParts[dashParts.length - 1] };
+  }
+  // Formato: "Cidade, UF"
   const parts = address.split(',').map(s => s.trim());
   if (parts.length >= 2) {
     return { city: parts[0], state: parts[parts.length - 1] };
@@ -148,21 +161,25 @@ function parseCityState(address: string): { city: string; state: string } | null
   return null;
 }
 
-// Resolver coordenadas: 1) banco de dados, 2) dicionário local, 3) null
-async function resolveCoords(address: string): Promise<{ lat: number; lng: number } | null> {
-  // 1. Tentar buscar no banco
+// Resolver coordenadas: 1) banco de dados, 2) Nominatim (OSM), 3) null
+async function resolveCoords(address: string): Promise<{ lat: number; lng: number; source: string } | null> {
   const parsed = parseCityState(address);
+  
+  // 1. Tentar buscar no banco
   if (parsed) {
     const dbCoords = await getCoordsFromDB(parsed.city, parsed.state);
-    if (dbCoords) return dbCoords;
+    if (dbCoords) return { ...dbCoords, source: 'database' };
   }
 
-  // 2. Tentar dicionário local
-  const localCity = extractCityFromAddress(address);
-  if (localCity && cityCoordinates[localCity]) {
-    console.log(`[CALCULATE-ROUTE] Local dict coords for "${localCity}"`);
-    return cityCoordinates[localCity];
+  // 2. Tentar Nominatim (OpenStreetMap) - geocodificação real
+  if (parsed) {
+    const nominatimCoords = await geocodeViaNominatim(parsed.city, parsed.state);
+    if (nominatimCoords) return { ...nominatimCoords, source: 'nominatim' };
   }
+
+  // 3. Tentar Nominatim com o endereço completo
+  const fullNominatim = await geocodeViaNominatim(address, 'Brasil');
+  if (fullNominatim) return { ...fullNominatim, source: 'nominatim_full' };
 
   return null;
 }
@@ -183,19 +200,35 @@ serve(async (req) => {
     const destCoords = await resolveCoords(destination);
 
     let distance_km: number;
+    const geocodingSource = {
+      origin: originCoords?.source || 'not_found',
+      destination: destCoords?.source || 'not_found',
+    };
 
     if (originCoords && destCoords) {
       const haversine = calculateHaversineDistance(
         originCoords.lat, originCoords.lng,
         destCoords.lat, destCoords.lng
       );
-      // Fator de correção rodoviário (1.3 para estradas brasileiras)
+      // Fator de correção rodoviário (1.3x para estradas brasileiras)
       distance_km = Math.round(haversine * 1.3);
-      console.log(`[CALCULATE-ROUTE] Haversine: ${haversine.toFixed(2)} km, Road estimate: ${distance_km} km`);
+      console.log(`[CALCULATE-ROUTE] Haversine: ${haversine.toFixed(2)} km, Road estimate: ${distance_km} km (sources: ${geocodingSource.origin}, ${geocodingSource.destination})`);
     } else {
-      // Fallback: estimativa média
-      console.warn('[CALCULATE-ROUTE] Could not resolve coords, using average estimate');
-      distance_km = 450;
+      // ERRO: Não conseguiu resolver coordenadas - retornar erro em vez de valor fixo falso
+      console.error(`[CALCULATE-ROUTE] FAILED to resolve coordinates. Origin: ${originCoords ? 'OK' : 'MISSING'}, Dest: ${destCoords ? 'OK' : 'MISSING'}`);
+      return new Response(JSON.stringify({
+        error: 'Não foi possível calcular a distância',
+        details: `Coordenadas não encontradas: ${!originCoords ? 'origem' : ''}${!originCoords && !destCoords ? ' e ' : ''}${!destCoords ? 'destino' : ''}`,
+        distance_km: 0,
+        duration_hours: 0,
+        toll_cost: 0,
+        fuel_cost: 0,
+        route_points: [],
+        is_simulation: true,
+        geocoding_failed: true,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const duration_hours = Math.round((distance_km / 80) * 10) / 10;
@@ -208,7 +241,8 @@ serve(async (req) => {
       toll_cost,
       fuel_cost,
       route_points: [],
-      is_simulation: true
+      is_simulation: true,
+      geocoding_source: geocodingSource,
     };
 
     console.log('[CALCULATE-ROUTE] Result:', response);
