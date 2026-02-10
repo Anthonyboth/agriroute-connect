@@ -3,7 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle, User, Truck as TruckIcon } from 'lucide-react';
-import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
+import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
 import { ChatModal } from '@/components/ChatModal';
@@ -206,16 +206,34 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
             <DriverVehiclePreview driverId={primaryDriverId} />
           )}
 
-          {/* ✅ Valor do Frete */}
+          {/* ✅ Valor do Frete - Motoristas veem valor unitário por carreta */}
           <div className="pt-2 border-t">
-            <div className="text-2xl font-bold text-primary">
-              {formatBRL(freight.price)}
-            </div>
-            {isMultiTruck && (
-              <p className="text-xs text-muted-foreground">
-                {requiredTrucks} carretas × {formatBRL(freight.price / requiredTrucks)} por carreta
-              </p>
-            )}
+            {(() => {
+              const isDriver = userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO';
+              const driverAgreedPrice = assignedDrivers.find(a => a.driver_id === userProfileId)?.agreed_price;
+              const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+              const displayPrice = isDriver
+                ? (driverAgreedPrice ?? pricePerTruck)
+                : freight.price;
+
+              return (
+                <>
+                  <div className="text-2xl font-bold text-primary">
+                    {formatBRL(displayPrice)}
+                  </div>
+                  {isMultiTruck && isDriver && (
+                    <p className="text-xs text-muted-foreground">
+                      Valor por carreta (total: {formatBRL(freight.price)})
+                    </p>
+                  )}
+                  {isMultiTruck && !isDriver && (
+                    <p className="text-xs text-muted-foreground">
+                      {requiredTrucks} carretas × {formatBRL(pricePerTruck)} por carreta
+                    </p>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </CardContent>
 
