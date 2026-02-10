@@ -32,10 +32,10 @@ serve(async (req) => {
       throw new Error('Não autenticado');
     }
 
-    const { mdfe_id, chave_acesso } = await req.json();
+    const { mdfe_id, chave_acesso, freight_id } = await req.json();
 
-    if (!mdfe_id && !chave_acesso) {
-      throw new Error('mdfe_id ou chave_acesso é obrigatório');
+    if (!mdfe_id && !chave_acesso && !freight_id) {
+      throw new Error('mdfe_id, chave_acesso ou freight_id é obrigatório');
     }
 
     console.log(`[MDFe Consultar] Consultando MDFe: ${mdfe_id || chave_acesso}`);
@@ -56,8 +56,10 @@ serve(async (req) => {
 
     if (mdfe_id) {
       query = query.eq('id', mdfe_id);
-    } else {
+    } else if (chave_acesso) {
       query = query.eq('chave_acesso', chave_acesso);
+    } else {
+      query = query.eq('freight_id', freight_id);
     }
 
     const { data: mdfe, error: mdfeError } = await query.single();
