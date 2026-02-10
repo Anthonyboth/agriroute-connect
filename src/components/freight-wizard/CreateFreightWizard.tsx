@@ -1,4 +1,15 @@
 // Force rebuild: 2025-12-17T21:15:00Z - 5-step wizard modal
+
+// Helper: mapeia eixos para vehicle_type quando o campo não foi preenchido diretamente
+function getVehicleTypeFromAxles(axles: string | number): string | null {
+  const n = typeof axles === 'string' ? parseInt(axles, 10) : axles;
+  if (n >= 9) return 'RODOTREM';
+  if (n >= 7) return 'BITREM';
+  if (n >= 5) return 'CARRETA';
+  if (n >= 3) return 'TRUCK';
+  if (n >= 2) return 'CAMINHAO_3_4';
+  return null;
+}
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -469,7 +480,7 @@ export function CreateFreightWizard({
         delivery_date: formData.delivery_date,
         urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
         description: formData.description || null,
-        vehicle_type_required: formData.vehicle_type_required || null,
+        vehicle_type_required: formData.vehicle_type_required || (formData.vehicle_axles_required ? getVehicleTypeFromAxles(formData.vehicle_axles_required) : null),
         vehicle_axles_required: formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : null,
         high_performance: formData.high_performance || false,
         status: 'OPEN' as const,
