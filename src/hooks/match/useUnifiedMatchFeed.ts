@@ -281,7 +281,7 @@ export function useUnifiedMatchFeed({
     id: f.id || f.freight_id,
     kind: 'FREIGHT',
     city_id: f.origin_city_id || '',
-    distance_km: f.distance_to_origin_km || f.distance_km || null,
+    distance_km: f.distance_to_origin_km ?? f.distance_km ?? null,
     service_type: normalizeServiceType(f.service_type),
     freight_type: f.cargo_type || null,
     urgency: f.urgency || 'LOW',
@@ -304,6 +304,7 @@ export function useUnifiedMatchFeed({
       minimum_antt_price: f.minimum_antt_price,
       origin_address: f.origin_address,
       destination_address: f.destination_address,
+      distance_to_origin_km: f.distance_to_origin_km,
     },
   });
 
