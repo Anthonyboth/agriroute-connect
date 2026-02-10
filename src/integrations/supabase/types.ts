@@ -7491,6 +7491,62 @@ export type Database = {
           },
         ]
       }
+      nfa_documents: {
+        Row: {
+          access_key: string | null
+          amount: number | null
+          created_at: string
+          description: string | null
+          freight_id: string | null
+          id: string
+          observations: string | null
+          pdf_url: string | null
+          recipient_doc: string | null
+          recipient_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_key?: string | null
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          freight_id?: string | null
+          id?: string
+          observations?: string | null
+          pdf_url?: string | null
+          recipient_doc?: string | null
+          recipient_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_key?: string | null
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          freight_id?: string | null
+          id?: string
+          observations?: string | null
+          pdf_url?: string | null
+          recipient_doc?: string | null
+          recipient_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfa_documents_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfe_documents: {
         Row: {
           access_key: string
