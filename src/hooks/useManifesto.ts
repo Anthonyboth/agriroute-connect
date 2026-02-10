@@ -54,7 +54,11 @@ export function useManifesto(freightId: string) {
 
       if (consultaError) throw consultaError;
       
-      setManifesto(data);
+      if (data?.mdfe) {
+        setManifesto(data.mdfe);
+      } else {
+        setManifesto(null);
+      }
       return data;
     } catch (err: any) {
       const errorMsg = err.message || 'Erro ao consultar MDFe';
