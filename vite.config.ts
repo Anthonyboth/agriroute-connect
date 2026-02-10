@@ -309,8 +309,25 @@ export default defineConfig(({ mode }) => ({
               networkTimeoutSeconds: 5,
             }
           },
+          // ✅ Tiles de mapa: NetworkFirst para garantir carregamento
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/,
+            urlPattern: /^https:\/\/(tile\.openstreetmap\.org|[a-c]\.tile\.openstreetmap\.|[a-c]\.basemaps\.cartocdn\.com|demotiles\.maplibre\.org)\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'map-tiles-cache',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
+              networkTimeoutSeconds: 5,
+            }
+          },
+          {
+            // ✅ Imagens do app (exclui tiles de mapa)
+            urlPattern: ({ url }) => /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/.test(url.pathname) && !url.hostname.includes('openstreetmap') && !url.hostname.includes('cartocdn') && !url.hostname.includes('maplibre'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'images-cache',
