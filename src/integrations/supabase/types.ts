@@ -6971,6 +6971,42 @@ export type Database = {
         }
         Relationships: []
       }
+      match_interactions: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string
+          id: string
+          item_id: string
+          item_kind: string
+          metadata: Json
+          role: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          item_kind: string
+          metadata?: Json
+          role: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_kind?: string
+          metadata?: Json
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mdfe_condutores: {
         Row: {
           cpf: string
@@ -12748,6 +12784,7 @@ export type Database = {
       clean_expired_zip_cache: { Args: never; Returns: undefined }
       cleanup_expired_requests: { Args: never; Returns: undefined }
       cleanup_match_debug_logs: { Args: never; Returns: number }
+      cleanup_match_interactions: { Args: never; Returns: number }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_location_history: { Args: never; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: number }
@@ -13666,6 +13703,10 @@ export type Database = {
           hour_of_day: number
           ip_address: string
         }[]
+      }
+      get_user_interaction_summary: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: Json
       }
       get_user_rating_distribution: {
         Args: { p_user_id: string }

@@ -2,6 +2,8 @@ import React from "react";
 import { SmartFreightMatcher } from "@/components/SmartFreightMatcher";
 import { AdvancedFreightSearch } from "@/components/AdvancedFreightSearch";
 import { SafeListWrapper } from "@/components/SafeListWrapper";
+import { RefreshButton } from "@/components/ui/RefreshButton";
+import { useUnifiedMatchFeed } from "@/hooks/match";
 
 interface DriverAvailableTabProps {
   profileId: string | undefined;
@@ -34,8 +36,6 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
         key={`freight-matcher-${profileId || "loading"}`}
         onFreightAction={onFreightAction}
         onCountsChange={(counts) => {
-          // SmartFreightMatcher manda { total, highUrgency }
-          // Aqui o DriverAvailableTab só quer { total }
           onCountsChange({ total: counts.total });
         }}
       />
