@@ -1,69 +1,89 @@
 
-# Correcao Completa do MapLibre - Diagnostico e Plano de Acao
 
-## Problemas Identificados
+# Plano: Emissão Assistida de NF-A para MEI
 
-### 1. CRITICO: `contain: strict` no container do mapa (MapLibreBase.tsx, linha 214)
+## Contexto (informacoes confirmadas pelo SEFAZ)
 
-O container que recebe o mapa MapLibre tem `contain: 'strict'` aplicado via inline style. O valor `strict` equivale a `contain: size layout paint style`. A propriedade `size` faz com que o elemento ignore o tamanho de seus filhos para calcular suas proprias dimensoes -- o MapLibre precisa detectar as dimensoes do container para renderizar o canvas corretamente. Com `size` containment, o canvas pode ser renderizado com dimensoes zero, resultando em **mapa branco**.
+A SEFAZ-MT confirmou que **nao existe API para NFA-e**. A emissao deve ser feita diretamente no portal SEFAZ. O app so pode **guiar o usuario** passo a passo. As informacoes-chave extraidas do atendimento:
 
-**Correcao:** Trocar `contain: 'strict'` por `contain: 'layout paint'` (sem `size`).
+- **NFA-e**: emitida no portal SEFAZ-MT, sem certificado digital, apenas login/senha
+- **Login**: Inscricao Estadual (IE) — **nao** o CNPJ
+- **Senha**: senha de contribuinte criada no portal
+- **Link para criar senha**: https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811
+- **Webservice (verificar credenciamento)**: https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml
+- **e-PAC (requer e-CNPJ)**: https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte
+- MEI emite NFA-e **por padrao** — nao precisa credenciamento especifico para NFA-e
+- Para NF-e (diferente de NFA-e), MEI precisa: credenciamento voluntario + certificado A1 + programa emissor
 
-### 2. CRITICO: `contain: layout style paint` duplicado no CSS global (index.css, linha 247)
+## O que sera construido
 
-O seletor `.maplibregl-map` tambem aplica `contain: layout style paint`. Embora nao inclua `size`, a combinacao de containment no container pai E no `.maplibregl-map` pode causar problemas de composicao, especialmente em Drawers/Dialogs com transform. A propriedade `style` containment impede que counters e quotes do mapa afetem o exterior, mas pode interferir com a resolucao de `font-size` e `em` units internos do MapLibre.
+Um **wizard de emissao assistida de NF-A** integrado ao app, com 4 etapas guiadas que orientam o MEI a emitir a NFA-e no portal SEFAZ sem sair do fluxo do app.
 
-**Correcao:** Simplificar para `contain: layout paint` no CSS global.
+## Componentes
 
-### 3. MODERADO: `attributionControl: {}` (objeto vazio) em MapLibre v5
+### 1. `NfaAssistedWizard` (novo componente)
 
-Em tres arquivos (`useMapLibreMap.ts`, `FreightRealtimeMapMapLibre.tsx`, `RouteReplayPlayerMapLibre.tsx`), o mapa e criado com `attributionControl: {}`. Na v5 do MapLibre, o tipo esperado e `boolean | AttributionControlOptions`. Um objeto vazio `{}` pode funcionar, mas e semanticamente incorreto e pode causar comportamentos inesperados em futuras versoes.
+Dialog com stepper de 4 etapas:
 
-**Correcao:** Trocar `attributionControl: {}` por `attributionControl: true` (ou simplesmente remover, pois `true` e o padrao).
+**Etapa 1 - Verificar Acesso SEFAZ**
+- Pergunta: "Voce ja tem senha de contribuinte na SEFAZ-MT?"
+- Se SIM: avanca
+- Se NAO: mostra passo a passo para criar senha com link direto
+- Link: Solicitar Senha → Liberar Senha (2 sub-etapas)
 
-### 4. MODERADO: Type mismatch em MapLibreMap.tsx (wrapper legado)
+**Etapa 2 - Preparar Dados da Nota**
+- Formulario para o usuario preencher localmente (dentro do app) os dados que vai precisar no portal:
+  - Destinatario (nome, CNPJ/CPF)
+  - Descricao do servico/produto
+  - Valor total
+  - Observacoes
+- Botao "Copiar dados" para facilitar o preenchimento no portal SEFAZ
 
-O componente `MapLibreMap` converte markers para `MapLibreMarkerData[]` (interface do hook deprecated `useMapLibreMarkers`) e passa para `MapLibreBase` que espera `GeoJSONMarkerData[]`. Os campos sao incompativeis: `MapLibreMarkerData` tem `element` e `popup`, enquanto `GeoJSONMarkerData` tem `type` e `properties`. Os markers passados via este wrapper nao serao renderizados corretamente.
+**Etapa 3 - Emitir no Portal SEFAZ**
+- Instrucoes visuais numeradas:
+  1. Acesse o portal com sua IE + senha
+  2. Navegue ate "NFA-e → Emissao de NFA-e"
+  3. Preencha os dados (use o botao "Copiar" da etapa anterior)
+  4. Transmita e imprima o DANFA-e
+- Botao que abre o portal SEFAZ-MT em nova aba
+- Lembrete: "Login = sua IE, nao o CNPJ"
 
-**Correcao:** Converter para `GeoJSONMarkerData[]` no `MapLibreMap`.
+**Etapa 4 - Confirmar e Vincular ao Frete**
+- Campo para colar a chave de acesso da NFA-e emitida
+- Campo para upload do DANFA-e (PDF)
+- Vinculacao automatica ao frete no banco de dados
 
-### 5. MENOR: Markers desativados no RouteReplayPlayerMapLibre.tsx
+### 2. Integracao com fluxos existentes
 
-No `RouteReplayPlayerMapLibre.tsx`, os markers de caminhao, origem e destino estao **comentados** (linhas 130-161) com o texto "DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA". O mapa funciona, mas sem indicadores visuais, o que prejudica a usabilidade do replay.
+- Botao "Emitir NF-A (Assistida)" no `AptidaoWizardStep0` quando MEI seleciona NF-e/CT-e (onde hoje ja aparece o aviso de MEI)
+- Botao no painel de documentos do frete
+- Reutilizar `StateGuideViewer` existente para links e guias por estado
 
-**Correcao:** Reativar os markers, pois o problema original (mapa zerando) era causado pelo `contain: strict` e nao pelos markers.
+### 3. Tabela para registrar NFA-e emitidas
 
-## Plano de Implementacao
-
-### Etapa 1 - Corrigir `contain: strict` no MapLibreBase.tsx
-- Linha 214: Trocar `contain: 'strict'` por `contain: 'layout paint'`
-- Manter `transform: 'none'` e `isolation: 'isolate'` (estes sao corretos)
-
-### Etapa 2 - Corrigir CSS global no index.css
-- Linha 247: Trocar `contain: layout style paint` por `contain: layout paint` no seletor `.maplibregl-map`
-
-### Etapa 3 - Corrigir `attributionControl` nos 3 arquivos
-- `useMapLibreMap.ts` linha 151: `attributionControl: attributionControl ? true : false`
-- `FreightRealtimeMapMapLibre.tsx` linha 431: `attributionControl: true`
-- `RouteReplayPlayerMapLibre.tsx` linha 91: `attributionControl: true`
-
-### Etapa 4 - Corrigir type mismatch em MapLibreMap.tsx
-- Converter markers de `MapLibreMarkerData[]` para `GeoJSONMarkerData[]` no `useMemo`
-
-### Etapa 5 - Reativar markers no RouteReplayPlayerMapLibre.tsx
-- Descomentar o bloco de criacao de markers (linhas 134-161)
-- Adicionar a layer `progress-path-line` que esta faltando
+Registro no banco para tracking (chave de acesso, PDF, vinculo com frete).
 
 ## Detalhes Tecnicos
 
-```text
-Arquivos a editar:
-1. src/components/map/MapLibreBase.tsx        -- contain: strict -> layout paint
-2. src/index.css                              -- contain no .maplibregl-map
-3. src/hooks/maplibre/useMapLibreMap.ts        -- attributionControl
-4. src/components/freight/FreightRealtimeMapMapLibre.tsx -- attributionControl
-5. src/components/freight/RouteReplayPlayerMapLibre.tsx  -- attributionControl + markers
-6. src/components/map/MapLibreMap.tsx           -- type mismatch markers
-```
+### Novo componente principal
+- `src/components/fiscal/nfa/NfaAssistedWizard.tsx` — Dialog com stepper de 4 etapas
 
-A causa raiz do "mapa branco" e o `contain: strict` que impede o MapLibre de detectar as dimensoes do container. As demais correcoes sao para evitar regressoes e melhorar a confiabilidade.
+### Componentes auxiliares
+- `src/components/fiscal/nfa/NfaDataPreparation.tsx` — Formulario da etapa 2
+- `src/components/fiscal/nfa/NfaPortalInstructions.tsx` — Instrucoes da etapa 3
+- `src/components/fiscal/nfa/NfaConfirmation.tsx` — Confirmacao e upload da etapa 4
+
+### Migracao SQL
+- Tabela `nfa_documents` (id, freight_id, user_id, access_key, status, pdf_url, recipient_name, recipient_doc, description, amount, created_at)
+- RLS: usuario so ve suas proprias NFA-e
+
+### Alteracoes em arquivos existentes
+- `src/components/fiscal/education/AptidaoWizardStep0.tsx` — Adicionar botao para abrir NfaAssistedWizard
+- `src/components/fiscal/education/index.ts` — Exportar novos componentes
+- Feature flag `enable_nfa_assisted_emission` em `featureFlags.ts`
+
+### Arquivos que NAO serao alterados
+- Nenhuma edge function nova (nao ha API SEFAZ para NFA-e)
+- Nenhuma alteracao nos wizards de NF-e, CT-e, MDF-e existentes
+- Nenhuma alteracao no StateGuideViewer existente
+
