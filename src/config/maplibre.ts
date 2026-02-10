@@ -14,24 +14,22 @@ export const RURAL_STYLE_INLINE: maplibregl.StyleSpecification = {
   name: 'AgriRoute Rural',
   glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
   sources: {
-    osm: {
+    carto: {
       type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tiles: [
+        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+      ],
       tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
+      attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     },
   },
   layers: [
     {
-      id: 'osm-base',
+      id: 'carto-base',
       type: 'raster',
-      source: 'osm',
-      paint: {
-        'raster-brightness-min': 0.2,
-        'raster-brightness-max': 0.8,
-        'raster-saturation': -0.4,
-        'raster-contrast': 0.3,
-      },
+      source: 'carto',
     },
   ],
 };

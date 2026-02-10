@@ -435,10 +435,6 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         // Controles de navegação
         map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-        // ✅ Handler de erro de tiles
-        map.on('error', (e) => {
-          console.warn('[FreightRealtimeMapMapLibre] Map error:', e.error?.message || e);
-        });
 
         // Evento de carregamento
         map.on('load', () => {
