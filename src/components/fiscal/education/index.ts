@@ -9,3 +9,4 @@ export { AptidaoWizardStep0 } from './AptidaoWizardStep0';
 export { StateGuideViewer } from './StateGuideViewer';
 export { AptidaoCheckModal } from './AptidaoCheckModal';
 export { MeiCredenciamentoNfeModal } from './MeiCredenciamentoNfeModal';
+export { NfaAssistedWizard } from '../nfa/NfaAssistedWizard';

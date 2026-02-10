@@ -13,6 +13,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { NfaAssistedWizard } from '@/components/fiscal/nfa/NfaAssistedWizard';
+import { isFeatureEnabled } from '@/config/featureFlags';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -78,6 +80,7 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
   const [userType, setUserType] = useState<string | null>(null);
   const [selectedUf, setSelectedUf] = useState(fiscalIssuer?.uf || defaultUf);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [showNfaWizard, setShowNfaWizard] = useState(false);
 
   // Determinar perfil fiscal baseado nas respostas
   const fiscalProfile = useMemo((): FiscalProfileType | null => {
@@ -281,6 +284,18 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Acessar Portal SEFAZ-MT para NF-a
                     </Button>
+
+                    {isFeatureEnabled('enable_nfa_assisted_emission') && (
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        onClick={() => setShowNfaWizard(true)}
+                        className="w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Emitir NF-A (Assistida) — Passo a Passo
+                      </Button>
+                    )}
                     
                     <div className="text-xs text-muted-foreground space-y-1">
                       <p>💡 <strong>Primeira vez?</strong> Solicite a senha de contribuinte no portal SEFAZ-MT.</p>
@@ -490,6 +505,12 @@ export const AptidaoWizardStep0: React.FC<AptidaoWizardStep0Props> = ({
       <p className="text-xs text-muted-foreground text-center">
         As regras podem variar por estado e município. Em caso de dúvida, consulte seu contador ou a SEFAZ/ANTT.
       </p>
+
+      {/* NFA Assisted Wizard */}
+      <NfaAssistedWizard
+        isOpen={showNfaWizard}
+        onClose={() => setShowNfaWizard(false)}
+      />
     </div>
   );
 };

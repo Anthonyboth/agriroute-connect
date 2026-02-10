@@ -21,6 +21,9 @@ export const FEATURE_FLAGS = {
   
   // Logs de auditoria fiscal
   enable_fiscal_audit_logs: true,
+
+  // Emissão assistida de NFA-e para MEI
+  enable_nfa_assisted_emission: true,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
