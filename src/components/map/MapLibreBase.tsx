@@ -198,7 +198,7 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
       style={{ 
         minHeight: `${minHeight}px`,
         /* ✅ Containment: isola o mapa de reflows e transforms de ancestrais (Dialog/Drawer) */
-        contain: 'layout style paint',
+        contain: 'layout paint',
         isolation: 'isolate',
       }}
     >
