@@ -10,7 +10,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, useMemo, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { MapLibreBase, type MapLibreBaseRef } from './MapLibreBase';
-import { type MapLibreMarkerData } from '@/hooks/maplibre';
+import { type GeoJSONMarkerData } from '@/hooks/maplibre';
 import { MAP_COLORS } from '@/config/maplibre';
 
 // Interface legada para compatibilidade
@@ -55,14 +55,13 @@ export const MapLibreMap = forwardRef<MapLibreMapRef, MapLibreMapProps>(({
 }, ref) => {
   const baseRef = useRef<MapLibreBaseRef>(null);
 
-  // Converter markers para formato padronizado
-  const normalizedMarkers = useMemo<MapLibreMarkerData[]>(() => {
+  // Converter markers para formato GeoJSON padronizado
+  const normalizedMarkers = useMemo<GeoJSONMarkerData[]>(() => {
     return markers.map((m) => ({
       id: m.id,
       lat: m.lat,
       lng: m.lng,
-      element: m.element,
-      popup: m.popup,
+      type: 'default' as const,
     }));
   }, [markers]);
 

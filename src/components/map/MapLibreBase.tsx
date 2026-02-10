@@ -211,7 +211,7 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
           height: '100%', 
           transform: 'none',
           /* ✅ contain:strict cria containing block próprio - markers posicionam relativo a ESTE elemento */
-          contain: 'strict',
+          contain: 'layout paint',
         }}
       />
 
