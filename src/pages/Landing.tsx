@@ -183,7 +183,7 @@ const Landing: React.FC = () => {
     {
       icon: FileText,
       title: 'Documentação Eletrônica',
-      description: 'Emissão de MDF-e, CT-e, CT-a, GT-a e NF-e e NF-a para MEI.'
+      description: 'Emissão de MDF-e, CT-e, NF-e, armazenamento e rastreio de GT-a e emissão assistida de NF-a para MEI.'
     }
   ];
 
