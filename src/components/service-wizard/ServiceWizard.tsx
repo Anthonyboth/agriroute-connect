@@ -637,7 +637,18 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         throw new Error((data as any).details || (data as any).error);
       }
 
-      showSuccess("Solicitação enviada! Prestadores próximos foram notificados.");
+      // Fretes urbanos notificam MOTORISTAS, serviços técnicos/agrícolas notificam PRESTADORES
+      const isFreightType = [
+        "FRETE_URBANO",
+        "FRETE_MOTO",
+        "MUDANCA_RESIDENCIAL",
+        "MUDANCA_COMERCIAL",
+        "ENTREGA_PACOTES",
+        "GUINCHO",
+      ].includes(serviceType);
+
+      const notificationTarget = isFreightType ? "Motoristas" : "Prestadores";
+      showSuccess(`Solicitação enviada! ${notificationTarget} próximos foram notificados.`);
 
       onSuccess?.();
       onClose();
