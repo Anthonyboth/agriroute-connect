@@ -26,9 +26,9 @@ interface ServiceWizardProps {
   catalogServiceDescription?: string;
 }
 
-const createInitialFormData = (serviceType: ServiceType): ServiceFormData => ({
+const createInitialFormData = (serviceType: ServiceType, catalogServiceId?: string): ServiceFormData => ({
   serviceType,
-  subServiceType: "",
+  subServiceType: catalogServiceId || "",
   problemDescription: "",
   personal: {
     name: "",
@@ -144,7 +144,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   const { showFormError, showMissingField, showSuccess } = useFormNotification();
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(serviceType));
+  const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(serviceType, catalogServiceId));
   const [loading, setLoading] = useState(false);
   const [hasPrefilled, setHasPrefilled] = useState(false);
 
@@ -189,7 +189,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   // ✅ Se serviceType mudar (ex: modal troca), reseta wizard corretamente
   useEffect(() => {
     setCurrentStep(1);
-    setFormData(createInitialFormData(serviceType));
+    setFormData(createInitialFormData(serviceType, catalogServiceId));
     setHasPrefilled(false); // Reset prefill flag para permitir novo prefill
   }, [serviceType]);
 
