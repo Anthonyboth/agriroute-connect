@@ -607,8 +607,10 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       const clientsMap = new Map();
       if (clientIds.length > 0) {
+        // ✅ Usar profiles_secure para contornar RLS que impede
+        // prestadores de ver perfis de clientes diretamente
         const { data: clients, error: clientsError } = await supabase
-          .from('profiles')
+          .from('profiles_secure')
           .select('id, full_name, phone')
           .in('id', clientIds);
 
@@ -1604,7 +1606,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                          )}
                          <p className="text-xs text-muted-foreground">
                            <Clock className="inline h-3 w-3 mr-1" />
-                           Concluído em: {new Date(request.completed_at || request.updated_at).toLocaleDateString('pt-BR')}
+                           Concluído em: {new Date(request.completed_at || request.updated_at || request.created_at).toLocaleDateString('pt-BR')}
                          </p>
                        </div>
                      </CardContent>
