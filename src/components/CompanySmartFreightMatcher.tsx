@@ -508,8 +508,13 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                       <div className="mt-2 flex gap-2 flex-wrap items-center">
                         <Button
                           className="flex-1"
-                          onClick={() => handleAssignFreight(freight.freight_id)}
-                          disabled={!selectedDriverId || selectedDriverId === "__none"}
+                          onClick={() => {
+                            if (!selectedDriverId || selectedDriverId === "__none") {
+                              toast.warning("⚠️ Selecione um motorista primeiro! Use o menu 'Selecionar motorista para atribuir' no topo desta página.");
+                              return;
+                            }
+                            handleAssignFreight(freight.freight_id);
+                          }}
                         >
                           <Package className="h-4 w-4 mr-2" />
                           Atribuir ao motorista
@@ -647,8 +652,13 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                         {/* Botão de atribuir ao motorista */}
                         <Button
                           className="w-full"
-                          onClick={() => handleAssignFreight(r.id)}
-                          disabled={!selectedDriverId || selectedDriverId === "__none"}
+                          onClick={() => {
+                            if (!selectedDriverId || selectedDriverId === "__none") {
+                              toast.warning("⚠️ Selecione um motorista primeiro! Use o menu 'Selecionar motorista para atribuir' no topo desta página.");
+                              return;
+                            }
+                            handleAssignFreight(r.id);
+                          }}
                         >
                           <Package className="h-4 w-4 mr-2" />
                           Atribuir ao motorista
