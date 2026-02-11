@@ -5646,6 +5646,7 @@ export type Database = {
           destination_zip_code: string | null
           distance_km: number | null
           distance_source: string | null
+          distancia_km_manual: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
           estimated_arrival_at: string | null
@@ -5764,6 +5765,7 @@ export type Database = {
           destination_zip_code?: string | null
           distance_km?: number | null
           distance_source?: string | null
+          distancia_km_manual?: number | null
           driver_id?: string | null
           drivers_assigned?: string[] | null
           estimated_arrival_at?: string | null
@@ -5882,6 +5884,7 @@ export type Database = {
           destination_zip_code?: string | null
           distance_km?: number | null
           distance_source?: string | null
+          distancia_km_manual?: number | null
           driver_id?: string | null
           drivers_assigned?: string[] | null
           estimated_arrival_at?: string | null
@@ -14213,6 +14216,7 @@ export type Database = {
           destination_zip_code: string | null
           distance_km: number | null
           distance_source: string | null
+          distancia_km_manual: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
           estimated_arrival_at: string | null
@@ -14340,6 +14344,7 @@ export type Database = {
           destination_zip_code: string | null
           distance_km: number | null
           distance_source: string | null
+          distancia_km_manual: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
           estimated_arrival_at: string | null
