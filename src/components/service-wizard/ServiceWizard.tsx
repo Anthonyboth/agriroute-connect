@@ -637,19 +637,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         throw new Error((data as any).details || (data as any).error);
       }
 
-      const notificationTarget = [
-        "GUINCHO",
-        "MUDANCA_RESIDENCIAL",
-        "MUDANCA_COMERCIAL",
-        "FRETE_URBANO",
-        "FRETE_MOTO",
-        "ENTREGA_PACOTES",
-        "TRANSPORTE_PET",
-      ].includes(serviceType)
-        ? "Motoristas"
-        : "Prestadores";
-
-      showSuccess(`Solicitação enviada! ${notificationTarget} próximos foram notificados.`);
+      showSuccess("Solicitação enviada! Prestadores próximos foram notificados.");
 
       onSuccess?.();
       onClose();

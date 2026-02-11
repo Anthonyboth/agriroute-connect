@@ -4,6 +4,11 @@ import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { isLovablePreviewHost } from '@/utils/isLovablePreviewHost';
 
+// Extend ServiceWorkerRegistration to include pushManager (Web Push API)
+interface PushServiceWorkerRegistration extends ServiceWorkerRegistration {
+  pushManager: PushManager;
+}
+
 export const usePushNotifications = () => {
   const { profile } = useAuth();
   const [isSupported, setIsSupported] = useState(false);
@@ -25,7 +30,7 @@ export const usePushNotifications = () => {
 
   const checkSubscription = async () => {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.ready as PushServiceWorkerRegistration;
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (error) {
@@ -113,9 +118,9 @@ export const usePushNotifications = () => {
       }
 
       // Reutilizar subscription existente (evita duplicidade/flood)
-      let subscription = await registration.pushManager.getSubscription();
+      let subscription = await (registration as PushServiceWorkerRegistration).pushManager.getSubscription();
       if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
+        subscription = await (registration as PushServiceWorkerRegistration).pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
@@ -196,7 +201,7 @@ export const usePushNotifications = () => {
 
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.ready as PushServiceWorkerRegistration;
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
