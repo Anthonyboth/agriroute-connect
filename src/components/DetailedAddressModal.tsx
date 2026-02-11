@@ -194,12 +194,12 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="neighborhood">Bairro/Fazenda</Label>
+              <Label htmlFor="neighborhood">Bairro / Fazenda / Nome Local</Label>
               <Input
                 id="neighborhood"
                 value={addressData.neighborhood}
                 onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                placeholder="Nome do bairro ou fazenda"
+                placeholder="Ex: Centro, Fazenda Santa Maria, Sítio Boa Vista"
               />
             </div>
 

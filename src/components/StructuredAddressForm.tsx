@@ -69,7 +69,7 @@ export const StructuredAddressForm: React.FC<StructuredAddressFormProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="neighborhood">Bairro/Fazenda *</Label>
+        <Label htmlFor="neighborhood">Bairro / Fazenda / Nome Local *</Label>
         <Input
           id="neighborhood"
           value={value.neighborhood || ''}
