@@ -8,6 +8,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useTileWatchdog } from '@/hooks/maplibre';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +55,9 @@ export function RouteReplayPlayerMapLibre({
   
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+
+  // ✅ Tile Watchdog
+  useTileWatchdog(mapRef);
 
   // Buscar histórico de rota
   const { points, totalDistanceKm, averageSpeedKmh, duration, isLoading, error } = useRouteHistory(freightId);

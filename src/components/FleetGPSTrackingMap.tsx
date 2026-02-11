@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, memo } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useTileWatchdog } from "@/hooks/maplibre";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,9 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  // ✅ Tile Watchdog
+  useTileWatchdog(mapRef);
 
   // Fetch driver locations
   const {

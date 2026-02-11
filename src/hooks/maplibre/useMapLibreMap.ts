@@ -17,6 +17,7 @@ import maplibregl from 'maplibre-gl';
 import { RURAL_STYLE_URL, RURAL_STYLE_INLINE, DEFAULT_CENTER, DEFAULT_ZOOM } from '@/config/maplibre';
 import { useMapLibreSafeRaf } from './useMapLibreSafeRaf';
 import { useMapLibreAutoResize } from './useMapLibreAutoResize';
+import { useTileWatchdog } from './useTileWatchdog';
 
 export interface UseMapLibreMapOptions {
   /** Ref do container DOM */
@@ -102,6 +103,9 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
 
   // Auto-resize para containers dinâmicos
   useMapLibreAutoResize(mapRef, containerRef, { debug: false });
+
+  // ✅ Tile Watchdog: garante que tiles carreguem, fallback automático se falharem
+  useTileWatchdog(mapRef);
 
   /**
    * Tenta carregar o style via fetch, retorna inline se falhar

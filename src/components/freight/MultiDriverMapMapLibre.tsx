@@ -8,6 +8,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useTileWatchdog } from '@/hooks/maplibre';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, WifiOff, Users, Loader2 } from 'lucide-react';
 import { useMultiDriverLocations, DriverLocationData } from '@/hooks/useMultiDriverLocations';
@@ -101,6 +102,8 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
   
   const [mapLoaded, setMapLoaded] = useState(false);
 
+  // ✅ Tile Watchdog
+  useTileWatchdog(mapRef);
   const { drivers, isLoading: driversLoading } = useMultiDriverLocations(freightId);
 
   // ✅ Hook exclusivo: normaliza entradas numéricas (number|string)

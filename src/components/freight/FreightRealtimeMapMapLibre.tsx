@@ -20,7 +20,7 @@ import { MapPin, WifiOff, Navigation, Eye, Clock, Route } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFreightRealtimeLocation } from '@/hooks/useFreightRealtimeLocation';
 import { useCityCoordinates } from '@/hooks/useCityCoordinates';
-import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport, useOSRMRoute } from '@/hooks/maplibre';
+import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport, useOSRMRoute, useTileWatchdog } from '@/hooks/maplibre';
 import { useOngoingFreightMapInputs } from '@/hooks/maplibre/useOngoingFreightMapInputs';
 import { 
   createTruckMarkerElement,
@@ -91,7 +91,10 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0); // ✅ Para forçar retry quando container não está pronto
+  const [retryCount, setRetryCount] = useState(0);
+
+  // ✅ Tile Watchdog: fallback automático quando tiles falham
+  useTileWatchdog(mapRef);
 
   const { 
     driverLocation, 
@@ -496,13 +499,20 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
         map.on('error', (e) => {
           const errMsg = e.error?.message || '';
+          // Apenas ignorar AbortError (navegação normal)
           if (
             e.error?.name === 'AbortError' ||
             errMsg.includes('signal is aborted') ||
-            errMsg.includes('The operation was aborted') ||
-            errMsg.includes('Failed to fetch')
+            errMsg.includes('The operation was aborted')
           ) {
             return;
+          }
+          // ✅ NÃO ignorar mais "Failed to fetch" - o TileWatchdog cuida do fallback
+          if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Load failed')) {
+            if (import.meta.env.DEV) {
+              console.warn('[FreightRealtimeMapMapLibre] Network error (watchdog will handle):', errMsg);
+            }
+            return; // Watchdog cuidará do fallback
           }
           console.error('[FreightRealtimeMapMapLibre] Map error:', e);
           setMapError('Erro ao carregar o mapa');
