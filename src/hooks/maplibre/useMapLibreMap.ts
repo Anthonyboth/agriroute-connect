@@ -131,16 +131,30 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
     if (mapRef.current) return;
     if (initializingRef.current) return;
 
-    initializingRef.current = true;
+    /**
+     * ✅ FIX: Verificar se container tem dimensões válidas antes de criar mapa.
+     * Em Drawers/Dialogs, o container pode iniciar com 0x0 (antes da animação).
+     * Isso causava canvas 0x0 → mapa branco permanente.
+     */
+    const tryInit = async () => {
+      const rect = container.getBoundingClientRect();
+      
+      if (rect.width <= 0 || rect.height <= 0) {
+        if (import.meta.env.DEV) {
+          console.log('[MapLibre] Container com dimensões 0 - aguardando resize...', { w: rect.width, h: rect.height });
+        }
+        return false; // Sinaliza que precisa retry
+      }
 
-    const initMap = async () => {
+      initializingRef.current = true;
+
       try {
         const style = await loadStyle();
 
         // Verificar novamente após async
         if (mapRef.current) {
           initializingRef.current = false;
-          return;
+          return true;
         }
 
         const map = new maplibregl.Map({
@@ -168,23 +182,20 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
         map.on('load', () => {
           setIsLoading(false);
           setIsReady(true);
-          networkErrorCountRef.current = 0; // Reset error count on load
-          console.log('[MapLibre] Mapa inicializado com sucesso');
+          networkErrorCountRef.current = 0;
+          if (import.meta.env.DEV) {
+            console.log('[MapLibre] Mapa inicializado com sucesso');
+          }
           onLoad?.(map);
         });
 
         // Error handler - com filtro para erros de rede
         map.on('error', (e) => {
-          // Ignorar erros de rede de tiles (esperados quando offline)
           if (isNetworkTileError(e)) {
             networkErrorCountRef.current++;
-            // Log apenas a cada 10 erros para não poluir console
             if (networkErrorCountRef.current <= 3) {
-              console.warn('[MapLibre] Erro de rede (tile/glyph) - esperado se offline:', e.error?.message);
-            } else if (networkErrorCountRef.current === 4) {
-              console.warn('[MapLibre] Múltiplos erros de rede detectados - suprimindo logs futuros');
+              console.warn('[MapLibre] Erro de rede (tile/glyph):', e.error?.message);
             }
-            // NÃO propagar como erro do mapa - é normal offline
             return;
           }
           
@@ -197,6 +208,7 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
 
         mapRef.current = map;
         initializingRef.current = false;
+        return true;
 
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Erro ao inicializar o mapa';
@@ -205,13 +217,38 @@ export function useMapLibreMap(options: UseMapLibreMapOptions): UseMapLibreMapRe
         setIsLoading(false);
         initializingRef.current = false;
         onError?.(err instanceof Error ? err : new Error(errorMsg));
+        return true;
       }
     };
 
-    initMap();
+    // Tentar init imediatamente
+    tryInit().then((initialized) => {
+      if (initialized) return;
+      
+      // ✅ Se container não tem tamanho, usar ResizeObserver para esperar
+      // Isso resolve o "mapa branco" em Drawers/Dialogs que animam de 0→full
+      const waitObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0 && !mapRef.current && !initializingRef.current) {
+            if (import.meta.env.DEV) {
+              console.log('[MapLibre] Container agora tem dimensões válidas:', { width, height });
+            }
+            waitObserver.disconnect();
+            tryInit();
+          }
+        }
+      });
+      waitObserver.observe(container);
+      
+      // Cleanup do observer no unmount
+      const cleanup = () => waitObserver.disconnect();
+      container.addEventListener('__maplibre_cleanup', cleanup, { once: true });
+    });
 
     return () => {
       cancelAll();
+      containerRef.current?.dispatchEvent(new Event('__maplibre_cleanup'));
       
       if (mapRef.current) {
         try {

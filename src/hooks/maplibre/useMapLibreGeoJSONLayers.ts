@@ -139,14 +139,11 @@ export function useMapLibreGeoJSONLayers(
     if (setupDoneRef.current) return;
 
     try {
-      // 🔍 DEBUG ETAPA 2: Verificar se source já existe
       const existingSource = map.getSource(sourceId);
-      console.log("[MapLibreBase] source existe?", !!existingSource);
       
       if (existingSource) {
         setupDoneRef.current = true;
         isReadyRef.current = true;
-        console.log("[MapLibreBase] layer existe?", !!map.getLayer(layerCircleId));
         return;
       }
 
@@ -158,7 +155,6 @@ export function useMapLibreGeoJSONLayers(
           features: [],
         },
       });
-      console.log("[MapLibreBase] source criado:", sourceId);
 
       // Adicionar layer de círculo
       map.addLayer({
@@ -172,9 +168,6 @@ export function useMapLibreGeoJSONLayers(
           'circle-stroke-color': strokeColor,
         },
       });
-      console.log("[MapLibreBase] layer criado:", layerCircleId);
-      console.log("[MapLibreBase] source existe?", !!map.getSource(sourceId));
-      console.log("[MapLibreBase] layer existe?", !!map.getLayer(layerCircleId));
 
       // Click handler
       if (onPointClick) {
@@ -205,7 +198,9 @@ export function useMapLibreGeoJSONLayers(
 
       setupDoneRef.current = true;
       isReadyRef.current = true;
-      console.log('[GeoJSONLayers] Source e layers criados:', sourceId);
+      if (import.meta.env.DEV) {
+        console.log('[GeoJSONLayers] Source e layers criados:', sourceId);
+      }
 
     } catch (error) {
       console.error('[GeoJSONLayers] Erro ao criar source/layers:', error);
@@ -222,40 +217,25 @@ export function useMapLibreGeoJSONLayers(
     try {
       const source = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
       
-      // 🔍 DEBUG ETAPA 2: Logs de source e layer
-      console.log("[MapLibreBase] source existe?", !!source);
-      console.log("[MapLibreBase] layer existe?", !!map.getLayer(layerCircleId));
-      
       if (source) {
         const geojson = markersToGeoJSON(points);
         
-        // 🔍 DEBUG ETAPA 2: Validar cada feature antes de usar
+        // Filtrar features com coordenadas inválidas
         const validFeatures = geojson.features.filter(f => {
           const coords = (f.geometry as GeoJSON.Point).coordinates;
           const lng = coords[0];
           const lat = coords[1];
-          
-          const isValidType = typeof lat === 'number' && typeof lng === 'number';
-          const isFiniteVal = isFinite(lat) && isFinite(lng);
-          const isInRange = lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
-          
-          const isValid = isValidType && isFiniteVal && isInRange;
-          
-          if (!isValid) {
-            console.warn("[MapLibreBase] Feature inválida:", f.properties?.id, { lat, lng, isValidType, isFiniteVal, isInRange });
-          }
-          return isValid;
+          return typeof lat === 'number' && typeof lng === 'number' 
+            && isFinite(lat) && isFinite(lng)
+            && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
         });
-        
-        // 🔍 DEBUG ETAPA 2: Log setData features
-        console.log("[MapLibreBase] setData features:", validFeatures.length, validFeatures[0]);
         
         source.setData({
           type: 'FeatureCollection',
           features: validFeatures,
         });
         
-        // 🔍 DEBUG ETAPA 3: fitBounds + resize burst
+        // fitBounds se tiver pontos
         if (validFeatures.length >= 1) {
           const bounds = new maplibregl.LngLatBounds();
           validFeatures.forEach(f => {
@@ -264,25 +244,19 @@ export function useMapLibreGeoJSONLayers(
           });
           
           map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 0 });
-          console.log("[MapLibreBase] fitBounds executado para", validFeatures.length, "pontos");
           
-          // Resize burst por 500ms (15 frames) para Drawers com transform
-          for (let i = 0; i < 15; i++) {
+          // Resize burst por 500ms para Drawers com transform
+          for (let i = 0; i < 10; i++) {
             setTimeout(() => {
-              try {
-                map.resize();
-              } catch {}
-            }, i * (500 / 15));
+              try { map.resize(); } catch {}
+            }, i * 50);
           }
-          console.log("[MapLibreBase] resize burst iniciado (15 frames em 500ms)");
         }
-        
-        console.log('[GeoJSONLayers] Pontos atualizados:', points.length);
       }
     } catch (error) {
       console.error('[GeoJSONLayers] Erro ao atualizar pontos:', error);
     }
-  }, [mapRef, sourceId, layerCircleId]);
+  }, [mapRef, sourceId]);
 
   /**
    * Limpa todos os pontos
