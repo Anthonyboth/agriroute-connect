@@ -184,8 +184,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       description: 'Viagem segura e confortável para seu pet',
       colorClass: 'bg-gray-100 dark:bg-gray-800/60 text-gray-900 dark:text-gray-200 border border-gray-300/60 dark:border-gray-600/50',
       badge: 'Pet',
-      ctaText: 'Transportar meu pet',
-      ctaHighlight: true,
     },
     {
       id: 'MUDANCA',
