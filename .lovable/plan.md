@@ -1,89 +1,42 @@
 
 
-# Plano: Emissão Assistida de NF-A para MEI
+# Fix: BOOTSTRAP_TIMEOUT at INITIALIZING
 
-## Contexto (informacoes confirmadas pelo SEFAZ)
+## Problem
 
-A SEFAZ-MT confirmou que **nao existe API para NFA-e**. A emissao deve ser feita diretamente no portal SEFAZ. O app so pode **guiar o usuario** passo a passo. As informacoes-chave extraidas do atendimento:
+The app is timing out during boot, stuck at the `INITIALIZING` phase for 8+ seconds. The error report shows `BOOTSTRAP_TIMEOUT step=INITIALIZING`, meaning the BootOrchestrator never transitions the app past the initial phase before the global 8s timeout fires.
 
-- **NFA-e**: emitida no portal SEFAZ-MT, sem certificado digital, apenas login/senha
-- **Login**: Inscricao Estadual (IE) — **nao** o CNPJ
-- **Senha**: senha de contribuinte criada no portal
-- **Link para criar senha**: https://www5.sefaz.mt.gov.br/servicos?c=6346394&e=6398811
-- **Webservice (verificar credenciamento)**: https://www.sefaz.mt.gov.br/acesso/pages/login/login.xhtml
-- **e-PAC (requer e-CNPJ)**: https://www5.sefaz.mt.gov.br/portal-de-atendimento-ao-contribuinte
-- MEI emite NFA-e **por padrao** — nao precisa credenciamento especifico para NFA-e
-- Para NF-e (diferente de NFA-e), MEI precisa: credenciamento voluntario + certificado A1 + programa emissor
+## Root Causes
 
-## O que sera construido
+1. **Stale closure in timeout handler**: The `forceTimeout` function in `AppBootContext` captures `state.phase` and `state.lastStep` at creation time. When the 8s timeout fires, it reads the stale initial values (`INITIALIZING`) even if the phase already changed. This causes incorrect timeout reports.
 
-Um **wizard de emissao assistida de NF-A** integrado ao app, com 4 etapas guiadas que orientam o MEI a emitir a NFA-e no portal SEFAZ sem sair do fluxo do app.
+2. **Race condition**: The `BootOrchestrator` relies on `useAuth`'s `loading` state to transition phases. If Supabase's `getSession()` is slow (cold start, network latency), `authLoading` stays `true` and the orchestrator cannot progress.
 
-## Componentes
+3. **Timeout too aggressive for slow networks**: 8 seconds may not be enough on mobile/slow connections, especially when Supabase has a cold start.
 
-### 1. `NfaAssistedWizard` (novo componente)
+## Solution
 
-Dialog com stepper de 4 etapas:
+### 1. Fix stale closure in `forceTimeout` (AppBootContext.tsx)
+- Use refs instead of state values inside `forceTimeout` to always read current phase/lastStep
+- Add a `phaseRef` that tracks the current phase for the timeout handler
 
-**Etapa 1 - Verificar Acesso SEFAZ**
-- Pergunta: "Voce ja tem senha de contribuinte na SEFAZ-MT?"
-- Se SIM: avanca
-- Se NAO: mostra passo a passo para criar senha com link direto
-- Link: Solicitar Senha → Liberar Senha (2 sub-etapas)
+### 2. Improve BootOrchestrator resilience (BootOrchestrator.tsx)
+- Remove the guard `if (hasStartedRef.current && phase !== 'INITIALIZING') return` which can block re-entry in edge cases
+- Make the INITIALIZING to CHECKING_AUTH transition happen immediately on first render (not waiting for next effect cycle)
 
-**Etapa 2 - Preparar Dados da Nota**
-- Formulario para o usuario preencher localmente (dentro do app) os dados que vai precisar no portal:
-  - Destinatario (nome, CNPJ/CPF)
-  - Descricao do servico/produto
-  - Valor total
-  - Observacoes
-- Botao "Copiar dados" para facilitar o preenchimento no portal SEFAZ
+### 3. Increase timeout with platform awareness (AppBootContext.tsx)
+- Increase timeout to 12s on native platforms (iOS/Android) where cold starts are more common
+- Keep 8s for web
 
-**Etapa 3 - Emitir no Portal SEFAZ**
-- Instrucoes visuais numeradas:
-  1. Acesse o portal com sua IE + senha
-  2. Navegue ate "NFA-e → Emissao de NFA-e"
-  3. Preencha os dados (use o botao "Copiar" da etapa anterior)
-  4. Transmita e imprima o DANFA-e
-- Botao que abre o portal SEFAZ-MT em nova aba
-- Lembrete: "Login = sua IE, nao o CNPJ"
+### Technical Details
 
-**Etapa 4 - Confirmar e Vincular ao Frete**
-- Campo para colar a chave de acesso da NFA-e emitida
-- Campo para upload do DANFA-e (PDF)
-- Vinculacao automatica ao frete no banco de dados
+**File: `src/contexts/AppBootContext.tsx`**
+- Add `phaseRef` and `lastStepRef` to track current values for timeout handler
+- Update `setPhase` to also update `phaseRef`
+- Update `forceTimeout` to read from refs instead of state
+- Adjust timeout: 12s for native, 10s for web
 
-### 2. Integracao com fluxos existentes
-
-- Botao "Emitir NF-A (Assistida)" no `AptidaoWizardStep0` quando MEI seleciona NF-e/CT-e (onde hoje ja aparece o aviso de MEI)
-- Botao no painel de documentos do frete
-- Reutilizar `StateGuideViewer` existente para links e guias por estado
-
-### 3. Tabela para registrar NFA-e emitidas
-
-Registro no banco para tracking (chave de acesso, PDF, vinculo com frete).
-
-## Detalhes Tecnicos
-
-### Novo componente principal
-- `src/components/fiscal/nfa/NfaAssistedWizard.tsx` — Dialog com stepper de 4 etapas
-
-### Componentes auxiliares
-- `src/components/fiscal/nfa/NfaDataPreparation.tsx` — Formulario da etapa 2
-- `src/components/fiscal/nfa/NfaPortalInstructions.tsx` — Instrucoes da etapa 3
-- `src/components/fiscal/nfa/NfaConfirmation.tsx` — Confirmacao e upload da etapa 4
-
-### Migracao SQL
-- Tabela `nfa_documents` (id, freight_id, user_id, access_key, status, pdf_url, recipient_name, recipient_doc, description, amount, created_at)
-- RLS: usuario so ve suas proprias NFA-e
-
-### Alteracoes em arquivos existentes
-- `src/components/fiscal/education/AptidaoWizardStep0.tsx` — Adicionar botao para abrir NfaAssistedWizard
-- `src/components/fiscal/education/index.ts` — Exportar novos componentes
-- Feature flag `enable_nfa_assisted_emission` em `featureFlags.ts`
-
-### Arquivos que NAO serao alterados
-- Nenhuma edge function nova (nao ha API SEFAZ para NFA-e)
-- Nenhuma alteracao nos wizards de NF-e, CT-e, MDF-e existentes
-- Nenhuma alteracao no StateGuideViewer existente
+**File: `src/components/BootOrchestrator.tsx`**
+- Simplify the main orchestration effect to be more deterministic
+- Ensure INITIALIZING to CHECKING_AUTH happens on the very first effect run without conditions that could block it
 
