@@ -15,6 +15,7 @@ interface Step1Props {
 }
 
 export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, serviceType }) => {
+  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste' || formData.subServiceType === 'GUINDASTE_LOG';
   
   const renderGuinchoFields = () => (
     <div className="space-y-4">
@@ -237,6 +238,23 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
   );
 
   const renderContent = () => {
+    // Guindaste: render specific fields regardless of fallback serviceType
+    if (isGuindaste) {
+      return (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Descreva a operação de içamento/movimentação *</Label>
+            <Textarea
+              value={formData.problemDescription}
+              onChange={(e) => onUpdate('problemDescription', e.target.value)}
+              placeholder="Descreva o que precisa ser levantado ou movimentado, peso estimado, altura, condições de acesso..."
+              rows={4}
+            />
+          </div>
+        </div>
+      );
+    }
+
     switch (serviceType) {
       case 'GUINCHO':
         return renderGuinchoFields();

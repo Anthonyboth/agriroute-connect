@@ -113,10 +113,10 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
     </div>
   );
 
-  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste';
+  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste' || formData.subServiceType === 'GUINDASTE_LOG';
   
   const renderCargoDetails = () => {
-    const maxWeight = serviceType === 'FRETE_MOTO' ? 150 : (isGuindaste ? 999999 : 1500);
+    const maxWeight = serviceType === 'FRETE_MOTO' ? 150 : undefined;
     const cargoOptions = isGuindaste ? GUINDASTE_CARGO_TYPES : CARGO_TYPES;
     
     return (
@@ -151,7 +151,7 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
                 onChange={(e) => onUpdate('cargo.weight', e.target.value)}
                 placeholder="0"
                 min="0"
-                max={maxWeight}
+                {...(maxWeight ? { max: maxWeight } : {})}
               />
               <Select 
                 value={formData.cargo?.weightUnit || 'kg'} 
@@ -645,7 +645,7 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
       case 'MUDANCA_COMERCIAL':
         return renderMudancaDetails();
       case 'SERVICO_AGRICOLA':
-        return renderAgriculturalDetails();
+        return isGuindaste ? renderCargoDetails() : renderAgriculturalDetails();
       case 'SERVICO_TECNICO':
         return renderTechnicalDetails();
       case 'ENTREGA_PACOTES':
