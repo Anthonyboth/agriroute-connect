@@ -48,54 +48,42 @@ export const BootOrchestrator: React.FC = () => {
     }
   }, [bootAttempt]);
 
-  // Main orchestration effect
+  // Main orchestration effect - deterministic transitions
   useEffect(() => {
-    // Prevent running multiple times in same attempt
-    if (hasStartedRef.current && phase !== 'INITIALIZING') return;
-
-    // Phase 1: Start checking auth
-    if (phase === 'INITIALIZING' && !hasStartedRef.current) {
-      hasStartedRef.current = true;
-      logStep('SESSION', 'START');
+    // Phase 1: Immediately transition out of INITIALIZING
+    if (phase === 'INITIALIZING') {
+      if (!hasStartedRef.current) {
+        hasStartedRef.current = true;
+        logStep('SESSION', 'START');
+      }
       setPhase('CHECKING_AUTH');
       return;
     }
 
     // Phase 2: Auth check complete, now loading profile
-    if (phase === 'CHECKING_AUTH') {
-      // Session resolved (either have user or no user)
-      if (!authLoading && session !== undefined) {
-        logStep('SESSION', 'OK', { hasUser: !!user });
-        
-        if (!user) {
-          // No user = no need to load profile, go to READY
-          logStep('PROFILE', 'START');
-          logStep('PROFILE', 'OK', { hasProfile: false, reason: 'no_user' });
-          setPhase('READY');
-          return;
-        }
-        
-        // Has user, need to load profile
+    if (phase === 'CHECKING_AUTH' && !authLoading && session !== undefined) {
+      logStep('SESSION', 'OK', { hasUser: !!user });
+      
+      if (!user) {
         logStep('PROFILE', 'START');
-        setPhase('LOADING_PROFILE');
+        logStep('PROFILE', 'OK', { hasProfile: false, reason: 'no_user' });
+        setPhase('READY');
         return;
       }
+      
+      logStep('PROFILE', 'START');
+      setPhase('LOADING_PROFILE');
+      return;
     }
 
     // Phase 3: Profile loading
-    if (phase === 'LOADING_PROFILE') {
-      // Profile resolved (either have profile or auth finished without profile)
-      if (!authLoading) {
-        if (profile) {
-          logStep('PROFILE', 'OK', { role: profile.role, status: profile.status });
-          setPhase('READY');
-        } else if (!user) {
-          // User signed out during profile load
-          logStep('PROFILE', 'OK', { hasProfile: false, reason: 'signed_out' });
-          setPhase('READY');
-        }
-        // If authLoading=false but no profile and has user, profile fetch might have failed
-        // Wait a bit more or let timeout handle it
+    if (phase === 'LOADING_PROFILE' && !authLoading) {
+      if (profile) {
+        logStep('PROFILE', 'OK', { role: profile.role, status: profile.status });
+        setPhase('READY');
+      } else if (!user) {
+        logStep('PROFILE', 'OK', { hasProfile: false, reason: 'signed_out' });
+        setPhase('READY');
       }
     }
   }, [phase, authLoading, session, user, profile, setPhase, setError, bootAttempt, recordStepTiming]);

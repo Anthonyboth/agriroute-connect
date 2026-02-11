@@ -139,8 +139,8 @@ const phaseMessages: Record<BootPhase, string> = {
   TIMEOUT: 'Tempo esgotado',
 };
 
-/** Timeout do bootstrap em ms */
-const BOOTSTRAP_TIMEOUT_MS = 8000;
+/** Timeout do bootstrap em ms - mais generoso para cold starts */
+const BOOTSTRAP_TIMEOUT_MS = Capacitor.isNativePlatform() ? 12000 : 10000;
 
 export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppBootState>({
@@ -161,6 +161,8 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
     bootStartedAt: Date.now(),
   });
   
+  const phaseRef = useRef<BootPhase>('INITIALIZING');
+  const lastStepRef = useRef<string | null>(null);
   const stepTimingsRef = useRef<Record<string, number>>({});
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasCompletedRef = useRef(false);
@@ -180,6 +182,10 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (hasTimedOutRef.current && phase !== 'READY') return;
     
     const now = Date.now();
+    
+    // Atualizar refs PRIMEIRO (antes do setState)
+    phaseRef.current = phase;
+    lastStepRef.current = phase;
     
     // Atualizar métricas
     if (phase === 'LOADING_PROFILE') {
@@ -232,12 +238,16 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const forceTimeout = useCallback(() => {
     if (hasCompletedRef.current) return;
     
+    // Ler valores ATUAIS dos refs (não do state stale)
+    const currentPhase = phaseRef.current;
+    const currentLastStep = lastStepRef.current;
+    
     hasTimedOutRef.current = true;
     metricsRef.current.timeoutAt = Date.now();
     
     const lastError: BootError = {
-      message: `Bootstrap timeout na fase ${state.phase}`,
-      step: state.phase,
+      message: `Bootstrap timeout na fase ${currentPhase}`,
+      step: currentPhase,
     };
     
     setState(prev => ({
@@ -249,15 +259,15 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastError,
     }));
     
-    // Enviar alerta com dados de instrumentação
+    // Enviar alerta com dados de instrumentação usando refs atuais
     sendTimeoutAlert(
       metricsRef.current, 
-      state.phase,
-      state.lastStep,
+      currentPhase,
+      currentLastStep,
       stepTimingsRef.current,
       lastError
     );
-  }, [state.phase, state.lastStep]);
+  }, []);
 
   const reset = useCallback(() => {
     hasCompletedRef.current = false;
@@ -305,7 +315,7 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
       if (!hasCompletedRef.current && !hasTimedOutRef.current) {
-        console.warn('[AppBoot] ⚠️ TIMEOUT! Fase atual:', state.phase);
+        console.warn('[AppBoot] ⚠️ TIMEOUT! Fase atual:', phaseRef.current);
         forceTimeout();
       }
     }, BOOTSTRAP_TIMEOUT_MS);
@@ -315,7 +325,7 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
         clearTimeout(timeoutRef.current);
       }
     };
-  }, []); // Apenas no mount
+  }, [forceTimeout]); // forceTimeout is stable (no deps)
 
   // Log de métricas finais em dev
   useEffect(() => {
