@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,9 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FreightCard } from "@/components/FreightCard";
-import { Brain, RefreshCw, Search, Zap, Package, Clock } from "lucide-react";
+import { Brain, RefreshCw, Search, Zap, Package, Clock, Truck, Bike, Wrench, PawPrint, DollarSign, MessageSquare, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCargoTypesByCategory } from "@/lib/cargo-types";
@@ -53,6 +54,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const { drivers, company } = useTransportCompany();
 
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -170,39 +172,17 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         });
       }
 
-      // 3) Normalizar service_requests como CompatibleFreight para unificar na lista
-      for (const sr of serviceData || []) {
-        normalizedFreights.push({
-          freight_id: String(sr.id),
-          cargo_type: String(sr.service_type || ""),
-          weight: 0,
-          origin_address: String(sr.location_address || ""),
-          destination_address: String(sr.destination_address || ""),
-          origin_city: sr.location_city || undefined,
-          origin_state: sr.location_state || undefined,
-          destination_city: sr.destination_city || undefined,
-          destination_state: sr.destination_state || undefined,
-          pickup_date: String(sr.preferred_datetime || sr.created_at || ""),
-          delivery_date: "",
-          price: Number(sr.estimated_price ?? 0),
-          urgency: String(sr.urgency || "LOW"),
-          status: "OPEN",
-          service_type: String(sr.service_type || ""),
-          distance_km: 0,
-          minimum_antt_price: 0,
-          required_trucks: 1,
-          accepted_trucks: 0,
-          created_at: String(sr.created_at || ""),
-        });
-      }
+      // 3) Armazenar service_requests separadamente (NÃO normalizar como freight)
+      setServiceRequests(serviceData || []);
 
-      console.log(`✅ [FRETES I.A] ${normalizedFreights.length} compatíveis`);
+      console.log(`✅ [FRETES I.A] ${normalizedFreights.length} fretes compatíveis`);
+      console.log(`✅ [FRETES I.A] ${(serviceData || []).length} service_requests disponíveis`);
       console.log(`📊 [FRETES I.A] Descartados: ${discardedByStatus} status, ${discardedNoSlots} sem vagas`);
 
       setCompatibleFreights(normalizedFreights);
       setMatchingStats({
         total: (freightsData?.length || 0) + (serviceData?.length || 0),
-        matched: normalizedFreights.length,
+        matched: normalizedFreights.length + (serviceData?.length || 0),
         assigned: drivers?.length || 0,
       });
       setLastUpdateTime(new Date());
@@ -265,7 +245,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     }
   };
 
-  const filteredFreights = compatibleFreights.filter((freight) => {
+  const filteredFreights = useMemo(() => compatibleFreights.filter((freight) => {
     const matchesSearch =
       !searchTerm ||
       (freight.cargo_type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -274,9 +254,41 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
     const matchesCargoType = selectedCargoType === "all" || freight.cargo_type === selectedCargoType;
     return matchesSearch && matchesCargoType;
-  });
+  }), [compatibleFreights, searchTerm, selectedCargoType]);
+
+  const filteredServiceRequests = useMemo(() => serviceRequests.filter((r: any) => {
+    const matchesSearch =
+      !searchTerm ||
+      (r.location_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.destination_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.problem_description || "").toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  }), [serviceRequests, searchTerm]);
 
   const activeDrivers = (drivers || []).filter((d: any) => d.status === "ACTIVE");
+
+  const getServiceTypeTitle = (serviceType: string) => {
+    switch (serviceType) {
+      case "TRANSPORTE_PET": return "Transporte de Pet 🐾";
+      case "ENTREGA_PACOTES": return "Entrega de Pacotes 📦";
+      case "GUINCHO": return "Guincho";
+      case "FRETE_MOTO": return "Frete Moto";
+      case "MUDANCA": return "Mudança";
+      case "FRETE_URBANO": return "Frete Urbano";
+      default: return "Serviço";
+    }
+  };
+
+  const getServiceTypeIcon = (serviceType: string) => {
+    switch (serviceType) {
+      case "TRANSPORTE_PET": return <PawPrint className="h-5 w-5 text-purple-600" />;
+      case "ENTREGA_PACOTES": return <Package className="h-5 w-5 text-amber-600" />;
+      case "GUINCHO": return <Wrench className="h-5 w-5 text-orange-600" />;
+      case "FRETE_MOTO": return <Bike className="h-5 w-5 text-blue-600" />;
+      case "MUDANCA": return <Truck className="h-5 w-5 text-blue-600" />;
+      default: return <Truck className="h-5 w-5 text-blue-600" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -417,77 +429,239 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
+      {/* ✅ TABS SEPARADAS: Fretes vs Serviços Urbanos (mesmo padrão do driver) */}
+      <Tabs defaultValue="freights" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="freights" className="flex items-center gap-2">
+            <Truck className="h-4 w-4" />
+            Fretes
+            {filteredFreights.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {filteredFreights.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Bike className="h-4 w-4" />
+            Fretes Urbanos
+            {filteredServiceRequests.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {filteredServiceRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
         {loading ? (
           <div className="text-center py-8">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">Buscando fretes...</p>
           </div>
-        ) : filteredFreights.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-semibold mb-2">Nenhum frete disponível</h3>
-              <p className="text-muted-foreground mb-4">Não há fretes abertos com vagas no momento.</p>
-              <Button variant="outline" onClick={fetchCompatibleFreights}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Verificar Novamente
-              </Button>
-            </CardContent>
-          </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredFreights.map((freight) => (
-              <div key={freight.freight_id} className="relative overflow-hidden">
-                <FreightCard
-                  freight={{
-                    id: freight.freight_id,
-                    cargo_type: freight.cargo_type,
-                    weight: Number(freight.weight ?? 0) || 0,
-                    origin_address: freight.origin_address,
-                    destination_address: freight.destination_address,
-                    origin_city: freight.origin_city,
-                    origin_state: freight.origin_state,
-                    destination_city: freight.destination_city,
-                    destination_state: freight.destination_state,
-                    pickup_date: freight.pickup_date,
-                    delivery_date: freight.delivery_date,
-                    price: freight.price,
-                    urgency: freight.urgency as "LOW" | "MEDIUM" | "HIGH",
-                    status: "OPEN" as const,
-                    distance_km: freight.distance_km,
-                    minimum_antt_price: freight.minimum_antt_price,
-                    required_trucks: freight.required_trucks,
-                    accepted_trucks: freight.accepted_trucks,
-                    service_type: freight.service_type as any,
-                  }}
-                  showActions
-                  canAcceptFreights={true}
-                  isAffiliatedDriver={false}
-                  onAction={() => fetchCompatibleFreights()}
-                />
+          <>
+            {/* ABA FRETES RURAIS */}
+            <TabsContent value="freights" className="space-y-4">
+              {filteredFreights.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <Truck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold mb-2">Nenhum frete disponível</h3>
+                    <p className="text-muted-foreground mb-4">Não há fretes abertos com vagas no momento.</p>
+                    <Button variant="outline" onClick={fetchCompatibleFreights}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Verificar Novamente
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredFreights.map((freight) => (
+                    <div key={freight.freight_id} className="relative overflow-hidden">
+                      <FreightCard
+                        freight={{
+                          id: freight.freight_id,
+                          cargo_type: freight.cargo_type,
+                          weight: Number(freight.weight ?? 0) || 0,
+                          origin_address: freight.origin_address,
+                          destination_address: freight.destination_address,
+                          origin_city: freight.origin_city,
+                          origin_state: freight.origin_state,
+                          destination_city: freight.destination_city,
+                          destination_state: freight.destination_state,
+                          pickup_date: freight.pickup_date,
+                          delivery_date: freight.delivery_date,
+                          price: freight.price,
+                          urgency: freight.urgency as "LOW" | "MEDIUM" | "HIGH",
+                          status: "OPEN" as const,
+                          distance_km: freight.distance_km,
+                          minimum_antt_price: freight.minimum_antt_price,
+                          required_trucks: freight.required_trucks,
+                          accepted_trucks: freight.accepted_trucks,
+                          service_type: freight.service_type as any,
+                        }}
+                        showActions
+                        canAcceptFreights={true}
+                        isAffiliatedDriver={false}
+                        onAction={() => fetchCompatibleFreights()}
+                      />
 
-                <div className="mt-2 flex gap-2 flex-wrap items-center">
-                  <Button
-                    className="flex-1"
-                    onClick={() => handleAssignFreight(freight.freight_id)}
-                    disabled={!selectedDriverId || selectedDriverId === "__none"}
-                  >
-                    <Package className="h-4 w-4 mr-2" />
-                    Atribuir ao motorista
-                  </Button>
+                      <div className="mt-2 flex gap-2 flex-wrap items-center">
+                        <Button
+                          className="flex-1"
+                          onClick={() => handleAssignFreight(freight.freight_id)}
+                          disabled={!selectedDriverId || selectedDriverId === "__none"}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          Atribuir ao motorista
+                        </Button>
 
-                  {freight.required_trucks > 1 && (
-                    <Badge className="bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
-                      {freight.accepted_trucks}/{freight.required_trucks} caminhões
-                    </Badge>
-                  )}
+                        {freight.required_trucks > 1 && (
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
+                            {freight.accepted_trucks}/{freight.required_trucks} caminhões
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </TabsContent>
+
+            {/* ABA SERVIÇOS URBANOS (PET, Pacotes, Guincho, Mudança, Moto) */}
+            <TabsContent value="services" className="space-y-4">
+              {filteredServiceRequests.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <Bike className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold mb-2">Nenhum serviço disponível</h3>
+                    <p className="text-muted-foreground mb-4">Não há serviços urbanos disponíveis no momento.</p>
+                    <Button variant="outline" onClick={fetchCompatibleFreights}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Verificar Novamente
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredServiceRequests.map((r: any) => (
+                    <Card key={r.id} className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden">
+                      <div className="p-4 bg-gradient-to-r from-blue-500/10 to-blue-600/5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                              {getServiceTypeIcon(r.service_type)}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-foreground">
+                                {getServiceTypeTitle(r.service_type)}
+                              </h3>
+                              <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                            Disponível
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <CardContent className="p-4 space-y-4">
+                        {/* ORIGEM */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Origem</span>
+                          </div>
+                          {(r.location_city) && (
+                            <p className="text-base font-bold text-foreground pl-4">
+                              {String(r.location_city).toUpperCase()} — {r.location_state || ""}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground pl-4 line-clamp-2">
+                            {r.location_address || "Endereço não informado"}
+                          </p>
+                        </div>
+
+                        {/* DESTINO */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Destino</span>
+                          </div>
+                          {r.destination_address ? (
+                            <>
+                              {r.destination_city && (
+                                <p className="text-base font-bold text-foreground pl-4">
+                                  {String(r.destination_city).toUpperCase()} — {r.destination_state || ""}
+                                </p>
+                              )}
+                              <p className="text-sm text-muted-foreground pl-4 line-clamp-2">
+                                {r.destination_address}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground pl-4 italic">Destino não informado</p>
+                          )}
+                        </div>
+
+                        {r.problem_description && (
+                          <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
+                                <p className="text-sm text-foreground line-clamp-3">{r.problem_description}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {r.estimated_price && (
+                          <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-5 w-5 text-green-600" />
+                              <span className="text-sm text-green-700 dark:text-green-300">Valor Estimado</span>
+                            </div>
+                            <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                              R$ {Number(r.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
+                          {r.urgency && (
+                            <Badge
+                              variant={r.urgency === "HIGH" ? "destructive" : r.urgency === "MEDIUM" ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {r.urgency === "HIGH" ? "Alta" : r.urgency === "MEDIUM" ? "Média" : "Baixa"}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Botão de atribuir ao motorista */}
+                        <Button
+                          className="w-full"
+                          onClick={() => handleAssignFreight(r.id)}
+                          disabled={!selectedDriverId || selectedDriverId === "__none"}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          Atribuir ao motorista
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </>
         )}
-      </div>
+      </Tabs>
     </div>
   );
 };
