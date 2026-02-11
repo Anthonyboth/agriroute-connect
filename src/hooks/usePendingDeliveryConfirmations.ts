@@ -127,6 +127,8 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       }
 
       // 3. Buscar também do driver_trip_progress (fonte de verdade para status individual)
+      // ✅ IMPORTANTE: aqui buscamos SOMENTE entregas ainda pendentes de confirmação.
+      // Após o produtor confirmar, o driver_trip_progress tende a ficar em DELIVERED e isso NÃO deve manter o item nesta aba.
       const { data: tripProgress, error: tripErr } = await supabase
         .from('driver_trip_progress')
         .select(`
@@ -139,7 +141,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
           updated_at
         `)
         .in('freight_id', freightIds)
-        .in('current_status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION']);
+        .eq('current_status', 'DELIVERED_PENDING_CONFIRMATION');
 
       console.log('[usePendingDeliveryConfirmations] TripProgress encontrados:', tripProgress?.length || 0, tripProgress);
 
@@ -438,9 +440,16 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
           table: 'driver_trip_progress',
         },
         (payload) => {
-          const status = (payload.new as any)?.current_status;
-          if (status === 'DELIVERED' || status === 'DELIVERED_PENDING_CONFIRMATION') {
-            console.log('[usePendingDeliveryConfirmations] Atualização em driver_trip_progress detectada');
+          const statusNew = (payload.new as any)?.current_status;
+          const statusOld = (payload.old as any)?.current_status;
+
+          // ✅ Recarregar quando entrar OU sair de DELIVERED_PENDING_CONFIRMATION
+          // (ex.: produtor confirmou → status muda para DELIVERED)
+          if (
+            statusNew === 'DELIVERED_PENDING_CONFIRMATION' ||
+            statusOld === 'DELIVERED_PENDING_CONFIRMATION'
+          ) {
+            console.log('[usePendingDeliveryConfirmations] Atualização relevante em driver_trip_progress detectada');
             fetchPendingDeliveries();
           }
         }
