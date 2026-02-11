@@ -257,21 +257,10 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
     }
   }, [center, mapReady]);
 
-  // ========================================
-  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-  // Sem markers - apenas basemap puro
-  // ========================================
+  // ✅ REATIVADO: Markers de paradas, desvios, offline e posição atual
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
 
-    // 🚨 DESATIVADO: Limpar markers existentes
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-
-    // Retorno antecipado - não criar markers
-    return;
-
-    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     const map = mapRef.current;
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
@@ -369,7 +358,6 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       
       map.fitBounds(bounds, { padding: 50, maxZoom: 12, duration: 0 });
     }
-    */
   }, [
     mapReady,
     layers,
