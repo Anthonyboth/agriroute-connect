@@ -38,7 +38,7 @@ export const SERVICE_WIZARD_CONFIGS: Record<ServiceType, ServiceWizardConfig> = 
   FRETE_URBANO: {
     serviceType: 'FRETE_URBANO',
     title: 'Frete Urbano',
-    description: 'Transporte de objetos até 1.5 tonelada',
+    description: 'Transporte de objetos e cargas',
     icon: '📦',
     requiresDestination: true,
     category: 'urban',

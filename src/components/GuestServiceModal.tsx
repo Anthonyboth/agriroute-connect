@@ -65,7 +65,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
           name: 'Frete Urbano', 
           description: 'Transporte de objetos', 
           price: 'A partir de R$ 50',
-          details: 'Cargas até 1.5 tonelada'
+          details: 'Transporte de cargas diversas'
         },
         { 
           id: 'MUDANCA_RESIDENCIAL' as ServiceType, 
@@ -100,7 +100,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       icon: '📦',
       subServices: [
         { id: 'FRETE_MOTO' as ServiceType, name: 'Frete por Moto', description: 'Moto com carretinha - até 150kg', price: 'A partir de R$ 15' },
-        { id: 'FRETE_URBANO' as ServiceType, name: 'Frete de Van/Picape', description: 'Cargas até 1.5 toneladas', price: 'A partir de R$ 45' }
+        { id: 'FRETE_URBANO' as ServiceType, name: 'Frete de Van/Picape', description: 'Transporte de cargas diversas', price: 'A partir de R$ 45' }
       ],
       features: ['Entrega rápida', 'Rastreamento', 'Carga protegida']
     },

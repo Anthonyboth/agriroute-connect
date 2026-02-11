@@ -92,16 +92,6 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
         </Card>
       )}
 
-      {serviceType === 'FRETE_URBANO' && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-3 flex items-center gap-2">
-            <Badge variant="outline" className="bg-blue-100 text-blue-800">
-              Até 1.5 tonelada
-            </Badge>
-            <span className="text-sm text-blue-800">Vans, picapes e caminhões leves</span>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 
