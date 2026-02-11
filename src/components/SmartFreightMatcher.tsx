@@ -134,18 +134,39 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
     try {
       if (isCompany) {
-        // Transportadora: busca direta de fretes abertos
-        const { data: directFreights, error: directError } = await supabase
-          .from("freights")
-          .select("*")
-          .in("status", ["OPEN", "IN_NEGOTIATION"])
-          .is("driver_id", null)
-          .order("created_at", { ascending: false })
-          .limit(100);
+        // Transportadora: busca direta de fretes abertos + service_requests de transporte
+        const effectiveTypes = allowedTypesFromProfile.length > 0
+          ? allowedTypesFromProfile
+          : ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO", "ENTREGA_PACOTES", "TRANSPORTE_PET"] as CanonicalServiceType[];
 
-        if (directError) throw directError;
+        const TRANSPORT_SERVICE_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO'];
+        const allowedTransportTypes = TRANSPORT_SERVICE_TYPES.filter(t => 
+          effectiveTypes.includes(t as CanonicalServiceType)
+        );
 
-        const mapped: CompatibleFreight[] = (directFreights || []).map((f: any) => ({
+        const [freightsResult, serviceResult] = await Promise.all([
+          supabase
+            .from("freights")
+            .select("*")
+            .in("status", ["OPEN", "IN_NEGOTIATION"])
+            .is("driver_id", null)
+            .order("created_at", { ascending: false })
+            .limit(100),
+          allowedTransportTypes.length > 0
+            ? supabase
+                .from("service_requests")
+                .select("*")
+                .in("status", ["OPEN"])
+                .is("provider_id", null)
+                .in("service_type", allowedTransportTypes)
+                .order("created_at", { ascending: false })
+                .limit(50)
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+
+        if (freightsResult.error) throw freightsResult.error;
+
+        const mapped: CompatibleFreight[] = (freightsResult.data || []).map((f: any) => ({
           freight_id: f.id,
           cargo_type: f.cargo_type,
           weight: f.weight || 0,
@@ -168,15 +189,21 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           created_at: f.created_at,
         }));
 
+        // Filter freights by allowed service types
+        const filteredMapped = mapped.filter(f => effectiveTypes.includes(f.service_type as CanonicalServiceType));
+
+        // Service requests (PET, Pacotes, etc.) as towing/service requests
+        const matchedServiceRequests = (serviceResult.data || []);
+
         if (
           currentFetchId === fetchIdRef.current &&
           isMountedRef.current &&
           !abortControllerRef.current?.signal.aborted
         ) {
-          setCompatibleFreights(mapped);
-          setTowingRequests([]);
-          const highUrgency = mapped.filter((f) => f.urgency === "HIGH").length;
-          onCountsChange?.({ total: mapped.length, highUrgency });
+          setCompatibleFreights(filteredMapped);
+          setTowingRequests(matchedServiceRequests);
+          const highUrgency = filteredMapped.filter((f) => f.urgency === "HIGH").length;
+          onCountsChange?.({ total: filteredMapped.length + matchedServiceRequests.length, highUrgency });
         }
         return;
       }
