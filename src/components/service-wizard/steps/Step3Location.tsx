@@ -135,12 +135,12 @@ const AddressForm: React.FC<AddressFormProps> = ({
             />
           </div>
           <div className="col-span-2 space-y-1">
-            <Label htmlFor={`${prefix}-neighborhood`} className="text-xs">Bairro *</Label>
+            <Label htmlFor={`${prefix}-neighborhood`} className="text-xs">Bairro / Fazenda / Nome Local *</Label>
             <Input
               id={`${prefix}-neighborhood`}
               value={address.neighborhood}
               onChange={(e) => onUpdate(`${prefix}.neighborhood`, e.target.value)}
-              placeholder="Bairro"
+              placeholder="Ex: Centro, Fazenda Santa Maria"
               className="h-9"
             />
           </div>
