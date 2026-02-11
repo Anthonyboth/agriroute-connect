@@ -120,6 +120,23 @@ export const BootOrchestrator: React.FC = () => {
     }
   }, [authLoading, phase, setPhase]);
 
+  // Critical safety: if stuck in CHECKING_AUTH for >6s regardless of authLoading,
+  // force READY. This prevents timeout for anonymous users on slow connections
+  // where Supabase getSession() takes too long.
+  useEffect(() => {
+    if (phase === 'CHECKING_AUTH' || phase === 'LOADING_PROFILE') {
+      const maxWait = setTimeout(() => {
+        if (phase === 'CHECKING_AUTH' || phase === 'LOADING_PROFILE') {
+          console.warn(`[BootOrchestrator] ⚠️ Forçando READY após 6s - phase=${phase} authLoading=${authLoading}`);
+          logStep(phase === 'CHECKING_AUTH' ? 'SESSION' : 'PROFILE', 'OK', { forced: true, reason: 'max_wait_exceeded' });
+          setPhase('READY');
+        }
+      }, 6000);
+      
+      return () => clearTimeout(maxWait);
+    }
+  }, [phase, setPhase]);
+
   return null;
 };
 

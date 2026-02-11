@@ -140,7 +140,7 @@ const phaseMessages: Record<BootPhase, string> = {
 };
 
 /** Timeout do bootstrap em ms - mais generoso para cold starts */
-const BOOTSTRAP_TIMEOUT_MS = Capacitor.isNativePlatform() ? 12000 : 10000;
+const BOOTSTRAP_TIMEOUT_MS = Capacitor.isNativePlatform() ? 15000 : 12000;
 
 export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppBootState>({
