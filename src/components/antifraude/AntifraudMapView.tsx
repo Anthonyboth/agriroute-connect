@@ -10,6 +10,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useTileWatchdog } from "@/hooks/maplibre";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,9 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
 
   const [mapReady, setMapReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  // ✅ Tile Watchdog
+  useTileWatchdog(mapRef);
 
   const [layers, setLayers] = useState({
     stops: true,

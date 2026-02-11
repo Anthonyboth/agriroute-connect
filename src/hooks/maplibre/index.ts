@@ -14,6 +14,9 @@ export { useMapLibreMap, type UseMapLibreMapOptions, type UseMapLibreMapResult }
 // Auto-resize para containers dinâmicos (inclui resize burst para Drawers)
 export { useMapLibreAutoResize } from './useMapLibreAutoResize';
 
+// ✅ Tile Watchdog: fallback automático quando tiles falham
+export { useTileWatchdog } from './useTileWatchdog';
+
 // ✅ NOVO: Gerenciamento de markers via GeoJSON layers (sem DOM Markers)
 // Usar ESTE hook ao invés de useMapLibreMarkers para evitar flutuação em Drawers
 export { 

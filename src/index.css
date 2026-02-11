@@ -243,8 +243,7 @@
 .maplibregl-map {
   width: 100% !important;
   height: 100% !important;
-  /* ✅ Containment isola o mapa de transforms em ancestrais (Dialog/Drawer) */
-  contain: layout paint;
+  /* ✅ REMOVIDO contain: layout paint - interfere com WebGL canvas em alguns browsers */
   isolation: isolate;
 }
 

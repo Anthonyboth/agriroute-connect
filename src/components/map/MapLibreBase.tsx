@@ -197,8 +197,7 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
       className={cn("relative rounded-lg overflow-hidden", className)}
       style={{ 
         minHeight: `${minHeight}px`,
-        /* ✅ Containment: isola o mapa de reflows e transforms de ancestrais (Dialog/Drawer) */
-        contain: 'layout paint',
+        /* ✅ REMOVIDO contain: layout paint - interfere com WebGL canvas */
         isolation: 'isolate',
       }}
     >
