@@ -61,9 +61,9 @@ export const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
       <Label className="block text-sm font-medium">{label}{required && <span className="text-destructive ml-1">*</span>}</Label>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-sm">Bairro / Fazenda</Label>
+          <Label className="text-sm">Bairro / Fazenda / Nome Local</Label>
           <Input
-            placeholder="Ex: Centro, Fazenda Santa Maria"
+            placeholder="Ex: Centro, Fazenda Santa Maria, Sítio Boa Vista"
             value={neighborhood}
             onChange={(e) => setNeighborhood(e.target.value)}
             required={required}

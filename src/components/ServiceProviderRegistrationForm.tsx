@@ -529,7 +529,7 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
                         id="address"
                         value={formData.address}
                         onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                        placeholder="Rua, número, bairro/fazenda"
+                        placeholder="Rua, número, bairro/fazenda/nome local"
                         required
                       />
                     </div>
