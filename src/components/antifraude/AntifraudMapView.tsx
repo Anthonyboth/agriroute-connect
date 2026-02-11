@@ -135,15 +135,40 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
 
     const container = mapContainerRef.current;
     const rect = container.getBoundingClientRect();
-    
+
     // ✅ Verificar dimensões válidas
     if (rect.width < 10 || rect.height < 10) {
-      if (retryCount < 10) {
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width >= 10 && height >= 10 && !mapRef.current && !initializingRef.current) {
+              ro.disconnect();
+              setRetryCount((prev) => prev + 1);
+            }
+          }
+        });
+        ro.observe(container);
+
+        const t = setTimeout(() => {
+          if (!mapRef.current) {
+            console.warn('[AntifraudMapView] Container never became visible (timeout)');
+          }
+        }, 12000);
+
+        return () => {
+          clearTimeout(t);
+          ro.disconnect();
+        };
+      }
+
+      if (retryCount < 20) {
         const retryTimeout = setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, 100 + (retryCount * 50));
+          setRetryCount((prev) => prev + 1);
+        }, 250);
         return () => clearTimeout(retryTimeout);
       }
+
       console.warn('[AntifraudMapView] Max retries reached, container has no valid dimensions');
       return;
     }

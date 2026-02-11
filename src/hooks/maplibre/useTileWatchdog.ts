@@ -97,161 +97,238 @@ export function useTileWatchdog(
   const fallbackIndexRef = useRef(0);
   const networkErrorsRef = useRef<number[]>([]);
   const watchdogActiveRef = useRef(false);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Em projetos que incluem tipos Node, setTimeout pode tipar como "Timeout".
+  // Usar globalThis mantém compatibilidade.
+  const timersRef = useRef<Array<ReturnType<typeof globalThis.setTimeout>>>([]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    let disposed = false;
+    let pollTimer: ReturnType<typeof globalThis.setInterval> | undefined;
 
-    const cleanup = () => {
-      timersRef.current.forEach(clearTimeout);
+    // Mantém referência do mapa em que o watchdog foi anexado
+    const attachedMapRef = { current: null as maplibregl.Map | null };
+
+    const cleanupTimers = () => {
+      timersRef.current.forEach(globalThis.clearTimeout);
       timersRef.current = [];
     };
 
-    /**
-     * Troca o style do mapa para o próximo fallback disponível.
-     */
-    const switchToFallback = () => {
-      const map = mapRef.current;
+    const detach = (map: maplibregl.Map | null, errorHandler?: (e: any) => void, onMapLoad?: () => void) => {
+      cleanupTimers();
       if (!map) return;
-
-      const idx = fallbackIndexRef.current;
-      if (idx >= FALLBACK_STYLES.length) {
-        console.error('[TileWatchdog] Todos os fallbacks falharam');
-        return;
-      }
-
-      const fallbackStyle = FALLBACK_STYLES[idx];
-      console.warn(`[TileWatchdog] Trocando para fallback #${idx + 1}: ${fallbackStyle.name}`);
-
-      // Salvar center/zoom atuais
-      const center = map.getCenter();
-      const zoom = map.getZoom();
-
       try {
-        map.setStyle(fallbackStyle);
-
-        // Restaurar center/zoom após style load
-        map.once('styledata', () => {
-          map.setCenter(center);
-          map.setZoom(zoom);
-          
-          // Resize burst pós style change
-          for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-              try { map.resize(); } catch {}
-            }, i * 100);
-          }
-        });
-      } catch (err) {
-        console.error('[TileWatchdog] Erro ao trocar style:', err);
+        if (errorHandler) map.off('error', errorHandler);
+        if (onMapLoad) map.off('load', onMapLoad);
+      } catch {
+        // ignore
       }
-
-      fallbackIndexRef.current = idx + 1;
-      // Reset error count para o novo provider
-      networkErrorsRef.current = [];
-    };
-
-    /**
-     * Verifica se tiles estão carregados.
-     */
-    const checkTiles = () => {
-      const map = mapRef.current;
-      if (!map) return;
-
-      try {
-        const tilesLoaded = map.areTilesLoaded();
-        
-        if (!tilesLoaded) {
-          console.warn('[TileWatchdog] Tiles NÃO carregados - tentando resize...');
-          
-          // Tentar resize primeiro
-          map.resize();
-          
-          // Verificar novamente após 1s
-          const retryTimer = setTimeout(() => {
-            const map2 = mapRef.current;
-            if (map2 && !map2.areTilesLoaded()) {
-              console.warn('[TileWatchdog] Tiles ainda não carregados após resize - acionando fallback');
-              switchToFallback();
-            }
-          }, 1000);
-          timersRef.current.push(retryTimer);
-        }
-      } catch (err) {
-        // map pode ter sido removido
-      }
-    };
-
-    /**
-     * Registra erro de rede e verifica limiar para fallback.
-     */
-    const onNetworkError = () => {
-      const now = Date.now();
-      networkErrorsRef.current.push(now);
-      
-      // Limpar erros fora da janela
-      networkErrorsRef.current = networkErrorsRef.current.filter(
-        t => now - t < errorWindowMs
-      );
-
-      if (networkErrorsRef.current.length >= maxNetworkErrors) {
-        console.warn(`[TileWatchdog] ${maxNetworkErrors} erros de rede em ${errorWindowMs}ms - acionando fallback`);
-        networkErrorsRef.current = [];
-        switchToFallback();
-      }
-    };
-
-    // Monitorar erros do mapa
-    const errorHandler = (e: any) => {
-      const message = e?.error?.message || '';
-      const url = e?.source?.url || e?.url || '';
-      
-      // Erros de rede/tile
-      if (
-        message.includes('Failed to fetch') ||
-        message.includes('NetworkError') ||
-        message.includes('Load failed') ||
-        message.includes('ERR_NETWORK') ||
-        url.includes('basemaps.cartocdn.com') ||
-        url.includes('tile.openstreetmap.org') ||
-        url.includes('fonts.openmaptiles.org') ||
-        url.includes('demotiles.maplibre.org')
-      ) {
-        if (import.meta.env.DEV) {
-          console.warn('[TileWatchdog] Erro de rede:', message || url);
-        }
-        onNetworkError();
-        return;
-      }
-    };
-
-    map.on('error', errorHandler);
-
-    // Agendar verificações após map load
-    const onMapLoad = () => {
-      if (watchdogActiveRef.current) return;
-      watchdogActiveRef.current = true;
-
-      checkIntervals.forEach(delay => {
-        const timer = setTimeout(checkTiles, delay);
-        timersRef.current.push(timer);
-      });
-    };
-
-    if (map.isStyleLoaded()) {
-      onMapLoad();
-    } else {
-      map.once('load', onMapLoad);
-    }
-
-    return () => {
-      cleanup();
-      try {
-        map.off('error', errorHandler);
-        map.off('load', onMapLoad);
-      } catch {}
       watchdogActiveRef.current = false;
     };
-  }, [mapRef.current]);
+
+    /**
+     * Tenta anexar o watchdog ao mapa assim que mapRef.current existir.
+     * IMPORTANTE: alterações em ref.current não causam re-render; então precisamos de polling curto.
+     */
+    const tryAttach = () => {
+      if (disposed) return;
+
+      const map = mapRef.current;
+      if (!map) return;
+
+      // Já anexado neste mapa
+      if (attachedMapRef.current === map) return;
+
+      // Se tinha um mapa anterior anexado, desanexa (defensivo)
+      detach(attachedMapRef.current);
+      attachedMapRef.current = map;
+
+      /**
+       * Troca o style do mapa para o próximo fallback disponível.
+       */
+      const switchToFallback = () => {
+        const liveMap = mapRef.current;
+        if (!liveMap) return;
+
+        const idx = fallbackIndexRef.current;
+        if (idx >= FALLBACK_STYLES.length) {
+          console.error('[TileWatchdog] Todos os fallbacks falharam');
+          return;
+        }
+
+        const fallbackStyle = FALLBACK_STYLES[idx];
+        console.warn(`[TileWatchdog] Trocando para fallback #${idx + 1}: ${fallbackStyle.name}`);
+
+        // Salvar center/zoom atuais
+        const center = liveMap.getCenter();
+        const zoom = liveMap.getZoom();
+
+        try {
+          watchdogActiveRef.current = false;
+          cleanupTimers();
+
+          liveMap.setStyle(fallbackStyle);
+
+          // Restaurar center/zoom após styledata
+          liveMap.once('styledata', () => {
+            try {
+              liveMap.setCenter(center);
+              liveMap.setZoom(zoom);
+            } catch {
+              // ignore
+            }
+
+            // Resize burst pós style change
+            for (let i = 0; i < 7; i++) {
+              const t = globalThis.setTimeout(() => {
+                try {
+                  liveMap.resize();
+                } catch {
+                  // ignore
+                }
+              }, i * 120);
+              timersRef.current.push(t);
+            }
+
+            // Re-checagem após fallback
+            const recheck = globalThis.setTimeout(() => {
+              try {
+                if (!liveMap.areTilesLoaded()) {
+                  console.warn('[TileWatchdog] Tiles ainda não carregados após fallback');
+                }
+              } catch {
+                // ignore
+              }
+            }, 1600);
+            timersRef.current.push(recheck);
+          });
+        } catch (err) {
+          console.error('[TileWatchdog] Erro ao trocar style:', err);
+        }
+
+        fallbackIndexRef.current = idx + 1;
+        networkErrorsRef.current = [];
+      };
+
+      /**
+       * Verifica se tiles estão carregados.
+       */
+      const checkTiles = () => {
+        const liveMap = mapRef.current;
+        if (!liveMap) return;
+
+        try {
+          if (!liveMap.areTilesLoaded()) {
+            console.warn('[TileWatchdog] Tiles NÃO carregados - tentando resize...');
+            liveMap.resize();
+
+            const retryTimer = globalThis.setTimeout(() => {
+              const liveMap2 = mapRef.current;
+              if (liveMap2 && !liveMap2.areTilesLoaded()) {
+                console.warn('[TileWatchdog] Tiles ainda não carregados após resize - acionando fallback');
+                switchToFallback();
+              }
+            }, 1000);
+            timersRef.current.push(retryTimer);
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      /**
+       * Registra erro de rede e verifica limiar para fallback.
+       */
+      const onNetworkError = (reason?: string) => {
+        const now = Date.now();
+        networkErrorsRef.current.push(now);
+
+        // Limpar erros fora da janela
+        networkErrorsRef.current = networkErrorsRef.current.filter((t) => now - t < errorWindowMs);
+
+        if (networkErrorsRef.current.length >= maxNetworkErrors) {
+          console.warn(
+            `[TileWatchdog] ${maxNetworkErrors} erros de rede em ${errorWindowMs}ms${reason ? ` (${reason})` : ''} - acionando fallback`,
+          );
+          networkErrorsRef.current = [];
+          switchToFallback();
+        }
+      };
+
+      // Monitorar erros do mapa
+      const errorHandler = (e: any) => {
+        const message = e?.error?.message || '';
+        const url = e?.source?.url || e?.url || '';
+
+        const isNetworkish =
+          message.includes('Failed to fetch') ||
+          message.includes('NetworkError') ||
+          message.includes('Load failed') ||
+          message.includes('ERR_NETWORK') ||
+          url.includes('basemaps.cartocdn.com') ||
+          url.includes('tile.openstreetmap.org') ||
+          url.includes('fonts.openmaptiles.org') ||
+          url.includes('demotiles.maplibre.org') ||
+          url.includes('cartocdn.com') ||
+          url.includes('openmaptiles.org');
+
+        if (isNetworkish) {
+          if (import.meta.env.DEV) {
+            console.warn('[TileWatchdog] Erro de rede:', message || url);
+          }
+          onNetworkError(message || url);
+          return;
+        }
+      };
+
+      map.on('error', errorHandler);
+
+      // Agendar verificações após map load
+      const onMapLoad = () => {
+        if (watchdogActiveRef.current) return;
+        watchdogActiveRef.current = true;
+
+        checkIntervals.forEach((delay) => {
+          const timer = globalThis.setTimeout(checkTiles, delay);
+          timersRef.current.push(timer);
+        });
+      };
+
+      // Se o mapa nunca chegar em load (style URL bloqueado), força fallback após um tempo
+      const forceFallbackTimer = globalThis.setTimeout(() => {
+        const liveMap = mapRef.current;
+        if (!liveMap) return;
+        try {
+          if (!liveMap.isStyleLoaded() || !liveMap.areTilesLoaded()) {
+            console.warn('[TileWatchdog] Timeout sem tiles/style - acionando fallback');
+            switchToFallback();
+          }
+        } catch {
+          // ignore
+        }
+      }, 6500);
+      timersRef.current.push(forceFallbackTimer);
+
+      if (map.isStyleLoaded()) {
+        onMapLoad();
+      } else {
+        map.once('load', onMapLoad);
+      }
+
+      // Se trocar para outro mapa no futuro, detach o anterior
+      // (cleanup do effect também chama detach)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _attachedCleanup = () => detach(map, errorHandler, onMapLoad);
+    };
+
+    // Polling curto até mapRef.current existir
+    pollTimer = globalThis.setInterval(tryAttach, 200);
+    tryAttach();
+
+    return () => {
+      disposed = true;
+      if (pollTimer) globalThis.clearInterval(pollTimer);
+      detach(attachedMapRef.current);
+      attachedMapRef.current = null;
+    };
+  }, [mapRef, checkIntervals, maxNetworkErrors, errorWindowMs]);
 }

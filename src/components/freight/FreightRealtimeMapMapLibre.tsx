@@ -402,18 +402,48 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     
     // ✅ Verificar se container tem dimensões válidas
     const rect = container.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      console.log('[FreightRealtimeMapMapLibre] Container has zero dimensions, retrying...', rect);
-      if (retryCount < 10) {
-        const retryTimeout = setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, 100 + (retryCount * 50));
-        return () => clearTimeout(retryTimeout);
-      } else {
-        console.warn('[FreightRealtimeMapMapLibre] Max retries reached, container still has zero dimensions');
-        setMapError('Container do mapa sem dimensões válidas');
-        return;
+    if (rect.width < 10 || rect.height < 10) {
+      console.log('[FreightRealtimeMapMapLibre] Container has invalid dimensions, waiting...', rect);
+
+      // ✅ Esperar o container ganhar tamanho via ResizeObserver (Drawer/Dialog/Tab)
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width >= 10 && height >= 10 && !mapRef.current && !initializingRef.current) {
+              console.log('[FreightRealtimeMapMapLibre] Container now has valid dimensions:', { width, height });
+              ro.disconnect();
+              // Re-disparar init no próximo tick
+              setTimeout(() => setRetryCount((v) => v + 1), 0);
+            }
+          }
+        });
+        ro.observe(container);
+
+        // Se demorar demais, mostrar erro amigável
+        const t = setTimeout(() => {
+          if (!mapRef.current) {
+            console.warn('[FreightRealtimeMapMapLibre] Container never became visible (timeout)');
+            setMapError('Mapa não ficou visível (container sem dimensões)');
+          }
+        }, 12000);
+
+        return () => {
+          clearTimeout(t);
+          ro.disconnect();
+        };
       }
+
+      // Sem ResizeObserver: fallback para retry simples
+      if (retryCount < 20) {
+        const retryTimeout = setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+        }, 250);
+        return () => clearTimeout(retryTimeout);
+      }
+
+      setMapError('Container do mapa sem dimensões válidas');
+      return;
     }
 
     initializingRef.current = true;
