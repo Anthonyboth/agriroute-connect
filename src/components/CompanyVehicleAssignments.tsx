@@ -51,16 +51,19 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
           )
         `)
         .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-      
-      // Apply status filter
+        .order('assigned_at', { ascending: false });
+
+      // ✅ Não mascarar erro de rede/RLS com lista vazia
+      if (error) throw error;
+
+      // Apply status filter (client-side)
       if (filters.status === 'active') {
-        return (data || []).filter(d => !d.removed_at);
-      } else if (filters.status === 'removed') {
-        return (data || []).filter(d => d.removed_at);
+        return (data || []).filter((d) => !d.removed_at);
+      }
+      if (filters.status === 'removed') {
+        return (data || []).filter((d) => d.removed_at);
       }
 
-      if (error) throw error;
       return data || [];
     },
     enabled: !!companyId,

@@ -249,10 +249,10 @@ export const VehicleAssignmentModal = ({
                       <span>{vehicle.vehicle_type}</span>
                       <span className="text-muted-foreground">•</span>
                       <span>{vehicle.max_capacity_tons}t</span>
-                      {vehicle.axles && (
+                      {typeof vehicle.axle_count === 'number' && (
                         <>
                           <span className="text-muted-foreground">•</span>
-                          <span>{vehicle.axles} eixos</span>
+                          <span>{vehicle.axle_count} eixos</span>
                         </>
                       )}
                     </div>
