@@ -303,9 +303,27 @@ export function useFreightChatConnection({
     }
   }, [currentUserProfileId]);
 
+  // Determinar target_driver_id com base em quem é o sender
+  const getTargetDriverId = useCallback((): string | null => {
+    if (!freightInfo || !currentUserProfileId) return null;
+    // Se o sender é o produtor, o target é o motorista
+    if (currentUserProfileId === freightInfo.producer_id) {
+      return freightInfo.driver_id || null;
+    }
+    // Se o sender é o motorista (ou empresa), o target é ele mesmo (driver do frete)
+    return freightInfo.driver_id || currentUserProfileId;
+  }, [freightInfo, currentUserProfileId]);
+
   // Enviar mensagem de texto
   const sendTextMessage = useCallback(async (text: string): Promise<boolean> => {
     if (!text.trim() || !currentUserProfileId || !freightId) return false;
+
+    const targetDriverId = getTargetDriverId();
+    if (!targetDriverId) {
+      console.error('[FreightChat] target_driver_id não disponível');
+      toast.error('Erro: motorista não identificado no frete');
+      return false;
+    }
 
     setIsSending(true);
     try {
@@ -314,6 +332,7 @@ export function useFreightChatConnection({
         .insert({
           freight_id: freightId,
           sender_id: currentUserProfileId,
+          target_driver_id: targetDriverId,
           message: text.trim(),
           message_type: 'TEXT',
         });
@@ -327,7 +346,7 @@ export function useFreightChatConnection({
     } finally {
       if (isMountedRef.current) setIsSending(false);
     }
-  }, [freightId, currentUserProfileId]);
+  }, [freightId, currentUserProfileId, getTargetDriverId]);
 
   // Enviar mensagem com mídia
   const sendMediaMessage = useCallback(async (
@@ -335,6 +354,13 @@ export function useFreightChatConnection({
     type: 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO'
   ): Promise<boolean> => {
     if (!currentUserProfileId || !freightId) return false;
+
+    const targetDriverId = getTargetDriverId();
+    if (!targetDriverId) {
+      console.error('[FreightChat] target_driver_id não disponível para mídia');
+      toast.error('Erro: motorista não identificado no frete');
+      return false;
+    }
 
     const mediaData = await uploadMedia(file, type);
     if (!mediaData) return false;
@@ -351,6 +377,7 @@ export function useFreightChatConnection({
         .insert({
           freight_id: freightId,
           sender_id: currentUserProfileId,
+          target_driver_id: targetDriverId,
           message: messageLabel,
           message_type: type,
           ...(type === 'IMAGE' || type === 'VIDEO' || type === 'AUDIO'
@@ -373,13 +400,19 @@ export function useFreightChatConnection({
     } finally {
       if (isMountedRef.current) setIsSending(false);
     }
-  }, [freightId, currentUserProfileId, uploadMedia]);
+  }, [freightId, currentUserProfileId, uploadMedia, getTargetDriverId]);
 
   // Enviar localização
   const sendLocationMessage = useCallback(async (
     lat: number, lng: number, address: string
   ): Promise<boolean> => {
     if (!currentUserProfileId || !freightId) return false;
+
+    const targetDriverId = getTargetDriverId();
+    if (!targetDriverId) {
+      toast.error('Erro: motorista não identificado no frete');
+      return false;
+    }
 
     setIsSending(true);
     try {
@@ -388,6 +421,7 @@ export function useFreightChatConnection({
         .insert({
           freight_id: freightId,
           sender_id: currentUserProfileId,
+          target_driver_id: targetDriverId,
           message: `compartilhou sua localização: ${address}`,
           message_type: 'LOCATION_RESPONSE',
           location_lat: lat,
@@ -405,7 +439,7 @@ export function useFreightChatConnection({
     } finally {
       if (isMountedRef.current) setIsSending(false);
     }
-  }, [freightId, currentUserProfileId]);
+  }, [freightId, currentUserProfileId, getTargetDriverId]);
 
   // Enviar mensagem de sistema (location request, freight share, etc.)
   const sendSystemMessage = useCallback(async (
@@ -413,16 +447,21 @@ export function useFreightChatConnection({
   ): Promise<boolean> => {
     if (!currentUserProfileId || !freightId) return false;
 
+    const targetDriverId = getTargetDriverId();
+    if (!targetDriverId) {
+      toast.error('Erro: motorista não identificado no frete');
+      return false;
+    }
+
     setIsSending(true);
     try {
       const insertData: any = {
         freight_id: freightId,
         sender_id: currentUserProfileId,
+        target_driver_id: targetDriverId,
         message,
         message_type: type,
       };
-      // metadata is stored in the metadata column if it exists, but freight_messages 
-      // doesn't have a metadata column - it uses specific columns
       
       const { error: insertError } = await supabase
         .from('freight_messages')
@@ -437,7 +476,7 @@ export function useFreightChatConnection({
     } finally {
       if (isMountedRef.current) setIsSending(false);
     }
-  }, [freightId, currentUserProfileId]);
+  }, [freightId, currentUserProfileId, getTargetDriverId]);
 
   // Inicialização
   useEffect(() => {
