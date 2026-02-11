@@ -434,7 +434,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="freights" className="flex items-center gap-2">
             <Truck className="h-4 w-4" />
-            Fretes
+            Fretes Rurais
             {filteredFreights.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {filteredFreights.length}
