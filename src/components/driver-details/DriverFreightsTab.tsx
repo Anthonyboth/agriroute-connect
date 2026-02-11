@@ -95,7 +95,7 @@ const getServiceLabel = (serviceType: string) => {
 export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreightsTabProps) => {
   const queryClient = useQueryClient();
 
-  // Fretes atribuídos ao motorista (tabela freights)
+  // Fretes atribuídos ao motorista (tabela freights + freight_assignments)
   const {
     data: freights,
     isLoading: isLoadingFreights,
@@ -104,7 +104,8 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
     queryKey: ["driver-freights", driverProfileId],
     enabled: !!driverProfileId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1. Fretes diretos (driver_id)
+      const { data: directFreights, error: directError } = await supabase
         .from("freights")
         .select(
           `
@@ -122,8 +123,47 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      return data || [];
+      if (directError) throw directError;
+
+      // 2. Fretes via freight_assignments (multi-truck)
+      const assignmentResult: any = await supabase
+        .from("freight_assignments" as any)
+        .select("freight_id, status")
+        .eq("driver_profile_id", driverProfileId)
+        .limit(50);
+      const assignmentData = assignmentResult?.data;
+      const assignError = assignmentResult?.error;
+
+      if (assignError) {
+        console.warn('[DriverFreightsTab] Erro ao buscar freight_assignments:', assignError);
+      }
+
+      // Fetch freight details for assignments not already in directFreights
+      const directIds = new Set((directFreights || []).map((f: any) => f.id));
+      const missingIds = (assignmentData || [])
+        .map((a: any) => a.freight_id)
+        .filter((id: string) => !directIds.has(id));
+
+      let assignmentFreights: any[] = [];
+      if (missingIds.length > 0) {
+        const { data: extraFreights } = await supabase
+          .from("freights")
+          .select(`
+            id,
+            created_at,
+            status,
+            price,
+            cargo_type,
+            producer:producer_id(full_name),
+            origin_city:origin_city_id(name, state),
+            destination_city:destination_city_id(name, state)
+          `)
+          .in("id", missingIds)
+          .order("created_at", { ascending: false });
+        assignmentFreights = extraFreights || [];
+      }
+
+      return [...(directFreights || []), ...assignmentFreights];
     },
   });
 
