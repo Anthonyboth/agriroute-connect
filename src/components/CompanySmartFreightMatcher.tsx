@@ -332,8 +332,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                       </SelectItem>
                     ) : (
                       activeDrivers.map((d: any) => (
-                        <SelectItem key={String(d.driver_id || d.id)} value={String(d.driver_id || d.id)}>
-                          {d.name || d.full_name || d.email || String(d.driver_id || d.id).slice(0, 8)}
+                        <SelectItem key={String(d.driver_profile_id || d.id)} value={String(d.driver_profile_id || d.id)}>
+                          {d.driver?.full_name || d.full_name || d.name || d.email || "Motorista sem nome"}
                         </SelectItem>
                       ))
                     )}
