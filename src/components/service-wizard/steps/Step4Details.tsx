@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ServiceFormData, ServiceType, URGENCY_LABELS, CARGO_TYPES, ADDITIONAL_SERVICES, PACKAGE_TYPES, PET_TYPES, PET_SIZES } from '../types';
+import { ServiceFormData, ServiceType, URGENCY_LABELS, CARGO_TYPES, GUINDASTE_CARGO_TYPES, ADDITIONAL_SERVICES, PACKAGE_TYPES, PET_TYPES, PET_SIZES } from '../types';
 import { AlertCircle, Clock, Package, Truck, Wrench, PawPrint, AlertTriangle } from 'lucide-react';
 
 interface Step4Props {
@@ -113,15 +113,18 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
     </div>
   );
 
+  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste';
+  
   const renderCargoDetails = () => {
-    const maxWeight = serviceType === 'FRETE_MOTO' ? 150 : 1500;
+    const maxWeight = serviceType === 'FRETE_MOTO' ? 150 : (isGuindaste ? 999999 : 1500);
+    const cargoOptions = isGuindaste ? GUINDASTE_CARGO_TYPES : CARGO_TYPES;
     
     return (
       <div className="space-y-4">
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Tipo de Carga *
+            {isGuindaste ? 'Tipo de Carga para Içamento *' : 'Tipo de Carga *'}
           </Label>
           <Select 
             value={formData.cargo?.type || ''} 
@@ -131,7 +134,7 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
               <SelectValue placeholder="Selecione o tipo" />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(CARGO_TYPES).map(([key, label]) => (
+              {Object.entries(cargoOptions).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}
             </SelectContent>

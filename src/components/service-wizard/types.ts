@@ -176,6 +176,20 @@ export const CARGO_TYPES = {
   OUTROS: 'Outros'
 } as const;
 
+export const GUINDASTE_CARGO_TYPES = {
+  CONTAINER: 'Container',
+  EQUIPAMENTO_INDUSTRIAL: 'Equipamento industrial',
+  ESTRUTURA_METALICA: 'Estrutura metálica',
+  MAQUINA_PESADA: 'Máquina pesada',
+  TANQUE: 'Tanque / Reservatório',
+  PRE_MOLDADO: 'Peça pré-moldada / Concreto',
+  TRANSFORMADOR: 'Transformador elétrico',
+  GERADOR: 'Gerador',
+  SILO: 'Silo / Estrutura agrícola',
+  VEICULO: 'Veículo / Embarcação',
+  OUTROS: 'Outros'
+} as const;
+
 export const PACKAGE_TYPES = {
   DOCUMENTOS: 'Documentos',
   CAIXA: 'Caixa/Encomenda',
