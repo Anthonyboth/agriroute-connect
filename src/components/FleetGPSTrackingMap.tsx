@@ -325,23 +325,11 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     mapRef.current.setCenter(computedCenter);
   }, [computedCenter]);
 
-  // ========================================
-  // 🚨 DESATIVADO TEMPORARIAMENTE - ZERANDO MAPA
-  // Sem markers de motoristas - apenas basemap puro
-  // ========================================
+  // ✅ REATIVADO: Markers de motoristas
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // 🚨 DESATIVADO: Limpar markers existentes
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current.clear();
-
-    // Retorno antecipado - não criar markers
-    return;
-
-    /* CÓDIGO ORIGINAL COMENTADO - REATIVAR DEPOIS
     const map = mapRef.current;
-
     const keepIds = new Set<string>();
 
     for (const d of filteredDrivers) {
@@ -405,7 +393,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     }
 
     requestAnimationFrame(() => map.resize());
-    */
   }, [filteredDrivers, selectedDriver]);
 
   return (
