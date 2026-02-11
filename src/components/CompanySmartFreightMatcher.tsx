@@ -83,6 +83,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       // ✅ IMPORTANTÍSSIMO: tipar como literal (resolve TS2345)
       const OPEN_STATUSES = ["OPEN", "IN_NEGOTIATION"] as const;
 
+      // 1) Buscar fretes rurais da tabela freights
       const { data: freightsData, error: freightsError } = await supabase
         .from("freights")
         .select(
@@ -99,15 +100,35 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
       if (freightsError) throw freightsError;
 
+      // 2) Buscar service_requests urbanos/PET/Pacotes (TRANSPORTE_PET, ENTREGA_PACOTES, GUINCHO, etc.)
+      const SERVICE_TYPES_TO_FETCH = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO'] as const;
+      
+      const { data: serviceData, error: serviceError } = await supabase
+        .from("service_requests")
+        .select(
+          `id, service_type, status, provider_id, location_address, destination_address,
+           location_city, location_state, destination_city, destination_state,
+           urgency, estimated_price, created_at, preferred_datetime, problem_description, contact_name`
+        )
+        .eq("status", "OPEN")
+        .is("provider_id", null)
+        .in("service_type", SERVICE_TYPES_TO_FETCH as unknown as string[])
+        .order("created_at", { ascending: false })
+        .limit(40);
+
+      if (serviceError) {
+        console.warn("⚠️ [FRETES I.A] Erro ao buscar service_requests:", serviceError.message);
+      }
+
       console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
+      console.log("📦 [FRETES I.A] " + (serviceData?.length || 0) + " service_requests retornados");
 
       const normalizedFreights: CompatibleFreight[] = [];
       let discardedByStatus = 0;
       let discardedNoSlots = 0;
 
+      // Normalizar fretes rurais
       for (const freight of freightsData || []) {
-        const idSafe = typeof freight.id === "string" ? freight.id : "";
-
         const normalizedStatus = normalizeFreightStatus(freight.status as any);
         const open = isOpenStatus(normalizedStatus);
 
@@ -149,12 +170,38 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         });
       }
 
+      // 3) Normalizar service_requests como CompatibleFreight para unificar na lista
+      for (const sr of serviceData || []) {
+        normalizedFreights.push({
+          freight_id: String(sr.id),
+          cargo_type: String(sr.service_type || ""),
+          weight: 0,
+          origin_address: String(sr.location_address || ""),
+          destination_address: String(sr.destination_address || ""),
+          origin_city: sr.location_city || undefined,
+          origin_state: sr.location_state || undefined,
+          destination_city: sr.destination_city || undefined,
+          destination_state: sr.destination_state || undefined,
+          pickup_date: String(sr.preferred_datetime || sr.created_at || ""),
+          delivery_date: "",
+          price: Number(sr.estimated_price ?? 0),
+          urgency: String(sr.urgency || "LOW"),
+          status: "OPEN",
+          service_type: String(sr.service_type || ""),
+          distance_km: 0,
+          minimum_antt_price: 0,
+          required_trucks: 1,
+          accepted_trucks: 0,
+          created_at: String(sr.created_at || ""),
+        });
+      }
+
       console.log(`✅ [FRETES I.A] ${normalizedFreights.length} compatíveis`);
       console.log(`📊 [FRETES I.A] Descartados: ${discardedByStatus} status, ${discardedNoSlots} sem vagas`);
 
       setCompatibleFreights(normalizedFreights);
       setMatchingStats({
-        total: freightsData?.length || 0,
+        total: (freightsData?.length || 0) + (serviceData?.length || 0),
         matched: normalizedFreights.length,
         assigned: drivers?.length || 0,
       });
