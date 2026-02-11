@@ -90,8 +90,8 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
   onMarkerClick,
   children,
 }, ref) => {
-  // Markers chegam no componente
-  if (markers?.length) console.log("[MapLibreBase] markers count:", markers.length);
+  // Debug em dev
+  if (import.meta.env.DEV && markers?.length) console.log("[MapLibreBase] markers count:", markers.length);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 1. Verificar suporte WebGL
@@ -202,7 +202,7 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
         isolation: 'isolate',
       }}
     >
-      {/* Container do mapa - transform:none + contain:strict para barreira completa */}
+      {/* Container do mapa - transform:none isola de ancestors */}
       <div 
         ref={containerRef}
         className="absolute inset-0"
@@ -210,8 +210,6 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
           width: '100%', 
           height: '100%', 
           transform: 'none',
-          /* ✅ contain:strict cria containing block próprio - markers posicionam relativo a ESTE elemento */
-          contain: 'layout paint',
         }}
       />
 
