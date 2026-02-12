@@ -1523,7 +1523,7 @@ const ProducerDashboard = () => {
                 <Truck className="h-3.5 w-3.5 mr-1" />
                 Fretes
                 {statistics.openFreights > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.openFreights}
                   </Badge>
                 )}
@@ -1537,7 +1537,7 @@ const ProducerDashboard = () => {
                 <Wrench className="h-3.5 w-3.5 mr-1" />
                 Serviços
                 {statistics.openServices > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.openServices}
                   </Badge>
                 )}
@@ -1551,7 +1551,7 @@ const ProducerDashboard = () => {
                 <Play className="h-3.5 w-3.5 mr-1" />
                 Em Andamento
                 {statistics.activeFreights > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.activeFreights}
                   </Badge>
                 )}
@@ -1579,7 +1579,7 @@ const ProducerDashboard = () => {
                 <Users className="h-3.5 w-3.5 mr-1" />
                 Propostas
                 {statistics.pendingProposals > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.pendingProposals}
                   </Badge>
                 )}
@@ -1610,7 +1610,7 @@ const ProducerDashboard = () => {
                 <CreditCard className="h-3.5 w-3.5 mr-1" />
                 Pagamentos
                 {statistics.pendingPayments > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.pendingPayments}
                   </Badge>
                 )}
@@ -1623,7 +1623,7 @@ const ProducerDashboard = () => {
                 <Star className="h-3.5 w-3.5 mr-1" />
                 Avaliações
                 {pendingRatingsCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {pendingRatingsCount}
                   </Badge>
                 )}
