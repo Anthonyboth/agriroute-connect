@@ -69,6 +69,7 @@ import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
 import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
 import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { usePendingDeliveryConfirmations } from "@/hooks/usePendingDeliveryConfirmations";
+import { usePendingRatingsCount } from "@/hooks/usePendingRatingsCount";
 import { PendingDeliveryConfirmationCard } from "@/components/PendingDeliveryConfirmationCard";
 
 // ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
@@ -254,6 +255,8 @@ const ProducerDashboard = () => {
     urgentCount: pendingDeliveryUrgent,
     refetch: refetchPendingDeliveries,
   } = usePendingDeliveryConfirmations(profile?.id);
+
+  const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
 
   // ✅ Abrir aba específica quando vindo de notificação
   useEffect(() => {
@@ -1619,6 +1622,11 @@ const ProducerDashboard = () => {
               >
                 <Star className="h-3.5 w-3.5 mr-1" />
                 Avaliações
+                {pendingRatingsCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {pendingRatingsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
 
               <TabsTrigger
