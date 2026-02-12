@@ -1,8 +1,9 @@
 // TooltipProvider deferred to avoid pulling ui-vendor chunk on landing page
 import React, { lazy, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Capacitor } from '@capacitor/core';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { RatingProvider } from "@/contexts/RatingContext";
 import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
@@ -143,18 +144,30 @@ const InspectionView = lazy(() => import("./pages/InspectionView"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
-// ✅ PERFORMANCE: QueryClient com configurações otimizadas para eliminar polling
+// ✅ PERFORMANCE: QueryClient com configurações otimizadas
 // - staleTime: 10 minutos (dados considerados frescos por mais tempo)
 // - gcTime: 15 minutos (manter cache por mais tempo)
-// - refetchOnWindowFocus: true (atualizar quando voltar para aba)
+// - refetchOnWindowFocus: false em native (Android WebView dispara focus events excessivos)
 // - refetchInterval: false (NUNCA fazer polling automático)
 // - refetchOnMount: false (não refetch se dados no cache)
+const isNativePlatform = Capacitor.isNativePlatform();
+
+// ✅ CRITICAL FIX: Desabilitar focusManager em plataformas nativas
+// Android WebView dispara eventos de focus/blur constantemente (teclado, troca de app, etc.)
+// causando refetch em cascata → remontagem → flickering de telas
+if (isNativePlatform) {
+  focusManager.setEventListener(() => {
+    // No-op: ignora todos os eventos de focus em native
+    return () => {};
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 10 * 60 * 1000, // 10 minutos - dados considerados frescos
       gcTime: 15 * 60 * 1000, // 15 minutos - tempo no cache
-      refetchOnWindowFocus: true, // ✅ Atualizar ao voltar para aba
+      refetchOnWindowFocus: !isNativePlatform, // ✅ Desabilitado em Android/iOS
       refetchOnMount: false, // Não refetch ao montar se dados no cache
       refetchOnReconnect: true, // Atualizar ao reconectar
       retry: 1, // Apenas 1 retry em caso de erro
