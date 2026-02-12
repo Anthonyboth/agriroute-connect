@@ -6,6 +6,7 @@ import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { HeroActionButton } from '@/components/ui/hero-action-button';
 import { Badge } from '@/components/ui/badge';
+import { TabBadge } from '@/components/ui/TabBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1200,11 +1201,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <Brain className="h-3.5 w-3.5 mr-1" />
                 Disponível
-                {cardCounts.available > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {cardCounts.available}
-                  </Badge>
-                )}
+                <TabBadge count={cardCounts.available} />
               </TabsTrigger>
               <TabsTrigger
                 value="accepted" 
@@ -1213,11 +1210,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
                 Em Andamento
-                {cardCounts.active > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {cardCounts.active}
-                  </Badge>
-                )}
+                <TabBadge count={cardCounts.active} />
               </TabsTrigger>
               <TabsTrigger 
                 value="completed" 
@@ -1248,11 +1241,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <Star className="h-3.5 w-3.5 mr-1" />
                 Avaliações
-                {pendingRatingsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {pendingRatingsCount}
-                  </Badge>
-                )}
+                <TabBadge count={pendingRatingsCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="cities" 
@@ -1274,11 +1263,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <MessageSquare className="h-3.5 w-3.5 mr-1" />
                 Chat
-                {chatUnreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {chatUnreadCount}
-                  </Badge>
-                )}
+                <TabBadge count={chatUnreadCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="my-requests" 
