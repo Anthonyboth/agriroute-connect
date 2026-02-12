@@ -1511,16 +1511,16 @@ const ProducerDashboard = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+            <TabsList className="inline-flex h-11 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               <TabsTrigger
                 value="freights-open"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-freights-open"
               >
-                <Truck className="h-3 w-3 mr-1" />
+                <Truck className="h-3.5 w-3.5 mr-1" />
                 Fretes
                 {statistics.openFreights > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.openFreights}
                   </Badge>
                 )}
@@ -1528,13 +1528,13 @@ const ProducerDashboard = () => {
 
               <TabsTrigger
                 value="services-open"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-services-open"
               >
-                <Wrench className="h-3 w-3 mr-1" />
+                <Wrench className="h-3.5 w-3.5 mr-1" />
                 Serviços
                 {statistics.openServices > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.openServices}
                   </Badge>
                 )}
@@ -1542,22 +1542,27 @@ const ProducerDashboard = () => {
 
               <TabsTrigger
                 value="ongoing"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-ongoing"
               >
-                <Play className="h-3 w-3 mr-1" />
+                <Play className="h-3.5 w-3.5 mr-1" />
                 Em Andamento
+                {statistics.activeFreights > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {statistics.activeFreights}
+                  </Badge>
+                )}
               </TabsTrigger>
 
               <TabsTrigger
                 value="confirm-delivery"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-confirm-delivery"
               >
-                <Clock className="h-3 w-3 mr-1" />
+                <Clock className="h-3.5 w-3.5 mr-1" />
                 Confirmar Entrega
                 {statistics.pendingConfirmation > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 w-4 p-0 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {statistics.pendingConfirmation}
                   </Badge>
                 )}
@@ -1565,56 +1570,66 @@ const ProducerDashboard = () => {
 
               <TabsTrigger
                 value="proposals"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-proposals"
               >
-                <Users className="h-3 w-3 mr-1" />
+                <Users className="h-3.5 w-3.5 mr-1" />
                 Propostas
+                {statistics.pendingProposals > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {statistics.pendingProposals}
+                  </Badge>
+                )}
               </TabsTrigger>
 
               <TabsTrigger
                 value="scheduled"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Calendar className="h-3 w-3 mr-1" />
+                <Calendar className="h-3.5 w-3.5 mr-1" />
                 Agendados
               </TabsTrigger>
 
               <TabsTrigger
                 value="history"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-history"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />
                 Histórico
               </TabsTrigger>
 
               <TabsTrigger
                 value="payments"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-payments"
               >
-                <CreditCard className="h-3 w-3 mr-1" />
+                <CreditCard className="h-3.5 w-3.5 mr-1" />
                 Pagamentos
+                {statistics.pendingPayments > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {statistics.pendingPayments}
+                  </Badge>
+                )}
               </TabsTrigger>
 
               <TabsTrigger
                 value="ratings"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Star className="h-3 w-3 mr-1" />
+                <Star className="h-3.5 w-3.5 mr-1" />
                 Avaliações
               </TabsTrigger>
 
               <TabsTrigger
                 value="chat"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-chat"
               >
-                <MessageCircle className="h-3 w-3 mr-1" />
+                <MessageCircle className="h-3.5 w-3.5 mr-1" />
                 Chat
                 {chatUnreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {chatUnreadCount}
                   </Badge>
                 )}
@@ -1622,18 +1637,18 @@ const ProducerDashboard = () => {
 
               <TabsTrigger
                 value="fiscal"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <FileText className="h-3 w-3 mr-1" />
+                <FileText className="h-3.5 w-3.5 mr-1" />
                 Fiscal
               </TabsTrigger>
 
               <TabsTrigger
                 value="reports"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-reports"
               >
-                <BarChart className="h-3 w-3 mr-1" />
+                <BarChart className="h-3.5 w-3.5 mr-1" />
                 Relatórios
               </TabsTrigger>
             </TabsList>
