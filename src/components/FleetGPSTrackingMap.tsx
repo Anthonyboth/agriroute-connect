@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, memo } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useTileWatchdog } from "@/hooks/maplibre";
+import { RURAL_STYLE_INLINE } from "@/config/maplibre";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -265,7 +266,7 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: RURAL_STYLE_INLINE,
       center: computedCenter,
       zoom: 6,
       // ✅ NUNCA use `true` aqui (dá erro no TS)
