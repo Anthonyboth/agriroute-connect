@@ -133,10 +133,11 @@ export const SystemAnnouncementsBoardInline = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 shrink-0 rounded-md border-2 border-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-950 dark:hover:bg-red-900"
             onClick={handleDismiss}
+            aria-label="Fechar mural"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
           </Button>
         </div>
       </CardContent>
