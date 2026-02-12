@@ -106,6 +106,12 @@ export type OngoingServiceRequestRow = {
   accepted_at: string | null;
   additional_info: any | null;
   client_id: string | null;
+  prospect_user_id?: string | null;
+  contact_name?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  vehicle_info?: string | null;
+  preferred_datetime?: string | null;
 };
 
 export const useDriverOngoingCards = (driverProfileId?: string | null) => {
