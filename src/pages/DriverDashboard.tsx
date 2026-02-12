@@ -2345,48 +2345,56 @@ const DriverDashboard = () => {
         {/* Tabs Compactas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+             <TabsList className="inline-flex h-11 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               {/* ✅ Mostrar tab "available" se canSeeFreights */}
               {canSeeFreights && (
                 <TabsTrigger 
                   value="available" 
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 >
-                  <Brain className="h-3 w-3 mr-1" />
+                  <Brain className="h-3.5 w-3.5 mr-1" />
                   <span>{FRETES_IA_LABEL}</span>
+                  {availableFreights.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                      {availableFreights.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               )}
               <TabsTrigger
                 value="ongoing" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-ongoing"
               >
-                <Play className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Em Andamento</span>
-                <span className="sm:hidden" translate="no">Em Andamento</span>
+                <Play className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Em Andamento</span>
+                {(visibleOngoing.length + myAssignments.length + acceptedServiceRequests.length) > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {visibleOngoing.length + myAssignments.length + acceptedServiceRequests.length}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Clock className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Agendados</span>
-                <span className="sm:hidden" translate="no">Agendados</span>
+                <Clock className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Agendados</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="calendar" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <MapPin className="h-3 w-3 mr-1" />
+                <MapPin className="h-3.5 w-3.5 mr-1" />
                 <span className="hidden sm:inline">{AREAS_IA_LABEL}</span>
                 <span className="sm:hidden">Áreas</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="cities" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-cities"
               >
-                <MapPin className="h-3 w-3 mr-1" />
+                <MapPin className="h-3.5 w-3.5 mr-1" />
                 <span className="hidden sm:inline">Cidades</span>
                 <span className="sm:hidden">Cidades</span>
               </TabsTrigger>
@@ -2394,37 +2402,39 @@ const DriverDashboard = () => {
               {canSeeFreights && (
                 <TabsTrigger 
                   value="my-trips" 
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 >
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline" translate="no">Propostas</span>
-                  <span className="sm:hidden" translate="no">Propostas</span>
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                  <span translate="no">Propostas</span>
+                  {myProposals.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                      {myProposals.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               )}
               <TabsTrigger 
                 value="services" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-services"
               >
-                <Settings className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Serviços</span>
-                <span className="sm:hidden" translate="no">Serviços</span>
+                <Settings className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Serviços</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="my-requests" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-my-requests"
               >
-                <ClipboardList className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Solicitações</span>
-                <span className="sm:hidden" translate="no">Solicitações</span>
+                <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Solicitações</span>
               </TabsTrigger>
               <TabsTrigger
                 value="vehicles" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-vehicles"
               >
-                <Truck className="h-3 w-3 mr-1" />
+                <Truck className="h-3.5 w-3.5 mr-1" />
                 <span className="hidden sm:inline" translate="no">Meus Veículos</span>
                 <span className="sm:hidden" translate="no">Veículos</span>
               </TabsTrigger>
@@ -2433,77 +2443,69 @@ const DriverDashboard = () => {
                 <>
                   <TabsTrigger 
                     value="payments" 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                   >
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline" translate="no">Pagamentos</span>
-                    <span className="sm:hidden" translate="no">Pagamentos</span>
+                    <DollarSign className="h-3.5 w-3.5 mr-1" />
+                    <span translate="no">Pagamentos</span>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="advances" 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                   >
-                    <Banknote className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline" translate="no">Saldo</span>
-                    <span className="sm:hidden" translate="no">Saldo</span>
+                    <Banknote className="h-3.5 w-3.5 mr-1" />
+                    <span translate="no">Saldo</span>
                   </TabsTrigger>
                 </>
               )}
               <TabsTrigger 
                 value="ratings" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Star className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Avaliações</span>
-                <span className="sm:hidden" translate="no">Avaliações</span>
+                <Star className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Avaliações</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-chat"
               >
-                <MessageSquare className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Chat</span>
-                <span className="sm:hidden" translate="no">Chat</span>
+                <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Chat</span>
                 {chatUnreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {chatUnreadCount}
                   </Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger 
                 value="historico" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-history"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Histórico</span>
-                <span className="sm:hidden" translate="no">Histórico</span>
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Histórico</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="affiliations" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Users className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Afiliações</span>
-                <span className="sm:hidden" translate="no">Afiliações</span>
+                <Users className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Afiliações</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="fiscal" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <FileText className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Fiscal</span>
-                <span className="sm:hidden" translate="no">Fiscal</span>
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Fiscal</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="reports" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 data-tutorial="tab-reports"
               >
-                <TrendingUp className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline" translate="no">Relatórios</span>
-                <span className="sm:hidden" translate="no">Relatórios</span>
+                <TrendingUp className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Relatórios</span>
               </TabsTrigger>
             </TabsList>
           </div>
