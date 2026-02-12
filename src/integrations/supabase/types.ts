@@ -12686,6 +12686,19 @@ export type Database = {
           status: string
         }[]
       }
+      assign_freight_to_affiliated_driver: {
+        Args: {
+          p_driver_profile_id: string
+          p_freight_id: string
+          p_message?: string
+          p_proposed_price: number
+        }
+        Returns: Json
+      }
+      assign_service_to_affiliated_driver: {
+        Args: { p_driver_profile_id: string; p_service_id: string }
+        Returns: Json
+      }
       auto_cancel_expired_service_requests: { Args: never; Returns: undefined }
       auto_cancel_overdue_freights: { Args: never; Returns: Json }
       auto_confirm_deliveries: { Args: never; Returns: Json }
