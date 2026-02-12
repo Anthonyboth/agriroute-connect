@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { AppSpinner, CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -56,6 +56,7 @@ import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryN
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
+import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
 import { UserCityManager } from '@/components/UserCityManager';
@@ -414,6 +415,85 @@ const CompanyDashboard = () => {
   const myAssignments: any[] = []; // Não usar mais - fretes já agrupados
   const activeFreights = activeFreightsForCards;
 
+  // ✅ NOVO: Buscar serviços urbanos (PET, Pacotes, etc.) dos motoristas afiliados
+  const [activeServices, setActiveServices] = useState<any[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+
+  const fetchActiveServices = useCallback(async () => {
+    if (!affiliatedDriverIds.length) {
+      setActiveServices([]);
+      return;
+    }
+    setIsLoadingServices(true);
+    try {
+      const { data, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .in('provider_id', affiliatedDriverIds)
+        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'])
+        .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
+        .order('accepted_at', { ascending: false })
+        .limit(50);
+      if (error) {
+        console.error('[CompanyDashboard] Erro buscando serviços urbanos:', error);
+      } else {
+        setActiveServices(data || []);
+      }
+    } catch (err) {
+      console.error('[CompanyDashboard] Erro inesperado:', err);
+    } finally {
+      setIsLoadingServices(false);
+    }
+  }, [affiliatedDriverIds]);
+
+  useEffect(() => {
+    fetchActiveServices();
+  }, [fetchActiveServices]);
+
+  // Handlers para transição de serviços urbanos
+  const handleServiceOnTheWay = async (requestId: string) => {
+    try {
+      setActiveServices(prev => 
+        prev.map(r => r.id === requestId ? { ...r, status: 'ON_THE_WAY' } : r)
+      );
+      const { error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: requestId,
+        p_next_status: 'ON_THE_WAY',
+      });
+      if (error) throw error;
+      toast.success('Status atualizado: A Caminho!');
+      setTimeout(() => fetchActiveServices(), 500);
+    } catch (error) {
+      console.error('Erro ao atualizar serviço:', error);
+      toast.error('Erro ao atualizar status');
+      fetchActiveServices();
+    }
+  };
+
+  const handleFinishService = async (requestId: string) => {
+    try {
+      setActiveServices(prev => prev.filter(r => r.id !== requestId));
+      const { data, error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: requestId,
+        p_next_status: 'COMPLETED',
+        p_final_price: null,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (!result?.success) {
+        toast.error(result?.error || 'Não foi possível concluir o serviço');
+        fetchActiveServices();
+        return;
+      }
+      toast.success('Serviço concluído com sucesso!');
+      setTimeout(() => fetchActiveServices(), 500);
+    } catch (error) {
+      console.error('Erro ao finalizar serviço:', error);
+      toast.error('Erro ao finalizar serviço');
+      fetchActiveServices();
+    }
+  };
+
   React.useEffect(() => {
     if (!company?.id) return;
 
@@ -457,13 +537,24 @@ const CompanyDashboard = () => {
           },
           () => refetchActiveFreights()
         );
+        // ✅ NOVO: Realtime para serviços urbanos dos motoristas afiliados
+        channel.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'service_requests',
+            filter: `provider_id=eq.${driverId}`
+          },
+          () => fetchActiveServices()
+        );
       });
     }
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [company?.id, affiliatedDriverIds, refetchActiveFreights]);
+  }, [company?.id, affiliatedDriverIds, refetchActiveFreights, fetchActiveServices]);
 
   useEffect(() => {
     const handleNavigate = (e: CustomEvent) => {
@@ -592,7 +683,7 @@ const CompanyDashboard = () => {
 
   // NOTE: cases where the user is not transportadora are handled by route guards.
 
-  const totalActiveFreights = myAssignments.length + activeFreights.length;
+  const totalActiveFreights = myAssignments.length + activeFreights.length + activeServices.length;
   const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount);
 
   return (
@@ -790,85 +881,132 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="active" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Navigation className="h-5 w-5 text-blue-600" />
-                  Fretes em Andamento
-                  {activeFreights.length > 0 && (
-                    <Badge variant="default" className="ml-2">
-                      {activeFreights.length}
-                    </Badge>
-                  )}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Transportadoras podem gerenciar múltiplos fretes simultaneamente
-                </p>
-              </CardHeader>
-              <CardContent>
-                {isLoadingActive ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-                    <p>Carregando fretes ativos...</p>
-                  </div>
-                ) : activeFreights.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Navigation className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="font-semibold mb-2">Nenhum frete em andamento</p>
-                    <p className="text-sm text-muted-foreground">
-                      Seus fretes aceitos aparecerão aqui automaticamente.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                    {/* ✅ CORREÇÃO: Exibir fretes únicos (agrupados pelo hook useFreightDriverManager) */}
-                    {activeFreights.map((freight) => {
-                      const pickupDate = freight.pickup_date ? new Date(freight.pickup_date) : null;
-                      const now = new Date();
-                      const hoursSincePickup = pickupDate ? (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60) : 0;
-                      const isExpired = pickupDate ? hoursSincePickup > 48 : false;
+            <div className="space-y-6">
+              {/* ===== FRETES RURAIS EM ANDAMENTO ===== */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Navigation className="h-5 w-5 text-blue-600" />
+                    Fretes Rurais em Andamento
+                    {activeFreights.length > 0 && (
+                      <Badge variant="default" className="ml-2">
+                        {activeFreights.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Transportadoras podem gerenciar múltiplos fretes simultaneamente
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingActive ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                      <p>Carregando fretes ativos...</p>
+                    </div>
+                  ) : activeFreights.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Navigation className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-semibold mb-2">Nenhum frete rural em andamento</p>
+                      <p className="text-sm text-muted-foreground">
+                        Seus fretes aceitos aparecerão aqui automaticamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                      {activeFreights.map((freight) => {
+                        const pickupDate = freight.pickup_date ? new Date(freight.pickup_date) : null;
+                        const now = new Date();
+                        const hoursSincePickup = pickupDate ? (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60) : 0;
+                        const isExpired = pickupDate ? hoursSincePickup > 48 : false;
 
-                      return (
-                        <FreightInProgressCard
-                          key={`freight-${freight.id}`}
-                          freight={freight}
-                          showActions={true}
-                          onViewDetails={() => {
-                            setSelectedFreightId(freight.id);
-                            setShowDetails(true);
-                          }}
-                          onRequestCancel={async () => {
-                            if (isExpired) {
-                              if (!confirm('Cancelar este frete por vencimento?')) return;
-                              
-                              try {
-                                const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
-                                  body: {
-                                    freight_id: freight.id,
-                                    reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada'
-                                  }
-                                });
+                        return (
+                          <FreightInProgressCard
+                            key={`freight-${freight.id}`}
+                            freight={freight}
+                            showActions={true}
+                            onViewDetails={() => {
+                              setSelectedFreightId(freight.id);
+                              setShowDetails(true);
+                            }}
+                            onRequestCancel={async () => {
+                              if (isExpired) {
+                                if (!confirm('Cancelar este frete por vencimento?')) return;
+                                
+                                try {
+                                  const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
+                                    body: {
+                                      freight_id: freight.id,
+                                      reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada'
+                                    }
+                                  });
 
-                                if (error) throw error;
-                                if (!(data as any)?.success) throw new Error((data as any)?.error || 'Erro ao cancelar');
+                                  if (error) throw error;
+                                  if (!(data as any)?.success) throw new Error((data as any)?.error || 'Erro ao cancelar');
 
-                                toast.success('Frete cancelado por vencimento');
-                                refetchActiveFreights();
-                              } catch (error) {
-                                console.error('Erro ao cancelar:', error);
-                                toast.error('Erro ao cancelar frete');
+                                  toast.success('Frete cancelado por vencimento');
+                                  refetchActiveFreights();
+                                } catch (error) {
+                                  console.error('Erro ao cancelar:', error);
+                                  toast.error('Erro ao cancelar frete');
+                                }
+                              } else {
+                                toast.info('Solicite o cancelamento através dos detalhes do frete');
                               }
-                            } else {
-                              toast.info('Solicite o cancelamento através dos detalhes do frete');
-                            }
-                          }}
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ===== SERVIÇOS URBANOS EM ANDAMENTO (PET, Pacotes, Guincho, Mudança, etc.) ===== */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="h-5 w-5 text-purple-600" />
+                    Serviços Urbanos em Andamento
+                    {activeServices.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {activeServices.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    PET, Pacotes, Guincho, Mudança e outros serviços atribuídos aos seus motoristas
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingServices ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                      <p>Carregando serviços...</p>
+                    </div>
+                  ) : activeServices.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-semibold mb-2">Nenhum serviço urbano em andamento</p>
+                      <p className="text-sm text-muted-foreground">
+                        Atribua serviços aos seus motoristas na aba {FRETES_IA_LABEL}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                      {activeServices.map((service) => (
+                        <ServiceRequestInProgressCard
+                          key={`service-${service.id}`}
+                          request={service}
+                          onMarkOnTheWay={handleServiceOnTheWay}
+                          onFinishService={handleFinishService}
                         />
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="assignments" className="mt-6">
