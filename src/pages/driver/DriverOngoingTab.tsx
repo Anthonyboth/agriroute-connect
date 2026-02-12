@@ -20,7 +20,7 @@ import { normalizeFreightStatus } from "@/lib/freight-status";
 import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
-import { ServiceRequestInProgressCard } from "@/components/ServiceRequestInProgressCard";
+// ServiceRequestInProgressCard removido - agora usa FreightInProgressCard unificado
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
@@ -348,7 +348,7 @@ export const DriverOngoingTab: React.FC = () => {
             </div>
           )}
 
-          {/* Service Requests (PET/Pacotes/Moto/Guincho/Mudança) - Usa ServiceRequestInProgressCard com dados do cliente */}
+          {/* Service Requests (PET/Pacotes/Moto/Guincho/Mudança) - Usa FreightInProgressCard idêntico ao frete rural */}
           {serviceRequests.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
@@ -356,45 +356,110 @@ export const DriverOngoingTab: React.FC = () => {
                 Chamados e Serviços ({serviceRequests.length})
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {serviceRequests.map((r) => (
-                  <ServiceRequestInProgressCard
-                    key={r.id}
-                    request={{
-                      id: r.id,
-                      service_type: r.service_type || '',
-                      status: r.status,
-                      contact_name: r.contact_name || undefined,
-                      contact_phone: r.contact_phone || undefined,
-                      contact_email: r.contact_email || undefined,
-                      location_address: r.location_address || undefined,
-                      location_lat: r.location_lat || undefined,
-                      location_lng: r.location_lng || undefined,
-                      problem_description: r.problem_description || undefined,
-                      estimated_price: r.estimated_price || undefined,
-                      is_emergency: r.is_emergency || undefined,
-                      client_id: r.client_id || undefined,
-                      prospect_user_id: r.prospect_user_id || undefined,
-                      city_name: r.city_name || undefined,
-                      state: r.state || undefined,
-                      created_at: r.created_at,
-                      accepted_at: r.accepted_at || undefined,
-                      vehicle_info: r.vehicle_info || undefined,
-                      urgency: r.urgency || undefined,
-                      preferred_datetime: r.preferred_datetime || undefined,
-                      additional_info: r.additional_info || undefined,
-                    }}
-                    onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho do local!")}
-                    onFinishService={(id) => {
-                      // Respeitar workflow: ON_THE_WAY → IN_PROGRESS → COMPLETED
-                      const currentStatus = r.status;
-                      if (currentStatus === 'ON_THE_WAY') {
-                        handleTransitionService(id, "IN_PROGRESS", "Em trânsito!");
-                      } else {
-                        handleTransitionService(id, "COMPLETED", "Entrega finalizada com sucesso!");
-                      }
-                    }}
-                  />
-                ))}
+                {serviceRequests.map((r) => {
+                  // Parse additional_info para extrair endereços
+                  let parsedInfo: any = null;
+                  try {
+                    parsedInfo = typeof r.additional_info === 'string'
+                      ? JSON.parse(r.additional_info)
+                      : r.additional_info;
+                    if (typeof parsedInfo !== 'object') parsedInfo = null;
+                  } catch { parsedInfo = null; }
+
+                  const originAddress = parsedInfo?.origin?.full_address || r.location_address || undefined;
+                  const destAddress = parsedInfo?.destination?.full_address || undefined;
+                  const destCity = parsedInfo?.destination?.city || undefined;
+                  const destState = parsedInfo?.destination?.state || undefined;
+
+                  const serviceLabels: Record<string, string> = {
+                    GUINCHO: 'Guincho', MUDANCA: 'Mudança', FRETE_URBANO: 'Frete Urbano',
+                    TRANSPORTE_PET: 'Transporte PET', ENTREGA_PACOTES: 'Entrega Pacotes',
+                    FRETE_MOTO: 'Frete Moto', MECANICO: 'Mecânico', BORRACHEIRO: 'Borracheiro',
+                    ELETRICISTA: 'Eletricista', SOCORRO_MECANICO: 'Socorro Mecânico',
+                  };
+
+                  // Mapear dados do service_request para o formato do FreightInProgressCard
+                  const mappedFreight: any = {
+                    id: r.id,
+                    origin_city: r.city_name || '',
+                    origin_state: r.state || '',
+                    origin_address: originAddress,
+                    destination_city: destCity || '',
+                    destination_state: destState || '',
+                    destination_address: destAddress,
+                    origin_lat: r.location_lat,
+                    origin_lng: r.location_lng,
+                    destination_lat: parsedInfo?.destination?.lat,
+                    destination_lng: parsedInfo?.destination?.lng,
+                    weight: null,
+                    distance_km: null,
+                    pickup_date: r.preferred_datetime || r.created_at,
+                    price: null, // Sem valores conforme solicitado
+                    status: mapServiceStatusToFreightStatus(r.status),
+                    service_type: r.service_type,
+                    // Cliente como "produtor" para exibição no card
+                    producer: r.contact_name ? {
+                      full_name: r.contact_name,
+                    } : null,
+                    producer_id: r.client_id || null,
+                    is_guest_freight: !!r.prospect_user_id && !r.client_id,
+                  };
+
+                  // Botões de workflow específicos para serviços
+                  const workflowActions = (
+                    <div className="flex gap-2">
+                      {r.status === 'ACCEPTED' && r.client_id && (
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-orange-500 hover:bg-orange-600 h-9"
+                          onClick={() => handleTransitionService(r.id, "ON_THE_WAY", "A caminho do local!")}
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          A Caminho
+                        </Button>
+                      )}
+                      {r.status === 'ON_THE_WAY' && (
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 h-9"
+                          onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Serviço iniciado!")}
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          Iniciar Serviço
+                        </Button>
+                      )}
+                      {r.status === 'IN_PROGRESS' && (
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-green-600 hover:bg-green-700 h-9"
+                          onClick={() => handleTransitionService(r.id, "COMPLETED", "Serviço finalizado com sucesso!")}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Concluir
+                        </Button>
+                      )}
+                      {r.status === 'ACCEPTED' && !r.client_id && (
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-green-600 hover:bg-green-700 h-9"
+                          onClick={() => handleTransitionService(r.id, "COMPLETED", "Serviço encerrado!")}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Encerrar
+                        </Button>
+                      )}
+                    </div>
+                  );
+
+                  return (
+                    <FreightInProgressCard
+                      key={r.id}
+                      freight={mappedFreight}
+                      showActions={false}
+                      serviceWorkflowActions={workflowActions}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
