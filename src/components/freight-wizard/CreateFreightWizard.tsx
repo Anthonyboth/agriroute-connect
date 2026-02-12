@@ -209,7 +209,26 @@ export function CreateFreightWizard({
           const destination = `${restored.data.destination_city}, ${restored.data.destination_state}`;
           
           const { data, error } = await supabase.functions.invoke('calculate-route', {
-            body: { origin, destination }
+            body: { 
+              origin, 
+              destination,
+              origin_address_detail: {
+                street: restored.data.origin_street || undefined,
+                number: restored.data.origin_number || undefined,
+                neighborhood: restored.data.origin_neighborhood || undefined,
+              },
+              destination_address_detail: {
+                street: restored.data.destination_street || undefined,
+                number: restored.data.destination_number || undefined,
+                neighborhood: restored.data.destination_neighborhood || undefined,
+              },
+              origin_coords: restored.data.origin_lat && restored.data.origin_lng 
+                ? { lat: restored.data.origin_lat, lng: restored.data.origin_lng } 
+                : undefined,
+              destination_coords: restored.data.destination_lat && restored.data.destination_lng 
+                ? { lat: restored.data.destination_lat, lng: restored.data.destination_lng } 
+                : undefined,
+            }
           });
           
           if (!error && data?.distance_km) {
@@ -259,7 +278,26 @@ export function CreateFreightWizard({
       const destination = `${formData.destination_city}, ${formData.destination_state}`;
       
       const { data, error } = await supabase.functions.invoke('calculate-route', {
-        body: { origin, destination }
+        body: { 
+          origin, 
+          destination,
+          origin_address_detail: {
+            street: formData.origin_street || undefined,
+            number: formData.origin_number || undefined,
+            neighborhood: formData.origin_neighborhood || undefined,
+          },
+          destination_address_detail: {
+            street: formData.destination_street || undefined,
+            number: formData.destination_number || undefined,
+            neighborhood: formData.destination_neighborhood || undefined,
+          },
+          origin_coords: formData.origin_lat && formData.origin_lng 
+            ? { lat: formData.origin_lat, lng: formData.origin_lng } 
+            : undefined,
+          destination_coords: formData.destination_lat && formData.destination_lng 
+            ? { lat: formData.destination_lat, lng: formData.destination_lng } 
+            : undefined,
+        }
       });
       
       if (error) throw error;

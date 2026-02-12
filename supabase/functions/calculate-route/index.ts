@@ -10,7 +10,25 @@ const corsHeaders = {
 
 const RouteRequestSchema = z.object({
   origin: z.string().min(3, 'Origin must be at least 3 characters').max(500, 'Origin too long'),
-  destination: z.string().min(3, 'Destination must be at least 3 characters').max(500, 'Destination too long')
+  destination: z.string().min(3, 'Destination must be at least 3 characters').max(500, 'Destination too long'),
+  origin_address_detail: z.object({
+    street: z.string().optional(),
+    number: z.string().optional(),
+    neighborhood: z.string().optional(),
+  }).optional(),
+  destination_address_detail: z.object({
+    street: z.string().optional(),
+    number: z.string().optional(),
+    neighborhood: z.string().optional(),
+  }).optional(),
+  origin_coords: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
+  destination_coords: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
 });
 
 interface RouteResponse {
@@ -167,6 +185,62 @@ async function geocodeViaNominatim(cityName: string, state: string): Promise<{ l
   return null;
 }
 
+// Geocodificar endereço completo via Nominatim (rua, número, bairro, cidade, UF)
+async function geocodeFullAddressViaNominatim(
+  street: string | undefined,
+  number: string | undefined,
+  neighborhood: string | undefined,
+  city: string,
+  state: string
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    // Montar query estruturada com os dados disponíveis
+    const parts: string[] = [];
+    if (street && number) {
+      parts.push(`${street}, ${number}`);
+    } else if (street) {
+      parts.push(street);
+    }
+    if (neighborhood) {
+      parts.push(neighborhood);
+    }
+    parts.push(city);
+    parts.push(state);
+    parts.push('Brazil');
+    
+    const query = parts.join(', ');
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=br&addressdetails=1`;
+    
+    console.log(`[CALCULATE-ROUTE] Nominatim FULL ADDRESS geocoding: "${query}"`);
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'AgriRoute/1.0 (freight-routing)',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`[CALCULATE-ROUTE] Nominatim full address HTTP ${response.status}`);
+      return null;
+    }
+
+    const results = await response.json();
+    if (results && results.length > 0) {
+      const lat = parseFloat(results[0].lat);
+      const lng = parseFloat(results[0].lon);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        console.log(`[CALCULATE-ROUTE] Nominatim FULL ADDRESS found: ${lat}, ${lng} for "${query}"`);
+        return { lat, lng };
+      }
+    }
+    console.warn(`[CALCULATE-ROUTE] Nominatim FULL ADDRESS: no results for "${query}"`);
+  } catch (e) {
+    console.warn('[CALCULATE-ROUTE] Nominatim full address geocoding failed:', e);
+  }
+  return null;
+}
+
 // Salvar coordenadas geocodificadas no banco (fire-and-forget)
 async function saveCoordsToDBAsync(cityName: string, state: string, lat: number, lng: number): Promise<void> {
   try {
@@ -213,23 +287,45 @@ function parseCityState(address: string): { city: string; state: string } | null
   return null;
 }
 
-// Resolver coordenadas: 1) banco de dados, 2) Nominatim (OSM), 3) null
-async function resolveCoords(address: string): Promise<{ lat: number; lng: number; source: string } | null> {
+// Resolver coordenadas: 1) coords pré-existentes, 2) endereço completo, 3) banco de dados, 4) Nominatim cidade, 5) null
+async function resolveCoords(
+  address: string,
+  addressDetail?: { street?: string; number?: string; neighborhood?: string },
+  preCoords?: { lat: number; lng: number }
+): Promise<{ lat: number; lng: number; source: string } | null> {
+  // 0. Usar coordenadas pré-calculadas se disponíveis (vêm do GPS ou CEP lookup)
+  if (preCoords && preCoords.lat && preCoords.lng) {
+    console.log(`[CALCULATE-ROUTE] Using pre-existing coords: ${preCoords.lat}, ${preCoords.lng}`);
+    return { ...preCoords, source: 'pre_existing' };
+  }
+
   const parsed = parseCityState(address);
+
+  // 1. Tentar geocodificar pelo endereço completo (rua + número + bairro + cidade + UF)
+  if (parsed && addressDetail && (addressDetail.street || addressDetail.neighborhood)) {
+    const fullCoords = await geocodeFullAddressViaNominatim(
+      addressDetail.street,
+      addressDetail.number,
+      addressDetail.neighborhood,
+      parsed.city,
+      parsed.state
+    );
+    if (fullCoords) return { ...fullCoords, source: 'nominatim_full_address' };
+  }
   
-  // 1. Tentar buscar no banco
+  // 2. Tentar buscar no banco (coordenadas da cidade)
   if (parsed) {
     const dbCoords = await getCoordsFromDB(parsed.city, parsed.state);
     if (dbCoords) return { ...dbCoords, source: 'database' };
   }
 
-  // 2. Tentar Nominatim (OpenStreetMap) - geocodificação real
+  // 3. Tentar Nominatim apenas cidade + estado
   if (parsed) {
     const nominatimCoords = await geocodeViaNominatim(parsed.city, parsed.state);
     if (nominatimCoords) return { ...nominatimCoords, source: 'nominatim' };
   }
 
-  // 3. Tentar Nominatim com o endereço completo
+  // 4. Tentar Nominatim com o endereço completo como string
   const fullNominatim = await geocodeViaNominatim(address, 'Brasil');
   if (fullNominatim) return { ...fullNominatim, source: 'nominatim_full' };
 
@@ -243,13 +339,15 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.json();
-    const { origin, destination } = validateInput(RouteRequestSchema, rawBody);
+    const { origin, destination, origin_address_detail, destination_address_detail, origin_coords, destination_coords } = validateInput(RouteRequestSchema, rawBody);
     
     console.log('[CALCULATE-ROUTE] Calculating route from', origin, 'to', destination);
+    if (origin_address_detail) console.log('[CALCULATE-ROUTE] Origin detail:', origin_address_detail);
+    if (destination_address_detail) console.log('[CALCULATE-ROUTE] Destination detail:', destination_address_detail);
 
-    // Resolver coordenadas de origem e destino
-    const originCoords = await resolveCoords(origin);
-    const destCoords = await resolveCoords(destination);
+    // Resolver coordenadas de origem e destino (com endereço detalhado e coords pré-existentes)
+    const originCoords = await resolveCoords(origin, origin_address_detail, origin_coords);
+    const destCoords = await resolveCoords(destination, destination_address_detail, destination_coords);
 
     let distance_km: number = 0;
     let duration_hours: number = 0;
