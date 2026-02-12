@@ -156,16 +156,8 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         created_at: new Date().toISOString()
       });
 
-      // 5. Notificar motorista
-      await supabase.from('notifications').insert({
-        user_id: driverId,
-        title: 'Frete Aceito!',
-        message: `A transportadora aceitou o frete para ${freight.destination_city || freight.destination_address}`,
-        type: 'freight_accepted',
-        data: {
-          freight_id: freight.id
-        }
-      });
+      // 5. Notificação automática via trigger notify_freight_status_change
+      // NÃO inserir manualmente — o trigger do banco já cria a notificação ao mudar status para ACCEPTED
 
       toast.success('✅ Frete em andamento! Visualize na aba "Em Andamento"', {
         duration: 5000
