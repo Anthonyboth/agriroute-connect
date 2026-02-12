@@ -2370,9 +2370,9 @@ const DriverDashboard = () => {
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Em Andamento</span>
-                {(visibleOngoing.length + myAssignments.length + acceptedServiceRequests.length) > 0 && (
+                {(visibleOngoing.length + activeAssignments.length + acceptedServiceRequests.length) > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {visibleOngoing.length + myAssignments.length + acceptedServiceRequests.length}
+                    {visibleOngoing.length + activeAssignments.length + acceptedServiceRequests.length}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -2408,9 +2408,9 @@ const DriverDashboard = () => {
                 >
                   <CheckCircle className="h-3.5 w-3.5 mr-1" />
                   <span translate="no">Propostas</span>
-                  {myProposals.length > 0 && (
+                  {statistics.pendingProposals > 0 && (
                     <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                      {myProposals.length}
+                      {statistics.pendingProposals}
                     </Badge>
                   )}
                 </TabsTrigger>
