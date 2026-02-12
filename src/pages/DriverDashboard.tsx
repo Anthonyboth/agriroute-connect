@@ -2231,43 +2231,19 @@ const DriverDashboard = () => {
     }
   };
 
-  // Função para cancelar frete aceito (antes do primeiro checkin)
+  // Função para cancelar frete aceito - usa Edge Function obrigatoriamente
   const handleFreightCancel = async (freightId: string) => {
     if (!profile?.id) return;
     
     try {
-      // Verificar se há checkins para este frete
-      const hasCheckins = await checkFreightCheckins(freightId);
-      
-      if (hasCheckins) {
-        toast.error('Não é possível cancelar o frete após o primeiro check-in.');
-        return;
-      }
+      const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
+        body: {
+          freight_id: freightId,
+          reason: 'Cancelado pelo motorista',
+        },
+      });
 
-      // Atualizar o status do frete para OPEN (disponível novamente)
-      const { error: freightError } = await supabase
-        .from('freights')
-        .update({ 
-          status: 'OPEN',
-          driver_id: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', freightId)
-        .eq('driver_id', profile.id);
-
-      if (freightError) throw freightError;
-
-      // Atualizar a proposta para cancelada
-      const { error: proposalError } = await supabase
-        .from('freight_proposals')
-        .update({ 
-          status: 'CANCELLED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('freight_id', freightId)
-        .eq('driver_id', profile.id);
-
-      if (proposalError) throw proposalError;
+      if (error) throw error;
 
       toast.success('Frete cancelado com sucesso! O frete está novamente disponível para outros motoristas.');
       
@@ -2277,7 +2253,7 @@ const DriverDashboard = () => {
       
     } catch (error: any) {
       console.error('Error canceling freight:', error);
-      toast.error('Erro ao cancelar frete. Tente novamente.');
+      toast.error(error?.message || 'Erro ao cancelar frete. Tente novamente.');
     }
   };
 
