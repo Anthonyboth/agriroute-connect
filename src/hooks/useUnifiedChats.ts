@@ -166,14 +166,15 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
               const company = companyMap.get(freight.company_id);
               const isClosed = msg.chat_closed_by?.[userProfileId] === true;
               
-              // Verificar fechamento automático: frete finalizado + ambos avaliaram
+              // Verificar fechamento automático: SOMENTE após COMPLETED ou CANCELLED
+              // DELIVERED e DELIVERED_PENDING_CONFIRMATION NÃO são finais - o frete ainda está em andamento
               const freightRatings = ratingsMap.get(freight.id);
-              const FINAL_STATUSES = ['DELIVERED', 'COMPLETED', 'CANCELLED', 'DELIVERED_PENDING_CONFIRMATION', 'ENTREGUE', 'CONCLUIDO', 'CANCELADO'];
-              const isFreightCompleted = FINAL_STATUSES.includes(freight.status);
+              const TRULY_FINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'CONCLUIDO', 'CANCELADO'];
+              const isFreightCompleted = TRULY_FINAL_STATUSES.includes(freight.status);
               const bothRated = freightRatings && freightRatings.size >= 2;
               const isAutoClosedByRatings = isFreightCompleted && bothRated;
               
-              // Se frete está em status final, marcar como fechado automaticamente
+              // Chat só fecha automaticamente quando frete está COMPLETED ou CANCELLED
               const shouldAutoClose = isFreightCompleted;
 
               // Corrigir cidades null
