@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +13,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FreightCard } from "@/components/FreightCard";
 import { Brain, RefreshCw, Search, Zap, Package, Clock, Truck, Bike, Wrench, PawPrint, DollarSign, MessageSquare, MapPin } from "lucide-react";
@@ -64,8 +66,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const timeAgo = useLastUpdate(lastUpdateTime);
 
-  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
-
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignTargetId, setAssignTargetId] = useState<string>("");
+  const [assignTargetType, setAssignTargetType] = useState<"freight" | "service">("freight");
   const fetchingRef = React.useRef(false);
 
   const fetchCompatibleFreights = useCallback(async () => {
@@ -202,8 +205,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
-  const handleAssignFreight = async (freightId: string) => {
-    if (!selectedDriverId || selectedDriverId === "__none") {
+  const handleAssignFreight = async (freightId: string, driverId: string) => {
+    if (!driverId) {
       toast.info("Selecione um motorista para atribuir.");
       return;
     }
@@ -218,8 +221,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
       const { error } = await supabase.from("freight_proposals").insert({
         freight_id: freightId,
-        driver_id: selectedDriverId,
-        proposed_price: pricePerTruck, // ✅ Valor unitário por carreta
+        driver_id: driverId,
+        proposed_price: pricePerTruck,
         status: "PENDING",
         message: "Proposta enviada pela transportadora",
       });
@@ -318,27 +321,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                     "Não informado"}{" "}
                   • {activeDrivers.length} motoristas ativos
                 </p>
-              </div>
-
-              <div className="w-full sm:w-[320px]">
-                <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar motorista para atribuir" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeDrivers.length === 0 ? (
-                      <SelectItem value="__none" disabled>
-                        Nenhum motorista ativo
-                      </SelectItem>
-                    ) : (
-                      activeDrivers.map((d: any) => (
-                        <SelectItem key={String(d.driver_profile_id || d.id)} value={String(d.driver_profile_id || d.id)}>
-                          {d.driver?.full_name || d.full_name || d.name || d.email || "Motorista sem nome"}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
@@ -509,11 +491,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                         <Button
                           className="flex-1"
                           onClick={() => {
-                            if (!selectedDriverId || selectedDriverId === "__none") {
-                              toast.warning("⚠️ Selecione um motorista primeiro! Use o menu 'Selecionar motorista para atribuir' no topo desta página.");
-                              return;
-                            }
-                            handleAssignFreight(freight.freight_id);
+                            setAssignTargetId(freight.freight_id);
+                            setAssignTargetType("freight");
+                            setAssignModalOpen(true);
                           }}
                         >
                           <Package className="h-4 w-4 mr-2" />
@@ -653,11 +633,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                         <Button
                           className="w-full"
                           onClick={() => {
-                            if (!selectedDriverId || selectedDriverId === "__none") {
-                              toast.warning("⚠️ Selecione um motorista primeiro! Use o menu 'Selecionar motorista para atribuir' no topo desta página.");
-                              return;
-                            }
-                            handleAssignFreight(r.id);
+                            setAssignTargetId(r.id);
+                            setAssignTargetType("service");
+                            setAssignModalOpen(true);
                           }}
                         >
                           <Package className="h-4 w-4 mr-2" />
@@ -672,6 +650,56 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           </>
         )}
       </Tabs>
+
+      {/* Modal de seleção de motorista para atribuição */}
+      <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-primary" />
+              Selecionar Motorista
+            </DialogTitle>
+            <DialogDescription>
+              Escolha o motorista para atribuir este {assignTargetType === "freight" ? "frete" : "serviço"}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[400px]">
+            {activeDrivers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Truck className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">Nenhum motorista ativo</p>
+                <p className="text-sm">Cadastre motoristas na sua transportadora primeiro.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 p-1">
+                {activeDrivers.map((d: any) => {
+                  const driverId = String(d.driver_profile_id || d.id);
+                  const driverName = d.driver?.full_name || d.full_name || d.name || d.email || "Motorista sem nome";
+                  return (
+                    <Button
+                      key={driverId}
+                      variant="outline"
+                      className="w-full justify-start text-left h-auto py-3 px-4"
+                      onClick={async () => {
+                        setAssignModalOpen(false);
+                        await handleAssignFreight(assignTargetId, driverId);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                          {driverName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium">{driverName}</span>
+                      </div>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
