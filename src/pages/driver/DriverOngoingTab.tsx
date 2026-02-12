@@ -383,15 +383,9 @@ export const DriverOngoingTab: React.FC = () => {
                       preferred_datetime: r.preferred_datetime || undefined,
                       additional_info: r.additional_info || undefined,
                     }}
-                    onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho do local!")}
-                    onFinishService={(id) => {
-                      const currentStatus = r.status;
-                      if (currentStatus === 'ON_THE_WAY') {
-                        handleTransitionService(id, "IN_PROGRESS", "Serviço iniciado!");
-                      } else {
-                        handleTransitionService(id, "COMPLETED", "Serviço finalizado com sucesso!");
-                      }
-                    }}
+                    onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho da coleta!")}
+                    onStartTransit={(id) => handleTransitionService(id, "IN_PROGRESS", "Em trânsito!")}
+                    onFinishService={(id) => handleTransitionService(id, "COMPLETED", "Entrega realizada com sucesso!")}
                   />
                 ))}
               </div>
