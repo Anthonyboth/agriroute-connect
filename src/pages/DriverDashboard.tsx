@@ -2438,6 +2438,7 @@ const DriverDashboard = () => {
                   >
                     <DollarSign className="h-3.5 w-3.5 mr-1" />
                     <span translate="no">Pagamentos</span>
+                    <TabBadge count={pendingPayments.filter(p => p.status === 'paid_by_producer').length} />
                   </TabsTrigger>
                   <TabsTrigger 
                     value="advances" 
