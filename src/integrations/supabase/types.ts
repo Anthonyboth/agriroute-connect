@@ -12285,15 +12285,27 @@ export type Database = {
         Row: {
           active_mode: string | null
           address_city: string | null
+          address_city_id: string | null
           address_complement: string | null
           address_neighborhood: string | null
           address_number: string | null
+          address_proof_url: string | null
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          antt_number: string | null
           aprovado: boolean | null
+          background_check_status: string | null
+          base_city_id: string | null
           base_city_name: string | null
+          base_lat: number | null
+          base_lng: number | null
           base_state: string | null
+          cnh_category: string | null
+          cnh_expiry_date: string | null
+          cnh_photo_url: string | null
+          cnh_url: string | null
+          cnh_validation_status: string | null
           contact_phone: string | null
           cooperative: string | null
           cpf_cnpj: string | null
@@ -12301,19 +12313,30 @@ export type Database = {
           current_city_name: string | null
           current_state: string | null
           document: string | null
+          document_cpf_url: string | null
+          document_photo_url: string | null
+          document_rg_url: string | null
+          document_validation_status: string | null
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           farm_address: string | null
           farm_name: string | null
+          fixed_address: string | null
           full_name: string | null
           id: string | null
+          invoice_number: string | null
+          license_plate_photo_url: string | null
+          live_cargo_experience: boolean | null
+          location_enabled: boolean | null
+          metadata: Json | null
           phone: string | null
           profile_photo_url: string | null
           rating: number | null
           rating_locked: boolean | null
           rating_sum: number | null
           rntrc: string | null
+          rntrc_validation_status: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           selfie_url: string | null
           service_cities: string[] | null
@@ -12323,22 +12346,41 @@ export type Database = {
           service_types: string[] | null
           status: Database["public"]["Enums"]["user_status"] | null
           total_ratings: number | null
+          truck_documents_url: string | null
+          truck_photo_url: string | null
           updated_at: string | null
           user_id: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
           validation_status: string | null
+          vehicle_other_type: string | null
+          vehicle_specifications: string | null
         }
         Insert: {
           active_mode?: string | null
           address_city?: never
+          address_city_id?: string | null
           address_complement?: never
           address_neighborhood?: never
           address_number?: never
+          address_proof_url?: never
           address_state?: never
           address_street?: never
           address_zip?: never
+          antt_number?: never
           aprovado?: boolean | null
+          background_check_status?: string | null
+          base_city_id?: string | null
           base_city_name?: string | null
+          base_lat?: number | null
+          base_lng?: number | null
           base_state?: string | null
+          cnh_category?: never
+          cnh_expiry_date?: never
+          cnh_photo_url?: never
+          cnh_url?: never
+          cnh_validation_status?: string | null
           contact_phone?: never
           cooperative?: string | null
           cpf_cnpj?: never
@@ -12346,21 +12388,32 @@ export type Database = {
           current_city_name?: string | null
           current_state?: string | null
           document?: never
+          document_cpf_url?: never
+          document_photo_url?: never
+          document_rg_url?: never
+          document_validation_status?: string | null
           email?: never
           emergency_contact_name?: never
           emergency_contact_phone?: never
           farm_address?: never
           farm_name?: string | null
+          fixed_address?: never
           full_name?: string | null
           id?: string | null
+          invoice_number?: string | null
+          license_plate_photo_url?: never
+          live_cargo_experience?: boolean | null
+          location_enabled?: boolean | null
+          metadata?: Json | null
           phone?: never
           profile_photo_url?: string | null
           rating?: number | null
           rating_locked?: boolean | null
           rating_sum?: number | null
           rntrc?: never
+          rntrc_validation_status?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          selfie_url?: string | null
+          selfie_url?: never
           service_cities?: string[] | null
           service_radius_km?: number | null
           service_regions?: string[] | null
@@ -12368,22 +12421,41 @@ export type Database = {
           service_types?: string[] | null
           status?: Database["public"]["Enums"]["user_status"] | null
           total_ratings?: number | null
+          truck_documents_url?: never
+          truck_photo_url?: never
           updated_at?: string | null
           user_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
           validation_status?: string | null
+          vehicle_other_type?: string | null
+          vehicle_specifications?: string | null
         }
         Update: {
           active_mode?: string | null
           address_city?: never
+          address_city_id?: string | null
           address_complement?: never
           address_neighborhood?: never
           address_number?: never
+          address_proof_url?: never
           address_state?: never
           address_street?: never
           address_zip?: never
+          antt_number?: never
           aprovado?: boolean | null
+          background_check_status?: string | null
+          base_city_id?: string | null
           base_city_name?: string | null
+          base_lat?: number | null
+          base_lng?: number | null
           base_state?: string | null
+          cnh_category?: never
+          cnh_expiry_date?: never
+          cnh_photo_url?: never
+          cnh_url?: never
+          cnh_validation_status?: string | null
           contact_phone?: never
           cooperative?: string | null
           cpf_cnpj?: never
@@ -12391,21 +12463,32 @@ export type Database = {
           current_city_name?: string | null
           current_state?: string | null
           document?: never
+          document_cpf_url?: never
+          document_photo_url?: never
+          document_rg_url?: never
+          document_validation_status?: string | null
           email?: never
           emergency_contact_name?: never
           emergency_contact_phone?: never
           farm_address?: never
           farm_name?: string | null
+          fixed_address?: never
           full_name?: string | null
           id?: string | null
+          invoice_number?: string | null
+          license_plate_photo_url?: never
+          live_cargo_experience?: boolean | null
+          location_enabled?: boolean | null
+          metadata?: Json | null
           phone?: never
           profile_photo_url?: string | null
           rating?: number | null
           rating_locked?: boolean | null
           rating_sum?: number | null
           rntrc?: never
+          rntrc_validation_status?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          selfie_url?: string | null
+          selfie_url?: never
           service_cities?: string[] | null
           service_radius_km?: number | null
           service_regions?: string[] | null
@@ -12413,11 +12496,61 @@ export type Database = {
           service_types?: string[] | null
           status?: Database["public"]["Enums"]["user_status"] | null
           total_ratings?: number | null
+          truck_documents_url?: never
+          truck_photo_url?: never
           updated_at?: string | null
           user_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
           validation_status?: string | null
+          vehicle_other_type?: string | null
+          vehicle_specifications?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_address_city_id_fkey"
+            columns: ["address_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_address_city_id_fkey"
+            columns: ["address_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+          {
+            foreignKeyName: "profiles_base_city_id_fkey"
+            columns: ["base_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_base_city_id_fkey"
+            columns: ["base_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+          {
+            foreignKeyName: "profiles_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_requests_secure: {
         Row: {
