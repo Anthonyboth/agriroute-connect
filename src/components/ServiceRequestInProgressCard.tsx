@@ -185,6 +185,13 @@ const ServiceRequestInProgressCardComponent = ({
     if (typeof parsedInfo !== 'object') parsedInfo = null;
   } catch { parsedInfo = null; }
 
+  // Extrair endereços de coleta e entrega do additional_info
+  // Estrutura real: { origin: { full_address, city, ... }, destination: { full_address, city, ... } }
+  const originAddress = parsedInfo?.origin?.full_address || parsedInfo?.origin_address || null;
+  const destAddress = parsedInfo?.destination?.full_address || parsedInfo?.destination_address || null;
+  const destCity = parsedInfo?.destination?.city || null;
+  const destState = parsedInfo?.destination?.state || null;
+
   const isGuestUser = !!request.prospect_user_id && !request.client_id;
   const hasCoords = !!(request.location_lat && request.location_lng);
   const isUrgent = request.urgency && ['ALTA', 'URGENTE'].includes(request.urgency.toUpperCase());
@@ -243,32 +250,42 @@ const ServiceRequestInProgressCardComponent = ({
           </div>
         )}
 
-        {/* Local do serviço + Mini-mapa lado a lado */}
+        {/* Coleta e Entrega */}
         <div className={`grid ${hasCoords ? 'grid-cols-[1fr,160px]' : 'grid-cols-1'} gap-2`}>
           <div className="space-y-1.5">
-            {request.city_name && (
+            {/* COLETA */}
+            <div className="bg-green-50 dark:bg-green-900/20 rounded px-2 py-1.5 space-y-0.5">
               <div className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
-                <span className="font-bold text-sm text-primary">
-                  {request.city_name.toUpperCase()}{request.state ? ` - ${request.state}` : ''}
-                </span>
+                <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+                <span className="text-[11px] font-bold text-green-700 dark:text-green-400">COLETA</span>
+                {request.city_name && (
+                  <span className="text-xs font-semibold text-primary ml-auto">
+                    {request.city_name}{request.state ? ` - ${request.state}` : ''}
+                  </span>
+                )}
               </div>
-            )}
-            {request.location_address && (
-              <p className="text-xs text-muted-foreground pl-5 line-clamp-2">{request.location_address}</p>
-            )}
+              {(originAddress || request.location_address) && (
+                <p className="text-xs text-muted-foreground pl-5 line-clamp-2">
+                  {originAddress || request.location_address}
+                </p>
+              )}
+            </div>
 
-            {/* Origem/Destino de additional_info */}
-            {parsedInfo?.origin_address && (
-              <div className="flex items-start gap-1 pl-5">
-                <span className="text-[10px] text-green-600">📍</span>
-                <span className="text-xs">{parsedInfo.origin_address}</span>
-              </div>
-            )}
-            {parsedInfo?.destination_address && (
-              <div className="flex items-start gap-1 pl-5">
-                <span className="text-[10px] text-red-600">🏁</span>
-                <span className="text-xs">{parsedInfo.destination_address}</span>
+            {/* ENTREGA */}
+            {(destAddress || destCity) && (
+              <div className="bg-red-50 dark:bg-red-900/20 rounded px-2 py-1.5 space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
+                  <span className="text-[11px] font-bold text-red-700 dark:text-red-400">ENTREGA</span>
+                  {destCity && (
+                    <span className="text-xs font-semibold text-primary ml-auto">
+                      {destCity}{destState ? ` - ${destState}` : ''}
+                    </span>
+                  )}
+                </div>
+                {destAddress && (
+                  <p className="text-xs text-muted-foreground pl-5 line-clamp-2">{destAddress}</p>
+                )}
               </div>
             )}
 
