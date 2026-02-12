@@ -51,10 +51,9 @@ export function useProfileCached(profileId: string | null | undefined) {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          id, user_id, full_name, phone, contact_phone, role,
+          id, user_id, full_name, role,
           active_mode, selfie_url, rating, base_city_name, base_state,
-          current_city_name, current_state, service_types, cpf_cnpj,
-          rntrc, status
+          current_city_name, current_state, service_types, status
         `)
         .eq('id', profileId)
         .maybeSingle();
@@ -93,10 +92,9 @@ export function useProfileCachedByUserId(userId: string | null | undefined) {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          id, user_id, full_name, phone, contact_phone, role,
+          id, user_id, full_name, role,
           active_mode, selfie_url, rating, base_city_name, base_state,
-          current_city_name, current_state, service_types, cpf_cnpj,
-          rntrc, status
+          current_city_name, current_state, service_types, status
         `)
         .eq('user_id', userId)
         .maybeSingle();

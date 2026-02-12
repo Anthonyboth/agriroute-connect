@@ -12283,26 +12283,139 @@ export type Database = {
       }
       profiles_secure: {
         Row: {
+          active_mode: string | null
           address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
           address_state: string | null
           address_street: string | null
+          address_zip: string | null
           aprovado: boolean | null
           base_city_name: string | null
           base_state: string | null
           contact_phone: string | null
+          cooperative: string | null
           cpf_cnpj: string | null
           created_at: string | null
+          current_city_name: string | null
+          current_state: string | null
+          document: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          farm_address: string | null
+          farm_name: string | null
           full_name: string | null
           id: string | null
           phone: string | null
           profile_photo_url: string | null
           rating: number | null
+          rating_locked: boolean | null
+          rating_sum: number | null
+          rntrc: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          selfie_url: string | null
+          service_cities: string[] | null
+          service_radius_km: number | null
+          service_regions: string[] | null
+          service_states: string[] | null
           service_types: string[] | null
           status: Database["public"]["Enums"]["user_status"] | null
           total_ratings: number | null
           updated_at: string | null
           user_id: string | null
           validation_status: string | null
+        }
+        Insert: {
+          active_mode?: string | null
+          address_city?: never
+          address_complement?: never
+          address_neighborhood?: never
+          address_number?: never
+          address_state?: never
+          address_street?: never
+          address_zip?: never
+          aprovado?: boolean | null
+          base_city_name?: string | null
+          base_state?: string | null
+          contact_phone?: never
+          cooperative?: string | null
+          cpf_cnpj?: never
+          created_at?: string | null
+          current_city_name?: string | null
+          current_state?: string | null
+          document?: never
+          email?: never
+          emergency_contact_name?: never
+          emergency_contact_phone?: never
+          farm_address?: never
+          farm_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          phone?: never
+          profile_photo_url?: string | null
+          rating?: number | null
+          rating_locked?: boolean | null
+          rating_sum?: number | null
+          rntrc?: never
+          role?: Database["public"]["Enums"]["user_role"] | null
+          selfie_url?: string | null
+          service_cities?: string[] | null
+          service_radius_km?: number | null
+          service_regions?: string[] | null
+          service_states?: string[] | null
+          service_types?: string[] | null
+          status?: Database["public"]["Enums"]["user_status"] | null
+          total_ratings?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          active_mode?: string | null
+          address_city?: never
+          address_complement?: never
+          address_neighborhood?: never
+          address_number?: never
+          address_state?: never
+          address_street?: never
+          address_zip?: never
+          aprovado?: boolean | null
+          base_city_name?: string | null
+          base_state?: string | null
+          contact_phone?: never
+          cooperative?: string | null
+          cpf_cnpj?: never
+          created_at?: string | null
+          current_city_name?: string | null
+          current_state?: string | null
+          document?: never
+          email?: never
+          emergency_contact_name?: never
+          emergency_contact_phone?: never
+          farm_address?: never
+          farm_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          phone?: never
+          profile_photo_url?: string | null
+          rating?: number | null
+          rating_locked?: boolean | null
+          rating_sum?: number | null
+          rntrc?: never
+          role?: Database["public"]["Enums"]["user_role"] | null
+          selfie_url?: string | null
+          service_cities?: string[] | null
+          service_radius_km?: number | null
+          service_regions?: string[] | null
+          service_states?: string[] | null
+          service_types?: string[] | null
+          status?: Database["public"]["Enums"]["user_status"] | null
+          total_ratings?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          validation_status?: string | null
         }
         Relationships: []
       }
