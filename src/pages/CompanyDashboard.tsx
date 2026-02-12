@@ -892,7 +892,7 @@ const CompanyDashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="urban" className="flex items-center gap-2">
                   <Truck className="h-4 w-4" />
-                  Serviços Urbanos
+                  Fretes Urbanos
                   {activeServices.length > 0 && (
                     <Badge variant="secondary" className="ml-1">{activeServices.length}</Badge>
                   )}
@@ -980,10 +980,10 @@ const CompanyDashboard = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Truck className="h-5 w-5 text-purple-600" />
-                      Serviços Urbanos em Andamento
+                      Fretes Urbanos em Andamento
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      PET, Pacotes, Guincho, Mudança e outros serviços atribuídos aos seus motoristas
+                      PET, Pacotes, Guincho, Mudança e outros fretes urbanos atribuídos aos seus motoristas
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -995,9 +995,9 @@ const CompanyDashboard = () => {
                     ) : activeServices.length === 0 ? (
                       <div className="text-center py-8">
                         <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="font-semibold mb-2">Nenhum serviço urbano em andamento</p>
+                        <p className="font-semibold mb-2">Nenhum frete urbano em andamento</p>
                         <p className="text-sm text-muted-foreground">
-                          Atribua serviços aos seus motoristas na aba {FRETES_IA_LABEL}.
+                          Atribua fretes aos seus motoristas na aba {FRETES_IA_LABEL}.
                         </p>
                       </div>
                     ) : (
