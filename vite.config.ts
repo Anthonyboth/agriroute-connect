@@ -103,66 +103,47 @@ export default defineConfig(({ mode }) => ({
              // Incluímos [ ] % . para manter esses utilitários.
              defaultExtractor: (content: string) => content.match(/[\w-/:.\[\]%]+(?<!:)/g) || [],
             safelist: {
-              standard: [
-                /^html/,
-                /^body/,
-                /^:root/,
-                /^dark/,
-                // Radix UI
-                /^data-/,
-                /\[data-.*\]/,
-                // Tailwind dynamic classes
-                /^bg-/,
-                /^text-/,
-                /^border-/,
-                /^hover:/,
-                /^focus:/,
-                /^active:/,
-                /^disabled:/,
-                /^group-/,
-                /^peer-/,
-                // Animations
-                /^animate-/,
-                /^transition-/,
-                // Responsive
-                /^sm:/,
-                /^md:/,
-                /^lg:/,
-                /^xl:/,
-                /^2xl:/,
-                // ✅ AgriRoute Design System - Classes customizadas
-                /^gradient-/,        // gradient-hero, gradient-primary, gradient-card
-                /^shadow-/,          // shadow-elegant, shadow-card, shadow-glow
-                /^btn-/,             // btn-accessible
-                /^card-/,            // card-accessible
-                /^text-gradient-/,   // text-gradient-hero
-                /^text-shadow-/,     // text-shadow-lg, text-shadow-md
-                /^text-accessible/,  // text-accessible, text-large-accessible
-                /^freight-/,         // freight-card-standard
-                /^spacing-/,         // spacing-accessible
-                /^pentagon-/,        // pentagon-card
-                /^status-/,          // status-open, status-booked, etc.
-                /^scroll-/,          // scroll-area
-                /^safe-/,            // safe-area-*, safe-text
-                /^responsive-/,      // responsive-card-header, responsive-card-actions
-                /^badge-/,           // badge-inline
-                /^touch-/,           // touch-target-safe
-                /^prevent-/,         // prevent-button-overlap
-                /^provider-/,        // provider-theme
-                'transition-smooth',
-                'transition-bounce',
-              ],
-              deep: [
-                /radix/,
-                /sonner/,
-                /cmdk/,
-              ],
-              greedy: [
-                /^lucide-/,
-                 // ✅ Manter utilitários Tailwind com valores arbitrários: z-[...], left-[...], max-h-[...], translate-x-[...], etc.
+               standard: [
+                 /^html/,
+                 /^body/,
+                 /^:root/,
+                 /^dark/,
+                 // Radix UI data attributes
+                 /^data-/,
+                 /\[data-.*\]/,
+                 // ✅ AgriRoute Design System - Custom CSS classes (not in source files)
+                 /^gradient-/,
+                 /^shadow-/,
+                 /^btn-/,
+                 /^card-/,
+                 /^text-gradient-/,
+                 /^text-shadow-/,
+                 /^text-accessible/,
+                 /^freight-/,
+                 /^spacing-/,
+                 /^pentagon-/,
+                 /^status-/,
+                 /^scroll-/,
+                 /^safe-/,
+                 /^responsive-/,
+                 /^badge-/,
+                 /^touch-/,
+                 /^prevent-/,
+                 /^provider-/,
+                 'transition-smooth',
+                 'transition-bounce',
+               ],
+               deep: [
+                 /radix/,
+                 /sonner/,
+                 /cmdk/,
+               ],
+               greedy: [
+                 /^lucide-/,
+                 // ✅ Keep Tailwind arbitrary value utilities: z-[...], left-[...], etc.
                  /\[[^\]]+\]/,
-              ]
-            }
+               ]
+             }
           })
         ] : []),
       ],
