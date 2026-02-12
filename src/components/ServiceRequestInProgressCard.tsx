@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { RURAL_STYLE_INLINE } from '@/config/maplibre';
 import { ptBR } from 'date-fns/locale';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -54,7 +55,7 @@ const InlineTrackingMap = React.memo(({ lat, lng, label }: { lat: number; lng: n
     try {
       const map = new maplibregl.Map({
         container: mapContainer.current,
-        style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+        style: RURAL_STYLE_INLINE,
         center: [lng, lat],
         zoom: 14,
         interactive: false,
