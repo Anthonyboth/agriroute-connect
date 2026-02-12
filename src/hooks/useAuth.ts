@@ -196,22 +196,18 @@ const useAuthInternal = () => {
           const { data, error } = await supabase
             .from('profiles')
             .select(`
-              id, user_id, full_name, phone, document, role,
+              id, user_id, full_name, role,
               status, active_mode, service_types,
               base_city_name, base_state, base_city_id,
-              created_at, updated_at, cpf_cnpj, rntrc,
-              antt_number, cooperative, rating,
+              created_at, updated_at,
+              cooperative, rating,
               cnh_expiry_date, cnh_category,
               document_validation_status, cnh_validation_status,
               rntrc_validation_status, validation_notes,
-              emergency_contact_name, emergency_contact_phone,
               background_check_status, rating_locked,
               last_gps_update, current_location_lat, current_location_lng,
               base_lat, base_lng, current_city_name, current_state,
-              selfie_url, document_photo_url, cnh_photo_url,
-              truck_documents_url, truck_photo_url,
-              license_plate_photo_url, address_proof_url,
-              contact_phone, location_enabled, farm_name, farm_address
+              selfie_url, location_enabled, farm_name
             `)
             .eq('user_id', userId);
           

@@ -75,7 +75,7 @@ export const useAffiliatedDriverProfile = ({
         console.log('[useAffiliatedDriverProfile] Tentando fallback via select direto...');
         
         const { data: fallbackData, error: fallbackError } = await supabase
-          .from('profiles')
+          .from('profiles_secure')
           .select(`
             id,
             full_name,
@@ -120,7 +120,7 @@ export const useAffiliatedDriverProfile = ({
           .single();
 
         return {
-          ...fallbackData,
+          ...(fallbackData as any),
           status: affiliationData?.status || null,
           can_accept_freights: affiliationData?.can_accept_freights || null,
           can_manage_vehicles: affiliationData?.can_manage_vehicles || null,
