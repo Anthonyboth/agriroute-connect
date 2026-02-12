@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -54,6 +55,7 @@ interface CompanySmartFreightMatcherProps {
 
 export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProps> = ({ onTabChange }) => {
   const { drivers, company } = useTransportCompany();
+  const queryClient = useQueryClient();
 
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
@@ -254,7 +256,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         p_freight_id: targetId,
         p_driver_profile_id: driverId,
         p_proposed_price: pricePerTruck,
-        p_message: "Proposta enviada pela transportadora",
+        p_message: "Atribuído pela transportadora",
       });
 
       if (error) throw error;
@@ -265,8 +267,11 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         return;
       }
 
-      toast.success("Proposta enviada ao motorista!", {
-        description: "Acompanhe em \"Em andamento\".",
+      // ✅ Invalidar cache de fretes em andamento para atualização imediata
+      queryClient.invalidateQueries({ queryKey: ['freight-driver-manager'] });
+
+      toast.success("Motorista atribuído ao frete com sucesso!", {
+        description: "O frete já aparece em \"Em andamento\".",
         duration: 5000,
         action: {
           label: "Ver agora",
