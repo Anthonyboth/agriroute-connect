@@ -79,7 +79,7 @@ import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
-import { canProviderHandleService } from '@/lib/service-types';
+// canProviderHandleService removido - confiar na RPC
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
@@ -628,14 +628,9 @@ export const ServiceProviderDashboard: React.FC = () => {
         const own: ServiceRequest[] = [];
         
         // Process city-based (available) - RPC já filtra apenas serviços
-        const providerServiceTypes = profile?.service_types || [];
-        
+        // ✅ CONFIAR NA RPC - não re-filtrar no frontend!
+        // A RPC get_services_for_provider já filtra por tipo, cidade e raio
         (cityBasedRequests || []).forEach((r: any) => {
-          // Matching estrito: só mostra requests exatamente dos tipos que o prestador oferece
-          if (!canProviderHandleService(providerServiceTypes, r.service_type)) {
-            console.warn(`Service type ${r.service_type} não compatível com tipos do prestador:`, providerServiceTypes);
-            return;
-          }
           
           const client = clientsMap.get(r.client_id);
           available.push({
@@ -698,14 +693,8 @@ export const ServiceProviderDashboard: React.FC = () => {
       } else {
         // Update only available requests - RPC já filtra apenas serviços
         const available: ServiceRequest[] = [];
-        const providerServiceTypes = profile?.service_types || [];
-        
+        // ✅ CONFIAR NA RPC - não re-filtrar no frontend!
         (cityBasedRequests || []).forEach((r: any) => {
-          // Matching estrito: só mostra requests exatamente dos tipos que o prestador oferece
-          if (!canProviderHandleService(providerServiceTypes, r.service_type)) {
-            console.warn(`Service type ${r.service_type} não compatível com tipos do prestador:`, providerServiceTypes);
-            return;
-          }
           
           const client = clientsMap.get(r.client_id);
           available.push({
