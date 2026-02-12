@@ -760,7 +760,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="marketplace" className="mt-6">
-            <CompanySmartFreightMatcher />
+            <CompanySmartFreightMatcher onTabChange={(tab) => setActiveTab(tab)} />
           </TabsContent>
 
           <TabsContent value="drivers" className="mt-6">
@@ -823,10 +823,10 @@ const CompanyDashboard = () => {
                   <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                     {/* ✅ CORREÇÃO: Exibir fretes únicos (agrupados pelo hook useFreightDriverManager) */}
                     {activeFreights.map((freight) => {
-                      const pickupDate = new Date(freight.pickup_date);
+                      const pickupDate = freight.pickup_date ? new Date(freight.pickup_date) : null;
                       const now = new Date();
-                      const hoursSincePickup = (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60);
-                      const isExpired = hoursSincePickup > 48;
+                      const hoursSincePickup = pickupDate ? (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60) : 0;
+                      const isExpired = pickupDate ? hoursSincePickup > 48 : false;
 
                       return (
                         <FreightInProgressCard
