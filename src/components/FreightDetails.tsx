@@ -562,7 +562,23 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                       const { data, error } = await supabase.functions.invoke('calculate-route', {
                         body: {
                           origin: `${freight.origin_city}, ${freight.origin_state}`,
-                          destination: `${freight.destination_city}, ${freight.destination_state}`
+                          destination: `${freight.destination_city}, ${freight.destination_state}`,
+                          origin_address_detail: {
+                            street: (freight as any).origin_street || undefined,
+                            number: (freight as any).origin_number || undefined,
+                            neighborhood: (freight as any).origin_neighborhood || undefined,
+                          },
+                          destination_address_detail: {
+                            street: (freight as any).destination_street || undefined,
+                            number: (freight as any).destination_number || undefined,
+                            neighborhood: (freight as any).destination_neighborhood || undefined,
+                          },
+                          origin_coords: (freight as any).origin_lat && (freight as any).origin_lng 
+                            ? { lat: (freight as any).origin_lat, lng: (freight as any).origin_lng } 
+                            : undefined,
+                          destination_coords: (freight as any).destination_lat && (freight as any).destination_lng 
+                            ? { lat: (freight as any).destination_lat, lng: (freight as any).destination_lng } 
+                            : undefined,
                         }
                       });
                       
