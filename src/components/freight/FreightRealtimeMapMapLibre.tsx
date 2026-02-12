@@ -831,80 +831,77 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [mapOrigin, mapDestination, mapDriverLocation]);
 
-  // Loading state - usar Skeleton padronizado
-  if (isLoading) {
-    return (
-      <Skeleton 
-        className={cn("rounded-lg", className)} 
-        style={{ height: '280px', minHeight: '280px' }} 
-      />
-    );
-  }
-
-  // Error state
-  if (error || mapError) {
-    return (
-      <div className={cn("flex items-center justify-center bg-muted/30 rounded-lg", className)} style={{ height: '280px', minHeight: '280px' }}>
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <WifiOff className="h-8 w-8" />
-          <span className="text-sm">{error || mapError}</span>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ No location fallback - só mostra se não tiver NENHUMA coordenada válida
-  if (!hasAnyValidCoordinate && !isLoading) {
-    return (
-      <div className={cn("flex items-center justify-center bg-muted/30 rounded-lg border-2 border-dashed border-muted", className)} style={{ height: '280px', minHeight: '280px' }}>
-        <div className="flex flex-col items-center gap-3 text-muted-foreground p-4 text-center">
-          <MapPin className="h-10 w-10 opacity-50" />
-          <div>
-            <p className="font-medium">Aguardando sinal do motorista...</p>
-            <p className="text-xs mt-1">A localização aparecerá assim que o motorista iniciar o rastreamento</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // ✅ P1 FIX: Container SEMPRE montado. Estados de loading/error/no-location
+  //    são OVERLAYS absolutos, nunca early-returns que impedem containerRef de existir.
   return (
     <div className={cn("relative rounded-lg overflow-hidden border border-border", className)} style={{ height: '280px', minHeight: '280px' }}>
-      {/* Mapa - IMPORTANTE: container com transform:none isola de ancestrais com scale */}
+      {/* ✅ P1: Container do mapa - SEMPRE montado, nunca removido do DOM */}
       <div 
         ref={mapContainerRef} 
         className="absolute inset-0"
         style={{ width: '100%', height: '100%', transform: 'none' }}
       />
 
-      {/* Status overlay */}
-      <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
-        {/* Badge de status */}
-        <Badge 
-          variant={isDriverReallyOnline ? "default" : "secondary"}
-          className={cn(
-            "flex items-center gap-1.5 px-2 py-1",
-            isDriverReallyOnline ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"
-          )}
-        >
-          <span className={cn(
-            "w-2 h-2 rounded-full",
-            isDriverReallyOnline ? "bg-white animate-pulse" : "bg-destructive"
-          )} />
-          {isDriverReallyOnline ? 'Online' : 'Offline'}
-        </Badge>
+      {/* ✅ OVERLAY: Loading state */}
+      {isLoading && (
+        <div className="absolute inset-0 z-20">
+          <Skeleton className="w-full h-full rounded-lg" />
+        </div>
+      )}
 
-        {/* Tempo desde última atualização */}
-        {secondsAgo !== Infinity && secondsAgo > 0 && (
-          <Badge variant="secondary" className="text-xs flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {formatSecondsAgo(secondsAgo)}
+      {/* ✅ OVERLAY: Error state */}
+      {!isLoading && (error || mapError) && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-muted/95 rounded-lg">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <WifiOff className="h-8 w-8" />
+            <span className="text-sm">{error || mapError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ OVERLAY: No location state */}
+      {!isLoading && !error && !mapError && !hasAnyValidCoordinate && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-muted/95 rounded-lg border-2 border-dashed border-muted">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground p-4 text-center">
+            <MapPin className="h-10 w-10 opacity-50" />
+            <div>
+              <p className="font-medium">Aguardando sinal do motorista...</p>
+              <p className="text-xs mt-1">A localização aparecerá assim que o motorista iniciar o rastreamento</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status overlay */}
+      {mapLoaded && (
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
+          {/* Badge de status */}
+          <Badge 
+            variant={isDriverReallyOnline ? "default" : "secondary"}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1",
+              isDriverReallyOnline ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"
+            )}
+          >
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+              isDriverReallyOnline ? "bg-white animate-pulse" : "bg-destructive"
+            )} />
+            {isDriverReallyOnline ? 'Online' : 'Offline'}
           </Badge>
-        )}
-      </div>
+
+          {/* Tempo desde última atualização */}
+          {secondsAgo !== Infinity && secondsAgo > 0 && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatSecondsAgo(secondsAgo)}
+            </Badge>
+          )}
+        </div>
+      )}
 
       {/* 🚗 Badge de rota OSRM (distância e tempo estimado) */}
-      {osrmRoute && osrmRoute.distance > 0 && (
+      {mapLoaded && osrmRoute && osrmRoute.distance > 0 && (
         <div className="absolute bottom-2 left-2 z-10">
           <Badge variant="outline" className="text-xs flex items-center gap-1.5 bg-background/90 shadow-sm">
             <Route className="h-3 w-3 text-primary" />
@@ -916,29 +913,31 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       )}
 
       {/* Botões de controle */}
-      <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleCenterOnDriver}
-          disabled={!mapDriverLocation}
-          className="h-8 px-2 shadow-md"
-          title="Centralizar no motorista"
-        >
-          <Navigation className="h-4 w-4 mr-1" />
-          Centralizar
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleFitBounds}
-          className="h-8 px-2 shadow-md bg-background/90"
-          title="Ver trajeto completo"
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          Ver tudo
-        </Button>
-      </div>
+      {mapLoaded && (
+        <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleCenterOnDriver}
+            disabled={!mapDriverLocation}
+            className="h-8 px-2 shadow-md"
+            title="Centralizar no motorista"
+          >
+            <Navigation className="h-4 w-4 mr-1" />
+            Centralizar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleFitBounds}
+            className="h-8 px-2 shadow-md bg-background/90"
+            title="Ver trajeto completo"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Ver tudo
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
