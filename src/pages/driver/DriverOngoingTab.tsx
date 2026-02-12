@@ -363,42 +363,49 @@ export const DriverOngoingTab: React.FC = () => {
                       ? JSON.parse(r.additional_info) 
                       : (typeof r.additional_info === 'object' ? r.additional_info : null);
                   } catch { /* ignore parse errors */ }
-                  const destination = additionalInfo?.destination || null;
-                  
-                  const originLat = r.location_lat || r.city_lat || null;
-                  const originLng = r.location_lng || r.city_lng || null;
-                  const destLat = destination?.lat || null;
-                  const destLng = destination?.lng || null;
+                   const destination = additionalInfo?.destination || null;
+                   const origin = additionalInfo?.origin || null;
+                   
+                   const originLat = r.location_lat || r.city_lat || null;
+                   const originLng = r.location_lng || r.city_lng || null;
+                   const destLat = destination?.lat || null;
+                   const destLng = destination?.lng || null;
 
-                  const originCity = r.city_name || '';
-                  const originState = r.state || '';
-                  const destCity = destination?.city || originCity;
-                  const destState = destination?.state || originState;
+                   const originCity = r.city_name || '';
+                   const originState = r.state || '';
+                   const destCity = destination?.city || originCity;
+                   const destState = destination?.state || originState;
+                   
+                   // Endereços completos para exibição no card
+                   const originAddress = origin?.full_address || r.location_address || '';
+                   const destAddress = destination?.full_address || '';
 
                   // Descrição do serviço para exibir no card
                   const serviceDescription = r.problem_description || null;
 
                   return (
                     <div key={r.id} className="space-y-2">
-                      <FreightInProgressCard
-                        freight={{
-                          id: r.id,
-                          origin_city: originCity,
-                          origin_state: originState,
-                          destination_city: destCity,
-                          destination_state: destState,
-                          origin_lat: originLat,
-                          origin_lng: originLng,
-                          destination_lat: destLat,
-                          destination_lng: destLng,
-                          weight: null,
-                          distance_km: null,
-                          pickup_date: r.accepted_at || r.created_at,
-                          price: r.estimated_price,
-                          required_trucks: 1,
-                          status: mapServiceStatusToFreightStatus(r.status),
-                          service_type: r.service_type,
-                        }}
+                       <FreightInProgressCard
+                         freight={{
+                           id: r.id,
+                           origin_city: originCity,
+                           origin_state: originState,
+                           origin_address: originAddress,
+                           destination_city: destCity,
+                           destination_state: destState,
+                           destination_address: destAddress,
+                           origin_lat: originLat,
+                           origin_lng: originLng,
+                           destination_lat: destLat,
+                           destination_lng: destLng,
+                           weight: null,
+                           distance_km: null,
+                           pickup_date: r.accepted_at || r.created_at,
+                           price: r.estimated_price,
+                           required_trucks: 1,
+                           status: mapServiceStatusToFreightStatus(r.status),
+                           service_type: r.service_type,
+                         }}
                         onViewDetails={() => {
                           // Abrir detalhes do serviço (reutiliza o modal genérico)
                           handleStatusUpdate();

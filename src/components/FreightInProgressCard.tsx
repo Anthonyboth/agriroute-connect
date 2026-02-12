@@ -77,8 +77,10 @@ interface FreightInProgressCardProps {
     id: string;
     origin_city?: string;
     origin_state?: string;
+    origin_address?: string;
     destination_city?: string;
     destination_state?: string;
+    destination_address?: string;
     origin_lat?: number;
     origin_lng?: number;
     destination_lat?: number;
@@ -275,7 +277,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
       <CardHeader className="pb-2 min-h-[100px] overflow-x-auto">
         <div className="min-w-fit">
           {/* Origem → Destino */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1">
             <p className="font-semibold text-sm whitespace-nowrap">
               {freight.origin_city && freight.origin_state
                 ? formatCityState(freight.origin_city, freight.origin_state)
@@ -288,6 +290,18 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                 : 'Carregando destino...'}
             </p>
           </div>
+
+          {/* Endereços detalhados (coleta e entrega) */}
+          {(freight.origin_address || freight.destination_address) && (
+            <div className="text-xs text-muted-foreground space-y-0.5 mb-1">
+              {freight.origin_address && (
+                <p className="truncate" title={freight.origin_address}>📍 Coleta: {freight.origin_address}</p>
+              )}
+              {freight.destination_address && (
+                <p className="truncate" title={freight.destination_address}>🏁 Entrega: {freight.destination_address}</p>
+              )}
+            </div>
+          )}
 
           {/* Container para badges e informações */}
           <div className="flex items-start justify-between gap-3 mt-3">
