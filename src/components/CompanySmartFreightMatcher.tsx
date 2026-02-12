@@ -205,22 +205,46 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
-  const handleAssignFreight = async (freightId: string, driverId: string) => {
+  const handleAssignFreight = async (targetId: string, driverId: string) => {
     if (!driverId) {
       toast.info("Selecione um motorista para atribuir.");
       return;
     }
 
     try {
-      const freight = compatibleFreights.find((f) => f.freight_id === freightId);
+      // Verificar se é um serviço urbano ou frete rural
+      if (assignTargetType === "service") {
+        const { error } = await supabase
+          .from("service_requests")
+          .update({ provider_id: driverId, status: "ACCEPTED" })
+          .eq("id", targetId);
+
+        if (error) throw error;
+
+        toast.success("Serviço atribuído ao motorista!", {
+          description: "Acompanhe em \"Em andamento\".",
+          duration: 5000,
+          action: {
+            label: "Ver agora",
+            onClick: () => {
+              onTabChange?.("active");
+              window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "active" }));
+            },
+          },
+        });
+
+        await fetchCompatibleFreights();
+        return;
+      }
+
+      const freight = compatibleFreights.find((f) => f.freight_id === targetId);
       if (!freight) return;
 
-      // ✅ Hook centralizado: resolveDriverUnitPrice para proposta unitária
       const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
       const pricePerTruck = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
 
       const { error } = await supabase.from("freight_proposals").insert({
-        freight_id: freightId,
+        freight_id: targetId,
         driver_id: driverId,
         proposed_price: pricePerTruck,
         status: "PENDING",
@@ -230,7 +254,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       if (error) throw error;
 
       toast.success("Proposta enviada ao motorista!", {
-        description: "Acompanhe em “Em andamento”.",
+        description: "Acompanhe em \"Em andamento\".",
         duration: 5000,
         action: {
           label: "Ver agora",
