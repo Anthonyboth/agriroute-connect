@@ -212,14 +212,20 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     }
 
     try {
-      // Verificar se é um serviço urbano ou frete rural
       if (assignTargetType === "service") {
-        const { error } = await supabase
-          .from("service_requests")
-          .update({ provider_id: driverId, status: "ACCEPTED" })
-          .eq("id", targetId);
+        // ✅ Usar RPC SECURITY DEFINER para atribuir serviço urbano
+        const { data, error } = await supabase.rpc("assign_service_to_affiliated_driver", {
+          p_service_id: targetId,
+          p_driver_profile_id: driverId,
+        });
 
         if (error) throw error;
+
+        const result = data as any;
+        if (result && result.success === false) {
+          toast.error(result.error || "Erro ao atribuir serviço");
+          return;
+        }
 
         toast.success("Serviço atribuído ao motorista!", {
           description: "Acompanhe em \"Em andamento\".",
@@ -237,21 +243,27 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         return;
       }
 
+      // ✅ Frete rural: usar RPC SECURITY DEFINER
       const freight = compatibleFreights.find((f) => f.freight_id === targetId);
       if (!freight) return;
 
       const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
       const pricePerTruck = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
 
-      const { error } = await supabase.from("freight_proposals").insert({
-        freight_id: targetId,
-        driver_id: driverId,
-        proposed_price: pricePerTruck,
-        status: "PENDING",
-        message: "Proposta enviada pela transportadora",
+      const { data, error } = await supabase.rpc("assign_freight_to_affiliated_driver", {
+        p_freight_id: targetId,
+        p_driver_profile_id: driverId,
+        p_proposed_price: pricePerTruck,
+        p_message: "Proposta enviada pela transportadora",
       });
 
       if (error) throw error;
+
+      const result = data as any;
+      if (result && result.success === false) {
+        toast.error(result.error || "Erro ao atribuir frete");
+        return;
+      }
 
       toast.success("Proposta enviada ao motorista!", {
         description: "Acompanhe em \"Em andamento\".",
@@ -268,7 +280,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       await fetchCompatibleFreights();
     } catch (e: any) {
       console.error("[CompanySmartFreightMatcher] erro ao atribuir:", e);
-      toast.error("Erro ao atribuir frete ao motorista");
+      toast.error(e?.message || "Erro ao atribuir frete ao motorista");
     }
   };
 
