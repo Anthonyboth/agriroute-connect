@@ -2357,7 +2357,7 @@ const DriverDashboard = () => {
                   <Brain className="h-3.5 w-3.5 mr-1" />
                   <span>{FRETES_IA_LABEL}</span>
                   {availableFreights.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                       {availableFreights.length}
                     </Badge>
                   )}
@@ -2371,7 +2371,7 @@ const DriverDashboard = () => {
                 <Play className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Em Andamento</span>
                 {(visibleOngoing.length + myAssignments.length + acceptedServiceRequests.length) > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {visibleOngoing.length + myAssignments.length + acceptedServiceRequests.length}
                   </Badge>
                 )}
@@ -2409,7 +2409,7 @@ const DriverDashboard = () => {
                   <CheckCircle className="h-3.5 w-3.5 mr-1" />
                   <span translate="no">Propostas</span>
                   {myProposals.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                       {myProposals.length}
                     </Badge>
                   )}
@@ -2466,7 +2466,7 @@ const DriverDashboard = () => {
                 <Star className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Avaliações</span>
                 {pendingRatingsCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {pendingRatingsCount}
                   </Badge>
                 )}

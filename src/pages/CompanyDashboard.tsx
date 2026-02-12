@@ -908,14 +908,14 @@ const CompanyDashboard = () => {
                   <Navigation className="h-4 w-4" />
                   Fretes Rurais
                   {activeFreights.length > 0 && (
-                    <Badge variant="default" className="ml-1">{activeFreights.length}</Badge>
+                    <Badge variant="destructive" className="ml-1">{activeFreights.length}</Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="urban" className="flex items-center gap-2">
                   <Truck className="h-4 w-4" />
                   Fretes Urbanos
                   {activeServices.length > 0 && (
-                    <Badge variant="secondary" className="ml-1">{activeServices.length}</Badge>
+                    <Badge variant="destructive" className="ml-1">{activeServices.length}</Badge>
                   )}
                 </TabsTrigger>
               </TabsList>

@@ -87,6 +87,7 @@ import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
+import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 
 interface ServiceRequest {
   id: string;
@@ -307,6 +308,8 @@ export const ServiceProviderDashboard: React.FC = () => {
     profile?.id || '', 
     'PRESTADOR_SERVICOS'
   );
+
+  const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
 
   useEffect(() => {
     if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') return;
@@ -1195,37 +1198,47 @@ export const ServiceProviderDashboard: React.FC = () => {
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
                 data-tutorial="sp-available"
               >
-                <Brain className="h-3 w-3 mr-1" />
+                <Brain className="h-3.5 w-3.5 mr-1" />
                 Disponível
+                {cardCounts.available > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {cardCounts.available}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="accepted" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
                 data-tutorial="tab-ongoing"
               >
-                <Play className="h-3 w-3 mr-1" />
+                <Play className="h-3.5 w-3.5 mr-1" />
                 Em Andamento
+                {cardCounts.active > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {cardCounts.active}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="completed" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
                 data-tutorial="tab-completed"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />
                 Concluídos
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
-                <Settings className="h-3 w-3 mr-1" />
+                <Settings className="h-3.5 w-3.5 mr-1" />
                 Serviços
               </TabsTrigger>
               <TabsTrigger 
                 value="payouts" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
-                <Banknote className="h-3 w-3 mr-1" />
+                <Banknote className="h-3.5 w-3.5 mr-1" />
                 Saldo
               </TabsTrigger>
               <TabsTrigger 
@@ -1233,31 +1246,36 @@ export const ServiceProviderDashboard: React.FC = () => {
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
                 data-tutorial="tab-ratings-sp"
               >
-                <Star className="h-3 w-3 mr-1" />
+                <Star className="h-3.5 w-3.5 mr-1" />
                 Avaliações
+                {pendingRatingsCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {pendingRatingsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="cities" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
-                <MapPin className="h-3 w-3 mr-1" />
+                <MapPin className="h-3.5 w-3.5 mr-1" />
                 Cidades
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />
                 Histórico
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
-                <MessageSquare className="h-3 w-3 mr-1" />
+                <MessageSquare className="h-3.5 w-3.5 mr-1" />
                 Chat
                 {chatUnreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
                     {chatUnreadCount}
                   </Badge>
                 )}
@@ -1267,14 +1285,14 @@ export const ServiceProviderDashboard: React.FC = () => {
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
                 data-tutorial="tab-my-requests-sp"
               >
-                <ClipboardList className="h-3 w-3 mr-1" />
+                <ClipboardList className="h-3.5 w-3.5 mr-1" />
                 Solicitações
               </TabsTrigger>
               <TabsTrigger 
                 value="fiscal" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
-                <FileText className="h-3 w-3 mr-1" />
+                <FileText className="h-3.5 w-3.5 mr-1" />
                 Fiscal
               </TabsTrigger>
               <TabsTrigger
@@ -1282,7 +1300,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
                 data-tutorial="tab-reports"
               >
-                <TrendingUp className="h-3 w-3 mr-1" />
+                <TrendingUp className="h-3.5 w-3.5 mr-1" />
                 Relatórios
               </TabsTrigger>
             </TabsList>
