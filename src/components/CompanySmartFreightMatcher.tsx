@@ -229,6 +229,11 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           return;
         }
 
+        // ✅ Invalidar cache de serviços em andamento
+        queryClient.invalidateQueries({ queryKey: ['freight-driver-manager'] });
+        queryClient.invalidateQueries({ queryKey: ['service-requests'] });
+        queryClient.invalidateQueries({ queryKey: ['my-service-requests'] });
+
         toast.success("Serviço atribuído ao motorista!", {
           description: "Acompanhe em \"Em andamento\".",
           duration: 5000,
