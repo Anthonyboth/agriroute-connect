@@ -5,14 +5,14 @@
  * Não requer API Key ou billing - 100% gratuito.
  */
 
-// URL do estilo rural customizado
-export const RURAL_STYLE_URL = '/styles/rural-dark.json';
+// ✅ PRIORIDADE 3: URL do estilo rural customizado usando BASE_URL para Capacitor
+export const RURAL_STYLE_URL = `${import.meta.env.BASE_URL}styles/rural-dark.json`;
 
 // Estilo inline para fallback (caso o JSON não carregue)
+// ✅ SEM glyphs — raster puro, funciona em qualquer ambiente
 export const RURAL_STYLE_INLINE: maplibregl.StyleSpecification = {
   version: 8,
-  name: 'AgriRoute Rural',
-  glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+  name: 'AgriRoute Rural Fallback',
   sources: {
     carto: {
       type: 'raster',
