@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { TabBadge } from '@/components/ui/TabBadge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
@@ -2356,11 +2357,7 @@ const DriverDashboard = () => {
                 >
                   <Brain className="h-3.5 w-3.5 mr-1" />
                   <span>{FRETES_IA_LABEL}</span>
-                  {availableFreights.length > 0 && (
-                    <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                      {availableFreights.length}
-                    </Badge>
-                  )}
+                  <TabBadge count={availableFreights.length} />
                 </TabsTrigger>
               )}
               <TabsTrigger
@@ -2370,11 +2367,7 @@ const DriverDashboard = () => {
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Em Andamento</span>
-                {(visibleOngoing.length + activeAssignments.length + acceptedServiceRequests.length) > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {visibleOngoing.length + activeAssignments.length + acceptedServiceRequests.length}
-                  </Badge>
-                )}
+                <TabBadge count={visibleOngoing.length + activeAssignments.length + acceptedServiceRequests.length} />
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
@@ -2408,11 +2401,7 @@ const DriverDashboard = () => {
                 >
                   <CheckCircle className="h-3.5 w-3.5 mr-1" />
                   <span translate="no">Propostas</span>
-                  {statistics.pendingProposals > 0 && (
-                    <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                      {statistics.pendingProposals}
-                    </Badge>
-                  )}
+                  <TabBadge count={statistics.pendingProposals} />
                 </TabsTrigger>
               )}
               <TabsTrigger 
@@ -2465,11 +2454,7 @@ const DriverDashboard = () => {
               >
                 <Star className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Avaliações</span>
-                {pendingRatingsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {pendingRatingsCount}
-                  </Badge>
-                )}
+                <TabBadge count={pendingRatingsCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
@@ -2478,11 +2463,7 @@ const DriverDashboard = () => {
               >
                 <MessageSquare className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Chat</span>
-                {chatUnreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {chatUnreadCount}
-                  </Badge>
-                )}
+                <TabBadge count={chatUnreadCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="historico" 

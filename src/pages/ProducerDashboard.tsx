@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatsCard } from "@/components/ui/stats-card";
 import { Badge } from "@/components/ui/badge";
+import { TabBadge } from "@/components/ui/TabBadge";
 import { Button } from "@/components/ui/button";
 import { HeroActionButton } from "@/components/ui/hero-action-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1522,11 +1523,7 @@ const ProducerDashboard = () => {
               >
                 <Truck className="h-3.5 w-3.5 mr-1" />
                 Fretes
-                {statistics.openFreights > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {statistics.openFreights}
-                  </Badge>
-                )}
+                <TabBadge count={statistics.openFreights} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1536,11 +1533,7 @@ const ProducerDashboard = () => {
               >
                 <Wrench className="h-3.5 w-3.5 mr-1" />
                 Serviços
-                {statistics.openServices > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {statistics.openServices}
-                  </Badge>
-                )}
+                <TabBadge count={statistics.openServices} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1550,11 +1543,7 @@ const ProducerDashboard = () => {
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
                 Em Andamento
-                {statistics.activeFreights > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {statistics.activeFreights}
-                  </Badge>
-                )}
+                <TabBadge count={statistics.activeFreights} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1564,11 +1553,7 @@ const ProducerDashboard = () => {
               >
                 <Clock className="h-3.5 w-3.5 mr-1" />
                 Confirmar Entrega
-                {statistics.pendingConfirmation > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {statistics.pendingConfirmation}
-                  </Badge>
-                )}
+                <TabBadge count={statistics.pendingConfirmation} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1578,11 +1563,7 @@ const ProducerDashboard = () => {
               >
                 <Users className="h-3.5 w-3.5 mr-1" />
                 Propostas
-                {statistics.pendingProposals > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {statistics.pendingProposals}
-                  </Badge>
-                )}
+                <TabBadge count={statistics.pendingProposals} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1609,11 +1590,7 @@ const ProducerDashboard = () => {
               >
                 <CreditCard className="h-3.5 w-3.5 mr-1" />
                 Pagamentos
-                {statistics.pendingPayments > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {statistics.pendingPayments}
-                  </Badge>
-                )}
+                <TabBadge count={statistics.pendingPayments} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1622,11 +1599,7 @@ const ProducerDashboard = () => {
               >
                 <Star className="h-3.5 w-3.5 mr-1" />
                 Avaliações
-                {pendingRatingsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {pendingRatingsCount}
-                  </Badge>
-                )}
+                <TabBadge count={pendingRatingsCount} />
               </TabsTrigger>
 
               <TabsTrigger
@@ -1636,11 +1609,7 @@ const ProducerDashboard = () => {
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" />
                 Chat
-                {chatUnreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                    {chatUnreadCount}
-                  </Badge>
-                )}
+                <TabBadge count={chatUnreadCount} />
               </TabsTrigger>
 
               <TabsTrigger

@@ -32,6 +32,7 @@ import {
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { TabBadge } from '@/components/ui/TabBadge';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
 import { CompanyDriverManager } from '@/components/CompanyDriverManager';
@@ -813,11 +814,7 @@ const CompanyDashboard = () => {
                     <Icon className="h-3.5 w-3.5 mr-1" />
                     <span className="hidden sm:inline" translate="no">{tab.label}</span>
                     <span className="sm:hidden" translate="no">{tab.shortLabel}</span>
-                    {tab.badge && tab.badge > 0 && (
-                      <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-                        {tab.badge}
-                      </Badge>
-                    )}
+                    <TabBadge count={tab.badge || 0} />
                   </TabsTrigger>
                 );
               })}
@@ -907,16 +904,12 @@ const CompanyDashboard = () => {
                 <TabsTrigger value="rural" className="flex items-center gap-2">
                   <Navigation className="h-4 w-4" />
                   Fretes Rurais
-                  {activeFreights.length > 0 && (
-                    <Badge variant="destructive" className="ml-1">{activeFreights.length}</Badge>
-                  )}
+                  <TabBadge count={activeFreights.length} />
                 </TabsTrigger>
                 <TabsTrigger value="urban" className="flex items-center gap-2">
                   <Truck className="h-4 w-4" />
                   Fretes Urbanos
-                  {activeServices.length > 0 && (
-                    <Badge variant="destructive" className="ml-1">{activeServices.length}</Badge>
-                  )}
+                  <TabBadge count={activeServices.length} />
                 </TabsTrigger>
               </TabsList>
 
