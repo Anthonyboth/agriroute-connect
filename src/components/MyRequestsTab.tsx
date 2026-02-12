@@ -3,11 +3,12 @@
  * 
  * Aba "Solicitações" — exibe fretes e serviços que o usuário solicitou como CLIENTE.
  * Usada nos dashboards de Motorista, Prestador de Serviços e Transportadora.
- * Padrão visual e funcional igual ao painel do Produtor (edit/cancel).
  * 
+ * ✅ Serviços em andamento usam FreightInProgressCard (mapa + chat + rastreamento)
+ * ✅ Serviços abertos usam cards simples com edit/cancel
  * ✅ Inclui fluxo de confirmação de entrega para PET e Pacotes.
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,11 +21,14 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ServiceEditModal } from '@/components/service-wizard/ServiceEditModal';
 import { FreightCard } from '@/components/FreightCard';
+import { FreightInProgressCard } from '@/components/FreightInProgressCard';
+import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Package, Wrench, MapPin, Clock, DollarSign, Truck, PawPrint, 
-  AlertTriangle, Edit, X, CheckCircle, ShieldCheck, Banknote
+  AlertTriangle, Edit, X, CheckCircle, ShieldCheck, Banknote,
+  MessageSquare, Phone, Star, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -72,6 +76,8 @@ function getServiceLabel(type: string) {
 
 // Statuses considered "active" (not finalized)
 const ACTIVE_SERVICE_STATUSES = ['PENDING', 'OPEN', 'ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'];
+const OPEN_SERVICE_STATUSES = ['PENDING', 'OPEN'];
+const ONGOING_SERVICE_STATUSES = ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'];
 const ACTIVE_FREIGHT_STATUSES = ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION', 'LOADING', 'IN_TRANSIT'] as const;
 
 // Transport types that require delivery confirmation
@@ -102,16 +108,20 @@ export const MyRequestsTab: React.FC = () => {
   const [confirmNotes, setConfirmNotes] = useState('');
   const [confirming, setConfirming] = useState(false);
 
-  // Fetch service requests where user is the client (active only)
-  const { data: myServiceRequests, isLoading: loadingServices } = useQuery({
-    queryKey: ['my-client-service-requests', profile?.id],
+  // Chat state
+  const [serviceChatOpen, setServiceChatOpen] = useState(false);
+  const [selectedChatServiceRequest, setSelectedChatServiceRequest] = useState<any>(null);
+
+  // Fetch OPEN service requests (simple card)
+  const { data: myOpenServiceRequests, isLoading: loadingOpenServices } = useQuery({
+    queryKey: ['my-client-open-service-requests', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase
         .from('service_requests')
         .select('*')
         .eq('client_id', profile.id)
-        .in('status', ACTIVE_SERVICE_STATUSES)
+        .in('status', OPEN_SERVICE_STATUSES)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -120,13 +130,30 @@ export const MyRequestsTab: React.FC = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  // Fetch ONGOING service requests with provider info (FreightInProgressCard)
+  const { data: myOngoingServiceRequests, isLoading: loadingOngoingServices } = useQuery({
+    queryKey: ['my-client-ongoing-service-requests', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from('service_requests_secure')
+        .select('*, provider:provider_id(id, full_name, phone, rating, profile_photo_url)')
+        .eq('client_id', profile.id)
+        .in('status', ONGOING_SERVICE_STATUSES)
+        .order('accepted_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+    staleTime: 30 * 1000,
+  });
+
   // Fetch COMPLETED PET/Package services that need delivery confirmation
   const { data: pendingDeliveryServices, isLoading: loadingPending } = useQuery({
     queryKey: ['my-pending-delivery-services', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
       
-      // Fetch completed PET/Package services where client is current user
       const { data: completedServices, error: srError } = await supabase
         .from('service_requests')
         .select('*')
@@ -138,7 +165,6 @@ export const MyRequestsTab: React.FC = () => {
       if (srError) throw srError;
       if (!completedServices?.length) return [];
 
-      // Get payment status for each
       const serviceIds = completedServices.map(s => s.id);
       const { data: payments } = await supabase
         .from('service_payments')
@@ -149,7 +175,6 @@ export const MyRequestsTab: React.FC = () => {
         (payments || []).map(p => [p.service_request_id, p])
       );
 
-      // Only show services where payment is NOT fully confirmed yet
       return completedServices
         .map(sr => ({
           ...sr,
@@ -157,8 +182,6 @@ export const MyRequestsTab: React.FC = () => {
         }))
         .filter(sr => {
           const ps = sr.payment?.status;
-          // Show if payment is proposed (client needs to confirm delivery)
-          // or paid_by_client (waiting for driver to confirm receipt)
           return ps === 'proposed' || ps === 'paid_by_client' || !ps;
         });
     },
@@ -186,7 +209,8 @@ export const MyRequestsTab: React.FC = () => {
 
   const refetchAll = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['my-client-service-requests', profile?.id] }),
+      queryClient.invalidateQueries({ queryKey: ['my-client-open-service-requests', profile?.id] }),
+      queryClient.invalidateQueries({ queryKey: ['my-client-ongoing-service-requests', profile?.id] }),
       queryClient.invalidateQueries({ queryKey: ['my-client-freights', profile?.id] }),
       queryClient.invalidateQueries({ queryKey: ['my-pending-delivery-services', profile?.id] }),
     ]);
@@ -299,12 +323,12 @@ export const MyRequestsTab: React.FC = () => {
     }
   };
 
-  const isLoading = loadingServices || loadingFreights || loadingPending;
-  const serviceRequests = myServiceRequests || [];
+  const isLoading = loadingOpenServices || loadingOngoingServices || loadingFreights || loadingPending;
+  const openServiceRequests = myOpenServiceRequests || [];
+  const ongoingServiceRequests = myOngoingServiceRequests || [];
   const freights = myFreights || [];
   const pendingDeliveries = pendingDeliveryServices || [];
-  const totalActive = serviceRequests.length + freights.length;
-  const totalCount = totalActive + pendingDeliveries.length;
+  const totalCount = openServiceRequests.length + ongoingServiceRequests.length + freights.length + pendingDeliveries.length;
 
   if (isLoading) {
     return (
@@ -363,7 +387,6 @@ export const MyRequestsTab: React.FC = () => {
                 <Card key={request.id} className="overflow-hidden border-l-4 border-l-amber-500">
                   <CardContent className="p-0">
                     <div className="p-4 space-y-3">
-                      {/* Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           <div className={`p-2 rounded-lg ${isTransportPet ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
@@ -383,14 +406,12 @@ export const MyRequestsTab: React.FC = () => {
                         </Badge>
                       </div>
 
-                      {/* Description */}
                       {request.problem_description && (
                         <p className="text-sm text-muted-foreground line-clamp-2">
                           {request.problem_description}
                         </p>
                       )}
 
-                      {/* Details */}
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         {request.location_city && (
                           <span className="flex items-center gap-1">
@@ -411,7 +432,6 @@ export const MyRequestsTab: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Action buttons */}
                     <div className="px-4 pb-4">
                       {paymentStatus === 'proposed' && (
                         <Button
@@ -443,9 +463,128 @@ export const MyRequestsTab: React.FC = () => {
         )}
 
         {/* ============================================================ */}
-        {/* SEÇÃO: SOLICITAÇÕES ATIVAS                                   */}
+        {/* SEÇÃO: SERVIÇOS EM ANDAMENTO (FreightInProgressCard com mapa) */}
         {/* ============================================================ */}
-        {totalActive > 0 && (
+        {ongoingServiceRequests.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-medium text-muted-foreground flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              Em Andamento ({ongoingServiceRequests.length})
+            </h4>
+
+            <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+              {ongoingServiceRequests.map((sr: any) => {
+                // Extrair destino do additional_info
+                let additionalInfo: any = null;
+                try {
+                  additionalInfo = typeof sr.additional_info === 'string'
+                    ? JSON.parse(sr.additional_info)
+                    : (typeof sr.additional_info === 'object' ? sr.additional_info : null);
+                } catch { /* ignore */ }
+                const destination = additionalInfo?.destination || null;
+
+                const originLat = sr.location_lat || sr.city_lat || null;
+                const originLng = sr.location_lng || sr.city_lng || null;
+                const destLat = destination?.lat || null;
+                const destLng = destination?.lng || null;
+                const originCity = sr.city_name || sr.location_city || '';
+                const originState = sr.state || sr.location_state || '';
+                const destCity = destination?.city || originCity;
+                const destState = destination?.state || originState;
+
+                // Mapear status de service para status de frete
+                const statusMap: Record<string, string> = {
+                  ACCEPTED: 'ACCEPTED',
+                  ON_THE_WAY: 'LOADING',
+                  IN_PROGRESS: 'IN_TRANSIT',
+                };
+                const mappedStatus = statusMap[sr.status] || sr.status;
+
+                return (
+                  <FreightInProgressCard
+                    key={sr.id}
+                    freight={{
+                      id: sr.id,
+                      origin_city: originCity,
+                      origin_state: originState,
+                      destination_city: destCity,
+                      destination_state: destState,
+                      origin_lat: originLat,
+                      origin_lng: originLng,
+                      destination_lat: destLat,
+                      destination_lng: destLng,
+                      origin_address: sr.location_address || undefined,
+                      destination_address: destination?.full_address || undefined,
+                      weight: null,
+                      distance_km: null,
+                      pickup_date: sr.accepted_at || sr.created_at,
+                      price: sr.estimated_price,
+                      required_trucks: 1,
+                      status: mappedStatus,
+                      service_type: sr.service_type,
+                      driver_profiles: sr.provider ? {
+                        full_name: sr.provider.full_name,
+                        profile_photo_url: sr.provider.profile_photo_url,
+                      } : null,
+                      driver_id: sr.provider_id,
+                    }}
+                    serviceWorkflowActions={
+                      <div className="space-y-2">
+                        {sr.problem_description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            📝 {sr.problem_description}
+                          </p>
+                        )}
+                        {sr.provider && (
+                          <div className="bg-secondary/50 rounded-lg p-2 flex items-center gap-2">
+                            <Users className="h-4 w-4 text-primary" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{sr.provider.full_name}</p>
+                              {sr.provider.phone && (
+                                <a
+                                  href={`tel:${sr.provider.phone}`}
+                                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                                >
+                                  <Phone className="h-3 w-3" />
+                                  {sr.provider.phone}
+                                </a>
+                              )}
+                            </div>
+                            {sr.provider.rating && (
+                              <div className="flex items-center gap-1">
+                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                <span className="text-sm font-medium">{Number(sr.provider.rating).toFixed(1)}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {sr.provider_id && sr.client_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              setSelectedChatServiceRequest(sr);
+                              setServiceChatOpen(true);
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Abrir Chat
+                          </Button>
+                        )}
+                      </div>
+                    }
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* SEÇÃO: SOLICITAÇÕES ABERTAS (cards simples com edit/cancel)   */}
+        {/* ============================================================ */}
+        {(openServiceRequests.length > 0 || freights.length > 0) && (
           <>
             {/* Freights (PET, Pacotes, etc.) — uses FreightCard with producer actions */}
             {freights.length > 0 && (
@@ -461,10 +600,10 @@ export const MyRequestsTab: React.FC = () => {
               </div>
             )}
 
-            {/* Service Requests — cards with edit/cancel like producer */}
-            {serviceRequests.length > 0 && (
+            {/* Open Service Requests — cards with edit/cancel */}
+            {openServiceRequests.length > 0 && (
               <div className="space-y-3">
-                {serviceRequests.map((request) => {
+                {openServiceRequests.map((request) => {
                   const statusConfig = getStatusConfig(request.status);
                   const isTransport = TRANSPORT_TYPES.includes(request.service_type);
                   const Icon = isTransport
@@ -475,7 +614,6 @@ export const MyRequestsTab: React.FC = () => {
                   return (
                     <Card key={request.id} className="overflow-hidden">
                       <CardContent className="p-0">
-                        {/* Header with status */}
                         <div className="p-4 pb-3 space-y-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2">
@@ -496,7 +634,6 @@ export const MyRequestsTab: React.FC = () => {
                             </Badge>
                           </div>
 
-                          {/* Description */}
                           {request.problem_description && (
                             <p className="text-sm text-muted-foreground line-clamp-2">
                               {request.problem_description}
@@ -505,7 +642,6 @@ export const MyRequestsTab: React.FC = () => {
 
                           {/* Origin & Destination */}
                           <div className="space-y-2">
-                            {/* Origem */}
                             <div className="flex items-start gap-2">
                               <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
                               <div className="min-w-0">
@@ -520,7 +656,6 @@ export const MyRequestsTab: React.FC = () => {
                                 </p>
                               </div>
                             </div>
-                            {/* Destino */}
                             {(() => {
                               const ai = typeof request.additional_info === 'string'
                                 ? (() => { try { return JSON.parse(request.additional_info); } catch { return null; } })()
@@ -548,7 +683,6 @@ export const MyRequestsTab: React.FC = () => {
                             })()}
                           </div>
 
-                          {/* Meta info */}
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -570,7 +704,6 @@ export const MyRequestsTab: React.FC = () => {
                           )}
                         </div>
 
-                        {/* Action buttons — same pattern as FreightCard producer actions */}
                         {request.status !== 'CANCELLED' && (
                           <div className="px-4 pb-4">
                             <div className="flex gap-2">
@@ -635,7 +768,6 @@ export const MyRequestsTab: React.FC = () => {
 
           {serviceToConfirm && (
             <div className="space-y-4">
-              {/* Service info */}
               <div className="p-3 bg-muted rounded-lg space-y-2">
                 <div className="flex items-center gap-2">
                   {serviceToConfirm.service_type === 'TRANSPORTE_PET' 
@@ -656,7 +788,6 @@ export const MyRequestsTab: React.FC = () => {
                 )}
               </div>
 
-              {/* Important warning */}
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <h4 className="font-medium text-blue-900 dark:text-blue-300 text-sm mb-1">Importante</h4>
                 <ul className="text-xs text-blue-800 dark:text-blue-400 space-y-1">
@@ -666,7 +797,6 @@ export const MyRequestsTab: React.FC = () => {
                 </ul>
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="text-sm font-medium text-muted-foreground">
                   Observações (opcional)
@@ -683,7 +813,6 @@ export const MyRequestsTab: React.FC = () => {
                 />
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3">
                 <Button
                   variant="outline"
@@ -752,6 +881,19 @@ export const MyRequestsTab: React.FC = () => {
         title="Cancelar Solicitação"
         description="Tem certeza que deseja cancelar esta solicitação? Esta ação não pode ser desfeita."
       />
+
+      {/* ✅ Service Chat Dialog */}
+      {serviceChatOpen && selectedChatServiceRequest && (
+        <ServiceChatDialog
+          isOpen={serviceChatOpen}
+          onClose={() => {
+            setServiceChatOpen(false);
+            setSelectedChatServiceRequest(null);
+          }}
+          serviceRequest={selectedChatServiceRequest}
+          currentUserProfile={profile}
+        />
+      )}
     </SafeListWrapper>
   );
 };
