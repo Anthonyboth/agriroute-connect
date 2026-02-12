@@ -154,7 +154,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             .limit(100),
           allowedTransportTypes.length > 0
             ? supabase
-                .from("service_requests")
+                .from("service_requests_secure")
                 .select("*")
                 .in("status", ["OPEN"])
                 .is("provider_id", null)

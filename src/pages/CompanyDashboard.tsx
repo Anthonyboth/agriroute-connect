@@ -427,7 +427,7 @@ const CompanyDashboard = () => {
     setIsLoadingServices(true);
     try {
       const { data, error } = await supabase
-        .from('service_requests')
+        .from('service_requests_secure')
         .select('*')
         .in('provider_id', affiliatedDriverIds)
         .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'])

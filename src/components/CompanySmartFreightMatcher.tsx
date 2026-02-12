@@ -111,7 +111,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       const SERVICE_TYPES_TO_FETCH = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO'] as const;
       
       const { data: serviceData, error: serviceError } = await supabase
-        .from("service_requests")
+        .from("service_requests_secure")
         .select(
           `id, service_type, status, provider_id, location_address, destination_address,
            location_city, location_state, destination_city, destination_state,
