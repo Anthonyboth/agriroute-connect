@@ -262,8 +262,9 @@ const DriverDashboard = () => {
     const state = location.state as any;
     if (!state || !profile?.id) return;
     
-    if (state.openFreightId && ongoingFreights.length > 0) {
-      const freight = ongoingFreights.find(f => f.id === state.openFreightId);
+    const freightId = state.openFreightId || state.openChatFreightId;
+    if (freightId && ongoingFreights.length > 0) {
+      const freight = ongoingFreights.find(f => f.id === freightId);
       if (freight) {
         setSelectedFreightId(freight.id);
         setShowDetails(true);
