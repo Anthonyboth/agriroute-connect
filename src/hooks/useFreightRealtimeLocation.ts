@@ -85,8 +85,49 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           .single();
 
         if (fetchError) {
-          console.error('[useFreightRealtimeLocation] Fetch error:', fetchError);
-          setError('Erro ao buscar localização');
+          console.log('[useFreightRealtimeLocation] Not found in freights, trying service_requests...');
+          
+          // ✅ Fallback: Pode ser um service_request (PET, Pacotes, Guincho, etc.)
+          const { data: srData, error: srError } = await supabase
+            .from('service_requests')
+            .select('provider_id, location_lat, location_lng, status')
+            .eq('id', freightId)
+            .single();
+
+          if (srError || !srData) {
+            console.error('[useFreightRealtimeLocation] Not found in service_requests either:', srError);
+            setError('Erro ao buscar localização');
+            return;
+          }
+
+          // Se temos um provider, buscar localização atual dele
+          if (srData.provider_id) {
+            const { data: providerLoc } = await supabase
+              .from('driver_current_locations')
+              .select('lat, lng, last_gps_update, driver_profile_id')
+              .eq('driver_profile_id', srData.provider_id)
+              .single();
+
+            if (providerLoc?.lat && providerLoc?.lng) {
+              const normalized = normalizeLatLngPoint({ lat: providerLoc.lat, lng: providerLoc.lng }, 'BR');
+              setDriverLocation(normalized ?? { lat: providerLoc.lat, lng: providerLoc.lng });
+              if (providerLoc.last_gps_update) {
+                setLastUpdate(new Date(providerLoc.last_gps_update));
+              }
+              setSubscribedDriverId(srData.provider_id);
+              setAssignedDriverIds([srData.provider_id]);
+              console.log('[useFreightRealtimeLocation] ✅ Using service_request provider location:', {
+                lat: providerLoc.lat, lng: providerLoc.lng, provider: srData.provider_id?.substring(0,8)
+              });
+              return;
+            }
+          }
+
+          // Fallback: usar coordenadas da solicitação
+          if (srData.location_lat && srData.location_lng) {
+            const normalized = normalizeLatLngPoint({ lat: srData.location_lat, lng: srData.location_lng }, 'BR');
+            setDriverLocation(normalized ?? { lat: srData.location_lat, lng: srData.location_lng });
+          }
           return;
         }
 
