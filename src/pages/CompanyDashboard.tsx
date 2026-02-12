@@ -29,6 +29,7 @@ import {
   Brain,
   ClipboardList
 } from 'lucide-react';
+import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -86,7 +87,7 @@ const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyRep
 const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
 
 // Definição de tabs
-const getCompanyTabs = (activeCount: number, chatCount: number) => [
+const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: number) => [
   { 
     value: 'overview', 
     label: 'Visão Geral', 
@@ -112,7 +113,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
   
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pagamentos', icon: DollarSign, badge: undefined },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cidades', icon: MapPin, badge: undefined },
-  { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: undefined },
+  { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: ratingsCount > 0 ? ratingsCount : undefined },
   { value: 'history', label: 'Histórico', shortLabel: 'Histórico', icon: Clock, badge: undefined },
   { 
     value: 'chat', 
@@ -200,7 +201,8 @@ const CompanyDashboard = () => {
     profile?.id || '', 
     'TRANSPORTADORA'
   );
-  
+  const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
+
   // Estado para analytics
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   
@@ -703,7 +705,7 @@ const CompanyDashboard = () => {
   // NOTE: cases where the user is not transportadora are handled by route guards.
 
   const totalActiveFreights = myAssignments.length + activeFreights.length + activeServices.length;
-  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount);
+  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount, pendingRatingsCount);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

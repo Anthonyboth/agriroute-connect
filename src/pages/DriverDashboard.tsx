@@ -46,6 +46,7 @@ import { fetchBatchCheckins } from '@/hooks/useBatchCheckins';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
 import { forceLogoutAndRedirect } from '@/utils/authRecovery';
+import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 
 // Sub-components refatorados
 import { 
@@ -154,6 +155,7 @@ const DriverDashboard = () => {
   }, [profile?.id, profile?.active_mode]);
   
   
+  const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
@@ -2463,6 +2465,11 @@ const DriverDashboard = () => {
               >
                 <Star className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Avaliações</span>
+                {pendingRatingsCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
+                    {pendingRatingsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
