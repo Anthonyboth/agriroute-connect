@@ -20,6 +20,7 @@ import { normalizeFreightStatus } from "@/lib/freight-status";
 import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
+import { ServiceRequestInProgressCard } from "@/components/ServiceRequestInProgressCard";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
@@ -347,7 +348,7 @@ export const DriverOngoingTab: React.FC = () => {
             </div>
           )}
 
-          {/* Service Requests (PET/Pacotes/Moto/Guincho/Mudança) - Padrão igual frete rural */}
+          {/* Service Requests (PET/Pacotes/Moto/Guincho/Mudança) - Usa ServiceRequestInProgressCard com dados do cliente */}
           {serviceRequests.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
@@ -355,106 +356,45 @@ export const DriverOngoingTab: React.FC = () => {
                 Chamados e Serviços ({serviceRequests.length})
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {serviceRequests.map((r) => {
-                  // Extrair destino do additional_info (salvo pelo ServiceWizard como JSON string)
-                  let additionalInfo: any = null;
-                  try {
-                    additionalInfo = typeof r.additional_info === 'string' 
-                      ? JSON.parse(r.additional_info) 
-                      : (typeof r.additional_info === 'object' ? r.additional_info : null);
-                  } catch { /* ignore parse errors */ }
-                   const destination = additionalInfo?.destination || null;
-                   const origin = additionalInfo?.origin || null;
-                   
-                   const originLat = r.location_lat || r.city_lat || null;
-                   const originLng = r.location_lng || r.city_lng || null;
-                   const destLat = destination?.lat || null;
-                   const destLng = destination?.lng || null;
-
-                   const originCity = r.city_name || '';
-                   const originState = r.state || '';
-                   const destCity = destination?.city || originCity;
-                   const destState = destination?.state || originState;
-                   
-                   // Endereços completos para exibição no card
-                   const originAddress = origin?.full_address || r.location_address || '';
-                   const destAddress = destination?.full_address || '';
-
-                  // Descrição do serviço para exibir no card
-                  const serviceDescription = r.problem_description || null;
-
-                  return (
-                    <div key={r.id} className="space-y-2">
-                       <FreightInProgressCard
-                         freight={{
-                           id: r.id,
-                           origin_city: originCity,
-                           origin_state: originState,
-                           origin_address: originAddress,
-                           destination_city: destCity,
-                           destination_state: destState,
-                           destination_address: destAddress,
-                           origin_lat: originLat,
-                           origin_lng: originLng,
-                           destination_lat: destLat,
-                           destination_lng: destLng,
-                           weight: null,
-                           distance_km: null,
-                           pickup_date: r.accepted_at || r.created_at,
-                           price: r.estimated_price,
-                           required_trucks: 1,
-                           status: mapServiceStatusToFreightStatus(r.status),
-                           service_type: r.service_type,
-                         }}
-                        onViewDetails={() => {
-                          // Abrir detalhes do serviço (reutiliza o modal genérico)
-                          handleStatusUpdate();
-                        }}
-                        serviceWorkflowActions={
-                          <div className="space-y-2">
-                            {serviceDescription && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                📝 {serviceDescription}
-                              </p>
-                            )}
-                            {r.status === "ACCEPTED" && (
-                              <Button
-                                className="w-full"
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => handleTransitionService(r.id, "ON_THE_WAY", "A caminho do local!")}
-                              >
-                                <Play className="h-4 w-4 mr-2" />
-                                A Caminho da Coleta
-                              </Button>
-                            )}
-                            {r.status === "ON_THE_WAY" && (
-                              <Button
-                                className="w-full"
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => handleTransitionService(r.id, "IN_PROGRESS", "Em trânsito!")}
-                              >
-                                <Truck className="h-4 w-4 mr-2" />
-                                Em Trânsito
-                              </Button>
-                            )}
-                            {r.status === "IN_PROGRESS" && (
-                              <Button
-                                className="w-full"
-                                size="sm"
-                                onClick={() => handleTransitionService(r.id, "COMPLETED", "Entrega finalizada com sucesso!")}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Reportar Entrega
-                              </Button>
-                            )}
-                          </div>
-                        }
-                      />
-                    </div>
-                  );
-                })}
+                {serviceRequests.map((r) => (
+                  <ServiceRequestInProgressCard
+                    key={r.id}
+                    request={{
+                      id: r.id,
+                      service_type: r.service_type || '',
+                      status: r.status,
+                      contact_name: r.contact_name || undefined,
+                      contact_phone: r.contact_phone || undefined,
+                      contact_email: r.contact_email || undefined,
+                      location_address: r.location_address || undefined,
+                      location_lat: r.location_lat || undefined,
+                      location_lng: r.location_lng || undefined,
+                      problem_description: r.problem_description || undefined,
+                      estimated_price: r.estimated_price || undefined,
+                      is_emergency: r.is_emergency || undefined,
+                      client_id: r.client_id || undefined,
+                      prospect_user_id: r.prospect_user_id || undefined,
+                      city_name: r.city_name || undefined,
+                      state: r.state || undefined,
+                      created_at: r.created_at,
+                      accepted_at: r.accepted_at || undefined,
+                      vehicle_info: r.vehicle_info || undefined,
+                      urgency: r.urgency || undefined,
+                      preferred_datetime: r.preferred_datetime || undefined,
+                      additional_info: r.additional_info || undefined,
+                    }}
+                    onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho do local!")}
+                    onFinishService={(id) => {
+                      // Respeitar workflow: ON_THE_WAY → IN_PROGRESS → COMPLETED
+                      const currentStatus = r.status;
+                      if (currentStatus === 'ON_THE_WAY') {
+                        handleTransitionService(id, "IN_PROGRESS", "Em trânsito!");
+                      } else {
+                        handleTransitionService(id, "COMPLETED", "Entrega finalizada com sucesso!");
+                      }
+                    }}
+                  />
+                ))}
               </div>
             </div>
           )}
