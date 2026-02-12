@@ -38,6 +38,7 @@ interface ServiceRequestInProgressCardProps {
     additional_info?: string;
   };
   onMarkOnTheWay: (id: string) => void;
+  onStartTransit: (id: string) => void;
   onFinishService: (id: string) => void;
 }
 
@@ -105,6 +106,7 @@ InlineTrackingMap.displayName = 'InlineTrackingMap';
 const ServiceRequestInProgressCardComponent = ({ 
   request, 
   onMarkOnTheWay, 
+  onStartTransit,
   onFinishService 
 }: ServiceRequestInProgressCardProps) => {
   
@@ -142,10 +144,10 @@ const ServiceRequestInProgressCardComponent = ({
 
   const getStatusBadge = () => {
     const styles: Record<string, string> = {
-      ACCEPTED: 'bg-blue-500', ON_THE_WAY: 'bg-orange-500', IN_PROGRESS: 'bg-green-500',
+      ACCEPTED: 'bg-blue-500', ON_THE_WAY: 'bg-orange-500', IN_PROGRESS: 'bg-yellow-600',
     };
     const labels: Record<string, string> = {
-      ACCEPTED: 'Aceito', ON_THE_WAY: 'A Caminho', IN_PROGRESS: 'Em Andamento',
+      ACCEPTED: 'Aceito', ON_THE_WAY: 'A Caminho da Coleta', IN_PROGRESS: 'Em Trânsito',
     };
     return (
       <Badge className={`${styles[request.status] || 'bg-muted'} text-xs px-2 py-0.5`}>
@@ -350,16 +352,27 @@ const ServiceRequestInProgressCardComponent = ({
       </CardContent>
 
       <CardFooter className="px-3 pb-3 pt-0 flex gap-2">
-        {request.status === 'ACCEPTED' && request.client_id && (
+        {/* Etapa 1: ACCEPTED → A Caminho da Coleta */}
+        {request.status === 'ACCEPTED' && (
           <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 h-9" onClick={() => onMarkOnTheWay(request.id)}>
             <Navigation className="h-4 w-4 mr-1" />
-            A Caminho
+            A Caminho da Coleta
           </Button>
         )}
-        <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 h-9" onClick={() => onFinishService(request.id)}>
-          <CheckCircle className="h-4 w-4 mr-1" />
-          {isGuestUser ? 'Encerrar' : 'Concluir'}
-        </Button>
+        {/* Etapa 2: ON_THE_WAY → Em Trânsito */}
+        {request.status === 'ON_THE_WAY' && (
+          <Button size="sm" className="flex-1 bg-yellow-600 hover:bg-yellow-700 h-9" onClick={() => onStartTransit(request.id)}>
+            <Truck className="h-4 w-4 mr-1" />
+            Em Trânsito
+          </Button>
+        )}
+        {/* Etapa 3: IN_PROGRESS → Entregue */}
+        {request.status === 'IN_PROGRESS' && (
+          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 h-9" onClick={() => onFinishService(request.id)}>
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Entregue
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
@@ -371,6 +384,7 @@ export const ServiceRequestInProgressCard = React.memo(ServiceRequestInProgressC
     prevProps.request.status === nextProps.request.status &&
     prevProps.request.estimated_price === nextProps.request.estimated_price &&
     prevProps.onMarkOnTheWay === nextProps.onMarkOnTheWay &&
+    prevProps.onStartTransit === nextProps.onStartTransit &&
     prevProps.onFinishService === nextProps.onFinishService
   );
 });

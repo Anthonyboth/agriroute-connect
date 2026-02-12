@@ -470,6 +470,25 @@ const CompanyDashboard = () => {
     }
   };
 
+  const handleStartTransit = async (requestId: string) => {
+    try {
+      setActiveServices(prev => 
+        prev.map(r => r.id === requestId ? { ...r, status: 'IN_PROGRESS' } : r)
+      );
+      const { error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: requestId,
+        p_next_status: 'IN_PROGRESS',
+      });
+      if (error) throw error;
+      toast.success('Em trânsito!');
+      setTimeout(() => fetchActiveServices(), 500);
+    } catch (error) {
+      console.error('Erro ao atualizar serviço:', error);
+      toast.error('Erro ao atualizar status');
+      fetchActiveServices();
+    }
+  };
+
   const handleFinishService = async (requestId: string) => {
     try {
       setActiveServices(prev => prev.filter(r => r.id !== requestId));
@@ -1007,6 +1026,7 @@ const CompanyDashboard = () => {
                             key={`service-${service.id}`}
                             request={service}
                             onMarkOnTheWay={handleServiceOnTheWay}
+                            onStartTransit={handleStartTransit}
                             onFinishService={handleFinishService}
                           />
                         ))}
