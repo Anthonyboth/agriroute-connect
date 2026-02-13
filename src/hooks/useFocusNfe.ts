@@ -296,7 +296,7 @@ export function useFocusNfe() {
       
       // Get certificate
       const { data: certData } = await supabase
-        .from("fiscal_certificates")
+        .from("fiscal_certificates_secure")
         .select(`
           id,
           is_valid,

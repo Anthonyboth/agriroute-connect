@@ -226,7 +226,7 @@ export function useFiscalIssuer() {
       let cert: FiscalCertificate | null = null;
 
       const validCertRes = await db
-        .from("fiscal_certificates")
+        .from("fiscal_certificates_secure")
         .select("*")
         .eq("issuer_id", issuerData.id)
         .eq("is_valid", true)
@@ -240,7 +240,7 @@ export function useFiscalIssuer() {
       } else {
         // Fallback: buscar último certificado
         const lastCertRes = await db
-          .from("fiscal_certificates")
+          .from("fiscal_certificates_secure")
           .select("*")
           .eq("issuer_id", issuerData.id)
           .order("created_at", { ascending: false })
