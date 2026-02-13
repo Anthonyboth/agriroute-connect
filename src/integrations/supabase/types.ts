@@ -13917,27 +13917,16 @@ export type Database = {
           total_producers: number
         }[]
       }
-      get_reports_dashboard:
-        | {
-            Args: {
-              p_date_from?: string
-              p_date_to?: string
-              p_filters?: Json
-              p_panel?: string
-              p_profile_id?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_date_from: string
-              p_date_to: string
-              p_filters?: Json
-              p_panel: string
-              p_profile_id: string
-            }
-            Returns: Json
-          }
+      get_reports_dashboard: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_filters?: Json
+          p_panel?: string
+          p_profile_id?: string
+        }
+        Returns: Json
+      }
       get_scheduled_freights_by_location_and_date: {
         Args: { p_city: string; p_date: string; p_days_range?: number }
         Returns: {
