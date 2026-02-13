@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,8 +87,10 @@ import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
+import { ServiceProposalSection } from '@/components/service-provider/ServiceProposalSection';
 import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
+import { useServiceProposals } from '@/hooks/useServiceProposals';
 
 interface ServiceRequest {
   id: string;
@@ -311,6 +313,25 @@ export const ServiceProviderDashboard: React.FC = () => {
   );
 
   const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
+
+  // Service request IDs for proposals
+  const allServiceRequestIds = useMemo(() => {
+    const ids = new Set<string>();
+    availableRequests.forEach(r => ids.add(r.id));
+    ownRequests.forEach(r => ids.add(r.id));
+    return Array.from(ids);
+  }, [availableRequests, ownRequests]);
+
+  const {
+    submitProposal,
+    acceptProposal,
+    rejectProposal,
+    getProposalsForRequest,
+    submitting: proposalSubmitting,
+  } = useServiceProposals({
+    serviceRequestIds: allServiceRequestIds,
+    enabled: !!profile?.id && allServiceRequestIds.length > 0,
+  });
 
   useEffect(() => {
     if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') return;
@@ -1392,6 +1413,16 @@ export const ServiceProviderDashboard: React.FC = () => {
                              <Clock className="inline h-3 w-3 mr-1" />
                              {new Date(request.created_at).toLocaleTimeString('pt-BR')}
                            </p>
+                           {/* Proposta compacta no card disponível */}
+                           <ServiceProposalSection
+                             proposals={getProposalsForRequest(request.id)}
+                             currentUserProfileId={profile?.id || ''}
+                             viewerRole="PROVIDER"
+                             onSubmitProposal={() => {}}
+                             onAcceptProposal={() => {}}
+                             onRejectProposal={() => {}}
+                             compact
+                           />
                         </div>
                         
                         <div className="mt-3 text-xs text-primary font-semibold flex items-center justify-center gap-1 group-hover:gap-2 transition-all">
@@ -1530,6 +1561,17 @@ export const ServiceProviderDashboard: React.FC = () => {
                            />
                          )}
                        </div>
+
+                       {/* Propostas de valor */}
+                       <ServiceProposalSection
+                         proposals={getProposalsForRequest(request.id)}
+                         currentUserProfileId={profile?.id || ''}
+                         viewerRole="PROVIDER"
+                         onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
+                         onAcceptProposal={acceptProposal}
+                         onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                         submitting={proposalSubmitting}
+                       />
                       
                        {/* Botões sequenciais de workflow — via RPC atômica */}
                        <ServiceWorkflowActions
@@ -1804,6 +1846,17 @@ export const ServiceProviderDashboard: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                {/* Propostas de Valor */}
+                <ServiceProposalSection
+                  proposals={getProposalsForRequest(selectedRequest.id)}
+                  currentUserProfileId={profile?.id || ''}
+                  viewerRole="PROVIDER"
+                  onSubmitProposal={(price, msg) => submitProposal(selectedRequest.id, profile?.id || '', 'PROVIDER', price, msg)}
+                  onAcceptProposal={acceptProposal}
+                  onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                  submitting={proposalSubmitting}
+                />
 
                 <div className="h-px bg-border" />
 
