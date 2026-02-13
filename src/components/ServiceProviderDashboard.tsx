@@ -1413,16 +1413,18 @@ export const ServiceProviderDashboard: React.FC = () => {
                              <Clock className="inline h-3 w-3 mr-1" />
                              {new Date(request.created_at).toLocaleTimeString('pt-BR')}
                            </p>
-                           {/* Proposta compacta no card disponível */}
-                           <ServiceProposalSection
-                             proposals={getProposalsForRequest(request.id)}
-                             currentUserProfileId={profile?.id || ''}
-                             viewerRole="PROVIDER"
-                             onSubmitProposal={() => {}}
-                             onAcceptProposal={() => {}}
-                             onRejectProposal={() => {}}
-                             compact
-                           />
+                           {/* Proposta compacta no card disponível - somente para clientes cadastrados */}
+                           {request.client_id && (
+                             <ServiceProposalSection
+                               proposals={getProposalsForRequest(request.id)}
+                               currentUserProfileId={profile?.id || ''}
+                               viewerRole="PROVIDER"
+                               onSubmitProposal={() => {}}
+                               onAcceptProposal={() => {}}
+                               onRejectProposal={() => {}}
+                               compact
+                             />
+                           )}
                         </div>
                         
                         <div className="mt-3 text-xs text-primary font-semibold flex items-center justify-center gap-1 group-hover:gap-2 transition-all">
@@ -1562,16 +1564,18 @@ export const ServiceProviderDashboard: React.FC = () => {
                          )}
                        </div>
 
-                       {/* Propostas de valor */}
-                       <ServiceProposalSection
-                         proposals={getProposalsForRequest(request.id)}
-                         currentUserProfileId={profile?.id || ''}
-                         viewerRole="PROVIDER"
-                         onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
-                         onAcceptProposal={acceptProposal}
-                         onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
-                         submitting={proposalSubmitting}
-                       />
+                       {/* Propostas de valor - somente para clientes cadastrados */}
+                        {request.client_id && (
+                          <ServiceProposalSection
+                            proposals={getProposalsForRequest(request.id)}
+                            currentUserProfileId={profile?.id || ''}
+                            viewerRole="PROVIDER"
+                            onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
+                            onAcceptProposal={acceptProposal}
+                            onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                            submitting={proposalSubmitting}
+                          />
+                        )}
                       
                        {/* Botões sequenciais de workflow — via RPC atômica */}
                        <ServiceWorkflowActions
@@ -1847,16 +1851,18 @@ export const ServiceProviderDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {/* Propostas de Valor */}
-                <ServiceProposalSection
-                  proposals={getProposalsForRequest(selectedRequest.id)}
-                  currentUserProfileId={profile?.id || ''}
-                  viewerRole="PROVIDER"
-                  onSubmitProposal={(price, msg) => submitProposal(selectedRequest.id, profile?.id || '', 'PROVIDER', price, msg)}
-                  onAcceptProposal={acceptProposal}
-                  onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
-                  submitting={proposalSubmitting}
-                />
+                {/* Propostas de Valor - somente para clientes cadastrados */}
+                {selectedRequest.client_id && (
+                  <ServiceProposalSection
+                    proposals={getProposalsForRequest(selectedRequest.id)}
+                    currentUserProfileId={profile?.id || ''}
+                    viewerRole="PROVIDER"
+                    onSubmitProposal={(price, msg) => submitProposal(selectedRequest.id, profile?.id || '', 'PROVIDER', price, msg)}
+                    onAcceptProposal={acceptProposal}
+                    onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                    submitting={proposalSubmitting}
+                  />
+                )}
 
                 <div className="h-px bg-border" />
 
