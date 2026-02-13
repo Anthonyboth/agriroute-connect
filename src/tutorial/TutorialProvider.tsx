@@ -38,7 +38,11 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const createdAt = (profile as any)?.created_at;
 
   // Rotas onde o tutorial NÃO deve iniciar (cadastro, auth, onboarding)
-  const isOnboardingRoute = /^\/(complete-profile|auth|driver-type|onboarding)/i.test(location.pathname);
+  const isOnboardingRoute = /^\/(complete-profile|auth|driver-type|onboarding|register|signup|login|convite)/i.test(location.pathname);
+
+  // O tutorial só deve iniciar se o perfil estiver aprovado e completo
+  const profileStatus = (profile as any)?.status;
+  const isProfileReady = profileStatus === 'APPROVED' || profileStatus === 'ACTIVE';
 
   // Initialize replay window
   useEffect(() => {
@@ -50,9 +54,9 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Check if can replay
   const canReplay = profileId ? canReplayTutorial(profileId, createdAt) : false;
 
-  // Auto-start on first load after signup - NUNCA durante cadastro
+  // Auto-start on first load after signup - NUNCA durante cadastro ou com perfil pendente
   useEffect(() => {
-    if (!profileId || !role || autoStartChecked.current || isOnboardingRoute) return;
+    if (!profileId || !role || autoStartChecked.current || isOnboardingRoute || !isProfileReady) return;
     autoStartChecked.current = true;
 
     // Delay to let dashboard render
@@ -67,7 +71,7 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [profileId, role, createdAt, isOnboardingRoute]);
+  }, [profileId, role, createdAt, isOnboardingRoute, isProfileReady]);
 
   const startTutorial = useCallback(() => {
     if (!profileId || !role) return;
