@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   DollarSign, Send, Check, X, Clock, ChevronDown, ChevronUp, MessageSquare
 } from 'lucide-react';
-import { formatBRL } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ServiceProposal } from '@/hooks/useServiceProposals';
@@ -77,7 +77,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
           <div className="flex items-center gap-2 text-xs">
             <DollarSign className="h-3 w-3 text-blue-600" />
             <span className="font-medium text-blue-700 dark:text-blue-400">
-              Proposta: {formatBRL(latestPending.proposed_price)}
+              Proposta: {formatCurrency(latestPending.proposed_price)}
             </span>
             <span className="text-muted-foreground">
               por {latestPending.proposer_role === 'CLIENT' ? 'Cliente' : 'Prestador'}
@@ -124,7 +124,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-green-600">
-                {formatBRL(proposal.proposed_price)}
+                {formatCurrency(proposal.proposed_price)}
               </span>
               <Badge className={`${STATUS_LABELS[proposal.status].color} text-[10px] px-1.5 py-0`}>
                 {STATUS_LABELS[proposal.status].label}
@@ -191,7 +191,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
         <div key={proposal.id} className="bg-muted/30 rounded-lg p-2 border border-dashed space-y-1 opacity-70">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
-              {formatBRL(proposal.proposed_price)}
+              {formatCurrency(proposal.proposed_price)}
             </span>
             <Badge className={`${STATUS_LABELS[proposal.status].color} text-[10px] px-1.5 py-0`}>
               {STATUS_LABELS[proposal.status].label}
