@@ -123,17 +123,19 @@ export function getStepRequirements(
   }
   
   if (step === 'documentos_basicos') {
-    // Documentos pessoais básicos para todos (selfie e documento)
-    // Para motoristas, CNH e comprovante vão no step 3
+    // Para motoristas: selfie, frente CNH, verso CNH, comprovante de endereço - TUDO no step 2
+    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
+      return ['selfie', 'document_photo', 'cnh', 'address_proof'];
+    }
+    // Demais perfis: selfie e documento
     return ['selfie', 'document_photo'];
   }
   
-  // O passo 'documentos_e_veiculos' agora é para DOCUMENTOS DE MOTORISTA (CNH, endereço)
-  // SEM documentos de veículo - veículos são cadastrados após aprovação do perfil
+  // O passo 'documentos_e_veiculos' agora é apenas localização e termos para motoristas
+  // Fotos já foram todas coletadas no step 2
   if (step === 'documentos_e_veiculos') {
-    // Para motoristas: CNH, comprovante de endereço, localização
     if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
-      return ['cnh', 'address_proof', 'localizacao'];
+      return ['localizacao'];
     }
     return [];
   }

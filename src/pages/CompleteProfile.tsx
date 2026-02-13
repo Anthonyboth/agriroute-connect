@@ -1083,12 +1083,34 @@ const CompleteProfile = () => {
                 </div>
 
                 <DocumentUpload
-                  label="Foto do Documento (RG/CNH)"
+                  label={isDriver ? "Foto da Frente da CNH *" : "Foto do Documento (RG/CNH) *"}
                   fileType="document"
                   bucketName="profile-photos"
                   onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, document_photo: url }))}
                   required
                 />
+
+                {/* Para motoristas: foto do verso da CNH e comprovante de endereço no step 2 */}
+                {isDriver && (
+                  <>
+                    <DocumentUpload
+                      label="Foto do Verso da CNH *"
+                      fileType="cnh"
+                      bucketName="driver-documents"
+                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
+                      required
+                    />
+
+                    <DocumentUpload
+                      label="Comprovante de Endereço *"
+                      fileType="address"
+                      bucketName="driver-documents"
+                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, address_proof: url }))}
+                      required
+                      accept="image/*,application/pdf"
+                    />
+                  </>
+                )}
 
                 <div className="flex justify-between">
                   <Button variant="outline" onClick={() => setCurrentStep(1)}>
@@ -1106,7 +1128,7 @@ const CompleteProfile = () => {
               <div className="space-y-6">
                 <div className="flex items-center space-x-2">
                   <Truck className="h-5 w-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Documentos e Veículos</h3>
+                  <h3 className="text-lg font-semibold">Finalização do Cadastro</h3>
                 </div>
 
                 {/* Aviso sobre veículos para motoristas */}
@@ -1125,18 +1147,9 @@ const CompleteProfile = () => {
                   </Alert>
                 )}
 
-                {/* CNH e placas apenas para motoristas comuns */}
+                {/* Categoria e Vencimento da CNH - apenas dados, sem upload de foto */}
                 {!isTransportCompany && (
                   <>
-                    <DocumentUpload
-                      label="CNH (Carteira Nacional de Habilitação)"
-                      fileType="cnh"
-                      bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
-                      required
-                    />
-
-                    {/* Categoria e Vencimento da CNH */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="cnh_category">Categoria da CNH *</Label>
@@ -1176,30 +1189,8 @@ const CompleteProfile = () => {
                         </p>
                       </div>
                     </div>
-
-                    {/* Seção de fotos de placas REMOVIDA - veículos são cadastrados após o cadastro pessoal na aba Veículos */}
-                    <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
-                      <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <AlertTitle className="text-blue-900 dark:text-blue-100">
-                        Cadastro de Veículos
-                      </AlertTitle>
-                      <AlertDescription className="text-blue-800 dark:text-blue-200">
-                        O cadastro de veículos será realizado após finalizar seu cadastro pessoal, 
-                        através da aba "Veículos" no seu painel. Motoristas autônomos devem cadastrar 
-                        pelo menos um veículo para poder aceitar fretes.
-                      </AlertDescription>
-                    </Alert>
                   </>
                 )}
-
-                <DocumentUpload
-                  label="Comprovante de Endereço"
-                  fileType="address"
-                  bucketName="driver-documents"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, address_proof: url }))}
-                  required
-                  accept="image/*,application/pdf"
-                />
 
                 {!isTransportCompany && (
                   <LocationPermission
