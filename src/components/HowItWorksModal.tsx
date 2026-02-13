@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,11 @@ interface HowItWorksModalProps {
 
 const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, userType, onProceed }) => {
   const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA'>(userType);
+
+  // Sincronizar viewType quando userType muda (ex: reabrir modal com tipo diferente)
+  useEffect(() => {
+    setViewType(userType);
+  }, [userType]);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const isProducer = viewType === 'PRODUTOR';
 
