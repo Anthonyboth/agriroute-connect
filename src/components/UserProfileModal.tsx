@@ -191,16 +191,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       // Upload da foto
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-photos/${fileName}`;
+      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
+        .from('profile-photos')
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('profile-photos')
         .getPublicUrl(filePath);
 
       // Atualizar perfil com nova URL
