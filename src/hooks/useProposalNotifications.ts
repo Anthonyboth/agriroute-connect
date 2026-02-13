@@ -100,7 +100,7 @@ export const useProposalNotifications = () => {
           table: 'freight_proposals'
         },
         async (payload) => {
-          console.log('[useProposalNotifications] Realtime event:', payload.eventType);
+          if (import.meta.env.DEV) console.log('[useProposalNotifications] Realtime event:', payload.eventType);
           
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;

@@ -5,12 +5,12 @@ export function logAuthState() {
   const hasToken = !!localStorage.getItem('sb-shnvtxejjecbnztdbbbl-auth-token');
   const hasSession = !!sessionStorage.getItem('supabase.auth.token');
   
-  console.log('Token no localStorage:', hasToken ? '✅ Existe' : '❌ Não existe');
-  console.log('Sessão no sessionStorage:', hasSession ? '✅ Existe' : '❌ Não existe');
+  if (import.meta.env.DEV) console.log('Token no localStorage:', hasToken ? '✅ Existe' : '❌ Não existe');
+  if (import.meta.env.DEV) console.log('Sessão no sessionStorage:', hasSession ? '✅ Existe' : '❌ Não existe');
   
   const allKeys = Object.keys(localStorage);
   const authKeys = allKeys.filter(k => k.startsWith('sb-'));
-  console.log('Chaves de auth no localStorage:', authKeys);
+  if (import.meta.env.DEV) console.log('Chaves de auth no localStorage:', authKeys);
   
   console.groupEnd();
 }

@@ -77,7 +77,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     if (!company?.id) return;
 
     if (fetchingRef.current) {
-      console.log("⏳ [FRETES I.A] Fetch já em andamento, ignorando...");
+      if (import.meta.env.DEV) console.log("⏳ [FRETES I.A] Fetch já em andamento, ignorando...");
       return;
     }
 
@@ -85,7 +85,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     setLoading(true);
 
     try {
-      console.log("🔍 [FRETES I.A] Buscando fretes para company:", company.id);
+      if (import.meta.env.DEV) console.log("🔍 [FRETES I.A] Buscando fretes para company:", company.id);
 
       // ✅ IMPORTANTÍSSIMO: tipar como literal (resolve TS2345)
       const OPEN_STATUSES = ["OPEN", "IN_NEGOTIATION"] as const;
@@ -127,8 +127,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         console.warn("⚠️ [FRETES I.A] Erro ao buscar service_requests:", serviceError.message);
       }
 
-      console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
-      console.log("📦 [FRETES I.A] " + (serviceData?.length || 0) + " service_requests retornados");
+      if (import.meta.env.DEV) console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
+      if (import.meta.env.DEV) console.log("📦 [FRETES I.A] " + (serviceData?.length || 0) + " service_requests retornados");
 
       const normalizedFreights: CompatibleFreight[] = [];
       let discardedByStatus = 0;
@@ -180,9 +180,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       // 3) Armazenar service_requests separadamente (NÃO normalizar como freight)
       setServiceRequests(serviceData || []);
 
-      console.log(`✅ [FRETES I.A] ${normalizedFreights.length} fretes compatíveis`);
-      console.log(`✅ [FRETES I.A] ${(serviceData || []).length} service_requests disponíveis`);
-      console.log(`📊 [FRETES I.A] Descartados: ${discardedByStatus} status, ${discardedNoSlots} sem vagas`);
+      if (import.meta.env.DEV) console.log(`✅ [FRETES I.A] ${normalizedFreights.length} fretes compatíveis, ${(serviceData || []).length} service_requests, descartados: ${discardedByStatus} status, ${discardedNoSlots} sem vagas`);
 
       setCompatibleFreights(normalizedFreights);
       setMatchingStats({

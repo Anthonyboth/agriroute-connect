@@ -56,7 +56,7 @@ export default function DriverInviteSignup() {
       return;
     }
 
-    console.log('[DriverInviteSignup] Validando token:', token);
+    if (import.meta.env.DEV) console.log('[DriverInviteSignup] Validando token:', token);
 
     try {
       const response = await queryWithTimeout(
@@ -76,10 +76,10 @@ export default function DriverInviteSignup() {
         throw error;
       }
 
-      console.log('[DriverInviteSignup] Resposta recebida:', data);
+      if (import.meta.env.DEV) console.log('[DriverInviteSignup] Resposta recebida:', data);
 
       if (data.valid) {
-        console.log('[DriverInviteSignup] Token válido! Empresa:', data.empresa_nome);
+        if (import.meta.env.DEV) console.log('[DriverInviteSignup] Token válido! Empresa:', data.empresa_nome);
         setTokenValid(true);
         setCompanyInfo({
           company_name: data.empresa_nome

@@ -14,7 +14,7 @@ interface SendNotificationPayload {
  */
 export const sendNotification = async (payload: SendNotificationPayload): Promise<boolean> => {
   try {
-    console.log('[sendNotification] Enviando notificação:', payload);
+    if (import.meta.env.DEV) console.log('[sendNotification] Enviando notificação:', payload);
     
     const { data, error } = await supabase.functions.invoke('send-notification', {
       body: payload
@@ -25,7 +25,7 @@ export const sendNotification = async (payload: SendNotificationPayload): Promis
       return false;
     }
 
-    console.log('[sendNotification] ✅ Notificação enviada com sucesso:', data);
+    if (import.meta.env.DEV) console.log('[sendNotification] ✅ Notificação enviada com sucesso:', data);
     return true;
   } catch (error) {
     console.error('[sendNotification] ❌ Exceção ao enviar notificação:', error);

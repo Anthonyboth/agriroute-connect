@@ -43,7 +43,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('📤 Iniciando upload...', { fileName: file.name, bucketName, fileType });
+    if (import.meta.env.DEV) console.log('📤 Iniciando upload...', { fileName: file.name, bucketName, fileType });
     
     // Validação de qualidade de imagem (se habilitado)
     if (enableQualityCheck && file.type.startsWith('image/')) {
@@ -61,7 +61,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       // Extrair extensão do arquivo
       const fileExt = file.name.split('.').pop() || 'jpg';
       
-      console.log('🔐 Chamando uploadWithAuthRetry com retry automático...');
+      if (import.meta.env.DEV) console.log('🔐 Chamando uploadWithAuthRetry com retry automático...');
       
       // Usar upload com retry de autenticação (gera fileName internamente)
       const result = await uploadWithAuthRetry({
@@ -73,14 +73,14 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       
       if ('error' in result) {
         if (result.error === 'AUTH_EXPIRED') {
-          console.log('🔄 Sessão expirada, redirecionando...');
+          if (import.meta.env.DEV) console.log('🔄 Sessão expirada, redirecionando...');
           return; // Já está redirecionando para login
         }
         console.error('❌ Erro no upload:', result.error);
         throw new Error(result.error);
       }
       
-      console.log('✅ Upload concluído com sucesso!');
+      if (import.meta.env.DEV) console.log('✅ Upload concluído com sucesso!');
       setUploaded(true);
       setFileName(file.name);
       onUploadComplete(result.publicUrl);

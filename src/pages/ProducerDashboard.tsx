@@ -982,13 +982,9 @@ const ProducerDashboard = () => {
   const handleMotoFreightAction = async (action: "edit" | "cancel", motoFreight: any) => {
     if (action === "cancel") {
       // ✅ P0 OBRIGATÓRIO: Log antes do cancelamento
-      console.log('[P0_CANCEL] BEFORE_CANCEL_MOTO', {
+      if (import.meta.env.DEV) console.log('[P0_CANCEL] BEFORE_CANCEL_MOTO', {
         service_request_id: motoFreight.id,
         service_type: motoFreight.service_type,
-        client_id: motoFreight.client_id,
-        profile_id: profile?.id,
-        auth_uid: user?.id,
-        timestamp: new Date().toISOString()
       });
 
       try {
@@ -1002,12 +998,9 @@ const ProducerDashboard = () => {
         const result = data as { success: boolean; error?: string; message?: string; debug_info?: any };
         
         // ✅ P0 OBRIGATÓRIO: Log do resultado
-        console.log('[P0_CANCEL] RPC_RESULT_MOTO', {
+        if (import.meta.env.DEV) console.log('[P0_CANCEL] RPC_RESULT_MOTO', {
           service_request_id: motoFreight.id,
           success: result.success,
-          error: result.error,
-          debug_info: result.debug_info,
-          timestamp: new Date().toISOString()
         });
 
         if (!result.success) {
@@ -1028,10 +1021,9 @@ const ProducerDashboard = () => {
       }
     } else if (action === "edit") {
       // ✅ P0: Open edit modal for urban freights
-      console.log('[P0_EDIT_URBAN_FREIGHT] OPEN_MODAL', {
+      if (import.meta.env.DEV) console.log('[P0_EDIT_URBAN_FREIGHT] OPEN_MODAL', {
         service_request_id: motoFreight.id,
         service_type: motoFreight.service_type,
-        timestamp: new Date().toISOString()
       });
       setSelectedServiceToEdit(motoFreight);
       setServiceEditModalOpen(true);

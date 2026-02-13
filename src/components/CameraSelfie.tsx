@@ -84,7 +84,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         audio: false,
       };
 
-      console.log('📷 Requesting camera access...');
+      if (import.meta.env.DEV) console.log('📷 Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
@@ -121,7 +121,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         // Try to play (may fail on iOS without user gesture)
         try {
           await videoRef.current.play();
-          console.log('✅ Camera started successfully');
+          if (import.meta.env.DEV) console.log('✅ Camera started successfully');
           setVideoReady(true);
           setNeedsUserAction(false);
           setMode('stream');
@@ -140,7 +140,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       // If this was an auto-start attempt, don't go to fallback yet
       // Show "Ativar câmera" button instead (user gesture might help)
       if (origin === 'auto' && errorName === 'NotAllowedError') {
-        console.log('🔄 Auto-start blocked, will retry with user gesture');
+        if (import.meta.env.DEV) console.log('🔄 Auto-start blocked, will retry with user gesture');
         setNeedsUserAction(true);
         setMode('stream');
         setStarting(false);
@@ -206,7 +206,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         setPreviewUrl(url);
         setMode('preview');
         stopCamera();
-        console.log('📸 Frame captured successfully');
+        if (import.meta.env.DEV) console.log('📸 Frame captured successfully');
       },
       'image/jpeg',
       0.9

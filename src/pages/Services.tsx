@@ -41,7 +41,7 @@ const Services: React.FC = () => {
   };
 
   const handleMenuClick = () => {
-    console.log('Menu clicked');
+    // Menu click handler
   };
 
   const handleFreightRequest = (type: 'CARGA' | 'GUINCHO' | 'MUDANCA') => {

@@ -78,7 +78,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         table: 'user_cities',
         filter: `user_id=eq.${profile.user_id}`
       }, (payload) => {
-        console.log('user_cities mudou no hero dashboard:', payload);
+        if (import.meta.env.DEV) console.log('user_cities mudou no hero dashboard:', payload);
         fetchStats(); // Atualizar estatísticas quando cidades mudam
       })
       .subscribe();
