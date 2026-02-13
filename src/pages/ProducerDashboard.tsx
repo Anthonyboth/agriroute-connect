@@ -103,7 +103,7 @@ const ProducerDashboard = () => {
   const [freights, setFreights] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
   const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
-  const [activeTab, setActiveTab] = useState("open");
+  const [activeTab, setActiveTab] = useState("freights-open");
   const [loading, setLoading] = useState(true);
 
   const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
