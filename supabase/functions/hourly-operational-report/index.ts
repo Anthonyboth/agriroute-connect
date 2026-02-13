@@ -259,6 +259,93 @@ serve(async (req) => {
     const hasDivergence = divergence > 0;
 
     // ==========================================
+    // 10. VERIFICAÇÃO DE VISIBILIDADE NOS PAINÉIS
+    // ==========================================
+    logStep('Verificando visibilidade nos painéis');
+    
+    // Testar acesso à RPC de serviços (simula o que o frontend faz)
+    let rpcServiceHealthy = true;
+    let rpcServiceError = '';
+    try {
+      // Buscar um prestador ativo qualquer para testar a RPC
+      const { data: anyProvider } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('role', 'PRESTADOR_SERVICOS')
+        .eq('status', 'APPROVED')
+        .limit(1)
+        .single();
+      
+      if (anyProvider) {
+        const { error: rpcErr } = await supabaseAdmin.rpc('get_services_for_provider', {
+          p_provider_id: anyProvider.id
+        });
+        if (rpcErr) {
+          rpcServiceHealthy = false;
+          rpcServiceError = rpcErr.message;
+          overallStatus = 'CRITICO';
+          issues.push(`RPC get_services_for_provider FALHOU: ${rpcErr.message}`);
+        }
+      }
+    } catch (rpcCatch) {
+      rpcServiceHealthy = false;
+      rpcServiceError = String(rpcCatch);
+      overallStatus = 'CRITICO';
+      issues.push(`RPC get_services_for_provider EXCEPTION: ${rpcServiceError}`);
+    }
+
+    // Testar acesso à view segura de serviços
+    let viewServiceHealthy = true;
+    try {
+      const { error: viewErr } = await supabaseAdmin
+        .from('service_requests_secure')
+        .select('id')
+        .eq('status', 'OPEN')
+        .limit(1);
+      if (viewErr) {
+        viewServiceHealthy = false;
+        issues.push(`View service_requests_secure FALHOU: ${viewErr.message}`);
+      }
+    } catch (viewCatch) {
+      viewServiceHealthy = false;
+    }
+
+    // Testar acesso direto a fretes OPEN (simula dashboard do motorista)
+    let freightDashboardHealthy = true;
+    try {
+      const { error: freightViewErr } = await supabaseAdmin
+        .from('freights')
+        .select('id, status, service_type')
+        .eq('status', 'OPEN')
+        .limit(1);
+      if (freightViewErr) {
+        freightDashboardHealthy = false;
+        issues.push(`Consulta de fretes OPEN FALHOU: ${freightViewErr.message}`);
+      }
+    } catch (freightCatch) {
+      freightDashboardHealthy = false;
+    }
+
+    // Verificar se propostas estão acessíveis
+    let proposalSystemHealthy = true;
+    try {
+      const { error: propErr } = await supabaseAdmin
+        .from('service_request_proposals')
+        .select('id')
+        .eq('status', 'pending')
+        .limit(1);
+      if (propErr) {
+        proposalSystemHealthy = false;
+        issues.push(`Sistema de propostas FALHOU: ${propErr.message}`);
+      }
+    } catch (propCatch) {
+      proposalSystemHealthy = false;
+    }
+
+    const allPanelsHealthy = rpcServiceHealthy && viewServiceHealthy && freightDashboardHealthy && proposalSystemHealthy;
+    const panelStatus = allPanelsHealthy ? '🟢 TODOS OK' : '🔴 COM PROBLEMAS';
+
+    // ==========================================
     // BUILD MESSAGE - FORMATO OBRIGATÓRIO
     // ==========================================
     const statusEmoji = overallStatus === 'CRITICO' ? '🔴' : overallStatus === 'ATENCAO' ? '🟡' : '🟢';
@@ -287,6 +374,14 @@ serve(async (req) => {
     // SERVIÇOS
     message += `🔧 <b>SERVIÇOS</b>\n`;
     message += `└ Serviços Abertos: <b>${openServices || 0}</b>\n\n`;
+
+    // VISIBILIDADE NOS PAINÉIS
+    message += `👁️ <b>VISIBILIDADE NOS PAINÉIS</b>\n`;
+    message += `├ RPC Serviços (matching): ${rpcServiceHealthy ? '✅ OK' : '❌ FALHA'}\n`;
+    message += `├ View Segura (service_requests_secure): ${viewServiceHealthy ? '✅ OK' : '❌ FALHA'}\n`;
+    message += `├ Dashboard Fretes: ${freightDashboardHealthy ? '✅ OK' : '❌ FALHA'}\n`;
+    message += `├ Sistema de Propostas: ${proposalSystemHealthy ? '✅ OK' : '❌ FALHA'}\n`;
+    message += `└ Status Geral Painéis: <b>${panelStatus}</b>\n\n`;
 
     // PROPOSTAS
     message += `💼 <b>PROPOSTAS (24h)</b>\n`;
