@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { getStepsForRole, TutorialStep } from './tutorialSteps';
 import {
@@ -26,6 +27,7 @@ export const useTutorial = () => useContext(TutorialContext);
 
 export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile } = useAuth();
+  const location = useLocation();
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<TutorialStep[]>([]);
@@ -33,8 +35,10 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const profileId = profile?.id;
   const role = profile?.active_mode || profile?.role;
-  // Use profile created_at from the profile object if available, fallback
   const createdAt = (profile as any)?.created_at;
+
+  // Rotas onde o tutorial NÃO deve iniciar (cadastro, auth, onboarding)
+  const isOnboardingRoute = /^\/(complete-profile|auth|driver-type|onboarding)/i.test(location.pathname);
 
   // Initialize replay window
   useEffect(() => {
@@ -46,9 +50,9 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Check if can replay
   const canReplay = profileId ? canReplayTutorial(profileId, createdAt) : false;
 
-  // Auto-start on first load after signup
+  // Auto-start on first load after signup - NUNCA durante cadastro
   useEffect(() => {
-    if (!profileId || !role || autoStartChecked.current) return;
+    if (!profileId || !role || autoStartChecked.current || isOnboardingRoute) return;
     autoStartChecked.current = true;
 
     // Delay to let dashboard render
@@ -63,7 +67,7 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [profileId, role, createdAt]);
+  }, [profileId, role, createdAt, isOnboardingRoute]);
 
   const startTutorial = useCallback(() => {
     if (!profileId || !role) return;
