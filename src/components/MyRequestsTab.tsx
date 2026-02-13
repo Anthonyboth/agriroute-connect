@@ -31,6 +31,8 @@ import {
   MessageSquare, Phone, Star, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ServiceProposalSection } from '@/components/service-provider/ServiceProposalSection';
+import { useServiceProposals } from '@/hooks/useServiceProposals';
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   GUINCHO: 'Guincho',
@@ -205,6 +207,25 @@ export const MyRequestsTab: React.FC = () => {
     },
     enabled: !!profile?.id,
     staleTime: 2 * 60 * 1000,
+  });
+
+  // All service request IDs for proposals
+  const allClientServiceIds = useMemo(() => {
+    const ids = new Set<string>();
+    (myOpenServiceRequests || []).forEach((r: any) => ids.add(r.id));
+    (myOngoingServiceRequests || []).forEach((r: any) => ids.add(r.id));
+    return Array.from(ids);
+  }, [myOpenServiceRequests, myOngoingServiceRequests]);
+
+  const {
+    submitProposal: submitClientProposal,
+    acceptProposal: acceptClientProposal,
+    rejectProposal: rejectClientProposal,
+    getProposalsForRequest: getClientProposals,
+    submitting: clientProposalSubmitting,
+  } = useServiceProposals({
+    serviceRequestIds: allClientServiceIds,
+    enabled: !!profile?.id && allClientServiceIds.length > 0,
   });
 
   const refetchAll = async () => {
@@ -572,6 +593,16 @@ export const MyRequestsTab: React.FC = () => {
                             Abrir Chat
                           </Button>
                         )}
+                        {/* Propostas de valor */}
+                        <ServiceProposalSection
+                          proposals={getClientProposals(sr.id)}
+                          currentUserProfileId={profile?.id || ''}
+                          viewerRole="CLIENT"
+                          onSubmitProposal={(price, msg) => submitClientProposal(sr.id, profile?.id || '', 'CLIENT', price, msg)}
+                          onAcceptProposal={acceptClientProposal}
+                          onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
+                          submitting={clientProposalSubmitting}
+                        />
                       </div>
                     }
                   />
@@ -702,6 +733,16 @@ export const MyRequestsTab: React.FC = () => {
                               Emergência
                             </div>
                           )}
+                          {/* Propostas de valor */}
+                          <ServiceProposalSection
+                            proposals={getClientProposals(request.id)}
+                            currentUserProfileId={profile?.id || ''}
+                            viewerRole="CLIENT"
+                            onSubmitProposal={(price, msg) => submitClientProposal(request.id, profile?.id || '', 'CLIENT', price, msg)}
+                            onAcceptProposal={acceptClientProposal}
+                            onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
+                            submitting={clientProposalSubmitting}
+                          />
                         </div>
 
                         {request.status !== 'CANCELLED' && (

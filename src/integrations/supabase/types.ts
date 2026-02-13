@@ -10264,6 +10264,77 @@ export type Database = {
           },
         ]
       }
+      service_request_proposals: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          proposed_price: number
+          proposer_id: string
+          proposer_role: string
+          rejection_reason: string | null
+          responded_at: string | null
+          service_request_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          proposed_price: number
+          proposer_id: string
+          proposer_role: string
+          rejection_reason?: string | null
+          responded_at?: string | null
+          service_request_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          proposed_price?: number
+          proposer_id?: string
+          proposer_role?: string
+          rejection_reason?: string | null
+          responded_at?: string | null
+          service_request_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_proposals_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_proposals_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_proposals_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_proposals_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           accepted_at: string | null
@@ -12923,6 +12994,10 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string }
         Returns: undefined
       }
+      accept_service_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
       accept_service_request: {
         Args: { p_provider_id: string; p_request_id: string }
         Returns: {
@@ -14323,6 +14398,14 @@ export type Database = {
       register_match_exposures_batch: {
         Args: { p_items: Json; p_ttl_minutes?: number }
         Returns: number
+      }
+      reject_service_proposal: {
+        Args: {
+          p_proposal_id: string
+          p_rejection_reason?: string
+          p_return_to_open?: boolean
+        }
+        Returns: Json
       }
       release_emission_credit: {
         Args: { p_emission_id: string }

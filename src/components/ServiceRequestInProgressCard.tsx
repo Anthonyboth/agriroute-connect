@@ -41,6 +41,9 @@ interface ServiceRequestInProgressCardProps {
   onMarkOnTheWay: (id: string) => void;
   onStartTransit: (id: string) => void;
   onFinishService: (id: string) => void;
+  onCancel?: (id: string) => void;
+  /** Optional proposals section to render */
+  proposalsSection?: React.ReactNode;
 }
 
 // Mini-mapa embutido no card
@@ -108,7 +111,9 @@ const ServiceRequestInProgressCardComponent = ({
   request, 
   onMarkOnTheWay, 
   onStartTransit,
-  onFinishService 
+  onFinishService,
+  onCancel,
+  proposalsSection,
 }: ServiceRequestInProgressCardProps) => {
   
   const openInMaps = () => {
@@ -345,6 +350,9 @@ const ServiceRequestInProgressCardComponent = ({
           </div>
         )}
 
+        {/* Propostas de valor */}
+        {proposalsSection}
+
         {/* Aceito em */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Clock className="h-3 w-3" />
@@ -374,6 +382,13 @@ const ServiceRequestInProgressCardComponent = ({
             Entregue
           </Button>
         )}
+        {/* Botão Cancelar */}
+        {onCancel && (request.status === 'ACCEPTED' || request.status === 'ON_THE_WAY') && (
+          <Button size="sm" variant="destructive" className="h-9" onClick={() => onCancel(request.id)}>
+            <AlertTriangle className="h-4 w-4 mr-1" />
+            Cancelar
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
@@ -386,6 +401,8 @@ export const ServiceRequestInProgressCard = React.memo(ServiceRequestInProgressC
     prevProps.request.estimated_price === nextProps.request.estimated_price &&
     prevProps.onMarkOnTheWay === nextProps.onMarkOnTheWay &&
     prevProps.onStartTransit === nextProps.onStartTransit &&
-    prevProps.onFinishService === nextProps.onFinishService
+    prevProps.onFinishService === nextProps.onFinishService &&
+    prevProps.onCancel === nextProps.onCancel &&
+    prevProps.proposalsSection === nextProps.proposalsSection
   );
 });
