@@ -136,13 +136,11 @@ serve(async (req) => {
       // Check if it's a towing service (guincho)
       const { data: serviceProvider } = await supabaseClient
         .from('service_providers')
-        .select('service_types')
+        .select('service_type')
         .eq('profile_id', profile.id)
         .single();
 
-      if (serviceProvider?.service_types && 
-          Array.isArray(serviceProvider.service_types) && 
-          serviceProvider.service_types.includes('GUINCHO')) {
+      if (serviceProvider?.service_type === 'GUINCHO') {
         userCategory = 'guincho_urbano';
       } else {
         userCategory = 'prestador';
