@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { X, MapPin, Bell } from 'lucide-react';
 import { useDevicePermissions } from '@/hooks/useDevicePermissions';
 import { useContextualPermissions } from '@/hooks/useContextualPermissions';
+import { useAuth } from '@/hooks/useAuth';
 
 export const PermissionPrompts = () => {
+  const { profile } = useAuth();
   const { permissions, requestPermission } = useDevicePermissions();
   const { shouldRequestLocation, shouldRequestNotifications, contextMessage } = useContextualPermissions();
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -21,6 +23,11 @@ export const PermissionPrompts = () => {
       }
     }
   }, []);
+
+  // Nunca mostrar prompts para usuários não logados
+  if (!profile) {
+    return null;
+  }
 
   const handleDismiss = (type: string) => {
     const newDismissed = [...dismissed, type];
