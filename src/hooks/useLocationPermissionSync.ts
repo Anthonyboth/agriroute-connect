@@ -50,7 +50,7 @@ export function useLocationPermissionSync() {
       if (error) {
         console.error('Erro ao sincronizar location_enabled:', error);
       } else {
-        console.log(`✅ location_enabled sincronizado: ${deviceEnabled}`);
+        if (import.meta.env.DEV) console.log(`✅ location_enabled sincronizado: ${deviceEnabled}`);
         // Atualizar o perfil local
         refreshProfile?.();
       }

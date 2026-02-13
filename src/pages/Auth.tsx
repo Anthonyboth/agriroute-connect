@@ -158,7 +158,7 @@ const Auth = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           // Just log, don't redirect from here
-          console.log('User already authenticated, RedirectIfAuthed will handle redirect');
+          if (import.meta.env.DEV) console.log('User already authenticated, RedirectIfAuthed will handle redirect');
         }
       } catch (err) {
         console.error('Session check failed:', err);
@@ -287,7 +287,7 @@ const Auth = () => {
                     p_phone: phone,
                     p_document: cleanDoc
                   };
-                  console.log('CREATE_ADDITIONAL_PROFILE_CALLED', { 
+                  if (import.meta.env.DEV) console.log('CREATE_ADDITIONAL_PROFILE_CALLED', { 
                     userId: loginData.user.id, 
                     payloadKeys: Object.keys(payload) 
                   });
@@ -303,7 +303,7 @@ const Auth = () => {
                   
                   // ✅ RPC agora retorna JSONB com success, profile_id, already_exists, message
                   const result = rpcResult as { success: boolean; profile_id: string | null; already_exists: boolean; message: string };
-                  console.log('[Auth] RPC result:', result);
+                  if (import.meta.env.DEV) console.log('[Auth] RPC result:', result);
                   
                   if (!result.success) {
                     toast.error(result.message || 'Erro ao criar perfil');

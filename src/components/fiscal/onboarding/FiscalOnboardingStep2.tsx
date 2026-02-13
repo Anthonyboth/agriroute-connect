@@ -47,13 +47,13 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
     
     setCepLoading(true);
     try {
-      console.log('[FiscalOnboardingStep2] Buscando endereço pelo CEP:', cleanCep);
+      if (import.meta.env.DEV) console.log('[FiscalOnboardingStep2] Buscando endereço pelo CEP:', cleanCep);
       
       // Buscar endereço via ZipCodeService
       const result = await ZipCodeService.searchZipCode(cleanCep);
       
       if (result) {
-        console.log('[FiscalOnboardingStep2] Endereço encontrado:', result);
+        if (import.meta.env.DEV) console.log('[FiscalOnboardingStep2] Endereço encontrado:', result);
         
         // Buscar código IBGE da cidade na tabela cities
         let ibgeCode = '';
@@ -221,7 +221,7 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
       // ✅ Buscar código IBGE se ainda não tiver
       let ibgeCode = data.endereco_ibge;
       if (!ibgeCode && data.endereco_cidade && data.endereco_uf) {
-        console.log('[FiscalOnboardingStep2] Buscando código IBGE antes de salvar...');
+        if (import.meta.env.DEV) console.log('[FiscalOnboardingStep2] Buscando código IBGE antes de salvar...');
         const { data: cityData } = await supabase
           .from('cities')
           .select('ibge_code')
@@ -239,16 +239,7 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
         }
       }
 
-      console.log('[FiscalOnboardingStep2] Salvando dados cadastrais do emissor:', {
-        hasIssuer: !!issuer,
-        endereco_cep: data.endereco_cep,
-        endereco_logradouro: data.endereco_logradouro,
-        endereco_numero: data.endereco_numero,
-        endereco_bairro: data.endereco_bairro,
-        endereco_cidade: data.endereco_cidade,
-        endereco_uf: data.endereco_uf,
-        endereco_ibge: ibgeCode,
-      });
+      if (import.meta.env.DEV) console.log('[FiscalOnboardingStep2] Salvando dados cadastrais do emissor');
 
       // ✅ Garantir que o código IBGE está no objeto antes de salvar
       const dataWithIbge = { ...data, endereco_ibge: ibgeCode };
@@ -516,7 +507,7 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
                       .maybeSingle();
                     
                     if (cityData?.ibge_code) {
-                      console.log('[FiscalOnboardingStep2] IBGE encontrado para cidade:', cityData.ibge_code);
+                      if (import.meta.env.DEV) console.log('[FiscalOnboardingStep2] IBGE encontrado para cidade:', cityData.ibge_code);
                       onUpdate({ endereco_ibge: cityData.ibge_code });
                     }
                   }
@@ -547,7 +538,7 @@ export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: Fiscal
                       .maybeSingle();
                     
                     if (cityData?.ibge_code) {
-                      console.log('[FiscalOnboardingStep2] IBGE encontrado para UF:', cityData.ibge_code);
+                      if (import.meta.env.DEV) console.log('[FiscalOnboardingStep2] IBGE encontrado para UF:', cityData.ibge_code);
                       onUpdate({ endereco_ibge: cityData.ibge_code });
                     }
                   }

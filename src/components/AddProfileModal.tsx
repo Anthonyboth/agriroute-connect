@@ -93,7 +93,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
       
       // RPC retorna JSONB: { success, profile_id, already_exists, message }
       const result = rpcResult as { success: boolean; profile_id: string | null; already_exists: boolean; message: string };
-      console.log('[AddProfileModal] RPC result:', result);
+      if (import.meta.env.DEV) console.log('[AddProfileModal] RPC result:', result);
       
       if (!result.success) {
         toast.error(result.message || 'Erro ao criar perfil');

@@ -169,7 +169,7 @@ export const UnifiedTrackingControl = () => {
         severity: 'HIGH',
         auto_generated: false
       }).then(() => {
-        console.log('[UnifiedTrackingControl] Incident logged for GPS disable');
+        if (import.meta.env.DEV) console.log('[UnifiedTrackingControl] Incident logged for GPS disable');
       });
     }
     executeStopTracking();

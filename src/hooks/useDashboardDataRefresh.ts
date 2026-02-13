@@ -81,14 +81,14 @@ export function useDashboardDataRefresh(config: DashboardRefreshConfig): Dashboa
     // Debounce: evitar refreshes muito próximos
     const debounceTime = source === 'focus' ? FOCUS_DEBOUNCE_MS : DEBOUNCE_MS;
     if (source !== 'manual' && now - lastRefresh < debounceTime) {
-      console.log(`[DashboardRefresh:${dashboardId}] Debounce ativo (${source}), ignorando`);
+      if (import.meta.env.DEV) console.log(`[DashboardRefresh:${dashboardId}] Debounce ativo (${source}), ignorando`);
       return;
     }
 
     // Single-flight: se já existe um request em andamento, aguardar
     const existingRequest = inFlightRequests.get(dashboardId);
     if (existingRequest) {
-      console.log(`[DashboardRefresh:${dashboardId}] Request em andamento, aguardando...`);
+      if (import.meta.env.DEV) console.log(`[DashboardRefresh:${dashboardId}] Request em andamento, aguardando...`);
       await existingRequest;
       return;
     }
@@ -97,7 +97,7 @@ export function useDashboardDataRefresh(config: DashboardRefreshConfig): Dashboa
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
 
-    console.log(`[DashboardRefresh:${dashboardId}] Iniciando refresh (source: ${source})`);
+    if (import.meta.env.DEV) console.log(`[DashboardRefresh:${dashboardId}] Iniciando refresh (source: ${source})`);
     setIsRefreshing(true);
     lastRefreshTimestamp.set(dashboardId, now);
 
@@ -110,7 +110,7 @@ export function useDashboardDataRefresh(config: DashboardRefreshConfig): Dashboa
             // Envolver cada função para ignorar erros de abort
             return fn().catch(err => {
               if (err?.name === 'AbortError') {
-                console.log(`[DashboardRefresh:${dashboardId}] Fetch abortado`);
+                if (import.meta.env.DEV) console.log(`[DashboardRefresh:${dashboardId}] Fetch abortado`);
                 return;
               }
               console.error(`[DashboardRefresh:${dashboardId}] Erro no fetch:`, err);
@@ -121,7 +121,7 @@ export function useDashboardDataRefresh(config: DashboardRefreshConfig): Dashboa
         if (mountedRef.current) {
           const refreshTime = new Date();
           setLastRefreshedAt(refreshTime);
-          console.log(`[DashboardRefresh:${dashboardId}] ✅ Refresh concluído`);
+          if (import.meta.env.DEV) console.log(`[DashboardRefresh:${dashboardId}] ✅ Refresh concluído`);
         }
       } finally {
         if (mountedRef.current) {

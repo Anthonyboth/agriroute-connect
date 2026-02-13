@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getFreightStatusLabel } from '@/lib/freight-status';
 import { format, differenceInHours } from 'date-fns';
+import { devLog } from '@/lib/devLogger';
 
 interface DeliveryConfirmationModalProps {
   freight: {
@@ -23,7 +24,6 @@ interface DeliveryConfirmationModalProps {
       full_name: string;
       contact_phone: string;
     };
-    // ✅ P0 FIX: Suporte a confirmação individual
     profiles?: {
       id: string;
       full_name: string;
@@ -50,29 +50,20 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ✅ P0 FIX: Detectar se é confirmação individual (multi-carreta)
   const isIndividualConfirmation = Boolean(freight._isIndividualConfirmation && freight._assignmentId);
   const assignmentId = freight._assignmentId;
-  
-  // Unificar dados do motorista (profiles ou driver)
   const driverName = freight.profiles?.full_name || freight.driver?.full_name || 'Motorista';
 
-  // Debug do frete recebido
-  console.log('DeliveryConfirmationModal - freight recebido:', {
+  devLog('DeliveryConfirmationModal - freight recebido:', {
     id: freight.id,
     status: freight.status,
-    metadata: freight.metadata,
-    updated_at: freight.updated_at,
     isIndividualConfirmation,
     assignmentId,
     driverName
   });
 
   const confirmDelivery = async () => {
-    console.log('=== INICIANDO CONFIRMAÇÃO DE ENTREGA ===');
-    console.log('Freight ID:', freight.id);
-    console.log('Is Individual:', isIndividualConfirmation);
-    console.log('Assignment ID:', assignmentId);
+    devLog('=== INICIANDO CONFIRMAÇÃO DE ENTREGA ===', { freightId: freight.id, isIndividualConfirmation, assignmentId });
     
     setLoading(true);
     try {
@@ -80,8 +71,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
       let rpcError: any;
 
       if (isIndividualConfirmation && assignmentId) {
-        // ✅ P0 FIX: Usar RPC de confirmação INDIVIDUAL para multi-carreta
-        console.log('Usando RPC confirm_delivery_individual para assignment:', assignmentId);
+        devLog('Usando RPC confirm_delivery_individual para assignment:', assignmentId);
         const response = await supabase.rpc('confirm_delivery_individual', {
           p_assignment_id: assignmentId,
           p_notes: notes || null
@@ -89,8 +79,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
         result = response.data;
         rpcError = response.error;
       } else {
-        // Usar RPC tradicional para fretes simples
-        console.log('Usando RPC confirm_delivery para freight:', freight.id);
+        devLog('Usando RPC confirm_delivery para freight:', freight.id);
         const response = await supabase.rpc('confirm_delivery', {
           freight_id_param: freight.id
         });
@@ -98,7 +87,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
         rpcError = response.error;
       }
 
-      console.log('Resultado da confirmação:', result, rpcError);
+      devLog('Resultado da confirmação:', result, rpcError);
 
       if (rpcError) {
         console.error('Erro na RPC:', rpcError);
@@ -110,18 +99,15 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
         throw new Error(response?.message || 'Erro desconhecido');
       }
       
-      console.log('=== ENTREGA CONFIRMADA COM SUCESSO ===', response);
+      devLog('=== ENTREGA CONFIRMADA COM SUCESSO ===', response);
 
-      // Mensagem customizada para multi-carreta
       const isPartialDelivery = response.all_delivered === false;
       toast({
         title: isPartialDelivery ? "Entrega parcial confirmada!" : "Entrega confirmada!",
         description: response.message || "O frete foi atualizado com sucesso.",
       });
       
-      // 🔔 Enviar notificação ao motorista
       try {
-        // Buscar motoristas do assignment confirmado
         const { data: assignments } = await supabase
           .from('freight_assignments')
           .select('driver_id')
@@ -139,13 +125,12 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
               data: { freight_id: freight.id }
             });
           }
-          console.log('[DeliveryConfirmationModal] 🔔 Notificações enviadas aos motoristas');
+          devLog('[DeliveryConfirmationModal] 🔔 Notificações enviadas aos motoristas');
         }
       } catch (notifyError) {
         console.error('[DeliveryConfirmationModal] ⚠️ Erro ao enviar notificação (não bloqueante):', notifyError);
       }
       
-      // Invalidar queries para atualização reativa
       await queryClient.invalidateQueries({ queryKey: ['freights'] });
       await queryClient.invalidateQueries({ queryKey: ['pending-delivery-confirmation'] });
       await queryClient.invalidateQueries({ queryKey: ['completed-freights'] });
@@ -167,7 +152,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
 
   const getTimeRemaining = () => {
     if (!freight.metadata?.confirmation_deadline) {
-      console.log('Sem deadline definido no metadata:', freight.metadata);
+      devLog('Sem deadline definido no metadata');
       return null;
     }
     
@@ -175,12 +160,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
     const now = new Date();
     const hoursRemaining = differenceInHours(deadline, now);
     
-    console.log('Cálculo de tempo:', {
-      deadline: freight.metadata.confirmation_deadline,
-      deadlineDate: deadline,
-      now,
-      hoursRemaining
-    });
+    devLog('Cálculo de tempo:', { deadline: freight.metadata.confirmation_deadline, hoursRemaining });
     
     return {
       hours: Math.max(0, hoursRemaining),

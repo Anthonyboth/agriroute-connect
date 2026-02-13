@@ -144,7 +144,7 @@ export const useTripProgress = () => {
     
     // Evita chamadas duplicadas
     if (lockRef.current.has(lockKey)) {
-      console.log('[useTripProgress] Chamada duplicada bloqueada:', lockKey);
+      if (import.meta.env.DEV) console.log('[useTripProgress] Chamada duplicada bloqueada:', lockKey);
       return { success: true, message: 'Operação já em andamento' };
     }
     
@@ -173,7 +173,7 @@ export const useTripProgress = () => {
     setLastError(null);
 
     try {
-      console.log('[useTripProgress] Atualizando progresso:', { freightId, newStatus });
+      if (import.meta.env.DEV) console.log('[useTripProgress] Atualizando progresso:', { freightId, newStatus });
       
       // Chamar a RPC dedicada (que também valida no servidor)
       const { data, error } = await supabase.rpc('update_trip_progress', {
@@ -212,7 +212,7 @@ export const useTripProgress = () => {
         return { success: false, message: response.message || response.error || 'Erro' };
       }
 
-      console.log('[useTripProgress] Progresso atualizado com sucesso:', response);
+      if (import.meta.env.DEV) console.log('[useTripProgress] Progresso atualizado com sucesso:', response);
       
       // Invalidar queries relacionadas para atualizar UI
       await Promise.all([

@@ -106,12 +106,12 @@ class GlobalErrorBoundary extends Component<Props, State> {
     
     // Check if this is a recoverable chunk loading error AND we haven't exceeded attempts
     if (isChunkLoadError(error) && sessionRecoveryCount < this.MAX_AUTO_RECOVERY) {
-      console.log('🔄 Detected chunk loading error, attempting auto-recovery... (attempt', sessionRecoveryCount + 1, ')');
+      if (import.meta.env.DEV) console.log('🔄 Detected chunk loading error, attempting auto-recovery... (attempt', sessionRecoveryCount + 1, ')');
       incrementRecoveryCount();
       this.attemptAutoRecovery();
     } else {
       if (sessionRecoveryCount >= this.MAX_AUTO_RECOVERY) {
-        console.log('⛔ Max recovery attempts reached, showing error UI');
+        if (import.meta.env.DEV) console.log('⛔ Max recovery attempts reached, showing error UI');
       }
       // Send to error monitoring service (if available)
       this.reportError(error, errorInfo);
@@ -135,7 +135,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
-        console.log('✅ Cleared browser caches');
+        if (import.meta.env.DEV) console.log('✅ Cleared browser caches');
       }
       
       // Small delay before reload

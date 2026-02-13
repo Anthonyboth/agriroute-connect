@@ -79,7 +79,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       setError(null);
 
       // 1. Buscar fretes do produtor (IDs apenas)
-      console.log('[usePendingDeliveryConfirmations] Buscando fretes para producerId:', producerId);
+      if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Buscando fretes para producerId:', producerId);
       
       const { data: producerFreights, error: freightsErr } = await supabase
         .from('freights')
@@ -91,7 +91,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         throw freightsErr;
       }
 
-      console.log('[usePendingDeliveryConfirmations] Fretes encontrados:', producerFreights?.length || 0, producerFreights?.map(f => f.id));
+      if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Fretes encontrados:', producerFreights?.length || 0);
 
       if (!producerFreights?.length) {
         console.warn('[usePendingDeliveryConfirmations] Nenhum frete encontrado para o produtor');
@@ -101,7 +101,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       }
 
       const freightIds = producerFreights.map(f => f.id);
-      console.log('[usePendingDeliveryConfirmations] Buscando assignments para freights:', freightIds);
+      if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Buscando assignments para', freightIds.length, 'freights');
 
       // 2. Buscar atribuições com status DELIVERED_PENDING_CONFIRMATION
       const { data: assignments, error: assignErr } = await supabase
@@ -119,7 +119,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         .in('freight_id', freightIds)
         .eq('status', 'DELIVERED_PENDING_CONFIRMATION');
 
-      console.log('[usePendingDeliveryConfirmations] Assignments encontradas:', assignments?.length || 0, assignments);
+      if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Assignments encontradas:', assignments?.length || 0);
 
       if (assignErr) {
         console.error('[usePendingDeliveryConfirmations] Erro ao buscar atribuições:', assignErr);
@@ -143,7 +143,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
         .in('freight_id', freightIds)
         .eq('current_status', 'DELIVERED_PENDING_CONFIRMATION');
 
-      console.log('[usePendingDeliveryConfirmations] TripProgress encontrados:', tripProgress?.length || 0, tripProgress);
+      if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] TripProgress encontrados:', tripProgress?.length || 0);
 
       if (tripErr) {
         console.warn('[usePendingDeliveryConfirmations] Erro ao buscar trip_progress:', tripErr);
@@ -231,13 +231,13 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       // Remover do pendingMap os que já têm pagamento (entrega já confirmada)
       for (const [key] of pendingMap) {
         if (confirmedSet.has(key)) {
-          console.log(`[usePendingDeliveryConfirmations] Removendo ${key} - pagamento já existe (entrega confirmada)`);
+          if (import.meta.env.DEV) console.log(`[usePendingDeliveryConfirmations] Removendo ${key} - pagamento já existe`);
           pendingMap.delete(key);
         }
       }
 
       if (pendingMap.size === 0) {
-        console.log('[usePendingDeliveryConfirmations] Todas as entregas já foram confirmadas');
+        if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Todas as entregas já foram confirmadas');
         setItems([]);
         setLoading(false);
         return;
@@ -390,7 +390,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
       // Ordenar por urgência (mais urgentes primeiro)
       finalItems.sort((a, b) => a.deliveryDeadline.hoursRemaining - b.deliveryDeadline.hoursRemaining);
 
-      console.log(`[usePendingDeliveryConfirmations] ✅ Encontradas ${finalItems.length} entregas pendentes de confirmação`);
+      if (import.meta.env.DEV) console.log(`[usePendingDeliveryConfirmations] ✅ ${finalItems.length} entregas pendentes de confirmação`);
       setItems(finalItems);
 
     } catch (err: any) {
@@ -423,7 +423,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
           filter: `status=eq.DELIVERED_PENDING_CONFIRMATION`,
         },
         () => {
-          console.log('[usePendingDeliveryConfirmations] Atualização em freight_assignments detectada');
+          if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Atualização em freight_assignments detectada');
           fetchPendingDeliveries();
         }
       )
@@ -449,7 +449,7 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
             statusNew === 'DELIVERED_PENDING_CONFIRMATION' ||
             statusOld === 'DELIVERED_PENDING_CONFIRMATION'
           ) {
-            console.log('[usePendingDeliveryConfirmations] Atualização relevante em driver_trip_progress detectada');
+            if (import.meta.env.DEV) console.log('[usePendingDeliveryConfirmations] Atualização relevante em driver_trip_progress');
             fetchPendingDeliveries();
           }
         }

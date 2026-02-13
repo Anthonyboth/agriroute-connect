@@ -88,21 +88,21 @@ export function useIdempotentAction<T = any>(
   const execute = useCallback(async (...args: any[]): Promise<T | undefined> => {
     // Verificar se já está executando (local)
     if (executingRef.current) {
-      console.log('[useIdempotentAction] Bloqueado: ação já em execução');
+      if (import.meta.env.DEV) console.log('[useIdempotentAction] Bloqueado: ação já em execução');
       onBlocked?.();
       return undefined;
     }
 
     // Verificar se já está executando (global)
     if (actionId && globalExecutingActions.has(actionId)) {
-      console.log('[useIdempotentAction] Bloqueado: ação global em execução');
+      if (import.meta.env.DEV) console.log('[useIdempotentAction] Bloqueado: ação global em execução');
       onBlocked?.();
       return undefined;
     }
 
     // Verificar cooldown (local)
     if (cooldownEndRef.current > Date.now()) {
-      console.log('[useIdempotentAction] Bloqueado: em cooldown');
+      if (import.meta.env.DEV) console.log('[useIdempotentAction] Bloqueado: em cooldown');
       onBlocked?.();
       return undefined;
     }
@@ -111,7 +111,7 @@ export function useIdempotentAction<T = any>(
     if (actionId) {
       const globalCooldownEnd = globalCooldowns.get(actionId);
       if (globalCooldownEnd && globalCooldownEnd > Date.now()) {
-        console.log('[useIdempotentAction] Bloqueado: cooldown global');
+        if (import.meta.env.DEV) console.log('[useIdempotentAction] Bloqueado: cooldown global');
         onBlocked?.();
         return undefined;
       }

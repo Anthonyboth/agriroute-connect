@@ -83,7 +83,7 @@ export const CompanyActiveFreights: React.FC = () => {
         .map(d => d?.driver_profile_id)
         .filter((id): id is string => Boolean(id));
       
-      console.log('[CompanyActiveFreights] affiliatedDriverIds:', affiliatedDriverIds);
+      if (import.meta.env.DEV) console.log('[CompanyActiveFreights] affiliatedDriverIds:', affiliatedDriverIds);
 
       // Construir filtro OR dinâmico
       const orFilters: string[] = [`company_id.eq.${company.id}`];

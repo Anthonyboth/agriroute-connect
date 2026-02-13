@@ -55,7 +55,7 @@ export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
 
     setUploading(true);
     try {
-      console.log('📤 Iniciando upload da foto de perfil...');
+      if (import.meta.env.DEV) console.log('📤 Iniciando upload da foto de perfil...');
       
       // Extrair extensão do arquivo
       const fileExt = file.name.split('.').pop() || 'jpg';
@@ -70,14 +70,14 @@ export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
       
       if ('error' in result) {
         if (result.error === 'AUTH_EXPIRED') {
-          console.log('🔄 Sessão expirada, redirecionando...');
+          if (import.meta.env.DEV) console.log('🔄 Sessão expirada, redirecionando...');
           return; // Já está redirecionando para login
         }
         console.error('❌ Erro no upload:', result.error);
         throw new Error(result.error);
       }
 
-      console.log('✅ Foto de perfil enviada com sucesso!');
+      if (import.meta.env.DEV) console.log('✅ Foto de perfil enviada com sucesso!');
       setPhotoUrl(result.publicUrl);
       onUploadComplete(result.publicUrl);
       toast.success('Foto de perfil atualizada com sucesso!');

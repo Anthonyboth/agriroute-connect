@@ -47,7 +47,7 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
         console.error('[DriverSettings] Erro ao buscar permissões:', error);
         throw error;
       }
-      console.log('[DriverSettings] Permissões carregadas:', data);
+      if (import.meta.env.DEV) console.log('[DriverSettings] Permissões carregadas:', data);
       return data;
     },
   });

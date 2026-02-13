@@ -328,9 +328,7 @@ const CompleteProfile = () => {
   };
 
   const finalizeProfile = async () => {
-    console.log('🚀 Iniciando finalização do perfil...');
-    console.log('📋 Dados do perfil:', profileData);
-    console.log('📄 URLs dos documentos:', documentUrls);
+    if (import.meta.env.DEV) console.log('🚀 Iniciando finalização do perfil...', { profileData, documentUrls });
 
     // Validação final de selfie
     if (!documentUrls.selfie) {
@@ -410,7 +408,7 @@ const CompleteProfile = () => {
         };
       }
 
-      console.log('💾 Salvando no banco de dados:', updateData);
+      if (import.meta.env.DEV) console.log('💾 Salvando no banco de dados');
 
       const { error } = await supabase
         .from('profiles')
@@ -422,17 +420,16 @@ const CompleteProfile = () => {
         throw error;
       }
       
-      console.log('✅ Perfil salvo com sucesso!');
+      if (import.meta.env.DEV) console.log('✅ Perfil salvo com sucesso!');
 
-      // Trigger automatic approval process and wait for result
-      console.log('🤖 Iniciando aprovação automática...');
+      if (import.meta.env.DEV) console.log('🤖 Iniciando aprovação automática...');
       const approvalResult = await AutomaticApprovalService.triggerApprovalProcess(profile.id);
       
       if (approvalResult?.approved) {
-        console.log('✅ Perfil aprovado automaticamente!');
+        if (import.meta.env.DEV) console.log('✅ Perfil aprovado automaticamente!');
         toast.success('Perfil completado e aprovado! Bem-vindo(a) ao AgriRoute Connect.');
       } else {
-        console.log('⏳ Perfil em análise manual');
+        if (import.meta.env.DEV) console.log('⏳ Perfil em análise manual');
         toast.success('Perfil completado! Você já pode acessar a plataforma.');
       }
       
@@ -562,7 +559,7 @@ const CompleteProfile = () => {
         const fullName = (meta?.full_name || meta?.name || '').toString();
         const phone = (meta?.phone || '').toString();
 
-        console.log('[CompleteProfile] Criando perfil via RPC...', { role, hasDocument: !!document });
+        if (import.meta.env.DEV) console.log('[CompleteProfile] Criando perfil via RPC...', { role, hasDocument: !!document });
 
         const { data: rpcResult, error: rpcError } = await supabase.rpc('create_additional_profile', {
           p_user_id: user.id,
@@ -577,7 +574,7 @@ const CompleteProfile = () => {
         }
 
         const result = rpcResult as any;
-        console.log('[CompleteProfile] RPC result:', result);
+        if (import.meta.env.DEV) console.log('[CompleteProfile] RPC result:', result);
         
         if (!result?.success) {
           toast.error(result?.message || 'Não foi possível finalizar seu cadastro.');
@@ -595,7 +592,7 @@ const CompleteProfile = () => {
         let profileFound = false;
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          console.log(`[CompleteProfile] Tentativa ${attempt}/${maxRetries} de carregar perfil...`);
+          if (import.meta.env.DEV) console.log(`[CompleteProfile] Tentativa ${attempt}/${maxRetries} de carregar perfil...`);
           
           // Limpar cache para forçar busca fresca
           try {
@@ -617,7 +614,7 @@ const CompleteProfile = () => {
               .limit(1);
             
             if (directCheck && directCheck.length > 0) {
-              console.log('[CompleteProfile] ✅ Perfil encontrado no banco, forçando reload...');
+              if (import.meta.env.DEV) console.log('[CompleteProfile] ✅ Perfil encontrado no banco, forçando reload...');
               profileFound = true;
               // Forçar um reload completo para garantir que o estado seja atualizado
               window.location.reload();

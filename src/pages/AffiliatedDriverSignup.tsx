@@ -376,7 +376,7 @@ const AffiliatedDriverSignup = () => {
           
           if (result.success && result.signedUrl) {
             selfieUrl = result.signedUrl;
-            console.log('✅ Selfie uploaded successfully:', selfieUrl);
+            if (import.meta.env.DEV) console.log('✅ Selfie uploaded successfully');
           } else if (result.error) {
             console.error('⚠️ Erro ao fazer upload da selfie:', result.error);
             toast.message('Selfie não foi enviada', {
@@ -412,7 +412,7 @@ const AffiliatedDriverSignup = () => {
             .from('profile-photos')
             .getPublicUrl(fileName);
           
-          console.log(`✅ ${fileType} uploaded:`, publicUrl);
+          if (import.meta.env.DEV) console.log(`✅ ${fileType} uploaded`);
           return publicUrl;
         } catch (err) {
           console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, err);
