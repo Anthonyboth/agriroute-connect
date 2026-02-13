@@ -51,7 +51,7 @@ export default function InspectionView() {
     try {
       await logInspectionAccessClient(qrHash, granted, reason);
       setAccessLogged(true);
-      console.log('[InspectionView] Access logged (LGPD compliant)');
+      if (import.meta.env.DEV) console.log('[InspectionView] Access logged (LGPD compliant)');
     } catch (err) {
       console.error('[InspectionView] Failed to log access:', err);
     }

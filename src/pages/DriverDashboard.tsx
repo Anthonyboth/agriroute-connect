@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -374,7 +375,7 @@ const DriverDashboard = () => {
     // Don't fetch if user is not a driver
     if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
-    console.log('[fetchAvailableFreights] isCompanyDriver:', isCompanyDriver, 'canAcceptFreights:', canAcceptFreights, 'companyId:', companyId);
+    devLog('[fetchAvailableFreights] isCompanyDriver:', isCompanyDriver, 'canAcceptFreights:', canAcceptFreights, 'companyId:', companyId);
 
     try {
       let companyFreights: Freight[] = [];
@@ -382,7 +383,7 @@ const DriverDashboard = () => {
 
       // Se é motorista de empresa SEM permissão de aceitar fretes: buscar APENAS fretes da transportadora
       if (isCompanyDriver && companyId && !canAcceptFreights) {
-        console.log('[fetchAvailableFreights] Motorista de empresa SEM canAcceptFreights → apenas fretes da transportadora');
+        devLog('[fetchAvailableFreights] Motorista de empresa SEM canAcceptFreights → apenas fretes da transportadora');
         const { data, error } = await supabase
           .from('freights')
           .select('*')
@@ -408,7 +409,7 @@ const DriverDashboard = () => {
           service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined
         }));
 
-        console.log('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
+        devLog('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
         if (isMountedRef.current) setAvailableFreights(companyFreights);
         return;
       }
@@ -431,7 +432,7 @@ const DriverDashboard = () => {
       if (spatialError) {
         console.warn('[fetchAvailableFreights] ⚠️ Erro no matching espacial:', spatialError);
       } else {
-        console.log('[fetchAvailableFreights] ✅ Matching espacial retornou:', spatialData);
+        devLog('[fetchAvailableFreights] ✅ Matching espacial retornou:', spatialData);
       }
 
       // 1️⃣ PRIORIDADE: Usar fretes do matching espacial imediatamente
@@ -455,7 +456,7 @@ const DriverDashboard = () => {
             accepted_trucks: f.accepted_trucks || 0,
             required_trucks: f.required_trucks || 1
           }));
-        console.log('[fetchAvailableFreights] 📦 Fretes do matching espacial:', platformFreights.length);
+        devLog('[fetchAvailableFreights] 📦 Fretes do matching espacial:', platformFreights.length);
       }
 
       // 2️⃣ TENTAR RPC: Se funcionar, combinar com espacial (deduplicar)
@@ -468,7 +469,7 @@ const DriverDashboard = () => {
         console.warn('[fetchAvailableFreights] ⚠️ RPC falhou (não bloqueante):', rpcError);
         // Continuar com os fretes do matching espacial
       } else if (freights && Array.isArray(freights)) {
-        console.log('[fetchAvailableFreights] ✅ RPC retornou:', freights.length, 'fretes');
+        devLog('[fetchAvailableFreights] ✅ RPC retornou:', freights.length, 'fretes');
         const rpcFreights = freights
           .filter((f: any) => (f.accepted_trucks || 0) < (f.required_trucks || 1))
           .map((f: any) => ({
@@ -498,12 +499,12 @@ const DriverDashboard = () => {
           }
         });
         platformFreights = Array.from(uniqueMap.values());
-        console.log('[fetchAvailableFreights] 🔀 Após combinar spatial + RPC:', platformFreights.length);
+        devLog('[fetchAvailableFreights] 🔀 Após combinar spatial + RPC:', platformFreights.length);
       }
 
       // 3️⃣ FALLBACK: Se ainda vazio, buscar por user_cities
       if (platformFreights.length === 0) {
-        console.log('[fetchAvailableFreights] 🔄 Usando fallback por cidades');
+        devLog('[fetchAvailableFreights] 🔄 Usando fallback por cidades');
         try {
           const { data: userRes } = await supabase.auth.getUser();
           const userId = userRes?.user?.id;
@@ -524,7 +525,7 @@ const DriverDashboard = () => {
           })).filter((c: any) => c.city && c.state);
 
           if (cityIds.length === 0 && cityNames.length === 0) {
-            console.log('[fetchAvailableFreights] ℹ️ Sem cidades configuradas');
+            devLog('[fetchAvailableFreights] ℹ️ Sem cidades configuradas');
             if (isMountedRef.current) setAvailableFreights([]);
             return;
           }
@@ -548,7 +549,7 @@ const DriverDashboard = () => {
 
           // Fallback secundário: buscar por nome/estado se não achou por ID
           if (freightsByCity.length === 0 && cityNames.length > 0) {
-            console.log('[fetchAvailableFreights] 🔄 Fallback: busca por nome/estado');
+            devLog('[fetchAvailableFreights] 🔄 Fallback: busca por nome/estado');
             
             const orConditions: string[] = [];
             for (const { city, state } of cityNames) {
@@ -591,7 +592,7 @@ const DriverDashboard = () => {
             required_trucks: f.required_trucks || 1
           }));
 
-          console.log('[fetchAvailableFreights] 📦 Fretes da plataforma (fallback):', platformFreights.length);
+          devLog('[fetchAvailableFreights] 📦 Fretes da plataforma (fallback):', platformFreights.length);
         } catch (fbErr) {
           console.error('[fetchAvailableFreights] ❌ Fallback por cidades falhou:', fbErr);
           if (isMountedRef.current) toast.error('Erro ao carregar fretes. Tente novamente.');
@@ -600,7 +601,7 @@ const DriverDashboard = () => {
 
       // Se também é motorista de empresa COM permissão: buscar fretes da transportadora e combinar
       if (isCompanyDriver && companyId && canAcceptFreights) {
-        console.log('[fetchAvailableFreights] Motorista de empresa COM canAcceptFreights → combinando fretes');
+        devLog('[fetchAvailableFreights] Motorista de empresa COM canAcceptFreights → combinando fretes');
         const { data, error: companyError } = await supabase
           .from('freights')
           .select('*')
@@ -626,7 +627,7 @@ const DriverDashboard = () => {
             minimum_antt_price: f.minimum_antt_price,
             service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined
           }));
-          console.log('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
+          devLog('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
         }
       }
 
@@ -639,7 +640,7 @@ const DriverDashboard = () => {
         }
       });
       const finalFreights = Array.from(uniqueMap.values());
-      console.log('[fetchAvailableFreights] Total após deduplicação:', finalFreights.length);
+      devLog('[fetchAvailableFreights] Total após deduplicação:', finalFreights.length);
 
       if (isMountedRef.current) setAvailableFreights(finalFreights);
     } catch (error) {

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { devLog } from '@/lib/devLogger';
 
 interface SendPushNotificationParams {
   userIds: string[];
@@ -23,7 +24,7 @@ export const sendPushNotification = async ({
   requireInteraction = false
 }: SendPushNotificationParams): Promise<boolean> => {
   try {
-    console.log('[PushNotificationService] Enviando push:', { userIds, title, type });
+    devLog('[PushNotificationService] Enviando push:', { userIds, title, type });
     
     const { data: result, error } = await supabase.functions.invoke('send-push-notification', {
       body: {
@@ -43,7 +44,7 @@ export const sendPushNotification = async ({
       return false;
     }
 
-    console.log('[PushNotificationService] ✅ Push enviado:', result);
+    devLog('[PushNotificationService] ✅ Push enviado:', result);
     return true;
   } catch (error) {
     console.error('[PushNotificationService] ❌ Exceção:', error);
@@ -102,7 +103,7 @@ export const sendProposalChatPush = async (
       : proposal.driver_id;  // Se produtor enviou, notifica motorista
 
     if (!recipientId) {
-      console.log('[ProposalChatPush] Sem destinatário válido');
+      devLog('[ProposalChatPush] Sem destinatário válido');
       return;
     }
 
@@ -135,7 +136,7 @@ export const sendProposalChatPush = async (
       requireInteraction: false
     });
 
-    console.log('[ProposalChatPush] ✅ Push enviado para chat de proposta');
+    devLog('[ProposalChatPush] ✅ Push enviado para chat de proposta');
   } catch (error) {
     console.error('[ProposalChatPush] ❌ Erro:', error);
   }
@@ -158,11 +159,11 @@ export const sendCompanyPushNotification = async (
   }
 ) => {
   try {
-    console.log('[CompanyPush] Enviando notificação para transportadora:', type, companyId);
+    devLog('[CompanyPush] Enviando notificação para transportadora:', type, companyId);
     
     // Por enquanto, buscar todos os usuários da transportadora
     // TODO: Implementar lógica correta após verificar estrutura da tabela
-    console.log('[CompanyPush] ⚠️ Função em desenvolvimento - verificar estrutura company_drivers');
+    devLog('[CompanyPush] ⚠️ Função em desenvolvimento - verificar estrutura company_drivers');
     
   } catch (error) {
     console.error('[CompanyPush] ❌ Erro:', error);

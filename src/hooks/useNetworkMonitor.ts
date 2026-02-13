@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { toast } from '@/hooks/use-toast';
 
 interface NetworkState {
@@ -128,7 +129,7 @@ export function useNetworkMonitor(options: NetworkMonitorOptions = {}) {
       }
     } catch (error) {
       // Ignorar erros de ping - pode ser endpoint inexistente
-      console.log('[useNetworkMonitor] Ping falhou:', error);
+      devLog('[useNetworkMonitor] Ping falhou:', error);
     }
   }, [pingUrl, slowThresholdMs, showToasts, onSlowConnection]);
 

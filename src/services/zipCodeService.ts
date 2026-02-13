@@ -33,14 +33,14 @@ export class ZipCodeService {
     // 1. Buscar no cache local
     const cachedResult = await this.getFromLocalCache(normalizedZip);
     if (cachedResult) {
-      console.log('✅ CEP encontrado no cache local:', normalizedZip);
+      if (import.meta.env.DEV) console.log('✅ CEP encontrado no cache local:', normalizedZip);
       return cachedResult;
     }
 
     // 2. Buscar no cache Supabase
     const supabaseCached = await this.getFromSupabaseCache(normalizedZip);
     if (supabaseCached) {
-      console.log('✅ CEP encontrado no cache Supabase:', normalizedZip);
+      if (import.meta.env.DEV) console.log('✅ CEP encontrado no cache Supabase:', normalizedZip);
       await this.saveToLocalCache(supabaseCached);
       return supabaseCached;
     }

@@ -82,7 +82,7 @@ export async function ensureAuthBeforeAction(actionName: string): Promise<boolea
         return false;
       }
       
-      console.log(`[Auth] ${actionName}: Sessão renovada`);
+      if (import.meta.env.DEV) console.log(`[Auth] ${actionName}: Sessão renovada`);
       return true;
     }
     

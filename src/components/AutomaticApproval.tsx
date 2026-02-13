@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { devLog } from '@/lib/devLogger';
 import { validateDocument } from '@/utils/cpfValidator';
 
 interface DocumentValidation {
@@ -82,7 +83,7 @@ export class AutomaticApprovalService {
 
       // PRODUTOR e TRANSPORTADORA são aprovados automaticamente sem validação rigorosa
       if (isAutoApproveRole) {
-        console.log(`🚀 Auto-aprovação direta para role: ${profile.role}`);
+        devLog(`🚀 Auto-aprovação direta para role: ${profile.role}`);
         
         // Atualizar status do profile para APPROVED
         const { error: profileUpdateError } = await supabase
@@ -97,12 +98,12 @@ export class AutomaticApprovalService {
         if (profileUpdateError) {
           console.error('ERRO ao atualizar status do perfil (auto-approve):', profileUpdateError);
         } else {
-          console.log('✅ Profile atualizado para APPROVED');
+          devLog('✅ Profile atualizado para APPROVED');
         }
         
         // ✅ CRÍTICO: Se for TRANSPORTADORA, também atualizar transport_companies para APPROVED
         if (profile.role === 'TRANSPORTADORA') {
-          console.log('📦 Atualizando transport_companies para APPROVED...');
+          devLog('📦 Atualizando transport_companies para APPROVED...');
           const { error: companyUpdateError } = await supabase
             .from('transport_companies')
             .update({
@@ -114,7 +115,7 @@ export class AutomaticApprovalService {
           if (companyUpdateError) {
             console.error('ERRO ao atualizar transport_companies:', companyUpdateError);
           } else {
-            console.log('✅ Transport company atualizada para APPROVED');
+            devLog('✅ Transport company atualizada para APPROVED');
           }
         }
         
@@ -178,7 +179,7 @@ export class AutomaticApprovalService {
             errors: [`${docField} não fornecido`]
           };
           allMandatoryValid = false;
-          console.log(`Mandatory document missing: ${docField}`);
+          devLog(`Mandatory document missing: ${docField}`);
         } else {
           const validation = await this.validateDocumentImage(docUrl, docField);
           validationResults[docField] = validation;
@@ -187,7 +188,7 @@ export class AutomaticApprovalService {
           if (!validation.isValid) {
             allMandatoryValid = false;
           }
-          console.log(`✓ Mandatory document validated: ${docField} - valid: ${validation.isValid}`);
+          devLog(`✓ Mandatory document validated: ${docField} - valid: ${validation.isValid}`);
         }
       }
 
@@ -199,9 +200,9 @@ export class AutomaticApprovalService {
           validationResults[docField] = validation;
           totalScore += validation.confidence;
           validatedCount++;
-          console.log(`✓ Optional document validated: ${docField} - valid: ${validation.isValid}`);
+          devLog(`✓ Optional document validated: ${docField} - valid: ${validation.isValid}`);
         } else {
-          console.log(`Optional document not provided: ${docField} (not penalized)`);
+          devLog(`Optional document not provided: ${docField} (not penalized)`);
         }
       }
 
@@ -209,7 +210,7 @@ export class AutomaticApprovalService {
       // Aprovação requer CPF válido + (todos documentos válidos OU score >= 50%)
       const approved = cpfValid && (allMandatoryValid || finalScore >= this.APPROVAL_SCORE_THRESHOLD);
 
-      console.log(`🔍 Approval decision for ${profileId}:`, { 
+      devLog(`🔍 Approval decision for ${profileId}:`, { 
         approved, 
         cpfValid, 
         allMandatoryValid, 
@@ -229,7 +230,7 @@ export class AutomaticApprovalService {
           } : {})
         };
         
-        console.log('💾 Atualizando status do perfil para APPROVED:', statusUpdate);
+        devLog('💾 Atualizando status do perfil para APPROVED:', statusUpdate);
         
         const { error: updateError } = await supabase
           .from('profiles')

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -104,7 +105,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (expiresIn < 120) {
         // Token quase expirando, fazer refresh
-        console.log('[SubscriptionContext] Token expiring soon, refreshing...');
+        devLog('[SubscriptionContext] Token expiring soon, refreshing...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         if (refreshError || !refreshData.session) {
           console.warn('[SubscriptionContext] Failed to refresh expiring token');
@@ -151,12 +152,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
                                  data?.code === 'SESSION_EXPIRED';
           
           if (isSessionError && attempt < maxRetries - 1) {
-            console.log('[SubscriptionContext] Session expired, forcing refresh...');
+            devLog('[SubscriptionContext] Session expired, forcing refresh...');
             // Forçar refresh da sessão
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
             if (!refreshError && refreshData.session) {
-              console.log('[SubscriptionContext] Session refreshed, retrying...');
+              devLog('[SubscriptionContext] Session refreshed, retrying...');
               await new Promise(resolve => setTimeout(resolve, 300));
               continue; // Retry com novo token
             }
@@ -191,7 +192,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         // Se for 401 e ainda temos tentativas, retry
         const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
         if (status === 401 && attempt < maxRetries - 1) {
-          console.log('[SubscriptionContext] Got 401, will retry after refresh...');
+          devLog('[SubscriptionContext] Got 401, will retry after refresh...');
           await new Promise(resolve => setTimeout(resolve, 500));
           continue;
         }

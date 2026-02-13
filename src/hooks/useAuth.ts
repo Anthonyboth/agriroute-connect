@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
@@ -95,7 +96,7 @@ const useAuthInternal = () => {
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
     // ✅ FIX: Quando force=true, limpar TODOS os gates e cooldowns primeiro
     if (force) {
-      console.log('[useAuth] 🔄 Force refresh solicitado, limpando gates...');
+      devLog('[useAuth] 🔄 Force refresh solicitado, limpando gates...');
       try {
         sessionStorage.removeItem('profile_fetch_cooldown_until');
         clearCachedProfile(userId);
@@ -340,7 +341,7 @@ const useAuthInternal = () => {
         
         // ✅ P0 HOTFIX: NÃO chamar create_additional_profile automaticamente
         // A criação de perfil deve ser iniciada explicitamente pelo usuário via Auth.tsx
-        console.log('[useAuth] Nenhum perfil encontrado - usuário pode criar via cadastro');
+        devLog('[useAuth] Nenhum perfil encontrado - usuário pode criar via cadastro');
         setLoading(false);
       }
     } catch (error) {

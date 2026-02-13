@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, MutableRefObject, useCallback } from 'react';
+import { devLog } from '@/lib/devLogger';
 import maplibregl from 'maplibre-gl';
 import { useOSRMRoute, RoutePoint, OSRMRouteResult } from './useOSRMRoute';
 
@@ -171,7 +172,7 @@ export function useMapLibreRoute(
 
     hasAddedLayerRef.current = true;
 
-    console.log('[useMapLibreRoute] Route drawn:', {
+    devLog('[useMapLibreRoute] Route drawn:', {
       layerId,
       points: route.coordinates.length,
       distance: route.distanceText,

@@ -1,4 +1,5 @@
 export function logAuthState() {
+  if (!import.meta.env.DEV) return;
   console.group('🔐 Estado de Autenticação');
   
   const hasToken = !!localStorage.getItem('sb-shnvtxejjecbnztdbbbl-auth-token');
@@ -20,5 +21,5 @@ export function clearAllAuthData() {
   localStorage.clear();
   sessionStorage.clear();
   
-  console.log('✅ Dados limpos. Recarregue a página e faça login novamente.');
+  if (import.meta.env.DEV) console.log('✅ Dados limpos. Recarregue a página e faça login novamente.');
 }

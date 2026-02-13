@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -53,7 +54,7 @@ export const CompanyDriversMap = () => {
   useEffect(() => {
     if (!company?.id) return;
     
-    console.log('[CompanyDriversMap] Iniciando subscription para company:', company.id);
+    devLog('[CompanyDriversMap] Iniciando subscription para company:', company.id);
     
     const channel = supabase
       .channel(`company-tracking-${company.id}`)
@@ -63,7 +64,7 @@ export const CompanyDriversMap = () => {
         table: 'affiliated_drivers_tracking',
         filter: `company_id=eq.${company.id}`
       }, (payload) => {
-        console.log('[CompanyDriversMap] Realtime update:', payload);
+        devLog('[CompanyDriversMap] Realtime update:', payload);
         
         // Atualizar estado com nova localização
         setDriversTracking(prev => {
@@ -87,7 +88,7 @@ export const CompanyDriversMap = () => {
       .subscribe();
     
     return () => {
-      console.log('[CompanyDriversMap] Desinscrever subscription');
+      devLog('[CompanyDriversMap] Desinscrever subscription');
       channel.unsubscribe();
     };
   }, [company?.id]);
@@ -190,7 +191,7 @@ export const CompanyDriversMap = () => {
                         driver={driver}
                         onClick={() => {
                           // TODO: Abrir modal com detalhes do motorista
-                          console.log('Ver detalhes:', driver);
+                          devLog('Ver detalhes:', driver);
                         }}
                       />
                     ))}
@@ -209,7 +210,7 @@ export const CompanyDriversMap = () => {
                         driver={driver}
                         onClick={() => {
                           // TODO: Abrir modal com detalhes do motorista
-                          console.log('Ver detalhes:', driver);
+                          devLog('Ver detalhes:', driver);
                         }}
                       />
                     ))}

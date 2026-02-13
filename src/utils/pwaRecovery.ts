@@ -99,7 +99,7 @@ export async function hardResetPWA(reason: string): Promise<void> {
   }
   
   const attempt = incrementRecoveryCount();
-  console.log(`[PWA Recovery] Tentativa ${attempt}/${MAX_RECOVERIES}`);
+  if (import.meta.env.DEV) console.log(`[PWA Recovery] Tentativa ${attempt}/${MAX_RECOVERIES}`);
   
   try {
     // Salvar razão para diagnóstico
@@ -114,7 +114,7 @@ export async function hardResetPWA(reason: string): Promise<void> {
     if ('serviceWorker' in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       await Promise.all(registrations.map(reg => {
-        console.log('[PWA Recovery] Desregistrando SW:', reg.scope);
+        if (import.meta.env.DEV) console.log('[PWA Recovery] Desregistrando SW:', reg.scope);
         return reg.unregister();
       }));
     }
@@ -123,7 +123,7 @@ export async function hardResetPWA(reason: string): Promise<void> {
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map(name => {
-        console.log('[PWA Recovery] Deletando cache:', name);
+        if (import.meta.env.DEV) console.log('[PWA Recovery] Deletando cache:', name);
         return caches.delete(name);
       }));
     }
@@ -133,7 +133,7 @@ export async function hardResetPWA(reason: string): Promise<void> {
       localStorage.removeItem('workbox-expiration');
     } catch {}
     
-    console.log('[PWA Recovery] Limpeza concluída. Recarregando...');
+    if (import.meta.env.DEV) console.log('[PWA Recovery] Limpeza concluída. Recarregando...');
     
     // 4. Recarregar com cache-bust
     window.location.replace(addCacheBust(window.location.href));

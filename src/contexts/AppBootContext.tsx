@@ -124,7 +124,7 @@ async function sendTimeoutAlert(
       body: JSON.stringify(payload)
     });
     
-    console.log('[AppBoot] Alerta de timeout enviado ao Telegram');
+    if (import.meta.env.DEV) console.log('[AppBoot] Alerta de timeout enviado ao Telegram');
   } catch (e) {
     console.debug('[AppBoot] Falha ao enviar alerta:', e);
   }
@@ -214,7 +214,7 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     // Log de métricas em dev
     const elapsed = now - metricsRef.current.bootStartedAt;
-    console.log(`🚀 [AppBoot] Phase: ${phase} (${elapsed}ms desde boot)`);
+    if (import.meta.env.DEV) console.log(`🚀 [AppBoot] Phase: ${phase} (${elapsed}ms desde boot)`);
   }, []);
 
   const setError = useCallback((error: string | null) => {
@@ -288,7 +288,7 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
       bootAttempt: prev.bootAttempt + 1,
     }));
     
-    console.log('🔄 [AppBoot] Reset - reiniciando boot');
+    if (import.meta.env.DEV) console.log('🔄 [AppBoot] Reset - reiniciando boot');
     
     // Reiniciar timeout
     if (timeoutRef.current) {
@@ -338,7 +338,7 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ? metricsRef.current.profileLoadedAt - metricsRef.current.authCheckedAt
         : null;
       
-      console.log('📊 [AppBoot] Boot completo:', {
+      if (import.meta.env.DEV) console.log('📊 [AppBoot] Boot completo:', {
         total: `${totalTime}ms`,
         auth: authTime ? `${authTime}ms` : 'N/A',
         profile: profileTime ? `${profileTime}ms` : 'N/A',

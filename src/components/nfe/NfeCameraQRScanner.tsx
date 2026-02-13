@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { devLog } from '@/lib/devLogger';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Camera, QrCode, Barcode, X, Loader2, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
@@ -61,7 +62,7 @@ export function NfeCameraQRScanner({ open, onClose, onScan }: NfeCameraQRScanner
           qrbox: { width: 280, height: mode === 'qr' ? 280 : 120 },
         },
         (decodedText) => {
-          console.log('[NfeCameraQRScanner] Scanned:', decodedText);
+          devLog('[NfeCameraQRScanner] Scanned:', decodedText);
           handleScanResult(decodedText);
         },
         () => {
@@ -111,7 +112,7 @@ export function NfeCameraQRScanner({ open, onClose, onScan }: NfeCameraQRScanner
       stopScanner();
       toast.success('Chave NF-e capturada com sucesso!');
     } else {
-      console.log('[NfeCameraQRScanner] Invalid key:', cleanedValue, validation.error);
+      devLog('[NfeCameraQRScanner] Invalid key:', cleanedValue, validation.error);
       // Não para o scanner para códigos inválidos
     }
   };

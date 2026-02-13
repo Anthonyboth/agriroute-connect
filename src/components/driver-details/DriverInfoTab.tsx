@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { devLog } from '@/lib/devLogger';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,7 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
   const driver = driverData?.driver_profile || driverData?.driver || driverData;
   const affiliationData = driverData?.driver_profile || driverData?.driver ? driverData : null;
 
-  console.log('📋 [DriverInfoTab] Dados recebidos:', { 
+  devLog('📋 [DriverInfoTab] Dados recebidos:', { 
     hasDriver: !!driver, 
     driverId: driver?.id,
     driverName: driver?.full_name,
@@ -81,7 +82,7 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${driver.id}/${photoType}_${Date.now()}.${fileExt}`;
       
-      console.log('[Upload] Iniciando upload:', { photoType, fileName, fileSize: file.size });
+      devLog('[Upload] Iniciando upload:', { photoType, fileName, fileSize: file.size });
       
       const { error: uploadError } = await supabase.storage
         .from('driver-documents')

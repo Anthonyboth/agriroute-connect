@@ -103,7 +103,7 @@ export const getAllowedServiceTypesFromProfile = (
   // TRANSPORTADORA sem config → todos os tipos
   if (userRole === 'TRANSPORTADORA') {
     if (!profile?.service_types || profile.service_types.length === 0) {
-      console.log('🔎 TRANSPORTADORA sem config → permitindo todos os tipos');
+      if (import.meta.env.DEV) console.log('🔎 TRANSPORTADORA sem config → permitindo todos os tipos');
       return [...CANONICAL_SERVICE_TYPES];
     }
   }
@@ -117,10 +117,10 @@ export const getAllowedServiceTypesFromProfile = (
       ? ['CARGA'] // Motorista sem config → apenas CARGA
       : [...CANONICAL_SERVICE_TYPES]; // Outros → todos
     
-    console.log(`🔎 Tipos vazios → usando fallback (${userRole || 'sem role'}):`, defaultTypes);
+    if (import.meta.env.DEV) console.log(`🔎 Tipos vazios → usando fallback (${userRole || 'sem role'}):`, defaultTypes);
     return defaultTypes as CanonicalServiceType[];
   }
   
-  console.log('🔎 Tipos permitidos do perfil:', types);
+  if (import.meta.env.DEV) console.log('🔎 Tipos permitidos do perfil:', types);
   return types;
 };

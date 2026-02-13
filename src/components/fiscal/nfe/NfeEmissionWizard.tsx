@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { devLog } from '@/lib/devLogger';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,7 +195,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       if (result.hasCredit && result.credit) {
         const remaining = result.credit.maxAttempts - result.credit.attempts;
         setAvailableCredit({ hasCredit: true, remainingAttempts: remaining });
-        console.log('[NfeEmissionWizard] ✅ Crédito disponível:', remaining, 'tentativas restantes');
+        devLog('[NfeEmissionWizard] ✅ Crédito disponível:', remaining, 'tentativas restantes');
       } else {
         setAvailableCredit({ hasCredit: false });
       }
@@ -271,7 +272,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
             if (parts.length >= 2 && !bairro) bairro = parts[1]; // Segunda parte = bairro
           }
 
-          console.log('[NfeEmissionWizard] Dados extraídos do frete:', {
+          devLog('[NfeEmissionWizard] Dados extraídos do frete:', {
             logradouro,
             bairro,
             numero,
@@ -457,7 +458,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     const result = validate();
     
     if (!result.canEmit) {
-      console.log('[NFE] Pré-validação fiscal falhou:', result.blockedReasons);
+      devLog('[NFE] Pré-validação fiscal falhou:', result.blockedReasons);
       setShowPreValidationModal(true);
       return false;
     }
@@ -467,7 +468,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
   // ✅ Função chamada quando pagamento é confirmado
   const handlePaymentConfirmed = useCallback(() => {
-    console.log('[NFE] Pagamento confirmado, prosseguindo com emissão...');
+    devLog('[NFE] Pagamento confirmado, prosseguindo com emissão...');
     setIsPaid(true);
     setShowPixModal(false);
     // Continuar com a emissão após pagamento
@@ -536,7 +537,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       // ✅ FIX B: Tratamento unificado de PAYMENT_REQUIRED (data OU error.context)
       const paymentCheck = await extractPaymentRequired(data, error);
       if (paymentCheck.required) {
-        console.log("[NFE] Pagamento obrigatório:", paymentCheck);
+        devLog("[NFE] Pagamento obrigatório:", paymentCheck);
         setPaymentDocumentRef(paymentCheck.document_ref || `nfe_${Date.now()}`);
         setRequiredAmountCentavos(paymentCheck.amount_centavos ?? null);
         setShowPixModal(true);
@@ -638,7 +639,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
                            lowerMsg.includes('emissor') ||
                            lowerMsg.includes('emitente');
       
-      console.log('[NFE] Erro detectado:', { errorMsg, isSefazError });
+      devLog('[NFE] Erro detectado:', { errorMsg, isSefazError });
       
       if (isSefazError) {
         setSefazError({ isOpen: true, message: errorMsg });
@@ -700,7 +701,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     const totalValue = parseFloat(formData.valor_total) || 0;
     const feeCentavos = calculateFee("nfe", totalValue);
 
-    console.log(`[NFE] Taxa calculada: R$ ${(feeCentavos / 100).toFixed(2)} para NF-e de R$ ${totalValue.toFixed(2)}`);
+    devLog(`[NFE] Taxa calculada: R$ ${(feeCentavos / 100).toFixed(2)} para NF-e de R$ ${totalValue.toFixed(2)}`);
 
     // ✅ Tentar emitir - o backend retornará PAYMENT_REQUIRED se não pago
     await executeEmission();

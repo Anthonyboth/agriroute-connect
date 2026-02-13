@@ -39,7 +39,7 @@ export const validateImageQuality = async (file: File): Promise<ImageValidationR
   
   // Para HEIC/HEIF, pular validação de dimensões (navegador não consegue renderizar)
   if (isHeicFormat) {
-    console.log('[ImageValidator] Formato HEIC/HEIF detectado, pulando validação de dimensões');
+    if (import.meta.env.DEV) console.log('[ImageValidator] Formato HEIC/HEIF detectado, pulando validação de dimensões');
     return { valid: true };
   }
   

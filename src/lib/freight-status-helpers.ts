@@ -370,7 +370,7 @@ async function updateStatusDirect(
         } as any);
     }
     
-    console.log('[STATUS-UPDATE] ✅ Fallback direto bem-sucedido');
+    if (import.meta.env.DEV) console.log('[STATUS-UPDATE] ✅ Fallback direto bem-sucedido');
     return true;
     
   } catch (err) {

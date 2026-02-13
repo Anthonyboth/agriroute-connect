@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { devLog } from '@/lib/devLogger';
 import { ArrowLeft, Truck, Leaf, Package, Wrench, Building2, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -142,7 +143,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
 
   // CRÍTICO: Handler de clique em categoria - navegação interna
   const handleCategoryClick = useCallback((categoryId: string) => {
-    console.log('[ServicesModal] Categoria clicada:', categoryId);
+    devLog('[ServicesModal] Categoria clicada:', categoryId);
     
     if (categoryId === "freight") {
       // Fretes abre modal separado

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { subscriptionWithRetry } from '@/lib/query-utils';
@@ -101,7 +102,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const now = Date.now();
     if (now - lastLogTimeRef.current > 60000) {
-      console.log('[RatingContext] 🔄 Polling para avaliações pendentes (após pagamento confirmado)...');
+      devLog('[RatingContext] 🔄 Polling para avaliações pendentes (após pagamento confirmado)...');
       lastLogTimeRef.current = now;
     }
 
@@ -134,7 +135,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               .maybeSingle();
 
             if (!paymentConfirmed) {
-              console.log('[RatingContext] ⏳ Frete aguardando confirmação de pagamento:', freight.id);
+              devLog('[RatingContext] ⏳ Frete aguardando confirmação de pagamento:', freight.id);
               continue; // Pular este frete - pagamento não confirmado
             }
 
@@ -147,7 +148,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               .maybeSingle();
 
             if (!existingRating && freight.driver) {
-              console.log('[RatingContext] ✅ Polling encontrou frete com pagamento confirmado pendente de avaliação:', freight.id);
+              devLog('[RatingContext] ✅ Polling encontrou frete com pagamento confirmado pendente de avaliação:', freight.id);
               openFreightRating(freight.id, freight.driver.id, freight.driver.full_name);
               return; // Abrir apenas um de cada vez
             }
@@ -191,7 +192,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               .maybeSingle();
 
             if (!paymentConfirmed) {
-              console.log('[RatingContext] ⏳ Aguardando confirmação de pagamento para motorista:', freight.id);
+              devLog('[RatingContext] ⏳ Aguardando confirmação de pagamento para motorista:', freight.id);
               continue; // Pular - pagamento não confirmado
             }
 
@@ -204,7 +205,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               .maybeSingle();
 
             if (!existingRating && freight.producer) {
-              console.log('[RatingContext] ✅ Motorista pode avaliar frete com pagamento confirmado:', freight.id);
+              devLog('[RatingContext] ✅ Motorista pode avaliar frete com pagamento confirmado:', freight.id);
               openFreightRating(freight.id, freight.producer.id, freight.producer.full_name);
               return;
             }
@@ -298,7 +299,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             
             if (!isProducer && !isDriver) return;
             
-            console.log('[RatingContext] 🔔 Pagamento CONFIRMADO detectado:', payment.freight_id);
+            devLog('[RatingContext] 🔔 Pagamento CONFIRMADO detectado:', payment.freight_id);
             await new Promise(resolve => setTimeout(resolve, 1500));
             
             // Buscar dados do frete para avaliação
@@ -328,13 +329,13 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             
             // Produtor avalia motorista
             if (isProducer && freight.driver) {
-              console.log('[RatingContext] ✅ Produtor pode avaliar motorista após pagamento confirmado');
+              devLog('[RatingContext] ✅ Produtor pode avaliar motorista após pagamento confirmado');
               openFreightRating(freight.id, freight.driver.id, freight.driver.full_name);
             }
             
             // Motorista avalia produtor
             if (isDriver && freight.producer) {
-              console.log('[RatingContext] ✅ Motorista pode avaliar produtor após pagamento confirmado');
+              devLog('[RatingContext] ✅ Motorista pode avaliar produtor após pagamento confirmado');
               openFreightRating(freight.id, freight.producer.id, freight.producer.full_name);
             }
           });
@@ -365,7 +366,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           onReady: (channel) => {
             const now = Date.now();
             if (now - lastLogTimeRef.current > 60000) {
-              console.log('[RatingContext] ✅ Realtime conectado');
+              devLog('[RatingContext] ✅ Realtime conectado');
               lastLogTimeRef.current = now;
             }
             realtimeConnectedRef.current = true;
@@ -418,7 +419,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (!realtimeConnectedRef.current) {
         const now = Date.now();
         if (now - lastLogTimeRef.current > 60000) {
-          console.log('[RatingContext] 🔄 Executando verificação inicial');
+          devLog('[RatingContext] 🔄 Executando verificação inicial');
           lastLogTimeRef.current = now;
         }
         pollForPendingRatings();

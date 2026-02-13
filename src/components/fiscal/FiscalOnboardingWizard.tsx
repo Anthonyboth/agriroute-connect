@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { WizardShell } from '@/components/wizard/WizardShell';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -43,7 +44,7 @@ export function FiscalOnboardingWizard({ onComplete, onCancel, editMode = false 
   useEffect(() => {
     if (hasLoadedIssuerData || !issuer) return;
     
-    console.log("[FISCAL WIZARD] Carregando dados do emissor existente:", issuer);
+    devLog("[FISCAL WIZARD] Carregando dados do emissor existente:", issuer);
     
     // Mapear dados do banco (issuer) para o formulário (RegisterIssuerData)
     const issuerData: Partial<RegisterIssuerData> = {
