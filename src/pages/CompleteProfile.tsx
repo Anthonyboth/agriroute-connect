@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { LegalDocumentDialog } from '@/components/LegalDocumentDialog';
 import { uploadSelfieWithInstrumentation } from '@/utils/selfieUpload';
 import { 
   getRegistrationMode, 
@@ -114,6 +115,7 @@ const CompleteProfile = () => {
   const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
   const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
+  const [legalDialogType, setLegalDialogType] = useState<'terms' | 'privacy' | null>(null);
   const didInitRef = useRef(false);
 
   useEffect(() => {
@@ -1219,15 +1221,13 @@ const CompleteProfile = () => {
                             className="text-sm font-medium leading-relaxed cursor-pointer"
                           >
                             Li e aceito integralmente os{' '}
-                            <a 
-                              href="/termos" 
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button 
+                              type="button"
                               className="text-primary hover:underline font-semibold"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalDialogType('terms'); }}
                             >
                               Termos de Uso
-                            </a>
+                            </button>
                             {' '}da plataforma AgriRoute, incluindo todas as cláusulas sobre direitos, 
                             obrigações e responsabilidades.
                           </label>
@@ -1248,15 +1248,13 @@ const CompleteProfile = () => {
                             className="text-sm font-medium leading-relaxed cursor-pointer"
                           >
                             Li e aceito a{' '}
-                            <a 
-                              href="/privacidade" 
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button 
+                              type="button"
                               className="text-primary hover:underline font-semibold"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalDialogType('privacy'); }}
                             >
                               Política de Privacidade
-                            </a>
+                            </button>
                             {' '}e autorizo o tratamento dos meus dados pessoais conforme descrito, 
                             em conformidade com a Lei Geral de Proteção de Dados (LGPD).
                           </label>
@@ -1301,6 +1299,11 @@ const CompleteProfile = () => {
         </Card>
       </div>
 
+      <LegalDocumentDialog
+        open={legalDialogType !== null}
+        onOpenChange={(open) => { if (!open) setLegalDialogType(null); }}
+        documentType={legalDialogType ?? 'terms'}
+      />
     </div>
   );
 };
