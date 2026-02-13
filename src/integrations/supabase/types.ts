@@ -12471,7 +12471,7 @@ export type Database = {
           fixed_address?: never
           full_name?: string | null
           id?: string | null
-          invoice_number?: string | null
+          invoice_number?: never
           license_plate_photo_url?: never
           live_cargo_experience?: boolean | null
           location_enabled?: boolean | null
@@ -12497,7 +12497,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           validated_at?: string | null
-          validated_by?: string | null
+          validated_by?: never
           validation_notes?: string | null
           validation_status?: string | null
           vehicle_other_type?: string | null
@@ -12546,7 +12546,7 @@ export type Database = {
           fixed_address?: never
           full_name?: string | null
           id?: string | null
-          invoice_number?: string | null
+          invoice_number?: never
           license_plate_photo_url?: never
           live_cargo_experience?: boolean | null
           location_enabled?: boolean | null
@@ -12572,7 +12572,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           validated_at?: string | null
-          validated_by?: string | null
+          validated_by?: never
           validation_notes?: string | null
           validation_status?: string | null
           vehicle_other_type?: string | null
@@ -12606,20 +12606,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "city_hierarchy"
             referencedColumns: ["city_id"]
-          },
-          {
-            foreignKeyName: "profiles_validated_by_fkey"
-            columns: ["validated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_validated_by_fkey"
-            columns: ["validated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
           },
         ]
       }
