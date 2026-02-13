@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { devLog } from '@/lib/devLogger';
 import { useAppBoot, useShouldShowTimeoutFallback } from '@/contexts/AppBootContext';
 import { BootstrapFallback } from './BootstrapFallback';
 import { GlobalLoader } from './AppLoader';
@@ -31,7 +32,7 @@ export const BootstrapGuardWrapper: React.FC<BootstrapGuardWrapperProps> = ({ ch
         onRetry={() => {
           // ✅ CORREÇÃO: Apenas reset, SEM reload
           // O BootOrchestrator detecta bootAttempt e reexecuta
-          console.log('🔄 [BootstrapGuard] Tentando novamente (sem reload)');
+          devLog('🔄 [BootstrapGuard] Tentando novamente (sem reload)');
           reset();
         }}
       />
@@ -47,7 +48,7 @@ export const BootstrapGuardWrapper: React.FC<BootstrapGuardWrapperProps> = ({ ch
         stepTimings={stepTimings}
         onRetry={() => {
           // ✅ CORREÇÃO: Apenas reset, SEM reload
-          console.log('🔄 [BootstrapGuard] Tentando novamente após erro');
+          devLog('🔄 [BootstrapGuard] Tentando novamente após erro');
           reset();
         }}
       />

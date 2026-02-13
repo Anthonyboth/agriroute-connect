@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { devLog } from '@/lib/devLogger';
 import { Button } from '@/components/ui/button';
 import { Camera, Flashlight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,7 +37,7 @@ export function NfeCameraScanner({ onKeyDetected, onError, className }: NfeCamer
     const key = extractNfeKey(decodedText);
     
     if (key) {
-      console.log('[NfeCameraScanner] Chave NF-e detectada:', key);
+      devLog('[NfeCameraScanner] Chave NF-e detectada:', key);
       setDetectedKey(key);
       setStatus('detected');
       

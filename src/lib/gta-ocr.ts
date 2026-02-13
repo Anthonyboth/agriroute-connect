@@ -105,7 +105,7 @@ export async function processGTAImage(
   imageSource: File | Blob | string,
   onProgress?: (progress: number) => void
 ): Promise<GTAOCRResult> {
-  console.log('[GTA-OCR] Iniciando processamento...');
+  if (import.meta.env.DEV) console.log('[GTA-OCR] Iniciando processamento...');
   
   try {
     // Configurar e executar Tesseract
@@ -120,8 +120,8 @@ export async function processGTAImage(
     const rawText = result.data.text;
     const confidence = result.data.confidence;
     
-    console.log('[GTA-OCR] Texto extraído:', rawText.substring(0, 200) + '...');
-    console.log('[GTA-OCR] Confiança:', confidence);
+    if (import.meta.env.DEV) console.log('[GTA-OCR] Texto extraído:', rawText.substring(0, 200) + '...');
+    if (import.meta.env.DEV) console.log('[GTA-OCR] Confiança:', confidence);
     
     // Extrair dados estruturados
     const extractedData = extractGTAData(rawText);

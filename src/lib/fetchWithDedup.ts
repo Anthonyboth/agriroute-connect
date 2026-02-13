@@ -37,7 +37,7 @@ export async function fetchWithDedup<T>(
   // Single-flight: retorna request existente se já estiver em andamento
   const existing = inFlightRequests.get(key);
   if (existing) {
-    console.log(`[fetchWithDedup] Request em andamento para "${key}", reutilizando...`);
+    if (import.meta.env.DEV) console.log(`[fetchWithDedup] Request em andamento para "${key}", reutilizando...`);
     return existing;
   }
 
@@ -78,7 +78,7 @@ export async function fetchWithDedup<T>(
 export function cancelFetch(key: string): void {
   // O request será cancelado automaticamente quando a promise for rejeitada
   // Este método existe apenas para documentação/semântica
-  console.log(`[fetchWithDedup] Marcando "${key}" para cancelamento`);
+  if (import.meta.env.DEV) console.log(`[fetchWithDedup] Marcando "${key}" para cancelamento`);
 }
 
 /**

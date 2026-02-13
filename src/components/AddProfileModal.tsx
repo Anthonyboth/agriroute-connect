@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,7 +81,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
 
       // ✅ P0 HOTFIX: RPC idempotente retorna JSONB
       const payload = { p_user_id: user.id, p_role: targetRole };
-      console.log('CREATE_ADDITIONAL_PROFILE_CALLED', { userId: user.id, payloadKeys: Object.keys(payload) });
+      devLog('CREATE_ADDITIONAL_PROFILE_CALLED', { userId: user.id, payloadKeys: Object.keys(payload) });
       
       const { data: rpcResult, error } = await supabase.rpc('create_additional_profile', payload);
 

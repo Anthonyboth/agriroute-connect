@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -151,7 +152,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
       return;
     }
 
-    console.log('[PendingServiceRatingsPanel] Submetendo avaliação:', {
+    devLog('[PendingServiceRatingsPanel] Submetendo avaliação:', {
       serviceRequestId: selectedService.id,
       ratedUserId,
       raterRole,

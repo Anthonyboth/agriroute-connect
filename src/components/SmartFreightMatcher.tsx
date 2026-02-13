@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useTransition, useMemo, useRef, useCallback } from "react";
+import { devLog } from '@/lib/devLogger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,7 +118,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     if (!profile?.id || !user?.id) return;
 
     if (updateLockRef.current) {
-      console.log("[SmartFreightMatcher] Fetch já em andamento, ignorando...");
+      devLog("[SmartFreightMatcher] Fetch já em andamento, ignorando...");
       return;
     }
 
@@ -453,7 +454,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     // Configura novo intervalo
     autoRefreshIntervalRef.current = setInterval(() => {
       if (isMountedRef.current && !updateLockRef.current) {
-        console.log('[SmartFreightMatcher] Auto-refresh (10min)');
+        devLog('[SmartFreightMatcher] Auto-refresh (10min)');
         fetchCompatibleFreights();
         setLastRefreshAt(new Date());
       }
@@ -990,7 +991,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                   return;
                                 }
 
-                                console.log("[SmartFreightMatcher] Tentando aceitar service_request:", {
+                                devLog("[SmartFreightMatcher] Tentando aceitar service_request:", {
                                   request_id: r.id,
                                   provider_id: profile.id,
                                   service_type: r.service_type,
@@ -1003,7 +1004,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                   p_request_id: r.id
                                 });
 
-                                console.log("[SmartFreightMatcher] Resultado RPC:", { rpcResult, rpcError });
+                                devLog("[SmartFreightMatcher] Resultado RPC:", { rpcResult, rpcError });
 
                                 if (rpcError) {
                                   console.error("[SmartFreightMatcher] Erro RPC:", rpcError);

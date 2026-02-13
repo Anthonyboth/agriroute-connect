@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { devLog } from '@/lib/devLogger';
 import { Geolocation, PermissionStatus, Position } from '@capacitor/geolocation';
 
 export const isNative = () => Capacitor.isNativePlatform();
@@ -74,7 +75,7 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
   const now = Date.now();
   if (now - lastGPSRequestTime < GPS_COOLDOWN_MS) {
     const waitTime = GPS_COOLDOWN_MS - (now - lastGPSRequestTime);
-    console.log(`[GPS] Rate limit: aguardando ${waitTime}ms`);
+    devLog(`[GPS] Rate limit: aguardando ${waitTime}ms`);
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
   lastGPSRequestTime = Date.now();
@@ -92,7 +93,7 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
         navigator.geolocation.getCurrentPosition(
           (p) => {
             const quality = getGPSQuality(p.coords.accuracy);
-            console.log(`[GPS] Tentativa ${attempt}: ${quality.quality} (${quality.accuracy}m)`);
+            devLog(`[GPS] Tentativa ${attempt}: ${quality.quality} (${quality.accuracy}m)`);
             
             // Rejeitar se accuracy > 1000m (exceto na última tentativa)
             if (p.coords.accuracy > 1000 && attempt < maxRetries) {
@@ -136,7 +137,7 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
       
       // Exponential backoff: 3s, 6s, 9s
       const backoffTime = 3000 * attempt;
-      console.log(`[GPS] Retry em ${backoffTime}ms...`);
+      devLog(`[GPS] Retry em ${backoffTime}ms...`);
       await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
   }

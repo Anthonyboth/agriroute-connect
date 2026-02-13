@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,7 +93,7 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                   key={driver.id}
                   driver={driver}
                   onApprove={() => {
-                    console.log('🚀 Configurando permissões para:', driver.driver?.full_name);
+                    devLog('🚀 Configurando permissões para:', driver.driver?.full_name);
                     setAffiliationSettings({
                       isOpen: true,
                       requestId: driver.id,

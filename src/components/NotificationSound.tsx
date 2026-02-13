@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { devLog } from '@/lib/devLogger';
 
 interface NotificationSoundProps {
   unreadCount: number;
@@ -21,7 +22,7 @@ export const NotificationSound: React.FC<NotificationSoundProps> = ({ unreadCoun
     
     // Tocar som apenas quando contador AUMENTA (nova notificação)
     if (unreadCount > prevCount && unreadCount > 0) {
-      console.log('[NotificationSound] Nova notificação detectada, tocando som...');
+      devLog('[NotificationSound] Nova notificação detectada, tocando som...');
       
       audioRef.current?.play().catch((error) => {
         // Ignorar erro se autoplay bloqueado pelo navegador

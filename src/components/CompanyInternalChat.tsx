@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -177,13 +178,13 @@ export function CompanyInternalChat() {
           }
         )
         .subscribe((status) => {
-          console.log('📡 Realtime status:', status);
+          devLog('📡 Realtime status:', status);
           
           // Ativar polling se o canal falhar
           if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
             if (!pollingInterval) {
               pollingInterval = setInterval(() => {
-                console.log('🔄 Polling fallback ativo');
+                devLog('🔄 Polling fallback ativo');
                 loadMessages();
               }, 10000);
             }

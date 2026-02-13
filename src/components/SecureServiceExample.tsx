@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { devLog } from '@/lib/devLogger';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,7 +81,7 @@ export const SecureServiceExample: React.FC = () => {
 
       if (error) throw error;
 
-      console.log('Dados seguros obtidos:', secureData);
+      devLog('Dados seguros obtidos:', secureData);
       
       // Log de auditoria
       await supabase.rpc('log_sensitive_data_access', {
