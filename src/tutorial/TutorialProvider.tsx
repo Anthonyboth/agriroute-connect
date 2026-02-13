@@ -56,7 +56,13 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Auto-start on first load after signup - NUNCA durante cadastro ou com perfil pendente
   useEffect(() => {
-    if (!profileId || !role || autoStartChecked.current || isOnboardingRoute || !isProfileReady) return;
+    // Marcar como checado mesmo em rotas de onboarding para evitar
+    // que o tutorial inicie automaticamente após redirect para dashboard
+    if (!profileId || !role || autoStartChecked.current) return;
+    if (isOnboardingRoute || !isProfileReady) {
+      autoStartChecked.current = true; // Bloquear auto-start após sair do onboarding
+      return;
+    }
     autoStartChecked.current = true;
 
     // Delay to let dashboard render
