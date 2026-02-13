@@ -44,7 +44,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         const spaceBelow = window.innerHeight - rect.bottom;
         setTooltipPosition(spaceBelow > 260 ? 'bottom' : 'top');
         if (rect.top < 0 || rect.bottom > window.innerHeight) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.scrollIntoView({ behavior: 'instant', block: 'center' });
         }
       } else {
         setTargetRect(null);
