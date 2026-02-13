@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { devLog } from '@/lib/devLogger';
 
 export interface MdfeConfig {
   id?: string;
@@ -36,25 +37,21 @@ export function useMdfeConfig(userId: string) {
       console.warn('[MDFE-CONFIG] userId não fornecido');
       return;
     }
-
-    console.log('[MDFE-CONFIG] 🔍 Buscando configuração para userId:', userId);
+    devLog('[MDFE-CONFIG] 🔍 Buscando configuração para userId:', userId);
     setLoading(true);
     setError(null);
-
     try {
       const { data, error: fetchError } = await supabase
         .from('mdfe_config')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-
       if (fetchError) {
         console.error('[MDFE-CONFIG] ❌ Erro ao buscar:', fetchError);
         setError(fetchError.message);
         return;
       }
-
-      console.log('[MDFE-CONFIG] ✅ Configuração encontrada:', { hasConfig: !!data, data });
+      devLog('[MDFE-CONFIG] ✅ Configuração encontrada:', { hasConfig: !!data, data });
       setConfig(data);
     } catch (err: any) {
       console.error('[MDFE-CONFIG] 💥 Exception:', err);
@@ -65,31 +62,22 @@ export function useMdfeConfig(userId: string) {
   };
 
   const saveConfig = async (configData: Omit<MdfeConfig, 'id' | 'created_at' | 'updated_at'>) => {
-    console.log('[MDFE-CONFIG] 💾 Salvando configuração:', configData);
+    devLog('[MDFE-CONFIG] 💾 Salvando configuração:', configData);
     setLoading(true);
     setError(null);
-
     try {
       const { error: saveError } = await supabase
         .from('mdfe_config')
-        .upsert({
-          ...configData,
-          user_id: userId,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id'
-        });
-
+        .upsert({ ...configData, user_id: userId, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
       if (saveError) {
         console.error('[MDFE-CONFIG] ❌ Erro ao salvar:', saveError);
         setError(saveError.message);
         toast.error(`Erro ao salvar: ${saveError.message}`);
         return { error: saveError };
       }
-
-      console.log('[MDFE-CONFIG] ✅ Configuração salva com sucesso');
+      devLog('[MDFE-CONFIG] ✅ Configuração salva com sucesso');
       toast.success('Configuração MDFe salva com sucesso');
-      await fetchConfig(); // Recarregar após salvar
+      await fetchConfig();
       return { error: null };
     } catch (err: any) {
       console.error('[MDFE-CONFIG] 💥 Exception ao salvar:', err);
@@ -103,17 +91,8 @@ export function useMdfeConfig(userId: string) {
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchConfig();
-    }
+    if (userId) fetchConfig();
   }, [userId]);
 
-  return {
-    config,
-    loading,
-    error,
-    saveConfig,
-    refetch: fetchConfig,
-    hasConfig: !!config,
-  };
+  return { config, loading, error, saveConfig, refetch: fetchConfig, hasConfig: !!config };
 }

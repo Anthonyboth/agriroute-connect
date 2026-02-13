@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { devLog } from '@/lib/devLogger';
 
 // Incluir currentStep na interface
 interface DraftData {
@@ -25,86 +26,47 @@ export const useFreightDraft = (userId: string | undefined, enabled: boolean = t
     return userId ? `freight-draft-${userId}` : null;
   }, [userId]);
 
-  // Carregar draft ao montar/abrir
   useEffect(() => {
     if (!enabled || !userId) return;
-
     const key = getDraftKey();
     if (!key) return;
-
     try {
       const stored = localStorage.getItem(key);
       if (!stored) {
-        setHasDraft(false);
-        setDraft(null);
-        setLastSaved(null);
-        setSavedStep(1);
-        setShowDraftPrompt(false);
+        setHasDraft(false); setDraft(null); setLastSaved(null); setSavedStep(1); setShowDraftPrompt(false);
         return;
       }
-
       const parsed: DraftData = JSON.parse(stored);
       const expiresAt = new Date(parsed.expiresAt);
-
       if (expiresAt > new Date()) {
-        setDraft(parsed.data);
-        setHasDraft(true);
-        setLastSaved(new Date(parsed.savedAt));
-        setSavedStep(parsed.currentStep || 1);
-        setShowDraftPrompt(true);
-        console.log('[useFreightDraft] Draft loaded from step:', parsed.currentStep || 1);
+        setDraft(parsed.data); setHasDraft(true); setLastSaved(new Date(parsed.savedAt));
+        setSavedStep(parsed.currentStep || 1); setShowDraftPrompt(true);
+        devLog('[useFreightDraft] Draft loaded from step:', parsed.currentStep || 1);
       } else {
         localStorage.removeItem(key);
-        setHasDraft(false);
-        setDraft(null);
-        setLastSaved(null);
-        setSavedStep(1);
-        setShowDraftPrompt(false);
+        setHasDraft(false); setDraft(null); setLastSaved(null); setSavedStep(1); setShowDraftPrompt(false);
       }
     } catch (error) {
       console.error('Erro ao carregar rascunho:', error);
-      // Se corrompido, limpar
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        // ignore
-      }
-      setHasDraft(false);
-      setDraft(null);
-      setLastSaved(null);
-      setSavedStep(1);
-      setShowDraftPrompt(false);
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+      setHasDraft(false); setDraft(null); setLastSaved(null); setSavedStep(1); setShowDraftPrompt(false);
     }
   }, [userId, enabled, getDraftKey]);
 
-  // Salvar draft COM currentStep
   const saveDraft = useCallback(
     (data: any, currentStep: number = 1) => {
       if (!enabled || !userId) return;
-
       const key = getDraftKey();
       if (!key) return;
-
       try {
         const draftData: DraftData = {
-          data,
-          currentStep,
+          data, currentStep,
           savedAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         };
-
         localStorage.setItem(key, JSON.stringify(draftData));
-
-        // Manter estado sincronizado para o botão "Restaurar" funcionar mesmo na mesma sessão
-        setDraft(data);
-        setHasDraft(true);
-        setLastSaved(new Date());
-        setSavedStep(currentStep);
-
-        // IMPORTANTE: NÃO reabrir prompt durante autosave da sessão
-        // (showDraftPrompt permanece como está)
-
-        console.log('[useFreightDraft] Draft saved at step:', currentStep);
+        setDraft(data); setHasDraft(true); setLastSaved(new Date()); setSavedStep(currentStep);
+        devLog('[useFreightDraft] Draft saved at step:', currentStep);
       } catch (error) {
         console.error('Erro ao salvar rascunho:', error);
       }
@@ -112,49 +74,22 @@ export const useFreightDraft = (userId: string | undefined, enabled: boolean = t
     [userId, enabled, getDraftKey]
   );
 
-  const dismissDraftPrompt = useCallback(() => {
-    setShowDraftPrompt(false);
-  }, []);
+  const dismissDraftPrompt = useCallback(() => { setShowDraftPrompt(false); }, []);
 
-  // Limpar draft
   const clearDraft = useCallback(() => {
     if (!userId) return;
-
     const key = getDraftKey();
     if (!key) return;
-
     localStorage.removeItem(key);
-    setDraft(null);
-    setHasDraft(false);
-    setLastSaved(null);
-    setSavedStep(1);
-    setShowDraftPrompt(false);
-
-    console.log('[useFreightDraft] Draft cleared');
+    setDraft(null); setHasDraft(false); setLastSaved(null); setSavedStep(1); setShowDraftPrompt(false);
+    devLog('[useFreightDraft] Draft cleared');
   }, [userId, getDraftKey]);
 
-  // Restaurar draft retornando dados E etapa
   const restoreDraft = useCallback(() => {
     if (!draft) return null;
-
-    console.log('[useFreightDraft] Restoring draft with step:', savedStep);
-
-    return {
-      data: draft,
-      currentStep: savedStep,
-    };
+    devLog('[useFreightDraft] Restoring draft with step:', savedStep);
+    return { data: draft, currentStep: savedStep };
   }, [draft, savedStep]);
 
-  return {
-    draft,
-    hasDraft,
-    showDraftPrompt,
-    lastSaved,
-    savedStep,
-    saveDraft,
-    clearDraft,
-    restoreDraft,
-    dismissDraftPrompt,
-  };
+  return { draft, hasDraft, showDraftPrompt, lastSaved, savedStep, saveDraft, clearDraft, restoreDraft, dismissDraftPrompt };
 };
-

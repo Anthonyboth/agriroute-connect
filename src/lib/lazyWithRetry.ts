@@ -70,7 +70,7 @@ async function clearAllCaches(): Promise<void> {
     try {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('[lazyWithRetry] Cache Storage limpo:', keys.length, 'caches');
+      if (import.meta.env.DEV) console.log('[lazyWithRetry] Cache Storage limpo:', keys.length, 'caches');
     } catch (e) {
       console.warn('[lazyWithRetry] Erro ao limpar Cache Storage:', e);
     }
@@ -84,7 +84,7 @@ async function clearAllCaches(): Promise<void> {
         await registration.unregister();
       }
       if (registrations.length > 0) {
-        console.log('[lazyWithRetry] Service Workers removidos:', registrations.length);
+        if (import.meta.env.DEV) console.log('[lazyWithRetry] Service Workers removidos:', registrations.length);
       }
     } catch (e) {
       console.warn('[lazyWithRetry] Erro ao remover Service Workers:', e);
@@ -102,7 +102,7 @@ async function clearAllCaches(): Promise<void> {
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
     if (keysToRemove.length > 0) {
-      console.log('[lazyWithRetry] localStorage PWA limpo:', keysToRemove.length, 'keys');
+      if (import.meta.env.DEV) console.log('[lazyWithRetry] localStorage PWA limpo:', keysToRemove.length, 'keys');
     }
   } catch (e) {
     console.warn('[lazyWithRetry] Erro ao limpar localStorage:', e);
@@ -153,7 +153,7 @@ export function lazyWithRetry<T extends ComponentType<any>>(
           
           // Na primeira falha, limpa todos os caches
           if (attempt === 0 && !wasCacheRecentlyCleared()) {
-            console.log('[lazyWithRetry] Limpando todos os caches...');
+            if (import.meta.env.DEV) console.log('[lazyWithRetry] Limpando todos os caches...');
             await clearAllCaches();
           }
         } else {

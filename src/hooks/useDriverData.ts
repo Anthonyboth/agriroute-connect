@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { forceLogoutAndRedirect } from '@/utils/authRecovery';
+import { devLog } from '@/lib/devLogger';
 
 /**
  * Hook otimizado para buscar assignments do motorista
@@ -98,7 +99,7 @@ export const useAvailableFreights = (driverId: string) => {
   return useQuery({
     queryKey: ['available-freights', driverId],
     queryFn: async () => {
-      console.log('[useAvailableFreights] Fetching available freights for driver:', driverId);
+      devLog('[useAvailableFreights] Fetching available freights for driver:', driverId);
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -120,7 +121,7 @@ export const useAvailableFreights = (driverId: string) => {
         throw error;
       }
 
-      console.log('[useAvailableFreights] Found available freights:', data?.freights?.length || 0);
+      devLog('[useAvailableFreights] Found available freights:', data?.freights?.length || 0);
       return data?.freights || [];
     },
     enabled: !!driverId,

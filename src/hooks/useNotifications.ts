@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { queryWithTimeout, subscriptionWithRetry } from '@/lib/query-utils';
+import { devLog } from '@/lib/devLogger';
 
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -13,7 +14,7 @@ export const useNotifications = () => {
 
     setLoading(true);
     try {
-      console.log('[useNotifications] Buscando notificações não lidas...');
+      devLog('[useNotifications] Buscando notificações não lidas...');
       
       const count = await queryWithTimeout(
         async () => {
@@ -34,12 +35,10 @@ export const useNotifications = () => {
       );
       
       const newCount = count || 0;
-      console.log(`[useNotifications] ${newCount} notificações não lidas`);
+      devLog(`[useNotifications] ${newCount} notificações não lidas`);
       setUnreadCount(newCount);
     } catch (error: any) {
       console.error('[useNotifications] Erro ao buscar contador:', error);
-      // NÃO setar 0 - manter valor anterior em caso de erro
-      // Isso evita esconder o contador real quando há falhas temporárias
     } finally {
       setLoading(false);
     }
@@ -49,7 +48,6 @@ export const useNotifications = () => {
     if (profile) {
       fetchUnreadCount();
       
-      // Configurar real-time subscription com retry
       const { cleanup } = subscriptionWithRetry(
         'notifications_changes',
         (channel) => {
@@ -69,15 +67,13 @@ export const useNotifications = () => {
           retryDelayMs: 3000,
           onError: (error) => {
             console.error('[useNotifications] Realtime error:', error);
-            // Fallback: polling manual se realtime falhar
             const pollInterval = setInterval(fetchUnreadCount, 30000);
             return () => clearInterval(pollInterval);
           }
         }
       );
 
-      // ✅ Polling adicional para garantir atualização
-      const pollInterval = setInterval(fetchUnreadCount, 60000); // A cada 60 segundos
+      const pollInterval = setInterval(fetchUnreadCount, 60000);
 
       return () => {
         cleanup();
@@ -86,57 +82,44 @@ export const useNotifications = () => {
     }
   }, [profile, fetchUnreadCount]);
 
-  // ✅ Função para decrementar contador localmente (otimista)
   const decrementCount = useCallback((amount: number = 1) => {
     setUnreadCount(prev => Math.max(0, prev - amount));
   }, []);
 
-  // ✅ Função para incrementar contador localmente
   const incrementCount = useCallback((amount: number = 1) => {
     setUnreadCount(prev => prev + amount);
   }, []);
 
-  // Função para marcar todas como lidas
   const markAllAsRead = useCallback(async () => {
     if (!profile) return;
-    
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', profile.id)
         .eq('read', false);
-      
       if (error) throw error;
-      
       setUnreadCount(0);
-      console.log('[useNotifications] Todas notificações marcadas como lidas');
+      devLog('[useNotifications] Todas notificações marcadas como lidas');
     } catch (error) {
       console.error('[useNotifications] Erro ao marcar como lidas:', error);
-      // Refetch em caso de erro para sincronizar
       fetchUnreadCount();
     }
   }, [profile, fetchUnreadCount]);
 
-  // ✅ Função para marcar uma única notificação como lida
   const markAsRead = useCallback(async (notificationId: string) => {
     if (!profile) return;
-    
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
         .eq('user_id', profile.id);
-      
       if (error) throw error;
-      
-      // Atualização otimista
       decrementCount(1);
-      console.log('[useNotifications] Notificação marcada como lida:', notificationId);
+      devLog('[useNotifications] Notificação marcada como lida:', notificationId);
     } catch (error) {
       console.error('[useNotifications] Erro ao marcar notificação:', error);
-      // Refetch em caso de erro
       fetchUnreadCount();
     }
   }, [profile, decrementCount, fetchUnreadCount]);

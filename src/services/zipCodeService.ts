@@ -257,7 +257,7 @@ export class ZipCodeService {
    * Sincronização automática ao reconectar
    */
   static async syncOnReconnect(): Promise<void> {
-    console.log('🔄 Sincronizando cache de CEPs...');
+    if (import.meta.env.DEV) console.log('🔄 Sincronizando cache de CEPs...');
     
     const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_KEY_PREFIX));
     
@@ -267,14 +267,12 @@ export class ZipCodeService {
         if (!cached) continue;
         
         const entry: CacheEntry = JSON.parse(cached);
-        
-        // Se expirou, buscar novamente
         const daysSinceExpiry = (Date.now() - new Date(entry.expiresAt).getTime()) / (24 * 60 * 60 * 1000);
         
         if (daysSinceExpiry > 0) {
           const fresh = await this.searchZipCode(entry.zipCode);
           if (fresh) {
-            console.log(`✅ CEP ${entry.zipCode} atualizado`);
+            if (import.meta.env.DEV) console.log(`✅ CEP ${entry.zipCode} atualizado`);
           }
         }
       } catch (error) {
@@ -282,7 +280,7 @@ export class ZipCodeService {
       }
     }
     
-    console.log('✅ Sincronização concluída');
+    if (import.meta.env.DEV) console.log('✅ Sincronização concluída');
   }
 
   /**

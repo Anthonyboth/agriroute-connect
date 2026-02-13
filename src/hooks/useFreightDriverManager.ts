@@ -399,7 +399,7 @@ export const useFreightDriverManager = ({
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      console.log(`[FreightDriverManager] ${result.length} fretes únicos, ${allAssignments?.length || 0} atribuições totais (deduplicadas por documento)`);
+      if (import.meta.env.DEV) console.log(`[FreightDriverManager] ${result.length} fretes únicos, ${allAssignments?.length || 0} atribuições totais (deduplicadas por documento)`);
 
       return result;
     }
@@ -497,7 +497,7 @@ export const useFreightDriverManagerRealtime = (
           filter: `company_id=eq.${options.companyId}`
         },
         () => {
-          console.log('[FreightDriverManager] Atribuição alterada, refetch...');
+          if (import.meta.env.DEV) console.log('[FreightDriverManager] Atribuição alterada, refetch...');
           queryClient.invalidateQueries({ 
             queryKey: ['freight-driver-manager', options.companyId] 
           });
