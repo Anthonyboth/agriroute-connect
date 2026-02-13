@@ -131,7 +131,48 @@ const CompleteProfile = () => {
 
     // Inicializar dados do formulário apenas uma vez para evitar reset durante revalidações do perfil
     if (profile && !didInitRef.current) {
-      // Load existing document URLs
+      // Buscar dados completos via profiles_secure (contorna CLS para o próprio dono)
+      const fetchSecureProfile = async () => {
+        try {
+          const { data: secureData } = await supabase
+            .from('profiles_secure')
+            .select('cpf_cnpj, phone, contact_phone, fixed_address, farm_address, farm_name, rntrc, antt_number, cnh_category, cnh_expiry_date, selfie_url, document_photo_url, cnh_photo_url, truck_documents_url, truck_photo_url, license_plate_photo_url, address_proof_url')
+            .eq('id', profile.id)
+            .single();
+          
+          const sd = secureData as any;
+          if (sd) {
+            setDocumentUrls({
+              selfie: sd.selfie_url || '',
+              document_photo: sd.document_photo_url || '',
+              cnh: sd.cnh_photo_url || '',
+              truck_documents: sd.truck_documents_url || '',
+              truck_photo: sd.truck_photo_url || '',
+              license_plate: sd.license_plate_photo_url || '',
+              address_proof: sd.address_proof_url || ''
+            });
+            
+            setProfileData(prev => ({
+              ...prev,
+              full_name: prev.full_name || profile.full_name || '',
+              phone: sd.phone || prev.phone || '',
+              contact_phone: sd.contact_phone || prev.contact_phone || '',
+              cpf_cnpj: sd.cpf_cnpj || prev.cpf_cnpj || '',
+              farm_name: sd.farm_name || prev.farm_name || '',
+              farm_address: sd.farm_address || prev.farm_address || '',
+              rntrc: sd.rntrc || prev.rntrc || '',
+              antt_number: sd.antt_number || prev.antt_number || '',
+              fixed_address: sd.fixed_address || prev.fixed_address || '',
+              cnh_category: sd.cnh_category || prev.cnh_category || '',
+              cnh_expiry_date: sd.cnh_expiry_date || prev.cnh_expiry_date || '',
+            }));
+          }
+        } catch (err) {
+          console.warn('[CompleteProfile] Falha ao buscar dados seguros, usando perfil básico:', err);
+        }
+      };
+      
+      // Inicializar com dados disponíveis do useAuth (pode estar incompleto por CLS)
       setDocumentUrls({
         selfie: profile.selfie_url || '',
         document_photo: profile.document_photo_url || '',
@@ -142,11 +183,9 @@ const CompleteProfile = () => {
         address_proof: profile.address_proof_url || ''
       });
       
-      // plate_photos removido - veículos são cadastrados após o cadastro pessoal
-      
       setLocationEnabled(profile.location_enabled || false);
       
-      // Load profile data with safe access
+      // Load profile data with safe access (dados básicos do useAuth)
       setProfileData({
         full_name: profile.full_name || '',
         phone: profile.phone || '',
@@ -163,6 +202,9 @@ const CompleteProfile = () => {
         cnh_category: (profile as any).cnh_category || '',
         cnh_expiry_date: (profile as any).cnh_expiry_date || null,
       });
+      
+      // Buscar dados completos via view segura (resolve CLS)
+      fetchSecureProfile();
       
       // Load structured address from fixed_address if available
       if ((profile as any).fixed_address) {
