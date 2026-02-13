@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
-import { forceLogoutAndRedirect } from '@/utils/authRecovery';
+
 
 export type SubscriptionTier = 'FREE' | 'ESSENTIAL' | 'PROFESSIONAL';
 
@@ -133,9 +133,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         const accessToken = await getValidAccessToken();
         
         if (!accessToken) {
-          console.warn('[SubscriptionContext] No valid access token available');
-          // Se o app acredita que há usuário mas não há token válido, forçar logout.
-          await forceLogoutAndRedirect('/');
+          console.warn('[SubscriptionContext] No valid access token available, defaulting to FREE');
           break;
         }
         
@@ -164,10 +162,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           }
 
-          // Sessão inválida e não conseguimos recuperar → logout para evitar loop de 401.
+          // Sessão inválida - apenas defaultar para FREE, sem forçar logout
           if (isSessionError) {
-            await forceLogoutAndRedirect('/');
-            return;
+            console.warn('[SubscriptionContext] Session invalid, defaulting to FREE tier');
+            break;
           }
           
           if (error) throw error;
