@@ -26,17 +26,21 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
   onServicesModalOpen,
 }) => {
   const displayName = profileName?.split(' ')[0] || (activeMode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista');
-  const { desktopUrl: heroDesktop } = useHeroBackground();
+  const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
 
   return (
     <TooltipProvider>
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(${heroDesktop})` }}
-          role="img"
-          aria-label="Imagem de fundo com caminhão"
-        />
+        <picture className="absolute inset-0">
+          <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
+          <img 
+            src={heroDesktop}
+            alt="Imagem de fundo com caminhão"
+            className="w-full h-full object-cover animate-fade-in"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">

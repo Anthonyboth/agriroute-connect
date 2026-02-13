@@ -47,10 +47,11 @@ export function useHeroBackground() {
       
       return data;
     },
-    staleTime: 2 * 60 * 1000,  // 2 minutos - permite atualizar com frequência
-    gcTime: 5 * 60 * 1000,     // 5 minutos de cache
-    refetchOnWindowFocus: true, // Recarrega ao voltar ao app
+    staleTime: 10 * 60 * 1000,  // 10 minutos - hero image raramente muda
+    gcTime: 30 * 60 * 1000,     // 30 minutos de cache
+    refetchOnWindowFocus: false, // Não recarregar ao voltar (economia de rede mobile)
     retry: 1,
+    placeholderData: null,       // Evita loading state - fallback já garante imagem
   });
 
   const desktopUrl = data?.image_url || FALLBACK_DESKTOP;

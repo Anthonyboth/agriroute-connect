@@ -167,7 +167,7 @@ const getDisplayLocation = (request: ServiceRequest): string => {
 export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
-  const { desktopUrl: heroDesktop } = useHeroBackground();
+  const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -1085,10 +1085,16 @@ export const ServiceProviderDashboard: React.FC = () => {
     <div className="bg-background">
       {/* Hero Section - Padronizado com ProducerDashboard */}
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroDesktop})` }}
-        />
+        <picture className="absolute inset-0">
+          <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
+          <img 
+            src={heroDesktop}
+            alt="Imagem de fundo"
+            className="w-full h-full object-cover"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">

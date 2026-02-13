@@ -53,7 +53,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { desktopUrl: heroDesktop } = useHeroBackground();
+  const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -150,10 +150,16 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
       {/* Hero Section */}
       <div className="relative text-white overflow-hidden">
         {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroDesktop})` }}
-        />
+        <picture className="absolute inset-0">
+          <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
+          <img 
+            src={heroDesktop}
+            alt="Imagem de fundo"
+            className="w-full h-full object-cover"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         

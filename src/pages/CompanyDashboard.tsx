@@ -137,7 +137,7 @@ const CompanyDashboard = () => {
   const isTablet = useIsTablet();
   const tabsScrollRef = React.useRef<HTMLDivElement>(null);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
-  const { desktopUrl: heroDesktop } = useHeroBackground();
+  const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [driverFileModalOpen, setDriverFileModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
@@ -717,10 +717,16 @@ const CompanyDashboard = () => {
       />
       
       <section className="relative py-6 overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(${heroDesktop})` }}
-        />
+        <picture className="absolute inset-0">
+          <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
+          <img 
+            src={heroDesktop}
+            alt="Imagem de fundo"
+            className="w-full h-full object-cover animate-fade-in"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
         {/* Overlay verde para melhor contraste - seguindo padrão do DriverDashboard */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
         <div className="container relative z-10 mx-auto px-4">
