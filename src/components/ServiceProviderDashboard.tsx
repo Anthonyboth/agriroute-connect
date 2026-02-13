@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CenteredSpinner } from '@/components/ui/AppSpinner';
+import { GlobalLoader } from '@/components/AppLoader';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
@@ -1078,7 +1078,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   });
 
   if (initialLoading) {
-    return <CenteredSpinner size="lg" className="min-h-[40vh]" />;
+    return <GlobalLoader />;
   }
 
   return (
