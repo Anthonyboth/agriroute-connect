@@ -577,13 +577,13 @@ const AuthedLanding = () => {
     }
   }, [profile]);
   
-  // Se demorou muito e não há usuário, mostrar Landing
-  if (loadingTimeout && !profile) {
+  // Se ainda carregando e não tem perfil, mostrar Landing direto (sem spinner)
+  if ((loading || isCheckingCompany) && !profile) {
     return <Landing />;
   }
   
-  // ✅ UNIFICADO: Usar AuthLoader durante carregamento
-  if ((loading || isCheckingCompany) && !loadingTimeout) {
+  // Se autenticado mas ainda verificando empresa, mostrar loader
+  if (isCheckingCompany && profile) {
     return <AuthLoader message="Carregando..." />;
   }
   
