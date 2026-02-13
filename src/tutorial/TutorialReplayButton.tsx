@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { HelpCircle } from 'lucide-react';
 import { useTutorial } from './TutorialProvider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 /**
  * Floating / inline button to replay the tutorial.
@@ -18,15 +19,13 @@ export const TutorialReplayButton: React.FC<{ className?: string }> = ({ classNa
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={startTutorial}
-            className={className}
+            className={cn("h-9 w-9 p-0 flex-shrink-0", className)}
             aria-label="Como usar o AgriRoute"
           >
-            <HelpCircle className="h-4 w-4 mr-1.5" />
-            <span className="hidden sm:inline">Como usar o AgriRoute</span>
-            <span className="sm:hidden">Ajuda</span>
+            <HelpCircle className="h-5 w-5 text-muted-foreground" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
