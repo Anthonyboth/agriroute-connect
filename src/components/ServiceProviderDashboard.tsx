@@ -536,8 +536,8 @@ export const ServiceProviderDashboard: React.FC = () => {
     try {
       inFlightRef.current = true;
       
-      // Show appropriate loading state
-      if (scope === 'all') {
+      // Show loading state ONLY on first load (not on background refetches)
+      if (scope === 'all' && !silent) {
         setInitialLoading(true);
       }
       
