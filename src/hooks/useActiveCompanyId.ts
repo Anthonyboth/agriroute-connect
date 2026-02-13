@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTransportCompany } from './useTransportCompany';
+import { devLog } from '@/lib/devLogger';
 
 /**
  * Hook centralizado para obter o companyId ativo
@@ -12,19 +13,14 @@ export const useActiveCompanyId = () => {
 
   useEffect(() => {
     if (company?.id) {
-      // Fonte da verdade: transport_companies.id
       setCompanyId(company.id);
-      
-      // Persistir no localStorage para consistência
       localStorage.setItem('current_company_id', company.id);
-      
-      console.log('🔑 [useActiveCompanyId] Company ID ativo:', company.id);
+      devLog('🔑 [useActiveCompanyId] Company ID ativo:', company.id);
     } else {
-      // Fallback: tentar recuperar do localStorage
       const storedId = localStorage.getItem('current_company_id');
       if (storedId) {
         setCompanyId(storedId);
-        console.log('🔑 [useActiveCompanyId] Usando company ID do localStorage:', storedId);
+        devLog('🔑 [useActiveCompanyId] Usando company ID do localStorage:', storedId);
       } else {
         setCompanyId(null);
         console.warn('⚠️ [useActiveCompanyId] Nenhum company ID disponível');

@@ -38,7 +38,7 @@ function tryScaleToDegrees(value: number, kind: 'lat' | 'lng'): number {
   for (const divisor of [1e5, 1e6, 1e7]) {
     const scaled = value / divisor;
     if (Math.abs(scaled) <= maxAbs) {
-      console.log(`[normalizeLatLngPoint] Scaled ${kind} from ${value} to ${scaled} (divisor: ${divisor})`);
+      if (import.meta.env.DEV) console.log(`[normalizeLatLngPoint] Scaled ${kind} from ${value} to ${scaled} (divisor: ${divisor})`);
       return scaled;
     }
   }
@@ -78,7 +78,7 @@ export function normalizeLatLngPoint(
 ): LatLngPoint | null {
   const silent = options?.silent ?? false;
   const log = (...args: any[]) => {
-    if (!silent) console.log(...args);
+    if (!silent && import.meta.env.DEV) console.log(...args);
   };
   const warn = (...args: any[]) => {
     if (!silent) console.warn(...args);

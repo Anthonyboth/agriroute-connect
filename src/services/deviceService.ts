@@ -113,7 +113,7 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
               .maybeSingle();
             
             if (retryError) throw retryError;
-            console.log('✅ Device registered with new ID:', retryData);
+            if (import.meta.env.DEV) console.log('✅ Device registered with new ID:', retryData);
             return retryData!;
           }
           throw insertError;
@@ -123,11 +123,11 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
           throw new Error('No data returned from device registration');
         }
         
-        console.log('✅ Dispositivo registrado (INSERT):', insertData);
+        if (import.meta.env.DEV) console.log('✅ Dispositivo registrado (INSERT):', insertData);
         return insertData;
       }
       
-      console.log('✅ Dispositivo registrado (UPDATE):', updateData);
+      if (import.meta.env.DEV) console.log('✅ Dispositivo registrado (UPDATE):', updateData);
       return updateData;
     } catch (error: any) {
       const isLastAttempt = attempt === MAX_RETRIES - 1;

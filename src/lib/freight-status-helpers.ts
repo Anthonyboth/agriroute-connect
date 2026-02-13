@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { StatusUpdateQueue } from './status-update-queue';
+import { devLog } from './devLogger';
 
 // Status finais que não podem mais ser alterados
 export const FINAL_STATUSES = [
@@ -29,7 +30,7 @@ export async function driverUpdateFreightStatus({
   companyId,
   assignmentId
 }: UpdateStatusParams): Promise<boolean> {
-  console.log('[STATUS UPDATE] 🔄 Iniciando atualização:', {
+  devLog('[STATUS UPDATE] 🔄 Iniciando atualização:', {
     freightId,
     newStatus,
     profileId: currentUserProfile?.id,
@@ -47,7 +48,7 @@ export async function driverUpdateFreightStatus({
     // o caminho legado possui validações antigas que estavam bloqueando a progressão.
     const shouldUseTripProgressRpc = role !== 'TRANSPORTADORA';
 
-    console.log('[STATUS UPDATE] 🧠 RPC selecionada:', shouldUseTripProgressRpc ? 'update_trip_progress' : 'driver_update_freight_status', {
+    devLog('[STATUS UPDATE] 🧠 RPC selecionada:', shouldUseTripProgressRpc ? 'update_trip_progress' : 'driver_update_freight_status', {
       role,
       companyId: companyId ?? null,
       assignmentId: assignmentId ?? null,
@@ -208,7 +209,7 @@ export async function driverUpdateFreightStatus({
             type: 'delivery_confirmation_required',
             data: { freight_id: freightId }
           });
-          console.log('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);
+          devLog('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);
         }
 
         // ✅ Sincronização legada é não-bloqueante (o RPC já cuida do core)
@@ -227,14 +228,14 @@ export async function driverUpdateFreightStatus({
           detail: { freightId } 
         }));
 
-        console.log('[freight-status-helpers] ✅ Frete movido para histórico:', freightId);
+        devLog('[freight-status-helpers] ✅ Frete movido para histórico:', freightId);
 
       } catch (notifyError) {
         console.warn('[freight-status-helpers] ⚠️ Erro não bloqueante:', notifyError);
       }
     }
     
-    console.log('[STATUS UPDATE] ✅ Status atualizado com sucesso:', {
+    devLog('[STATUS UPDATE] ✅ Status atualizado com sucesso:', {
       freightId,
       newStatus: normalizedStatus,
       assignmentId
@@ -252,7 +253,7 @@ export async function driverUpdateFreightStatus({
     
     // Tratamento específico para lock timeout
     if (error.code === '55P03') {
-      console.log('🔥 [DEBUG] Lock timeout detectado');
+      devLog('🔥 [DEBUG] Lock timeout detectado');
       toast.error('Frete sendo atualizado por outra operação', {
         description: 'Tente novamente em alguns segundos.'
       });
@@ -263,7 +264,7 @@ export async function driverUpdateFreightStatus({
     toast.error('Erro inesperado ao atualizar status');
     return false;
   } finally {
-    console.log('[STATUS UPDATE] Fim da operação');
+    devLog('[STATUS UPDATE] Fim da operação');
   }
 }
 
@@ -277,7 +278,7 @@ async function updateStatusDirect(
   assignmentId?: string
 ): Promise<boolean> {
   try {
-    console.log('[STATUS-UPDATE] Executando fallback direto...');
+    devLog('[STATUS-UPDATE] Executando fallback direto...');
     
     // Verificar se é frete multi-carreta
     const { data: freightData } = await supabase
@@ -291,7 +292,7 @@ async function updateStatusDirect(
     // ✅ Para fretes multi-carreta, NUNCA atualizar o status do frete diretamente
     // Apenas atualizar o assignment do motorista
     if (isMultiTruck) {
-      console.log('[STATUS-UPDATE] Multi-truck freight - updating assignment only');
+      devLog('[STATUS-UPDATE] Multi-truck freight - updating assignment only');
       
       const { error: assignmentError } = await supabase
         .from('freight_assignments')

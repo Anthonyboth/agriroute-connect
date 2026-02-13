@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { devLog } from '@/lib/devLogger';
 
 interface SelfieUploadResult {
   success: boolean;
@@ -21,21 +22,17 @@ interface SelfieUploadParams {
 
 /**
  * Faz upload de selfie com instrumentação completa e tratamento de erro detalhado.
- * Retorna erro estruturado para exibição ao usuário.
  */
 export async function uploadSelfieWithInstrumentation({
   blob,
   uploadMethod,
 }: SelfieUploadParams): Promise<SelfieUploadResult> {
   
-  // 1. LOG ANTES DO UPLOAD
-  console.log('[SELFIE-UPLOAD] === INICIANDO UPLOAD ===');
-  console.log('[SELFIE-UPLOAD] Blob size:', blob.size, 'bytes');
-  console.log('[SELFIE-UPLOAD] Blob type:', blob.type);
-  console.log('[SELFIE-UPLOAD] Upload method:', uploadMethod);
-  console.log('[SELFIE-UPLOAD] Timestamp:', new Date().toISOString());
+  devLog('[SELFIE-UPLOAD] === INICIANDO UPLOAD ===');
+  devLog('[SELFIE-UPLOAD] Blob size:', blob.size, 'bytes');
+  devLog('[SELFIE-UPLOAD] Blob type:', blob.type);
+  devLog('[SELFIE-UPLOAD] Upload method:', uploadMethod);
 
-  // 2. VALIDAR AUTENTICAÇÃO
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
@@ -43,35 +40,19 @@ export async function uploadSelfieWithInstrumentation({
       console.error('[SELFIE-UPLOAD] Erro ao obter sessão:', sessionError);
       return {
         success: false,
-        error: {
-          stage: 'auth',
-          code: 'SESSION_ERROR',
-          message: 'Erro ao verificar sessão.',
-          details: sessionError.message,
-        },
+        error: { stage: 'auth', code: 'SESSION_ERROR', message: 'Erro ao verificar sessão.', details: sessionError.message },
       };
     }
-
-    if (!sessionData.session) {
-      console.warn('[SELFIE-UPLOAD] Sessão não encontrada, tentando refresh...');
-      
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError || !refreshData.session) {
-        console.error('[SELFIE-UPLOAD] Refresh falhou:', refreshError?.message);
+    
+    if (!sessionData?.session) {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
         return {
           success: false,
-          error: {
-            stage: 'auth',
-            status: 401,
-            code: 'SESSION_EXPIRED',
-            message: 'Sessão expirada. Faça login novamente.',
-            details: refreshError?.message,
-          },
+          error: { stage: 'auth', status: 401, code: 'SESSION_EXPIRED', message: 'Sessão expirada. Faça login novamente.', details: refreshError?.message },
         };
       }
-      
-      console.log('[SELFIE-UPLOAD] Sessão renovada com sucesso');
+      devLog('[SELFIE-UPLOAD] Sessão renovada com sucesso');
     }
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -80,161 +61,74 @@ export async function uploadSelfieWithInstrumentation({
       console.error('[SELFIE-UPLOAD] Erro ao obter usuário:', userError);
       return {
         success: false,
-        error: {
-          stage: 'auth',
-          status: 401,
-          code: 'USER_NOT_FOUND',
-          message: 'Usuário não autenticado.',
-          details: userError?.message,
-        },
+        error: { stage: 'auth', status: 401, code: 'USER_NOT_FOUND', message: 'Usuário não autenticado.', details: userError?.message },
       };
     }
 
-    console.log('[SELFIE-UPLOAD] Usuário autenticado:', user.id);
+    devLog('[SELFIE-UPLOAD] Usuário autenticado:', user.id);
 
-    // 3. PREPARAR ARQUIVO - bucket privado identity-selfies
     const mime = blob.type || 'image/jpeg';
     const extFromMime = (mime.split('/')[1] || 'jpg').toLowerCase();
     const safeExt = extFromMime === 'jpeg' ? 'jpg' : extFromMime;
-    // Caminho: selfies/{userId}/filename.ext (conforme storage policy)
     const filePath = `selfies/${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
     
-    console.log('[SELFIE-UPLOAD] Destino: bucket=identity-selfies, path=', filePath);
-    console.log('[SELFIE-UPLOAD] Content-Type:', mime);
+    devLog('[SELFIE-UPLOAD] Destino: bucket=identity-selfies, path=', filePath);
 
-    // 4. FAZER UPLOAD ao bucket privado
     const { error: uploadError, data: uploadData } = await supabase.storage
       .from('identity-selfies')
       .upload(filePath, blob, { 
         contentType: mime,
-        upsert: true, // Permitir sobrescrever (re-upload da mesma selfie)
+        upsert: true,
       });
-
+    
     if (uploadError) {
-      console.error('[SELFIE-UPLOAD] ❌ ERRO NO UPLOAD:');
-      console.error('[SELFIE-UPLOAD]   status:', (uploadError as any).status);
-      console.error('[SELFIE-UPLOAD]   statusCode:', (uploadError as any).statusCode);
-      console.error('[SELFIE-UPLOAD]   message:', uploadError.message);
-      console.error('[SELFIE-UPLOAD]   name:', uploadError.name);
-      console.error('[SELFIE-UPLOAD]   details:', (uploadError as any).details);
-      console.error('[SELFIE-UPLOAD]   hint:', (uploadError as any).hint);
-      console.error('[SELFIE-UPLOAD]   error object:', JSON.stringify(uploadError, null, 2));
-
-      // Mapear erros comuns para mensagens amigáveis
-      const status = (uploadError as any).status || (uploadError as any).statusCode;
-      let userMessage = 'Erro ao enviar arquivo.';
-      
-      if (status === 401) {
-        userMessage = 'Sessão expirada. Faça login novamente.';
-      } else if (status === 403) {
-        userMessage = 'Permissão negada para enviar arquivo.';
-      } else if (status === 413) {
-        userMessage = 'Arquivo muito grande. Máximo 10MB.';
-      } else if (status === 400) {
-        userMessage = 'Arquivo inválido ou corrompido.';
-      } else if (uploadError.message?.includes('Duplicate')) {
-        userMessage = 'Arquivo já existe. Tente novamente.';
-      }
-
+      console.error('[SELFIE-UPLOAD] Erro no upload:', uploadError);
       return {
         success: false,
         error: {
           stage: 'upload',
-          status,
-          code: uploadError.name || 'UPLOAD_ERROR',
-          message: userMessage,
+          status: (uploadError as any)?.statusCode,
+          code: (uploadError as any)?.error || 'UPLOAD_ERROR',
+          message: 'Erro ao enviar selfie.',
           details: uploadError.message,
-          hint: (uploadError as any).hint,
         },
       };
     }
 
-    console.log('[SELFIE-UPLOAD] ✅ Upload concluído:', uploadData?.path);
+    devLog('[SELFIE-UPLOAD] Upload bem-sucedido:', uploadData?.path);
 
-    // 5. CRIAR URL ASSINADA (bucket privado identity-selfies)
-    const { data: signedData, error: signedError } = await supabase.storage
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('identity-selfies')
-      .createSignedUrl(filePath, 60 * 60 * 24); // 24h
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
-    if (signedError) {
-      console.error('[SELFIE-UPLOAD] ❌ ERRO AO CRIAR URL ASSINADA:');
-      console.error('[SELFIE-UPLOAD]   message:', signedError.message);
-      console.error('[SELFIE-UPLOAD]   error object:', JSON.stringify(signedError, null, 2));
-
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('[SELFIE-UPLOAD] Erro ao gerar signed URL:', signedUrlError);
       return {
         success: false,
         error: {
           stage: 'signed_url',
           code: 'SIGNED_URL_ERROR',
-          message: 'Erro ao gerar link de visualização.',
-          details: signedError.message,
+          message: 'Selfie enviada, mas erro ao gerar URL.',
+          details: signedUrlError?.message,
         },
       };
     }
 
-    console.log('[SELFIE-UPLOAD] ✅ URL assinada criada');
-
-    // 6. SALVAR NO BANCO DE DADOS
-    const { error: dbError } = await supabase
-      .from('identity_selfies')
-      .upsert({
-        user_id: user.id,
-        selfie_url: filePath,
-        upload_method: uploadMethod,
-        verification_status: 'PENDING',
-      }, { onConflict: 'user_id' });
-
-    if (dbError) {
-      console.error('[SELFIE-UPLOAD] ❌ ERRO AO SALVAR NO BANCO:');
-      console.error('[SELFIE-UPLOAD]   code:', dbError.code);
-      console.error('[SELFIE-UPLOAD]   message:', dbError.message);
-      console.error('[SELFIE-UPLOAD]   details:', dbError.details);
-      console.error('[SELFIE-UPLOAD]   hint:', dbError.hint);
-      console.error('[SELFIE-UPLOAD]   error object:', JSON.stringify(dbError, null, 2));
-
-      // Mapear erros RLS
-      let userMessage = 'Erro ao salvar dados.';
-      
-      if (dbError.code === '42501' || dbError.message?.includes('row-level security')) {
-        userMessage = 'Permissão negada para salvar dados.';
-      } else if (dbError.code === '23505') {
-        userMessage = 'Registro já existe.';
-      }
-
-      return {
-        success: false,
-        error: {
-          stage: 'database',
-          code: dbError.code,
-          message: userMessage,
-          details: dbError.message,
-          hint: dbError.hint,
-        },
-      };
-    }
-
-    console.log('[SELFIE-UPLOAD] ✅ Dados salvos no banco');
-    console.log('[SELFIE-UPLOAD] === UPLOAD CONCLUÍDO COM SUCESSO ===');
+    devLog('[SELFIE-UPLOAD] Signed URL gerada com sucesso');
 
     return {
       success: true,
-      signedUrl: signedData.signedUrl,
+      signedUrl: signedUrlData.signedUrl,
       filePath,
     };
-
   } catch (error: any) {
-    console.error('[SELFIE-UPLOAD] ❌ ERRO NÃO TRATADO:');
-    console.error('[SELFIE-UPLOAD]   name:', error?.name);
-    console.error('[SELFIE-UPLOAD]   message:', error?.message);
-    console.error('[SELFIE-UPLOAD]   stack:', error?.stack);
-    console.error('[SELFIE-UPLOAD]   full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-
+    console.error('[SELFIE-UPLOAD] Erro inesperado:', error);
     return {
       success: false,
       error: {
-        stage: 'auth',
-        code: error?.name || 'UNKNOWN_ERROR',
-        message: 'Erro inesperado. Tente novamente.',
+        stage: 'upload',
+        code: 'UNEXPECTED_ERROR',
+        message: 'Erro inesperado ao enviar selfie.',
         details: error?.message,
       },
     };

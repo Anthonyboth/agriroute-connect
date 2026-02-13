@@ -731,7 +731,7 @@ export async function logInspectionAccessClient(
       p_access_granted: accessGranted,
       p_denial_reason: denialReason || null,
     });
-    console.log('[livestockComplianceService] Inspection access logged');
+    if (import.meta.env.DEV) console.log('[livestockComplianceService] Inspection access logged');
   } catch (error) {
     console.error('[livestockComplianceService] Error logging inspection access:', error);
     // Don't throw - logging should not break the main flow

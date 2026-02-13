@@ -78,7 +78,7 @@ async function sendBootstrapTimeoutAlert(state: BootstrapState): Promise<void> {
       body: JSON.stringify(payload)
     });
     
-    console.log('[BootstrapGuard] Alerta de timeout enviado ao Telegram');
+    // Alert sent silently
   } catch (e) {
     console.debug('[BootstrapGuard] Falha ao enviar alerta:', e);
   }

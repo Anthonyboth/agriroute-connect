@@ -42,14 +42,14 @@ export class StatusUpdateQueue {
       attempts: 0
     });
     this.saveQueue(queue);
-    console.log('[StatusUpdateQueue] Update adicionado à fila:', update.freightId);
+    if (import.meta.env.DEV) console.log('[StatusUpdateQueue] Update adicionado à fila:', update.freightId);
   }
   
   static async processQueue(): Promise<void> {
     const queue = this.getQueue();
     if (queue.length === 0) return;
     
-    console.log(`[StatusUpdateQueue] Processando ${queue.length} updates pendentes...`);
+    if (import.meta.env.DEV) console.log(`[StatusUpdateQueue] Processando ${queue.length} updates pendentes...`);
     
     const updatedQueue: QueuedUpdate[] = [];
     
@@ -68,7 +68,7 @@ export class StatusUpdateQueue {
             attempts: update.attempts + 1
           });
         } else {
-          console.log('[StatusUpdateQueue] Update sincronizado:', update.freightId);
+          if (import.meta.env.DEV) console.log('[StatusUpdateQueue] Update sincronizado:', update.freightId);
         }
       } catch (err) {
         console.error('[StatusUpdateQueue] Erro ao processar:', err);

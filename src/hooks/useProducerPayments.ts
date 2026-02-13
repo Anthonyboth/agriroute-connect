@@ -1,11 +1,5 @@
 /**
  * Hook dedicado para gerenciamento de pagamentos do produtor
- * 
- * Responsabilidades:
- * - Buscar pagamentos externos do produtor
- * - Confirmar que efetuou pagamento
- * - Criar novas solicitações de pagamento
- * - Gerenciar estado de loading e erros
  */
 
 import { useCallback, useState, useEffect } from 'react';
@@ -13,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { sendPushNotification } from '@/utils/pushNotificationService';
+import { devLog } from '@/lib/devLogger';
 
 export interface ProducerPayment {
   id: string;
@@ -54,7 +49,6 @@ interface UseProducerPaymentsReturn {
   refetch: () => Promise<void>;
   confirmPaymentMade: (paymentId: string) => Promise<boolean>;
   createPaymentRequest: (freightId: string, driverId: string, amount: number, notes?: string) => Promise<boolean>;
-  // Estatísticas
   pendingCount: number;
   awaitingConfirmationCount: number;
   completedCount: number;
@@ -67,91 +61,50 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Busca todos os pagamentos externos do produtor
-   */
   const fetchPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('[useProducerPayments] Skipping fetch - not a producer');
+      devLog('[useProducerPayments] Skipping fetch - not a producer');
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
-      console.log('[useProducerPayments] Fetching payments for producer:', profile.id);
-
-      // ✅ FIX: Buscar pagamentos SEM join em profiles (RLS bloqueia produtor de ver perfil do motorista)
-      // Resolver perfis via profiles_secure em etapa separada
+      devLog('[useProducerPayments] Fetching payments for producer:', profile.id);
       const { data, error: fetchError } = await supabase
         .from('external_payments')
-        .select(`
-          *,
-          freight:freights!external_payments_freight_id_fkey(
-            id,
-            cargo_type,
-            origin_city,
-            origin_state,
-            destination_city,
-            destination_state,
-            pickup_date,
-            status,
-            price,
-            distance_km
-          )
-        `)
+        .select(`*, freight:freights!external_payments_freight_id_fkey(id, cargo_type, origin_city, origin_state, destination_city, destination_state, pickup_date, status, price, distance_km)`)
         .eq('producer_id', profile.id)
         .not('status', 'in', '("cancelled")')
         .order('created_at', { ascending: false });
-
       if (fetchError) {
-        console.error('[useProducerPayments] Fetch error:', {
-          code: fetchError.code,
-          message: fetchError.message,
-          details: fetchError.details,
-        });
+        console.error('[useProducerPayments] Fetch error:', { code: fetchError.code, message: fetchError.message, details: fetchError.details });
         setError(fetchError.message);
         setPayments([]);
         return;
       }
-
-      console.log('[useProducerPayments] Fetched payments:', data?.length || 0);
-      
-      // ✅ Filtrar pagamentos de fretes cancelados no client-side como segurança extra
+      devLog('[useProducerPayments] Fetched payments:', data?.length || 0);
       const activePayments = (data || []).filter((p: any) => {
         const freightStatus = p.freight?.status;
         if (freightStatus === 'CANCELLED') {
-          console.log('[useProducerPayments] Filtrado pagamento de frete cancelado:', p.id);
+          devLog('[useProducerPayments] Filtrado pagamento de frete cancelado:', p.id);
           return false;
         }
         return true;
       });
-
-      // ✅ FIX: Resolver perfis de motoristas via profiles_secure (view segura)
-      // Não usar JOIN em profiles direto pois RLS bloqueia produtor de ver perfil do motorista
       const driverIds = [...new Set(activePayments.map((p: any) => p.driver_id).filter(Boolean))];
       let driverMap = new Map<string, any>();
-      
       if (driverIds.length > 0) {
         const { data: drivers, error: driversErr } = await supabase
-          .from('profiles_secure' as any)
-          .select('id, full_name, profile_photo_url')
-          .in('id', driverIds);
-        
+          .from('profiles_secure' as any).select('id, full_name, profile_photo_url').in('id', driverIds);
         if (driversErr) {
           console.warn('[useProducerPayments] Erro ao buscar perfis via profiles_secure:', driversErr.message);
         } else if (drivers?.length) {
           (drivers as any[]).forEach((d: any) => driverMap.set(d.id, d));
         }
       }
-
-      // Enriquecer pagamentos com dados do motorista
       const enrichedPayments = activePayments.map((p: any) => ({
-        ...p,
-        driver: driverMap.get(p.driver_id) || { id: p.driver_id, full_name: 'Motorista' },
+        ...p, driver: driverMap.get(p.driver_id) || { id: p.driver_id, full_name: 'Motorista' },
       }));
-      
       setPayments(enrichedPayments as unknown as ProducerPayment[]);
     } catch (err: any) {
       console.error('[useProducerPayments] Unexpected error:', err);
@@ -162,110 +115,57 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
     }
   }, [profile?.id, profile?.role]);
 
-  /**
-   * Confirma que o produtor efetuou o pagamento (externo à plataforma)
-   */
   const confirmPaymentMade = useCallback(async (paymentId: string): Promise<boolean> => {
-    if (!profile?.id) {
-      toast.error('Você precisa estar logado');
-      return false;
-    }
-
+    if (!profile?.id) { toast.error('Você precisa estar logado'); return false; }
     try {
-      console.log('[useProducerPayments] Confirming payment made:', paymentId);
-
-      // Buscar dados do pagamento ANTES de atualizar para ter info do motorista e frete
+      devLog('[useProducerPayments] Confirming payment made:', paymentId);
       const { data: paymentData } = await supabase
         .from('external_payments')
-        .select(`
-          id, driver_id, amount, freight_id,
-          freight:freights!external_payments_freight_id_fkey(
-            origin_city, destination_city, cargo_type
-          )
-        `)
-        .eq('id', paymentId)
-        .eq('producer_id', profile.id)
-        .eq('status', 'proposed')
-        .maybeSingle();
-
+        .select(`id, driver_id, amount, freight_id, freight:freights!external_payments_freight_id_fkey(origin_city, destination_city, cargo_type)`)
+        .eq('id', paymentId).eq('producer_id', profile.id).eq('status', 'proposed').maybeSingle();
       if (!paymentData) {
         console.error('[useProducerPayments] Payment not found or not in proposed status');
         toast.error('Pagamento não encontrado ou já foi confirmado.');
         return false;
       }
-
-      // ✅ Usar .select() para verificar se o update realmente afetou alguma linha
       const { data: updatedRows, error: updateError } = await supabase
         .from('external_payments')
-        .update({
-          status: 'paid_by_producer',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', paymentId)
-        .eq('producer_id', profile.id)
-        .eq('status', 'proposed')
-        .select('id');
-
+        .update({ status: 'paid_by_producer', updated_at: new Date().toISOString() })
+        .eq('id', paymentId).eq('producer_id', profile.id).eq('status', 'proposed').select('id');
       if (updateError) {
         console.error('[useProducerPayments] Error confirming payment:', updateError);
-        toast.error('Erro ao confirmar pagamento', {
-          description: updateError.message
-        });
+        toast.error('Erro ao confirmar pagamento', { description: updateError.message });
         return false;
       }
-
-      // ✅ Verificar se realmente atualizou
       if (!updatedRows || updatedRows.length === 0) {
         console.error('[useProducerPayments] Update affected 0 rows - RLS or status mismatch');
-        toast.error('Não foi possível atualizar o pagamento.', {
-          description: 'Verifique se o pagamento ainda está pendente.'
-        });
+        toast.error('Não foi possível atualizar o pagamento.', { description: 'Verifique se o pagamento ainda está pendente.' });
         return false;
       }
-
-      console.log('[useProducerPayments] ✅ Payment updated successfully:', updatedRows);
-
-      toast.success('Pagamento confirmado!', {
-        description: 'O motorista será notificado para confirmar o recebimento.'
-      });
-
-      // ✅ Enviar push notification + notificação no banco para o motorista
+      devLog('[useProducerPayments] ✅ Payment updated successfully:', updatedRows);
+      toast.success('Pagamento confirmado!', { description: 'O motorista será notificado para confirmar o recebimento.' });
       if (paymentData.driver_id) {
         const freight = paymentData.freight as any;
         const amountFormatted = paymentData.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00';
-        const routeInfo = freight?.origin_city && freight?.destination_city 
-          ? `${freight.origin_city} → ${freight.destination_city}` 
-          : 'Frete';
-
-        // Criar notificação no banco (visível no painel do motorista)
+        const routeInfo = freight?.origin_city && freight?.destination_city ? `${freight.origin_city} → ${freight.destination_city}` : 'Frete';
         supabase.from('notifications').insert({
           user_id: paymentData.driver_id,
           title: '💰 Pagamento Confirmado pelo Produtor',
           message: `R$ ${amountFormatted} - ${routeInfo}. Acesse a aba Pagamentos para confirmar o recebimento.`,
-          type: 'payment_confirmed_by_producer',
-          read: false,
+          type: 'payment_confirmed_by_producer', read: false,
         }).then(({ error }) => {
           if (error) console.error('[useProducerPayments] Error creating notification:', error);
-          else console.log('[useProducerPayments] ✅ Notification created for driver');
+          else devLog('[useProducerPayments] ✅ Notification created for driver');
         });
-
-        // Enviar push notification
         sendPushNotification({
           userIds: [paymentData.driver_id],
           title: '💰 Pagamento Confirmado pelo Produtor',
           message: `R$ ${amountFormatted} - ${routeInfo}. Confirme o recebimento no app.`,
           type: 'payment_confirmed_by_producer',
-          data: {
-            payment_id: paymentId,
-            freight_id: paymentData.freight_id,
-            amount: paymentData.amount,
-          },
-          url: '/dashboard?tab=payments',
-          requireInteraction: true,
+          data: { payment_id: paymentId, freight_id: paymentData.freight_id, amount: paymentData.amount },
+          url: '/dashboard?tab=payments', requireInteraction: true,
         }).catch(err => console.error('[useProducerPayments] Push notification error:', err));
       }
-
-      // Refetch para atualizar a lista
       await fetchPayments();
       return true;
     } catch (err: any) {
@@ -275,47 +175,19 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
     }
   }, [profile?.id, fetchPayments]);
 
-  /**
-   * Cria uma nova solicitação de pagamento para um frete
-   */
-  const createPaymentRequest = useCallback(async (
-    freightId: string,
-    driverId: string,
-    amount: number,
-    notes?: string
-  ): Promise<boolean> => {
-    if (!profile?.id) {
-      toast.error('Você precisa estar logado');
-      return false;
-    }
-
+  const createPaymentRequest = useCallback(async (freightId: string, driverId: string, amount: number, notes?: string): Promise<boolean> => {
+    if (!profile?.id) { toast.error('Você precisa estar logado'); return false; }
     try {
-      console.log('[useProducerPayments] Creating payment request:', { freightId, driverId, amount });
-
+      devLog('[useProducerPayments] Creating payment request:', { freightId, driverId, amount });
       const { error: insertError } = await supabase
         .from('external_payments')
-        .insert({
-          freight_id: freightId,
-          driver_id: driverId,
-          producer_id: profile.id,
-          amount,
-          notes: notes || null,
-          status: 'proposed',
-          proposed_at: new Date().toISOString(),
-        });
-
+        .insert({ freight_id: freightId, driver_id: driverId, producer_id: profile.id, amount, notes: notes || null, status: 'proposed', proposed_at: new Date().toISOString() });
       if (insertError) {
         console.error('[useProducerPayments] Error creating payment:', insertError);
-        toast.error('Erro ao criar solicitação de pagamento', {
-          description: insertError.message
-        });
+        toast.error('Erro ao criar solicitação de pagamento', { description: insertError.message });
         return false;
       }
-
-      toast.success('Solicitação de pagamento criada!', {
-        description: 'O motorista será notificado.'
-      });
-
+      toast.success('Solicitação de pagamento criada!', { description: 'O motorista será notificado.' });
       await fetchPayments();
       return true;
     } catch (err: any) {
@@ -325,53 +197,24 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
     }
   }, [profile?.id, fetchPayments]);
 
-  // Estatísticas derivadas
   const pendingCount = payments.filter(p => p.status === 'proposed').length;
   const awaitingConfirmationCount = payments.filter(p => p.status === 'paid_by_producer').length;
   const completedCount = payments.filter(p => p.status === 'confirmed').length;
-  const totalPending = payments
-    .filter(p => p.status === 'proposed')
-    .reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPending = payments.filter(p => p.status === 'proposed').reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  // Fetch inicial
   useEffect(() => {
-    if (profile?.id && profile.role === 'PRODUTOR') {
-      fetchPayments();
-    }
+    if (profile?.id && profile.role === 'PRODUTOR') fetchPayments();
   }, [profile?.id, profile?.role, fetchPayments]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!profile?.id || profile.role !== 'PRODUTOR') return;
-
     const channel = supabase
       .channel('producer-payments-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'external_payments',
-        filter: `producer_id=eq.${profile.id}`
-      }, (payload) => {
-        console.log('[useProducerPayments] Realtime update:', payload.eventType);
-        fetchPayments();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'external_payments', filter: `producer_id=eq.${profile.id}` },
+        (payload) => { devLog('[useProducerPayments] Realtime update:', payload.eventType); fetchPayments(); })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [profile?.id, profile?.role, fetchPayments]);
 
-  return {
-    payments,
-    loading,
-    error,
-    refetch: fetchPayments,
-    confirmPaymentMade,
-    createPaymentRequest,
-    pendingCount,
-    awaitingConfirmationCount,
-    completedCount,
-    totalPending,
-  };
+  return { payments, loading, error, refetch: fetchPayments, confirmPaymentMade, createPaymentRequest, pendingCount, awaitingConfirmationCount, completedCount, totalPending };
 };

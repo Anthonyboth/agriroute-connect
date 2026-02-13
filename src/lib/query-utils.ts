@@ -67,7 +67,7 @@ export async function queryWithTimeout<T>(
 
       // Se ainda temos tentativas e não é erro de autenticação
       if (attemptNumber < retries && !error.message?.includes('JWT')) {
-        console.log(`[QueryUtils] ${operationName} - Tentando novamente em ${retryDelayMs}ms...`);
+        if (import.meta.env.DEV) console.log(`[QueryUtils] ${operationName} - Tentando novamente em ${retryDelayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, retryDelayMs));
         return executeQuery(attemptNumber + 1);
       }
@@ -91,7 +91,7 @@ export function subscriptionWithErrorHandler(
   
   channel.subscribe = (callback?: (status: string) => void) => {
     return originalSubscribe((status: string) => {
-      console.log(`[Subscription] Status: ${status}`);
+      if (import.meta.env.DEV) console.log(`[Subscription] Status: ${status}`);
       
       if (status === 'SUBSCRIPTION_ERROR' || status === 'CHANNEL_ERROR') {
         const error = new Error(`Erro na subscription: ${status}`);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { devLog } from '@/lib/devLogger';
 
 // Schema para validar coordenadas
 export const CoordinatesSchema = z.object({
@@ -146,7 +147,7 @@ export async function safeNominatimGeocode(
       `limit=1&` +
       `countrycodes=br`;
 
-    console.log('[SafeGeocoding] Nominatim request:', { city: sanitizedCity, state: sanitizedState });
+    devLog('[SafeGeocoding] Nominatim request:', { city: sanitizedCity, state: sanitizedState });
 
     const response = await fetchWithTimeout(url);
     const data = await response.json();
@@ -175,7 +176,7 @@ export async function safeNominatimGeocode(
     // Formatar endereço seguro
     const displayName = sanitizeText(validated.display_name);
 
-    console.log('[SafeGeocoding] Geocodificação bem-sucedida:', {
+    devLog('[SafeGeocoding] Geocodificação bem-sucedida:', {
       latitude: validated.lat,
       longitude: validated.lon,
     });
@@ -211,7 +212,7 @@ export async function safeBigDataCloudReverseGeocode(
       `longitude=${longitude}&` +
       `localityLanguage=pt`;
 
-    console.log('[SafeGeocoding] BigDataCloud request:', { latitude, longitude });
+    devLog('[SafeGeocoding] BigDataCloud request:', { latitude, longitude });
 
     const response = await fetchWithTimeout(url);
     const data = await response.json();
@@ -246,7 +247,7 @@ export async function safeBigDataCloudReverseGeocode(
       ? formatSafeAddress(addressParts)
       : `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
 
-    console.log('[SafeGeocoding] Geocodificação reversa bem-sucedida');
+    devLog('[SafeGeocoding] Geocodificação reversa bem-sucedida');
 
     return {
       address: sanitizeText(address),

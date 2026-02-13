@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSingleFlight } from "./utils";
 import { useApiErrorReporter } from "./useApiErrorReporter";
+import { devLog } from "@/lib/devLogger";
 
 // =============================================================================
 // TYPES
@@ -218,14 +219,14 @@ export function useFocusNfe() {
   // FETCH STATE - Carrega dados do emissor, certificado e carteira
   // =========================================================================
   const fetchState = useCallback(async (): Promise<FocusNfeState> => {
-    console.log("[FOCUS-NFE] Fetching state...");
+    devLog("[FOCUS-NFE] Fetching state...");
     
     try {
       const { data: auth } = await supabase.auth.getUser();
       const user = auth?.user;
       
       if (!user) {
-        console.log("[FOCUS-NFE] No authenticated user");
+        devLog("[FOCUS-NFE] No authenticated user");
         return {
           status: "not_configured",
           issuer: null,
@@ -242,7 +243,7 @@ export function useFocusNfe() {
         .single();
       
       if (!profile) {
-        console.log("[FOCUS-NFE] Profile not found");
+        devLog("[FOCUS-NFE] Profile not found");
         return {
           status: "not_configured",
           issuer: null,
@@ -271,7 +272,7 @@ export function useFocusNfe() {
         .maybeSingle();
       
       if (!issuerData) {
-        console.log("[FOCUS-NFE] No issuer found");
+        devLog("[FOCUS-NFE] No issuer found");
         return {
           status: "not_configured",
           issuer: null,
@@ -292,7 +293,7 @@ export function useFocusNfe() {
         isActive: issuerData.status === "active",
       };
       
-      console.log("[FOCUS-NFE] Issuer found:", issuer.id, "status:", issuer.status);
+      devLog("[FOCUS-NFE] Issuer found:", issuer.id, "status:", issuer.status);
       
       // Get certificate
       const { data: certData } = await supabase
@@ -324,7 +325,7 @@ export function useFocusNfe() {
           subjectCn: certData.subject_cn,
         };
         
-        console.log("[FOCUS-NFE] Certificate found:", certificate.id, "valid:", certificate.isValid);
+        devLog("[FOCUS-NFE] Certificate found:", certificate.id, "valid:", certificate.isValid);
       }
       
       // Get wallet
@@ -347,12 +348,12 @@ export function useFocusNfe() {
           emissionsCount: walletData.emissions_count ?? 0,
         };
         
-        console.log("[FOCUS-NFE] Wallet:", wallet.availableBalance, "credits available");
+        devLog("[FOCUS-NFE] Wallet:", wallet.availableBalance, "credits available");
       }
       
       const status = determineStatus(issuer, certificate);
       
-      console.log("[FOCUS-NFE] Final status:", status);
+      devLog("[FOCUS-NFE] Final status:", status);
       
       return {
         status,
@@ -434,7 +435,7 @@ export function useFocusNfe() {
     setLoading(true);
     
     try {
-      console.log("[FOCUS-NFE] Uploading certificate...");
+      devLog("[FOCUS-NFE] Uploading certificate...");
       
       // Convert file to base64
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -574,7 +575,7 @@ export function useFocusNfe() {
     setLoading(true);
     
     try {
-      console.log("[FOCUS-NFE] Emitting NF-e...");
+      devLog("[FOCUS-NFE] Emitting NF-e...");
       
       // Pre-flight checks
       const currentState = await fetchState();
@@ -757,7 +758,7 @@ export function useFocusNfe() {
     setLoading(true);
     
     try {
-      console.log("[FOCUS-NFE] Triggering Focus sync...");
+      devLog("[FOCUS-NFE] Triggering Focus sync...");
       
       const { data, error } = await supabase.functions.invoke("fiscal-sefaz-validation", {
         body: { issuer_id: state.issuer.id },
