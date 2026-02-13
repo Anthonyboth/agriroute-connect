@@ -161,7 +161,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
           />
         </picture>
         {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/45 to-primary/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         
         <div className="relative container mx-auto px-4 py-12 md:py-16">
           <div className="text-center">
