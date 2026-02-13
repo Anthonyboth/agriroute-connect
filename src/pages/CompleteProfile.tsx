@@ -731,36 +731,79 @@ const CompleteProfile = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Nome Completo *</Label>
-                    <Input
-                      id="full_name"
-                      value={profileData.full_name}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
-                      required
-                    />
-                  </div>
+                  {/* Nome Completo - somente leitura se já preenchido no cadastro */}
+                  {profileData.full_name ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="full_name">Nome Completo ✓</Label>
+                      <Input
+                        id="full_name"
+                        value={profileData.full_name}
+                        disabled
+                        className="bg-muted cursor-not-allowed"
+                      />
+                      <p className="text-xs text-muted-foreground">Informado no cadastro</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="full_name">Nome Completo *</Label>
+                      <Input
+                        id="full_name"
+                        value={profileData.full_name}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf_cnpj">CPF/CNPJ *</Label>
-                    <Input
-                      id="cpf_cnpj"
-                      value={profileData.cpf_cnpj}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, cpf_cnpj: e.target.value }))}
-                      required
-                    />
-                  </div>
+                  {/* CPF/CNPJ - somente leitura se já preenchido no cadastro */}
+                  {profileData.cpf_cnpj ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="cpf_cnpj">CPF/CNPJ ✓</Label>
+                      <Input
+                        id="cpf_cnpj"
+                        value={profileData.cpf_cnpj}
+                        disabled
+                        className="bg-muted cursor-not-allowed"
+                      />
+                      <p className="text-xs text-muted-foreground">Informado no cadastro</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="cpf_cnpj">CPF/CNPJ *</Label>
+                      <Input
+                        id="cpf_cnpj"
+                        value={profileData.cpf_cnpj}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, cpf_cnpj: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone WhatsApp *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                      required
-                    />
-                  </div>
+                  {/* Telefone WhatsApp - somente leitura se já preenchido no cadastro */}
+                  {profileData.phone ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone WhatsApp ✓</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={profileData.phone}
+                        disabled
+                        className="bg-muted cursor-not-allowed"
+                      />
+                      <p className="text-xs text-muted-foreground">Informado no cadastro</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone WhatsApp *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
 
                       <div className="space-y-2">
                         <Label htmlFor="contact_phone">Telefone de Contato</Label>
