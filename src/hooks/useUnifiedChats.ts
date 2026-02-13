@@ -848,8 +848,8 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
   });
 
   const totalUnread = rawConversations
-    .filter((c) => !c.isClosed)
-    .reduce((sum, c) => sum + c.unreadCount, 0);
+    .filter((c) => !c.isClosed && c.unreadCount > 0)
+    .length;
 
   return {
     conversations: rawConversations,
