@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { devLog } from "@/lib/devLogger";
 
 export type IssuerType = "CPF" | "CNPJ" | "MEI";
 export type IssuerStatus =
@@ -172,7 +173,7 @@ export function useFiscalIssuer() {
       const user = auth?.user;
 
       if (!user) {
-        console.log("[FISCAL] No authenticated user");
+        devLog("[FISCAL] No authenticated user");
         setIssuer(null);
         setCertificate(null);
         setWallet(null);
@@ -187,14 +188,14 @@ export function useFiscalIssuer() {
         .single();
 
       if (profileError || !profile?.id) {
-        console.log("[FISCAL] Profile not found for user:", user.id);
+        devLog("[FISCAL] Profile not found for user:", user.id);
         setIssuer(null);
         setCertificate(null);
         setWallet(null);
         return null;
       }
 
-      console.log("[FISCAL] Fetching issuer for profile:", profile.id);
+      devLog("[FISCAL] Fetching issuer for profile:", profile.id);
 
       // Buscar emissor por profile_id
       const issuerRes = await db
@@ -212,14 +213,14 @@ export function useFiscalIssuer() {
       const issuerData = (issuerRes?.data as FiscalIssuer | null) ?? null;
 
       if (!issuerData) {
-        console.log("[FISCAL] No issuer found for profile:", profile.id);
+        devLog("[FISCAL] No issuer found for profile:", profile.id);
         setIssuer(null);
         setCertificate(null);
         setWallet(null);
         return null;
       }
 
-      console.log("[FISCAL] Issuer found:", issuerData.id, "status:", issuerData.status);
+      devLog("[FISCAL] Issuer found:", issuerData.id, "status:", issuerData.status);
       setIssuer(issuerData);
 
       // Buscar certificado (preferir válido)
@@ -236,7 +237,7 @@ export function useFiscalIssuer() {
 
       if (validCertRes?.data) {
         cert = validCertRes.data as FiscalCertificate;
-        console.log("[FISCAL] Valid certificate found:", cert.id);
+        devLog("[FISCAL] Valid certificate found:", cert.id);
       } else {
         // Fallback: buscar último certificado
         const lastCertRes = await db
@@ -249,7 +250,7 @@ export function useFiscalIssuer() {
 
         cert = (lastCertRes?.data as FiscalCertificate | null) ?? null;
         if (cert) {
-          console.log("[FISCAL] Last certificate found:", cert.id, "is_valid:", cert.is_valid);
+          devLog("[FISCAL] Last certificate found:", cert.id, "is_valid:", cert.is_valid);
         }
       }
 
@@ -286,7 +287,7 @@ export function useFiscalIssuer() {
       setError(null);
 
       try {
-        console.log("[FISCAL] Registering issuer:", data.cpf_cnpj);
+        devLog("[FISCAL] Registering issuer:", data.cpf_cnpj);
 
         const { data: result, error: fnError } = await supabase.functions.invoke("fiscal-issuer-register", {
           body: data,
@@ -337,7 +338,7 @@ export function useFiscalIssuer() {
       setError(null);
 
       try {
-        console.log("[FISCAL] Updating issuer:", issuer.id, updates);
+        devLog("[FISCAL] Updating issuer:", issuer.id);
 
         const toNullIfEmpty = (v: unknown) => {
           if (v === undefined) return undefined;
@@ -377,7 +378,7 @@ export function useFiscalIssuer() {
         }
         if (updates.endereco_ibge !== undefined) dbUpdates.city_ibge_code = toNullIfEmpty(updates.endereco_ibge);
 
-        console.log("[FISCAL] DB updates:", dbUpdates);
+        devLog("[FISCAL] DB updates applied");
 
         const { data: updatedRows, error: updateError } = await db
           .from("fiscal_issuers")
@@ -429,7 +430,7 @@ export function useFiscalIssuer() {
       setError(null);
 
       try {
-        console.log("[FISCAL] Uploading certificate for issuer:", issuer.id);
+        devLog("[FISCAL] Uploading certificate for issuer:", issuer.id);
 
         // Convert file to base64
         const base64 = await new Promise<string>((resolve, reject) => {
@@ -442,7 +443,7 @@ export function useFiscalIssuer() {
           reader.onerror = () => reject(new Error("Erro ao ler arquivo do certificado"));
         });
 
-        console.log("[FISCAL] Certificate base64 ready, size:", base64.length);
+        devLog("[FISCAL] Certificate base64 ready, size:", base64.length);
 
         const { data: result, error: fnError } = await supabase.functions.invoke("fiscal-certificate-upload", {
           body: {
@@ -485,7 +486,7 @@ export function useFiscalIssuer() {
           toast.success("Certificado digital enviado com sucesso!");
         }
 
-        console.log("[FISCAL] Upload successful, refreshing issuer data");
+        devLog("[FISCAL] Upload successful, refreshing issuer data");
         await fetchIssuer();
         return true;
       } catch (err: unknown) {
@@ -516,7 +517,7 @@ export function useFiscalIssuer() {
     setError(null);
 
     try {
-      console.log("[FISCAL] Validating with SEFAZ for issuer:", issuer.id);
+      devLog("[FISCAL] Validating with SEFAZ for issuer:", issuer.id);
 
       const { data: result, error: fnError } = await supabase.functions.invoke("fiscal-sefaz-validation", {
         body: { issuer_id: issuer.id },
@@ -567,7 +568,7 @@ export function useFiscalIssuer() {
     setError(null);
 
     try {
-      console.log("[FISCAL] Accepting terms for issuer:", issuer.id);
+      devLog("[FISCAL] Accepting terms for issuer:", issuer.id);
 
       // Get current user profile_id (required column)
       const { data: { user } } = await db.auth.getUser();

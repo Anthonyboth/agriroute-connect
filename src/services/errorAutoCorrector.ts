@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AutoCorrectionResult } from "@/types/errorTypes";
+import { devLog } from "@/lib/devLogger";
 
 export class ErrorAutoCorrector {
   private static instance: ErrorAutoCorrector;
@@ -12,12 +13,11 @@ export class ErrorAutoCorrector {
   }
 
   async correctError(error: Error): Promise<AutoCorrectionResult> {
-    console.log('[ErrorAutoCorrector] Tentando corrigir erro:', error.message);
+    devLog('[ErrorAutoCorrector] Tentando corrigir erro:', error.message);
 
     // Timeout/Network errors
     if (this.isNetworkTimeout(error)) {
       return await this.retryWithBackoff(async () => {
-        // Tentar reconectar
         await this.reconnectSupabase();
       }, 'Retry with reconnection', 3);
     }
@@ -75,14 +75,14 @@ export class ErrorAutoCorrector {
     for (let i = 0; i < maxRetries; i++) {
       try {
         await fn();
-        console.log(`[ErrorAutoCorrector] ${action} - Sucesso na tentativa ${i + 1}`);
+        devLog(`[ErrorAutoCorrector] ${action} - Sucesso na tentativa ${i + 1}`);
         return {
           attempted: true,
           action: `${action} (tentativa ${i + 1}/${maxRetries})`,
           success: true
         };
       } catch (error) {
-        console.log(`[ErrorAutoCorrector] ${action} - Falha na tentativa ${i + 1}`);
+        devLog(`[ErrorAutoCorrector] ${action} - Falha na tentativa ${i + 1}`);
         if (i < maxRetries - 1) {
           const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -98,13 +98,12 @@ export class ErrorAutoCorrector {
   }
 
   async handleUnauthorized(): Promise<AutoCorrectionResult> {
-    console.log('[ErrorAutoCorrector] Tentando refresh de sessão');
+    devLog('[ErrorAutoCorrector] Tentando refresh de sessão');
     
     try {
       const { data, error } = await supabase.auth.refreshSession();
       
       if (error || !data.session) {
-        // Redirecionar para login
         window.location.href = '/auth';
         return {
           attempted: true,
@@ -128,10 +127,9 @@ export class ErrorAutoCorrector {
   }
 
   clearLocalCache(): AutoCorrectionResult {
-    console.log('[ErrorAutoCorrector] Limpando cache local');
+    devLog('[ErrorAutoCorrector] Limpando cache local');
     
     try {
-      // Limpar localStorage (exceto sessão do Supabase)
       const supabaseKeys = Object.keys(localStorage).filter(key => 
         key.startsWith('sb-')
       );
@@ -142,7 +140,6 @@ export class ErrorAutoCorrector {
         }
       });
 
-      // Limpar sessionStorage
       sessionStorage.clear();
 
       return {
@@ -160,10 +157,9 @@ export class ErrorAutoCorrector {
   }
 
   resetQueryCache(): AutoCorrectionResult {
-    console.log('[ErrorAutoCorrector] Resetando React Query cache');
+    devLog('[ErrorAutoCorrector] Resetando React Query cache');
     
     try {
-      // Recarregar a página é mais seguro que tentar limpar cache específico
       window.location.reload();
       
       return {
@@ -181,7 +177,7 @@ export class ErrorAutoCorrector {
   }
 
   async reconnectSupabase(): Promise<void> {
-    console.log('[ErrorAutoCorrector] Tentando reconectar Supabase');
+    devLog('[ErrorAutoCorrector] Tentando reconectar Supabase');
     
     const { data, error } = await supabase.auth.getSession();
     if (error) {

@@ -86,7 +86,7 @@ export function useRouteHistory(
       }));
 
       setPoints(mappedPoints);
-      console.log(`[useRouteHistory] Loaded ${mappedPoints.length} points`);
+      if (import.meta.env.DEV) console.log(`[useRouteHistory] Loaded ${mappedPoints.length} points`);
     } catch (err) {
       console.error('[useRouteHistory] Unexpected error:', err);
       setError('Erro inesperado');
@@ -174,7 +174,7 @@ export function useRouteHistory(
         return;
       }
 
-      console.log('[useRouteHistory] Point inserted:', data);
+      if (import.meta.env.DEV) console.log('[useRouteHistory] Point inserted:', data);
     } catch (err) {
       console.error('[useRouteHistory] Insert unexpected error:', err);
     }

@@ -60,7 +60,7 @@ export function useFiscalDocumentCredits(): UseDocumentCreditsReturn {
     setError(null);
 
     try {
-      console.log('[Credits] Verificando créditos disponíveis:', { issuerId, documentType });
+      if (import.meta.env.DEV) console.log('[Credits] Verificando créditos disponíveis:', { issuerId, documentType });
 
       // Buscar transações PIX pagas para este emissor/documento
       const { data: transactions, error: txError } = await supabase
@@ -100,14 +100,14 @@ export function useFiscalDocumentCredits(): UseDocumentCreditsReturn {
         // Verificar expiração
         const createdAt = new Date(tx.created_at);
         if (createdAt < expiryThreshold) {
-          console.log('[Credits] Crédito expirado:', tx.id);
+          if (import.meta.env.DEV) console.log('[Credits] Crédito expirado:', tx.id);
           continue;
         }
 
         // Verificar limite de tentativas
         const attempts = meta.attempts || 0;
         if (attempts >= ANTI_FRAUD_CONFIG.MAX_ATTEMPTS_PER_CREDIT) {
-          console.log('[Credits] Crédito esgotou tentativas:', tx.id, attempts);
+          if (import.meta.env.DEV) console.log('[Credits] Crédito esgotou tentativas:', tx.id, attempts);
           continue;
         }
 
@@ -116,7 +116,7 @@ export function useFiscalDocumentCredits(): UseDocumentCreditsReturn {
         if (lastAttemptAt) {
           const secondsSinceLastAttempt = (now.getTime() - lastAttemptAt.getTime()) / 1000;
           if (secondsSinceLastAttempt < ANTI_FRAUD_CONFIG.MIN_INTERVAL_SECONDS) {
-            console.log('[Credits] Intervalo muito curto:', secondsSinceLastAttempt, 's');
+            if (import.meta.env.DEV) console.log('[Credits] Intervalo muito curto:', secondsSinceLastAttempt, 's');
             return { 
               hasCredit: false, 
               reason: `Aguarde ${Math.ceil(ANTI_FRAUD_CONFIG.MIN_INTERVAL_SECONDS - secondsSinceLastAttempt)}s antes de tentar novamente` 
