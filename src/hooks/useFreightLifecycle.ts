@@ -243,7 +243,7 @@ export function useFreightLifecycle(
       attempts: 0,
     });
     saveQueue(queue);
-    console.log('[FreightLifecycle] Operação adicionada à fila:', type);
+    if (import.meta.env.DEV) console.log('[FreightLifecycle] Operação adicionada à fila:', type);
   }, [getQueue, saveQueue]);
 
   // ---------------------------------------------------------------------------
@@ -766,7 +766,7 @@ export function useFreightLifecycle(
     const queue = getQueue();
     if (queue.length === 0 || !navigator.onLine) return;
 
-    console.log(`[FreightLifecycle] Sincronizando ${queue.length} operações pendentes...`);
+    if (import.meta.env.DEV) console.log(`[FreightLifecycle] Sincronizando ${queue.length} operações pendentes...`);
 
     const remaining: QueuedOperation[] = [];
 
@@ -816,7 +816,7 @@ export function useFreightLifecycle(
         if (!success) {
           remaining.push({ ...op, attempts: op.attempts + 1 });
         } else {
-          console.log('[FreightLifecycle] Operação sincronizada:', op.id);
+          if (import.meta.env.DEV) console.log('[FreightLifecycle] Operação sincronizada:', op.id);
         }
       } catch (err) {
         console.error('[FreightLifecycle] Erro ao sincronizar:', err);

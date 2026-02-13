@@ -81,7 +81,7 @@ export function useFreightEffectiveStatus(freightId: string | null): UseFreightE
             }, statuses[0]);
 
             setEffectiveStatus(mostAdvanced);
-            console.log('[useFreightEffectiveStatus] Multi-truck freight:', {
+            if (import.meta.env.DEV) console.log('[useFreightEffectiveStatus] Multi-truck freight:', {
               freightStatus: freight.status,
               assignmentStatuses: statuses,
               effectiveStatus: mostAdvanced
