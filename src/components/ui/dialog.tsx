@@ -86,7 +86,7 @@ const DialogContent = React.forwardRef<
             )}
           >
             <X className="h-7 w-7 text-red-500 hover:text-red-600 font-bold stroke-[2.5]" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Fechar</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

@@ -17,8 +17,8 @@ const PopoverContent = React.forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        // Simplified styles to avoid transform conflicts that misplaced popovers
-        "z-[70] rounded-md border bg-popover p-3 text-popover-foreground shadow-md outline-none",
+        // ✅ z-index corrigido para funcionar dentro de dialogs (z-[10100] = popover layer)
+        "z-[10100] rounded-md border bg-popover p-3 text-popover-foreground shadow-md outline-none",
         className
       )}
       {...props}
