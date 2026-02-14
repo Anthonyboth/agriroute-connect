@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Camera, RotateCcw, Check, X, Upload, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Capacitor } from '@capacitor/core';
+import { Camera as CapCamera, CameraResultType, CameraSource, CameraDirection } from '@capacitor/camera';
 
 interface CameraSelfieProps {
   onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => void;
@@ -18,6 +20,8 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
   onCancel,
   autoStart = true 
 }) => {
+  const isNative = Capacitor.isNativePlatform();
+
   // Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -26,7 +30,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // States for live camera
-  const [mode, setMode] = useState<CameraMode>('stream');
+  const [mode, setMode] = useState<CameraMode>(isNative ? 'fallback' : 'stream');
   const [videoReady, setVideoReady] = useState(false);
   const [starting, setStarting] = useState(false);
   const [needsUserAction, setNeedsUserAction] = useState(false);
@@ -39,10 +43,59 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
   const [fallbackPreviewUrl, setFallbackPreviewUrl] = useState<string | null>(null);
   const [fallbackMethod, setFallbackMethod] = useState<'CAMERA' | 'GALLERY' | null>(null);
 
-  // Check if getUserMedia is available
-  const hasGetUserMedia = typeof navigator !== 'undefined' && 
+  // Check if getUserMedia is available (only relevant for web)
+  const hasGetUserMedia = !isNative && typeof navigator !== 'undefined' && 
     navigator.mediaDevices && 
     typeof navigator.mediaDevices.getUserMedia === 'function';
+
+  // ========== CAPACITOR NATIVE CAMERA ==========
+  const takeNativePhoto = useCallback(async (source: 'camera' | 'gallery') => {
+    try {
+      setStarting(true);
+      
+      // Request permissions first
+      const perms = await CapCamera.requestPermissions({ permissions: ['camera', 'photos'] });
+      if (perms.camera === 'denied') {
+        toast.error('Permissão de câmera negada. Vá em Configurações > Apps > AgriRoute e permita o acesso à câmera.');
+        return;
+      }
+
+      const image = await CapCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos,
+        direction: CameraDirection.Front,
+        correctOrientation: true,
+        width: 1280,
+        height: 720,
+      });
+
+      if (!image.dataUrl) {
+        toast.error('Erro ao capturar imagem.');
+        return;
+      }
+
+      // Convert data URL to blob
+      const response = await fetch(image.dataUrl);
+      const blob = await response.blob();
+
+      const url = URL.createObjectURL(blob);
+      setCapturedBlob(blob);
+      setFallbackPreviewUrl(url);
+      setFallbackMethod(source === 'camera' ? 'CAMERA' : 'GALLERY');
+      setMode('fallback');
+    } catch (error: any) {
+      // User cancelled - not an error
+      if (error?.message?.includes('User cancelled') || error?.message?.includes('cancelled')) {
+        return;
+      }
+      console.error('❌ Native camera error:', error);
+      toast.error('Erro ao acessar câmera. Tente novamente.');
+    } finally {
+      setStarting(false);
+    }
+  }, []);
 
   // Stop camera and release resources
   const stopCamera = useCallback(() => {
@@ -315,8 +368,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     event.target.value = '';
   }, []);
 
-  // Auto-start camera on mount (if getUserMedia available)
+  // Auto-start camera on mount
   useEffect(() => {
+    if (isNative) {
+      // On native, go straight to fallback (native camera buttons)
+      setMode('fallback');
+      return;
+    }
+    
     if (autoStart && hasGetUserMedia) {
       startCamera('auto');
     } else if (!hasGetUserMedia) {
@@ -432,51 +491,88 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
               <Camera className="h-12 w-12 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground text-center mb-2">
-                Use a câmera do seu dispositivo ou escolha uma foto da galeria.
+                {isNative 
+                  ? 'Tire uma selfie com a câmera frontal ou escolha da galeria.'
+                  : 'Use a câmera do seu dispositivo ou escolha uma foto da galeria.'}
               </p>
               
-              {/* Native camera button */}
-              <label className="relative w-full cursor-pointer">
-                <input
-                  ref={selfieInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  onChange={onFallbackSelfieChange}
-                  className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
-                  style={{ zIndex: 10 }}
-                  aria-label="Capturar selfie com câmera frontal"
-                />
-                <Button
-                  asChild
-                  size="lg"
-                  className="w-full pointer-events-none bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <span>
-                    <Camera className="mr-2 h-5 w-5" />
+              {isNative ? (
+                <>
+                  {/* Capacitor native camera button */}
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={() => takeNativePhoto('camera')}
+                    disabled={starting}
+                  >
+                    {starting ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <Camera className="mr-2 h-5 w-5" />
+                    )}
                     Tirar Selfie
-                  </span>
-                </Button>
-              </label>
+                  </Button>
 
-              {/* Gallery button */}
-              <label className="relative w-full cursor-pointer">
-                <input
-                  ref={galleryInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={onFallbackGalleryChange}
-                  className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
-                  style={{ zIndex: 10 }}
-                  aria-label="Selecionar imagem da galeria"
-                />
-                <Button asChild variant="outline" size="lg" className="w-full pointer-events-none">
-                  <span>
+                  {/* Capacitor native gallery button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                    onClick={() => takeNativePhoto('gallery')}
+                    disabled={starting}
+                  >
                     <Upload className="mr-2 h-5 w-5" />
                     Enviar da Galeria
-                  </span>
-                </Button>
-              </label>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {/* Web fallback - file input camera */}
+                  <label className="relative w-full cursor-pointer">
+                    <input
+                      ref={selfieInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="user"
+                      onChange={onFallbackSelfieChange}
+                      className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
+                      style={{ zIndex: 10 }}
+                      aria-label="Capturar selfie com câmera frontal"
+                    />
+                    <Button
+                      asChild
+                      size="lg"
+                      className="w-full pointer-events-none bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      <span>
+                        <Camera className="mr-2 h-5 w-5" />
+                        Tirar Selfie
+                      </span>
+                    </Button>
+                  </label>
+
+                  {/* Web fallback - file input gallery */}
+                  <label className="relative w-full cursor-pointer">
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={onFallbackGalleryChange}
+                      className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
+                      style={{ zIndex: 10 }}
+                      aria-label="Selecionar imagem da galeria"
+                    />
+                    <Button asChild variant="outline" size="lg" className="w-full pointer-events-none">
+                      <span>
+                        <Upload className="mr-2 h-5 w-5" />
+                        Enviar da Galeria
+                      </span>
+                    </Button>
+                  </label>
+                </>
+              )}
 
               {onCancel && (
                 <Button type="button" variant="ghost" onClick={onCancel} className="w-full mt-2">
