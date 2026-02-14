@@ -30,8 +30,8 @@ const HeroActionButton = React.forwardRef<HTMLButtonElement, HeroActionButtonPro
           "border border-slate-200/70 dark:border-slate-300/50",
           "rounded-full",
           // Sizing
-          "h-9 px-4 text-xs",
-          "w-full sm:w-auto",
+          "h-8 px-3 text-xs",
+          "w-auto",
           // Icon spacing
           "gap-2",
           // Hover effects
