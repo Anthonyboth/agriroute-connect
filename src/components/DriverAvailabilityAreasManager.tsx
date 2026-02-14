@@ -115,7 +115,7 @@ export const DriverAvailabilityAreasManager: React.FC<DriverAvailabilityAreasMan
         .from('freights')
         .select(`
           *,
-          producer:profiles!freights_producer_id_fkey(
+          producer:profiles_secure!freights_producer_id_fkey(
             id,
             full_name,
             contact_phone,

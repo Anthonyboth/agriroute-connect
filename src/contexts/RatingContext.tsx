@@ -116,7 +116,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             id,
             status,
             driver_id,
-            driver:profiles!freights_driver_id_fkey(id, full_name, role)
+            driver:profiles_secure!freights_driver_id_fkey(id, full_name, role)
           `)
           .eq('producer_id', profile.id)
           .eq('status', 'COMPLETED')
@@ -169,7 +169,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               id,
               status,
               producer_id,
-              producer:profiles!freights_producer_id_fkey(id, full_name, role)
+              producer:profiles_secure!freights_producer_id_fkey(id, full_name, role)
             )
           `)
           .eq('driver_id', profile.id)
@@ -309,8 +309,8 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 id,
                 producer_id,
                 driver_id,
-                producer:profiles!freights_producer_id_fkey(id, full_name),
-                driver:profiles!freights_driver_id_fkey(id, full_name)
+                producer:profiles_secure!freights_producer_id_fkey(id, full_name),
+                driver:profiles_secure!freights_driver_id_fkey(id, full_name)
               `)
               .eq('id', payment.freight_id)
               .maybeSingle();

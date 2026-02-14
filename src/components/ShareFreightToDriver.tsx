@@ -91,7 +91,7 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
         .select(`
           id,
           driver_profile_id,
-          driver:profiles!company_drivers_driver_profile_id_fkey(
+          driver:profiles_secure!company_drivers_driver_profile_id_fkey(
             id,
             full_name,
             contact_phone

@@ -57,7 +57,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
          .select(`
            *,
            freight:freights(*,
-             producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+             producer:profiles_secure!freights_producer_id_fkey(id, full_name, contact_phone)
            ),
            driver:profiles_secure!freight_assignments_driver_id_fkey(id, full_name, profile_photo_url, rating)
          `)

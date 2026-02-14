@@ -150,7 +150,7 @@ export const CompanyActiveFreights: React.FC = () => {
         .from('freights')
         .select(`
           *,
-          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
+          driver:profiles_secure!freights_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
         .eq('company_id', company.id)
         .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])

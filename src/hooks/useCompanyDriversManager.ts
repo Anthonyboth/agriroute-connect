@@ -187,7 +187,7 @@ export const useCompanyDriversManager = (companyIdOverride?: string | null): Com
           left_at,
           created_at,
           notes,
-          driver:profiles!company_drivers_driver_profile_id_fkey(
+          driver:profiles_secure!company_drivers_driver_profile_id_fkey(
             id,
             full_name,
             email,

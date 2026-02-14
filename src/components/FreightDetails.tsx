@@ -109,8 +109,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         .from('freights')
         .select(`
           *,
-          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, active_mode, profile_photo_url, selfie_url, rating, total_ratings),
-          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, active_mode, profile_photo_url, selfie_url, rating, total_ratings)
+          producer:profiles_secure!freights_producer_id_fkey(id, full_name, contact_phone, active_mode, profile_photo_url, selfie_url, rating, total_ratings),
+          driver:profiles_secure!freights_driver_id_fkey(id, full_name, contact_phone, active_mode, profile_photo_url, selfie_url, rating, total_ratings)
         `)
         .eq('id', freightId)
         .maybeSingle();

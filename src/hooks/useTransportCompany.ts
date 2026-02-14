@@ -57,7 +57,7 @@ export const useTransportCompany = () => {
           can_accept_freights,
           can_manage_vehicles,
           notes,
-          driver:profiles!company_drivers_driver_profile_id_fkey(
+          driver:profiles_secure!company_drivers_driver_profile_id_fkey(
             id,
             full_name,
             email,
@@ -309,7 +309,7 @@ export const useTransportCompany = () => {
         .from('company_drivers')
         .select(`
           *,
-          driver:profiles!company_drivers_driver_profile_id_fkey (
+          driver:profiles_secure!company_drivers_driver_profile_id_fkey (
             id,
             full_name,
             email,
