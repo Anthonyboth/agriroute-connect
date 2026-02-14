@@ -446,8 +446,8 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 relative">
-        <div ref={mapContainerRef} className="h-[400px] w-full rounded-b-lg" />
+      <CardContent className="p-0 relative overflow-hidden rounded-b-lg">
+        <div ref={mapContainerRef} className="h-[400px] w-full" />
         {isLoadingRoute && (
           <div className="absolute top-2 left-2 bg-background/80 rounded px-2 py-1 text-xs text-muted-foreground">
             Carregando rota...
