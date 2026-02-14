@@ -1,50 +1,40 @@
 
-# Remover textos dos Heroes e reduzir botoes em todos os paineis
 
-## Objetivo
-Remover os titulos ("Painel de Gerenciamento", "Ola, X") e subtitulos de TODAS as secoes hero dos dashboards, mantendo apenas os botoes de acao. Tambem reduzir o tamanho dos botoes para que a imagem de fundo fique mais visivel.
+# Corrigir prefill automatico e erro de envio de solicitacoes
 
-## Arquivos afetados
+## Problema Identificado
 
-### 1. `src/components/ui/hero-action-button.tsx` (botao menor)
-- Reduzir altura de `h-11` para `h-9`
-- Reduzir padding de `px-5` para `px-4`
-- Reduzir texto de `text-sm` para `text-xs`
-- Resultado: botoes mais compactos, imagem de fundo mais visivel
+Existem dois problemas conectados pela mesma causa raiz:
 
-### 2. `src/pages/ProducerDashboard.tsx` (Produtor)
-- Remover o `<h1>Painel de Gerenciamento</h1>` (linha ~1400)
-- Remover o `<p>Gerencie seus fretes...</p>` (linhas ~1401-1403)
-- Manter apenas o `<div>` dos botoes
+1. **Erro "Nao foi possivel enviar sua solicitacao"** -- A edge function `create-guest-service-request` rejeita a solicitacao porque o campo `contact_phone` esta vazio. O Zod exige minimo 10 caracteres.
 
-### 3. `src/pages/producer/ProducerDashboardHero.tsx` (Produtor - componente separado)
-- Remover o `<h1>Painel de Gerenciamento</h1>` (linha 41-43)
-- Remover o `<p>Gerencie seus fretes...</p>` (linha 44-46)
-- Manter apenas os botoes
+2. **Campos "Nao informado" na tela de revisao** -- Nome aparece correto, mas Telefone e Documento mostram "Nao informado" mesmo com o usuario logado e cadastrado.
 
-### 4. `src/pages/driver/DriverDashboardHero.tsx` (Motorista)
-- Remover o `<h1>Ola, {displayName}</h1>` (linhas 47-49)
-- Remover o `<p>Sistema I.A encontra fretes...</p>` (linhas 50-52)
-- Remover o Badge de "Motorista - companyName" (linhas 53-58)
-- Manter apenas os botoes
+## Causa Raiz
 
-### 5. `src/pages/CompanyDashboard.tsx` (Transportadora)
-- Remover o Badge "Transportadora" (linhas 737-740)
-- Remover o `<h1>Painel de Gerenciamento</h1>` (linhas 742-744)
-- Manter o card de info da empresa (CNPJ) pois e funcional, nao decorativo
-- Manter apenas os botoes
+O hook `useAuth` busca o perfil da tabela `profiles` com um SELECT limitado que **NAO inclui** as colunas `phone`, `contact_phone`, `cpf_cnpj`, `document` e `email`. Alem disso, o CLS (Column-Level Security) bloqueia essas colunas na tabela base.
 
-### 6. `src/components/ServiceProviderHeroDashboard.tsx` (Prestador)
-- Remover o `<h1>Ola, {firstName}</h1>` (linhas 168-170)
-- Remover o `<p>Sistema I.A encontra solicitacoes...</p>` (linhas 171-173)
-- Manter apenas os botoes
+O hook `usePrefilledUserData` tenta ler esses campos do objeto `profile` retornado pelo `useAuth`, mas eles estao sempre vazios/undefined. Resultado: o prefill nao funciona e os dados nao sao preenchidos automaticamente.
 
-## Reducao da altura do hero
-- Reduzir `min-h-[250px]` para `min-h-[160px]` em todos os heroes (sem texto, precisa de menos espaco)
-- No ServiceProviderHeroDashboard, reduzir `py-12 md:py-16` para `py-6 md:py-8`
+## Solucao
+
+Modificar o `usePrefilledUserData` para buscar dados pessoais diretamente da view `profiles_secure` (que contorna o CLS e permite acesso seguro). Assim o hook nao depende mais do objeto `profile` do `useAuth` para campos sensiveis.
+
+## Arquivos a Modificar
+
+### 1. `src/hooks/usePrefilledUserData.ts`
+- Adicionar uma query direta a `profiles_secure` filtrando pelo `user_id` do usuario autenticado
+- Buscar campos: `full_name`, `phone`, `contact_phone`, `cpf_cnpj`, `document`, `email`, `base_city_name`, `base_state`, `base_lat`, `base_lng`, `base_city_id`
+- Usar esses dados no lugar dos campos do `profile` para montar o objeto `personal` e `address`
+- Manter fallback para o `profile` do `useAuth` caso a query falhe
+
+### 2. `src/components/service-wizard/ServiceWizard.tsx`
+- Melhorar a mensagem de erro no catch do `handleSubmit`: quando o erro vier da validacao (campos vazios), mostrar mensagem especifica ao inves de "Verifique sua conexao com a internet"
+- Adicionar verificacao antes do submit: se `contact_phone` estiver vazio, mostrar erro claro pedindo para preencher o telefone
 
 ## O que NAO sera alterado
-- Imagens de fundo (hero backgrounds)
-- Logica dos botoes (onClick, modais, etc.)
-- Nenhum outro componente fora dos heroes
-- Nenhuma funcionalidade existente
+- Nenhum outro componente fora dos dois listados
+- A logica do `useAuth` permanece intacta
+- A edge function permanece como esta
+- Nenhum fluxo existente sera quebrado
+- O freight wizard nao sera tocado (ja trata dados de contato apenas para guests)
