@@ -44,7 +44,7 @@ export function useServiceProposals({ serviceRequestId, serviceRequestIds, enabl
     try {
       const { data, error } = await (supabase as any)
         .from('service_request_proposals')
-        .select('*, profiles:proposer_id(full_name)')
+        .select('*, profiles_secure:proposer_id(full_name)')
         .in('service_request_id', ids)
         .order('created_at', { ascending: false });
 
@@ -55,7 +55,7 @@ export function useServiceProposals({ serviceRequestId, serviceRequestIds, enabl
 
       const mapped = (data || []).map((p: any) => ({
         ...p,
-        proposer_name: p.profiles?.full_name || 'Usuário',
+        proposer_name: p.profiles_secure?.full_name || 'Usuário',
       }));
       setProposals(mapped);
     } catch (err) {

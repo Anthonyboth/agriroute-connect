@@ -132,7 +132,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         .select(`
           *,
           freight:freights(*, weight),
-          driver:profiles!freight_proposals_driver_id_fkey(
+          driver:profiles_secure!freight_proposals_driver_id_fkey(
             id,
             full_name,
             rating,
