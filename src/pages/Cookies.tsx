@@ -294,7 +294,7 @@ const Cookies = () => {
           </p>
           <div className="space-y-2 text-sm text-muted-foreground mb-6">
             <p><strong>Email:</strong> agrirouteconnect@gmail.com</p>
-            <p><strong>WhatsApp:</strong> 015 66 9 9942-6656</p>
+            <p><strong>WhatsApp:</strong> (66) 9 9273-4632</p>
           </div>
           <Button className="gradient-primary text-primary-foreground">
             Entrar em Contato

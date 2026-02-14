@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { getWhatsAppUrl } from '@/lib/support-contact';
 import { playSoundSupport } from '@/utils/playSound';
 
@@ -162,46 +156,36 @@ export const FloatingSupportButton: React.FC = () => {
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <a
-            ref={buttonRef}
-            href={getWhatsAppUrl('Olá! Preciso de suporte.')}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleClick}
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-            className={cn(
-              'fixed rounded-full shadow-lg transition-all duration-200',
-              'bg-[#25D366] hover:bg-[#1fb855] text-white',
-              'flex items-center justify-center',
-              'touch-none select-none',
-              isDragging ? 'cursor-grabbing scale-110' : 'cursor-grab scale-100',
-              isHovering && !isDragging && 'scale-105',
-              'focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2'
-            )}
-            style={{
-              left: `${position.x}px`,
-              top: `${position.y}px`,
-              width: '48px',
-              height: '48px',
-              zIndex: 9999,
-              opacity: isDragging ? 0.9 : isHovering ? 1 : 0.85,
-            }}
-            aria-label="Suporte via WhatsApp"
-          >
-            <MessageCircle className="h-6 w-6" />
-          </a>
-        </TooltipTrigger>
-        <TooltipContent side="left" className="bg-[#25D366] text-white border-none">
-          <p className="font-medium">Suporte via WhatsApp</p>
-          <p className="text-xs opacity-90">Arraste para mover</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <a
+      ref={buttonRef}
+      href={getWhatsAppUrl('Olá! Preciso de suporte.')}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      className={cn(
+        'fixed rounded-full shadow-lg transition-all duration-200',
+        'bg-[#25D366] hover:bg-[#1fb855] text-white',
+        'flex items-center justify-center',
+        'touch-none select-none',
+        isDragging ? 'cursor-grabbing scale-110' : 'cursor-grab scale-100',
+        isHovering && !isDragging && 'scale-105',
+        'focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2'
+      )}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: '48px',
+        height: '48px',
+        zIndex: 9999,
+        opacity: isDragging ? 0.9 : isHovering ? 1 : 0.85,
+      }}
+      aria-label="Suporte via WhatsApp"
+    >
+      <MessageCircle className="h-6 w-6" />
+    </a>
   );
 };

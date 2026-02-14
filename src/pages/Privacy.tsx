@@ -287,7 +287,7 @@ const Privacy = () => {
                 </div>
                 <div className="flex items-center justify-center gap-3">
                   <Phone className="h-5 w-5 text-primary" />
-                  <span className="text-foreground"><strong>WhatsApp:</strong> +55 15 66 9 9942-6656</span>
+                  <span className="text-foreground"><strong>WhatsApp:</strong> (66) 9 9273-4632</span>
                 </div>
                 <div className="flex items-center justify-center gap-3">
                   <MapPin className="h-5 w-5 text-primary" />
