@@ -152,7 +152,7 @@ const privacyContent = [
     items: [
       'Responsável: Equipe AgriRoute Connect',
       'Email: agrirouteconnect@gmail.com',
-      'WhatsApp: +55 15 66 9 9942-6656',
+      'WhatsApp: (66) 9 9273-4632',
     ],
   },
 ];
