@@ -1,47 +1,50 @@
 
+# Remover textos dos Heroes e reduzir botoes em todos os paineis
 
-## Corrigir numero de contato errado em 5 arquivos e remover caixa branca do tooltip
+## Objetivo
+Remover os titulos ("Painel de Gerenciamento", "Ola, X") e subtitulos de TODAS as secoes hero dos dashboards, mantendo apenas os botoes de acao. Tambem reduzir o tamanho dos botoes para que a imagem de fundo fique mais visivel.
 
-### Problema 1: Numero de WhatsApp errado
-O numero `9942-6656` (errado) aparece em 5 arquivos. O numero correto do suporte e `(66) 9 9273-4632`.
+## Arquivos afetados
 
-**Arquivos com numero errado:**
-1. `src/pages/Terms.tsx` (linha 234) - `015 66 9 9942-6656`
-2. `src/pages/Privacy.tsx` (linha 290) - `+55 15 66 9 9942-6656`
-3. `src/pages/Status.tsx` (linha 339) - `015 66 9 9942-6656`
-4. `src/pages/Cookies.tsx` (linha 297) - `015 66 9 9942-6656`
-5. `src/components/LegalDocumentDialog.tsx` (linha 155) - `+55 15 66 9 9942-6656`
+### 1. `src/components/ui/hero-action-button.tsx` (botao menor)
+- Reduzir altura de `h-11` para `h-9`
+- Reduzir padding de `px-5` para `px-4`
+- Reduzir texto de `text-sm` para `text-xs`
+- Resultado: botoes mais compactos, imagem de fundo mais visivel
 
-**Correcao:** Substituir todos por `(66) 9 9273-4632`.
+### 2. `src/pages/ProducerDashboard.tsx` (Produtor)
+- Remover o `<h1>Painel de Gerenciamento</h1>` (linha ~1400)
+- Remover o `<p>Gerencie seus fretes...</p>` (linhas ~1401-1403)
+- Manter apenas o `<div>` dos botoes
 
----
+### 3. `src/pages/producer/ProducerDashboardHero.tsx` (Produtor - componente separado)
+- Remover o `<h1>Painel de Gerenciamento</h1>` (linha 41-43)
+- Remover o `<p>Gerencie seus fretes...</p>` (linha 44-46)
+- Manter apenas os botoes
 
-### Problema 2: Caixa branca com icone azul ao selecionar texto
-O `FloatingSupportButton` envolve o botao com um Radix `Tooltip`. Em dispositivos touch (Android), tooltips podem ativar involuntariamente ao tocar na tela para selecionar texto, renderizando como uma caixa branca vazia.
+### 4. `src/pages/driver/DriverDashboardHero.tsx` (Motorista)
+- Remover o `<h1>Ola, {displayName}</h1>` (linhas 47-49)
+- Remover o `<p>Sistema I.A encontra fretes...</p>` (linhas 50-52)
+- Remover o Badge de "Motorista - companyName" (linhas 53-58)
+- Manter apenas os botoes
 
-**Correcao:** Remover o wrapper `TooltipProvider`/`Tooltip`/`TooltipTrigger`/`TooltipContent` do `FloatingSupportButton.tsx`. Em dispositivos moveis nao existe hover, entao tooltip nao tem utilidade. O botao continuara funcionando normalmente (abre WhatsApp ao clicar, pode ser arrastado).
+### 5. `src/pages/CompanyDashboard.tsx` (Transportadora)
+- Remover o Badge "Transportadora" (linhas 737-740)
+- Remover o `<h1>Painel de Gerenciamento</h1>` (linhas 742-744)
+- Manter o card de info da empresa (CNPJ) pois e funcional, nao decorativo
+- Manter apenas os botoes
 
----
+### 6. `src/components/ServiceProviderHeroDashboard.tsx` (Prestador)
+- Remover o `<h1>Ola, {firstName}</h1>` (linhas 168-170)
+- Remover o `<p>Sistema I.A encontra solicitacoes...</p>` (linhas 171-173)
+- Manter apenas os botoes
 
-### Detalhes tecnicos
+## Reducao da altura do hero
+- Reduzir `min-h-[250px]` para `min-h-[160px]` em todos os heroes (sem texto, precisa de menos espaco)
+- No ServiceProviderHeroDashboard, reduzir `py-12 md:py-16` para `py-6 md:py-8`
 
-**Arquivo 1 - `src/pages/Terms.tsx`:**
-- Linha 234: trocar `015 66 9 9942-6656` por `(66) 9 9273-4632`
-
-**Arquivo 2 - `src/pages/Privacy.tsx`:**
-- Linha 290: trocar `+55 15 66 9 9942-6656` por `(66) 9 9273-4632`
-
-**Arquivo 3 - `src/pages/Status.tsx`:**
-- Linha 339: trocar `015 66 9 9942-6656` por `(66) 9 9273-4632`
-
-**Arquivo 4 - `src/pages/Cookies.tsx`:**
-- Linha 297: trocar `015 66 9 9942-6656` por `(66) 9 9273-4632`
-
-**Arquivo 5 - `src/components/LegalDocumentDialog.tsx`:**
-- Linha 155: trocar `+55 15 66 9 9942-6656` por `(66) 9 9273-4632`
-
-**Arquivo 6 - `src/components/FloatingSupportButton.tsx`:**
-- Remover imports de Tooltip (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent)
-- Remover wrapper Tooltip ao redor do botao `<a>`
-- Manter toda a logica de drag, click e posicionamento intacta
-
+## O que NAO sera alterado
+- Imagens de fundo (hero backgrounds)
+- Logica dos botoes (onClick, modais, etc.)
+- Nenhum outro componente fora dos heroes
+- Nenhuma funcionalidade existente
