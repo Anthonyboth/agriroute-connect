@@ -52,7 +52,18 @@ export const DriverAutoLocationTracking = () => {
   }, [hasActiveFreight, activeFreightId, profile?.id, hasUserGesture]);
 
   const handleGeolocationError = (error: any) => {
-    console.error('Erro no rastreamento:', error);
+    console.warn('[GPS] Erro no rastreamento:', error);
+    
+    const errorMsg = typeof error === 'string' ? error : (error?.message ?? '');
+    
+    // Interceptar mensagens nativas em inglês do Capacitor
+    if (errorMsg.toLowerCase().includes('missing') && errorMsg.toLowerCase().includes('permission')) {
+      toast.error('Permissão de localização necessária', {
+        description: 'Ative a permissão de localização nas configurações do seu dispositivo.',
+        duration: 6000
+      });
+      return;
+    }
     
     if (error && error.code) {
       switch (error.code) {
@@ -74,6 +85,10 @@ export const DriverAutoLocationTracking = () => {
         default:
           toast.error('Erro ao rastrear localização');
       }
+    } else if (errorMsg) {
+      toast.error('Erro ao rastrear localização', {
+        description: 'Verifique se o GPS está ativado e a permissão concedida.'
+      });
     } else {
       toast.error('Erro ao rastrear localização');
     }
@@ -81,36 +96,51 @@ export const DriverAutoLocationTracking = () => {
 
   const startAutoTracking = async () => {
     if (isTracking || !hasUserGesture) {
-      console.log('⏳ Aguardando gesto do usuário para GPS...');
       return;
     }
 
     try {
-      const hasPermission = await checkPermissionSafe();
+      let hasPermission = false;
+      try {
+        hasPermission = await checkPermissionSafe();
+      } catch {
+        hasPermission = false;
+      }
+      
       if (!hasPermission) {
-        const granted = await requestPermissionSafe();
-        if (!granted) {
-          toast.error('Permissão de localização negada');
+        try {
+          const granted = await requestPermissionSafe();
+          if (!granted) {
+            toast.error('Permissão de localização necessária', {
+              description: 'Ative a permissão de localização nas configurações do dispositivo.'
+            });
+            return;
+          }
+        } catch (permErr: any) {
+          handleGeolocationError(permErr);
           return;
         }
       }
 
       setTimeout(() => {
-        const handle = watchPositionSafe(
-          (coords) => updateFromCoords(coords),
-          (error) => handleGeolocationError(error)
-        );
+        try {
+          const handle = watchPositionSafe(
+            (coords) => updateFromCoords(coords),
+            (error) => handleGeolocationError(error)
+          );
 
-        setWatchId(handle);
-        setIsTracking(true);
+          setWatchId(handle);
+          setIsTracking(true);
 
-        toast.success('Rastreamento automático iniciado', {
-          description: 'Sua localização está sendo monitorada para segurança do frete.'
-        });
+          toast.success('Rastreamento automático iniciado', {
+            description: 'Sua localização está sendo monitorada para segurança do frete.'
+          });
+        } catch (watchErr: any) {
+          handleGeolocationError(watchErr);
+        }
       }, 3000);
 
-    } catch (error) {
-      console.error('Erro ao iniciar tracking:', error);
+    } catch (error: any) {
       handleGeolocationError(error);
     }
   };

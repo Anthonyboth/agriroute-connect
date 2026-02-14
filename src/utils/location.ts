@@ -159,13 +159,25 @@ export const watchPositionSafe = (
   if (isNative()) {
     let watchId: string | undefined;
     Geolocation.watchPosition({ enableHighAccuracy: true }, (pos, err) => {
-      if (err) return onError(err);
+      if (err) {
+        // Traduzir erros nativos para português
+        const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
+        if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
+          return onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
+        }
+        return onError(err);
+      }
       if (pos) onSuccess(toWebLike(pos).coords);
     }).then((id) => {
       watchId = id as unknown as string;
     }).catch((err) => {
       console.warn('[GPS] Erro nativo ao iniciar watchPosition:', err);
-      onError({ code: 1, message: 'Permissão de localização não concedida. Ative nas configurações do dispositivo.' });
+      const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
+      if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
+        onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
+      } else {
+        onError({ code: 1, message: 'Não foi possível iniciar o rastreamento. Verifique as permissões de localização.' });
+      }
     });
     return { clear: () => { if (watchId) Geolocation.clearWatch({ id: watchId }); } } as any;
   }
