@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocationPermission } from './useLocationPermission';
+import { getCurrentPositionSafe, requestPermissionSafe, checkPermissionSafe } from '@/utils/location';
 
 interface TrackingState {
   isActive: boolean;
@@ -67,12 +68,12 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
 
   // Função para enviar localização
   const sendLocation = useCallback(async () => {
-    if (!freightId || !hasPermission) {
+    if (!freightId) {
       return;
     }
 
     try {
-      const position = await getCurrentPosition();
+      const position = await getCurrentPositionSafe(2);
       const { latitude, longitude, speed, heading, accuracy } = position.coords;
 
       // Enviar para o backend
@@ -169,12 +170,23 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
       return false;
     }
 
-    if (!hasPermission) {
-      const granted = await requestLocation();
-      if (!granted) {
-        setTrackingState(prev => ({ ...prev, error: 'Permissão de localização negada' }));
-        return false;
+    // Verificar/solicitar permissão usando utilitário nativo-aware
+    try {
+      let permitted = await checkPermissionSafe();
+      if (!permitted) {
+        permitted = await requestPermissionSafe();
       }
+      if (!permitted) {
+        // Tentar via hook como fallback
+        const granted = await requestLocation();
+        if (!granted) {
+          setTrackingState(prev => ({ ...prev, error: 'Permissão de localização negada' }));
+          toast.error('Permissão de localização negada. Ative a localização nas configurações do dispositivo.');
+          return false;
+        }
+      }
+    } catch (permErr) {
+      console.warn('[Tracking] Erro ao verificar permissão:', permErr);
     }
 
     try {
@@ -246,13 +258,14 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
   }, [freightId, trackingState.isActive]);
 
   // Efeito para controlar o rastreamento
+  // Removido 'hasPermission' da condição - startTracking já verifica/solicita permissão internamente
   useEffect(() => {
-    if (enabled && freightId && hasPermission && !trackingState.isActive) {
+    if (enabled && freightId && !trackingState.isActive) {
       startTracking();
     } else if (!enabled && trackingState.isActive) {
       stopTracking();
     }
-  }, [enabled, freightId, hasPermission, trackingState.isActive]);
+  }, [enabled, freightId, trackingState.isActive]);
 
   // Cleanup ao desmontar
   useEffect(() => {
@@ -274,22 +287,4 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
   };
 }
 
-// Função helper para obter posição atual
-function getCurrentPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocalização não suportada'));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      resolve,
-      reject,
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000
-      }
-    );
-  });
-}
+// Função helper removida - agora usa getCurrentPositionSafe de @/utils/location
