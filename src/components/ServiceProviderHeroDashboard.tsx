@@ -163,14 +163,8 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         
-        <div className="relative container mx-auto px-4 py-12 md:py-16">
+        <div className="relative container mx-auto px-4 py-6 md:py-8">
           <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              Olá, {firstName}
-            </h1>
-            <p className="text-green-100 text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-              {SISTEMA_IA_LABEL} encontra solicitações de serviços para você
-            </p>
             
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 justify-center items-center max-w-2xl mx-auto">
