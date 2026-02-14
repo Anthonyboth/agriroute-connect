@@ -805,16 +805,16 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       {/* Producer Actions */}
       {showProducerActions && onAction && freight.status !== "CANCELLED" && (
         <div className="px-6 pb-6">
-          <div className="flex gap-2">
-            <Button onClick={() => onAction("edit")} className="flex-1" size="sm" variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={() => onAction("edit")} size="sm" variant="outline">
+              <Edit className="h-4 w-4 mr-1" />
               Editar
             </Button>
 
             {/* Cancelamento direto para OPEN, ACCEPTED, LOADING, IN_NEGOTIATION */}
             {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION"].includes(freight.status) && (
-              <Button onClick={() => onAction("cancel")} className="flex-1" size="sm" variant="destructive">
-                <X className="h-4 w-4 mr-2" />
+              <Button onClick={() => onAction("cancel")} size="sm" variant="destructive">
+                <X className="h-4 w-4 mr-1" />
                 Cancelar
               </Button>
             )}
@@ -823,12 +823,12 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             {["LOADED", "IN_TRANSIT"].includes(freight.status) && (
               <Button
                 onClick={() => onAction("request-cancel")}
-                className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
+                className="border-destructive text-destructive hover:bg-destructive/10 text-xs"
                 size="sm"
                 variant="outline"
               >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Solicitar Cancelamento
+                <MessageCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+                <span className="truncate">Solicitar Cancelamento</span>
               </Button>
             )}
           </div>
