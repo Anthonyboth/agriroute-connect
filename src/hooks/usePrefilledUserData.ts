@@ -110,7 +110,27 @@ export interface PrefilledUserData {
 export function usePrefilledUserData(): PrefilledUserData {
   const { profile, user } = useAuth();
   const [fiscalIssuer, setFiscalIssuer] = useState<any>(null);
+  const [secureProfile, setSecureProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // ✅ Buscar dados completos da view profiles_secure (contorna CLS)
+  const fetchSecureProfile = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles_secure')
+        .select('full_name, phone, contact_phone, cpf_cnpj, document, email, base_city_name, base_state, base_lat, base_lng, base_city_id, address_street, address_number, address_complement, address_neighborhood, address_zip, id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setSecureProfile(data);
+      }
+    } catch (err) {
+      console.warn('[usePrefilledUserData] Erro ao buscar profiles_secure:', err);
+    }
+  };
 
   const fetchFiscalIssuer = async () => {
     if (!profile?.id) {
@@ -142,6 +162,12 @@ export function usePrefilledUserData(): PrefilledUserData {
   };
 
   useEffect(() => {
+    if (user?.id) {
+      fetchSecureProfile();
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     if (profile?.id) {
       fetchFiscalIssuer();
     } else {
@@ -149,74 +175,62 @@ export function usePrefilledUserData(): PrefilledUserData {
     }
   }, [profile?.id]);
 
+  // ✅ Dados pessoais: prioriza profiles_secure (dados completos via view segura)
   const personal = useMemo<PrefilledPersonalData>(() => {
-    if (!profile) {
-      return {
-        name: '',
-        phone: '',
-        email: '',
-        document: '',
-        profession: '',
-      };
+    const src = secureProfile || profile;
+    if (!src) {
+      return { name: '', phone: '', email: '', document: '', profession: '' };
     }
 
     return {
-      name: profile.full_name || '',
-      phone: formatPhone(profile.phone || profile.contact_phone || ''),
-      email: user?.email || '',
-      document: formatCpfCnpj(profile.cpf_cnpj || profile.document || ''),
+      name: src.full_name || profile?.full_name || '',
+      phone: formatPhone(src.phone || src.contact_phone || ''),
+      email: src.email || user?.email || '',
+      document: formatCpfCnpj(src.cpf_cnpj || src.document || ''),
       profession: '',
     };
-  }, [profile, user]);
+  }, [secureProfile, profile, user]);
 
+  // ✅ Endereço: prioriza profiles_secure com campos address_*
   const address = useMemo<PrefilledAddressData>(() => {
-    // Prioridade: dados do perfil
-    if (profile) {
-      // Tentar obter do perfil (campos base_* ou farm_*)
-      return {
-        cep: '', // Geralmente não está no perfil base
-        city: profile.base_city_name || '',
-        city_id: (profile as any).base_city_id || '',
-        state: profile.base_state || '',
-        street: '',
-        neighborhood: '',
-        number: '',
-        complement: '',
-        lat: profile.base_lat,
-        lng: profile.base_lng,
-      };
+    const src = secureProfile || profile;
+    if (!src) {
+      return { cep: '', city: '', city_id: '', state: '', street: '', neighborhood: '', number: '', complement: '' };
     }
 
     return {
-      cep: '',
-      city: '',
-      city_id: '',
-      state: '',
-      street: '',
-      neighborhood: '',
-      number: '',
-      complement: '',
+      cep: formatCep(src.address_zip || ''),
+      city: src.base_city_name || profile?.base_city_name || '',
+      city_id: src.base_city_id || (profile as any)?.base_city_id || '',
+      state: src.base_state || profile?.base_state || '',
+      street: src.address_street || '',
+      neighborhood: src.address_neighborhood || '',
+      number: src.address_number || '',
+      complement: src.address_complement || '',
+      lat: src.base_lat ?? profile?.base_lat,
+      lng: src.base_lng ?? profile?.base_lng,
     };
-  }, [profile]);
+  }, [secureProfile, profile]);
 
   const fiscal = useMemo<PrefilledFiscalData | null>(() => {
     if (!fiscalIssuer) {
       // Fallback: usar dados do perfil se não houver emissor fiscal
-      if (profile) {
+      const src = secureProfile || profile;
+      if (src) {
         return {
-          cnpj_cpf: formatCpfCnpj(profile.cpf_cnpj || profile.document || ''),
-          razao_social: profile.full_name || '',
+          cnpj_cpf: formatCpfCnpj(src.cpf_cnpj || src.document || ''),
+          razao_social: src.full_name || '',
           nome_fantasia: '',
           inscricao_estadual: '',
           inscricao_municipal: '',
-          email: user?.email || '',
-          telefone: formatPhone(profile.phone || profile.contact_phone || ''),
-          logradouro: '',
-          numero: '',
-          bairro: '',
-          municipio: profile.base_city_name || '',
-          uf: profile.base_state || '',
-          cep: '',
+          email: src.email || user?.email || '',
+          telefone: formatPhone(src.phone || src.contact_phone || ''),
+          logradouro: src.address_street || '',
+          numero: src.address_number || '',
+          bairro: src.address_neighborhood || '',
+          municipio: src.base_city_name || '',
+          uf: src.base_state || '',
+          cep: formatCep(src.address_zip || ''),
           ibge_code: '',
         };
       }
@@ -224,7 +238,6 @@ export function usePrefilledUserData(): PrefilledUserData {
     }
 
     // Usar dados do emissor fiscal (mais completos)
-    // ✅ Campos corretos do banco: address_street, address_number, address_neighborhood, address_zip_code
     return {
       cnpj_cpf: formatCpfCnpj(fiscalIssuer.document_number || ''),
       razao_social: fiscalIssuer.legal_name || '',
@@ -232,8 +245,7 @@ export function usePrefilledUserData(): PrefilledUserData {
       inscricao_estadual: fiscalIssuer.state_registration || fiscalIssuer.ie || '',
       inscricao_municipal: fiscalIssuer.municipal_registration || fiscalIssuer.im || '',
       email: fiscalIssuer.email_fiscal || fiscalIssuer.fiscal_email || user?.email || '',
-      telefone: formatPhone(fiscalIssuer.telefone_fiscal || fiscalIssuer.fiscal_phone || profile?.phone || ''),
-      // ✅ CORREÇÃO: usar nomes corretos das colunas do banco
+      telefone: formatPhone(fiscalIssuer.telefone_fiscal || fiscalIssuer.fiscal_phone || secureProfile?.phone || profile?.phone || ''),
       logradouro: fiscalIssuer.address_street || fiscalIssuer.endereco_logradouro || '',
       numero: fiscalIssuer.address_number || fiscalIssuer.endereco_numero || '',
       bairro: fiscalIssuer.address_neighborhood || fiscalIssuer.endereco_bairro || '',
@@ -242,11 +254,11 @@ export function usePrefilledUserData(): PrefilledUserData {
       cep: formatCep(fiscalIssuer.address_zip_code || fiscalIssuer.endereco_cep || ''),
       ibge_code: fiscalIssuer.address_ibge_code || fiscalIssuer.endereco_ibge || '',
     };
-  }, [fiscalIssuer, profile, user]);
+  }, [fiscalIssuer, secureProfile, profile, user]);
 
   const refresh = async () => {
     setLoading(true);
-    await fetchFiscalIssuer();
+    await Promise.all([fetchSecureProfile(), fetchFiscalIssuer()]);
   };
 
   return {
