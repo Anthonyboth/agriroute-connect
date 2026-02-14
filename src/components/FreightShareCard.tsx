@@ -209,7 +209,6 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
         }}
         onSuccess={() => {
           setProposalModalOpen(false);
-          toast.success('Contraproposta enviada ao produtor!');
         }}
       />
 
