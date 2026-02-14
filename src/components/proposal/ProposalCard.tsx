@@ -349,6 +349,16 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             </Button>
           </div>
         )}
+
+        {/* Status de contraproposta enviada - aguardando resposta do motorista */}
+        {proposal.status === 'COUNTER_PROPOSED' && (
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>Contraproposta enviada — aguardando resposta do motorista</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

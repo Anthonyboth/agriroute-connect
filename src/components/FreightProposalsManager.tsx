@@ -297,6 +297,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
   const filterProposalsByStatus = (status: string) => {
     const filtered = filteredProposals;
     if (status === 'pending') return filtered.filter(p => p.status === 'PENDING');
+    if (status === 'counter_proposed') return filtered.filter(p => p.status === 'COUNTER_PROPOSED');
     if (status === 'accepted') return filtered.filter(p => p.status === 'ACCEPTED');
     if (status === 'rejected') return filtered.filter(p => p.status === 'REJECTED');
     return filtered;
@@ -305,6 +306,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
   // Removed renderProposalCard function - now using ProposalCard component
 
   const pendingCount = proposals.filter(p => p.status === 'PENDING').length;
+  const counterProposedCount = proposals.filter(p => p.status === 'COUNTER_PROPOSED').length;
   const acceptedCount = proposals.filter(p => p.status === 'ACCEPTED').length;
   const rejectedCount = proposals.filter(p => p.status === 'REJECTED').length;
 
@@ -327,18 +329,21 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Propostas de Motoristas</CardTitle>
-            {pendingCount > 0 && (
+            {(pendingCount + counterProposedCount) > 0 && (
               <Badge variant="default" className="h-6 px-3">
-                {pendingCount} {pendingCount === 1 ? 'nova' : 'novas'}
+                {pendingCount + counterProposedCount} {(pendingCount + counterProposedCount) === 1 ? 'nova' : 'novas'}
               </Badge>
             )}
           </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="pending">
                 Pendentes {pendingCount > 0 && `(${pendingCount})`}
+              </TabsTrigger>
+              <TabsTrigger value="counter_proposed">
+                Contrapropostas {counterProposedCount > 0 && `(${counterProposedCount})`}
               </TabsTrigger>
               <TabsTrigger value="accepted">
                 Aceitas {acceptedCount > 0 && `(${acceptedCount})`}
@@ -475,6 +480,31 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
               ) : (
                 <div className="space-y-4">
                   {filterProposalsByStatus('pending').map((proposal) => (
+                    <ProposalCard
+                      key={proposal.id}
+                      proposal={proposal}
+                      producerId={producerId}
+                      loadingAction={loadingAction}
+                      onDetails={(p) => setDetailsDialog({ open: true, proposal: p })}
+                      onAccept={(p) => setConfirmDialog({ open: true, proposal: p })}
+                      onReject={handleRejectProposal}
+                      onCounterProposal={(p) => setCounterProposalOpen({ open: true, proposal: p })}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="counter_proposed">
+              {filterProposalsByStatus('counter_proposed').length === 0 ? (
+                <div className="text-center py-12">
+                  <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Nenhuma contraproposta aguardando resposta</p>
+                  <p className="text-xs text-muted-foreground mt-1">Contrapropostas enviadas ao motorista aparecerão aqui</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filterProposalsByStatus('counter_proposed').map((proposal) => (
                     <ProposalCard
                       key={proposal.id}
                       proposal={proposal}
