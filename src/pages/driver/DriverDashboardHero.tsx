@@ -30,7 +30,7 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
 
   return (
     <TooltipProvider>
-      <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[160px] flex items-center justify-center overflow-hidden">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
@@ -44,18 +44,6 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <h1 className="text-xl md:text-2xl font-bold mb-2">
-              Olá, {displayName}
-            </h1>
-            <p className="text-sm md:text-base mb-2 opacity-90 px-2">
-              {SISTEMA_IA_LABEL} encontra fretes para você
-            </p>
-            {isCompanyDriver && companyName && (
-              <Badge variant="secondary" className="mb-3 bg-background/20 text-primary-foreground border-primary-foreground/30">
-                <Users className="h-3 w-3 mr-1" aria-hidden="true" />
-                Motorista - {companyName}
-              </Badge>
-            )}
             <div className="flex flex-wrap items-center justify-center gap-3 px-2">
               {canSeeFreights && (
                 <Tooltip>

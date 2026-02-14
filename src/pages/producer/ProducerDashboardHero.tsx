@@ -24,7 +24,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
 
   return (
     <TooltipProvider>
-      <section data-tutorial="producer-hero" className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
+      <section data-tutorial="producer-hero" className="relative min-h-[160px] flex items-center justify-center overflow-hidden">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
@@ -38,12 +38,6 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              Painel de Gerenciamento
-            </h1>
-            <p className="text-base opacity-90 max-w-xl mx-auto mb-4">
-              Gerencie seus fretes, acompanhe propostas e monitore o desempenho
-            </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <CreateFreightWizardModal 
                 onFreightCreated={onFreightCreated}

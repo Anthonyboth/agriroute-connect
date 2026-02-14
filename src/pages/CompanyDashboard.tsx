@@ -733,16 +733,6 @@ const CompanyDashboard = () => {
           <div className="max-w-5xl mx-auto space-y-4">
             {/* Hero layout: Logo e título à esquerda, info da empresa à direita */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="text-center md:text-left">
-                <Badge variant="secondary" className="mb-2 bg-background/20 text-primary-foreground border-primary-foreground/30">
-                  <Building2 className="h-3 w-3 mr-1" />
-                  Transportadora
-                </Badge>
-                
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-primary-foreground">
-                  Painel de Gerenciamento
-                </h1>
-              </div>
               
               {/* Info da empresa no canto direito - P8: Removido badge "Aprovada", organizado layout */}
               <div className="text-center md:text-right bg-background/10 backdrop-blur-sm rounded-lg p-4 border border-primary-foreground/20">
