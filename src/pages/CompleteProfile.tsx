@@ -57,6 +57,8 @@ const CompleteProfile = () => {
   const [newCpf, setNewCpf] = useState('');
   const [loading, setLoading] = useState(false);
   const [recoveringProfile, setRecoveringProfile] = useState(false);
+  const [autoRetryCount, setAutoRetryCount] = useState(0);
+  const autoRetryMaxRef = useRef(5);
   const [currentStep, setCurrentStep] = useState(1);
   
   // Calcular modo de cadastro usando a política centralizada
@@ -255,6 +257,21 @@ const CompleteProfile = () => {
       setProfileData(prev => ({ ...prev, fixed_address: fullAddress }));
     }
   }, [addressData]);
+
+  // ✅ Auto-retry: tentar buscar perfil automaticamente antes de mostrar tela de recuperação
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !profile && autoRetryCount < autoRetryMaxRef.current) {
+      const timer = setTimeout(async () => {
+        if (import.meta.env.DEV) console.log(`[CompleteProfile] Auto-retry ${autoRetryCount + 1}/${autoRetryMaxRef.current}...`);
+        try {
+          sessionStorage.removeItem('profile_fetch_cooldown_until');
+        } catch {}
+        await refreshProfile();
+        setAutoRetryCount(prev => prev + 1);
+      }, autoRetryCount === 0 ? 500 : 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, isAuthenticated, profile, autoRetryCount, refreshProfile]);
 
   const ensureLocationEnabled = async (): Promise<boolean> => {
     if (locationEnabled) return true;
@@ -582,7 +599,7 @@ const CompleteProfile = () => {
     );
   }
 
-  if (authLoading) {
+  if (authLoading || (!profile && autoRetryCount < autoRetryMaxRef.current)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
