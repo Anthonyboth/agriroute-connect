@@ -47,6 +47,20 @@
 	<true/>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Usamos seus dados para melhorar a experiência do aplicativo, personalizar conteúdo e fornecer recursos baseados em localização para conectar motoristas e produtores.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>O AgriRoute precisa acessar sua câmera para tirar selfie de verificação e fotografar documentos como CNH e comprovante de endereço.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O AgriRoute precisa acessar sua galeria de fotos para enviar documentos como CNH, comprovante de endereço e fotos de veículos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O AgriRoute precisa salvar fotos de documentos fiscais e comprovantes na sua galeria.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O AgriRoute usa sua localização para rastrear entregas em tempo real, calcular rotas de frete e conectar você a motoristas e produtores próximos.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>O AgriRoute usa sua localização em segundo plano para rastrear entregas em andamento e enviar atualizações de posição aos participantes do frete.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O AgriRoute usa sua localização para rastrear entregas em tempo real. O rastreamento em segundo plano permite acompanhamento contínuo durante fretes ativos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O AgriRoute pode precisar do microfone para gravação de áudio em mensagens de chat.</string>
 	<key>UIStatusBarHidden</key>
 	<false/>
 	<key>UIStatusBarStyle</key>
