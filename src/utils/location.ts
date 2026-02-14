@@ -36,15 +36,17 @@ const toWebLike = (pos: Position): SafePosition => ({
 
 export const checkPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
-    const perm: PermissionStatus = await Geolocation.checkPermissions();
-    return perm.location === 'granted' || perm.coarseLocation === 'granted';
+    try {
+      const perm: PermissionStatus = await Geolocation.checkPermissions();
+      return perm.location === 'granted' || perm.coarseLocation === 'granted';
+    } catch (err) {
+      console.warn('[GPS] Erro ao verificar permissões nativas:', err);
+      return false;
+    }
   }
   try {
-    // Browser permissions API
-    // @ts-ignore
     if (navigator?.permissions?.query) {
-      // @ts-ignore
-      const status = await navigator.permissions.query({ name: 'geolocation' });
+      const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
       return status.state === 'granted';
     }
   } catch {}
@@ -53,8 +55,13 @@ export const checkPermissionSafe = async (): Promise<boolean> => {
 
 export const requestPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
-    const perm = await Geolocation.requestPermissions();
-    return perm.location === 'granted' || perm.coarseLocation === 'granted';
+    try {
+      const perm = await Geolocation.requestPermissions();
+      return perm.location === 'granted' || perm.coarseLocation === 'granted';
+    } catch (err) {
+      console.warn('[GPS] Erro ao solicitar permissões nativas:', err);
+      return false;
+    }
   }
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) return resolve(false);
@@ -156,6 +163,9 @@ export const watchPositionSafe = (
       if (pos) onSuccess(toWebLike(pos).coords);
     }).then((id) => {
       watchId = id as unknown as string;
+    }).catch((err) => {
+      console.warn('[GPS] Erro nativo ao iniciar watchPosition:', err);
+      onError({ code: 1, message: 'Permissão de localização não concedida. Ative nas configurações do dispositivo.' });
     });
     return { clear: () => { if (watchId) Geolocation.clearWatch({ id: watchId }); } } as any;
   }
