@@ -801,7 +801,7 @@ export function CreateFreightWizard({
           </div>
         </div>
 
-        {!guestMode && userProfile?.role === 'PRODUTOR' && (
+        {!guestMode && userProfile?.role === 'PRODUTOR' && currentStep === 5 && (
           <div className="mt-3">
             <Button
               type="button"
