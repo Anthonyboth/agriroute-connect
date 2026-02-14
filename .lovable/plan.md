@@ -1,23 +1,30 @@
 
+# Correcao do Layout do Card de Propostas
 
-# Correcao do Botao "Links Uteis" Escondido na Aba Fiscal
+## Problemas Identificados (baseado no screenshot)
 
-## Problema
+1. **Padding excessivo**: `p-6` no CardContent cria muito espaco em branco nas laterais
+2. **Rota e Vagas empilhados**: `grid-cols-1 md:grid-cols-2` faz rota e vagas ocuparem linhas separadas no mobile, desperdicando espaco vertical
+3. **Secao de valores com padding excessivo**: `p-4` no bloco de precos
+4. **Botoes empilhados verticalmente**: `flex-wrap` faz os 3 botoes cairem em linhas separadas no mobile, ocupando muito espaco
+5. **Separadores e margens grandes**: `my-4`, `mb-4` criam gaps visuais desnecessarios
 
-Na tela do Guia Fiscal (`FiscalEducationHub.tsx`), a `TabsList` usa `grid-cols-2 lg:grid-cols-3`. Em telas mobile (menos de `lg`), as 3 abas sao dispostas em 2 colunas, fazendo a terceira aba ("Links Uteis") cair para uma segunda linha. Porem, o componente `TabsList` tem altura fixa `h-10`, cortando a segunda linha e escondendo o botao "Links Uteis" atras do conteudo.
+## Correcoes no Arquivo
 
-## Correcao
+**Arquivo:** `src/components/proposal/ProposalCard.tsx`
 
-Alterar **apenas** a linha 158 de `src/components/fiscal/education/FiscalEducationHub.tsx`:
+| Linha | Antes | Depois |
+|-------|-------|--------|
+| 118 | `p-6` | `p-4` |
+| 120-121 | `gap-4` no header | `gap-3` |
+| 122 | Avatar `h-12 w-12` | `h-10 w-10` |
+| 138 | Nome `text-lg` | `text-base` |
+| 157 | Separator `my-4` | `my-3` |
+| 159 | Grid `gap-4 mb-4` | `gap-2 mb-3` - rota e vagas lado a lado em mobile com `grid-cols-2` |
+| 182 | Bloco de precos `p-4 mb-4` | `p-3 mb-3` |
+| 247 | Aviso ANTT `mt-3 p-3` | `mt-2 p-2` |
+| 291 | Botoes `mt-4 flex-wrap` | `mt-3` com layout em grid `grid-cols-3` para ficarem sempre lado a lado |
 
-- Mudar `grid-cols-2 lg:grid-cols-3` para `grid-cols-3` para que as 3 abas sempre caibam em uma unica linha
-- Isso funciona porque os textos ja usam `hidden sm:inline` (so mostram icone em telas pequenas), entao 3 colunas com icones cabem perfeitamente em qualquer largura
+## Resumo
 
-## Arquivo Alterado
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/components/fiscal/education/FiscalEducationHub.tsx` (linha 158) | `grid-cols-2 lg:grid-cols-3` para `grid-cols-3` |
-
-Nenhum outro arquivo sera alterado. O botao do WhatsApp permanece como esta.
-
+Reducao geral de padding, margens e gaps para eliminar o excesso de espaco em branco. Rota e Vagas sempre lado a lado. Botoes em grid de 3 colunas para nunca empilhar. Nenhum outro arquivo sera alterado.
