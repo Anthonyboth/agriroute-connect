@@ -32,17 +32,26 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
+    // Autenticar usuário com cliente anon + header do usuário
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.log("[CHECK-FREIGHT-REQUESTER] Sem header de autorização");
+      return new Response(
+        JSON.stringify({ success: false, error: "Não autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Autenticar usuário
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    const { data: { user } } = await supabase.auth.getUser(token);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
     
-    if (!user) {
+    if (claimsError || !claimsData?.claims) {
       console.log("[CHECK-FREIGHT-REQUESTER] Tentativa de acesso não autorizado");
       return new Response(
         JSON.stringify({ 
@@ -53,7 +62,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[CHECK-FREIGHT-REQUESTER] Verificando frete ${freight_id} para usuário ${user.id}`);
+    const userId = claimsData.claims.sub;
+    console.log(`[CHECK-FREIGHT-REQUESTER] Verificando frete ${freight_id} para usuário ${userId}`);
+
+    // Cliente com service_role para operações de dados
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
     // Buscar frete com produtor usando FK correto
     const { data: freight, error: freightError } = await supabase
