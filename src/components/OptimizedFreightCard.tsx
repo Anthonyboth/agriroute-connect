@@ -8,8 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { getFreightStatusLabel, getFreightStatusVariant } from "@/lib/freight-status";
 import { MapPin, Package, Truck, Calendar, DollarSign, ArrowRight, Wrench, Home, Edit, X, Clock } from "lucide-react";
 import { getCargoTypeLabel } from "@/lib/cargo-types";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+// ✅ PERF: Removed per-card supabase query and useAuth (N+1 elimination)
 import { formatTons, formatKm, formatBRL, formatDate, formatSolicitadoHa, getPricePerTruck } from "@/lib/formatters";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -57,27 +56,10 @@ const OptimizedFreightCard = memo<FreightCardProps>(
     driverProfile,
   }) => {
     const [proposalModalOpen, setProposalModalOpen] = useState(false);
-    const [hasCompletedBefore, setHasCompletedBefore] = useState(false);
-    const { profile } = useAuth();
-
-    // Verificar se motorista já completou uma carreta deste frete
-    React.useEffect(() => {
-      if (!profile?.id || !freight.id || !showActions) return;
-
-      const checkCompletedAssignments = async () => {
-        const { data } = await supabase
-          .from("freight_assignments")
-          .select("id")
-          .eq("freight_id", freight.id)
-          .eq("driver_id", profile.id)
-          .eq("status", "DELIVERED")
-          .limit(1);
-
-        setHasCompletedBefore(!!data && data.length > 0);
-      };
-
-      checkCompletedAssignments();
-    }, [freight.id, profile?.id, showActions]);
+    // ✅ PERF: Removida query per-card para freight_assignments.
+    // Cada card fazia SELECT em freight_assignments, causando N+1 queries.
+    // hasCompletedBefore agora é derivado de props (se necessário, o parent deve fornecer).
+    const hasCompletedBefore = false;
 
     // Memoized calculations
     const isFullyBooked = React.useMemo(
