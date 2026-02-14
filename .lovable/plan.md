@@ -1,73 +1,27 @@
 
-# Fix: Markers Flutuando no Mapa de Acompanhamento
+# Reduzir botoes do Hero e mostrar mais a imagem de fundo
 
-## Causa Raiz
+## Problema
 
-O mapa de acompanhamento (`FreightRealtimeMapMapLibre.tsx`) usa **dois sistemas diferentes** para desenhar no mapa:
-
-- **Rota (linha da estrada)**: Desenhada como **GeoJSON layer no canvas** do mapa -- fica fixa ao zoom/pan porque faz parte do rendering interno do MapLibre.
-- **Markers (A, B, caminhao)**: Criados como **elementos HTML DOM** (`new maplibregl.Marker({ element })`) -- sao `div`s posicionadas via CSS `transform: translate()` SOBRE o canvas.
-
-Quando o mapa esta dentro de um container que tem CSS transforms (Drawer, Dialog, Sheet -- todos usam `transform: translateY()` para animacao de abertura), o calculo de posicao dos DOM Markers fica incorreto porque o `transform` do ancestral cria um novo "containing block" CSS, deslocando os markers de suas coordenadas reais.
-
-A rota nunca flutua porque esta no **canvas WebGL**, imune a CSS. Os markers flutuam porque sao **HTML puro** sujeito a heranca de transforms.
+Na tela mobile, os botoes do Hero ocupam `w-full` (largura total), empilhando verticalmente como blocos brancos enormes que cobrem quase toda a imagem de fundo. O resultado e que a foto (que sera enviada por usuarios) fica praticamente invisivel.
 
 ## Solucao
 
-Converter os 3 markers (origem A, destino B, caminhao) de **DOM Markers** para **GeoJSON Symbol Layers** renderizados no canvas, identico a rota. O projeto ja tem esse padrao implementado em outros componentes (`MapLibreBase` usa `useMapLibreGeoJSONLayers`), mas o `FreightRealtimeMapMapLibre` nunca foi migrado.
+Duas alteracoes simples e coordenadas:
 
-## Plano de Implementacao
+### 1. `src/components/ui/hero-action-button.tsx`
+- Trocar `w-full sm:w-auto` por `w-auto` -- os botoes ficam compactos (tamanho do texto) em todas as telas
+- Reduzir altura de `h-9` para `h-8` e padding de `px-4` para `px-3`
+- Manter `text-xs`, icone `h-4 w-4`, `rounded-full` e todos os efeitos visuais
 
-### Arquivo: `src/components/freight/FreightRealtimeMapMapLibre.tsx`
+### 2. `src/pages/driver/DriverDashboardHero.tsx`
+- Trocar o layout dos botoes de `flex flex-wrap gap-3` para `flex flex-wrap gap-2` (menos espaco entre eles)
+- Adicionar `py-4` ao container dos botoes para dar respiro vertical sem desperdicar espaco
+- Manter `min-h-[160px]` na section e o overlay verde (`bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40`) intacto
 
-1. **Remover** toda logica de DOM Markers:
-   - Remover refs: `driverMarkerRef`, `ghostDriverMarkerRef`, `originMarkerRef`, `destinationMarkerRef`
-   - Remover os 2 `useEffect` que criam/atualizam markers DOM (linhas ~629-759)
-   - Remover `createTruckMarkerElement` e `createLocationMarkerElement` imports
-
-2. **Adicionar** markers como GeoJSON symbol layers no evento `map.on('load')`:
-   - Gerar imagens SVG como `Image` objects e registra-las com `map.addImage('origin-pin', ...)`, `map.addImage('destination-pin', ...)`, `map.addImage('truck-icon', ...)`
-   - Criar source GeoJSON `markers-source` com FeatureCollection
-   - Adicionar layer `type: 'symbol'` com `icon-image` baseado em property do feature
-
-3. **Adicionar** `useEffect` para atualizar o GeoJSON source quando `mapOrigin`, `mapDestination` ou `mapDriverLocation` mudam:
-   - Montar FeatureCollection com os pontos validos
-   - Chamar `source.setData(geojson)` -- identico a como a rota ja e atualizada
-
-4. **Manter** a animacao suave do caminhao usando `requestAnimationFrame` + `source.setData()` (ao inves de `marker.setLngLat()`)
-
-### Arquivo: `src/styles/maplibre-markers.css`
-
-- Nenhuma alteracao necessaria -- as classes CSS continuam uteis para outros mapas que usam DOM markers (ex: `DriverLocationMapMapLibre`), mas nao serao mais usadas neste componente.
-
-### Resultado Esperado
-
-- Markers A, B e caminhao ficam **fixos nas coordenadas exatas**, identico a linha da rota
-- Zoom in/out nao causa flutuacao
-- Funciona dentro de Drawer/Dialog/Sheet sem interferencia de CSS transforms
-- Animacao suave do caminhao mantida
-- Popups de click nos markers mantidos via `map.on('click', 'markers-layer', ...)`
-
-## Detalhes Tecnicos
-
-A conversao usa `map.addImage()` para registrar os SVGs como icones rasterizados no estilo do mapa. O processo:
-
-```text
-SVG string --> canvas 2D --> ImageData --> map.addImage(id, imageData)
-```
-
-Cada feature no GeoJSON tera uma property `icon` que mapeia para o nome da imagem registrada:
-
-```text
-GeoJSON Source (markers-source)
-  |
-  +-- Feature { type: "origin", coords: [lng, lat] }    --> icon: "origin-pin"
-  +-- Feature { type: "destination", coords: [lng, lat] } --> icon: "destination-pin"  
-  +-- Feature { type: "truck", coords: [lng, lat] }      --> icon: "truck-icon"
-  |
-Symbol Layer (markers-layer)
-  icon-image: ["get", "icon"]
-  icon-size: 1
-  icon-allow-overlap: true
-  icon-anchor: ["match", ["get", "type"], "truck", "center", "bottom"]
-```
+### Resultado esperado
+- Botoes compactos lado a lado (2 por linha no mobile), sem esticar na largura total
+- Texto nunca vaza para fora do botao (font-size e padding proporcionais)
+- Imagem de fundo fica muito mais visivel entre e ao redor dos botoes
+- Overlay verde preservado exatamente como esta
+- Funciona em todos os dashboards que usam `HeroActionButton`
