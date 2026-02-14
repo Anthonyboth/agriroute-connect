@@ -44,7 +44,7 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <div className="flex flex-wrap items-center justify-center gap-3 px-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 px-2 py-4">
               {canSeeFreights && (
                 <Tooltip>
                   <TooltipTrigger asChild>
