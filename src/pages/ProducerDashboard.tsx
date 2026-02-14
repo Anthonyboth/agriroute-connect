@@ -592,7 +592,7 @@ const ProducerDashboard = () => {
           `
           *,
           freight:freights(*),
-          driver:profiles!freight_proposals_driver_id_fkey(*)
+          driver:profiles_secure!freight_proposals_driver_id_fkey(*)
         `,
         )
         .in("freight_id", freightIds)
