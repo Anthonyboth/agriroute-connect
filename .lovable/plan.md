@@ -1,39 +1,26 @@
 
 
-## Plano de Correção: Notificações Pré-Login e Tela Piscando
+## Remover dica nao autorizada e otimizar espaco do header
 
-### Problema 1: Pop-up de notificações aparecendo antes do login
+### Problema
+No wizard de solicitacao de servicos (ServiceWizard), existe uma caixa de "Dica" azul que foi adicionada sem autorizacao. Ela ocupa espaco precioso no topo do card, especialmente em mobile com teclado aberto, fazendo com que os campos de preenchimento fiquem muito pequenos e dificeis de usar.
 
-**Causa raiz**: O componente `PermissionPrompts` (linha 1089 do App.tsx) é renderizado **incondicionalmente** para todos os usuários. O hook `useContextualPermissions` retorna `shouldRequestNotifications = true` no caso `default` (quando não há perfil/role), ou seja, para visitantes não logados.
+### Solucao
 
-**Correção**: 
-- No `PermissionPrompts.tsx`, adicionar verificação de autenticação. Se o usuário não estiver logado (`!profile`), retornar `null` imediatamente, sem renderizar nada.
+**Arquivo**: `src/components/service-wizard/ServiceWizard.tsx`
 
-### Problema 2: Tela piscando ao abrir o site no celular
+1. **Remover completamente o bloco de dica** (linhas 707-714) - a div com "Crie uma conta para acompanhar suas solicitacoes e ter acesso ao historico"
 
-**Causa raiz**: O componente `AuthedLanding` (rota `/`) mostra um **spinner fullscreen** (`AuthLoader`) enquanto o estado de autenticação está carregando, e depois troca para a página `Landing`. Essa transição rápida (spinner -> landing) causa o efeito de "piscar". O fluxo é:
+2. **Compactar o header** para ganhar mais espaco vertical:
+   - Reduzir o padding do header de `p-4` para `px-4 py-2`
+   - Reduzir margem inferior do titulo de `mb-2` para `mb-1`
 
-1. App abre -> Boot phase `INITIALIZING` -> `CHECKING_AUTH`
-2. `AuthedLanding` detecta `loading=true` -> mostra spinner fullscreen
-3. Auth resolve (usuário não logado) -> `loading=false` -> troca para `Landing`
-4. Essa troca brusca = flash visual
+Isso vai liberar espaco significativo para a area de conteudo scrollavel onde o usuario preenche os campos.
 
-**Correção**:
-- No `AuthedLanding`, em vez de mostrar o spinner fullscreen enquanto verifica autenticação, renderizar a página `Landing` diretamente. Se depois descobrir que o usuário está logado, redireciona silenciosamente para o dashboard. Isso elimina o flash porque a Landing já está visível desde o primeiro frame.
+### Detalhes tecnicos
 
----
-
-### Detalhes Técnicos
-
-**Arquivo 1: `src/components/PermissionPrompts.tsx`**
-- Importar `useAuth` 
-- No início do componente, verificar se há `profile` (usuário logado)
-- Se `!profile`, retornar `null` antes de qualquer outra lógica
-
-**Arquivo 2: `src/App.tsx` (componente `AuthedLanding`)**
-- Remover o estado de loading que mostra `AuthLoader` para usuários não autenticados
-- Enquanto `loading` é `true` e não há `profile`, renderizar `<Landing />` diretamente (em vez do spinner)
-- Manter o redirect para dashboard apenas quando confirmar que o usuário está logado e tem perfil
-
-Resultado: ao abrir o site, a Landing aparece instantaneamente, sem spinner, sem pop-ups, limpa.
+Alteracao unica no arquivo `src/components/service-wizard/ServiceWizard.tsx`:
+- Remover linhas 707-714 (bloco condicional `!profile?.id` com a dica)
+- Ajustar padding do header container (linha 700)
+- Nenhum outro arquivo sera modificado
 
