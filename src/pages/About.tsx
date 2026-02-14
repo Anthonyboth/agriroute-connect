@@ -105,19 +105,7 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Nossos Números
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              O impacto da AgriRoute no agronegócio brasileiro
-            </p>
-          </div>
-          <PlatformStatsSection />
-        </div>
-      </section>
+      <PlatformStatsSection />
 
       {/* Features Section */}
       <section className="py-20">
