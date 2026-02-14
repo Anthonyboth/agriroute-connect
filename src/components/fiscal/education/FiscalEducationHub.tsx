@@ -155,7 +155,7 @@ export const FiscalEducationHub: React.FC<FiscalEducationHubProps> = ({
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="documentos" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Documentos</span>
