@@ -23,12 +23,25 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<'bottom' | 'top'>('bottom');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const prevStepRef = useRef(currentStep);
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
   const isFirst = currentStep === 0;
   const progress = ((currentStep + 1) / steps.length) * 100;
+
+  // Detect step change to apply transition only on step change
+  useEffect(() => {
+    if (prevStepRef.current !== currentStep) {
+      setIsTransitioning(true);
+      prevStepRef.current = currentStep;
+      const timer = setTimeout(() => setIsTransitioning(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
 
   const updateTarget = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -52,9 +65,19 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     });
   }, [step]);
 
+  // On step change, update immediately
   useEffect(() => {
     updateTarget();
-    const observer = new MutationObserver(updateTarget);
+  }, [updateTarget]);
+
+  // Debounced MutationObserver to avoid constant re-renders causing trembling
+  useEffect(() => {
+    const debouncedUpdate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(updateTarget, 200);
+    };
+
+    const observer = new MutationObserver(debouncedUpdate);
     observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', updateTarget);
     window.addEventListener('scroll', updateTarget, true);
@@ -63,6 +86,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       window.removeEventListener('resize', updateTarget);
       window.removeEventListener('scroll', updateTarget, true);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [updateTarget]);
 
@@ -74,15 +98,15 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     <div className="fixed inset-0 z-[9999]" role="dialog" aria-label="Tutorial guiado">
       {/* Backdrop - click to skip */}
       <div
-        className="absolute inset-0 transition-opacity duration-300"
+        className="absolute inset-0"
         onClick={onSkip}
         style={{ background: 'transparent' }}
       />
 
-      {/* Spotlight overlay via box-shadow on a full-screen element */}
+      {/* Spotlight overlay via box-shadow */}
       {targetRect ? (
         <div
-          className="absolute rounded-xl pointer-events-none transition-all duration-500 ease-out"
+          className="absolute rounded-xl pointer-events-none"
           style={{
             top: targetRect.top - padding,
             left: targetRect.left - padding,
@@ -91,6 +115,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
             zIndex: 10000,
             boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
             border: '2px solid hsl(var(--primary))',
+            transition: isTransitioning ? 'all 400ms ease-out' : 'none',
           }}
         />
       ) : (
@@ -107,11 +132,11 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           "absolute z-[10001] w-[min(380px,92vw)]",
           "bg-card/95 backdrop-blur-md border border-border/60",
           "rounded-2xl shadow-2xl",
-          "transition-all duration-500 ease-out",
           !targetRect && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         )}
-        style={
-          targetRect
+        style={{
+          transition: isTransitioning ? 'all 400ms ease-out' : 'none',
+          ...(targetRect
             ? {
                 left: Math.max(
                   12,
@@ -124,8 +149,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                   ? { top: targetRect.bottom + padding + 16 }
                   : { bottom: window.innerHeight - targetRect.top + padding + 16 }),
               }
-            : undefined
-        }
+            : undefined),
+        }}
       >
         {/* Top accent bar */}
         <div className="h-1 w-full rounded-t-2xl bg-gradient-to-r from-primary via-accent to-primary" />
