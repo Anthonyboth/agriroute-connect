@@ -697,21 +697,12 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   return (
     <div className="flex flex-col h-full">
       {/* Header - FIXO */}
-      <div className="p-4 border-b shrink-0">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="px-4 py-2 border-b shrink-0">
+        <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">{config.icon}</span>
           <h2 className="text-xl font-semibold">{catalogServiceLabel || config.title}</h2>
         </div>
         <p className="text-sm text-muted-foreground">{catalogServiceDescription || config.description}</p>
-
-        {/* ✅ Mostra dica apenas se NÃO estiver logado */}
-        {!profile?.id && (
-          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-xs text-blue-800 dark:text-blue-200">
-              💡 <strong>Dica:</strong> Crie uma conta para acompanhar suas solicitações e ter acesso ao histórico!
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Progress - FIXO */}
