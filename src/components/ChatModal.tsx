@@ -217,7 +217,7 @@ export const ChatModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh]">
-        <DialogHeader className="space-y-3">
+        <DialogHeader className="space-y-3 pr-12">
           <DialogTitle className="sr-only">{conversation.title}</DialogTitle>
           <ChatHeader
             title={conversation.title}
