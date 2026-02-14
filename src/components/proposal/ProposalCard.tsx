@@ -115,11 +115,11 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
       className="mb-4 transition-colors cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
       data-testid="proposal-card"
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-4">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start gap-3">
             <div className="relative">
-              <Avatar className="h-12 w-12">
+              <Avatar className="h-10 w-10">
                 <AvatarImage src={proposal.driver?.profile_photo_url} />
                 <AvatarFallback>
                   <User className="h-6 w-6" />
@@ -135,7 +135,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-lg">{proposal.driver?.full_name || 'Motorista'}</h3>
+              <h3 className="font-semibold text-base">{proposal.driver?.full_name || 'Motorista'}</h3>
               {proposal.driver?.rating && (
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <span>{proposal.driver.rating.toFixed(1)}★</span>
@@ -154,9 +154,9 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           <SafeStatusBadge status={proposal.status} type="proposal" />
         </div>
 
-        <Separator className="my-4" />
+        <Separator className="my-3" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <div>
             <div className="flex items-center gap-2 text-sm mb-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -179,7 +179,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         </div>
 
         {/* ✅ VALORES POR CARRETA */}
-        <div className="bg-muted/50 p-4 rounded-lg mb-4">
+        <div className="bg-muted/50 p-3 rounded-lg mb-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium flex items-center gap-2">
               Valor proposto:
@@ -244,7 +244,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
         {/* Aviso ANTT Expandido */}
         {belowAntt && freight.minimum_antt_price && (
-          <div className="mt-3 p-3 bg-destructive/10 border border-destructive/30 rounded-md">
+          <div className="mt-2 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="space-y-1 flex-1">
@@ -288,7 +288,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
         {/* Botões de Ação */}
         {proposal.status === 'PENDING' && (
-          <div className="mt-4 flex gap-2 justify-end flex-wrap">
+          <div className="mt-3 grid grid-cols-3 gap-2">
             <Button
               variant="outline"
               size="sm"
