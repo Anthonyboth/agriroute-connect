@@ -7,8 +7,9 @@
  * IMPORTANTE: O mapa NUNCA deve ficar vazio/preto.
  * Fallback de centro: motorista online → rota → Brasil
  * 
- * REFATORADO: Usa hooks padronizados para resize e safe-raf.
- * ✅ NOVO: Integração com OSRM para rotas reais por estradas.
+ * ✅ FIX CRÍTICO: Markers agora são GeoJSON Symbol Layers no canvas WebGL,
+ *    NÃO mais DOM Markers. Isso garante que ficam fixos nas coordenadas
+ *    independente de CSS transforms (Drawer/Dialog/Sheet).
  */
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
@@ -23,17 +24,18 @@ import { useCityCoordinates } from '@/hooks/useCityCoordinates';
 import { useMapLibreSafeRaf, useMapLibreAutoResize, useMapLibreSupport, useOSRMRoute, useTileWatchdog } from '@/hooks/maplibre';
 import { useOngoingFreightMapInputs } from '@/hooks/maplibre/useOngoingFreightMapInputs';
 import { 
-  createTruckMarkerElement,
-  createLocationMarkerElement,
   interpolatePosition, 
   calculateBounds,
   formatSecondsAgo,
   createStopsHeatmapGeoJSON,
   HEATMAP_LAYER_CONFIG,
 } from '@/lib/maplibre-utils';
+import { generateMarkerIcons, buildMarkersFeatureCollection } from '@/lib/maplibre-canvas-icons';
 import { RURAL_STYLE_INLINE, DEFAULT_CENTER, MAP_COLORS } from '@/config/maplibre';
 import { cn } from '@/lib/utils';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
+
+// ==================== Types ====================
 
 interface FreightStop {
   lat: number;
@@ -59,9 +61,11 @@ interface FreightRealtimeMapMapLibreProps {
   className?: string;
 }
 
-// Threshold para considerar motorista online (2 minutos = 120 segundos)
-// Reduzido para exibir status mais preciso
 const ONLINE_THRESHOLD_SECONDS = 120;
+
+// ✅ Source/Layer IDs para markers no canvas
+const MARKERS_SOURCE_ID = 'freight-markers-source';
+const MARKERS_LAYER_ID = 'freight-markers-layer';
 
 const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibreProps> = ({
   freightId,
@@ -81,13 +85,14 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const driverMarkerRef = useRef<maplibregl.Marker | null>(null);
-  const ghostDriverMarkerRef = useRef<maplibregl.Marker | null>(null);
-  const originMarkerRef = useRef<maplibregl.Marker | null>(null);
-  const destinationMarkerRef = useRef<maplibregl.Marker | null>(null);
+  // ✅ REMOVIDO: driverMarkerRef, ghostDriverMarkerRef, originMarkerRef, destinationMarkerRef
+  // Markers agora são GeoJSON symbol layers no canvas — sem DOM elements
   const cancelAnimationRef = useRef<(() => void) | null>(null);
   const previousLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const iconsRegisteredRef = useRef(false);
+  // Ref para o driver location animado (para interpolação suave)
+  const animatedDriverLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -104,7 +109,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     error 
   } = useFreightRealtimeLocation(freightId);
 
-  // ✅ Hook exclusivo: normaliza entradas numéricas (number|string) para evitar markers sumindo
+  // ✅ Hook exclusivo: normaliza entradas numéricas (number|string)
   const {
     originLatNum,
     originLngNum,
@@ -140,7 +145,6 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
   // ✅ Coordenadas efetivas de origem (props ou fallback de cidade)
   const effectiveOrigin = useMemo(() => {
-    // 1. Usar coordenadas das props se válidas
     if (
       typeof originLatNum === 'number' &&
       typeof originLngNum === 'number' &&
@@ -149,23 +153,16 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       originLatNum !== 0 &&
       originLngNum !== 0
     ) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Origin from props:', { originLat: originLatNum, originLng: originLngNum });
       return { lat: originLatNum, lng: originLngNum };
     }
-    
-    // 2. Fallback para coordenadas da cidade
     if (cityOriginCoords && cityOriginCoords.lat && cityOriginCoords.lng) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Origin from city coords:', cityOriginCoords, 'city:', originCity);
       return cityOriginCoords;
     }
-    
-    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid origin coordinates available. Props:', { originLat: originLatNum, originLng: originLngNum }, 'City:', cityOriginCoords);
     return null;
-  }, [originLatNum, originLngNum, cityOriginCoords, originCity]);
+  }, [originLatNum, originLngNum, cityOriginCoords]);
 
-  // ✅ Coordenadas efetivas de destino (props ou fallback de cidade)
+  // ✅ Coordenadas efetivas de destino
   const effectiveDestination = useMemo(() => {
-    // 1. Usar coordenadas das props se válidas
     if (
       typeof destinationLatNum === 'number' &&
       typeof destinationLngNum === 'number' &&
@@ -174,23 +171,16 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       destinationLatNum !== 0 &&
       destinationLngNum !== 0
     ) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Destination from props:', { destinationLat: destinationLatNum, destinationLng: destinationLngNum });
       return { lat: destinationLatNum, lng: destinationLngNum };
     }
-    
-    // 2. Fallback para coordenadas da cidade
     if (cityDestinationCoords && cityDestinationCoords.lat && cityDestinationCoords.lng) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Destination from city coords:', cityDestinationCoords, 'city:', destinationCity);
       return cityDestinationCoords;
     }
-    
-    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid destination coordinates available. Props:', { destinationLat: destinationLatNum, destinationLng: destinationLngNum }, 'City:', cityDestinationCoords);
     return null;
-  }, [destinationLatNum, destinationLngNum, cityDestinationCoords, destinationCity]);
+  }, [destinationLatNum, destinationLngNum, cityDestinationCoords]);
 
-  // ✅ Localização efetiva do motorista (hook ou props iniciais)
+  // ✅ Localização efetiva do motorista
   const effectiveDriverLocation = useMemo(() => {
-    // 1. Usar localização em tempo real do hook
     if (
       driverLocation &&
       typeof (driverLocation as any).lat === 'number' &&
@@ -200,11 +190,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       (driverLocation as any).lat !== 0 &&
       (driverLocation as any).lng !== 0
     ) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from realtime hook:', driverLocation);
       return driverLocation;
     }
-    
-    // 2. Fallback para props iniciais
     if (
       typeof initialDriverLatNum === 'number' &&
       typeof initialDriverLngNum === 'number' &&
@@ -213,82 +200,53 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       initialDriverLatNum !== 0 &&
       initialDriverLngNum !== 0
     ) {
-      console.log('[FreightRealtimeMapMapLibre] ✅ Driver location from initial props:', { initialDriverLat: initialDriverLatNum, initialDriverLng: initialDriverLngNum });
       return { lat: initialDriverLatNum, lng: initialDriverLngNum };
     }
-    
-    console.log('[FreightRealtimeMapMapLibre] ⚠️ No valid driver location available');
     return null;
   }, [driverLocation, initialDriverLatNum, initialDriverLngNum]);
 
-  // ✅ Normalizar coordenadas para evitar markers em posições incorretas
-  // Corrige casos comuns: lat/lng invertidos e valores persistidos em micrograus.
-  // ✅ CORREÇÃO: Adiciona validação extra de sanidade para garantir que coordenadas estão no Brasil
+  // ✅ Normalizar coordenadas para Brasil
   const isValidBrazilCoord = useCallback((lat: number, lng: number): boolean => {
     return lat >= -35 && lat <= 6 && lng >= -75 && lng <= -30;
   }, []);
 
   const mapOrigin = useMemo(() => {
     const normalized = normalizeLatLngPoint(effectiveOrigin, 'BR');
-    if (normalized && isValidBrazilCoord(normalized.lat, normalized.lng)) {
-      return normalized;
+    if (normalized && !isValidBrazilCoord(normalized.lat, normalized.lng)) {
+      if (import.meta.env.DEV) console.warn('[FreightRealtimeMap] Origin coords outside Brazil:', normalized);
     }
-    if (normalized) {
-      console.warn('[FreightRealtimeMapMapLibre] ❌ Origin coords outside Brazil after normalization:', normalized);
-    }
-    return normalized; // Retorna mesmo assim para não quebrar o mapa
+    return normalized;
   }, [effectiveOrigin, isValidBrazilCoord]);
 
   const mapDestination = useMemo(() => {
     const normalized = normalizeLatLngPoint(effectiveDestination, 'BR');
-    if (normalized && isValidBrazilCoord(normalized.lat, normalized.lng)) {
-      return normalized;
+    if (normalized && !isValidBrazilCoord(normalized.lat, normalized.lng)) {
+      if (import.meta.env.DEV) console.warn('[FreightRealtimeMap] Destination coords outside Brazil:', normalized);
     }
-    if (normalized) {
-      console.warn('[FreightRealtimeMapMapLibre] ❌ Destination coords outside Brazil after normalization:', normalized);
-    }
-    return normalized; // Retorna mesmo assim para não quebrar o mapa
+    return normalized;
   }, [effectiveDestination, isValidBrazilCoord]);
 
   const mapDriverLocation = useMemo(() => {
     const normalized = normalizeLatLngPoint(effectiveDriverLocation, 'BR');
-    if (normalized && isValidBrazilCoord(normalized.lat, normalized.lng)) {
-      return normalized;
+    if (normalized && !isValidBrazilCoord(normalized.lat, normalized.lng)) {
+      if (import.meta.env.DEV) console.warn('[FreightRealtimeMap] Driver coords outside Brazil:', normalized);
     }
-    if (normalized) {
-      console.warn('[FreightRealtimeMapMapLibre] ❌ Driver coords outside Brazil after normalization:', normalized);
-    }
-    return normalized; // Retorna mesmo assim para não quebrar o mapa
+    return normalized;
   }, [effectiveDriverLocation, isValidBrazilCoord]);
 
-  // ✅ 🔍 DEBUG: Log do fluxo completo de coordenadas para rastreamento
+  // ✅ DEBUG log (apenas DEV)
   useEffect(() => {
-    console.log('[FreightRealtimeMapMapLibre] 🔍 Coordinate Flow Debug:', {
-      props: { originLat, originLng, destinationLat, destinationLng, initialDriverLat, initialDriverLng },
-      parsed: {
-        originLatNum,
-        originLngNum,
-        destinationLatNum,
-        destinationLngNum,
-        initialDriverLatNum,
-        initialDriverLngNum,
-      },
-      effective: { effectiveOrigin, effectiveDestination, effectiveDriverLocation },
+    if (!import.meta.env.DEV) return;
+    console.log('[FreightRealtimeMap] 🔍 Coords:', {
       normalized: { mapOrigin, mapDestination, mapDriverLocation },
-      fallback: { cityOriginCoords, cityDestinationCoords }
     });
-  }, [originLat, originLng, destinationLat, destinationLng, initialDriverLat, initialDriverLng, 
-      originLatNum, originLngNum, destinationLatNum, destinationLngNum, initialDriverLatNum, initialDriverLngNum,
-      effectiveOrigin, effectiveDestination, effectiveDriverLocation, 
-      mapOrigin, mapDestination, mapDriverLocation, 
-      cityOriginCoords, cityDestinationCoords]);
+  }, [mapOrigin, mapDestination, mapDriverLocation]);
 
-  // ✅ NOVO: Verificar se motorista está realmente online (< 5 min desde última atualização)
   const isDriverReallyOnline = useMemo(() => {
     return isOnline && secondsAgo < ONLINE_THRESHOLD_SECONDS;
   }, [isOnline, secondsAgo]);
 
-  // ✅ 🚗 OSRM: Buscar rota real por estradas (origem → destino)
+  // ✅ OSRM route
   const { 
     route: osrmRoute, 
     isLoading: isLoadingRoute,
@@ -300,79 +258,43 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     enabled: !!(mapOrigin && mapDestination),
   });
 
-  // ✅ NOVO: Centro do mapa com fallback inteligente
-  // Prioridade: 1. Motorista online 2. Centro da rota 3. Origem 4. Destino 5. Brasil
+  // ✅ Centro do mapa com fallback inteligente
   const mapCenter = useMemo<[number, number]>(() => {
-    // 1. Motorista online com posição recente
     if (mapDriverLocation && isDriverReallyOnline) {
       return [mapDriverLocation.lng, mapDriverLocation.lat];
     }
-
-    // 2. Centro da rota (média entre origem e destino)
     if (mapOrigin && mapDestination) {
       return [
         (mapOrigin.lng + mapDestination.lng) / 2,
         (mapOrigin.lat + mapDestination.lat) / 2,
       ];
     }
-
-    // 3. Origem
-    if (mapOrigin) {
-      return [mapOrigin.lng, mapOrigin.lat];
-    }
-
-    // 4. Destino
-    if (mapDestination) {
-      return [mapDestination.lng, mapDestination.lat];
-    }
-
-    // 5. Motorista offline (ainda mostra a última posição conhecida)
-    if (mapDriverLocation) {
-      return [mapDriverLocation.lng, mapDriverLocation.lat];
-    }
-
-    // 6. Fallback: Centro do Brasil
+    if (mapOrigin) return [mapOrigin.lng, mapOrigin.lat];
+    if (mapDestination) return [mapDestination.lng, mapDestination.lat];
+    if (mapDriverLocation) return [mapDriverLocation.lng, mapDriverLocation.lat];
     return DEFAULT_CENTER;
   }, [mapDriverLocation, mapOrigin, mapDestination, isDriverReallyOnline]);
 
-  // ✅ REMOVIDO: Não precisamos mais de routeCoordinates separado
-  // A rota OSRM (plannedRouteCoordinates) já mostra o caminho real por estradas
-  // Não vamos desenhar linha reta sobreposta
-
-  // ✅ 🚗 OSRM: Usar rota real do OSRM com fallback de linha reta para garantir visibilidade
+  // ✅ Rota planejada (OSRM ou fallback linha reta)
   const plannedRouteCoordinates = useMemo(() => {
-    // Se temos rota OSRM, usar ela (caminho real por estradas)
     if (osrmRoute && osrmRoute.coordinates.length >= 2) {
-      console.log('[FreightRealtimeMapMapLibre] 🛣️ Using OSRM real route:', osrmRoute.distanceText, 'with', osrmRoute.coordinates.length, 'points');
       return osrmRoute.coordinates;
     }
-    
-    // ✅ FALLBACK: Se não temos rota OSRM mas temos origem/destino, desenhar linha reta
-    // Isso garante que o usuário sempre veja a conexão entre os pontos
     if (mapOrigin && mapDestination) {
-      console.log('[FreightRealtimeMapMapLibre] 📏 Using straight line fallback (OSRM not loaded yet)');
       return [
         [mapOrigin.lng, mapOrigin.lat] as [number, number],
         [mapDestination.lng, mapDestination.lat] as [number, number],
       ];
     }
-    
-    // Sem coordenadas - retornar vazio
     return [];
   }, [osrmRoute, mapOrigin, mapDestination]);
 
-  // ✅ Verificar se temos pelo menos uma coordenada válida para exibir o mapa
   const hasAnyValidCoordinate = useMemo(() => {
-    return !!(
-      mapDriverLocation ||
-      mapOrigin ||
-      mapDestination
-    );
+    return !!(mapDriverLocation || mapOrigin || mapDestination);
   }, [mapDriverLocation, mapOrigin, mapDestination]);
 
-  // ✅ CORREÇÃO: Flag para evitar dupla inicialização
+  // ✅ Refs estáveis para evitar re-criação do mapa
   const initializingRef = useRef(false);
-  // ✅ Ref estável para mapCenter - evita re-criar mapa quando centro muda
   const mapCenterRef = useRef(mapCenter);
   mapCenterRef.current = mapCenter;
   const hasAnyValidCoordinateRef = useRef(hasAnyValidCoordinate);
@@ -382,79 +304,46 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   const osrmRouteRef = useRef(osrmRoute);
   osrmRouteRef.current = osrmRoute;
   
-  // Inicializar MapLibre — SEM dependência de mapCenter para evitar re-criação
+  // ==================== Map Initialization ====================
   useEffect(() => {
     const container = mapContainerRef.current;
     
-    // Guards contra dupla inicialização
-    if (!container) {
-      console.log('[FreightRealtimeMapMapLibre] Container not ready yet');
-      return;
-    }
-    if (mapRef.current) {
-      console.log('[FreightRealtimeMapMapLibre] Map already exists');
-      return;
-    }
-    if (initializingRef.current) {
-      console.log('[FreightRealtimeMapMapLibre] Already initializing');
-      return;
-    }
+    if (!container) return;
+    if (mapRef.current) return;
+    if (initializingRef.current) return;
     
-    // ✅ Verificar se container tem dimensões válidas
     const rect = container.getBoundingClientRect();
     if (rect.width < 10 || rect.height < 10) {
-      console.log('[FreightRealtimeMapMapLibre] Container has invalid dimensions, waiting...', rect);
-
-      // ✅ Esperar o container ganhar tamanho via ResizeObserver (Drawer/Dialog/Tab)
       if (typeof ResizeObserver !== 'undefined') {
         const ro = new ResizeObserver((entries) => {
           for (const entry of entries) {
             const { width, height } = entry.contentRect;
             if (width >= 10 && height >= 10 && !mapRef.current && !initializingRef.current) {
-              console.log('[FreightRealtimeMapMapLibre] Container now has valid dimensions:', { width, height });
               ro.disconnect();
-              // Re-disparar init no próximo tick
               setTimeout(() => setRetryCount((v) => v + 1), 0);
             }
           }
         });
         ro.observe(container);
-
-        // Se demorar demais, mostrar erro amigável
         const t = setTimeout(() => {
-          if (!mapRef.current) {
-            console.warn('[FreightRealtimeMapMapLibre] Container never became visible (timeout)');
-            setMapError('Mapa não ficou visível (container sem dimensões)');
-          }
+          if (!mapRef.current) setMapError('Mapa não ficou visível (container sem dimensões)');
         }, 12000);
-
-        return () => {
-          clearTimeout(t);
-          ro.disconnect();
-        };
+        return () => { clearTimeout(t); ro.disconnect(); };
       }
-
-      // Sem ResizeObserver: fallback para retry simples
       if (retryCount < 20) {
-        const retryTimeout = setTimeout(() => {
-          setRetryCount((prev) => prev + 1);
-        }, 250);
+        const retryTimeout = setTimeout(() => setRetryCount((prev) => prev + 1), 250);
         return () => clearTimeout(retryTimeout);
       }
-
       setMapError('Container do mapa sem dimensões válidas');
       return;
     }
 
     initializingRef.current = true;
-    console.log('[FreightRealtimeMapMapLibre] Initializing map with container:', rect.width, 'x', rect.height);
 
     const initMap = async () => {
       try {
         const initialCenter = mapCenterRef.current;
         const initialZoom = hasAnyValidCoordinateRef.current ? 10 : 5;
-        
-        console.log('[FreightRealtimeMapMapLibre] Creating map at center:', initialCenter, 'zoom:', initialZoom);
         
         const map = new maplibregl.Map({
           container: container,
@@ -465,12 +354,25 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           pixelRatio: window.devicePixelRatio || 1,
         });
 
-        // Controles de navegação
         map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
+        map.on('load', async () => {
+          // ✅ Registrar ícones SVG como imagens no canvas
+          try {
+            const icons = await generateMarkerIcons();
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+            for (const icon of icons) {
+              if (!map.hasImage(icon.id)) {
+                map.addImage(icon.id, icon.imageData, { pixelRatio });
+              }
+            }
+            iconsRegisteredRef.current = true;
+            if (import.meta.env.DEV) console.log('[FreightRealtimeMap] ✅ Canvas icons registered');
+          } catch (err) {
+            console.error('[FreightRealtimeMap] Failed to register icons:', err);
+          }
 
-        // Evento de carregamento
-        map.on('load', () => {
+          // ✅ Rota planejada (source + layer)
           const currentPlannedRoute = plannedRouteCoordinatesRef.current;
           const plannedRouteData = currentPlannedRoute.length >= 2
             ? {
@@ -481,78 +383,81 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
                   coordinates: currentPlannedRoute,
                 },
               }
-            : {
-                type: 'FeatureCollection' as const,
-                features: [],
-              };
+            : { type: 'FeatureCollection' as const, features: [] };
 
-          map.addSource('planned-route', {
-            type: 'geojson',
-            data: plannedRouteData,
-          });
-
-          const hasRealRoute = osrmRouteRef.current && osrmRouteRef.current.coordinates.length >= 2;
-
+          map.addSource('planned-route', { type: 'geojson', data: plannedRouteData });
           map.addLayer({
             id: 'planned-route-line',
             type: 'line',
             source: 'planned-route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
-              'line-color': MAP_COLORS.primary,
-              'line-width': 5,
-              'line-opacity': 0.85,
-            },
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': MAP_COLORS.primary, 'line-width': 5, 'line-opacity': 0.85 },
           });
 
-          // Adicionar heatmap se habilitado
+          // ✅ Heatmap
           if (showHeatmap && stops.length > 0) {
-            map.addSource('stops', {
-              type: 'geojson',
-              data: createStopsHeatmapGeoJSON(stops),
-            });
-
+            map.addSource('stops', { type: 'geojson', data: createStopsHeatmapGeoJSON(stops) });
             map.addLayer(HEATMAP_LAYER_CONFIG);
           }
 
-          setMapLoaded(true);
-          console.log('[FreightRealtimeMapMapLibre] ✅ Map initialized successfully');
+          // ✅ FIX CRÍTICO: Markers como GeoJSON symbol layer no CANVAS
+          const emptyFC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+          map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: emptyFC });
+          map.addLayer({
+            id: MARKERS_LAYER_ID,
+            type: 'symbol',
+            source: MARKERS_SOURCE_ID,
+            layout: {
+              'icon-image': ['get', 'icon'],
+              'icon-size': 1,
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true,
+              // Pins (origin/destination) ancoram embaixo; truck ancora no centro
+              'icon-anchor': [
+                'match', ['get', 'markerType'],
+                'origin', 'bottom',
+                'destination', 'bottom',
+                'center', // truck-online, truck-ghost
+              ] as any,
+              'icon-offset': [0, 0],
+            },
+          });
 
-          // Ajustar bounds após carregar
-          setTimeout(() => {
-            handleFitBounds();
-          }, 300);
+          // ✅ Click handler para markers no canvas
+          map.on('click', MARKERS_LAYER_ID, (e) => {
+            if (!e.features || e.features.length === 0) return;
+            const feature = e.features[0];
+            const coords = (feature.geometry as GeoJSON.Point).coordinates;
+            const label = (feature.properties as any)?.label || '';
+            
+            new maplibregl.Popup({ offset: 25 })
+              .setLngLat(coords as [number, number])
+              .setHTML(`<strong>${label}</strong>`)
+              .addTo(map);
+          });
+
+          // Cursor pointer ao hover
+          map.on('mouseenter', MARKERS_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer'; });
+          map.on('mouseleave', MARKERS_LAYER_ID, () => { map.getCanvas().style.cursor = ''; });
+
+          setMapLoaded(true);
+          if (import.meta.env.DEV) console.log('[FreightRealtimeMap] ✅ Map initialized');
+
+          setTimeout(() => handleFitBounds(), 300);
         });
 
         map.on('error', (e) => {
           const errMsg = e.error?.message || '';
-          // Apenas ignorar AbortError (navegação normal)
-          if (
-            e.error?.name === 'AbortError' ||
-            errMsg.includes('signal is aborted') ||
-            errMsg.includes('The operation was aborted')
-          ) {
-            return;
-          }
-          // ✅ NÃO ignorar mais "Failed to fetch" - o TileWatchdog cuida do fallback
-          if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Load failed')) {
-            if (import.meta.env.DEV) {
-              console.warn('[FreightRealtimeMapMapLibre] Network error (watchdog will handle):', errMsg);
-            }
-            return; // Watchdog cuidará do fallback
-          }
-          console.error('[FreightRealtimeMapMapLibre] Map error:', e);
+          if (e.error?.name === 'AbortError' || errMsg.includes('signal is aborted') || errMsg.includes('The operation was aborted')) return;
+          if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Load failed')) return;
+          console.error('[FreightRealtimeMap] Map error:', e);
           setMapError('Erro ao carregar o mapa');
         });
 
         mapRef.current = map;
         initializingRef.current = false;
-
       } catch (err) {
-        console.error('[FreightRealtimeMapMapLibre] Init error:', err);
+        console.error('[FreightRealtimeMap] Init error:', err);
         setMapError('Erro ao inicializar o mapa');
         initializingRef.current = false;
       }
@@ -561,63 +466,34 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     initMap();
 
     return () => {
-      console.log('[FreightRealtimeMapMapLibre] Cleanup running');
-      
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
-
       if (cancelAnimationRef.current) {
         cancelAnimationRef.current();
         cancelAnimationRef.current = null;
       }
-      driverMarkerRef.current?.remove();
-      driverMarkerRef.current = null;
-      ghostDriverMarkerRef.current?.remove();
-      ghostDriverMarkerRef.current = null;
-      originMarkerRef.current?.remove();
-      originMarkerRef.current = null;
-      destinationMarkerRef.current?.remove();
-      destinationMarkerRef.current = null;
-      
+      // ✅ REMOVIDO: Não precisa mais limpar DOM markers
       if (mapRef.current) {
-        try {
-          mapRef.current.remove();
-        } catch (e) {
-          console.warn('[FreightRealtimeMapMapLibre] Error removing map:', e);
-        }
+        try { mapRef.current.remove(); } catch (e) {}
         mapRef.current = null;
       }
-      
       initializingRef.current = false;
+      iconsRegisteredRef.current = false;
       setMapLoaded(false);
     };
-  }, [retryCount]); // ✅ APENAS retryCount — não re-cria mapa por mudança de centro/coordenadas
+  }, [retryCount]);
 
-  // ✅ Garantir resize quando o container muda de tamanho (Tabs/Dialog podem iniciar com 0px)
+  // ✅ Resize observer
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !mapContainerRef.current) return;
-
-    // Forçar um resize inicial após render (corrige mapa em branco em containers ocultos)
-    const t = window.setTimeout(() => {
-      try {
-        mapRef.current?.resize();
-      } catch {}
-    }, 150);
-
+    const t = window.setTimeout(() => { try { mapRef.current?.resize(); } catch {} }, 150);
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = new ResizeObserver(() => {
-        // Evitar resize em cascata
-        requestAnimationFrame(() => {
-          try {
-            mapRef.current?.resize();
-          } catch {}
-        });
+        requestAnimationFrame(() => { try { mapRef.current?.resize(); } catch {} });
       });
-
       resizeObserverRef.current.observe(mapContainerRef.current);
     }
-
     return () => {
       window.clearTimeout(t);
       resizeObserverRef.current?.disconnect();
@@ -625,163 +501,81 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     };
   }, [mapLoaded]);
 
-  // ✅ REATIVADO: Markers de origem e destino
+  // ==================== ✅ FIX CRÍTICO: Update markers via GeoJSON source ====================
+  // Este useEffect substitui os 2 useEffects anteriores de DOM Markers.
+  // Agora apenas atualiza o GeoJSON source — rendering é feito pelo canvas WebGL.
+
+  // Helper para atualizar o source de markers
+  const updateMarkersSource = useCallback((driverPos: { lat: number; lng: number } | null) => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !iconsRegisteredRef.current) return;
+    const source = map.getSource(MARKERS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!source) return;
+    
+    const fc = buildMarkersFeatureCollection(
+      mapOrigin,
+      mapDestination,
+      driverPos,
+      isDriverReallyOnline,
+    );
+    source.setData(fc);
+  }, [mapOrigin, mapDestination, isDriverReallyOnline, mapLoaded]);
+
+  // Atualizar markers quando origem/destino/driver/status mudam
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
+    if (!mapRef.current || !mapLoaded || !iconsRegisteredRef.current) return;
 
-    console.log('[FreightRealtimeMapMapLibre] 📍 Creating markers - Origin:', mapOrigin, 'Destination:', mapDestination);
-
-    // Marker de origem
-    if (mapOrigin) {
-      if (!originMarkerRef.current) {
-        const originElement = createLocationMarkerElement('origin');
-        console.log('[FreightRealtimeMapMapLibre] ✅ Creating ORIGIN marker (A) at:', mapOrigin);
-        
-        originMarkerRef.current = new maplibregl.Marker({
-          element: originElement,
-          anchor: 'bottom',
-        })
-          .setLngLat([mapOrigin.lng, mapOrigin.lat])
-          .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(
-            `<strong>Origem (A)</strong>${originCity ? `<br/>${originCity}${originState ? `, ${originState}` : ''}` : ''}`
-          ))
-          .addTo(mapRef.current);
-      } else {
-        originMarkerRef.current.setLngLat([mapOrigin.lng, mapOrigin.lat]);
-      }
-    }
-
-    // Marker de destino
-    if (mapDestination) {
-      if (!destinationMarkerRef.current) {
-        const destinationElement = createLocationMarkerElement('destination');
-        console.log('[FreightRealtimeMapMapLibre] ✅ Creating DESTINATION marker (B) at:', mapDestination);
-        
-        destinationMarkerRef.current = new maplibregl.Marker({
-          element: destinationElement,
-          anchor: 'bottom',
-        })
-          .setLngLat([mapDestination.lng, mapDestination.lat])
-          .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(
-            `<strong>Destino (B)</strong>${destinationCity ? `<br/>${destinationCity}${destinationState ? `, ${destinationState}` : ''}` : ''}`
-          ))
-          .addTo(mapRef.current);
-      } else {
-        destinationMarkerRef.current.setLngLat([mapDestination.lng, mapDestination.lat]);
-      }
-    }
-  }, [mapOrigin, mapDestination, originCity, originState, destinationCity, destinationState, mapLoaded]);
-
-  // ✅ REATIVADO: Marker do motorista com animação suave
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    // Sem localização do motorista — limpar markers
+    // Se não há driver location, atualizar sem driver
     if (!mapDriverLocation) {
-      driverMarkerRef.current?.remove();
-      driverMarkerRef.current = null;
-      ghostDriverMarkerRef.current?.remove();
-      ghostDriverMarkerRef.current = null;
+      animatedDriverLocationRef.current = null;
+      previousLocationRef.current = null;
+      updateMarkersSource(null);
       return;
     }
 
-    // Motorista OFFLINE: marker "fantasma" semi-transparente
-    if (!isDriverReallyOnline) {
-      driverMarkerRef.current?.remove();
-      driverMarkerRef.current = null;
-
-      if (!ghostDriverMarkerRef.current) {
-        const ghostElement = createTruckMarkerElement(false);
-        ghostElement.style.opacity = '0.5';
-        ghostElement.style.filter = 'grayscale(100%)';
-        
-        ghostDriverMarkerRef.current = new maplibregl.Marker({
-          element: ghostElement,
-          anchor: 'center',
-        })
-          .setLngLat([mapDriverLocation.lng, mapDriverLocation.lat])
-          .setPopup(
-            new maplibregl.Popup({ offset: 25 }).setHTML(
-              `<strong>Última Posição Conhecida</strong><br/>🔴 Motorista Offline<br/>${formatSecondsAgo(secondsAgo)}`
-            )
-          )
-          .addTo(mapRef.current);
-      } else {
-        ghostDriverMarkerRef.current.setLngLat([mapDriverLocation.lng, mapDriverLocation.lat]);
-      }
-      return;
-    }
-
-    // Motorista ONLINE
-    ghostDriverMarkerRef.current?.remove();
-    ghostDriverMarkerRef.current = null;
-
-    if (!driverMarkerRef.current) {
-      const truckElement = createTruckMarkerElement(true);
-      
-      driverMarkerRef.current = new maplibregl.Marker({
-        element: truckElement,
-        anchor: 'center',
-      })
-        .setLngLat([mapDriverLocation.lng, mapDriverLocation.lat])
-        .setPopup(
-          new maplibregl.Popup({ offset: 25 }).setHTML(
-            `<strong>🚛 Motorista</strong><br/>🟢 Online`
-          )
-        )
-        .addTo(mapRef.current);
-      
+    // Se não há posição anterior ou motorista offline, snap direto
+    if (!previousLocationRef.current || !isDriverReallyOnline) {
+      animatedDriverLocationRef.current = mapDriverLocation;
       previousLocationRef.current = mapDriverLocation;
+      updateMarkersSource(mapDriverLocation);
       return;
     }
 
-    // Animação suave entre posições
-    if (previousLocationRef.current) {
-      if (cancelAnimationRef.current) {
-        cancelAnimationRef.current();
-      }
-
-      cancelAnimationRef.current = interpolatePosition(
-        previousLocationRef.current,
-        mapDriverLocation,
-        1000,
-        (pos) => {
-          driverMarkerRef.current?.setLngLat([pos.lng, pos.lat]);
-        },
-        () => {
-          previousLocationRef.current = mapDriverLocation;
-        }
-      );
-    } else {
-      driverMarkerRef.current.setLngLat([mapDriverLocation.lng, mapDriverLocation.lat]);
-      previousLocationRef.current = mapDriverLocation;
+    // ✅ Animação suave do caminhão (interpolação via requestAnimationFrame)
+    if (cancelAnimationRef.current) {
+      cancelAnimationRef.current();
     }
-  }, [mapDriverLocation, mapLoaded, isDriverReallyOnline, secondsAgo]);
 
-  // ✅ Atualizar rota planejada quando coordenadas mudarem
+    cancelAnimationRef.current = interpolatePosition(
+      previousLocationRef.current,
+      mapDriverLocation,
+      1000,
+      (pos) => {
+        animatedDriverLocationRef.current = pos;
+        updateMarkersSource(pos);
+      },
+      () => {
+        previousLocationRef.current = mapDriverLocation;
+        animatedDriverLocationRef.current = mapDriverLocation;
+      }
+    );
+  }, [mapDriverLocation, mapOrigin, mapDestination, mapLoaded, isDriverReallyOnline, updateMarkersSource]);
+
+  // ✅ Atualizar rota planejada
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-
     const plannedSource = mapRef.current.getSource('planned-route') as maplibregl.GeoJSONSource;
     if (plannedSource) {
       const data = plannedRouteCoordinates.length >= 2
         ? {
             type: 'Feature' as const,
             properties: {},
-            geometry: {
-              type: 'LineString' as const,
-              coordinates: plannedRouteCoordinates,
-            },
+            geometry: { type: 'LineString' as const, coordinates: plannedRouteCoordinates },
           }
-        : {
-            type: 'FeatureCollection' as const,
-            features: [],
-          };
+        : { type: 'FeatureCollection' as const, features: [] };
       plannedSource.setData(data);
     }
   }, [plannedRouteCoordinates, mapLoaded]);
-
-  // ✅ REMOVIDO: Layer 'route' separado foi eliminado - usar apenas OSRM 'planned-route'
 
   // ✅ Centralizar no motorista
   const handleCenterOnDriver = useCallback(() => {
@@ -794,62 +588,40 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [mapDriverLocation]);
 
-  // ✅ Ajustar bounds para mostrar tudo (usando coordenadas efetivas com fallback)
+  // ✅ Ajustar bounds
   const handleFitBounds = useCallback(() => {
     if (!mapRef.current) return;
-
-    const validPoints = [
-      mapOrigin,
-      mapDriverLocation,
-      mapDestination,
-    ].filter(Boolean) as Array<{ lat: number; lng: number }>;
-
-    // Se não tem pontos, centralizar no Brasil
+    const validPoints = [mapOrigin, mapDriverLocation, mapDestination].filter(Boolean) as Array<{ lat: number; lng: number }>;
     if (validPoints.length === 0) {
-      mapRef.current.flyTo({
-        center: DEFAULT_CENTER,
-        zoom: 5,
-        duration: 1000,
-      });
+      mapRef.current.flyTo({ center: DEFAULT_CENTER, zoom: 5, duration: 1000 });
       return;
     }
-
-    // Se só tem 1 ponto válido, centralizar nele
     if (validPoints.length === 1) {
-      mapRef.current.flyTo({
-        center: [validPoints[0].lng, validPoints[0].lat],
-        zoom: 12,
-        duration: 1000,
-      });
+      mapRef.current.flyTo({ center: [validPoints[0].lng, validPoints[0].lat], zoom: 12, duration: 1000 });
       return;
     }
-
-    // Se tem 2+ pontos, usar fitBounds
     const bounds = calculateBounds(validPoints);
-    if (bounds) {
-      mapRef.current.fitBounds(bounds, { padding: 50 });
-    }
+    if (bounds) mapRef.current.fitBounds(bounds, { padding: 50 });
   }, [mapOrigin, mapDestination, mapDriverLocation]);
 
-  // ✅ P1 FIX: Container SEMPRE montado. Estados de loading/error/no-location
-  //    são OVERLAYS absolutos, nunca early-returns que impedem containerRef de existir.
+  // ==================== Render ====================
   return (
     <div className={cn("relative rounded-lg overflow-hidden border border-border", className)} style={{ height: '280px', minHeight: '280px' }}>
-      {/* ✅ P1: Container do mapa - SEMPRE montado, nunca removido do DOM */}
+      {/* ✅ P1: Container do mapa - SEMPRE montado */}
       <div 
         ref={mapContainerRef} 
         className="absolute inset-0"
         style={{ width: '100%', height: '100%', transform: 'none' }}
       />
 
-      {/* ✅ OVERLAY: Loading state */}
+      {/* ✅ OVERLAY: Loading */}
       {isLoading && (
         <div className="absolute inset-0 z-20">
           <Skeleton className="w-full h-full rounded-lg" />
         </div>
       )}
 
-      {/* ✅ OVERLAY: Error state */}
+      {/* ✅ OVERLAY: Error */}
       {!isLoading && (error || mapError) && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-muted/95 rounded-lg">
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -859,7 +631,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         </div>
       )}
 
-      {/* ✅ OVERLAY: No location state */}
+      {/* ✅ OVERLAY: No location */}
       {!isLoading && !error && !mapError && !hasAnyValidCoordinate && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-muted/95 rounded-lg border-2 border-dashed border-muted">
           <div className="flex flex-col items-center gap-3 text-muted-foreground p-4 text-center">
@@ -875,7 +647,6 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       {/* Status overlay */}
       {mapLoaded && (
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
-          {/* Badge de status */}
           <Badge 
             variant={isDriverReallyOnline ? "default" : "secondary"}
             className={cn(
@@ -890,7 +661,6 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
             {isDriverReallyOnline ? 'Online' : 'Offline'}
           </Badge>
 
-          {/* Tempo desde última atualização */}
           {secondsAgo !== Infinity && secondsAgo > 0 && (
             <Badge variant="secondary" className="text-xs flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -900,7 +670,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         </div>
       )}
 
-      {/* 🚗 Badge de rota OSRM (distância e tempo estimado) */}
+      {/* 🚗 Badge de rota OSRM */}
       {mapLoaded && osrmRoute && osrmRoute.distance > 0 && (
         <div className="absolute bottom-2 left-2 z-10">
           <Badge variant="outline" className="text-xs flex items-center gap-1.5 bg-background/90 shadow-sm">
