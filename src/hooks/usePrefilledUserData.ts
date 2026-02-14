@@ -111,12 +111,14 @@ export function usePrefilledUserData(): PrefilledUserData {
   const { profile, user } = useAuth();
   const [fiscalIssuer, setFiscalIssuer] = useState<any>(null);
   const [secureProfile, setSecureProfile] = useState<any>(null);
+  const [secureProfileLoading, setSecureProfileLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // ✅ Buscar dados completos da view profiles_secure (contorna CLS)
   const fetchSecureProfile = async () => {
     if (!user?.id) return;
 
+    setSecureProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles_secure')
@@ -129,6 +131,8 @@ export function usePrefilledUserData(): PrefilledUserData {
       }
     } catch (err) {
       console.warn('[usePrefilledUserData] Erro ao buscar profiles_secure:', err);
+    } finally {
+      setSecureProfileLoading(false);
     }
   };
 
@@ -265,7 +269,7 @@ export function usePrefilledUserData(): PrefilledUserData {
     personal,
     address,
     fiscal,
-    loading,
+    loading: loading || secureProfileLoading,
     hasProfile: !!profile,
     hasFiscalIssuer: !!fiscalIssuer,
     refresh,

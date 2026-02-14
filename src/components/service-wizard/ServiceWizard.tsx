@@ -597,7 +597,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
           client_id: profile?.id || null,
           service_type: finalServiceType,
           contact_name: formData.personal.name,
-          contact_phone: formData.personal.phone,
+          contact_phone: formData.personal.phone ? formData.personal.phone.replace(/\D/g, '') : '',
           contact_email: formData.personal.email || null,
           contact_document: formData.personal.document ? formData.personal.document.replace(/\D/g, "") : null,
           location_address: originAddress,
