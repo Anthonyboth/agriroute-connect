@@ -25,6 +25,7 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { useResilientLogin } from '@/hooks/useResilientLogin';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { clearCachedProfile } from '@/lib/profile-cache';
+import { LegalDocumentDialog } from '@/components/LegalDocumentDialog';
 
 // Parse and validate role from URL
 function parseRoleFromUrl(roleParam: string | null): SignupRole | null {
@@ -83,6 +84,7 @@ const Auth = () => {
   const [companyCNPJ, setCompanyCNPJ] = useState('');
   const [companyANTT, setCompanyANTT] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [legalDialogType, setLegalDialogType] = useState<'terms' | 'privacy' | null>(null);
   const [showProfileSelector, setShowProfileSelector] = useState(false);
   const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
 
@@ -898,13 +900,13 @@ const Auth = () => {
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
                               Li e aceito os{' '}
-                              <a 
-                                href="/termos" 
-                                target="_blank" 
-                                className="text-primary hover:underline"
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); setLegalDialogType('terms'); }}
+                                className="text-primary hover:underline inline"
                               >
                                 Termos de Uso
-                              </a>
+                              </button>
                             </label>
                           </div>
                           
@@ -918,13 +920,13 @@ const Auth = () => {
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
                               Li e aceito a{' '}
-                              <a 
-                                href="/privacidade" 
-                                target="_blank" 
-                                className="text-primary hover:underline"
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); setLegalDialogType('privacy'); }}
+                                className="text-primary hover:underline inline"
                               >
                                 Política de Privacidade
-                              </a>
+                              </button>
                             </label>
                           </div>
                         </div>
@@ -969,13 +971,13 @@ const Auth = () => {
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
                               Li e aceito os{' '}
-                              <a 
-                                href="/termos" 
-                                target="_blank" 
-                                className="text-primary hover:underline"
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); setLegalDialogType('terms'); }}
+                                className="text-primary hover:underline inline"
                               >
                                 Termos de Uso
-                              </a>
+                              </button>
                             </label>
                           </div>
                           
@@ -989,13 +991,13 @@ const Auth = () => {
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
                               Li e aceito a{' '}
-                              <a 
-                                href="/privacidade" 
-                                target="_blank" 
-                                className="text-primary hover:underline"
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); setLegalDialogType('privacy'); }}
+                                className="text-primary hover:underline inline"
                               >
                                 Política de Privacidade
-                              </a>
+                              </button>
                             </label>
                           </div>
                         </div>
@@ -1043,6 +1045,12 @@ const Auth = () => {
           }}
         />
       )}
+
+      <LegalDocumentDialog
+        open={legalDialogType !== null}
+        onOpenChange={(open) => { if (!open) setLegalDialogType(null); }}
+        documentType={legalDialogType || 'terms'}
+      />
     </div>
   );
 };
