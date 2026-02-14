@@ -655,12 +655,23 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
     } catch (error: any) {
       console.error("Erro ao salvar solicitação:", error);
       
-      // ✅ Notificação clara do erro com solução
+      // ✅ Notificação clara do erro com solução específica
+      const errorMsg = error?.message || '';
+      let solution = "Verifique sua conexão com a internet e tente novamente em alguns segundos.";
+      
+      if (errorMsg.includes("permission")) {
+        solution = "Verifique se você está logado corretamente e tente novamente.";
+      } else if (errorMsg.includes("contact_phone") || errorMsg.includes("telefone") || errorMsg.includes("phone")) {
+        solution = "O campo Telefone é obrigatório. Verifique se está preenchido corretamente com DDD.";
+      } else if (errorMsg.includes("contact_name") || errorMsg.includes("name")) {
+        solution = "O campo Nome é obrigatório. Verifique se está preenchido.";
+      } else if (errorMsg.includes("validation") || errorMsg.includes("invalid") || errorMsg.includes("required")) {
+        solution = "Verifique se todos os campos obrigatórios estão preenchidos corretamente.";
+      }
+      
       showFormError({
         problem: "Não foi possível enviar sua solicitação.",
-        solution: error?.message?.includes("permission") 
-          ? "Verifique se você está logado corretamente e tente novamente."
-          : "Verifique sua conexão com a internet e tente novamente em alguns segundos.",
+        solution,
         type: "error",
       });
     } finally {
