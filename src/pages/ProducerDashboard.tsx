@@ -596,7 +596,7 @@ const ProducerDashboard = () => {
         `,
         )
         .in("freight_id", freightIds)
-        .eq("status", "PENDING")
+        .in("status", ["PENDING", "COUNTER_PROPOSED"])
         .order("created_at", { ascending: false })
         .limit(50);
 

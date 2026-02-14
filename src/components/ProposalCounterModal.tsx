@@ -121,7 +121,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
           await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
           const { data: existing, error: checkErr } = await supabase
             .from('freight_proposals')
-            .select('status')
+            .select('id, status')
             .eq('freight_id', originalProposal.freight_id)
             .eq('driver_id', profile.id)
             .maybeSingle();
@@ -129,8 +129,11 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             console.error('Erro ao verificar proposta existente:', checkErr);
             throw checkErr;
           }
-          if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
-            throw new Error(existing.status === 'PENDING' ? 'Você já enviou uma proposta para este frete.' : 'Sua proposta já foi aceita.');
+          if (existing && existing.status === 'ACCEPTED') {
+            throw new Error('Sua proposta já foi aceita.');
+          }
+          if (existing && existing.status === 'PENDING') {
+            throw new Error('Você já enviou uma proposta para este frete.');
           }
 
           // ✅ Mensagem indica claramente que é para 1 carreta
@@ -142,23 +145,54 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   : formatBRL(finalPrice, true)}`
             : pricingType === 'PER_KM'
               ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: ${formatBRL(finalPrice, true)} para ${freightDistance} km)`
-              : 'Proposta enviada via contra-proposta.';
+              : 'Resposta à contra-proposta do produtor.';
 
-          const { error: createProposalError } = await supabase
-            .from('freight_proposals')
-            .insert({
-              freight_id: originalProposal.freight_id,
-              driver_id: profile.id,
-              proposed_price: finalPrice, // ✅ Valor já calculado por carreta
-              status: 'PENDING',
-              message: proposalMessage
-            });
+          // Se existe proposta com COUNTER_PROPOSED, atualizar ao invés de criar nova
+          if (existing && existing.status === 'COUNTER_PROPOSED') {
+            const { error: updateError } = await supabase
+              .from('freight_proposals')
+              .update({
+                proposed_price: finalPrice,
+                status: 'PENDING',
+                message: proposalMessage
+              })
+              .eq('id', existing.id);
 
-          if (createProposalError) {
-            console.error('Erro ao criar proposta:', createProposalError);
-            throw new Error('Não foi possível registrar sua proposta');
+            if (updateError) {
+              console.error('Erro ao atualizar proposta:', updateError);
+              throw new Error('Não foi possível atualizar sua proposta');
+            }
+          } else {
+            const { error: createProposalError } = await supabase
+              .from('freight_proposals')
+              .insert({
+                freight_id: originalProposal.freight_id,
+                driver_id: profile.id,
+                proposed_price: finalPrice,
+                status: 'PENDING',
+                message: proposalMessage
+              });
+
+            if (createProposalError) {
+              console.error('Erro ao criar proposta:', createProposalError);
+              throw new Error('Não foi possível registrar sua proposta');
+            }
           }
 
+          hasPermission = true;
+        } else if (profile.role === 'PRODUTOR' && freight.producer_id === profile.id) {
+          // ✅ Produtor fazendo contraproposta: atualizar status da proposta original para COUNTER_PROPOSED
+          const { error: updateError } = await supabase
+            .from('freight_proposals')
+            .update({
+              status: 'COUNTER_PROPOSED'
+            })
+            .eq('id', originalProposal.id);
+
+          if (updateError) {
+            console.error('Erro ao atualizar proposta para COUNTER_PROPOSED:', updateError);
+            // Continuar mesmo com erro - a mensagem no chat ainda será enviada
+          }
           hasPermission = true;
         }
 
