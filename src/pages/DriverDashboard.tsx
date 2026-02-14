@@ -105,6 +105,7 @@ const DriverDashboard = () => {
     const checkTransportMode = async () => {
       // ✅ NÃO redirecionar motoristas afiliados mesmo se tiverem active_mode TRANSPORTADORA
       if (profile.active_mode === 'TRANSPORTADORA' && profile.role !== 'MOTORISTA_AFILIADO') {
+        setIsTransportCompany(true);
         navigate('/dashboard/company', { replace: true });
         return;
       }
@@ -117,6 +118,7 @@ const DriverDashboard = () => {
         .maybeSingle();
 
       if (data) {
+        setIsTransportCompany(true);
         navigate('/dashboard/company', { replace: true });
         return;
       }
@@ -139,22 +141,9 @@ const DriverDashboard = () => {
     }
   }, [profile?.id, profile?.role, profile?.active_mode, navigate]);
   
-  // Check if user is a transport company
-  React.useEffect(() => {
-    const checkTransportCompany = async () => {
-      if (!profile?.id) return;
-
-      const { data } = await supabase
-        .from('transport_companies')
-        .select('id')
-        .eq('profile_id', profile.id)
-        .maybeSingle();
-
-      setIsTransportCompany(!!data || profile.active_mode === 'TRANSPORTADORA');
-    };
-
-    checkTransportCompany();
-  }, [profile?.id, profile?.active_mode]);
+  // ✅ PERF: Removido useEffect duplicado de checkTransportCompany
+  // O useEffect acima (linha 101) já faz essa verificação e redireciona se necessário.
+  // setIsTransportCompany é atualizado pelo resultado do redirect check.
   
   
   const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
@@ -416,8 +405,8 @@ const DriverDashboard = () => {
 
       // CASO CONTRÁRIO: buscar fretes da plataforma (matching espacial + RPC + fallback)
 
-      console.log('[fetchAvailableFreights] Buscando fretes da plataforma (matching espacial + RPC)');
-      const { data: { session } } = await supabase.auth.getSession();
+    if (import.meta.env.DEV) console.log('[fetchAvailableFreights] Buscando fretes da plataforma (matching espacial + RPC)');
+    const { data: { session } } = await supabase.auth.getSession();
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
         'driver-spatial-matching',
         {
@@ -761,7 +750,7 @@ const DriverDashboard = () => {
     // Don't fetch if user is not a driver
     if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
-    console.log('🔍 Buscando fretes ativos e serviços aceitos do motorista:', profile.id);
+    if (import.meta.env.DEV) console.log('🔍 Buscando fretes ativos e serviços aceitos do motorista:', profile.id);
     try {
       // Data de hoje para filtrar apenas fretes atuais/passados
       const todayStr = new Date().toISOString().split('T')[0];
@@ -851,7 +840,7 @@ const DriverDashboard = () => {
       if (serviceRequestsError) {
         console.error('❌ Erro buscando service_requests aceitos:', serviceRequestsError);
       } else {
-        console.log('🚗 Service requests aceitos:', serviceRequestsData?.length || 0);
+        if (import.meta.env.DEV) console.log('🚗 Service requests aceitos:', serviceRequestsData?.length || 0);
         if (isMountedRef.current) setAcceptedServiceRequests(serviceRequestsData || []);
       }
 
@@ -923,7 +912,7 @@ const DriverDashboard = () => {
       const filteredOngoing = dedupedOngoingWithProducer.filter((item: any) => {
         // Sempre excluir status finais
         if (['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
-          console.log(`🔍 [DriverDashboard] Excluindo frete ${item.id} - Status: ${item.status}`);
+          if (import.meta.env.DEV) console.log(`🔍 [DriverDashboard] Excluindo frete ${item.id} - Status: ${item.status}`);
           return false;
         }
         
@@ -970,10 +959,9 @@ const DriverDashboard = () => {
                metadata.delivery_confirmed_by_producer === true;
       });
       
-      console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
-      console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
-      console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoingWithProducer.length);
-      console.log('✅ Total de itens após filtro de conclusão:', filteredOngoing.length);
+      if (import.meta.env.DEV) {
+        console.log('📦 Fretes diretos:', freightData?.length || 0, '🚚 Assignments:', assignmentFreights?.length || 0, '📊 Total:', dedupedOngoingWithProducer.length, '✅ Filtrado:', filteredOngoing.length);
+      }
       if (isMountedRef.current) setOngoingFreights(filteredOngoing);
 
       // ✅ Corrigir status APÓS setState, sem bloquear o fluxo
@@ -987,7 +975,7 @@ const DriverDashboard = () => {
           )
         ).then(() => {
           if (isMountedRef.current) {
-            console.log('✅ Status dos fretes corrigidos automaticamente');
+            if (import.meta.env.DEV) console.log('✅ Status dos fretes corrigidos automaticamente');
           }
         }).catch(err => {
           console.error('❌ Erro ao corrigir status dos fretes:', err);
@@ -1014,8 +1002,7 @@ const DriverDashboard = () => {
     if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
-      console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
-      console.log('📍 Role do usuário:', profile.role);
+      if (import.meta.env.DEV) console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
       
       // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
       const { data, error } = await supabase
@@ -1031,8 +1018,7 @@ const DriverDashboard = () => {
         throw error;
       }
       
-      console.log('🚛 Solicitações de transporte GUINCHO/MUDANCA encontradas:', data?.length || 0);
-      console.log('📋 Dados filtrados:', data);
+      if (import.meta.env.DEV) console.log('🚛 Solicitações de transporte encontradas:', data?.length || 0);
       
       if (isMountedRef.current) setTransportRequests(data || []);
     } catch (error) {
@@ -1292,7 +1278,7 @@ const DriverDashboard = () => {
     if (!profile?.id) return;
     
     try {
-      console.log('🔍 Buscando pagamentos pendentes (proposed + paid_by_producer) para driver:', profile.id);
+      if (import.meta.env.DEV) console.log('🔍 Buscando pagamentos pendentes para driver:', profile.id);
       
       const { data, error } = await supabase
         .from('external_payments')
@@ -1324,7 +1310,7 @@ const DriverDashboard = () => {
       
       if (error) throw error;
       
-      console.log('💰 Pagamentos pendentes (proposed + paid_by_producer):', data?.length || 0);
+      if (import.meta.env.DEV) console.log('💰 Pagamentos pendentes:', data?.length || 0);
       
       if (isMountedRef.current) setPendingPayments(data || []);
     } catch (error) {
@@ -1389,7 +1375,7 @@ const DriverDashboard = () => {
       // ✅ CORREÇÃO: Mover frete para COMPLETED após pagamento confirmado
       if (payment.freight_id) {
         try {
-          console.log('🏁 Movendo frete para COMPLETED após pagamento confirmado:', payment.freight_id);
+          if (import.meta.env.DEV) console.log('🏁 Movendo frete para COMPLETED:', payment.freight_id);
           
           const { error: freightUpdateError } = await supabase
             .from('freights')
@@ -1408,7 +1394,7 @@ const DriverDashboard = () => {
             console.warn('Aviso: Erro ao mover frete para histórico:', freightUpdateError);
             // Não bloquear o fluxo, apenas logar
           } else {
-            console.log('✅ Frete movido para COMPLETED com sucesso');
+            if (import.meta.env.DEV) console.log('✅ Frete movido para COMPLETED com sucesso');
             
             // Notificar UI que frete foi para histórico
             window.dispatchEvent(new CustomEvent('freight:movedToHistory', { 
@@ -1502,7 +1488,7 @@ const DriverDashboard = () => {
       
       // ✅ CORREÇÃO: Não carregar dados se não for motorista (evita erros 403)
       if (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO') {
-        console.log('[DriverDashboard] ⚠️ Usuário não é motorista, ignorando fetch de dados');
+        if (import.meta.env.DEV) console.log('[DriverDashboard] ⚠️ Usuário não é motorista, ignorando fetch');
         return;
       }
       
@@ -1576,7 +1562,7 @@ const DriverDashboard = () => {
   // ✅ Listener para navegação automática para aba "Em Andamento" após aceitar frete
   useEffect(() => {
     const handleFreightAccepted = (event: CustomEvent) => {
-      console.log('🎯 Frete aceito, navegando para aba Em Andamento:', event.detail?.freightId);
+      if (import.meta.env.DEV) console.log('🎯 Frete aceito, navegando para aba Em Andamento:', event.detail?.freightId);
       
       // Invalidar queries e recarregar dados
       queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
@@ -1741,7 +1727,7 @@ const DriverDashboard = () => {
       table: 'external_payments', 
       filter: `driver_id=eq.${profile.id}` 
     }, (payload) => {
-      console.log('Mudança detectada em external_payments:', payload);
+      if (import.meta.env.DEV) console.log('Mudança detectada em external_payments:', payload);
       fetchPendingPayments();
     });
     
@@ -1854,7 +1840,7 @@ const DriverDashboard = () => {
     // Total de viagens ativas = fretes diretos + assignments + service requests
     const activeTripsCount = activeFreightsCount + activeAssignmentsCount + activeServiceRequestsCount;
     
-    console.log('[stats] activeFreightsCount:', activeFreightsCount, 'activeAssignmentsCount:', activeAssignmentsCount, 'activeServiceRequests:', activeServiceRequestsCount, 'total:', activeTripsCount);
+    if (import.meta.env.DEV) console.log('[stats] activeTrips:', activeTripsCount);
     
     return {
       activeTrips: activeTripsCount,
