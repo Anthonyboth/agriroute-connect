@@ -25,6 +25,36 @@ const TutorialContext = createContext<TutorialContextValue>({
 
 export const useTutorial = () => useContext(TutorialContext);
 
+/**
+ * Clicks a tab element if the target selector refers to a tab trigger.
+ * This ensures the tab panel is visible before the tutorial tries to highlight it.
+ */
+function activateTabIfNeeded(selector?: string) {
+  if (!selector) return;
+
+  // Find the target element
+  const el = document.querySelector(selector);
+  if (!el) return;
+
+  // Check if it's a tab trigger (Radix tabs use role="tab" or [data-state])
+  const isTab =
+    el.getAttribute('role') === 'tab' ||
+    el.hasAttribute('data-state') ||
+    el.closest('[role="tablist"]');
+
+  if (isTab) {
+    // Click to activate the tab
+    (el as HTMLElement).click();
+    // Scroll into view
+    setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  } else {
+    // Even if not a tab, ensure it's visible
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
 export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile } = useAuth();
   const location = useLocation();
@@ -56,11 +86,9 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Auto-start on first load after signup - NUNCA durante cadastro ou com perfil pendente
   useEffect(() => {
-    // Marcar como checado mesmo em rotas de onboarding para evitar
-    // que o tutorial inicie automaticamente após redirect para dashboard
     if (!profileId || !role || autoStartChecked.current) return;
     if (isOnboardingRoute || !isProfileReady) {
-      autoStartChecked.current = true; // Bloquear auto-start após sair do onboarding
+      autoStartChecked.current = true;
       return;
     }
     autoStartChecked.current = true;
@@ -73,6 +101,8 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setCurrentStep(0);
         setIsActive(true);
         setTutorialState(profileId, { started_at: new Date().toISOString() });
+        // Activate tab for first step if needed
+        setTimeout(() => activateTabIfNeeded(roleSteps[0]?.targetSelector), 300);
       }
     }, 1500);
 
@@ -86,15 +116,26 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCurrentStep(0);
     setIsActive(true);
     setTutorialState(profileId, { started_at: new Date().toISOString() });
+    // Activate tab for first step if needed
+    setTimeout(() => activateTabIfNeeded(roleSteps[0]?.targetSelector), 300);
   }, [profileId, role]);
 
   const handleNext = useCallback(() => {
-    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-  }, [steps.length]);
+    setCurrentStep((prev) => {
+      const next = Math.min(prev + 1, steps.length - 1);
+      // Activate the tab for the next step so it becomes visible
+      setTimeout(() => activateTabIfNeeded(steps[next]?.targetSelector), 100);
+      return next;
+    });
+  }, [steps]);
 
   const handlePrev = useCallback(() => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  }, []);
+    setCurrentStep((prev) => {
+      const next = Math.max(prev - 1, 0);
+      setTimeout(() => activateTabIfNeeded(steps[next]?.targetSelector), 100);
+      return next;
+    });
+  }, [steps]);
 
   const handleSkip = useCallback(() => {
     setIsActive(false);
