@@ -32,8 +32,8 @@ export const useServiceAutoRating = () => {
             service_type,
             client_id,
             provider_id,
-            client:profiles!service_requests_client_id_fkey(id, full_name),
-            provider:profiles!service_requests_provider_id_fkey(id, full_name)
+            client:profiles_secure!service_requests_client_id_fkey(id, full_name),
+            provider:profiles_secure!service_requests_provider_id_fkey(id, full_name)
           `)
           .eq('status', 'COMPLETED')
           .or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`)

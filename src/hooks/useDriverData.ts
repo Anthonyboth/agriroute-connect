@@ -149,7 +149,7 @@ export const useDriverProposals = (driverId: string | undefined) => {
           *,
           freight:freights(
             *,
-            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+            producer:profiles_secure!freights_producer_id_fkey(id, full_name, contact_phone)
           )
         `)
         .eq('driver_id', driverId)

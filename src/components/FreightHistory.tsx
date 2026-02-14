@@ -225,7 +225,7 @@ export const FreightHistory: React.FC = () => {
           // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
           const { data: serviceData, error: serviceError } = await supabase
             .from('service_requests_secure')
-            .select('*, client:profiles!service_requests_client_id_fkey(id, full_name)')
+            .select('*, client:profiles_secure!service_requests_client_id_fkey(id, full_name)')
             .eq('provider_id', profile.id)
             .in('service_type', freightTypes)
             .order('created_at', { ascending: false })

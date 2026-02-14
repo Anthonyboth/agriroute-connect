@@ -88,7 +88,7 @@ export const sendProposalChatPush = async (
 
     // Buscar nome do remetente
     const { data: senderProfile } = await supabase
-      .from('profiles')
+      .from('profiles_secure')
       .select('full_name, role')
       .eq('id', senderId)
       .single();

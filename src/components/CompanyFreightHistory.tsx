@@ -56,8 +56,8 @@ export const CompanyFreightHistory: React.FC<CompanyFreightHistoryProps> = ({ co
         .from('freights')
         .select(`
           *,
-          producer:profiles!freights_producer_id_fkey(full_name, contact_phone),
-          driver:profiles!freights_driver_id_fkey(full_name, contact_phone)
+          producer:profiles_secure!freights_producer_id_fkey(full_name, contact_phone),
+          driver:profiles_secure!freights_driver_id_fkey(full_name, contact_phone)
         `)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
@@ -71,8 +71,8 @@ export const CompanyFreightHistory: React.FC<CompanyFreightHistoryProps> = ({ co
           freight_id,
           freight:freights(
             *,
-            producer:profiles!freights_producer_id_fkey(full_name, contact_phone),
-            driver:profiles!freights_driver_id_fkey(full_name, contact_phone)
+            producer:profiles_secure!freights_producer_id_fkey(full_name, contact_phone),
+            driver:profiles_secure!freights_driver_id_fkey(full_name, contact_phone)
           )
         `)
         .eq('company_id', companyId);

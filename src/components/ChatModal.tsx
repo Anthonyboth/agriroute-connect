@@ -48,8 +48,8 @@ export const ChatModal = ({
         .from('freights')
         .select(`
           *, 
-          producer:profiles!freights_producer_id_fkey(id, full_name, phone),
-          driver:profiles!freights_driver_id_fkey(id, full_name, phone)
+          producer:profiles_secure!freights_producer_id_fkey(id, full_name, phone),
+          driver:profiles_secure!freights_driver_id_fkey(id, full_name, phone)
         `)
         .eq('id', conversation.metadata.freightId)
         .single();
