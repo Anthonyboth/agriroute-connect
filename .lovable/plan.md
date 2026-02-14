@@ -1,26 +1,47 @@
 
 
-## Remover dica nao autorizada e otimizar espaco do header
+## Corrigir numero de contato errado em 5 arquivos e remover caixa branca do tooltip
 
-### Problema
-No wizard de solicitacao de servicos (ServiceWizard), existe uma caixa de "Dica" azul que foi adicionada sem autorizacao. Ela ocupa espaco precioso no topo do card, especialmente em mobile com teclado aberto, fazendo com que os campos de preenchimento fiquem muito pequenos e dificeis de usar.
+### Problema 1: Numero de WhatsApp errado
+O numero `9942-6656` (errado) aparece em 5 arquivos. O numero correto do suporte e `(66) 9 9273-4632`.
 
-### Solucao
+**Arquivos com numero errado:**
+1. `src/pages/Terms.tsx` (linha 234) - `015 66 9 9942-6656`
+2. `src/pages/Privacy.tsx` (linha 290) - `+55 15 66 9 9942-6656`
+3. `src/pages/Status.tsx` (linha 339) - `015 66 9 9942-6656`
+4. `src/pages/Cookies.tsx` (linha 297) - `015 66 9 9942-6656`
+5. `src/components/LegalDocumentDialog.tsx` (linha 155) - `+55 15 66 9 9942-6656`
 
-**Arquivo**: `src/components/service-wizard/ServiceWizard.tsx`
+**Correcao:** Substituir todos por `(66) 9 9273-4632`.
 
-1. **Remover completamente o bloco de dica** (linhas 707-714) - a div com "Crie uma conta para acompanhar suas solicitacoes e ter acesso ao historico"
+---
 
-2. **Compactar o header** para ganhar mais espaco vertical:
-   - Reduzir o padding do header de `p-4` para `px-4 py-2`
-   - Reduzir margem inferior do titulo de `mb-2` para `mb-1`
+### Problema 2: Caixa branca com icone azul ao selecionar texto
+O `FloatingSupportButton` envolve o botao com um Radix `Tooltip`. Em dispositivos touch (Android), tooltips podem ativar involuntariamente ao tocar na tela para selecionar texto, renderizando como uma caixa branca vazia.
 
-Isso vai liberar espaco significativo para a area de conteudo scrollavel onde o usuario preenche os campos.
+**Correcao:** Remover o wrapper `TooltipProvider`/`Tooltip`/`TooltipTrigger`/`TooltipContent` do `FloatingSupportButton.tsx`. Em dispositivos moveis nao existe hover, entao tooltip nao tem utilidade. O botao continuara funcionando normalmente (abre WhatsApp ao clicar, pode ser arrastado).
+
+---
 
 ### Detalhes tecnicos
 
-Alteracao unica no arquivo `src/components/service-wizard/ServiceWizard.tsx`:
-- Remover linhas 707-714 (bloco condicional `!profile?.id` com a dica)
-- Ajustar padding do header container (linha 700)
-- Nenhum outro arquivo sera modificado
+**Arquivo 1 - `src/pages/Terms.tsx`:**
+- Linha 234: trocar `015 66 9 9942-6656` por `(66) 9 9273-4632`
+
+**Arquivo 2 - `src/pages/Privacy.tsx`:**
+- Linha 290: trocar `+55 15 66 9 9942-6656` por `(66) 9 9273-4632`
+
+**Arquivo 3 - `src/pages/Status.tsx`:**
+- Linha 339: trocar `015 66 9 9942-6656` por `(66) 9 9273-4632`
+
+**Arquivo 4 - `src/pages/Cookies.tsx`:**
+- Linha 297: trocar `015 66 9 9942-6656` por `(66) 9 9273-4632`
+
+**Arquivo 5 - `src/components/LegalDocumentDialog.tsx`:**
+- Linha 155: trocar `+55 15 66 9 9942-6656` por `(66) 9 9273-4632`
+
+**Arquivo 6 - `src/components/FloatingSupportButton.tsx`:**
+- Remover imports de Tooltip (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent)
+- Remover wrapper Tooltip ao redor do botao `<a>`
+- Manter toda a logica de drag, click e posicionamento intacta
 
