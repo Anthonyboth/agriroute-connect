@@ -848,7 +848,19 @@ const ProducerDashboard = () => {
           const newStatus = payload.new?.status;
           const oldStatus = payload.old?.status;
 
-          if (newStatus === "DELIVERED" && oldStatus !== "DELIVERED") {
+          // ✅ CORREÇÃO: Avaliação SOMENTE após COMPLETED (pagamento confirmado)
+          // Anteriormente disparava em DELIVERED, antes do pagamento ser feito
+          if (newStatus === "COMPLETED" && oldStatus !== "COMPLETED") {
+            // Verificar se pagamento foi confirmado
+            const { data: confirmedPayment } = await supabase
+              .from("external_payments")
+              .select("id")
+              .eq("freight_id", payload.new.id)
+              .eq("status", "confirmed")
+              .maybeSingle();
+
+            if (!confirmedPayment) return;
+
             const { data: freightData } = await supabase
               .from("freights")
               .select(
@@ -862,10 +874,10 @@ const ProducerDashboard = () => {
 
             if ((freightData as any)?.driver) {
               const { data: existingRating } = await supabase
-                .from("ratings")
+                .from("freight_ratings")
                 .select("id")
                 .eq("freight_id", (freightData as any).id)
-                .eq("rater_user_id", profile.id)
+                .eq("rater_id", profile.id)
                 .maybeSingle();
 
               if (!existingRating) setActiveFreightForRating(freightData);
