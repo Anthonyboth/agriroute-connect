@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isValidDocument, normalizeDocument } from '@/utils/document';
 import { clearCachedProfile } from '@/lib/profile-cache';
+import { saveProfileToAutofill } from '@/lib/autofill-storage';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 
 const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
@@ -389,6 +390,9 @@ export function useResilientLogin() {
       
       setLoading(false);
       toast.success('Login realizado!');
+      
+      // ✅ Salvar dados do perfil para autofill futuro (não salva senha)
+      saveProfileToAutofill(targetProfile);
       
       // ✅ REDIRECIONAMENTO GARANTIDO (SPA + hard redirect fallback)
       safeRedirect(targetRoute);

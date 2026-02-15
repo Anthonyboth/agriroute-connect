@@ -568,11 +568,13 @@ const Auth = () => {
             {/* Social Login Section - Common for both tabs */}
             
             <TabsContent value="login">
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-4" autoComplete="on">
                 <div className="space-y-2">
                   <Label htmlFor="loginField">Email ou CPF/CNPJ</Label>
                   <Input
                     id="loginField"
+                    name="username"
+                    autoComplete="username"
                     value={loginField}
                     onChange={(e) => setLoginField(e.target.value)}
                     placeholder="Digite seu email ou CPF/CNPJ"
@@ -583,6 +585,8 @@ const Auth = () => {
                   <Label htmlFor="loginPassword">Senha</Label>
                   <PasswordInput
                     id="loginPassword"
+                    name="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -738,7 +742,7 @@ const Auth = () => {
 
                 {/* Step 3: Formulário de Cadastro */}
                 {signupStep === 'form' && (
-                  <form onSubmit={handleSignUp} className="space-y-4">
+                  <form onSubmit={handleSignUp} className="space-y-4" autoComplete="on">
                     <div className="flex items-center gap-2 mb-2">
                       <Button
                         type="button"
@@ -771,6 +775,8 @@ const Auth = () => {
                       <Label htmlFor="fullName">{driverType === 'TRANSPORTADORA' ? 'Nome do Responsável' : 'Nome Completo'}</Label>
                       <Input
                         id="fullName"
+                        name="name"
+                        autoComplete="name"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
@@ -783,6 +789,8 @@ const Auth = () => {
                           <Label htmlFor="companyName">Razão Social *</Label>
                           <Input
                             id="companyName"
+                            name="organization"
+                            autoComplete="organization"
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
                             required
@@ -801,10 +809,12 @@ const Auth = () => {
                     )}
                     
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="signupEmail">Email</Label>
                       <Input
-                        id="email"
+                        id="signupEmail"
+                        name="email"
                         type="email"
+                        autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -812,9 +822,11 @@ const Auth = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="password">Senha</Label>
+                      <Label htmlFor="signupPassword">Senha</Label>
                       <PasswordInput
-                        id="password"
+                        id="signupPassword"
+                        name="new-password"
+                        autoComplete="new-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -826,6 +838,8 @@ const Auth = () => {
                       <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                       <PasswordInput
                         id="confirmPassword"
+                        name="confirm-password"
+                        autoComplete="new-password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
@@ -841,6 +855,8 @@ const Auth = () => {
                       <Label htmlFor="phone">Telefone WhatsApp</Label>
                       <Input
                         id="phone"
+                        name="tel"
+                        autoComplete="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="(11) 99999-9999"
