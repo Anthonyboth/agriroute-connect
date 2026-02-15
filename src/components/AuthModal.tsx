@@ -149,12 +149,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
         </TabsList>
 
         <TabsContent value="login" className="space-y-4">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="modal-email">Email</Label>
               <Input
-                id="email"
+                id="modal-email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 placeholder="seu@email.com"
                 value={loginForm.email}
                 onChange={(e) => setLoginForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -163,11 +165,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="modal-password">Senha</Label>
               <div className="relative">
                 <Input
-                  id="password"
+                  id="modal-password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={loginForm.password}
                   onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
