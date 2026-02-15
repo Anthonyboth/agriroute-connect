@@ -49,7 +49,7 @@ export const AppSpinner = ({
   const spinner = (
     <div
       className={cn(
-        'animate-spin rounded-full border-b-2 border-primary',
+        'animate-spin rounded-full border-2 border-primary border-t-transparent',
         sizeClass,
         className
       )}
