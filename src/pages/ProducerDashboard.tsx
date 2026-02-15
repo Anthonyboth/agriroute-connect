@@ -1300,6 +1300,11 @@ const ProducerDashboard = () => {
           message: `O produtor informou que efetuou o pagamento de ${amountStr}. Confirme o recebimento no seu painel.`,
           type: 'payment_paid_by_producer',
           read: false,
+          data: {
+            freight_id: paymentData.freight_id,
+            payment_id: paymentId,
+            amount: paymentData.amount,
+          },
         });
 
         // ✅ Notificar transportadora (se motorista afiliado)
@@ -1319,6 +1324,12 @@ const ProducerDashboard = () => {
               message: `O produtor informou pagamento de ${amountStr} para seu motorista. Acompanhe na aba Pagamentos.`,
               type: 'payment_paid_by_producer',
               read: false,
+              data: {
+                freight_id: paymentData.freight_id,
+                payment_id: paymentId,
+                amount: paymentData.amount,
+                driver_id: paymentData.driver_id,
+              },
             });
           }
         }

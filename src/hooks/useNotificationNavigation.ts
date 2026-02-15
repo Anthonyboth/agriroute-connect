@@ -155,6 +155,17 @@ export function useNotificationNavigation() {
         };
 
       // ============ PAGAMENTOS ============
+      case 'payment_paid_by_producer':
+      case 'external_payment_paid':
+        if (!data?.freight_id) return null;
+        return {
+          route: dashboardRoute,
+          state: {
+            openFreightId: data.freight_id,
+            notificationType: type,
+          },
+        };
+
       case 'payment_completed':
       case 'payment_confirmation':
         return {

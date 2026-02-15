@@ -236,6 +236,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       'freight_in_transit',
       'freight_created',
       'external_payment_proposed',
+      'external_payment_paid',
+      'payment_paid_by_producer',
       'chat_message',
       'service_chat_message',
       'payment_completed',
