@@ -30,7 +30,7 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
 
   return (
     <TooltipProvider>
-      <section className="relative min-h-[160px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[220px] flex items-center justify-center overflow-hidden">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
@@ -44,7 +44,7 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <div className="flex flex-wrap items-center justify-center gap-2 px-2 py-4">
+            <div className="flex flex-col items-center gap-2 px-6 py-5 sm:flex-row sm:flex-wrap sm:justify-center sm:px-2">
               {canSeeFreights && (
                 <Tooltip>
                   <TooltipTrigger asChild>
