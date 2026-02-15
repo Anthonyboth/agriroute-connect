@@ -523,6 +523,13 @@ const AuthedLanding = () => {
   const [loadingTimeout, setLoadingTimeout] = React.useState(false);
   const bootTimeRef = React.useRef<number>(Date.now());
   
+  // ✅ Detectar sessão em cache para evitar flash da Landing para usuários logados
+  const hasCachedSession = React.useMemo(() => {
+    try {
+      return !!localStorage.getItem('sb-shnvtxejjecbnztdbbbl-auth-token');
+    } catch { return false; }
+  }, []);
+  
   // Timeout para loading (8s)
   React.useEffect(() => {
     if (loading || isCheckingCompany) {
@@ -577,8 +584,13 @@ const AuthedLanding = () => {
     }
   }, [profile]);
   
-  // Se ainda carregando e não tem perfil, mostrar Landing direto (sem spinner)
+  // Se ainda carregando e não tem perfil:
+  // - Se há sessão em cache → spinner (usuário provavelmente logado, evita flash da Landing)
+  // - Se não há sessão → Landing direto
   if ((loading || isCheckingCompany) && !profile) {
+    if (hasCachedSession) {
+      return <GlobalLoader />;
+    }
     return <Landing />;
   }
   
