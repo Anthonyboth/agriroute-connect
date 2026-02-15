@@ -36,13 +36,6 @@ interface AppLoaderProps {
   debugId?: string;
 }
 
-// Mapeamento de tamanhos para pixels (compatibilidade com API anterior)
-const sizeToPx: Record<AppLoaderSize, number> = {
-  sm: 20,  // equivalente a h-5 w-5
-  md: 32,  // equivalente a h-8 w-8
-  lg: 48,  // equivalente a h-12 w-12
-};
-
 export const AppLoader: React.FC<AppLoaderProps> = ({
   variant = 'inline',
   size = 'md',
@@ -59,21 +52,9 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
     }
   }, [debugId, variant]);
 
-  const spinnerSize = sizeToPx[size];
-
+  // Fullscreen sempre usa AppSpinner fullscreen para garantir tamanho único (lg)
   if (variant === 'fullscreen') {
-    return (
-      <div 
-        className={cn(
-          "fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm",
-          className
-        )}
-        role="status"
-        aria-label="Carregando"
-      >
-        <AppSpinner size={spinnerSize} />
-      </div>
-    );
+    return <AppSpinner fullscreen className={className} />;
   }
 
   if (variant === 'minimal') {
@@ -83,7 +64,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
         role="status"
         aria-label="Carregando"
       >
-        <AppSpinner size={spinnerSize} />
+        <AppSpinner size={size} />
       </div>
     );
   }
@@ -98,7 +79,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
       role="status"
       aria-label="Carregando"
     >
-      <AppSpinner size={spinnerSize} />
+      <AppSpinner size={size} />
     </div>
   );
 };
