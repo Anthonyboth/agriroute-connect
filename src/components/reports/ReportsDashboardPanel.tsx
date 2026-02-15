@@ -7,7 +7,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package } from 'lucide-react';
+import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle } from 'lucide-react';
 import { subDays, endOfDay, startOfDay } from 'date-fns';
 import {
   ReportPeriodFilter,
@@ -75,9 +75,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       case 'PRESTADOR':
         return [
           { title: 'Receita Total', value: Number(kpis.receita_total) || 0, format: 'currency', subtitle: `${kpis.servicos_concluidos || 0} concluídos`, icon: DollarSign },
-          { title: 'Total de Serviços', value: Number(kpis.total_servicos) || 0, format: 'number', icon: Wrench },
+          { title: 'Total de Serviços', value: Number(kpis.total_servicos) || 0, format: 'number', subtitle: `${kpis.servicos_em_andamento || 0} em andamento`, icon: Wrench },
           { title: 'Avaliação Média', value: Number(kpis.avaliacao_media) || 0, format: 'number', subtitle: `${kpis.total_avaliacoes || 0} avaliações`, icon: Star },
           { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', icon: TrendingUp },
+          { title: 'Concluídos', value: Number(kpis.servicos_concluidos) || 0, format: 'number', icon: CheckCircle },
           { title: 'Cancelados', value: Number(kpis.servicos_cancelados) || 0, format: 'number', icon: Percent },
         ];
 
@@ -105,7 +106,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     }
 
     // Volume por dia (produtor - fretes + serviços separados)
-    if (charts.volume_por_dia?.length) {
+    if (charts.volume_por_dia?.length && panel === 'PRODUTOR') {
       configs.push({
         title: 'Operações por Dia',
         type: 'bar',
@@ -118,6 +119,25 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         dataKeys: [
           { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
           { key: 'servicos', label: 'Serviços', color: '#1976D2' },
+        ],
+        xAxisKey: 'day',
+      });
+    }
+
+    // Volume por dia (prestador - concluidos + cancelados)
+    if (charts.volume_por_dia?.length && panel === 'PRESTADOR') {
+      configs.push({
+        title: 'Serviços por Dia',
+        type: 'bar',
+        data: charts.volume_por_dia.map((d: any) => ({ 
+          day: d.dia, 
+          concluidos: d.concluidos || 0, 
+          cancelados: d.cancelados || 0,
+          total: d.total || 0 
+        })),
+        dataKeys: [
+          { key: 'concluidos', label: 'Concluídos', color: '#2E7D32' },
+          { key: 'cancelados', label: 'Cancelados', color: '#D32F2F' },
         ],
         xAxisKey: 'day',
       });
@@ -300,6 +320,40 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                     <p className="text-sm text-muted-foreground">{d.viagens} viagens</p>
                   </div>
                   <p className="font-semibold">{formatBRL(d.receita || 0)}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Últimos Serviços (prestador) */}
+      {!isLoading && panel === 'PRESTADOR' && tables.ultimas_operacoes?.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Últimos Serviços Prestados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {tables.ultimas_operacoes.map((op: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{op.service_type}</p>
+                    <p className="text-xs text-muted-foreground">{op.city} • {op.cliente || 'Cliente'}</p>
+                    <p className="text-xs text-muted-foreground">{op.data ? new Date(op.data).toLocaleDateString('pt-BR') : '-'}</p>
+                  </div>
+                  <div className="text-right ml-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      op.status_final === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      op.status_final === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {op.status_final === 'COMPLETED' ? 'Concluído' : op.status_final === 'CANCELLED' ? 'Cancelado' : op.status_final}
+                    </span>
+                    {op.final_price > 0 && (
+                      <p className="text-sm font-semibold mt-1">{formatBRL(op.final_price)}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
