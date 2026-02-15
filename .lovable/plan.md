@@ -1,27 +1,72 @@
 
-# Reduzir botoes do Hero e mostrar mais a imagem de fundo
+
+# Hook de Cancelamento de Frete Centralizado
 
 ## Problema
 
-Na tela mobile, os botoes do Hero ocupam `w-full` (largura total), empilhando verticalmente como blocos brancos enormes que cobrem quase toda a imagem de fundo. O resultado e que a foto (que sera enviada por usuarios) fica praticamente invisivel.
+1. O botao "Solicitar Cancelamento" tem CSS ruim e texto longo demais
+2. Nao existe um hook centralizado para regras de cancelamento
+3. As regras de cancelamento estao espalhadas em varios arquivos sem consistencia
 
-## Solucao
+## Regras de Negocio (conforme solicitado)
 
-Duas alteracoes simples e coordenadas:
+| Ator | Status do Frete | Acao Permitida |
+|------|----------------|----------------|
+| Motorista | ACCEPTED, LOADING | Cancelamento direto (via `cancel-freight-safe`) |
+| Motorista | LOADED, IN_TRANSIT, DELIVERED_PENDING_CONFIRMATION | Solicitar cancelamento (produtor aprova) |
+| Motorista | DELIVERED, COMPLETED, CANCELLED | Nenhuma |
+| Produtor | Qualquer status ativo | Cancelamento direto a qualquer momento |
 
-### 1. `src/components/ui/hero-action-button.tsx`
-- Trocar `w-full sm:w-auto` por `w-auto` -- os botoes ficam compactos (tamanho do texto) em todas as telas
-- Reduzir altura de `h-9` para `h-8` e padding de `px-4` para `px-3`
-- Manter `text-xs`, icone `h-4 w-4`, `rounded-full` e todos os efeitos visuais
+## Plano de Implementacao
 
-### 2. `src/pages/driver/DriverDashboardHero.tsx`
-- Trocar o layout dos botoes de `flex flex-wrap gap-3` para `flex flex-wrap gap-2` (menos espaco entre eles)
-- Adicionar `py-4` ao container dos botoes para dar respiro vertical sem desperdicar espaco
-- Manter `min-h-[160px]` na section e o overlay verde (`bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40`) intacto
+### 1. Criar hook `useFreightCancellation` (`src/hooks/useFreightCancellation.ts`)
 
-### Resultado esperado
-- Botoes compactos lado a lado (2 por linha no mobile), sem esticar na largura total
-- Texto nunca vaza para fora do botao (font-size e padding proporcionais)
-- Imagem de fundo fica muito mais visivel entre e ao redor dos botoes
-- Overlay verde preservado exatamente como esta
-- Funciona em todos os dashboards que usam `HeroActionButton`
+Hook centralizado que exporta:
+
+- `canCancelDirectly(status, role)` -- retorna `true` se o ator pode cancelar direto
+- `canRequestCancellation(status, role)` -- retorna `true` se o ator so pode solicitar
+- `getCancelButtonConfig(status, role)` -- retorna `{ label, variant, action }` para o botao
+- `handleDirectCancel(freightId, reason)` -- executa `cancel-freight-safe`
+- `handleRequestCancel(freightId)` -- abre chat/notifica produtor para aprovacao
+
+Logica interna:
+- Motorista: cancela direto em ACCEPTED e LOADING; solicita em LOADED, IN_TRANSIT, DELIVERED_PENDING_CONFIRMATION
+- Produtor: cancela direto em qualquer status exceto COMPLETED e CANCELLED
+- Transportadora: nao cancela (apenas monitora)
+
+### 2. Atualizar `src/lib/labels.ts`
+
+- Mudar `SOLICITAR_CANCELAMENTO` de "Solicitar cancelamento" para "Cancelamento"
+
+### 3. Atualizar `FreightInProgressCard.tsx` (linhas 572-591)
+
+- Usar o hook para decidir se mostra o botao e qual texto/acao
+- Corrigir o CSS do botao (o `variant="destructive"` com `w-full` ja esta ok, so precisa do texto correto)
+- O botao exibira "Cancelar" quando o motorista pode cancelar direto, ou "Cancelamento" quando precisa solicitar
+
+### 4. Atualizar `FreightCard.tsx` (linhas 814-833)
+
+- Substituir a logica inline de status por chamada ao hook
+- Remover "Solicitar" do texto do botao
+
+### 5. Atualizar `freightActionMatrix.ts`
+
+- Adicionar acao `REQUEST_CANCEL` para motoristas nos status LOADED, IN_TRANSIT
+- Adicionar acao `CANCEL` para motoristas nos status ACCEPTED, LOADING
+- Adicionar acao `CANCEL` para produtores em LOADED, IN_TRANSIT (cancelamento direto a qualquer momento)
+
+### 6. Atualizar `DriverOngoingTab.tsx`
+
+- Usar o hook ao inves de sempre abrir detalhes no `onRequestCancel`
+- Para ACCEPTED/LOADING: cancelar direto com confirmacao
+- Para LOADED+: abrir chat/solicitar ao produtor
+
+## Arquivos Modificados
+
+- `src/hooks/useFreightCancellation.ts` (NOVO)
+- `src/lib/labels.ts` (texto do botao)
+- `src/components/FreightInProgressCard.tsx` (botao e logica)
+- `src/components/FreightCard.tsx` (botao produtor)
+- `src/security/freightActionMatrix.ts` (novas acoes CANCEL/REQUEST_CANCEL para motorista)
+- `src/pages/driver/DriverOngoingTab.tsx` (usar hook)
+
