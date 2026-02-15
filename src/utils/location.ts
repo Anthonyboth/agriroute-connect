@@ -38,7 +38,19 @@ export const checkPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
     try {
       const perm: PermissionStatus = await Geolocation.checkPermissions();
-      return perm.location === 'granted' || perm.coarseLocation === 'granted';
+      const granted = perm.location === 'granted' || perm.coarseLocation === 'granted';
+      if (granted) return true;
+
+      // Fallback: checkPermissions pode retornar falso negativo em alguns Android.
+      // Tentar getCurrentPosition rápido como prova real de que o GPS funciona.
+      try {
+        await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 3000 });
+        if (import.meta.env.DEV) console.log('[GPS] checkPermissions retornou não-granted, mas getCurrentPosition funcionou — tratando como granted');
+        return true;
+      } catch {
+        // GPS realmente não disponível
+        return false;
+      }
     } catch (err) {
       console.warn('[GPS] Erro ao verificar permissões nativas:', err);
       return false;

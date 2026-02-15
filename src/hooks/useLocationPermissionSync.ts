@@ -62,21 +62,38 @@ export function useLocationPermissionSync() {
     }
   }, [profile?.id, profile?.location_enabled, refreshProfile]);
 
+  // Verificar se há evidência recente de GPS ativo no banco
+  const hasRecentGpsEvidence = (() => {
+    const lastUpdate = (profile as any)?.last_gps_update;
+    if (!lastUpdate) return false;
+    const elapsed = Date.now() - new Date(lastUpdate).getTime();
+    return elapsed < 10 * 60 * 1000; // 10 minutos
+  })();
+
   // Executar verificação e sincronização na montagem
   useEffect(() => {
     if (!profile?.id || hasSynced) return;
 
     const run = async () => {
-      const deviceEnabled = await checkDevicePermission();
+      let deviceEnabled = await checkDevicePermission();
+
+      // Fallback: se checkPermission retornou false mas o banco tem GPS recente,
+      // considerar como ativo (falso negativo do Capacitor)
+      if (!deviceEnabled && hasRecentGpsEvidence) {
+        if (import.meta.env.DEV) console.log('[GPS] checkPermission=false mas banco tem GPS recente — considerando ativo');
+        deviceEnabled = true;
+        setIsDeviceLocationEnabled(true);
+      }
+
       await syncWithDatabase(deviceEnabled);
     };
 
     run();
-  }, [profile?.id, hasSynced, checkDevicePermission, syncWithDatabase]);
+  }, [profile?.id, hasSynced, hasRecentGpsEvidence, checkDevicePermission, syncWithDatabase]);
 
   return {
-    // A localização está ativa? (combinação de dispositivo + banco sincronizado)
-    isLocationEnabled: isDeviceLocationEnabled ?? (profile?.location_enabled === true),
+    // A localização está ativa? (combinação de dispositivo + banco sincronizado + evidência GPS)
+    isLocationEnabled: (isDeviceLocationEnabled ?? (profile?.location_enabled === true)) || hasRecentGpsEvidence,
     // Permissão real do dispositivo
     isDeviceLocationEnabled,
     // Valor no banco (pode estar desatualizado)
