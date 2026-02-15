@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Capacitor } from '@capacitor/core';
+import { useDoubleTapResetZoom } from '@/hooks/useDoubleTapResetZoom';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { RatingProvider } from "@/contexts/RatingContext";
 import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
@@ -892,6 +893,9 @@ const DeferredTooltipProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 const App = () => {
+  // Double-tap para resetar zoom
+  useDoubleTapResetZoom();
+
   React.useEffect(() => {
     // Notificar o overlay que a app pintou
     const timer = setTimeout(() => {
