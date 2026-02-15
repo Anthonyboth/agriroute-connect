@@ -322,7 +322,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       case "FRETE_MOTO": return "Frete Moto";
       case "MUDANCA": return "Mudança";
       case "FRETE_URBANO": return "Frete Urbano";
-      default: return "Serviço";
+      default: return "Frete Urbano";
     }
   };
 
@@ -584,7 +584,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                               <h3 className="font-bold text-foreground">
                                 {getServiceTypeTitle(r.service_type)}
                               </h3>
-                              <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
+                              <p className="text-xs text-muted-foreground">Frete #{String(r.id).slice(0, 8)}</p>
                             </div>
                           </div>
                           <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
