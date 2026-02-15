@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { useOngoingFreightLocation } from '@/hooks/useOngoingFreightLocation';
-import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe } from '@/utils/location';
+import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative } from '@/utils/location';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Navigation } from 'lucide-react';
 
@@ -40,7 +40,10 @@ export const DriverAutoLocationTracking = () => {
   useEffect(() => {
     if (!profile?.id) return;
 
-    if (hasActiveFreight && activeFreightId && hasUserGesture) {
+    // ✅ No Capacitor (nativo), não precisa de user gesture para pedir permissão de GPS
+    const canStart = isNative() ? true : hasUserGesture;
+
+    if (hasActiveFreight && activeFreightId && canStart) {
       startAutoTracking();
     } else {
       stopAutoTracking();
@@ -95,7 +98,7 @@ export const DriverAutoLocationTracking = () => {
   };
 
   const startAutoTracking = async () => {
-    if (isTracking || !hasUserGesture) {
+    if (isTracking || (!isNative() && !hasUserGesture)) {
       return;
     }
 

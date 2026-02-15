@@ -335,12 +335,15 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           const latNum = toFiniteNumber(newData.current_lat);
           const lngNum = toFiniteNumber(newData.current_lng);
           if (latNum !== null && lngNum !== null) {
+            // ✅ Normalizar coordenadas do realtime (consistência com outros caminhos)
+            const normalized = normalizeLatLngPoint({ lat: latNum, lng: lngNum }, 'BR');
+            const finalLat = normalized?.lat ?? latNum;
+            const finalLng = normalized?.lng ?? lngNum;
             setDriverLocation(prev => {
-              // Só atualiza se a posição mudou
-              if (prev?.lat === latNum && prev?.lng === lngNum) {
+              if (prev?.lat === finalLat && prev?.lng === finalLng) {
                 return prev;
               }
-              return { lat: latNum, lng: lngNum };
+              return { lat: finalLat, lng: finalLng };
             });
           }
 
@@ -408,11 +411,15 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           const latNum = toFiniteNumber(newData.lat);
           const lngNum = toFiniteNumber(newData.lng);
           if (latNum !== null && lngNum !== null) {
+            // ✅ Normalizar coordenadas do realtime
+            const normalized = normalizeLatLngPoint({ lat: latNum, lng: lngNum }, 'BR');
+            const finalLat = normalized?.lat ?? latNum;
+            const finalLng = normalized?.lng ?? lngNum;
             setDriverLocation(prev => {
-              if (prev?.lat === latNum && prev?.lng === lngNum) {
+              if (prev?.lat === finalLat && prev?.lng === finalLng) {
                 return prev;
               }
-              return { lat: latNum, lng: lngNum };
+              return { lat: finalLat, lng: finalLng };
             });
           }
 
