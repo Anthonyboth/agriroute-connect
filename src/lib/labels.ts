@@ -45,7 +45,7 @@ export const LABELS = {
   // Ações
   VER_DETALHES: "Ver detalhes",
   CONFIRMAR_ENTREGA: "Confirmar entrega",
-  SOLICITAR_CANCELAMENTO: "Solicitar cancelamento",
+  SOLICITAR_CANCELAMENTO: "Cancelamento",
   EDITAR: "Editar",
   CANCELAR: "Cancelar",
   ACEITAR: "Aceitar",
