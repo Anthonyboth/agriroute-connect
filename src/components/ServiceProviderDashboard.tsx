@@ -1084,7 +1084,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   return (
     <div className="bg-background">
       {/* Hero Section - Padronizado com ProducerDashboard */}
-      <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
+      <section className="relative min-h-[160px] flex items-center justify-center overflow-hidden animate-fade-in">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
@@ -1098,12 +1098,6 @@ export const ServiceProviderDashboard: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
-            </h1>
-            <p className="text-base md:text-lg mb-6 opacity-95 font-medium">
-              {SISTEMA_IA_LABEL} conecta você com clientes
-            </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <HeroActionButton 
                 onClick={() => setActiveTab('cities')}
