@@ -88,7 +88,7 @@ const getServiceLabel = (serviceType: string) => {
     case "MUDANCA":
       return "Mudança";
     default:
-      return serviceType || "Serviço";
+      return serviceType || "Frete Urbano";
   }
 };
 
@@ -353,7 +353,7 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
                         {getServiceIcon(sr.service_type)}
                         <span className="truncate">{getServiceLabel(sr.service_type)}</span>
                       </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">Solicitação #{sr.id?.slice(0, 8)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Frete #{sr.id?.slice(0, 8)}</p>
                     </div>
                     {getStatusBadge(sr.status)}
                   </div>
@@ -437,7 +437,7 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
                         {getServiceIcon(sr.service_type)}
                         <span className="truncate">{getServiceLabel(sr.service_type)}</span>
                       </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">Solicitação #{sr.id?.slice(0, 8)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Frete #{sr.id?.slice(0, 8)}</p>
                     </div>
                     {getStatusBadge(sr.status)}
                   </div>

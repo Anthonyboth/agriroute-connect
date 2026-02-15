@@ -865,9 +865,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                           ? "Transporte de Pet 🐾"
                                           : r.service_type === "ENTREGA_PACOTES"
                                             ? "Entrega de Pacotes 📦"
-                                            : "Serviço"}
+                                            : "Frete Urbano"}
                                 </h3>
-                                <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
+                                <p className="text-xs text-muted-foreground">Frete #{String(r.id).slice(0, 8)}</p>
                               </div>
                             </div>
 
