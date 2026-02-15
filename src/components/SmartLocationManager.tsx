@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CitySelector } from './CitySelector';
+import { AddressLocationInput } from './AddressLocationInput';
 import { RadiusSelector } from './RadiusSelector';
 import { LocationValidationModal } from './LocationValidationModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -160,11 +160,11 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
-              <CitySelector
+              <AddressLocationInput
                 value={city}
-                onChange={setCity}
+                onChange={(data) => setCity({ city: data.city, state: data.state })}
                 label="Sua Cidade Base"
-                placeholder="Digite sua cidade..."
+                placeholder="Digite CEP ou nome da cidade"
                 required
               />
             </div>
