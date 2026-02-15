@@ -143,7 +143,7 @@ export const ServicePaymentModal: React.FC<ServicePaymentModalProps> = ({
             >
               {processing ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                   Processando...
                 </>
               ) : (
