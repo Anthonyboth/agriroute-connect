@@ -1,43 +1,47 @@
 
-# Corrigir Nomenclatura: "Serviço" para "Frete Urbano" nos Painéis de Motorista e Transportadora
+# Correcao: Localizacao aparecendo como "Desativada" mesmo com GPS funcionando
 
-## Problema
+## Problema Identificado
 
-No painel do motorista e transportadora, os cards de fretes urbanos (PET, Pacotes, Guincho, Mudanca, etc.) estao exibindo:
-- Titulo: **"Servico"** (fallback generico errado)
-- Subtitulo: **"Solicitacao #..."** (deveria ser "Frete #...")
+O GPS esta funcionando normalmente no app (coordenadas estao sendo enviadas ao banco de dados). Porem, a funcao `Geolocation.checkPermissions()` do plugin Capacitor esta retornando um status incorreto em alguns dispositivos Android, fazendo com que o app mostre erroneamente:
 
-A regra e clara: no painel do motorista/transportadora = **FRETE**. "Servico" so deve aparecer no painel do prestador de servicos.
+- Toast: "Permissao de localizacao negada"
+- Alerta: "Localizacao Desativada"
 
-## Arquivos a Corrigir
+Isso acontece porque o hook `useLocationPermissionSync` confia cegamente no resultado de `checkPermissions()`, ignorando evidencias de que o GPS esta ativo (como coordenadas recentes no banco).
 
-### 1. `src/components/SmartFreightMatcher.tsx` (Painel do Motorista)
-- **Linha 868**: Trocar fallback `"Servico"` para `"Frete Urbano"`
-- **Linha 870**: Trocar `"Solicitacao #"` para `"Frete #"`
-- Garantir que cada tipo exiba seu nome correto como titulo do card (Guincho, Frete Moto, Mudanca, Transporte de Pet, Entrega de Pacotes, Frete Urbano)
+## Solucao
 
-### 2. `src/components/CompanySmartFreightMatcher.tsx` (Painel da Transportadora)
-- **Linha 325**: Trocar fallback `"Servico"` para `"Frete Urbano"`
-- **Linha 587**: Trocar `"Solicitacao #"` para `"Frete #"`
+### 1. Tornar `useLocationPermissionSync` mais resiliente
 
-### 3. `src/components/driver-details/DriverFreightsTab.tsx` (Detalhes do Motorista)
-- **Linha 91**: Trocar fallback `"Servico"` para `"Frete Urbano"` (ou usar o `serviceType` formatado)
-- **Linhas 356, 440**: Trocar `"Solicitacao #"` para `"Frete #"`
+Adicionar uma verificacao de fallback: se `checkPermissionSafe()` retornar `false`, mas o perfil do usuario ja tem coordenadas GPS recentes (menos de 10 minutos), considerar a localizacao como ativa. Isso evita o falso negativo do Capacitor.
 
-### 4. `src/components/ServiceRequestInProgressCard.tsx` (Card em Andamento)
-- Verificar se e usado no contexto de motorista/transportadora e garantir que nao exiba "Servico"
+**Arquivo:** `src/hooks/useLocationPermissionSync.ts`
 
-## O que NAO sera alterado
-- Painel do Prestador de Servicos (la SIM e "Servico")
-- `MyRequestsTab.tsx` (solicitacoes do cliente - usa "Solicitacao" corretamente)
-- Banco de dados, Edge Functions, nenhuma tabela
+- Apos `checkDevicePermission()` retornar `false`, verificar se `profile.current_location_lat` e `profile.last_gps_update` existem e sao recentes
+- Se sim, considerar `isDeviceLocationEnabled = true` e sincronizar como `true`
 
-## Resumo das Trocas
+### 2. Adicionar fallback com `getCurrentPosition` no `checkPermissionSafe`
 
-| Local | Antes | Depois |
-|-------|-------|--------|
-| Titulo fallback (motorista/transportadora) | "Servico" | "Frete Urbano" |
-| Subtitulo (motorista/transportadora) | "Solicitacao #xxx" | "Frete #xxx" |
-| Painel prestador | "Servico" (mantido) | Sem alteracao |
+Quando `Geolocation.checkPermissions()` retornar nao-granted em plataforma nativa, tentar um `getCurrentPosition` rapido como prova real de que o GPS funciona.
 
-Total: **3 arquivos**, mudancas cirurgicas apenas em labels de texto.
+**Arquivo:** `src/utils/location.ts`
+
+- Na funcao `checkPermissionSafe()`, quando em plataforma nativa e o resultado for nao-granted, fazer uma tentativa rapida de `Geolocation.getCurrentPosition` com timeout curto (3s)
+- Se obtiver posicao, retornar `true` (GPS funciona, permissao esta concedida)
+
+### 3. Evitar toast duplicado no `DriverAutoLocationTracking`
+
+**Arquivo:** `src/components/DriverAutoLocationTracking.tsx`
+
+- Se `checkPermissionSafe()` retornar `false`, antes de mostrar erro, tentar `requestPermissionSafe()` que ja faz uma chamada real ao GPS
+- Ja esta fazendo isso, mas o toast de erro aparece mesmo assim. Verificar se o `watchPositionSafe` esta disparando erro de permissao apos o check falhar
+
+## Resumo das Alteracoes
+
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/utils/location.ts` | Fallback com getCurrentPosition quando checkPermissions falha em nativo |
+| `src/hooks/useLocationPermissionSync.ts` | Fallback usando coordenadas recentes do perfil como evidencia de GPS ativo |
+
+Nenhuma outra parte do codigo sera alterada.
