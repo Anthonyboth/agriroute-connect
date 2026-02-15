@@ -12674,10 +12674,10 @@ export type Database = {
           final_price?: number | null
           id?: string | null
           is_emergency?: boolean | null
-          location_address?: string | null
+          location_address?: never
           location_city?: string | null
-          location_lat?: number | null
-          location_lng?: number | null
+          location_lat?: never
+          location_lng?: never
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
@@ -12716,10 +12716,10 @@ export type Database = {
           final_price?: number | null
           id?: string | null
           is_emergency?: boolean | null
-          location_address?: string | null
+          location_address?: never
           location_city?: string | null
-          location_lat?: number | null
-          location_lng?: number | null
+          location_lat?: never
+          location_lng?: never
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
