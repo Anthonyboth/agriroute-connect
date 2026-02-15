@@ -10,9 +10,9 @@ interface AppSpinnerProps {
 }
 
 const sizeMap = {
-  sm: 'h-4 w-4',
-  md: 'h-8 w-8',
-  lg: 'h-12 w-12',
+  sm: 'h-5 w-5',
+  md: 'h-10 w-10',
+  lg: 'h-14 w-14',
 };
 
 /**
@@ -58,8 +58,8 @@ export const AppSpinner = ({
       style={{
         ...sizeStyle,
         background: `conic-gradient(from 180deg, transparent 0%, transparent 15%, hsl(var(--primary)) 85%)`,
-        mask: `radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px))`,
-        WebkitMask: `radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px))`,
+        mask: `radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px))`,
+        WebkitMask: `radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px))`,
       }}
       role="status"
       aria-label="Carregando"
