@@ -316,7 +316,7 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
                     }}
                   />
                   
-                  <CitySelectionGuide variant="compact" showImportance={false} />
+                  
                 </div>
 
                 <div className="space-y-2">

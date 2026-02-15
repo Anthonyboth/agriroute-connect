@@ -291,9 +291,6 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                       min="0.1"
                       required
                     />
-                    <p className="text-xs text-muted-foreground">
-                      💡 Peso total. Ex: 300 = 300 toneladas = 300.000 kg
-                    </p>
                   </div>
                 </div>
 
@@ -518,22 +515,6 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                 </div>
               </div>
 
-              {/* Dicas */}
-              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
-                  💡 Dicas para seu frete agendado
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    <li>• Agende com antecedência para melhores propostas</li>
-                    <li>• Use datas flexíveis para mais opções</li>
-                  </ul>
-                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    <li>• Informe detalhes nas observações</li>
-                    <li>• Preços competitivos atraem mais motoristas</li>
-                  </ul>
-                </div>
-              </div>
 
               {/* Botões */}
               <div className="flex justify-end gap-4 pt-6 border-t bg-background/50 p-6 -mx-6 -mb-6 rounded-b-lg">

@@ -470,13 +470,6 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
               )}
 
               {/* Aviso para novos veículos */}
-              {!editingVehicle && (
-                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                  <p className="text-xs text-blue-800 dark:text-blue-200">
-                    💡 Após cadastrar o veículo, você poderá adicionar fotos no álbum clicando em "Editar".
-                  </p>
-                </div>
-              )}
 
               <div className="flex gap-2 pt-4">
                 <Button 

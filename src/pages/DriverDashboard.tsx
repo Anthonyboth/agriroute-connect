@@ -2712,14 +2712,6 @@ const DriverDashboard = () => {
                   </Card>
                 </div>
 
-                {/* Estatísticas motivacionais */}
-                <div className="bg-muted/50 rounded-lg p-6 max-w-md mx-auto">
-                  <h4 className="font-semibold mb-3">💡 Dica de Sucesso</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Motoristas que enviam pelo menos 3 propostas por semana têm 
-                    <span className="font-semibold text-primary"> 85% mais chances</span> de fechar negócios.
-                  </p>
-                </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button 
