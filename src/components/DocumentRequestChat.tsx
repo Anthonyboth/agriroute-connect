@@ -13,6 +13,7 @@ import { DocumentRequestCard } from './DocumentRequestCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { SignedStorageImage } from '@/components/ui/signed-storage-image';
 
 interface Message {
   id: string;
@@ -164,9 +165,14 @@ export const DocumentRequestChat = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('chat-images')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
 
       const { error: messageError } = await supabase
         .from('document_request_messages')
@@ -175,7 +181,7 @@ export const DocumentRequestChat = ({
           sender_id: currentUserProfile.id,
           message: 'Imagem enviada',
           message_type: 'IMAGE',
-          image_url: publicUrl
+          image_url: signedUrlData.signedUrl
         });
 
       if (messageError) throw messageError;
@@ -315,11 +321,22 @@ export const DocumentRequestChat = ({
                       }`}
                     >
                       {message.message_type === 'IMAGE' && message.image_url ? (
-                        <img
+                        <SignedStorageImage
                           src={message.image_url}
                           alt="Imagem enviada"
                           className="max-w-full rounded-md cursor-pointer"
-                          onClick={() => window.open(message.image_url, '_blank')}
+                          onClick={() => {
+                            // Open in new tab with fresh signed URL
+                            const storageMatch = message.image_url?.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/([^?]+)/);
+                            if (storageMatch) {
+                              supabase.storage
+                                .from(storageMatch[1])
+                                .createSignedUrl(decodeURIComponent(storageMatch[2]), 3600)
+                                .then(({ data }) => {
+                                  if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                                });
+                            }
+                          }}
                         />
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{message.message}</p>
