@@ -15,11 +15,11 @@ export const DriverHistoryTab: React.FC = () => {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="freights" className="flex items-center gap-2">
               <Truck className="h-4 w-4" />
-              Fretes
+              Fretes Rurais
             </TabsTrigger>
             <TabsTrigger value="services" className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Serviços
+              <Truck className="h-4 w-4" />
+              Fretes Urbanos
             </TabsTrigger>
           </TabsList>
 
