@@ -161,7 +161,8 @@ export function useNotificationNavigation() {
         return {
           route: dashboardRoute,
           state: {
-            openFreightId: data.freight_id,
+            openTab: 'payments',
+            highlightFreightId: data.freight_id,
             notificationType: type,
           },
         };

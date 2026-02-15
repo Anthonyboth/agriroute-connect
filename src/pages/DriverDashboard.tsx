@@ -250,11 +250,18 @@ const DriverDashboard = () => {
     };
   }, []);
 
-  // Abrir frete automaticamente quando vem de notificação
+  // Abrir frete ou aba automaticamente quando vem de notificação
   useEffect(() => {
     const state = location.state as any;
     if (!state || !profile?.id) return;
     
+    // ✅ Se veio com openTab (ex: notificação de pagamento), abrir aba diretamente
+    if (state.openTab) {
+      setActiveTab(state.openTab);
+      navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
+
     const freightId = state.openFreightId || state.openChatFreightId;
     if (freightId && ongoingFreights.length > 0) {
       const freight = ongoingFreights.find(f => f.id === freightId);
