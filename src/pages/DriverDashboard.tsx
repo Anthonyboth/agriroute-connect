@@ -1639,8 +1639,19 @@ const DriverDashboard = () => {
         const newStatus = payload.new.status;
         const oldStatus = payload.old?.status;
 
-        // Se mudou para DELIVERED_PENDING_CONFIRMATION, motorista avalia produtor
-        if (newStatus === 'DELIVERED_PENDING_CONFIRMATION' && oldStatus !== 'DELIVERED_PENDING_CONFIRMATION') {
+        // ✅ CORREÇÃO: Avaliação SOMENTE após COMPLETED (pagamento confirmado)
+        // Anteriormente disparava em DELIVERED_PENDING_CONFIRMATION, antes do pagamento
+        if (newStatus === 'COMPLETED' && oldStatus !== 'COMPLETED') {
+          // Verificar se pagamento foi confirmado antes de mostrar avaliação
+          const { data: confirmedPayment } = await supabase
+            .from('external_payments')
+            .select('id')
+            .eq('freight_id', payload.new.id)
+            .eq('status', 'confirmed')
+            .maybeSingle();
+
+          if (!confirmedPayment) return;
+
           const { data: freightData } = await supabase
             .from('freights')
             .select(`
@@ -1673,7 +1684,17 @@ const DriverDashboard = () => {
         const newStatus = payload.new.status;
         const oldStatus = payload.old?.status;
 
-        if (newStatus === 'DELIVERED_PENDING_CONFIRMATION' && oldStatus !== 'DELIVERED_PENDING_CONFIRMATION') {
+        // ✅ CORREÇÃO: Avaliação SOMENTE após COMPLETED (pagamento confirmado)
+        if (newStatus === 'COMPLETED' && oldStatus !== 'COMPLETED') {
+          const { data: confirmedPayment } = await supabase
+            .from('external_payments')
+            .select('id')
+            .eq('freight_id', payload.new.freight_id)
+            .eq('status', 'confirmed')
+            .maybeSingle();
+
+          if (!confirmedPayment) return;
+
           const { data: freightData } = await supabase
             .from('freights')
             .select(`
