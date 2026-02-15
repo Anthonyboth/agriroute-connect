@@ -585,7 +585,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                   onClick={onRequestCancel}
                   className="w-full"
                 >
-                  {LABELS.SOLICITAR_CANCELAMENTO}
+                  {LABELS.CANCELAR}
                 </Button>
               </div>
             )}

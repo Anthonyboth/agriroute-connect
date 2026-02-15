@@ -33,6 +33,7 @@ import { checkStateConsistency } from './freightActionDispatcher';
 export type MatrixAction =
   | 'ADVANCE'
   | 'CANCEL'
+  | 'REQUEST_CANCEL'
   | 'REPORT_DELIVERY'
   | 'CONFIRM_DELIVERY'
   | 'MARK_PAID'
@@ -152,10 +153,12 @@ const ACTION_MATRIX: Record<string, Record<string, ActionDefinition[]>> = {
   ACCEPTED: {
     MOTORISTA: [
       { action: 'ADVANCE', label: 'A Caminho da Coleta', primary: true, targetStatus: 'LOADING', icon: 'Truck' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
     ],
     MOTORISTA_AFILIADO: [
       { action: 'ADVANCE', label: 'A Caminho da Coleta', primary: true, targetStatus: 'LOADING', icon: 'Truck' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
     ],
     PRODUTOR: [
@@ -175,17 +178,20 @@ const ACTION_MATRIX: Record<string, Record<string, ActionDefinition[]>> = {
   LOADING: {
     MOTORISTA: [
       { action: 'ADVANCE', label: 'Carregado', primary: true, targetStatus: 'LOADED', icon: 'Package' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
       { action: 'TRACK_LOCATION', label: 'Rastrear', icon: 'MapPin' },
     ],
     MOTORISTA_AFILIADO: [
       { action: 'ADVANCE', label: 'Carregado', primary: true, targetStatus: 'LOADED', icon: 'Package' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
       { action: 'TRACK_LOCATION', label: 'Rastrear', icon: 'MapPin' },
     ],
     PRODUTOR: [
       { action: 'TRACK_LOCATION', label: 'Rastrear Motorista', icon: 'MapPin' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
     ],
     TRANSPORTADORA: [
       { action: 'MONITOR', label: 'Monitorar', icon: 'Monitor' },
@@ -198,15 +204,18 @@ const ACTION_MATRIX: Record<string, Record<string, ActionDefinition[]>> = {
   LOADED: {
     MOTORISTA: [
       { action: 'ADVANCE', label: 'Iniciar Viagem', primary: true, targetStatus: 'IN_TRANSIT', icon: 'Navigation' },
+      { action: 'REQUEST_CANCEL', label: 'Cancelamento', icon: 'X', tooltip: 'Solicitar cancelamento ao produtor' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
     ],
     MOTORISTA_AFILIADO: [
       { action: 'ADVANCE', label: 'Iniciar Viagem', primary: true, targetStatus: 'IN_TRANSIT', icon: 'Navigation' },
+      { action: 'REQUEST_CANCEL', label: 'Cancelamento', icon: 'X', tooltip: 'Solicitar cancelamento ao produtor' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
     ],
     PRODUTOR: [
       { action: 'TRACK_LOCATION', label: 'Rastrear Motorista', icon: 'MapPin' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
     ],
     TRANSPORTADORA: [
       { action: 'MONITOR', label: 'Monitorar', icon: 'Monitor' },
@@ -219,17 +228,20 @@ const ACTION_MATRIX: Record<string, Record<string, ActionDefinition[]>> = {
   IN_TRANSIT: {
     MOTORISTA: [
       { action: 'REPORT_DELIVERY', label: 'Reportar Entrega', primary: true, targetStatus: 'DELIVERED_PENDING_CONFIRMATION', icon: 'CheckCircle' },
+      { action: 'REQUEST_CANCEL', label: 'Cancelamento', icon: 'X', tooltip: 'Solicitar cancelamento ao produtor' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
       { action: 'TRACK_LOCATION', label: 'Rastrear', icon: 'MapPin' },
     ],
     MOTORISTA_AFILIADO: [
       { action: 'REPORT_DELIVERY', label: 'Reportar Entrega', primary: true, targetStatus: 'DELIVERED_PENDING_CONFIRMATION', icon: 'CheckCircle' },
+      { action: 'REQUEST_CANCEL', label: 'Cancelamento', icon: 'X', tooltip: 'Solicitar cancelamento ao produtor' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
       { action: 'TRACK_LOCATION', label: 'Rastrear', icon: 'MapPin' },
     ],
     PRODUTOR: [
       { action: 'TRACK_LOCATION', label: 'Rastrear Motorista', icon: 'MapPin' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
+      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
     ],
     TRANSPORTADORA: [
       { action: 'MONITOR', label: 'Monitorar', icon: 'Monitor' },
@@ -245,9 +257,11 @@ const ACTION_MATRIX: Record<string, Record<string, ActionDefinition[]>> = {
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle' },
     ],
     MOTORISTA: [
+      { action: 'REQUEST_CANCEL', label: 'Cancelamento', icon: 'X', tooltip: 'Solicitar cancelamento ao produtor' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle', tooltip: 'Aguardando confirmação do produtor' },
     ],
     MOTORISTA_AFILIADO: [
+      { action: 'REQUEST_CANCEL', label: 'Cancelamento', icon: 'X', tooltip: 'Solicitar cancelamento ao produtor' },
       { action: 'CHAT', label: 'Chat', icon: 'MessageCircle', tooltip: 'Aguardando confirmação do produtor' },
     ],
     TRANSPORTADORA: [

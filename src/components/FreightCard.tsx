@@ -811,24 +811,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               Editar
             </Button>
 
-            {/* Cancelamento direto para OPEN, ACCEPTED, LOADING, IN_NEGOTIATION */}
-            {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION"].includes(freight.status) && (
+            {/* Cancelamento direto para OPEN, ACCEPTED, LOADING, IN_NEGOTIATION, LOADED, IN_TRANSIT, DELIVERED_PENDING_CONFIRMATION */}
+            {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"].includes(freight.status) && (
               <Button onClick={() => onAction("cancel")} size="sm" variant="destructive">
                 <X className="h-4 w-4 mr-1" />
                 Cancelar
-              </Button>
-            )}
-
-            {/* Solicitar cancelamento via chat para LOADED, IN_TRANSIT */}
-            {["LOADED", "IN_TRANSIT"].includes(freight.status) && (
-              <Button
-                onClick={() => onAction("request-cancel")}
-                className="border-destructive text-destructive hover:bg-destructive/10 text-xs"
-                size="sm"
-                variant="outline"
-              >
-                <MessageCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                <span className="truncate">Solicitar Cancelamento</span>
               </Button>
             )}
           </div>
