@@ -238,16 +238,6 @@ export const RegionalFreightFilter: React.FC<RegionalFreightFilterProps> = ({
             </div>
           )}
 
-          {/* Dica */}
-          <div className="p-3 bg-gray-50 rounded-lg border">
-            <p className="text-xs text-gray-600">
-              💡 <strong>Dica:</strong> Os resultados são atualizados automaticamente e ordenados por proximidade. 
-              {userType === 'MOTORISTA' 
-                ? 'Fretes mais próximos aparecem primeiro.'
-                : 'Solicitações mais próximas aparecem primeiro.'
-              }
-            </p>
-          </div>
         </div>
       </CardContent>
     </Card>

@@ -181,20 +181,6 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
             </div>
           </div>
 
-          <div className="bg-muted/50 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2 text-sm">
-                <p className="font-medium">Benefícios do Sistema Inteligente:</p>
-                <ul className="space-y-1 text-muted-foreground grid gap-1">
-                  <li>• <strong>Filtragem precisa:</strong> Veja apenas solicitações na sua região</li>
-                  <li>• <strong>Economia de tempo:</strong> Sem perder tempo com fretes distantes</li>
-                  <li>• <strong>Redução de custos:</strong> Menos combustível e desgaste</li>
-                  <li>• <strong>Maior eficiência:</strong> Atenda mais clientes por dia</li>
-                </ul>
-              </div>
-            </div>
-          </div>
 
           <div className="flex gap-3 pt-4">
             <Button

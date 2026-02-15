@@ -345,11 +345,6 @@ export const DriverFinancialReport: React.FC<DriverFinancialReportProps> = ({ dr
                     {avgKmPerLiter.toFixed(2)} km/L
                   </Badge>
                 </div>
-                {avgKmPerLiter < 8 && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
-                    💡 Dica: Verifique calibragem dos pneus e filtros para melhorar o consumo
-                  </p>
-                )}
                 {avgKmPerLiter >= 8 && avgKmPerLiter < 12 && (
                   <p className="text-sm text-emerald-600 dark:text-emerald-400">
                     ✅ Consumo dentro da média para veículos de carga

@@ -316,9 +316,6 @@ export const UserLocationSelector: React.FC<UserLocationSelectorProps> = ({ onLo
             Confirmar Localização
           </Button>
 
-          <div className="text-xs text-muted-foreground">
-            <p>💡 Dica: Use o botão GPS para capturar as coordenadas automaticamente, depois confirme a cidade.</p>
-          </div>
         </CardContent>
       </Card>
     </div>

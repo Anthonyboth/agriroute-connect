@@ -115,19 +115,6 @@ export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
           <span>{max}{unit}</span>
         </div>
         
-        {/* Dica informativa */}
-        <div className="bg-muted/50 rounded-lg p-3">
-          <p className="text-xs text-muted-foreground">
-            <strong>Dica:</strong> {value <= 50 
-              ? "Ideal para atendimento local e urbano. Menor concorrência, entregas rápidas."
-              : value <= 100 
-              ? "Bom equilíbrio entre alcance e praticidade. Atende cidades próximas."
-              : value <= 200
-              ? "Alcance estadual. Mais oportunidades, mas considere custos de combustível."
-              : "Alcance amplo. Máxima cobertura, ideal para serviços especializados."
-            }
-          </p>
-        </div>
       </div>
     </div>
   );

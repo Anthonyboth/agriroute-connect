@@ -36,9 +36,6 @@ export const WeightInput = ({ value, onChange, required = true }: WeightInputPro
         className={validation && !validation.isValid ? 'border-destructive' : ''}
       />
       
-      <p className="text-xs text-muted-foreground">
-        💡 Peso <strong>total</strong> em toneladas que deseja transportar. Ex: 600 = 600 toneladas no barracão
-      </p>
       
       {/* Preview do peso formatado */}
       {validation && validation.isValid && (

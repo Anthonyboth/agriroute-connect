@@ -99,12 +99,6 @@ export const ServiceChatDialog: React.FC<ServiceChatDialogProps> = ({
                 </div>
               </div>
 
-              <Alert>
-                <AlertDescription className="text-sm">
-                  <strong>Dica:</strong> Incentive seus clientes a criarem uma conta para ter acesso 
-                  ao chat interno e outras funcionalidades da plataforma.
-                </AlertDescription>
-              </Alert>
             </div>
           ) : (
             <div className="flex-1 overflow-hidden">
