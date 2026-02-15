@@ -25,9 +25,9 @@ const HeroActionButton = React.forwardRef<HTMLButtonElement, HeroActionButtonPro
         ref={ref}
         type="button"
         className={cn(
-          // Base styles
-          "bg-white text-primary font-semibold",
-          "border border-slate-200/70 dark:border-slate-300/50",
+          // Base styles - bolha transparente
+          "bg-white/20 backdrop-blur-md text-white/90 font-semibold",
+          "border border-white/30",
           "rounded-full",
           // Sizing
           "h-9 px-4 text-xs",
@@ -35,11 +35,11 @@ const HeroActionButton = React.forwardRef<HTMLButtonElement, HeroActionButtonPro
           // Icon spacing
           "gap-2",
           // Hover effects
-          "hover:bg-slate-50 hover:shadow-sm hover:-translate-y-[1px]",
+          "hover:bg-white/30 hover:shadow-md hover:shadow-black/10 hover:-translate-y-[1px]",
           // Active/pressed
-          "active:translate-y-0 active:shadow-none",
+          "active:translate-y-0 active:bg-white/25 active:shadow-none",
           // Focus accessible
-          "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+          "focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
           // Disabled
           "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:translate-y-0",
           // Transitions
