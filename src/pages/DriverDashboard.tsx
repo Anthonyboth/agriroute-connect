@@ -1287,7 +1287,8 @@ const DriverDashboard = () => {
     try {
       if (import.meta.env.DEV) console.log('🔍 Buscando pagamentos pendentes para driver:', profile.id);
       
-      const { data, error } = await supabase
+      // ✅ FIX: Buscar pagamentos SEM join em profiles (CLS bloqueia colunas sensíveis)
+      const { data: payments, error } = await supabase
         .from('external_payments')
         .select(`
           *,
@@ -1303,12 +1304,6 @@ const DriverDashboard = () => {
             pickup_date,
             status,
             price
-          ),
-          producer:profiles!external_payments_producer_id_fkey(
-            id,
-            full_name,
-            contact_phone,
-            profile_photo_url
           )
         `)
         .eq('driver_id', profile.id)
@@ -1317,9 +1312,30 @@ const DriverDashboard = () => {
       
       if (error) throw error;
       
-      if (import.meta.env.DEV) console.log('💰 Pagamentos pendentes:', data?.length || 0);
+      // ✅ FIX: Buscar dados do produtor via profiles_secure (contorna CLS)
+      const producerIds = Array.from(new Set((payments || []).map((p: any) => p.producer_id).filter(Boolean)));
+      let producerMap = new Map<string, any>();
       
-      if (isMountedRef.current) setPendingPayments(data || []);
+      if (producerIds.length > 0) {
+        const { data: producers } = await supabase
+          .from('profiles_secure')
+          .select('id, full_name, contact_phone, profile_photo_url')
+          .in('id', producerIds);
+        
+        if (producers?.length) {
+          producerMap = new Map(producers.map((p: any) => [p.id, p]));
+        }
+      }
+      
+      // Anexar produtor aos pagamentos
+      const paymentsWithProducer = (payments || []).map((p: any) => ({
+        ...p,
+        producer: producerMap.get(p.producer_id) || null,
+      }));
+      
+      if (import.meta.env.DEV) console.log('💰 Pagamentos pendentes:', paymentsWithProducer.length);
+      
+      if (isMountedRef.current) setPendingPayments(paymentsWithProducer);
     } catch (error) {
       console.error('Error fetching pending payments:', error);
       if (isMountedRef.current) setPendingPayments([]);
