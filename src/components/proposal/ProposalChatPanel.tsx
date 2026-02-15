@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { CenteredSpinner, InlineSpinner } from "@/components/ui/AppSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useProposalTypingIndicator } from "@/hooks/useProposalTypingIndicator";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { SignedStorageImage } from "@/components/ui/signed-storage-image";
 
 interface ProposalChatPanelProps {
   proposalId: string;
@@ -170,7 +172,7 @@ export const ProposalChatPanel = ({
                     )}
 
                     {message.message_type === "image" && message.image_url && (
-                      <img
+                      <SignedStorageImage
                         src={message.image_url}
                         alt="Imagem enviada"
                         className="max-w-xs rounded"
@@ -178,10 +180,19 @@ export const ProposalChatPanel = ({
                     )}
 
                     {message.message_type === "file" && message.file_url && (
-                      <a
-                        href={message.file_url}
-                        download={message.file_name}
-                        className="flex items-center gap-2 hover:underline"
+                      <button
+                        onClick={async () => {
+                          const storageMatch = message.file_url?.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/([^?]+)/);
+                          if (storageMatch) {
+                            const { data } = await supabase.storage
+                              .from(storageMatch[1])
+                              .createSignedUrl(decodeURIComponent(storageMatch[2]), 3600);
+                            if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                          } else {
+                            window.open(message.file_url!, '_blank');
+                          }
+                        }}
+                        className="flex items-center gap-2 hover:underline cursor-pointer"
                       >
                         <Download className="h-4 w-4" />
                         <div className="text-left">
@@ -192,7 +203,7 @@ export const ProposalChatPanel = ({
                             {formatFileSize(message.file_size)}
                           </p>
                         </div>
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>

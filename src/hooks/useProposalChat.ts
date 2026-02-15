@@ -155,9 +155,14 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('proposal-chat-images')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
 
       const { error: insertError } = await supabase
         .from('proposal_chat_messages')
@@ -165,7 +170,7 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
           proposal_id: proposalId,
           sender_id: currentUserId,
           message_type: 'image',
-          image_url: publicUrl,
+          image_url: signedUrlData.signedUrl,
         });
 
       if (insertError) throw insertError;
@@ -212,9 +217,14 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('proposal-chat-files')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
 
       const { error: insertError } = await supabase
         .from('proposal_chat_messages')
@@ -222,7 +232,7 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
           proposal_id: proposalId,
           sender_id: currentUserId,
           message_type: 'file',
-          file_url: publicUrl,
+          file_url: signedUrlData.signedUrl,
           file_name: file.name,
           file_size: file.size,
         });
