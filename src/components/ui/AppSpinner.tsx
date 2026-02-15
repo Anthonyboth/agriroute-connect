@@ -34,10 +34,12 @@ const sizeMap = {
  * <AppSpinner fullscreen />
  */
 export const AppSpinner = ({ 
-  size = 'md', 
+  size: sizeProp, 
   className,
   fullscreen = false 
 }: AppSpinnerProps) => {
+  // Fullscreen ALWAYS uses 'lg' for consistency across the app
+  const size = sizeProp ?? (fullscreen ? 'lg' : 'md');
   const sizeClass = typeof size === 'number' 
     ? undefined 
     : sizeMap[size];
