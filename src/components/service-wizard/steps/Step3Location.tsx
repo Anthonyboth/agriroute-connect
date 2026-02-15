@@ -6,7 +6,7 @@ import { ServiceFormData, ServiceType, AddressData } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Home, Building, Copy } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CitySelector } from '@/components/CitySelector';
+import { AddressLocationInput } from '@/components/AddressLocationInput';
 import { LocationFillButton } from '@/components/LocationFillButton';
 
 interface Step3Props {
@@ -34,11 +34,6 @@ const AddressForm: React.FC<AddressFormProps> = ({
   onUpdate,
   showFloorElevator = false 
 }) => {
-  const formatCEP = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 5) return numbers;
-    return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
-  };
 
   return (
     <Card>
@@ -49,10 +44,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Cidade - campo principal unificado (preenche estado automaticamente) */}
+        {/* Cidade/CEP - campo unificado */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <Label htmlFor={`${prefix}-city`} className="text-xs">Cidade *</Label>
+            <div /> {/* spacer */}
             <LocationFillButton
               size="sm"
               variant="ghost"
@@ -80,35 +75,24 @@ const AddressForm: React.FC<AddressFormProps> = ({
               }}
             />
           </div>
-          <CitySelector
+          <AddressLocationInput
             value={address.city ? { city: address.city, state: address.state, id: address.city_id, lat: address.lat, lng: address.lng } : undefined}
-            onChange={(cityData) => {
-              onUpdate(`${prefix}.city_id`, cityData.id);
-              onUpdate(`${prefix}.city`, cityData.city);
-              onUpdate(`${prefix}.state`, cityData.state);
-              onUpdate(`${prefix}.lat`, cityData.lat);
-              onUpdate(`${prefix}.lng`, cityData.lng);
+            onChange={(data) => {
+              onUpdate(`${prefix}.city_id`, data.id);
+              onUpdate(`${prefix}.city`, data.city);
+              onUpdate(`${prefix}.state`, data.state);
+              onUpdate(`${prefix}.lat`, data.lat);
+              onUpdate(`${prefix}.lng`, data.lng);
+              if (data.neighborhood) {
+                onUpdate(`${prefix}.neighborhood`, data.neighborhood);
+              }
+              if (data.cep) {
+                onUpdate(`${prefix}.cep`, data.cep);
+              }
             }}
-            placeholder="Digite o nome da cidade"
-            label=""
-          />
-          {address.state && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Estado: {address.state}
-            </p>
-          )}
-        </div>
-
-        {/* CEP opcional */}
-        <div className="space-y-1">
-          <Label htmlFor={`${prefix}-cep`} className="text-xs">CEP (opcional)</Label>
-          <Input
-            id={`${prefix}-cep`}
-            value={address.cep}
-            onChange={(e) => onUpdate(`${prefix}.cep`, formatCEP(e.target.value))}
-            placeholder="00000-000"
-            maxLength={9}
-            className="h-9"
+            placeholder="Digite CEP ou nome da cidade"
+            label="Cidade / CEP *"
+            className="[&_input]:h-9"
           />
         </div>
 

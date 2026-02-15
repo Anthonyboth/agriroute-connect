@@ -35,6 +35,7 @@ interface AddressLocationInputProps {
     lat?: number; 
     lng?: number;
     neighborhood?: string;
+    cep?: string;
   }) => void;
   placeholder?: string;
   label?: string;
@@ -106,7 +107,8 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
           id: result.cityId || '',
           lat: result.lat,
           lng: result.lng,
-          neighborhood: result.neighborhood
+          neighborhood: result.neighborhood,
+          cep: cleanCep
         });
         setSearchTerm(formatCityDisplay(result.city, uf));
         setValidationStatus('valid');
