@@ -61,7 +61,7 @@ export const AppSpinner = ({
 
   if (fullscreen) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
         {spinner}
       </div>
     );
