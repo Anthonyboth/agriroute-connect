@@ -1,53 +1,33 @@
 
 
-## Correções de Exibição para URLs Assinadas Expiradas
+## Correção do Header da Landing Page no Mobile
 
-A verificação dos 5 arquivos de upload confirmou que a lógica de `createSignedUrl` está correta em todos eles. Porém, foram encontrados **2 problemas nos componentes de exibição** que farão com que imagens/arquivos não carreguem após 24h:
+### Problema
+Os botões "Entrar" e "Cadastrar-se" aparecem em telas Android porque usam `hidden sm:flex` (breakpoint 640px). Como a WebView do Android frequentemente tem viewport >= 640px, os botões ficam visíveis junto com o menu hambúrguer.
 
-### Problema 1: FreightCheckinsViewer.tsx (linha 295)
+### Correção
+Alterar **2 linhas** em `src/pages/Landing.tsx`:
 
-O componente usa `<img src={photo}>` diretamente para exibir fotos de check-in. Como as URLs assinadas expiram em 24h, fotos antigas ficarão quebradas.
+- **Linha 220**: `hidden sm:flex` para `hidden md:flex` (botão "Cadastrar-se")
+- **Linha 231**: `hidden sm:flex` para `hidden md:flex` (botão "Entrar")
 
-**Correção**: Substituir `<img>` por `StorageImage` (que já possui fallback automático para regenerar signed URLs expiradas).
+Isso alinha os botões com a navegação desktop (linha 204), que já usa `hidden md:flex` (breakpoint 768px). Abaixo de 768px, só o menu hambúrguer aparece.
 
-```
-// ANTES (linha 295):
-<img src={photo} alt={...} className={...} />
+### Verificação de danos colaterais
 
-// DEPOIS:
-<StorageImage src={photo} alt={...} className={...} />
-```
+Confirmado que **nenhum arquivo de landing, header, navegação ou hero** foi alterado durante a migração de storage. Os únicos arquivos editados foram:
 
-Adicionar import de `StorageImage` no topo do arquivo.
+- `FreightCheckinModal.tsx` (storage)
+- `FreightAttachments.tsx` (storage)
+- `FreightCheckinsViewer.tsx` (storage)
+- `DriverInfoTab.tsx` (storage)
+- `VehiclePhotoGallery.tsx` (storage)
+- `authUploadHelper.ts` (storage)
+- `DocumentRequestChat.tsx` (storage)
+- `useProposalChat.ts` (storage)
+- `ProposalChatPanel.tsx` (storage)
 
-### Problema 2: FreightAttachments.tsx (linhas 430 e 459)
+Nenhum desses arquivos tem relação com a Landing page. O problema do `sm:flex` já existia antes da migração -- não foi introduzido por ela.
 
-Dois sub-problemas:
-- **Linha 430**: Link de download `<a href={attachment.file_url}>` usa URL que pode estar expirada.
-- **Linha 459**: Preview de imagem `<img src={previewUrl}>` usa URL que pode estar expirada.
-
-**Correção**:
-1. Substituir `<img src={previewUrl}>` no dialog de preview por `StorageImage`.
-2. Substituir o link de download direto por um botão que gera uma signed URL fresca antes de abrir o download.
-
-### Arquivos a serem modificados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/FreightCheckinsViewer.tsx` | Importar `StorageImage`, substituir `<img>` na linha 295 |
-| `src/components/freight/FreightAttachments.tsx` | Importar `StorageImage`, substituir `<img>` na preview (linha 459), adicionar função de download com signed URL fresca |
-
-### Detalhes técnicos
-
-**FreightCheckinsViewer.tsx**:
-- Adicionar `import { StorageImage } from '@/components/ui/storage-image';`
-- Linha 295: trocar `<img src={photo} alt={...} className="w-full h-64 object-cover rounded border" />` por `<StorageImage src={photo} alt={...} className="w-full h-64 object-cover rounded border" />`
-
-**FreightAttachments.tsx**:
-- Adicionar `import { StorageImage } from '@/components/ui/storage-image';`
-- Criar uma funcao `handleDownload` que extrai bucket/path da URL, gera uma signed URL fresca via `createSignedUrl`, e abre o download com `window.open()`
-- Linha 430: trocar `<a href={attachment.file_url} download>` por `<button onClick={() => handleDownload(attachment.file_url, attachment.file_name)}>`
-- Linha 459: trocar `<img src={previewUrl}>` por `<StorageImage src={previewUrl} alt="Preview" className="w-full h-auto max-h-[70vh] object-contain rounded-lg" />`
-
-Nenhuma migração de banco de dados é necessária. As políticas RLS e INSERT já estão corretas.
-
+### Escopo da alteração
+Apenas 2 classes CSS em 1 arquivo. Nenhum outro arquivo será tocado.
