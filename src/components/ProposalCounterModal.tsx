@@ -25,7 +25,9 @@ interface ProposalCounterModalProps {
   freightPrice: number; // Preço TOTAL do frete
   freightDistance?: number;
   freightWeight?: number; // Peso TOTAL em kg
-  requiredTrucks?: number; // ✅ NOVO: número de carretas
+  requiredTrucks?: number;
+  freightPricingType?: string; // ✅ Tipo de precificação original (FIXED, PER_KM, PER_TON)
+  freightPricePerKm?: number; // ✅ Valor unitário original por km ou ton
   onSuccess?: () => void;
 }
 
@@ -36,7 +38,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   freightPrice,
   freightDistance = 0,
   freightWeight = 0,
-  requiredTrucks = 1, // ✅ Padrão 1 carreta
+  requiredTrucks = 1,
+  freightPricingType,
+  freightPricePerKm,
   onSuccess
 }) => {
   const { profile } = useAuth();
@@ -200,10 +204,21 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
           throw new Error('Você não tem permissão para enviar mensagens neste frete');
         }
 
-        // ✅ Mensagem de chat com valores por carreta
+        // ✅ Helper para formatar valor original unitário
+        const formatOriginalUnit = () => {
+          if (freightPricingType === 'PER_KM' && freightPricePerKm) {
+            return `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`;
+          }
+          if (freightPricingType === 'PER_TON' && freightPricePerKm) {
+            return `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`;
+          }
+          return formatBRL(pricePerTruck, true) + (hasMultipleTrucks ? ' /carreta' : '');
+        };
+
+        // ✅ Mensagem de chat com valores unitários
         const messageContent = hasMultipleTrucks
           ? `CONTRA-PROPOSTA (1 carreta de ${requiredTrucks}):\n\n` +
-            `Valor original por carreta: ${formatBRL(pricePerTruck, true)}\n` +
+            `Valor original: ${formatOriginalUnit()}\n` +
             `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
             `Minha contra-proposta: ${pricingType === 'FIXED' 
               ? formatBRL(finalPrice, true)
@@ -213,18 +228,18 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             `${counterMessage.trim() || 'Sem observações adicionais'}`
           : pricingType === 'FIXED'
             ? `CONTRA-PROPOSTA: ${formatBRL(finalPrice, true)}\n\n` +
-              `Valor original: ${formatBRL(pricePerTruck, true)}\n` +
+              `Valor original: ${formatOriginalUnit()}\n` +
               `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
               `Minha contra-proposta: ${formatBRL(finalPrice, true)}\n\n` +
               `${counterMessage.trim() || 'Sem observações adicionais'}`
             : pricingType === 'PER_KM'
               ? `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\n` +
-                `Valor original: ${formatBRL(pricePerTruck, true)}\n` +
+                `Valor original: ${formatOriginalUnit()}\n` +
                 `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
                 `Minha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: ${formatBRL(finalPrice, true)} para ${freightDistance} km)\n\n` +
                 `${counterMessage.trim() || 'Sem observações adicionais'}`
               : `CONTRA-PROPOSTA POR TONELADA: R$ ${priceFloat.toLocaleString('pt-BR')}/ton\n\n` +
-                `Valor original: ${formatBRL(pricePerTruck, true)}\n` +
+                `Valor original: ${formatOriginalUnit()}\n` +
                 `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
                 `Minha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/ton (Total: ${formatBRL(finalPrice, true)} para ${weightPerTruckInTons.toFixed(1)} ton)\n\n` +
                 `${counterMessage.trim() || 'Sem observações adicionais'}`;
@@ -331,7 +346,14 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Valor original:</span>
-              <span className="font-medium">{formatBRL(pricePerTruck, true)}</span>
+              <span className="font-medium">
+                {freightPricingType === 'PER_KM' && freightPricePerKm
+                  ? `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                  : freightPricingType === 'PER_TON' && freightPricePerKm
+                    ? `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                    : formatBRL(pricePerTruck, true)
+                }
+              </span>
             </div>
             
             <div className="flex items-center justify-between text-sm">
@@ -475,7 +497,14 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span>Valor original:</span>
-                    <span>{formatBRL(pricePerTruck, true)}</span>
+                    <span>
+                      {freightPricingType === 'PER_KM' && freightPricePerKm
+                        ? `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                        : freightPricingType === 'PER_TON' && freightPricePerKm
+                          ? `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                          : formatBRL(pricePerTruck, true)
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Proposta do motorista:</span>

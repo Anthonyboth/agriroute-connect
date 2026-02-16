@@ -43,6 +43,8 @@ interface Proposal {
     distance_km: number;
     status: string;
     weight?: number;
+    pricing_type?: string;
+    price_per_km?: number;
   };
 }
 
@@ -212,12 +214,19 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             </TooltipProvider>
           </div>
           
-          {/* Valor original do frete por carreta */}
+          {/* Valor original do frete - exibe valor unitário preenchido pelo usuário */}
           <div className="flex items-center justify-between text-sm mb-1">
             <span className="text-muted-foreground">Valor original:</span>
             <span className="text-muted-foreground">
-              {formatBRL(freightPricePerTruck, true)}
-              {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+              {freight.pricing_type === 'PER_KM' && freight.price_per_km
+                ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                : freight.pricing_type === 'PER_TON' && freight.price_per_km
+                  ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                  : <>
+                      {formatBRL(freightPricePerTruck, true)}
+                      {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+                    </>
+              }
             </span>
           </div>
           
