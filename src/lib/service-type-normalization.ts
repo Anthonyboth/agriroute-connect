@@ -36,6 +36,8 @@ export const normalizeServiceType = (type: string | null | undefined): Canonical
     'MUDANCA': 'MUDANCA',
     'MUDANCA_FREIGHT': 'MUDANCA',
     'MUDANCAS': 'MUDANCA',
+    'MUDANCA_RESIDENCIAL': 'MUDANCA',
+    'MUDANCA_COMERCIAL': 'MUDANCA',
     
     'FRETE_MOTO': 'FRETE_MOTO',
     'MOTO': 'FRETE_MOTO',
