@@ -1299,27 +1299,15 @@ const ProducerDashboard = () => {
 
       console.log("[confirmPaymentMade] ✅ Pagamento atualizado:", updatedRows);
 
-      // ✅ CORREÇÃO: Notificar motorista que o produtor pagou
+      // ✅ Notificação do motorista é feita pelo trigger notify_external_payment() no banco
+      // NÃO inserir notificação manual aqui para evitar duplicação
+
+      // ✅ Notificar transportadora (se motorista afiliado) - trigger não cobre isso
       if (paymentData?.driver_id) {
         const amountStr = paymentData.amount 
           ? `R$ ${Number(paymentData.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
           : '';
 
-        // Notificar motorista
-        await supabase.from('notifications').insert({
-          user_id: paymentData.driver_id,
-          title: '💰 Pagamento Efetuado pelo Produtor',
-          message: `O produtor informou que efetuou o pagamento de ${amountStr}. Confirme o recebimento no seu painel.`,
-          type: 'payment_paid_by_producer',
-          read: false,
-          data: {
-            freight_id: paymentData.freight_id,
-            payment_id: paymentId,
-            amount: paymentData.amount,
-          },
-        });
-
-        // ✅ Notificar transportadora (se motorista afiliado)
         const { data: affiliation } = await supabase
           .from('company_drivers')
           .select('company_id, transport_companies:transport_companies!company_drivers_company_id_fkey(profile_id)')

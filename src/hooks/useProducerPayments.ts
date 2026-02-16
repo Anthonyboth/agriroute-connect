@@ -144,19 +144,13 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
       }
       devLog('[useProducerPayments] ✅ Payment updated successfully:', updatedRows);
       toast.success('Pagamento confirmado!', { description: 'O motorista será notificado para confirmar o recebimento.' });
+      // ✅ Notificação do motorista é feita pelo trigger notify_external_payment() no banco
+      // NÃO inserir notificação manual aqui para evitar duplicação
+      // Apenas enviar push notification (que é separado do banco)
       if (paymentData.driver_id) {
         const freight = paymentData.freight as any;
         const amountFormatted = paymentData.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00';
         const routeInfo = freight?.origin_city && freight?.destination_city ? `${freight.origin_city} → ${freight.destination_city}` : 'Frete';
-        supabase.from('notifications').insert({
-          user_id: paymentData.driver_id,
-          title: '💰 Pagamento Confirmado pelo Produtor',
-          message: `R$ ${amountFormatted} - ${routeInfo}. Acesse a aba Pagamentos para confirmar o recebimento.`,
-          type: 'payment_confirmed_by_producer', read: false,
-        }).then(({ error }) => {
-          if (error) console.error('[useProducerPayments] Error creating notification:', error);
-          else devLog('[useProducerPayments] ✅ Notification created for driver');
-        });
         sendPushNotification({
           userIds: [paymentData.driver_id],
           title: '💰 Pagamento Confirmado pelo Produtor',
