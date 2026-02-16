@@ -16,6 +16,20 @@ const UpdateFreightSchema = z.object({
     status: z.enum(['OPEN', 'ACCEPTED', 'LOADING', 'IN_TRANSIT', 'DELIVERED']).optional(),
     notes: z.string().max(1000).optional(),
     price: z.number().min(0).max(10000000).optional(),
+    price_per_km: z.number().min(0).max(10000000).nullable().optional(),
+    pricing_type: z.enum(['FIXED', 'PER_KM', 'PER_TON']).optional(),
+    cargo_type: z.string().max(100).optional(),
+    weight: z.number().min(0).max(1000000000).optional(),
+    origin_address: z.string().max(500).optional(),
+    origin_lat: z.number().optional(),
+    origin_lng: z.number().optional(),
+    destination_address: z.string().max(500).optional(),
+    destination_lat: z.number().optional(),
+    destination_lng: z.number().optional(),
+    urgency: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    required_trucks: z.number().int().min(1).max(100).optional(),
+    minimum_antt_price: z.number().min(0).optional(),
+    description: z.string().max(2000).optional(),
   }).refine(obj => Object.keys(obj).length > 0, {
     message: 'Pelo menos um campo de atualização é obrigatório'
   })
