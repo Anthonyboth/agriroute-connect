@@ -372,7 +372,7 @@ const ProducerDashboard = () => {
           pickup_date, delivery_date, price, urgency, status, distance_km,
           minimum_antt_price, service_type, required_trucks, accepted_trucks,
           driver_id, drivers_assigned, producer_id, company_id,
-          created_at, updated_at, metadata
+          created_at, updated_at, metadata, pricing_type, price_per_km
         `)
         .eq("producer_id", profile.id)
         .order("updated_at", { ascending: false })

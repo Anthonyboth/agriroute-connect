@@ -39,6 +39,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
     pickup_date: new Date(),
     delivery_date: new Date(),
     price: '',
+    pricing_type: 'FIXED' as 'FIXED' | 'PER_KM' | 'PER_TON',
     description: '',
     urgency: 'MEDIUM',
     required_trucks: 1
@@ -57,9 +58,21 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
       };
       setInitialValues(initialData);
       
+      // Determine pricing_type and the correct value to show
+      const pricingType = freight.pricing_type || 'FIXED';
+      let priceValue = '';
+      if (pricingType === 'PER_KM' && freight.price_per_km) {
+        priceValue = freight.price_per_km.toString();
+      } else if (pricingType === 'PER_TON' && freight.price_per_km) {
+        // price_per_km stores per-ton rate for PER_TON type
+        priceValue = freight.price_per_km.toString();
+      } else {
+        priceValue = freight.price ? freight.price.toString() : '';
+      }
+
       setFormData({
         cargo_type: freight.cargo_type || '',
-        weight: freight.weight ? (freight.weight / 1000).toString() : '', // Convert kg from DB to tonnes for display
+        weight: freight.weight ? (freight.weight / 1000).toString() : '',
         origin_address: freight.origin_address || '',
         origin_lat: freight.origin_lat,
         origin_lng: freight.origin_lng,
@@ -68,7 +81,8 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
         destination_lng: freight.destination_lng,
         pickup_date: freight.pickup_date ? new Date(freight.pickup_date) : new Date(),
         delivery_date: freight.delivery_date ? new Date(freight.delivery_date) : new Date(),
-        price: freight.price ? freight.price.toString() : '',
+        price: priceValue,
+        pricing_type: pricingType,
         description: freight.description || '',
         urgency: (freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH') || 'MEDIUM',
         required_trucks: freight.required_trucks || 1
@@ -90,6 +104,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
       pickup_date: new Date(),
       delivery_date: new Date(),
       price: '',
+      pricing_type: 'FIXED',
       description: '',
       urgency: 'MEDIUM',
       required_trucks: 1
@@ -162,6 +177,20 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
         }
       }
 
+      // Calculate price and price_per_km based on pricing_type
+      const priceValue = Number(formData.price);
+      let finalPrice = priceValue;
+      let finalPricePerKm: number | null = null;
+
+      if (formData.pricing_type === 'PER_KM') {
+        finalPricePerKm = priceValue;
+        finalPrice = priceValue * (freight.distance_km || 0);
+      } else if (formData.pricing_type === 'PER_TON') {
+        finalPricePerKm = priceValue; // stored in price_per_km column
+        const weightTon = Number(formData.weight) || 0;
+        finalPrice = priceValue * weightTon;
+      }
+
       const { data, error } = await supabase.functions.invoke('safe-update-freight', {
         body: {
           freight_id: freight.id,
@@ -176,7 +205,9 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
             destination_lng: formData.destination_lng,
             pickup_date: formData.pickup_date.toISOString().split('T')[0],
             delivery_date: formData.delivery_date.toISOString().split('T')[0],
-            price: Number(formData.price),
+            price: finalPrice,
+            price_per_km: finalPricePerKm,
+            pricing_type: formData.pricing_type,
             description: formData.description,
             urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
             required_trucks: Number(formData.required_trucks),
@@ -323,9 +354,30 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="price">Valor (R$)</Label>
+              <Label htmlFor="pricing_type">Tipo de Pagamento</Label>
+              <Select
+                value={formData.pricing_type}
+                onValueChange={(value) => setFormData({ ...formData, pricing_type: value as 'FIXED' | 'PER_KM' | 'PER_TON' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                  <SelectItem value="PER_KM">Por KM</SelectItem>
+                  <SelectItem value="PER_TON">Por Tonelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="price">
+                {formData.pricing_type === 'PER_KM' ? 'Valor por KM (R$)' : 
+                 formData.pricing_type === 'PER_TON' ? 'Valor por Tonelada (R$)' : 
+                 'Valor Fixo (R$)'}
+              </Label>
               <Input
                 id="price"
                 type="number"
