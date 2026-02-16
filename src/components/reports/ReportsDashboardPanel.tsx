@@ -268,6 +268,76 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       }
     }
 
+    // Top Rotas como gráfico de barras horizontal (motorista/transportadora)
+    if (charts.top_rotas?.length) {
+      configs.push({
+        title: 'Principais Rotas (Receita)',
+        type: 'horizontal-bar',
+        data: charts.top_rotas.slice(0, 8).map((r: any) => ({
+          name: `${r.origem} → ${r.destino}`,
+          receita: r.receita || 0,
+          viagens: r.total || 0,
+        })),
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
+        xAxisKey: 'name',
+        valueFormatter: formatBRL,
+        height: 350,
+      });
+    }
+
+    // Avaliações distribuição como gráfico de barras (motorista)
+    if (charts.avaliacoes_distribuicao?.length && panel === 'MOTORISTA') {
+      configs.push({
+        title: 'Distribuição de Avaliações',
+        type: 'bar',
+        data: charts.avaliacoes_distribuicao.map((r: any) => ({
+          name: `${r.name || r.stars}★`,
+          value: r.value || r.count || 0,
+        })),
+        dataKeys: [{ key: 'value', label: 'Avaliações', color: '#FF9800' }],
+        xAxisKey: 'name',
+      });
+    }
+
+    // Distância vs Receita como scatter (motorista)  
+    if (panel === 'MOTORISTA' && charts.receita_por_mes?.length) {
+      const scatterData = charts.receita_por_mes
+        .filter((m: any) => (m.receita || 0) > 0 || (m.km || 0) > 0)
+        .map((m: any) => ({
+          km: m.km || 0,
+          receita: m.receita || 0,
+          name: m.mes,
+        }));
+      if (scatterData.length > 1) {
+        configs.push({
+          title: 'Distância vs Receita (por mês)',
+          type: 'scatter',
+          data: scatterData,
+          dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#1976D2' }],
+          xAxisKey: 'km',
+          yAxisKey: 'receita',
+          valueFormatter: formatBRL,
+        });
+      }
+    }
+
+    // Receita acumulada como area chart (motorista)
+    if (panel === 'MOTORISTA' && charts.receita_por_mes?.length > 1) {
+      let acumulado = 0;
+      const areaData = charts.receita_por_mes.map((m: any) => {
+        acumulado += m.receita || 0;
+        return { month: m.mes, acumulado };
+      });
+      configs.push({
+        title: 'Receita Acumulada',
+        type: 'area',
+        data: areaData,
+        dataKeys: [{ key: 'acumulado', label: 'Receita Acumulada', color: '#00796B' }],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      });
+    }
+
     // Por tipo de serviço (prestador)
     if (charts.por_tipo_servico?.length) {
       configs.push({
@@ -287,6 +357,23 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         data: charts.por_cidade.slice(0, 5),
         dataKeys: [{ key: 'value', label: 'Serviços' }],
         xAxisKey: 'name',
+      });
+    }
+
+    // Por Motorista como gráfico de barras horizontal (transportadora)
+    if (charts.por_motorista?.length) {
+      configs.push({
+        title: 'Desempenho por Motorista',
+        type: 'horizontal-bar',
+        data: charts.por_motorista.slice(0, 8).map((d: any) => ({
+          name: d.motorista,
+          receita: d.receita || 0,
+          viagens: d.viagens || 0,
+        })),
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
+        xAxisKey: 'name',
+        valueFormatter: formatBRL,
+        height: 350,
       });
     }
 
@@ -353,162 +440,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
       {/* Charts */}
       <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
-
-      {/* Top Rotas (motorista/transportadora) */}
-      {!isLoading && charts.top_rotas?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Principais Rotas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {charts.top_rotas.map((route: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{route.origem} → {route.destino}</p>
-                    <p className="text-sm text-muted-foreground">{route.total} viagens</p>
-                  </div>
-                  <p className="font-semibold">{formatBRL(route.receita || 0)}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Últimas Operações (motorista) */}
-      {!isLoading && panel === 'MOTORISTA' && tables.ultimas_operacoes?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Últimas Operações</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {tables.ultimas_operacoes.map((op: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {op.origem && op.destino ? `${op.origem} → ${op.destino}` : op.service_type || op.tipo || 'Operação'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {op.cargo_type || op.tipo_carga || ''}{op.cargo_type && op.distance_km ? ' • ' : ''}{op.distance_km ? `${op.distance_km} km` : ''}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {op.data ? new Date(op.data).toLocaleDateString('pt-BR') : op.created_at ? new Date(op.created_at).toLocaleDateString('pt-BR') : '-'}
-                    </p>
-                  </div>
-                  <div className="text-right ml-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      op.status === 'COMPLETED' || op.status_final === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                      op.status === 'CANCELLED' || op.status_final === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                      op.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {op.status === 'COMPLETED' || op.status_final === 'COMPLETED' ? 'Concluído' : 
-                       op.status === 'CANCELLED' || op.status_final === 'CANCELLED' ? 'Cancelado' :
-                       op.status === 'IN_TRANSIT' ? 'Em Trânsito' :
-                       op.status === 'DELIVERED' ? 'Entregue' :
-                       op.status || op.status_final || '-'}
-                    </span>
-                    {(op.price > 0 || op.final_price > 0) && (
-                      <p className="text-sm font-semibold mt-1">{formatBRL(op.final_price || op.price || 0)}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Distribuição de Avaliações (motorista) */}
-      {!isLoading && panel === 'MOTORISTA' && charts.avaliacoes_distribuicao?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Distribuição de Avaliações</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {charts.avaliacoes_distribuicao.map((rating: any, idx: number) => {
-                const maxValue = Math.max(...charts.avaliacoes_distribuicao.map((r: any) => r.value || r.count || 0));
-                const value = rating.value || rating.count || 0;
-                const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-                return (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 w-16 shrink-0">
-                      <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-medium">{rating.name || rating.stars}</span>
-                    </div>
-                    <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-muted-foreground w-8 text-right">{value}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Por Motorista (transportadora) */}
-      {!isLoading && charts.por_motorista?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Desempenho por Motorista</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {charts.por_motorista.map((d: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{d.motorista}</p>
-                    <p className="text-sm text-muted-foreground">{d.viagens} viagens</p>
-                  </div>
-                  <p className="font-semibold">{formatBRL(d.receita || 0)}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Últimos Serviços (prestador) */}
-      {!isLoading && panel === 'PRESTADOR' && tables.ultimas_operacoes?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Últimos Serviços Prestados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {tables.ultimas_operacoes.map((op: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{op.service_type}</p>
-                    <p className="text-xs text-muted-foreground">{op.city} • {op.cliente || 'Cliente'}</p>
-                    <p className="text-xs text-muted-foreground">{op.data ? new Date(op.data).toLocaleDateString('pt-BR') : '-'}</p>
-                  </div>
-                  <div className="text-right ml-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      op.status_final === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                      op.status_final === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {op.status_final === 'COMPLETED' ? 'Concluído' : op.status_final === 'CANCELLED' ? 'Cancelado' : op.status_final}
-                    </span>
-                    {op.final_price > 0 && (
-                      <p className="text-sm font-semibold mt-1">{formatBRL(op.final_price)}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Sem dados */}
       {!isLoading && kpiCards.every(k => (typeof k.value === 'number' ? k.value === 0 : !k.value)) && (
