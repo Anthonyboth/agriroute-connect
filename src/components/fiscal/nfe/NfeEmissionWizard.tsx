@@ -466,14 +466,18 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     return true;
   }, [validate]);
 
-  // ✅ Função chamada quando pagamento é confirmado
+  // ✅ Função chamada quando pagamento é confirmado (com guard contra duplicata)
   const handlePaymentConfirmed = useCallback(() => {
+    if (isSubmitting) {
+      devLog('[NFE] Pagamento confirmado mas emissão já em andamento, ignorando duplicata');
+      return;
+    }
     devLog('[NFE] Pagamento confirmado, prosseguindo com emissão...');
     setIsPaid(true);
     setShowPixModal(false);
     // Continuar com a emissão após pagamento
     executeEmission();
-  }, []);
+  }, [isSubmitting]);
 
   // ✅ Executa a emissão após validação e pagamento
   const executeEmission = async () => {
@@ -598,14 +602,23 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         return;
       }
 
-      // Status "processing" - mostra e faz polling
-      toast.success("NF-e enviada!", {
-        description: "Aguardando autorização da SEFAZ...",
+      // Status "processing" - mostra toast persistente e faz polling
+      toast.info("📄 NF-e enviada para a SEFAZ!", {
+        description: "Aguardando autorização. Isso pode levar até 1 minuto...",
+        duration: 15000,
       });
 
       // 🔥 Polling para sair do "Aguardando" eterno
       if (emission_id || internal_ref) {
-        await pollStatus({ emission_id, internal_ref }, session.access_token);
+        const pollResult = await pollStatus({ emission_id, internal_ref }, session.access_token);
+        
+        // Se ainda está processando após polling, informar o usuário claramente
+        if (pollResult.status === "processing") {
+          toast.warning("⏳ NF-e ainda em processamento", {
+            description: "A SEFAZ ainda não respondeu. O status será atualizado automaticamente no painel fiscal. Você pode fechar com segurança.",
+            duration: 20000,
+          });
+        }
       }
 
       onClose();
