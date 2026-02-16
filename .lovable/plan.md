@@ -1,111 +1,53 @@
 
 
-## Verificacao Completa: Impacto da Migracao de Buckets Privados
+## Correções de Exibição para URLs Assinadas Expiradas
 
-### Buckets Migrados para Privado
-- `chat-images` -- PRIVADO
-- `proposal-chat-images` -- PRIVADO
-- `proposal-chat-files` -- PRIVADO
-- `service-chat-images` -- PRIVADO
-- `mdfe-dactes` -- PRIVADO
+A verificação dos 5 arquivos de upload confirmou que a lógica de `createSignedUrl` está correta em todos eles. Porém, foram encontrados **2 problemas nos componentes de exibição** que farão com que imagens/arquivos não carreguem após 24h:
 
-### Status: O que foi corrigido corretamente
+### Problema 1: FreightCheckinsViewer.tsx (linha 295)
 
-| Arquivo | Bucket | Status |
-|---------|--------|--------|
-| `src/hooks/useProposalChat.ts` | proposal-chat-images, proposal-chat-files | OK - Usa `createSignedUrl` |
-| `src/components/DocumentRequestChat.tsx` | chat-images | OK - Usa `createSignedUrl` |
-| `src/components/chat/ChatInput.tsx` | chat-images, chat-files | OK - Usa `createSignedUrl` |
-| `src/hooks/useManifesto.ts` | mdfe-dactes | OK - Usa `createSignedUrl` |
-| `src/hooks/useServiceChatConnection.ts` | (dinamico) | OK - Usa `resolveStorageUrl` com signed URLs |
-| `src/hooks/useFreightChatConnection.ts` | (dinamico) | OK - Usa `resolveStorageUrl` com signed URLs |
-| `src/components/proposal/ProposalChatPanel.tsx` | (dinamico) | OK - Usa `SignedStorageImage` + signed download |
-| `src/components/ui/signed-storage-image.tsx` | (dinamico) | OK - Componente com renovacao automatica |
-| `src/components/ui/storage-image.tsx` | (dinamico) | OK - Fallback para signed URL on error |
-| `src/hooks/useSignedImageUrl.ts` | (dinamico) | OK - Hook com deteccao de expiracao |
+O componente usa `<img src={photo}>` diretamente para exibir fotos de check-in. Como as URLs assinadas expiram em 24h, fotos antigas ficarão quebradas.
 
-### PROBLEMAS ENCONTRADOS -- Arquivos que ainda usam `getPublicUrl` em buckets PRIVADOS
+**Correção**: Substituir `<img>` por `StorageImage` (que já possui fallback automático para regenerar signed URLs expiradas).
 
-#### 1. `src/components/FreightCheckinModal.tsx` (CRITICO)
-- **Bucket**: `freight-checkins` (PRIVADO)
-- **Linha 116-118**: Usa `getPublicUrl` apos upload
-- **Impacto**: URLs de fotos de check-in salvas no banco serao inacessiveis. O upload funciona, mas a URL gerada retornara erro 400/403 ao tentar visualizar.
-- **Correcao**: Substituir `getPublicUrl` por `createSignedUrl` e salvar o path relativo (nao a URL) no banco para permitir re-geracao de signed URLs na exibicao.
+```
+// ANTES (linha 295):
+<img src={photo} alt={...} className={...} />
 
-#### 2. `src/components/freight/FreightAttachments.tsx` (CRITICO)
-- **Bucket**: `freight-attachments` (PRIVADO)
-- **Linha 184-187**: Usa `getPublicUrl` apos upload
-- **Impacto**: Anexos de frete serao enviados mas URLs inacessiveis. O fallback `URL.createObjectURL` na linha 197 funciona apenas na sessao atual do browser.
-- **Correcao**: Substituir `getPublicUrl` por `createSignedUrl`, e nos componentes de exibicao, gerar signed URLs frescas ao abrir/baixar.
+// DEPOIS:
+<StorageImage src={photo} alt={...} className={...} />
+```
 
-#### 3. `src/utils/authUploadHelper.ts` (MEDIO)
-- **Bucket**: Generico (usado por `ProfilePhotoUpload` com `profile-photos` e `DocumentUpload` com buckets variados)
-- **Linha 83**: Usa `getPublicUrl` para qualquer bucket
-- **Impacto para buckets privados**: Se esse helper for chamado com um bucket privado (`driver-documents`, `identity-selfies`), a URL retornada sera inacessivel.
-- **Impacto atual real**: `profile-photos` ainda e PUBLICO, entao `ProfilePhotoUpload` funciona. `DocumentUpload` usa `driver-documents` que e PRIVADO - problema real.
-- **Correcao**: Alterar o helper para tentar `createSignedUrl` e retornar `{ signedUrl }` ou `{ publicUrl }` dependendo do bucket.
+Adicionar import de `StorageImage` no topo do arquivo.
 
-#### 4. `src/components/driver-details/DriverInfoTab.tsx` (CRITICO)
-- **Bucket**: `driver-documents` (PRIVADO)
-- **Linha 106-108**: Usa `getPublicUrl` para fotos de perfil e documentos de motoristas
-- **Impacto**: Upload de documentos funciona mas URLs salvas no banco serao inacessiveis.
-- **Correcao**: Substituir por `createSignedUrl` ou salvar apenas o path relativo.
+### Problema 2: FreightAttachments.tsx (linhas 430 e 459)
 
-#### 5. `src/components/vehicle/VehiclePhotoGallery.tsx` (CRITICO)
-- **Bucket**: `driver-documents` (PRIVADO)
-- **Linha 67-69**: Usa `getPublicUrl` para fotos de veiculos
-- **Impacto**: Fotos de veiculos salvas com URLs publicas que nao funcionam.
-- **Nota**: O componente de exibicao ja usa `StorageImage` que tenta signed URL como fallback - entao a EXIBICAO pode funcionar, mas e ineficiente (tenta public, falha, tenta signed).
-- **Correcao**: Substituir `getPublicUrl` por `createSignedUrl` no upload.
+Dois sub-problemas:
+- **Linha 430**: Link de download `<a href={attachment.file_url}>` usa URL que pode estar expirada.
+- **Linha 459**: Preview de imagem `<img src={previewUrl}>` usa URL que pode estar expirada.
 
-#### 6. `src/pages/AffiliatedDriverSignup.tsx` (MEDIO)
-- **Bucket**: `profile-photos` (PUBLICO -- sem problema atual)
-- **Linha 411-413**: Usa `getPublicUrl`
-- **Status**: OK por enquanto, pois `profile-photos` ainda e publico. Mas se futuramente for tornado privado, quebrara.
+**Correção**:
+1. Substituir `<img src={previewUrl}>` no dialog de preview por `StorageImage`.
+2. Substituir o link de download direto por um botão que gera uma signed URL fresca antes de abrir o download.
 
-#### 7. `src/components/UserProfileModal.tsx` (MEDIO)
-- **Bucket**: `profile-photos` (PUBLICO -- sem problema atual)
-- **Status**: OK por enquanto.
+### Arquivos a serem modificados
 
-### Politicas RLS dos Buckets -- Verificacao
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/FreightCheckinsViewer.tsx` | Importar `StorageImage`, substituir `<img>` na linha 295 |
+| `src/components/freight/FreightAttachments.tsx` | Importar `StorageImage`, substituir `<img>` na preview (linha 459), adicionar função de download com signed URL fresca |
 
-Todas as politicas SELECT para os buckets migrados estao corretas:
-- Restritas a `authenticated` 
-- Politicas de INSERT existentes mantidas
-- Politicas de DELETE para o dono mantidas
+### Detalhes técnicos
 
-**Problema potencial**: Nao encontrei politicas INSERT para `chat-images`, `proposal-chat-images`, `proposal-chat-files`. Preciso verificar se existem.
+**FreightCheckinsViewer.tsx**:
+- Adicionar `import { StorageImage } from '@/components/ui/storage-image';`
+- Linha 295: trocar `<img src={photo} alt={...} className="w-full h-64 object-cover rounded border" />` por `<StorageImage src={photo} alt={...} className="w-full h-64 object-cover rounded border" />`
 
-### Dados Existentes no Banco
+**FreightAttachments.tsx**:
+- Adicionar `import { StorageImage } from '@/components/ui/storage-image';`
+- Criar uma funcao `handleDownload` que extrai bucket/path da URL, gera uma signed URL fresca via `createSignedUrl`, e abre o download com `window.open()`
+- Linha 430: trocar `<a href={attachment.file_url} download>` por `<button onClick={() => handleDownload(attachment.file_url, attachment.file_name)}>`
+- Linha 459: trocar `<img src={previewUrl}>` por `<StorageImage src={previewUrl} alt="Preview" className="w-full h-auto max-h-[70vh] object-contain rounded-lg" />`
 
-- `proposal_chat_messages`: Nenhuma mensagem com imagem/arquivo encontrada (sem dados de teste afetados)
-- `service-chat-images`: 1 arquivo existente -- acessivel via signed URL pois a politica SELECT autenticada existe
-
-### Plano de Correcao (5 arquivos)
-
-**1. `src/components/FreightCheckinModal.tsx`**
-- Substituir `getPublicUrl` por `createSignedUrl(fileName, 86400)` (24h)
-- As fotos de check-in sao usadas pontualmente, nao exibidas em listas
-
-**2. `src/components/freight/FreightAttachments.tsx`**
-- Substituir `getPublicUrl` por `createSignedUrl(fileName, 86400)`
-- Atualizar a exibicao de anexos para usar `StorageImage` ou gerar signed URLs
-
-**3. `src/utils/authUploadHelper.ts`**
-- Alterar para usar `createSignedUrl` em vez de `getPublicUrl`
-- Renomear retorno de `publicUrl` para `url` (ou manter compatibilidade)
-
-**4. `src/components/driver-details/DriverInfoTab.tsx`**
-- Substituir `getPublicUrl` por `createSignedUrl`
-
-**5. `src/components/vehicle/VehiclePhotoGallery.tsx`**
-- Substituir `getPublicUrl` por `createSignedUrl`
-
-**6. Verificar e criar politicas INSERT faltantes** (se necessario, via migracao SQL)
-
-### Arquivos que NAO precisam de alteracao
-- `AffiliatedDriverSignup.tsx` -- bucket `profile-photos` e publico
-- `UserProfileModal.tsx` -- bucket `profile-photos` e publico
-- `GtaUploadDialog.tsx` -- bucket `documents` nao existe no storage (verificado)
-- `NfaAssistedWizard.tsx` -- bucket `documents` nao existe no storage
+Nenhuma migração de banco de dados é necessária. As políticas RLS e INSERT já estão corretas.
 
