@@ -181,10 +181,12 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
           });
 
         if (!uploadError) {
-          const { data: urlData } = supabase.storage
+          const { data: signedData, error: signError } = await supabase.storage
             .from('freight-attachments')
-            .getPublicUrl(fileName);
-          fileUrl = urlData.publicUrl;
+            .createSignedUrl(fileName, 86400); // 24h
+          if (!signError && signedData?.signedUrl) {
+            fileUrl = signedData.signedUrl;
+          }
         }
       } catch (storageError) {
         console.warn('[FreightAttachments] Storage não disponível:', storageError);

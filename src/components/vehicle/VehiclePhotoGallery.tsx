@@ -64,11 +64,16 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedData, error: signError } = await supabase.storage
         .from('driver-documents')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 86400); // 24h
+      
+      if (signError || !signedData?.signedUrl) {
+        console.error('[VehiclePhoto] Erro ao gerar signed URL:', signError?.message);
+        throw signError || new Error('Falha ao gerar URL assinada');
+      }
 
-      await addPhoto.mutateAsync({ photoUrl: publicUrl, photoType: selectedPhotoType });
+      await addPhoto.mutateAsync({ photoUrl: signedData.signedUrl, photoType: selectedPhotoType });
       toast.success('Foto enviada com sucesso!');
       setShowUploadModal(false);
       setSelectedPhotoType('geral');

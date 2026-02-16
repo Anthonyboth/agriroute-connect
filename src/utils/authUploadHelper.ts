@@ -80,9 +80,20 @@ export async function uploadWithAuthRetry({
       }
       
       devLog('[Upload] Upload concluído com sucesso');
-      const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(fileName);
-      devLog('[Upload] URL pública obtida:', publicUrl);
-      return { publicUrl };
+      const { data: signedData, error: signError } = await supabase.storage
+        .from(bucketName)
+        .createSignedUrl(fileName, 86400); // 24h
+      
+      if (signError || !signedData?.signedUrl) {
+        console.error('[Upload] Erro ao gerar signed URL:', signError?.message);
+        // Fallback para publicUrl caso signed falhe (buckets públicos)
+        const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+        devLog('[Upload] Fallback para URL pública:', publicUrl);
+        return { publicUrl };
+      }
+      
+      devLog('[Upload] Signed URL obtida com sucesso');
+      return { publicUrl: signedData.signedUrl };
       
     } catch (error: any) {
       console.error(`[Upload] Tentativa ${attempt + 1} falhou:`, error.message);

@@ -113,11 +113,16 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
       
       if (error) throw error;
       
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedData, error: signError } = await supabase.storage
         .from('freight-checkins')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 86400); // 24h
       
-      uploadedUrls.push(publicUrl);
+      if (signError || !signedData?.signedUrl) {
+        console.error('[Checkin] Erro ao gerar signed URL:', signError?.message);
+        throw signError || new Error('Falha ao gerar URL assinada');
+      }
+      
+      uploadedUrls.push(signedData.signedUrl);
     }
     
     return uploadedUrls;
