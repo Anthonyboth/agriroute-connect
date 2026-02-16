@@ -312,6 +312,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             created_at: f.created_at,
             vehicle_type_required: f.vehicle_type_required || undefined,
             vehicle_axles_required: f.vehicle_axles_required || undefined,
+            pricing_type: f.pricing_type || undefined,
+            price_per_km: f.price_per_km || undefined,
           }));
       }
 
