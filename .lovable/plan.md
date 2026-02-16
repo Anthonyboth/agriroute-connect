@@ -1,47 +1,111 @@
 
-# Correcao: Localizacao aparecendo como "Desativada" mesmo com GPS funcionando
 
-## Problema Identificado
+## Verificacao Completa: Impacto da Migracao de Buckets Privados
 
-O GPS esta funcionando normalmente no app (coordenadas estao sendo enviadas ao banco de dados). Porem, a funcao `Geolocation.checkPermissions()` do plugin Capacitor esta retornando um status incorreto em alguns dispositivos Android, fazendo com que o app mostre erroneamente:
+### Buckets Migrados para Privado
+- `chat-images` -- PRIVADO
+- `proposal-chat-images` -- PRIVADO
+- `proposal-chat-files` -- PRIVADO
+- `service-chat-images` -- PRIVADO
+- `mdfe-dactes` -- PRIVADO
 
-- Toast: "Permissao de localizacao negada"
-- Alerta: "Localizacao Desativada"
+### Status: O que foi corrigido corretamente
 
-Isso acontece porque o hook `useLocationPermissionSync` confia cegamente no resultado de `checkPermissions()`, ignorando evidencias de que o GPS esta ativo (como coordenadas recentes no banco).
+| Arquivo | Bucket | Status |
+|---------|--------|--------|
+| `src/hooks/useProposalChat.ts` | proposal-chat-images, proposal-chat-files | OK - Usa `createSignedUrl` |
+| `src/components/DocumentRequestChat.tsx` | chat-images | OK - Usa `createSignedUrl` |
+| `src/components/chat/ChatInput.tsx` | chat-images, chat-files | OK - Usa `createSignedUrl` |
+| `src/hooks/useManifesto.ts` | mdfe-dactes | OK - Usa `createSignedUrl` |
+| `src/hooks/useServiceChatConnection.ts` | (dinamico) | OK - Usa `resolveStorageUrl` com signed URLs |
+| `src/hooks/useFreightChatConnection.ts` | (dinamico) | OK - Usa `resolveStorageUrl` com signed URLs |
+| `src/components/proposal/ProposalChatPanel.tsx` | (dinamico) | OK - Usa `SignedStorageImage` + signed download |
+| `src/components/ui/signed-storage-image.tsx` | (dinamico) | OK - Componente com renovacao automatica |
+| `src/components/ui/storage-image.tsx` | (dinamico) | OK - Fallback para signed URL on error |
+| `src/hooks/useSignedImageUrl.ts` | (dinamico) | OK - Hook com deteccao de expiracao |
 
-## Solucao
+### PROBLEMAS ENCONTRADOS -- Arquivos que ainda usam `getPublicUrl` em buckets PRIVADOS
 
-### 1. Tornar `useLocationPermissionSync` mais resiliente
+#### 1. `src/components/FreightCheckinModal.tsx` (CRITICO)
+- **Bucket**: `freight-checkins` (PRIVADO)
+- **Linha 116-118**: Usa `getPublicUrl` apos upload
+- **Impacto**: URLs de fotos de check-in salvas no banco serao inacessiveis. O upload funciona, mas a URL gerada retornara erro 400/403 ao tentar visualizar.
+- **Correcao**: Substituir `getPublicUrl` por `createSignedUrl` e salvar o path relativo (nao a URL) no banco para permitir re-geracao de signed URLs na exibicao.
 
-Adicionar uma verificacao de fallback: se `checkPermissionSafe()` retornar `false`, mas o perfil do usuario ja tem coordenadas GPS recentes (menos de 10 minutos), considerar a localizacao como ativa. Isso evita o falso negativo do Capacitor.
+#### 2. `src/components/freight/FreightAttachments.tsx` (CRITICO)
+- **Bucket**: `freight-attachments` (PRIVADO)
+- **Linha 184-187**: Usa `getPublicUrl` apos upload
+- **Impacto**: Anexos de frete serao enviados mas URLs inacessiveis. O fallback `URL.createObjectURL` na linha 197 funciona apenas na sessao atual do browser.
+- **Correcao**: Substituir `getPublicUrl` por `createSignedUrl`, e nos componentes de exibicao, gerar signed URLs frescas ao abrir/baixar.
 
-**Arquivo:** `src/hooks/useLocationPermissionSync.ts`
+#### 3. `src/utils/authUploadHelper.ts` (MEDIO)
+- **Bucket**: Generico (usado por `ProfilePhotoUpload` com `profile-photos` e `DocumentUpload` com buckets variados)
+- **Linha 83**: Usa `getPublicUrl` para qualquer bucket
+- **Impacto para buckets privados**: Se esse helper for chamado com um bucket privado (`driver-documents`, `identity-selfies`), a URL retornada sera inacessivel.
+- **Impacto atual real**: `profile-photos` ainda e PUBLICO, entao `ProfilePhotoUpload` funciona. `DocumentUpload` usa `driver-documents` que e PRIVADO - problema real.
+- **Correcao**: Alterar o helper para tentar `createSignedUrl` e retornar `{ signedUrl }` ou `{ publicUrl }` dependendo do bucket.
 
-- Apos `checkDevicePermission()` retornar `false`, verificar se `profile.current_location_lat` e `profile.last_gps_update` existem e sao recentes
-- Se sim, considerar `isDeviceLocationEnabled = true` e sincronizar como `true`
+#### 4. `src/components/driver-details/DriverInfoTab.tsx` (CRITICO)
+- **Bucket**: `driver-documents` (PRIVADO)
+- **Linha 106-108**: Usa `getPublicUrl` para fotos de perfil e documentos de motoristas
+- **Impacto**: Upload de documentos funciona mas URLs salvas no banco serao inacessiveis.
+- **Correcao**: Substituir por `createSignedUrl` ou salvar apenas o path relativo.
 
-### 2. Adicionar fallback com `getCurrentPosition` no `checkPermissionSafe`
+#### 5. `src/components/vehicle/VehiclePhotoGallery.tsx` (CRITICO)
+- **Bucket**: `driver-documents` (PRIVADO)
+- **Linha 67-69**: Usa `getPublicUrl` para fotos de veiculos
+- **Impacto**: Fotos de veiculos salvas com URLs publicas que nao funcionam.
+- **Nota**: O componente de exibicao ja usa `StorageImage` que tenta signed URL como fallback - entao a EXIBICAO pode funcionar, mas e ineficiente (tenta public, falha, tenta signed).
+- **Correcao**: Substituir `getPublicUrl` por `createSignedUrl` no upload.
 
-Quando `Geolocation.checkPermissions()` retornar nao-granted em plataforma nativa, tentar um `getCurrentPosition` rapido como prova real de que o GPS funciona.
+#### 6. `src/pages/AffiliatedDriverSignup.tsx` (MEDIO)
+- **Bucket**: `profile-photos` (PUBLICO -- sem problema atual)
+- **Linha 411-413**: Usa `getPublicUrl`
+- **Status**: OK por enquanto, pois `profile-photos` ainda e publico. Mas se futuramente for tornado privado, quebrara.
 
-**Arquivo:** `src/utils/location.ts`
+#### 7. `src/components/UserProfileModal.tsx` (MEDIO)
+- **Bucket**: `profile-photos` (PUBLICO -- sem problema atual)
+- **Status**: OK por enquanto.
 
-- Na funcao `checkPermissionSafe()`, quando em plataforma nativa e o resultado for nao-granted, fazer uma tentativa rapida de `Geolocation.getCurrentPosition` com timeout curto (3s)
-- Se obtiver posicao, retornar `true` (GPS funciona, permissao esta concedida)
+### Politicas RLS dos Buckets -- Verificacao
 
-### 3. Evitar toast duplicado no `DriverAutoLocationTracking`
+Todas as politicas SELECT para os buckets migrados estao corretas:
+- Restritas a `authenticated` 
+- Politicas de INSERT existentes mantidas
+- Politicas de DELETE para o dono mantidas
 
-**Arquivo:** `src/components/DriverAutoLocationTracking.tsx`
+**Problema potencial**: Nao encontrei politicas INSERT para `chat-images`, `proposal-chat-images`, `proposal-chat-files`. Preciso verificar se existem.
 
-- Se `checkPermissionSafe()` retornar `false`, antes de mostrar erro, tentar `requestPermissionSafe()` que ja faz uma chamada real ao GPS
-- Ja esta fazendo isso, mas o toast de erro aparece mesmo assim. Verificar se o `watchPositionSafe` esta disparando erro de permissao apos o check falhar
+### Dados Existentes no Banco
 
-## Resumo das Alteracoes
+- `proposal_chat_messages`: Nenhuma mensagem com imagem/arquivo encontrada (sem dados de teste afetados)
+- `service-chat-images`: 1 arquivo existente -- acessivel via signed URL pois a politica SELECT autenticada existe
 
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/utils/location.ts` | Fallback com getCurrentPosition quando checkPermissions falha em nativo |
-| `src/hooks/useLocationPermissionSync.ts` | Fallback usando coordenadas recentes do perfil como evidencia de GPS ativo |
+### Plano de Correcao (5 arquivos)
 
-Nenhuma outra parte do codigo sera alterada.
+**1. `src/components/FreightCheckinModal.tsx`**
+- Substituir `getPublicUrl` por `createSignedUrl(fileName, 86400)` (24h)
+- As fotos de check-in sao usadas pontualmente, nao exibidas em listas
+
+**2. `src/components/freight/FreightAttachments.tsx`**
+- Substituir `getPublicUrl` por `createSignedUrl(fileName, 86400)`
+- Atualizar a exibicao de anexos para usar `StorageImage` ou gerar signed URLs
+
+**3. `src/utils/authUploadHelper.ts`**
+- Alterar para usar `createSignedUrl` em vez de `getPublicUrl`
+- Renomear retorno de `publicUrl` para `url` (ou manter compatibilidade)
+
+**4. `src/components/driver-details/DriverInfoTab.tsx`**
+- Substituir `getPublicUrl` por `createSignedUrl`
+
+**5. `src/components/vehicle/VehiclePhotoGallery.tsx`**
+- Substituir `getPublicUrl` por `createSignedUrl`
+
+**6. Verificar e criar politicas INSERT faltantes** (se necessario, via migracao SQL)
+
+### Arquivos que NAO precisam de alteracao
+- `AffiliatedDriverSignup.tsx` -- bucket `profile-photos` e publico
+- `UserProfileModal.tsx` -- bucket `profile-photos` e publico
+- `GtaUploadDialog.tsx` -- bucket `documents` nao existe no storage (verificado)
+- `NfaAssistedWizard.tsx` -- bucket `documents` nao existe no storage
+
