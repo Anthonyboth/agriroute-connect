@@ -33,6 +33,8 @@ interface FreightCardProps {
     service_type?: "CARGA" | "GUINCHO" | "MUDANCA" | "FRETE_MOTO" | "ENTREGA_PACOTES" | "TRANSPORTE_PET";
     required_trucks?: number;
     accepted_trucks?: number;
+    pricing_type?: "FIXED" | "PER_KM" | "PER_TON";
+    price_per_km?: number;
 
     // ✅ necessário para "Solicitado há X dias"
     created_at?: string;
@@ -362,14 +364,32 @@ const OptimizedFreightCard = memo<FreightCardProps>(
                 const requiredTrucks = freight.required_trucks || 1;
                 const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
                 const hasMultipleTrucks = requiredTrucks > 1;
+                const pricingType = freight.pricing_type;
+                const unitRate = freight.price_per_km;
+
                 return (
                   <>
-                    <p className="font-bold text-3xl text-primary">
-                      {formatBRL(pricePerTruck, true)}
-                      {hasMultipleTrucks && (
-                        <span className="text-sm font-normal text-muted-foreground ml-1">/carreta</span>
-                      )}
-                    </p>
+                    {pricingType === "PER_KM" && unitRate ? (
+                      <p className="font-bold text-3xl text-primary">
+                        {formatBRL(unitRate, true)}
+                        <span className="text-sm font-normal text-muted-foreground ml-1">/km</span>
+                      </p>
+                    ) : pricingType === "PER_TON" && unitRate ? (
+                      <p className="font-bold text-3xl text-primary">
+                        {formatBRL(unitRate, true)}
+                        <span className="text-sm font-normal text-muted-foreground ml-1">/ton</span>
+                      </p>
+                    ) : (
+                      <p className="font-bold text-3xl text-primary">
+                        {formatBRL(hasMultipleTrucks ? pricePerTruck : freight.price, true)}
+                        {hasMultipleTrucks && (
+                          <span className="text-sm font-normal text-muted-foreground ml-1">/carreta</span>
+                        )}
+                        {!hasMultipleTrucks && (
+                          <span className="text-sm font-normal text-muted-foreground ml-1">fixo</span>
+                        )}
+                      </p>
+                    )}
                   </>
                 );
               })()}
