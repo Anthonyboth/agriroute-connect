@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ScatterChart, Scatter, ZAxis, AreaChart, Area
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -89,10 +90,12 @@ interface ChartDataPoint {
 
 interface ChartConfig {
   title: string;
-  type: 'line' | 'bar' | 'pie' | 'horizontal-bar';
+  type: 'line' | 'bar' | 'pie' | 'horizontal-bar' | 'scatter' | 'area';
   data: ChartDataPoint[];
   dataKeys: { key: string; label: string; color?: string }[];
   xAxisKey?: string;
+  yAxisKey?: string;
+  zAxisKey?: string;
   valueFormatter?: (value: number) => string;
   height?: number;
 }
@@ -294,6 +297,93 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
               wrapperStyle={{ paddingTop: '20px' }}
             />
           </PieChart>
+        </ResponsiveContainer>
+      );
+
+    case 'scatter':
+      return (
+        <ResponsiveContainer width="100%" height={height}>
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.5} />
+            <XAxis 
+              dataKey={xAxisKey} 
+              type="number" 
+              name={dataKeys[0]?.label || ''} 
+              className="text-xs"
+              tick={{ fontSize: 11 }}
+            />
+            <YAxis 
+              dataKey={config.yAxisKey || dataKeys[0]?.key || 'value'} 
+              type="number" 
+              name={dataKeys[1]?.label || ''} 
+              className="text-xs"
+              tick={{ fontSize: 11 }}
+            />
+            {config.zAxisKey && (
+              <ZAxis dataKey={config.zAxisKey} range={[40, 400]} name="Tamanho" />
+            )}
+            <Tooltip 
+              formatter={(value: number) => valueFormatter(value)}
+              contentStyle={{ 
+                backgroundColor: 'hsl(var(--card))', 
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                padding: '8px 12px'
+              }}
+              cursor={{ strokeDasharray: '3 3' }}
+            />
+            <Legend />
+            <Scatter 
+              name={dataKeys[0]?.label || 'Dados'} 
+              data={data} 
+              fill={dataKeys[0]?.color || CHART_COLORS[0]}
+              shape="circle"
+            />
+          </ScatterChart>
+        </ResponsiveContainer>
+      );
+
+    case 'area':
+      return (
+        <ResponsiveContainer width="100%" height={height}>
+          <AreaChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.5} />
+            <XAxis 
+              dataKey={xAxisKey} 
+              className="text-xs" 
+              tick={{ fontSize: 11 }}
+              tickFormatter={(value) => formatChartLabel(String(value))}
+            />
+            <YAxis className="text-xs" tick={{ fontSize: 11 }} />
+            <Tooltip 
+              formatter={(value: number, name: string) => [
+                valueFormatter(value),
+                formatChartLabel(name)
+              ]}
+              labelFormatter={(label) => formatChartLabel(String(label))}
+              contentStyle={{ 
+                backgroundColor: 'hsl(var(--card))', 
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                padding: '8px 12px'
+              }}
+            />
+            <Legend formatter={(value) => formatChartLabel(String(value))} />
+            {dataKeys.map((dk, index) => (
+              <Area
+                key={dk.key}
+                type="monotone"
+                dataKey={dk.key}
+                name={formatChartLabel(dk.label)}
+                stroke={dk.color || CHART_COLORS[index % CHART_COLORS.length]}
+                fill={dk.color || CHART_COLORS[index % CHART_COLORS.length]}
+                fillOpacity={0.2}
+                strokeWidth={2}
+              />
+            ))}
+          </AreaChart>
         </ResponsiveContainer>
       );
 
