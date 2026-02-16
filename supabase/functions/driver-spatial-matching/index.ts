@@ -215,6 +215,8 @@ serve(async (req) => {
       'FRETE_MOTO',
       'GUINCHO',
       'MUDANCA',
+      'MUDANCA_RESIDENCIAL',
+      'MUDANCA_COMERCIAL',
       'PICAPE',
       'FRETE_URBANO',
       'MOTO',
