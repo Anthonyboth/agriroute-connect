@@ -266,7 +266,11 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               </div>
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                 Você está fazendo proposta para <strong>1 carreta apenas</strong>. 
-                Valor original por carreta: {formatBRL(pricePerTruck, true)}
+                Valor original: {freight.pricing_type === 'PER_KM' && freight.price_per_km
+                  ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                  : freight.pricing_type === 'PER_TON' && freight.price_per_km
+                    ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                    : `${formatBRL(pricePerTruck, true)} por carreta`}
               </p>
             </div>
           )}
@@ -369,10 +373,17 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               </div>
               
               <div className="text-sm text-muted-foreground">
-                {/* ✅ Mostrar valor por carreta, não total */}
+                {/* ✅ Mostrar valor unitário preenchido pelo produtor */}
                 <p className="font-medium">
-                  Valor original: {formatBRL(pricePerTruck, true)}
-                  {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+                  Valor original: {freight.pricing_type === 'PER_KM' && freight.price_per_km
+                    ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                    : freight.pricing_type === 'PER_TON' && freight.price_per_km
+                      ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                      : <>
+                          {formatBRL(pricePerTruck, true)}
+                          {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+                        </>
+                  }
                 </p>
                 <p className="text-xs">
                   Distância: {formatKm(distance)} • Peso: {formatTons(weightPerTruck)}

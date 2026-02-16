@@ -56,6 +56,9 @@ interface Proposal {
     price: number;
     distance_km: number;
     status: string;
+    pricing_type?: string;
+    price_per_km?: number;
+    weight?: number;
   };
 }
 
@@ -887,6 +890,8 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         freightDistance={counterProposalOpen.proposal?.freight?.distance_km || 0}
         freightWeight={(counterProposalOpen.proposal?.freight as any)?.weight || 0}
         requiredTrucks={counterProposalOpen.proposal?.freight?.required_trucks || 1}
+        freightPricingType={counterProposalOpen.proposal?.freight?.pricing_type}
+        freightPricePerKm={counterProposalOpen.proposal?.freight?.price_per_km}
         onSuccess={() => {
           fetchProposals();
         }}

@@ -2116,6 +2116,8 @@ const ProducerDashboard = () => {
         freightDistance={selectedProposal?.freight_distance || 0}
         freightWeight={selectedProposal?.freight_weight || 0}
         requiredTrucks={selectedProposal?.required_trucks || 1}
+        freightPricingType={selectedProposal?.freight_pricing_type}
+        freightPricePerKm={selectedProposal?.freight_price_per_km}
         onSuccess={() => {
           fetchProposals();
           setCounterProposalModalOpen(false);
