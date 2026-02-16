@@ -54,15 +54,28 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
           { title: 'Cancelados', value: Number(kpis.freights_cancelled) || 0, format: 'number', icon: Clock },
         ];
 
-      case 'MOTORISTA':
+      case 'MOTORISTA': {
+        const receitaTotal = Number(kpis.receita_total) || 0;
+        const despesasTotal = Number(kpis.despesas_total) || 0;
+        const lucroLiquido = receitaTotal - despesasTotal;
+        const totalFretes = Number(kpis.total_fretes) || 0;
+        const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
+        const taxaConclusao = totalFretes > 0 ? (fretesConcluidos / totalFretes) * 100 : 0;
+        const ticketMedio = fretesConcluidos > 0 ? receitaTotal / fretesConcluidos : 0;
+        const servicosReceita = Number(kpis.servicos_receita) || 0;
+        
         return [
-          { title: 'Receita Total', value: Number(kpis.receita_total) || 0, format: 'currency', subtitle: `${kpis.fretes_concluidos || 0} fretes concluídos`, icon: DollarSign },
-          { title: 'Total de Fretes', value: Number(kpis.total_fretes) || 0, format: 'number', icon: Truck },
-          { title: 'Distância Percorrida', value: Number(kpis.distancia_total_km) || 0, format: 'distance', icon: MapPin },
+          { title: 'Receita Total', value: receitaTotal + servicosReceita, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
+          { title: 'Lucro Líquido', value: lucroLiquido + servicosReceita, format: 'currency', subtitle: `Receita - Despesas`, icon: TrendingUp, trend: lucroLiquido > 0 ? { value: despesasTotal > 0 ? ((lucroLiquido / receitaTotal) * 100) : 100, isPositive: true } : undefined },
+          { title: 'Fretes Concluídos', value: fretesConcluidos, format: 'number', subtitle: `${totalFretes} total`, icon: Truck },
+          { title: 'Taxa de Conclusão', value: `${taxaConclusao.toFixed(1)}%`, icon: CheckCircle },
+          { title: 'Ticket Médio', value: ticketMedio, format: 'currency', icon: Package },
+          { title: 'Distância Total', value: Number(kpis.distancia_total_km) || 0, format: 'distance', icon: MapPin },
           { title: 'Avaliação Média', value: Number(kpis.avaliacao_media) || 0, format: 'number', subtitle: `${kpis.total_avaliacoes || 0} avaliações`, icon: Star },
-          { title: 'Despesas', value: Number(kpis.despesas_total) || 0, format: 'currency', icon: Fuel },
-          { title: 'Receita Serviços', value: Number(kpis.servicos_receita) || 0, format: 'currency', subtitle: `${kpis.servicos_total || 0} serviços`, icon: Wrench },
+          { title: 'Despesas Totais', value: despesasTotal, format: 'currency', icon: Fuel },
+          { title: 'Serviços Urbanos', value: Number(kpis.servicos_total) || 0, format: 'number', subtitle: servicosReceita > 0 ? `${formatBRL(servicosReceita)} receita` : undefined, icon: Wrench },
         ];
+      }
 
       case 'TRANSPORTADORA':
         return [
@@ -194,7 +207,65 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         type: 'pie',
         data: charts.despesas_por_tipo,
         dataKeys: [{ key: 'value', label: 'Valor' }],
+        valueFormatter: formatBRL,
       });
+    }
+
+    // Volume por dia (motorista)
+    if (charts.volume_por_dia?.length && panel === 'MOTORISTA') {
+      configs.push({
+        title: 'Operações por Dia',
+        type: 'bar',
+        data: charts.volume_por_dia.map((d: any) => ({
+          day: d.dia,
+          fretes: d.fretes || d.total || 0,
+          servicos: d.servicos || 0,
+        })),
+        dataKeys: [
+          { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
+          { key: 'servicos', label: 'Serviços', color: '#1976D2' },
+        ],
+        xAxisKey: 'day',
+      });
+    }
+
+    // Avaliações trend (motorista)
+    if (charts.avaliacoes_trend?.length && panel === 'MOTORISTA') {
+      configs.push({
+        title: 'Evolução das Avaliações',
+        type: 'line',
+        data: charts.avaliacoes_trend.map((d: any) => ({
+          month: d.mes || d.month,
+          media: d.media || d.avg_rating || 0,
+        })),
+        dataKeys: [{ key: 'media', label: 'Nota Média', color: '#FF9800' }],
+        xAxisKey: 'month',
+      });
+    }
+
+    // Receita vs Despesas (motorista)
+    if (panel === 'MOTORISTA' && charts.receita_por_mes?.length) {
+      const receitaDespesasData = charts.receita_por_mes.map((m: any) => {
+        const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
+        return {
+          month: m.mes,
+          receita: m.receita || 0,
+          despesas: despesa?.valor || despesa?.despesas || 0,
+        };
+      });
+      if (receitaDespesasData.some((d: any) => d.despesas > 0)) {
+        configs.push({
+          title: 'Receita vs Despesas',
+          type: 'bar',
+          data: receitaDespesasData,
+          dataKeys: [
+            { key: 'receita', label: 'Receita', color: '#2E7D32' },
+            { key: 'despesas', label: 'Despesas', color: '#C62828' },
+          ],
+          xAxisKey: 'month',
+          valueFormatter: formatBRL,
+        });
+      }
     }
 
     // Por tipo de serviço (prestador)
@@ -220,7 +291,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     }
 
     return configs;
-  }, [charts]);
+  }, [charts, panel]);
 
   // Export sections
   const exportSections = useMemo(() => {
@@ -278,7 +349,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       </Card>
 
       {/* KPIs */}
-      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={kpiCards.length > 4 ? 6 : 4} />
+      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={panel === 'MOTORISTA' ? 3 : (kpiCards.length > 4 ? 6 : 4)} />
 
       {/* Charts */}
       <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
@@ -300,6 +371,84 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                   <p className="font-semibold">{formatBRL(route.receita || 0)}</p>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Últimas Operações (motorista) */}
+      {!isLoading && panel === 'MOTORISTA' && tables.ultimas_operacoes?.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Últimas Operações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {tables.ultimas_operacoes.map((op: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {op.origem && op.destino ? `${op.origem} → ${op.destino}` : op.service_type || op.tipo || 'Operação'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {op.cargo_type || op.tipo_carga || ''}{op.cargo_type && op.distance_km ? ' • ' : ''}{op.distance_km ? `${op.distance_km} km` : ''}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {op.data ? new Date(op.data).toLocaleDateString('pt-BR') : op.created_at ? new Date(op.created_at).toLocaleDateString('pt-BR') : '-'}
+                    </p>
+                  </div>
+                  <div className="text-right ml-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      op.status === 'COMPLETED' || op.status_final === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      op.status === 'CANCELLED' || op.status_final === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      op.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {op.status === 'COMPLETED' || op.status_final === 'COMPLETED' ? 'Concluído' : 
+                       op.status === 'CANCELLED' || op.status_final === 'CANCELLED' ? 'Cancelado' :
+                       op.status === 'IN_TRANSIT' ? 'Em Trânsito' :
+                       op.status === 'DELIVERED' ? 'Entregue' :
+                       op.status || op.status_final || '-'}
+                    </span>
+                    {(op.price > 0 || op.final_price > 0) && (
+                      <p className="text-sm font-semibold mt-1">{formatBRL(op.final_price || op.price || 0)}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Distribuição de Avaliações (motorista) */}
+      {!isLoading && panel === 'MOTORISTA' && charts.avaliacoes_distribuicao?.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Distribuição de Avaliações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {charts.avaliacoes_distribuicao.map((rating: any, idx: number) => {
+                const maxValue = Math.max(...charts.avaliacoes_distribuicao.map((r: any) => r.value || r.count || 0));
+                const value = rating.value || rating.count || 0;
+                const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+                return (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 w-16 shrink-0">
+                      <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                      <span className="text-sm font-medium">{rating.name || rating.stars}</span>
+                    </div>
+                    <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-yellow-500 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-muted-foreground w-8 text-right">{value}</span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
