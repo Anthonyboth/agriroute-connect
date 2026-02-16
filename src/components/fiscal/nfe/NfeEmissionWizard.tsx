@@ -306,24 +306,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         return;
       }
 
-      // Fallback: usar dados fiscais do próprio usuário se não houver frete
-      if (!prefillLoading && prefilledFiscal && (prefilledFiscal.cnpj_cpf || prefilledFiscal.razao_social)) {
-        setFormData(prev => ({
-          ...prev,
-          dest_cnpj_cpf: prev.dest_cnpj_cpf || prefilledFiscal.cnpj_cpf,
-          dest_razao_social: prev.dest_razao_social || prefilledFiscal.razao_social,
-          dest_ie: prev.dest_ie || prefilledFiscal.inscricao_estadual || '',
-          dest_email: prev.dest_email || prefilledFiscal.email,
-          dest_telefone: prev.dest_telefone || prefilledFiscal.telefone,
-          dest_logradouro: prev.dest_logradouro || prefilledFiscal.logradouro,
-          dest_numero: prev.dest_numero || prefilledFiscal.numero,
-          dest_bairro: prev.dest_bairro || prefilledFiscal.bairro,
-          dest_municipio: prev.dest_municipio || prefilledFiscal.municipio,
-          dest_uf: prev.dest_uf || prefilledFiscal.uf,
-          dest_cep: prev.dest_cep || prefilledFiscal.cep,
-        }));
-        setHasPrefilled(true);
-      }
+      // Sem freightId: destinatário deve ser preenchido manualmente pelo usuário a cada emissão
+      // Não usar dados do próprio usuário como destinatário (isso causava dados salvos indesejados)
+      setHasPrefilled(true);
     };
 
     fetchFreightRecipient();
@@ -336,6 +321,21 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     setIsSubmitting(false);
     setHasPrefilled(false); // Reset para permitir novo prefill
     setFreightRecipientLoading(false);
+    // ✅ Limpar dados do destinatário a cada abertura (usuário deve preencher novamente)
+    setFormData(prev => ({
+      ...prev,
+      dest_cnpj_cpf: "",
+      dest_razao_social: "",
+      dest_ie: "",
+      dest_email: "",
+      dest_telefone: "",
+      dest_logradouro: "",
+      dest_numero: "",
+      dest_bairro: "",
+      dest_municipio: "",
+      dest_uf: "",
+      dest_cep: "",
+    }));
 
     // Etapa 0 (documento correto) deve ser reavaliada a cada abertura
     setShowAptidaoStep0(false);
