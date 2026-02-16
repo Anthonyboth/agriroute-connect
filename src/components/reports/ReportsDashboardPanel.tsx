@@ -7,7 +7,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle, BarChart3, PieChart as PieChartIcon, Activity, Route } from 'lucide-react';
 import { subDays, endOfDay, startOfDay } from 'date-fns';
 import {
   ReportPeriodFilter,
@@ -100,7 +100,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     }
   }, [kpis, panel]);
 
-  // Build chart configs based on panel
+  // Build chart configs based on panel, organized by section for MOTORISTA
   const chartConfigs: ChartConfig[] = useMemo(() => {
     if (!charts || Object.keys(charts).length === 0) return [];
 
@@ -118,16 +118,13 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Volume por dia (produtor - fretes + serviços separados)
+    // Volume por dia (produtor)
     if (charts.volume_por_dia?.length && panel === 'PRODUTOR') {
       configs.push({
         title: 'Operações por Dia',
         type: 'bar',
         data: charts.volume_por_dia.map((d: any) => ({ 
-          day: d.dia, 
-          fretes: d.fretes || 0, 
-          servicos: d.servicos || 0,
-          total: d.total || 0 
+          day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0, total: d.total || 0 
         })),
         dataKeys: [
           { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
@@ -137,16 +134,13 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Volume por dia (prestador - concluidos + cancelados)
+    // Volume por dia (prestador)
     if (charts.volume_por_dia?.length && panel === 'PRESTADOR') {
       configs.push({
         title: 'Serviços por Dia',
         type: 'bar',
         data: charts.volume_por_dia.map((d: any) => ({ 
-          day: d.dia, 
-          concluidos: d.concluidos || 0, 
-          cancelados: d.cancelados || 0,
-          total: d.total || 0 
+          day: d.dia, concluidos: d.concluidos || 0, cancelados: d.cancelados || 0 
         })),
         dataKeys: [
           { key: 'concluidos', label: 'Concluídos', color: '#2E7D32' },
@@ -156,7 +150,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Valor por dia (produtor - gastos)
+    // Valor por dia (produtor)
     if (charts.valor_por_dia?.length) {
       configs.push({
         title: 'Valor Gasto por Dia',
@@ -200,144 +194,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Despesas (motorista)
-    if (charts.despesas_por_tipo?.length) {
-      configs.push({
-        title: 'Despesas por Categoria',
-        type: 'pie',
-        data: charts.despesas_por_tipo,
-        dataKeys: [{ key: 'value', label: 'Valor' }],
-        valueFormatter: formatBRL,
-      });
-    }
-
-    // Volume por dia (motorista)
-    if (charts.volume_por_dia?.length && panel === 'MOTORISTA') {
-      configs.push({
-        title: 'Operações por Dia',
-        type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({
-          day: d.dia,
-          fretes: d.fretes || d.total || 0,
-          servicos: d.servicos || 0,
-        })),
-        dataKeys: [
-          { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
-          { key: 'servicos', label: 'Serviços', color: '#1976D2' },
-        ],
-        xAxisKey: 'day',
-      });
-    }
-
-    // Avaliações trend (motorista)
-    if (charts.avaliacoes_trend?.length && panel === 'MOTORISTA') {
-      configs.push({
-        title: 'Evolução das Avaliações',
-        type: 'line',
-        data: charts.avaliacoes_trend.map((d: any) => ({
-          month: d.mes || d.month,
-          media: d.media || d.avg_rating || 0,
-        })),
-        dataKeys: [{ key: 'media', label: 'Nota Média', color: '#FF9800' }],
-        xAxisKey: 'month',
-      });
-    }
-
-    // Receita vs Despesas (motorista)
-    if (panel === 'MOTORISTA' && charts.receita_por_mes?.length) {
-      const receitaDespesasData = charts.receita_por_mes.map((m: any) => {
-        const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
-        return {
-          month: m.mes,
-          receita: m.receita || 0,
-          despesas: despesa?.valor || despesa?.despesas || 0,
-        };
-      });
-      if (receitaDespesasData.some((d: any) => d.despesas > 0)) {
-        configs.push({
-          title: 'Receita vs Despesas',
-          type: 'bar',
-          data: receitaDespesasData,
-          dataKeys: [
-            { key: 'receita', label: 'Receita', color: '#2E7D32' },
-            { key: 'despesas', label: 'Despesas', color: '#C62828' },
-          ],
-          xAxisKey: 'month',
-          valueFormatter: formatBRL,
-        });
-      }
-    }
-
-    // Top Rotas como gráfico de barras horizontal (motorista/transportadora)
-    if (charts.top_rotas?.length) {
-      configs.push({
-        title: 'Principais Rotas (Receita)',
-        type: 'horizontal-bar',
-        data: charts.top_rotas.slice(0, 8).map((r: any) => ({
-          name: `${r.origem} → ${r.destino}`,
-          receita: r.receita || 0,
-          viagens: r.total || 0,
-        })),
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
-        xAxisKey: 'name',
-        valueFormatter: formatBRL,
-        height: 350,
-      });
-    }
-
-    // Avaliações distribuição como gráfico de barras (motorista)
-    if (charts.avaliacoes_distribuicao?.length && panel === 'MOTORISTA') {
-      configs.push({
-        title: 'Distribuição de Avaliações',
-        type: 'bar',
-        data: charts.avaliacoes_distribuicao.map((r: any) => ({
-          name: `${r.name || r.stars}★`,
-          value: r.value || r.count || 0,
-        })),
-        dataKeys: [{ key: 'value', label: 'Avaliações', color: '#FF9800' }],
-        xAxisKey: 'name',
-      });
-    }
-
-    // Distância vs Receita como scatter (motorista)  
-    if (panel === 'MOTORISTA' && charts.receita_por_mes?.length) {
-      const scatterData = charts.receita_por_mes
-        .filter((m: any) => (m.receita || 0) > 0 || (m.km || 0) > 0)
-        .map((m: any) => ({
-          km: m.km || 0,
-          receita: m.receita || 0,
-          name: m.mes,
-        }));
-      if (scatterData.length > 1) {
-        configs.push({
-          title: 'Distância vs Receita (por mês)',
-          type: 'scatter',
-          data: scatterData,
-          dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#1976D2' }],
-          xAxisKey: 'km',
-          yAxisKey: 'receita',
-          valueFormatter: formatBRL,
-        });
-      }
-    }
-
-    // Receita acumulada como area chart (motorista)
-    if (panel === 'MOTORISTA' && charts.receita_por_mes?.length > 1) {
-      let acumulado = 0;
-      const areaData = charts.receita_por_mes.map((m: any) => {
-        acumulado += m.receita || 0;
-        return { month: m.mes, acumulado };
-      });
-      configs.push({
-        title: 'Receita Acumulada',
-        type: 'area',
-        data: areaData,
-        dataKeys: [{ key: 'acumulado', label: 'Receita Acumulada', color: '#00796B' }],
-        xAxisKey: 'month',
-        valueFormatter: formatBRL,
-      });
-    }
-
     // Por tipo de serviço (prestador)
     if (charts.por_tipo_servico?.length) {
       configs.push({
@@ -360,15 +216,13 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Por Motorista como gráfico de barras horizontal (transportadora)
+    // Por Motorista (transportadora)
     if (charts.por_motorista?.length) {
       configs.push({
         title: 'Desempenho por Motorista',
         type: 'horizontal-bar',
         data: charts.por_motorista.slice(0, 8).map((d: any) => ({
-          name: d.motorista,
-          receita: d.receita || 0,
-          viagens: d.viagens || 0,
+          name: d.motorista, receita: d.receita || 0, viagens: d.viagens || 0,
         })),
         dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
         xAxisKey: 'name',
@@ -379,6 +233,229 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
     return configs;
   }, [charts, panel]);
+
+  // ====== MOTORISTA-specific chart sections ======
+  const motoristaFinanceiroCharts: ChartConfig[] = useMemo(() => {
+    if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
+    const configs: ChartConfig[] = [];
+
+    // Receita por mês
+    if (charts.receita_por_mes?.length) {
+      configs.push({
+        title: 'Receita Mensal',
+        type: 'bar',
+        data: charts.receita_por_mes.map((m: any) => ({ month: m.mes, revenue: m.receita })),
+        dataKeys: [{ key: 'revenue', label: 'Receita', color: '#2E7D32' }],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      });
+    }
+
+    // Receita vs Despesas
+    if (charts.receita_por_mes?.length) {
+      const receitaDespesasData = charts.receita_por_mes.map((m: any) => {
+        const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
+        return { month: m.mes, receita: m.receita || 0, despesas: despesa?.valor || despesa?.despesas || 0 };
+      });
+      if (receitaDespesasData.some((d: any) => d.despesas > 0 || d.receita > 0)) {
+        configs.push({
+          title: 'Receita vs Despesas',
+          type: 'bar',
+          data: receitaDespesasData,
+          dataKeys: [
+            { key: 'receita', label: 'Receita', color: '#2E7D32' },
+            { key: 'despesas', label: 'Despesas', color: '#C62828' },
+          ],
+          xAxisKey: 'month',
+          valueFormatter: formatBRL,
+        });
+      }
+    }
+
+    // Despesas por categoria (pizza)
+    if (charts.despesas_por_tipo?.length) {
+      configs.push({
+        title: 'Despesas por Categoria',
+        type: 'pie',
+        data: charts.despesas_por_tipo,
+        dataKeys: [{ key: 'value', label: 'Valor' }],
+        valueFormatter: formatBRL,
+      });
+    }
+
+    // Receita acumulada (area)
+    if (charts.receita_por_mes?.length > 1) {
+      let acumulado = 0;
+      const areaData = charts.receita_por_mes.map((m: any) => {
+        acumulado += m.receita || 0;
+        return { month: m.mes, acumulado };
+      });
+      configs.push({
+        title: 'Receita Acumulada',
+        type: 'area',
+        data: areaData,
+        dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: '#00796B' }],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      });
+    }
+
+    // Lucro líquido por mês (line)
+    if (charts.receita_por_mes?.length) {
+      const lucroData = charts.receita_por_mes.map((m: any) => {
+        const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
+        const lucro = (m.receita || 0) - (despesa?.valor || despesa?.despesas || 0);
+        return { month: m.mes, lucro };
+      });
+      if (lucroData.some((d: any) => d.lucro !== 0)) {
+        configs.push({
+          title: 'Lucro Líquido Mensal',
+          type: 'line',
+          data: lucroData,
+          dataKeys: [{ key: 'lucro', label: 'Lucro', color: '#1976D2' }],
+          xAxisKey: 'month',
+          valueFormatter: formatBRL,
+        });
+      }
+    }
+
+    return configs;
+  }, [charts, panel]);
+
+  const motoristaOperacionalCharts: ChartConfig[] = useMemo(() => {
+    if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
+    const configs: ChartConfig[] = [];
+
+    // Volume por dia (barras empilhadas fretes + serviços)
+    if (charts.volume_por_dia?.length) {
+      configs.push({
+        title: 'Operações por Dia',
+        type: 'bar',
+        data: charts.volume_por_dia.map((d: any) => ({
+          day: d.dia,
+          fretes: d.fretes || d.total || 0,
+          servicos: d.servicos || 0,
+        })),
+        dataKeys: [
+          { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
+          { key: 'servicos', label: 'Serviços', color: '#1976D2' },
+        ],
+        xAxisKey: 'day',
+      });
+    }
+
+    // Por status (pizza)
+    if (charts.por_status?.length) {
+      configs.push({
+        title: 'Status dos Fretes',
+        type: 'pie',
+        data: charts.por_status,
+        dataKeys: [{ key: 'value', label: 'Quantidade' }],
+      });
+    }
+
+    // Tipos de carga (barras)
+    if (charts.por_tipo_carga?.length) {
+      configs.push({
+        title: 'Tipos de Carga Transportada',
+        type: 'horizontal-bar',
+        data: charts.por_tipo_carga.slice(0, 8),
+        dataKeys: [{ key: 'value', label: 'Quantidade', color: '#8D6E63' }],
+        xAxisKey: 'name',
+        height: 300,
+      });
+    }
+
+    // Top rotas (barras horizontais)
+    if (charts.top_rotas?.length) {
+      configs.push({
+        title: 'Principais Rotas',
+        type: 'horizontal-bar',
+        data: charts.top_rotas.slice(0, 8).map((r: any) => ({
+          name: `${r.origem} → ${r.destino}`,
+          receita: r.receita || 0,
+        })),
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
+        xAxisKey: 'name',
+        valueFormatter: formatBRL,
+        height: 350,
+      });
+    }
+
+    // Distância vs Receita (scatter)
+    if (charts.receita_por_mes?.length) {
+      const scatterData = charts.receita_por_mes
+        .filter((m: any) => (m.receita || 0) > 0 || (m.km || 0) > 0)
+        .map((m: any) => ({
+          km: m.km || 0,
+          receita: m.receita || 0,
+          name: m.mes,
+        }));
+      if (scatterData.length > 1) {
+        configs.push({
+          title: 'Distância vs Receita',
+          type: 'scatter',
+          data: scatterData,
+          dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#7B1FA2' }],
+          xAxisKey: 'km',
+          yAxisKey: 'receita',
+          valueFormatter: formatBRL,
+        });
+      }
+    }
+
+    return configs;
+  }, [charts, panel]);
+
+  const motoristaAvaliacoesCharts: ChartConfig[] = useMemo(() => {
+    if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
+    const configs: ChartConfig[] = [];
+
+    // Distribuição de avaliações (barras)
+    if (charts.avaliacoes_distribuicao?.length) {
+      configs.push({
+        title: 'Distribuição de Avaliações',
+        type: 'bar',
+        data: charts.avaliacoes_distribuicao.map((r: any) => ({
+          name: `${r.name || r.stars}★`,
+          value: r.value || r.count || 0,
+        })),
+        dataKeys: [{ key: 'value', label: 'Avaliações', color: '#FF9800' }],
+        xAxisKey: 'name',
+      });
+    }
+
+    // Evolução das avaliações (line)
+    if (charts.avaliacoes_trend?.length) {
+      configs.push({
+        title: 'Evolução da Nota Média',
+        type: 'line',
+        data: charts.avaliacoes_trend.map((d: any) => ({
+          month: d.mes || d.month,
+          media: d.media || d.avg_rating || 0,
+        })),
+        dataKeys: [{ key: 'media', label: 'Nota Média', color: '#FF9800' }],
+        xAxisKey: 'month',
+      });
+    }
+
+    // Avaliações como pizza se tiver dados
+    if (charts.avaliacoes_distribuicao?.length) {
+      configs.push({
+        title: 'Proporção de Avaliações',
+        type: 'pie',
+        data: charts.avaliacoes_distribuicao.map((r: any) => ({
+          name: `${r.name || r.stars}★`,
+          value: r.value || r.count || 0,
+        })),
+        dataKeys: [{ key: 'value', label: 'Avaliações' }],
+      });
+    }
+
+    return configs;
+  }, [charts, panel]);
+
+  const isMotorista = panel === 'MOTORISTA';
 
   // Export sections
   const exportSections = useMemo(() => {
@@ -415,6 +492,19 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     );
   }
 
+  // Section header component
+  const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) => (
+    <div className="flex items-center gap-3 pt-4 pb-2">
+      <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-primary/10">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div>
+        <h3 className="text-base font-semibold">{title}</h3>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -438,8 +528,37 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       {/* KPIs */}
       <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={panel === 'MOTORISTA' ? 3 : (kpiCards.length > 4 ? 6 : 4)} />
 
-      {/* Charts */}
-      <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
+      {/* MOTORISTA: Seções organizadas de gráficos */}
+      {isMotorista ? (
+        <>
+          {/* Seção Financeiro */}
+          {motoristaFinanceiroCharts.length > 0 && (
+            <>
+              <SectionHeader icon={DollarSign} title="Financeiro" subtitle="Receitas, despesas e lucro" />
+              <ReportCharts charts={motoristaFinanceiroCharts} isLoading={isLoading} columns={2} />
+            </>
+          )}
+
+          {/* Seção Operacional */}
+          {motoristaOperacionalCharts.length > 0 && (
+            <>
+              <SectionHeader icon={Activity} title="Operacional" subtitle="Volume, rotas e tipos de carga" />
+              <ReportCharts charts={motoristaOperacionalCharts} isLoading={isLoading} columns={2} />
+            </>
+          )}
+
+          {/* Seção Avaliações */}
+          {motoristaAvaliacoesCharts.length > 0 && (
+            <>
+              <SectionHeader icon={Star} title="Avaliações" subtitle="Desempenho e satisfação" />
+              <ReportCharts charts={motoristaAvaliacoesCharts} isLoading={isLoading} columns={2} />
+            </>
+          )}
+        </>
+      ) : (
+        /* Other panels: flat chart list */
+        <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
+      )}
 
       {/* Sem dados */}
       {!isLoading && kpiCards.every(k => (typeof k.value === 'number' ? k.value === 0 : !k.value)) && (
