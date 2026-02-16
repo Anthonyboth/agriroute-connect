@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { FiscalHistoryTab } from './FiscalHistoryTab';
 import { 
   FileText, 
   Building2, 
@@ -13,7 +14,8 @@ import {
   AlertTriangle,
   Settings,
   Info,
-  GraduationCap
+  GraduationCap,
+  History
 } from 'lucide-react';
 import { useDocumentPermissions } from '@/hooks/useDocumentPermissions';
 import { FiscalDocumentCards } from './FiscalDocumentCards';
@@ -137,10 +139,14 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
 
       {/* Sub-abas */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5">
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Documentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
           <TabsTrigger value="issuer" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -200,6 +206,11 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
               </AlertDescription>
             </Alert>
           )}
+        </TabsContent>
+
+        {/* Histórico de Emissões */}
+        <TabsContent value="history" className="space-y-6 mt-6">
+          <FiscalHistoryTab fiscalIssuerId={fiscalIssuer?.id || null} />
         </TabsContent>
 
         {/* Guia Fiscal Educativo */}
