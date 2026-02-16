@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { StorageImage } from '@/components/ui/storage-image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -425,11 +426,25 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      asChild
+                      onClick={async () => {
+                        try {
+                          const urlObj = new URL(attachment.file_url);
+                          const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/(.+)/);
+                          if (pathMatch) {
+                            const [, bucket, path] = pathMatch;
+                            const { data } = await supabase.storage.from(bucket).createSignedUrl(decodeURIComponent(path), 60);
+                            if (data?.signedUrl) {
+                              window.open(data.signedUrl, '_blank');
+                              return;
+                            }
+                          }
+                          window.open(attachment.file_url, '_blank');
+                        } catch {
+                          window.open(attachment.file_url, '_blank');
+                        }
+                      }}
                     >
-                      <a href={attachment.file_url} download target="_blank" rel="noopener noreferrer">
-                        <Download className="h-4 w-4" />
-                      </a>
+                      <Download className="h-4 w-4" />
                     </Button>
                     {(attachment.uploaded_by === currentUserProfileId || isProducer) && (
                       <Button
@@ -456,7 +471,7 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
             </DialogHeader>
             {previewUrl && (
               <div className="relative">
-                <img
+                <StorageImage
                   src={previewUrl}
                   alt="Preview"
                   className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
