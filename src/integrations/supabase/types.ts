@@ -13640,6 +13640,8 @@ export type Database = {
           origin_state: string
           pickup_date: string
           price: number
+          price_per_km: number
+          pricing_type: string
           required_trucks: number
           service_type: string
           status: string
