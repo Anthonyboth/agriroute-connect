@@ -214,6 +214,8 @@ export function isDriverOnline(lastGpsUpdate: string | null | undefined): boolea
 export const ONGOING_SERVICE_TYPES = [
   'GUINCHO',
   'MUDANCA',
+  'MUDANCA_RESIDENCIAL',
+  'MUDANCA_COMERCIAL',
   'FRETE_URBANO',
   'FRETE_MOTO',
   'TRANSPORTE_PET',

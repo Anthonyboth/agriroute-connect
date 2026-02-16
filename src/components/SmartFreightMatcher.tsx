@@ -141,9 +141,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           : ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO", "ENTREGA_PACOTES", "TRANSPORTE_PET"] as CanonicalServiceType[];
 
         const TRANSPORT_SERVICE_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO', 'MUDANCA', 'MUDANCA_RESIDENCIAL', 'MUDANCA_COMERCIAL', 'FRETE_MOTO'];
-        const allowedTransportTypes = TRANSPORT_SERVICE_TYPES.filter(t => 
-          effectiveTypes.includes(t as CanonicalServiceType)
-        );
+        const allowedTransportTypes = TRANSPORT_SERVICE_TYPES.filter(t => {
+          // Subtipos de MUDANCA são permitidos se o usuário tem MUDANCA no perfil
+          const canonical = normalizeServiceType(t);
+          return effectiveTypes.includes(t as CanonicalServiceType) || effectiveTypes.includes(canonical);
+        });
 
         const [freightsResult, serviceResult] = await Promise.all([
           supabase
