@@ -1677,6 +1677,8 @@ const ProducerDashboard = () => {
                             required_trucks: freight.required_trucks || 1,
                             accepted_trucks: freight.accepted_trucks || 0,
                             service_type: freight.service_type || "CARGA",
+                            pricing_type: freight.pricing_type,
+                            price_per_km: freight.price_per_km,
                           }}
                           showProducerActions
                           onAction={(action) => handleFreightAction(action as any, freight)}
