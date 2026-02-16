@@ -206,12 +206,34 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
             <DriverVehiclePreview driverId={primaryDriverId} />
           )}
 
-          {/* ✅ Valor do Frete - Motoristas veem valor unitário por carreta */}
+          {/* ✅ Valor do Frete - Exibe valor unitário conforme tipo de precificação */}
           <div className="pt-2 border-t">
             {(() => {
               const isDriver = userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO';
               const driverAgreedPrice = assignedDrivers.find(a => a.driver_id === userProfileId)?.agreed_price;
               const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+              const pricingType = freight.pricing_type;
+              const unitRate = freight.price_per_km;
+
+              // Se tem pricing_type PER_KM ou PER_TON, exibir valor unitário
+              if (pricingType === 'PER_KM' && unitRate) {
+                return (
+                  <div className="text-2xl font-bold text-primary">
+                    {formatBRL(unitRate)}
+                    <span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
+                  </div>
+                );
+              }
+              if (pricingType === 'PER_TON' && unitRate) {
+                return (
+                  <div className="text-2xl font-bold text-primary">
+                    {formatBRL(unitRate)}
+                    <span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
+                  </div>
+                );
+              }
+
+              // FIXED ou fallback
               const displayPrice = isDriver
                 ? (driverAgreedPrice ?? pricePerTruck)
                 : freight.price;
@@ -220,6 +242,9 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
                 <>
                   <div className="text-2xl font-bold text-primary">
                     {formatBRL(displayPrice)}
+                    {!isMultiTruck && (
+                      <span className="text-xs font-normal text-muted-foreground ml-1">fixo</span>
+                    )}
                   </div>
                   {isMultiTruck && isDriver && (
                     <p className="text-xs text-muted-foreground">
