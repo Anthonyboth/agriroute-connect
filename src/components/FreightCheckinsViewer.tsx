@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { StorageImage } from '@/components/ui/storage-image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -292,7 +293,7 @@ const FreightCheckinsViewer: React.FC<FreightCheckinsViewerProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedPhotos.map((photo, index) => (
               <div key={`viewer-photo-${index}-${photo}`} className="space-y-2">
-                <img
+                <StorageImage
                   src={photo}
                   alt={`Foto ${index + 1}`}
                   className="w-full h-64 object-cover rounded border"
