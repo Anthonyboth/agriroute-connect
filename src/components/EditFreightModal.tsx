@@ -354,7 +354,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="pricing_type">Tipo de Pagamento</Label>
               <Select
@@ -387,23 +387,23 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
                 required
               />
             </div>
+          </div>
 
-            <div>
-              <Label htmlFor="urgency">Urgência</Label>
-              <Select
-                value={formData.urgency}
-                onValueChange={(value) => setFormData({ ...formData, urgency: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Baixa</SelectItem>
-                  <SelectItem value="MEDIUM">Média</SelectItem>
-                  <SelectItem value="HIGH">Alta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="urgency">Urgência</Label>
+            <Select
+              value={formData.urgency}
+              onValueChange={(value) => setFormData({ ...formData, urgency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Baixa</SelectItem>
+                <SelectItem value="MEDIUM">Média</SelectItem>
+                <SelectItem value="HIGH">Alta</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
