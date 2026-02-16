@@ -103,9 +103,14 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
         throw uploadError;
       }
       
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedData, error: signError } = await supabase.storage
         .from('driver-documents')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 86400); // 24h
+      
+      if (signError || !signedData?.signedUrl) {
+        console.error('[DriverInfo] Erro ao gerar signed URL:', signError?.message);
+        throw signError || new Error('Falha ao gerar URL assinada');
+      }
       
       const updateField = photoType === 'profile' ? 'profile_photo_url' 
         : photoType === 'cnh' ? 'cnh_photo_url' 
@@ -113,7 +118,7 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
       
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ [updateField]: publicUrl })
+        .update({ [updateField]: signedData.signedUrl })
         .eq('id', driver.id);
       
       if (updateError) throw updateError;
