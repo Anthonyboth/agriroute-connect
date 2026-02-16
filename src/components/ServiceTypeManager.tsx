@@ -16,7 +16,7 @@ const toCanonical = (id: string): string => {
 };
 
 export const ServiceTypeManager: React.FC = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -66,19 +66,17 @@ export const ServiceTypeManager: React.FC = () => {
 
       if (error) throw error;
 
-      // ✅ CRÍTICO: Atualizar cache do perfil para que SmartFreightMatcher use os novos tipos
+      // ✅ Atualizar cache do perfil para que SmartFreightMatcher use os novos tipos
       const updatedProfile = { ...profile, service_types: selectedServices };
       setCachedProfile(user.id, updatedProfile);
       
       // ✅ Limpar cooldown para forçar refetch
       sessionStorage.removeItem('profile_fetch_cooldown_until');
       
-      toast.success('Tipos de serviço atualizados! Recarregando dados...');
+      // ✅ Atualizar contexto de auth sem recarregar o app inteiro
+      await refreshProfile();
       
-      // ✅ Forçar recarregamento suave após 500ms para atualizar o contexto
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      toast.success('Tipos de serviço atualizados!');
       
     } catch (error: any) {
       console.error('Erro ao atualizar tipos de serviço:', error);
