@@ -71,6 +71,8 @@ interface CompatibleFreight {
   created_at: string;
   vehicle_type_required?: string;
   vehicle_axles_required?: number;
+  pricing_type?: string;
+  price_per_km?: number;
 }
 
 interface SmartFreightMatcherProps {
@@ -799,6 +801,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                           service_type: freight.service_type as any,
                           vehicle_type_required: freight.vehicle_type_required,
                           vehicle_axles_required: freight.vehicle_axles_required,
+                          pricing_type: freight.pricing_type as any,
+                          price_per_km: freight.price_per_km,
                         }}
                         onAction={(action) => handleFreightAction(freight.freight_id, action)}
                         showActions={true}
