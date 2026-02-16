@@ -96,68 +96,76 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
     </div>
   );
 
-  const renderMudancaFields = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Tipo de Mudança *</Label>
-        <div className="grid grid-cols-2 gap-3">
-          <Card 
-            className={`cursor-pointer transition-all hover:border-primary ${
-              formData.mudanca?.type === 'RESIDENCIAL' ? 'border-primary bg-primary/5' : ''
-            }`}
-            onClick={() => onUpdate('mudanca.type', 'RESIDENCIAL')}
+  const renderMudancaFields = () => {
+    // Se o tipo já foi selecionado no MudancaModal (MUDANCA_RESIDENCIAL/MUDANCA_COMERCIAL),
+    // não mostrar a seleção duplicada de tipo
+    const typeAlreadySelected = serviceType === 'MUDANCA_RESIDENCIAL' || serviceType === 'MUDANCA_COMERCIAL';
+
+    return (
+      <div className="space-y-4">
+        {!typeAlreadySelected && (
+          <div className="space-y-2">
+            <Label>Tipo de Mudança *</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Card 
+                className={`cursor-pointer transition-all hover:border-primary ${
+                  formData.mudanca?.type === 'RESIDENCIAL' ? 'border-primary bg-primary/5' : ''
+                }`}
+                onClick={() => onUpdate('mudanca.type', 'RESIDENCIAL')}
+              >
+                <CardContent className="p-4 text-center">
+                  <span className="text-2xl">🏠</span>
+                  <p className="font-medium mt-2">Residencial</p>
+                  <p className="text-xs text-muted-foreground">Casa ou apartamento</p>
+                </CardContent>
+              </Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:border-primary ${
+                  formData.mudanca?.type === 'COMERCIAL' ? 'border-primary bg-primary/5' : ''
+                }`}
+                onClick={() => onUpdate('mudanca.type', 'COMERCIAL')}
+              >
+                <CardContent className="p-4 text-center">
+                  <span className="text-2xl">🏢</span>
+                  <p className="font-medium mt-2">Comercial</p>
+                  <p className="text-xs text-muted-foreground">Escritório ou loja</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label>Número de Cômodos *</Label>
+          <Select 
+            value={formData.mudanca?.rooms || ''} 
+            onValueChange={(value) => onUpdate('mudanca.rooms', value)}
           >
-            <CardContent className="p-4 text-center">
-              <span className="text-2xl">🏠</span>
-              <p className="font-medium mt-2">Residencial</p>
-              <p className="text-xs text-muted-foreground">Casa ou apartamento</p>
-            </CardContent>
-          </Card>
-          <Card 
-            className={`cursor-pointer transition-all hover:border-primary ${
-              formData.mudanca?.type === 'COMERCIAL' ? 'border-primary bg-primary/5' : ''
-            }`}
-            onClick={() => onUpdate('mudanca.type', 'COMERCIAL')}
-          >
-            <CardContent className="p-4 text-center">
-              <span className="text-2xl">🏢</span>
-              <p className="font-medium mt-2">Comercial</p>
-              <p className="text-xs text-muted-foreground">Escritório ou loja</p>
-            </CardContent>
-          </Card>
+            <SelectTrigger>
+              <SelectValue placeholder="Quantos cômodos?" />
+            </SelectTrigger>
+            <SelectContent>
+              {SUB_SERVICE_OPTIONS.ROOMS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Descrição geral</Label>
+          <Textarea
+            value={formData.problemDescription}
+            onChange={(e) => onUpdate('problemDescription', e.target.value)}
+            placeholder="Descreva o que será transportado, itens especiais, observações..."
+            rows={3}
+          />
         </div>
       </div>
-
-      <div className="space-y-2">
-        <Label>Número de Cômodos *</Label>
-        <Select 
-          value={formData.mudanca?.rooms || ''} 
-          onValueChange={(value) => onUpdate('mudanca.rooms', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Quantos cômodos?" />
-          </SelectTrigger>
-          <SelectContent>
-            {SUB_SERVICE_OPTIONS.ROOMS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Descrição geral</Label>
-        <Textarea
-          value={formData.problemDescription}
-          onChange={(e) => onUpdate('problemDescription', e.target.value)}
-          placeholder="Descreva o que será transportado, itens especiais, observações..."
-          rows={3}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderAgriculturalFields = () => (
     <div className="space-y-4">
