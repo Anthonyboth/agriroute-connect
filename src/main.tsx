@@ -98,12 +98,21 @@ async function ensureFreshPreviewBuild() {
 }
 
 /**
- * ✅ Registra o Service Worker APENAS em produção (não no Preview)
+ * ✅ Registra o Service Worker APENAS em produção web (não no Preview nem no Capacitor)
  */
 async function registerServiceWorker() {
   // Não registrar SW no Preview - evita cache de versões antigas
   if (isLovablePreviewHost()) {
     console.log('[SW] Preview detectado - SW não será registrado');
+    return;
+  }
+
+  // Não registrar SW no Capacitor (localhost) - SWs não funcionam em WebView nativo
+  const isCapacitorApp = window.location.hostname === 'localhost' || 
+    window.location.protocol === 'capacitor:' ||
+    !!(window as any).Capacitor;
+  if (isCapacitorApp) {
+    console.log('[SW] Capacitor/localhost detectado - SW não será registrado');
     return;
   }
 

@@ -71,10 +71,14 @@ export const usePushNotifications = () => {
         return;
       }
 
-      // Registrar service worker APENAS fora do Preview (Preview pode ficar preso em versões antigas)
+      // Registrar service worker APENAS fora do Preview e Capacitor
+      const isCapacitorApp = window.location.hostname === 'localhost' || 
+        window.location.protocol === 'capacitor:' ||
+        !!(window as any).Capacitor;
+
       let registration = await navigator.serviceWorker.getRegistration();
 
-      if (!registration && import.meta.env.PROD && !isLovablePreviewHost()) {
+      if (!registration && import.meta.env.PROD && !isLovablePreviewHost() && !isCapacitorApp) {
         try {
           registration = await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;
