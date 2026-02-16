@@ -458,7 +458,10 @@ export function CreateFreightWizard({
 
       // ✅ Validação pré-insert: proteger contra NaN e valores fora do range do DB
       const safePrice = isNaN(calculation.totalPrice) ? 0 : calculation.totalPrice;
-      const safePricePerKm = formData.pricing_type === 'PER_KM' ? (parseFloat(formData.price_per_km) || 0) : null;
+      // Salvar valor unitário para PER_KM e PER_TON (reusa campo price_per_km)
+      const safePricePerKm = (formData.pricing_type === 'PER_KM' || formData.pricing_type === 'PER_TON') 
+        ? (parseFloat(formData.price_per_km) || 0) 
+        : null;
       
       if (isNaN(totalWeightKg) || totalWeightKg < 100) {
         showFormError({
@@ -512,6 +515,7 @@ export function CreateFreightWizard({
         minimum_antt_price: calculatedAnttPrice,
         price: safePrice,
         price_per_km: safePricePerKm,
+        pricing_type: formData.pricing_type || 'FIXED',
         required_trucks: parseInt(formData.required_trucks) || 1,
         accepted_trucks: 0,
         pickup_date: formData.pickup_date,

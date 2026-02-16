@@ -459,6 +459,7 @@ serve(async (req) => {
       minimum_antt_price: data.minimum_antt_price || null,
       price: data.price,
       price_per_km: data.price_per_km || null,
+      pricing_type: data.pricing_type || 'FIXED',
       required_trucks: data.required_trucks,
       accepted_trucks: 0,
       pickup_date: data.pickup_date,

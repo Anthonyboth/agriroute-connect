@@ -46,6 +46,8 @@ interface CompatibleFreight {
   minimum_antt_price: number;
   required_trucks: number;
   accepted_trucks: number;
+  pricing_type?: string;
+  price_per_km?: number;
   created_at: string;
 }
 
@@ -524,6 +526,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                           required_trucks: freight.required_trucks,
                           accepted_trucks: freight.accepted_trucks,
                           service_type: freight.service_type as any,
+                          pricing_type: freight.pricing_type as any,
+                          price_per_km: freight.price_per_km,
                         }}
                         showActions
                         canAcceptFreights={true}

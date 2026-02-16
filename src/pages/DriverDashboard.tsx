@@ -402,7 +402,9 @@ const DriverDashboard = () => {
           status: f.status,
           distance_km: f.distance_km,
           minimum_antt_price: f.minimum_antt_price,
-          service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined
+          service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
+          pricing_type: f.pricing_type || 'FIXED',
+          price_per_km: f.price_per_km || undefined
         }));
 
         devLog('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
@@ -450,7 +452,9 @@ const DriverDashboard = () => {
             minimum_antt_price: f.minimum_antt_price || 0,
             service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
             accepted_trucks: f.accepted_trucks || 0,
-            required_trucks: f.required_trucks || 1
+            required_trucks: f.required_trucks || 1,
+            pricing_type: f.pricing_type || 'FIXED',
+            price_per_km: f.price_per_km || undefined
           }));
         devLog('[fetchAvailableFreights] 📦 Fretes do matching espacial:', platformFreights.length);
       }
@@ -483,7 +487,9 @@ const DriverDashboard = () => {
             minimum_antt_price: f.minimum_antt_price,
             service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
             accepted_trucks: f.accepted_trucks || 0,
-            required_trucks: f.required_trucks || 1
+            required_trucks: f.required_trucks || 1,
+            pricing_type: f.pricing_type || 'FIXED',
+            price_per_km: f.price_per_km || undefined
           }));
 
         // Combinar com spatial e deduplicar
@@ -585,7 +591,9 @@ const DriverDashboard = () => {
             minimum_antt_price: f.minimum_antt_price,
             service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
             accepted_trucks: f.accepted_trucks || 0,
-            required_trucks: f.required_trucks || 1
+            required_trucks: f.required_trucks || 1,
+            pricing_type: f.pricing_type || 'FIXED',
+            price_per_km: f.price_per_km || undefined
           }));
 
           devLog('[fetchAvailableFreights] 📦 Fretes da plataforma (fallback):', platformFreights.length);
