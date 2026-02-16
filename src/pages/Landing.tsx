@@ -217,7 +217,7 @@ const Landing: React.FC = () => {
                 e.stopPropagation();
                 setAuthModal(true);
               }}
-              className="hidden sm:flex gradient-primary text-primary-foreground font-medium"
+              className="hidden md:flex gradient-primary text-primary-foreground font-medium"
             > 
               Cadastrar-se
             </Button>
@@ -228,7 +228,7 @@ const Landing: React.FC = () => {
                 e.stopPropagation();
                 navigate('/auth?mode=login');
               }}
-              className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-gray-900 font-medium"
+              className="hidden md:flex bg-orange-500 hover:bg-orange-600 text-gray-900 font-medium"
             > 
               Entrar
             </Button>
