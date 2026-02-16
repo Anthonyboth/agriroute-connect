@@ -26,6 +26,7 @@ function mapFocusStatusToInternalStatus(focusStatus?: string): "processing" | "a
       return "canceled";
     case "erro_autorizacao":
     case "rejeitado":
+    case "denegado":
       return "rejected";
     case "processando_autorizacao":
     case "processando_cancelamento":
