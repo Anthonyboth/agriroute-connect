@@ -83,7 +83,7 @@ const createInitialFormData = (serviceType: ServiceType, catalogServiceId?: stri
     situation: "",
   },
   mudanca: {
-    type: "RESIDENCIAL",
+    type: serviceType === 'MUDANCA_COMERCIAL' ? 'COMERCIAL' : 'RESIDENCIAL',
     rooms: "",
     volume: "",
     additionalServices: [],
