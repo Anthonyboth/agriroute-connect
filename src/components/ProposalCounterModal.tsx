@@ -52,12 +52,12 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   const [counterPricePerTon, setCounterPricePerTon] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
 
-  if (!originalProposal) return null;
-
-  // ✅ CRÍTICO: Calcular valores POR CARRETA
+  // ✅ CRÍTICO: Calcular valores POR CARRETA (hooks ANTES do early return)
   const hasMultipleTrucks = requiredTrucks > 1;
   const pricePerTruck = useMemo(() => getPricePerTruck(freightPrice, requiredTrucks), [freightPrice, requiredTrucks]);
   const weightPerTruck = useMemo(() => (freightWeight || 0) / requiredTrucks, [freightWeight, requiredTrucks]);
+
+  if (!originalProposal) return null;
   const weightPerTruckInTons = weightPerTruck / 1000;
 
   // A proposta do motorista já é por carreta
