@@ -21,6 +21,7 @@ interface ProposalCounterModalProps {
     proposed_price: number; // Já é o valor por carreta do motorista
     message?: string;
     driver_name: string;
+    driver_id: string; // ✅ ID do motorista para target_driver_id no chat
   } | null;
   freightPrice: number; // Preço TOTAL do frete
   freightDistance?: number;
@@ -253,6 +254,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
           .insert({
             freight_id: originalProposal.freight_id,
             sender_id: profile.id,
+            target_driver_id: originalProposal.driver_id,
             message: messageContent,
             message_type: 'COUNTER_PROPOSAL'
           });

@@ -884,7 +884,8 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
           freight_id: counterProposalOpen.proposal.freight_id,
           proposed_price: counterProposalOpen.proposal.proposed_price,
           message: counterProposalOpen.proposal.message || '',
-          driver_name: counterProposalOpen.proposal.driver?.full_name || 'Motorista'
+          driver_name: counterProposalOpen.proposal.driver?.full_name || 'Motorista',
+          driver_id: counterProposalOpen.proposal.driver_id
         } : null}
         freightPrice={counterProposalOpen.proposal?.freight?.price || 0}
         freightDistance={counterProposalOpen.proposal?.freight?.distance_km || 0}
