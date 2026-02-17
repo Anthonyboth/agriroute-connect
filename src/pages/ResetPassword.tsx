@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { validatePasswordStrength, PASSWORD_REQUIREMENTS_TEXT, PASSWORD_MIN_LENGTH } from '@/utils/passwordValidation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,8 +73,9 @@ const ResetPassword = () => {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
+    const validation = validatePasswordStrength(password);
+    if (!validation.valid) {
+      toast.error(`Senha fraca: ${validation.errors.join(', ')}`);
       return;
     }
 
@@ -198,11 +200,11 @@ const ResetPassword = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Digite sua nova senha"
                 required
-                minLength={6}
+                minLength={PASSWORD_MIN_LENGTH}
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                Mínimo de 6 caracteres
+                {PASSWORD_REQUIREMENTS_TEXT}
               </p>
             </div>
             
@@ -214,7 +216,7 @@ const ResetPassword = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirme sua nova senha"
                 required
-                minLength={6}
+                minLength={PASSWORD_MIN_LENGTH}
                 disabled={loading}
               />
               {confirmPassword && password !== confirmPassword && (

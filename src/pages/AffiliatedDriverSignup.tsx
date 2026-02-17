@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -191,8 +192,9 @@ const AffiliatedDriverSignup = () => {
           toast.error('CPF/CNPJ inválido');
           return;
         }
-        if (formData.password.length < 6) {
-          toast.error('A senha deve ter no mínimo 6 caracteres');
+        const pwValidation = validatePasswordStrength(formData.password);
+        if (!pwValidation.valid) {
+          toast.error(`Senha fraca: ${pwValidation.errors.join(', ')}`);
           return;
         }
         if (!formData.confirmPassword) {
