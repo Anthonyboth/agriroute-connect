@@ -128,6 +128,18 @@ async function registerServiceWorker() {
   }
 }
 
+// ✅ FALLBACK GLOBAL: Garantir que splash NUNCA trave o app
+// Esconde splash após 10s independente de React montar
+if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) {
+  setTimeout(async () => {
+    try {
+      const { SplashScreen } = await import('@capacitor/splash-screen');
+      await SplashScreen.hide({ fadeOutDuration: 300 });
+      console.warn('[main] ⚠️ Fallback global de splash ativado');
+    } catch {}
+  }, 10000);
+}
+
 // Bootstrap controlado para permitir limpeza/reload antes do mount
 void (async () => {
   await ensureFreshPreviewBuild();
