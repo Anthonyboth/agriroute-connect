@@ -15,6 +15,23 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AgriRoute">
     
+    <!-- ✅ Capacitor/Native cleanup: remove PWA/preload/preconnect tags that crash Android WebView -->
+    <script>
+      (function(){
+        var isNative = window.Capacitor || location.protocol === 'capacitor:' || 
+          (location.hostname === 'localhost' && !location.port);
+        if (!isNative) return;
+        window.__CAPACITOR_NATIVE__ = true;
+        function cleanup(){
+          document.querySelectorAll('link[rel="manifest"]').forEach(function(el){ el.remove(); });
+          document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(el){ el.remove(); });
+          document.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').forEach(function(el){ el.remove(); });
+        }
+        cleanup();
+        new MutationObserver(cleanup).observe(document.head, { childList: true });
+      })();
+    </script>
+
     <!-- Android/Chrome PWA -->
     <link rel="manifest" href="/site.webmanifest?v=2">
     <meta name="theme-color" content="#10b981">
@@ -29,15 +46,9 @@
           imagesrcset="/hero-truck-night-moon-mobile.webp 640w, /hero-truck-night-moon.webp 1920w"
           imagesizes="100vw">
     
-    
-    <!-- Note: Avoid preloading dev-only /src/* assets in production to prevent MIME-type console errors. -->
-
-    
     <!-- Preconnect to critical origins - reduces DNS/TLS latency -->
     <link rel="preconnect" href="https://shnvtxejjecbnztdbbbl.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://shnvtxejjecbnztdbbbl.supabase.co">
-    
-    <!-- Google Fonts preconnect removed: unused, wastes connection slots and delays LCP -->
     
     <!-- DNS prefetch for external services -->
     <link rel="dns-prefetch" href="https://js.stripe.com">
