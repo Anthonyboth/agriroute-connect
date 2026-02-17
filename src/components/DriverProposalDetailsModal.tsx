@@ -262,10 +262,29 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
                 ? `R$ ${freightUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitLabel}`
                 : originalPricePerTruck.formattedPrice;
               
-              // Proposta do motorista: usar unit_price se disponível, senão proposed_price
-              const driverUnitPrice = proposal.proposal_unit_price;
-              const driverDisplay = driverUnitPrice && unitLabel
-                ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitLabel}`
+              // Proposta do motorista: usar unit_price se disponível, senão derivar do total
+              let driverUnitPrice = proposal.proposal_unit_price;
+              const driverPricingType = proposal.proposal_pricing_type;
+              const effectivePricingType = (driverPricingType && driverPricingType !== 'FIXED') 
+                ? driverPricingType 
+                : freightPricingType;
+              
+              // Derivar valor unitário se não disponível diretamente
+              if (!driverUnitPrice && effectivePricingType && effectivePricingType !== 'FIXED' && proposal.proposed_price) {
+                const weight = proposal.freight?.weight;
+                const distance = proposal.freight?.distance_km;
+                if (effectivePricingType === 'PER_TON' && weight) {
+                  const weightInTons = weight >= 1000 ? weight / 1000 : weight;
+                  if (weightInTons > 0) driverUnitPrice = proposal.proposed_price / weightInTons;
+                } else if (effectivePricingType === 'PER_KM' && distance) {
+                  if (distance > 0) driverUnitPrice = proposal.proposed_price / distance;
+                }
+              }
+              
+              const effectiveUnitLabel = (effectivePricingType === 'PER_TON') ? '/ton' : (effectivePricingType === 'PER_KM') ? '/km' : unitLabel;
+              
+              const driverDisplay = driverUnitPrice && effectiveUnitLabel
+                ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${effectiveUnitLabel}`
                 : formatBRL(proposal.proposed_price, true);
               
               // Diferença calculada em valores unitários quando possível
