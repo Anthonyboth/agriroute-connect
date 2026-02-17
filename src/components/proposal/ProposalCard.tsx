@@ -18,6 +18,8 @@ interface Proposal {
   freight_id: string;
   driver_id: string;
   proposed_price: number; // ✅ Este valor JÁ É por carreta (motorista envia por unidade)
+  proposal_pricing_type?: string; // FIXED, PER_KM, PER_TON
+  proposal_unit_price?: number; // Valor unitário (R$/km, R$/ton, ou total fixo)
   message?: string;
   delivery_estimate?: string;
   status: string;
@@ -185,33 +187,18 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium flex items-center gap-2">
               Valor proposto:
-              {multipleTrucks && (
-                <Badge variant="outline" className="text-xs">/carreta</Badge>
-              )}
             </span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SafePrice
-                    price={proposalPricePerTruck}
-                    freight={{ required_trucks: freight.required_trucks, price: freight.price }}
-                    context="PROPOSAL"
-                    viewerRole="PRODUTOR"
-                    asBadge
-                    badgeVariant={belowAntt ? 'destructive' : 'default'}
-                    size="lg"
-                    showSecondary={false}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {belowAntt 
-                    ? 'Valor abaixo do mínimo ANTT por carreta' 
-                    : multipleTrucks 
-                      ? 'Valor por carreta - dentro da conformidade'
-                      : 'Valor dentro da conformidade'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Badge variant={belowAntt ? 'destructive' : 'default'} className="text-sm">
+              {proposal.proposal_pricing_type === 'PER_KM' && proposal.proposal_unit_price
+                ? `R$ ${proposal.proposal_unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                : proposal.proposal_pricing_type === 'PER_TON' && proposal.proposal_unit_price
+                  ? `R$ ${proposal.proposal_unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                  : <>
+                      {formatBRL(proposalPricePerTruck, true)}
+                      {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+                    </>
+              }
+            </Badge>
           </div>
           
           {/* Valor original do frete - exibe valor unitário preenchido pelo usuário */}

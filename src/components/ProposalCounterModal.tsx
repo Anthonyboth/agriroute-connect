@@ -157,6 +157,8 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
               .from('freight_proposals')
               .update({
                 proposed_price: finalPrice,
+                proposal_pricing_type: pricingType,
+                proposal_unit_price: priceFloat,
                 status: 'PENDING',
                 message: proposalMessage
               })
@@ -173,6 +175,8 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                 freight_id: originalProposal.freight_id,
                 driver_id: profile.id,
                 proposed_price: finalPrice,
+                proposal_pricing_type: pricingType,
+                proposal_unit_price: priceFloat,
                 status: 'PENDING',
                 message: proposalMessage
               });

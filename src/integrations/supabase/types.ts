@@ -5093,6 +5093,8 @@ export type Database = {
           id: string
           justification: string | null
           message: string | null
+          proposal_pricing_type: string | null
+          proposal_unit_price: number | null
           proposed_price: number
           status: string
         }
@@ -5104,6 +5106,8 @@ export type Database = {
           id?: string
           justification?: string | null
           message?: string | null
+          proposal_pricing_type?: string | null
+          proposal_unit_price?: number | null
           proposed_price: number
           status?: string
         }
@@ -5115,6 +5119,8 @@ export type Database = {
           id?: string
           justification?: string | null
           message?: string | null
+          proposal_pricing_type?: string | null
+          proposal_unit_price?: number | null
           proposed_price?: number
           status?: string
         }
