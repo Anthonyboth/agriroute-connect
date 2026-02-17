@@ -187,5 +187,16 @@ void (async () => {
     });
   }
 
-  createRoot(document.getElementById('root')!).render(<App />);
+  try {
+    createRoot(document.getElementById('root')!).render(<App />);
+  } catch (error) {
+    const root = document.getElementById('root');
+    if (root) {
+      root.innerHTML = '<div style="padding:2rem;text-align:center;font-family:system-ui">' +
+        '<h2 style="color:#dc2626">Erro ao iniciar o app</h2>' +
+        '<p style="margin:1rem 0;color:#666">' + (error instanceof Error ? error.message : String(error)) + '</p>' +
+        '<button onclick="location.reload()" style="padding:0.75rem 1.5rem;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer">Recarregar</button></div>';
+    }
+    console.error('[main] Fatal boot error:', error);
+  }
 })();
