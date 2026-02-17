@@ -1205,20 +1205,37 @@ const DriverDashboard = () => {
 
       const { data, error } = await supabase
         .from('freight_messages')
-        .select(`
-          *,
-          freight:freights(*),
-          sender:profiles!freight_messages_sender_id_fkey(*)
-        `)
+        .select('*')
         .eq('message_type', 'COUNTER_PROPOSAL')
         .in('freight_id', counterProposedFreightIds)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      if (isMountedRef.current) setCounterOffers(data || []);
+      if (error) {
+        console.error('[fetchCounterOffers] Erro ao buscar contra-ofertas:', error);
+        throw error;
+      }
+
+      // Buscar nomes dos senders separadamente via profiles_secure
+      const messages = data || [];
+      if (messages.length > 0) {
+        const senderIds = [...new Set(messages.map(m => m.sender_id).filter(Boolean))];
+        const { data: senders } = await (supabase as any)
+          .from('profiles_secure')
+          .select('id, full_name')
+          .in('id', senderIds);
+        
+        const senderMap = new Map((senders || []).map((s: any) => [s.id, s]));
+        const enriched = messages.map(m => ({
+          ...m,
+          sender: senderMap.get(m.sender_id) || { full_name: 'Produtor' }
+        }));
+        if (isMountedRef.current) setCounterOffers(enriched);
+      } else {
+        if (isMountedRef.current) setCounterOffers([]);
+      }
     } catch (error) {
-      // Silenciar erro para não poluir UI
+      console.error('[fetchCounterOffers] Exception:', error);
     }
   }, [profile?.id, myProposals]);
 
