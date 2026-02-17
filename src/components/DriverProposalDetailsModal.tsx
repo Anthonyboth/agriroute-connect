@@ -24,6 +24,8 @@ interface ProposalForModal {
   freight_id: string;
   driver_id: string;
   proposed_price: number;
+  proposal_unit_price?: number | null;
+  proposal_pricing_type?: string | null;
   status: string;
   created_at: string;
   message?: string;
@@ -38,6 +40,8 @@ interface ProposalForModal {
     weight: number;
     producer_id: string;
     required_trucks?: number;
+    pricing_type?: string;
+    price_per_km?: number;
     producer?: {
       id: string;
       full_name: string;
@@ -248,56 +252,72 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
               </div>
             )}
 
-            <div className="bg-muted/50 p-4 rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  {UI_TEXTS.VALOR_ORIGINAL_FRETE}:
-                  {isMultiTruck && <Badge variant="outline" className="text-xs">/carreta</Badge>}
-                </span>
-                <span className="text-lg font-semibold">
-                  {/* ✅ SEGURANÇA: Preço por carreta via guard (motorista NUNCA vê total) */}
-                  {originalPricePerTruck.formattedPrice}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  Sua Proposta:
-                  {isMultiTruck && <Badge variant="outline" className="text-xs">/carreta</Badge>}
-                </span>
-                <Badge variant="default" className="text-xl px-4 py-1">
-                  {/* ✅ SEGURANÇA: Proposta do motorista (já é por carreta) */}
-                  {formatBRL(proposal.proposed_price, true)}
-                </Badge>
-              </div>
-              {priceDiff !== 0 && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{UI_TEXTS.DIFERENCA}:</span>
-                  <span className={priceDiff > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {priceDiff > 0 ? (
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        +{formatBRL(Math.abs(priceDiff), true)}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <TrendingDown className="h-3 w-3" />
-                        -{formatBRL(Math.abs(priceDiff), true)}
-                      </div>
-                    )}
-                  </span>
-                </div>
-              )}
+            {(() => {
+              const freightPricingType = proposal.freight?.pricing_type;
+              const freightUnitPrice = proposal.freight?.price_per_km; // valor unitário do frete (usado para km e ton)
+              const unitLabel = freightPricingType === 'PER_TON' ? '/ton' : freightPricingType === 'PER_KM' ? '/km' : '';
+              
+              // Valor original do frete: unitário se disponível
+              const originalDisplay = freightUnitPrice && unitLabel
+                ? `R$ ${freightUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitLabel}`
+                : originalPricePerTruck.formattedPrice;
+              
+              // Proposta do motorista: usar unit_price se disponível, senão proposed_price
+              const driverUnitPrice = proposal.proposal_unit_price;
+              const driverDisplay = driverUnitPrice && unitLabel
+                ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitLabel}`
+                : formatBRL(proposal.proposed_price, true);
+              
+              // Diferença calculada em valores unitários quando possível
+              const diffValue = (driverUnitPrice && freightUnitPrice)
+                ? driverUnitPrice - freightUnitPrice
+                : priceDiff;
+              const diffDisplay = unitLabel && driverUnitPrice && freightUnitPrice
+                ? `${diffValue > 0 ? '+' : '-'}R$ ${Math.abs(diffValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitLabel}`
+                : `${diffValue > 0 ? '+' : '-'}${formatBRL(Math.abs(diffValue), true)}`;
 
-              {/* ✅ Info multi-carreta */}
-              {isMultiTruck && (
-                <div className="mt-2 pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Truck className="h-3 w-3" />
-                    <span>Frete com {requiredTrucks} carretas • Proposta para 1 unidade</span>
+              return (
+                <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      Valor do Frete{unitLabel ? ` (${unitLabel})` : ''}:
+                    </span>
+                    <span className="text-lg font-semibold">
+                      {originalDisplay}
+                    </span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      Sua Proposta{unitLabel ? ` (${unitLabel})` : ''}:
+                    </span>
+                    <Badge variant="default" className="text-xl px-4 py-1">
+                      {driverDisplay}
+                    </Badge>
+                  </div>
+                  {diffValue !== 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Diferença:</span>
+                      <span className={diffValue > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                        <div className="flex items-center gap-1">
+                          {diffValue > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {diffDisplay}
+                        </div>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* ✅ Info multi-carreta */}
+                  {isMultiTruck && (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Truck className="h-3 w-3" />
+                        <span>Frete com {requiredTrucks} carretas • Proposta para 1 unidade</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
 
           {/* 4. MENSAGEM DA PROPOSTA */}
