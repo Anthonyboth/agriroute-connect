@@ -379,17 +379,19 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
-              <div className="flex flex-col items-end gap-0.5">
-                <span className="font-medium">{formatDriverProposal()}</span>
-                {(driverPricingType === 'PER_KM' || driverPricingType === 'PER_TON') && (
-                  <span className="text-xs text-muted-foreground">
-                    Total: {formatBRL(driverProposedPrice, true)}
-                  </span>
-                )}
-                <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
-                  {isPriceIncrease ? '+' : ''}{formatBRL(priceDifference, true)}
-                </Badge>
+              <span className="font-medium">{formatDriverProposal()}</span>
+            </div>
+            {(driverPricingType === 'PER_KM' || driverPricingType === 'PER_TON') && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Total calculado:</span>
+                <span>{formatBRL(driverProposedPrice, true)}</span>
               </div>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Diferença:</span>
+              <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
+                {isPriceIncrease ? '+' : ''}{formatBRL(priceDifference, true)}
+              </Badge>
             </div>
 
             {hasMultipleTrucks && (
