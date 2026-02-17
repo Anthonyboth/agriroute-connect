@@ -2678,13 +2678,13 @@ const DriverDashboard = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
-                {myProposals.filter(p => p.status === 'PENDING').length} proposta{myProposals.filter(p => p.status === 'PENDING').length !== 1 ? 's' : ''}
+                {myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length} proposta{myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length !== 1 ? 's' : ''}
               </Badge>
             </div>
-            {myProposals.some(p => p.status === 'PENDING') ? (
+            {myProposals.some(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') ? (
               <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando propostas...</div>}>
-                  {myProposals.filter(p => p.status === 'PENDING').map((proposal) => 
+                  {myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').map((proposal) => 
                     proposal.freight && proposal.id ? (
                       <div 
                         key={proposal.id} 
@@ -2722,15 +2722,18 @@ const DriverDashboard = () => {
                             <Badge 
                               variant={
                                 proposal.status === 'ACCEPTED' ? 'default' :
+                                proposal.status === 'COUNTER_PROPOSED' ? 'outline' :
                                 proposal.status === 'PENDING' ? 'secondary' : 'destructive'
                               }
                               className="text-xs"
                               title={
                                 proposal.status === 'ACCEPTED' ? 'Aceita pelo produtor' :
+                                proposal.status === 'COUNTER_PROPOSED' ? 'O produtor enviou uma contraproposta' :
                                 proposal.status === 'PENDING' ? 'Aguardando análise' : 'Rejeitada'
                               }
                             >
                               {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
+                               proposal.status === 'COUNTER_PROPOSED' ? '🔄 Contraproposta' :
                                proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
                             </Badge>
                             
