@@ -1,33 +1,26 @@
 
 
-## Correção do Header da Landing Page no Mobile
+## Problema: Toasts duplicados ao desativar rastreamento durante frete ativo
 
-### Problema
-Os botões "Entrar" e "Cadastrar-se" aparecem em telas Android porque usam `hidden sm:flex` (breakpoint 640px). Como a WebView do Android frequentemente tem viewport >= 640px, os botões ficam visíveis junto com o menu hambúrguer.
+### Causa raiz identificada
 
-### Correção
-Alterar **2 linhas** em `src/pages/Landing.tsx`:
+No arquivo `UnifiedTrackingControl.tsx`, a funcao `confirmStopWithPenalty()` chama `executeStopTracking()` na linha 175 e depois exibe seu proprio toast na linha 176. Porem, `executeStopTracking()` ja exibe um toast proprio (`toast.info('Rastreamento pausado')`) na linha 157.
 
-- **Linha 220**: `hidden sm:flex` para `hidden md:flex` (botão "Cadastrar-se")
-- **Linha 231**: `hidden sm:flex` para `hidden md:flex` (botão "Entrar")
+Resultado: **dois toasts aparecem ao mesmo tempo**:
+1. "Rastreamento pausado" (de `executeStopTracking`)
+2. "Incidente registrado: rastreamento desativado durante frete ativo" (de `confirmStopWithPenalty`)
 
-Isso alinha os botões com a navegação desktop (linha 204), que já usa `hidden md:flex` (breakpoint 768px). Abaixo de 768px, só o menu hambúrguer aparece.
+### Correcao
 
-### Verificação de danos colaterais
+Modificar `executeStopTracking()` para aceitar um parametro opcional `silent` que suprime o toast quando chamado por `confirmStopWithPenalty`. Assim, apenas o toast de incidente (mais relevante) sera exibido.
 
-Confirmado que **nenhum arquivo de landing, header, navegação ou hero** foi alterado durante a migração de storage. Os únicos arquivos editados foram:
+### Detalhes tecnicos
 
-- `FreightCheckinModal.tsx` (storage)
-- `FreightAttachments.tsx` (storage)
-- `FreightCheckinsViewer.tsx` (storage)
-- `DriverInfoTab.tsx` (storage)
-- `VehiclePhotoGallery.tsx` (storage)
-- `authUploadHelper.ts` (storage)
-- `DocumentRequestChat.tsx` (storage)
-- `useProposalChat.ts` (storage)
-- `ProposalChatPanel.tsx` (storage)
+**Arquivo: `src/components/UnifiedTrackingControl.tsx`**
 
-Nenhum desses arquivos tem relação com a Landing page. O problema do `sm:flex` já existia antes da migração -- não foi introduzido por ela.
+1. Alterar a assinatura de `executeStopTracking` para `executeStopTracking(silent?: boolean)`
+2. Condicionar o `toast.info('Rastreamento pausado')` a `!silent`
+3. Em `confirmStopWithPenalty`, chamar `executeStopTracking(true)` para suprimir o toast redundante
 
-### Escopo da alteração
-Apenas 2 classes CSS em 1 arquivo. Nenhum outro arquivo será tocado.
+Isso elimina a duplicidade sem alterar o comportamento quando o motorista pausa o rastreamento normalmente (sem frete ativo).
+
