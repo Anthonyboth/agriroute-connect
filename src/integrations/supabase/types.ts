@@ -493,34 +493,79 @@ export type Database = {
       }
       antt_freight_prices: {
         Row: {
+          antt_resolution: string | null
           base_price: number
           created_at: string
           distance_range_max: number | null
           distance_range_min: number
           id: string
+          last_sync_source: string | null
           price_per_km: number
           service_type: string
           updated_at: string
         }
         Insert: {
+          antt_resolution?: string | null
           base_price?: number
           created_at?: string
           distance_range_max?: number | null
           distance_range_min: number
           id?: string
+          last_sync_source?: string | null
           price_per_km: number
           service_type: string
           updated_at?: string
         }
         Update: {
+          antt_resolution?: string | null
           base_price?: number
           created_at?: string
           distance_range_max?: number | null
           distance_range_min?: number
           id?: string
+          last_sync_source?: string | null
           price_per_km?: number
           service_type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      antt_price_sync_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          parsed_data: Json | null
+          prices_updated: number | null
+          raw_content: string | null
+          source_url: string
+          status: string
+          synced_at: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          parsed_data?: Json | null
+          prices_updated?: number | null
+          raw_content?: string | null
+          source_url: string
+          status?: string
+          synced_at?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          parsed_data?: Json | null
+          prices_updated?: number | null
+          raw_content?: string | null
+          source_url?: string
+          status?: string
+          synced_at?: string
+          triggered_by?: string | null
         }
         Relationships: []
       }
