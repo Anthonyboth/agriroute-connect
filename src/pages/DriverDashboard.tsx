@@ -1145,25 +1145,49 @@ const DriverDashboard = () => {
   };
 
   // Helper para extrair preço da mensagem de contraproposta
-  const parseCounterPrice = useCallback((message: string): number | null => {
-    if (!message) return null;
-    // Patterns: "CONTRA-PROPOSTA: R$ 2.500,00" ou "Minha contra-proposta: R$ 80,00/ton" ou "R$ 2.500,00"
-    const patterns = [
-      /contra[- ]?proposta[^:]*:\s*R\$\s*([\d.,]+)/i,
-      /Minha contra[- ]?proposta:\s*R\$\s*([\d.,]+)/i,
-      /CONTRA-PROPOSTA[^:]*:\s*R\$\s*([\d.,]+)/i,
-    ];
-    for (const pattern of patterns) {
-      const match = message.match(pattern);
-      if (match) {
-        // Parse BR format: "2.500,00" -> 2500.00
-        const value = match[1].replace(/\./g, '').replace(',', '.');
-        const parsed = parseFloat(value);
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
+  // Retorna { unitPrice, total, unit } para exibição consistente
+  const parseCounterPriceInfo = useCallback((message: string): { unitPrice: number | null; total: number | null; unit: string | null } => {
+    if (!message) return { unitPrice: null, total: null, unit: null };
+    
+    // Detectar tipo: PER_KM, PER_TON ou FIXED
+    const isPerKm = /POR KM|\/km/i.test(message);
+    const isPerTon = /POR TONELADA|\/ton/i.test(message);
+    
+    // Extrair valor unitário: "R$ 90/ton" ou "R$ 10/km"
+    const unitPattern = /contra[- ]?proposta[^:]*:\s*R\$\s*([\d.,]+)\s*\/(km|ton)/i;
+    const unitMatch = message.match(unitPattern);
+    
+    // Extrair total do "(Total: R$ 2.700,00 ...)"
+    const totalPattern = /\(Total:\s*R\$\s*([\d.,]+)/i;
+    const totalMatch = message.match(totalPattern);
+    
+    // Extrair preço fixo: "CONTRA-PROPOSTA: R$ 2.500,00" (sem /km ou /ton)
+    const fixedPattern = /contra[- ]?proposta[^:]*:\s*R\$\s*([\d.,]+)/i;
+    const fixedMatch = message.match(fixedPattern);
+    
+    const parseBR = (val: string) => {
+      const cleaned = val.replace(/\./g, '').replace(',', '.');
+      const num = parseFloat(cleaned);
+      return !isNaN(num) && num > 0 ? num : null;
+    };
+    
+    if (isPerKm || isPerTon) {
+      const unit = isPerKm ? 'km' : 'ton';
+      const unitPrice = unitMatch ? parseBR(unitMatch[1]) : null;
+      const total = totalMatch ? parseBR(totalMatch[1]) : null;
+      return { unitPrice, total, unit };
     }
-    return null;
+    
+    // FIXED: o valor é o total
+    const total = fixedMatch ? parseBR(fixedMatch[1]) : null;
+    return { unitPrice: null, total, unit: null };
   }, []);
+  
+  // Backward compat wrapper
+  const parseCounterPrice = useCallback((message: string): number | null => {
+    const info = parseCounterPriceInfo(message);
+    return info.total ?? info.unitPrice;
+  }, [parseCounterPriceInfo]);
 
   const fetchCounterOffers = useCallback(async () => {
     if (!profile?.id || myProposals.length === 0) return;
@@ -2806,39 +2830,49 @@ const DriverDashboard = () => {
                             ? counterOffers.find(co => co.freight_id === proposal.freight_id)
                             : null;
                           
-                          // Extrair preço da contraproposta do texto da mensagem
-                          const counterPrice = matchingCounterOffer 
-                            ? parseCounterPrice(matchingCounterOffer.message) 
-                            : null;
+                          // Extrair informações completas da contraproposta
+                          const counterInfo = matchingCounterOffer 
+                            ? parseCounterPriceInfo(matchingCounterOffer.message) 
+                            : { unitPrice: null, total: null, unit: null };
+                          
+                          // Determinar exibição consistente: ambos como TOTAL
+                          const driverTotal = proposal.proposed_price;
+                          const counterTotal = counterInfo.total;
+                          const counterUnit = counterInfo.unitPrice;
+                          const counterUnitLabel = counterInfo.unit;
                           
                           return (
                             <div className={`p-3 border-t ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
-                              {/* Valor original do motorista */}
+                              {/* Valor original do motorista - SEMPRE total */}
                               <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium">Sua Proposta:</span>
+                                <span className="text-sm font-medium">Sua Proposta (total):</span>
                                 <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
-                                  R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
+                                  R$ {driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
                               </div>
 
-                              {/* Contraproposta do produtor com preço extraído */}
+                              {/* Contraproposta do produtor - total + unitário se aplicável */}
                               {proposal.status === 'COUNTER_PROPOSED' && (
                                 <div className="mb-3 p-3 bg-orange-100/50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
                                   <div className="flex justify-between items-center mb-1">
                                     <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
                                       💰 Contraproposta do Produtor:
                                     </span>
-                                    <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                                      {counterPrice 
-                                        ? `R$ ${counterPrice.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` 
-                                        : 'Ver detalhes'}
-                                    </span>
+                                    <div className="text-right">
+                                      <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                                        {counterTotal 
+                                          ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                                          : counterUnit
+                                            ? `R$ ${counterUnit.toLocaleString('pt-BR')}/${counterUnitLabel}`
+                                            : 'Ver detalhes'}
+                                      </span>
+                                      {counterUnit && counterUnitLabel && counterTotal && (
+                                        <p className="text-xs text-orange-500 dark:text-orange-400/70">
+                                          R$ {counterUnit.toLocaleString('pt-BR')}/{counterUnitLabel}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
-                                  {matchingCounterOffer?.message && (
-                                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1 line-clamp-2 italic">
-                                      {matchingCounterOffer.message.split('\n')[0]}
-                                    </p>
-                                  )}
                                   <p className="text-xs text-muted-foreground mt-1">
                                     de {matchingCounterOffer?.sender?.full_name || 'Produtor'} • {matchingCounterOffer ? new Date(matchingCounterOffer.created_at).toLocaleDateString('pt-BR') : ''}
                                   </p>
