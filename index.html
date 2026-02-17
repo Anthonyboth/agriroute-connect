@@ -91,9 +91,15 @@
       img[width][height]{aspect-ratio:attr(width)/attr(height)}
     </style>
     
-    <!-- CSS async loading - prevents render blocking -->
+    <!-- CSS async loading - prevents render blocking (WEB ONLY) -->
     <script>
       (function(){
+        // ✅ SKIP on Capacitor/native: onload may never fire for local files in Android WebView
+        // causing CSS to stay on media='print' forever → blank/flashing screen
+        var isNative = window.Capacitor || location.protocol === 'capacitor:' || 
+          (location.hostname === 'localhost' && !location.port);
+        if (isNative) return;
+        
         function makeAsync(link){
           if(link.href&&link.href.includes('/assets/')&&link.rel==='stylesheet'){
             link.media='print';
