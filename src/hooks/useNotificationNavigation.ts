@@ -61,8 +61,18 @@ export function useNotificationNavigation() {
           },
         };
 
-      case 'freight_accepted':
       case 'proposal_received':
+        if (!data?.freight_id) return null;
+        return {
+          route: dashboardRoute,
+          state: {
+            openTab: 'proposals',
+            highlightFreightId: data.freight_id,
+            notificationType: type,
+          },
+        };
+
+      case 'freight_accepted':
       case 'advance_request':
       case 'advance_approved':
       case 'advance_rejected':
