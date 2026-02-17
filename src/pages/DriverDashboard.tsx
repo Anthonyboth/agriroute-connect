@@ -47,6 +47,8 @@ import { debounce } from '@/lib/utils';
 import { fetchBatchCheckins } from '@/hooks/useBatchCheckins';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
+import { ProposalCounterModal } from '@/components/ProposalCounterModal';
+import { getPricePerTruck } from '@/lib/formatters';
 import { forceLogoutAndRedirect } from '@/utils/authRecovery';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 
@@ -224,6 +226,13 @@ const DriverDashboard = () => {
     open: boolean;
     proposal: any | null;
   }>({ open: false, proposal: null });
+
+  // Estado para modal de contra-proposta do motorista
+  const [driverCounterModal, setDriverCounterModal] = useState<{
+    open: boolean;
+    proposal: any | null;
+    freight: any | null;
+  }>({ open: false, proposal: null, freight: null });
 
   
   const [filters, setFilters] = useState({
@@ -1135,10 +1144,41 @@ const DriverDashboard = () => {
     }
   };
 
+  // Helper para extrair preço da mensagem de contraproposta
+  const parseCounterPrice = useCallback((message: string): number | null => {
+    if (!message) return null;
+    // Patterns: "CONTRA-PROPOSTA: R$ 2.500,00" ou "Minha contra-proposta: R$ 80,00/ton" ou "R$ 2.500,00"
+    const patterns = [
+      /contra[- ]?proposta[^:]*:\s*R\$\s*([\d.,]+)/i,
+      /Minha contra[- ]?proposta:\s*R\$\s*([\d.,]+)/i,
+      /CONTRA-PROPOSTA[^:]*:\s*R\$\s*([\d.,]+)/i,
+    ];
+    for (const pattern of patterns) {
+      const match = message.match(pattern);
+      if (match) {
+        // Parse BR format: "2.500,00" -> 2500.00
+        const value = match[1].replace(/\./g, '').replace(',', '.');
+        const parsed = parseFloat(value);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    }
+    return null;
+  }, []);
+
   const fetchCounterOffers = useCallback(async () => {
     if (!profile?.id || myProposals.length === 0) return;
 
     try {
+      // Buscar TODAS as contrapropostas (não filtrar por read_at)
+      const counterProposedFreightIds = myProposals
+        .filter(p => p.status === 'COUNTER_PROPOSED')
+        .map(p => p.freight_id);
+      
+      if (counterProposedFreightIds.length === 0) {
+        if (isMountedRef.current) setCounterOffers([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('freight_messages')
         .select(`
@@ -1147,9 +1187,9 @@ const DriverDashboard = () => {
           sender:profiles!freight_messages_sender_id_fkey(*)
         `)
         .eq('message_type', 'COUNTER_PROPOSAL')
-        .in('freight_id', myProposals.map(p => p.freight_id))
+        .in('freight_id', counterProposedFreightIds)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
       if (isMountedRef.current) setCounterOffers(data || []);
@@ -1160,28 +1200,52 @@ const DriverDashboard = () => {
 
   const handleAcceptCounterOffer = async (messageId: string, freightId: string) => {
     try {
-      // Marcar a mensagem como lida/aceita
-      const { error: messageError } = await supabase
+      // 1. Buscar a contraproposta para extrair o preço
+      const counterOffer = counterOffers.find(co => co.id === messageId);
+      const counterPrice = counterOffer ? parseCounterPrice(counterOffer.message) : null;
+
+      // 2. Buscar a proposta do motorista para este frete
+      const proposal = myProposals.find(p => p.freight_id === freightId);
+      if (!proposal) throw new Error('Proposta não encontrada');
+
+      // 3. Atualizar proposta com o preço aceito e status ACCEPTED
+      const updateData: any = { status: 'ACCEPTED' };
+      if (counterPrice) {
+        updateData.proposed_price = counterPrice;
+      }
+      
+      const { error: proposalError } = await supabase
+        .from('freight_proposals')
+        .update(updateData)
+        .eq('id', proposal.id)
+        .eq('driver_id', profile?.id);
+
+      if (proposalError) throw proposalError;
+
+      // 4. Marcar mensagem como lida
+      await supabase
         .from('freight_messages')
         .update({ read_at: new Date().toISOString() })
         .eq('id', messageId);
 
-      if (messageError) throw messageError;
+      // 5. Chamar accept-freight-proposal edge function para criar assignment
+      const { data: acceptData, error: acceptError } = await supabase.functions.invoke('accept-freight-proposal', {
+        body: {
+          proposal_id: proposal.id,
+          producer_id: proposal.freight?.producer?.id || (proposal.freight as any)?.producer_id
+        }
+      });
 
-      // Aceitar o frete com o novo valor
-      const { error: freightError } = await supabase
-        .from('freights')
-        .update({ 
-          status: 'ACCEPTED',
-          driver_id: profile?.id 
-        })
-        .eq('id', freightId);
-
-      if (freightError) throw freightError;
+      if (acceptError) {
+        console.error('Erro ao aceitar via edge function:', acceptError);
+        // Já atualizamos o status da proposta, o produtor pode aceitar manualmente
+      }
 
       toast.success('Contra-proposta aceita com sucesso!');
       fetchCounterOffers();
       fetchMyProposals();
+      fetchOngoingFreights();
+      setProposalDetailsModal({ open: false, proposal: null });
     } catch (error) {
       console.error('Error accepting counter offer:', error);
       toast.error('Erro ao aceitar contra-proposta');
@@ -1189,21 +1253,47 @@ const DriverDashboard = () => {
   };
 
   const handleRejectCounterOffer = async (messageId: string) => {
+    if (!confirm('Tem certeza que deseja recusar esta negociação? A proposta será encerrada.')) return;
+    
     try {
-      // Marcar a mensagem como lida/rejeitada
-      const { error } = await supabase
+      // 1. Encontrar a proposta associada
+      const counterOffer = counterOffers.find(co => co.id === messageId);
+      if (counterOffer) {
+        const proposal = myProposals.find(p => p.freight_id === counterOffer.freight_id);
+        if (proposal) {
+          // Atualizar proposta para REJECTED
+          await supabase
+            .from('freight_proposals')
+            .update({ status: 'REJECTED' })
+            .eq('id', proposal.id)
+            .eq('driver_id', profile?.id);
+        }
+      }
+
+      // 2. Marcar mensagem como lida
+      await supabase
         .from('freight_messages')
         .update({ read_at: new Date().toISOString() })
         .eq('id', messageId);
 
-      if (error) throw error;
-
-      toast.success('Contra-proposta rejeitada');
+      toast.success('Negociação encerrada');
       fetchCounterOffers();
+      fetchMyProposals();
+      setProposalDetailsModal({ open: false, proposal: null });
     } catch (error) {
       console.error('Error rejecting counter offer:', error);
-      toast.error('Erro ao rejeitar contra-proposta');
+      toast.error('Erro ao recusar contra-proposta');
     }
+  };
+
+  // Handler para abrir modal de contra-proposta do motorista
+  const handleDriverCounterProposal = (proposal: any) => {
+    if (!proposal?.freight) return;
+    setDriverCounterModal({
+      open: true,
+      proposal,
+      freight: proposal.freight
+    });
   };
 
   const handleAcceptProposal = async (proposalId: string) => {
@@ -2711,12 +2801,19 @@ const DriverDashboard = () => {
                         
                         {/* Informações compactas da proposta */}
                         {(() => {
+                          // Buscar a ÚLTIMA contraproposta (sem filtrar por read_at)
                           const matchingCounterOffer = proposal.status === 'COUNTER_PROPOSED' 
-                            ? counterOffers.find(co => co.freight_id === proposal.freight_id && !co.read_at)
+                            ? counterOffers.find(co => co.freight_id === proposal.freight_id)
+                            : null;
+                          
+                          // Extrair preço da contraproposta do texto da mensagem
+                          const counterPrice = matchingCounterOffer 
+                            ? parseCounterPrice(matchingCounterOffer.message) 
                             : null;
                           
                           return (
                             <div className={`mt-3 p-3 border rounded-lg ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-orange-200 dark:border-orange-800' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
+                              {/* Valor original do motorista */}
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Sua Proposta:</span>
                                 <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
@@ -2724,58 +2821,70 @@ const DriverDashboard = () => {
                                 </span>
                               </div>
 
-                              {matchingCounterOffer && (
-                                <div className="mb-2 p-2 bg-orange-100/50 dark:bg-orange-900/20 rounded-md">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
-                                      Contraproposta do Produtor:
+                              {/* Contraproposta do produtor com preço extraído */}
+                              {proposal.status === 'COUNTER_PROPOSED' && (
+                                <div className="mb-3 p-3 bg-orange-100/50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                                      💰 Contraproposta do Produtor:
                                     </span>
-                                    <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                                      R$ {matchingCounterOffer.proposed_price?.toLocaleString('pt-BR') || '—'}
+                                    <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                                      {counterPrice 
+                                        ? `R$ ${counterPrice.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` 
+                                        : 'Ver detalhes'}
                                     </span>
                                   </div>
-                                  {matchingCounterOffer.message && (
-                                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1 line-clamp-2">
-                                      "{matchingCounterOffer.message}"
+                                  {matchingCounterOffer?.message && (
+                                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1 line-clamp-2 italic">
+                                      {matchingCounterOffer.message.split('\n')[0]}
                                     </p>
                                   )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    de {matchingCounterOffer?.sender?.full_name || 'Produtor'} • {matchingCounterOffer ? new Date(matchingCounterOffer.created_at).toLocaleDateString('pt-BR') : ''}
+                                  </p>
                                 </div>
                               )}
 
-                              {/* Botões de ação para contraproposta */}
-                              {matchingCounterOffer && (
-                                <div className="flex gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                              {/* Botões de ação para contraproposta - 3 opções */}
+                              {proposal.status === 'COUNTER_PROPOSED' && (
+                                <div className="grid grid-cols-3 gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
                                   <Button
                                     size="sm"
-                                    className="flex-1 gradient-primary"
+                                    className="gradient-primary"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleAcceptCounterOffer(matchingCounterOffer.id, matchingCounterOffer.freight_id);
+                                      if (matchingCounterOffer) {
+                                        handleAcceptCounterOffer(matchingCounterOffer.id, proposal.freight_id);
+                                      }
                                     }}
                                   >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    <CheckCircle className="h-3 w-3 mr-1" />
                                     Aceitar
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRejectCounterOffer(matchingCounterOffer.id);
-                                    }}
-                                  >
-                                    Recusar
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="secondary"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setProposalDetailsModal({ open: true, proposal });
+                                      handleDriverCounterProposal(proposal);
                                     }}
                                   >
-                                    Detalhes
+                                    <DollarSign className="h-3 w-3 mr-1" />
+                                    Negociar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (matchingCounterOffer) {
+                                        handleRejectCounterOffer(matchingCounterOffer.id);
+                                      }
+                                    }}
+                                  >
+                                    <X className="h-3 w-3 mr-1" />
+                                    Recusar
                                   </Button>
                                 </div>
                               )}
@@ -2788,14 +2897,9 @@ const DriverDashboard = () => {
                                     proposal.status === 'PENDING' ? 'secondary' : 'destructive'
                                   }
                                   className={`text-xs ${proposal.status === 'COUNTER_PROPOSED' ? 'border-orange-400 text-orange-700 dark:text-orange-400' : ''}`}
-                                  title={
-                                    proposal.status === 'ACCEPTED' ? 'Aceita pelo produtor' :
-                                    proposal.status === 'COUNTER_PROPOSED' ? 'O produtor enviou uma contraproposta' :
-                                    proposal.status === 'PENDING' ? 'Aguardando análise' : 'Rejeitada'
-                                  }
                                 >
                                   {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
-                                   proposal.status === 'COUNTER_PROPOSED' ? '🔄 Contraproposta' :
+                                   proposal.status === 'COUNTER_PROPOSED' ? '🔄 Em Negociação' :
                                    proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
                                 </Badge>
                                 
@@ -2804,7 +2908,7 @@ const DriverDashboard = () => {
                                 </span>
                               </div>
                           
-                              {proposal.message && !matchingCounterOffer && (
+                              {proposal.message && proposal.status !== 'COUNTER_PROPOSED' && (
                                 <div className="mt-3 pt-3 border-t">
                                   <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
                                   <p className="text-sm">{proposal.message}</p>
@@ -3222,6 +3326,35 @@ const DriverDashboard = () => {
         }}
         onRejectCounterOffer={handleRejectCounterOffer}
       />
+
+      {/* Modal de Contra-Proposta do Motorista */}
+      {driverCounterModal.open && driverCounterModal.proposal && (
+        <ProposalCounterModal
+          isOpen={driverCounterModal.open}
+          onClose={() => setDriverCounterModal({ open: false, proposal: null, freight: null })}
+          originalProposal={{
+            id: driverCounterModal.proposal.id,
+            freight_id: driverCounterModal.proposal.freight_id,
+            proposed_price: driverCounterModal.proposal.proposed_price,
+            proposal_pricing_type: driverCounterModal.proposal.proposal_pricing_type,
+            proposal_unit_price: driverCounterModal.proposal.proposal_unit_price,
+            message: driverCounterModal.proposal.message,
+            driver_name: profile?.full_name || 'Motorista',
+            driver_id: profile?.id || '',
+          }}
+          freightPrice={driverCounterModal.proposal.freight?.price || 0}
+          freightDistance={driverCounterModal.proposal.freight?.distance_km || 0}
+          freightWeight={driverCounterModal.proposal.freight?.weight || 0}
+          requiredTrucks={driverCounterModal.proposal.freight?.required_trucks || 1}
+          freightPricingType={driverCounterModal.proposal.freight?.pricing_type}
+          freightPricePerKm={driverCounterModal.proposal.freight?.price_per_km}
+          onSuccess={() => {
+            fetchMyProposals();
+            fetchCounterOffers();
+            setDriverCounterModal({ open: false, proposal: null, freight: null });
+          }}
+        />
+      )}
       </div>
     </PageDOMErrorBoundary>
   );
