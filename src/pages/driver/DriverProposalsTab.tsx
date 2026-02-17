@@ -17,7 +17,7 @@ export const DriverProposalsTab: React.FC<DriverProposalsTabProps> = ({
   proposals,
   onProposalClick,
 }) => {
-  const pendingProposals = proposals.filter(p => p.status === 'PENDING');
+  const pendingProposals = proposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED');
 
   return (
     <div className="space-y-6">
@@ -78,15 +78,18 @@ export const DriverProposalsTab: React.FC<DriverProposalsTabProps> = ({
                       <Badge 
                         variant={
                           proposal.status === 'ACCEPTED' ? 'default' :
+                          proposal.status === 'COUNTER_PROPOSED' ? 'outline' :
                           proposal.status === 'PENDING' ? 'secondary' : 'destructive'
                         }
                         className="text-xs"
                         title={
                           proposal.status === 'ACCEPTED' ? 'Aceita pelo produtor' :
+                          proposal.status === 'COUNTER_PROPOSED' ? 'O produtor enviou uma contraproposta' :
                           proposal.status === 'PENDING' ? 'Aguardando análise' : 'Rejeitada'
                         }
                       >
                         {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
+                         proposal.status === 'COUNTER_PROPOSED' ? '🔄 Contraproposta' :
                          proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
                       </Badge>
                       
