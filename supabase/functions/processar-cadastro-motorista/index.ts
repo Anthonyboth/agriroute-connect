@@ -93,11 +93,14 @@ serve(async (req) => {
       status: 'APPROVED'
     }
 
-    // Adicionar endereço se fornecido
+    // Adicionar endereço nos campos dedicados da tabela profiles
     if (userData.address) {
-      profileData.metadata = {
-        address: userData.address
-      }
+      profileData.address_street = userData.address.street || null
+      profileData.address_number = userData.address.number || null
+      profileData.address_complement = userData.address.complement || null
+      profileData.address_city = userData.address.city || null
+      profileData.address_state = userData.address.state || null
+      profileData.address_zip = userData.address.zipCode || null
     }
 
     const { data: profile, error: profileError } = await supabaseAdmin
