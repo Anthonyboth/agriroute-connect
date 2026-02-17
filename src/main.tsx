@@ -128,9 +128,16 @@ async function registerServiceWorker() {
   }
 }
 
-// ✅ FALLBACK GLOBAL: Garantir que splash NUNCA trave o app
-// Esconde splash após 10s independente de React montar
-if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) {
+// ✅ FALLBACK GLOBAL: Garantir que splash NUNCA trave o app (Android + iOS)
+// Detecta plataforma nativa de forma robusta (antes do Capacitor carregar)
+// Em WebViews nativas, window.location.protocol pode ser 'capacitor:' ou hostname 'localhost'
+const isLikelyNative = typeof window !== 'undefined' && (
+  (window as any).Capacitor?.isNativePlatform?.() ||
+  window.location.protocol === 'capacitor:' ||
+  (window.location.hostname === 'localhost' && !window.location.port)
+);
+
+if (isLikelyNative) {
   setTimeout(async () => {
     try {
       const { SplashScreen } = await import('@capacitor/splash-screen');
