@@ -1968,7 +1968,7 @@ const DriverDashboard = () => {
   // Calcular estatísticas - memoizado para performance
   const statistics = useMemo(() => {
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
-    const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING').length;
+    const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length;
     
     // ✅ FIX: Filtro robusto - excluir fretes agendados (pickup_date futura) do contador
     const today = new Date();
@@ -2778,7 +2778,7 @@ const DriverDashboard = () => {
                     proposal.freight && proposal.id ? (
                       <div 
                         key={proposal.id} 
-                        className="relative cursor-pointer"
+                        className="relative cursor-pointer rounded-xl border bg-card shadow-sm overflow-hidden"
                         role="button"
                         tabIndex={0}
                         onClick={() => setProposalDetailsModal({ open: true, proposal })}
@@ -2812,7 +2812,7 @@ const DriverDashboard = () => {
                             : null;
                           
                           return (
-                            <div className={`mt-3 p-3 border rounded-lg ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-orange-200 dark:border-orange-800' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
+                            <div className={`p-3 border-t ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
                               {/* Valor original do motorista */}
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Sua Proposta:</span>
