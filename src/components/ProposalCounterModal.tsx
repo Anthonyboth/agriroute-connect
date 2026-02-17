@@ -58,26 +58,56 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   const hasMultipleTrucks = requiredTrucks > 1;
   const pricePerTruck = useMemo(() => getPricePerTruck(freightPrice, requiredTrucks), [freightPrice, requiredTrucks]);
   const weightPerTruck = useMemo(() => (freightWeight || 0) / requiredTrucks, [freightWeight, requiredTrucks]);
+  const weightPerTruckInTons = weightPerTruck / 1000;
+
+  // ✅ CRÍTICO: Calcular valor unitário do motorista baseado no tipo de precificação do FRETE
+  const driverDisplayUnitPrice = useMemo(() => {
+    if (!originalProposal) return 0;
+    const proposedPrice = originalProposal.proposed_price;
+    const propPricingType = originalProposal.proposal_pricing_type;
+    const propUnitPrice = originalProposal.proposal_unit_price;
+    // Se o motorista já enviou com o mesmo tipo do frete e tem unit price, usar direto
+    if (propPricingType === freightPricingType && propUnitPrice) {
+      return propUnitPrice;
+    }
+    // Calcular unitário a partir do total proposto
+    if (freightPricingType === 'PER_TON' && weightPerTruckInTons > 0) {
+      return proposedPrice / weightPerTruckInTons;
+    }
+    if (freightPricingType === 'PER_KM' && freightDistance > 0) {
+      return proposedPrice / freightDistance;
+    }
+    return proposedPrice; // FIXED - mostrar total
+  }, [originalProposal, freightPricingType, weightPerTruckInTons, freightDistance]);
 
   if (!originalProposal) return null;
-  const weightPerTruckInTons = weightPerTruck / 1000;
 
   // A proposta do motorista já é por carreta
   const driverProposedPrice = originalProposal.proposed_price;
   const driverPricingType = originalProposal.proposal_pricing_type;
   const driverUnitPrice = originalProposal.proposal_unit_price;
-  const priceDifference = driverProposedPrice - pricePerTruck;
-  const isPriceIncrease = priceDifference > 0;
 
-  // ✅ Formatar exibição do valor do motorista com tipo unitário
+  // ✅ Diferença unitária (na mesma unidade do frete)
+  const originalUnitPrice = freightPricePerKm || 0; // price_per_km armazena o valor unitário (ton ou km)
+  const unitPriceDifference = driverDisplayUnitPrice - (freightPricingType === 'FIXED' ? pricePerTruck : originalUnitPrice);
+  const isPriceIncrease = unitPriceDifference > 0;
+
+  // ✅ Formatar exibição do valor do motorista SEMPRE na unidade do frete
   const formatDriverProposal = () => {
-    if (driverPricingType === 'PER_KM' && driverUnitPrice) {
-      return `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`;
+    if (freightPricingType === 'PER_KM') {
+      return `R$ ${driverDisplayUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`;
     }
-    if (driverPricingType === 'PER_TON' && driverUnitPrice) {
-      return `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`;
+    if (freightPricingType === 'PER_TON') {
+      return `R$ ${driverDisplayUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`;
     }
     return formatBRL(driverProposedPrice, true);
+  };
+
+  // ✅ Formatar diferença na mesma unidade
+  const formatUnitDifference = () => {
+    const suffix = freightPricingType === 'PER_KM' ? '/km' : freightPricingType === 'PER_TON' ? '/ton' : '';
+    const formatted = `R$ ${Math.abs(unitPriceDifference).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${suffix}`;
+    return `${isPriceIncrease ? '+' : '-'}${formatted}`;
   };
 
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
@@ -381,7 +411,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <span className="font-medium">{formatDriverProposal()}</span>
             </div>
-            {(driverPricingType === 'PER_KM' || driverPricingType === 'PER_TON') && (
+            {(freightPricingType === 'PER_KM' || freightPricingType === 'PER_TON') && (
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Total calculado:</span>
                 <span>{formatBRL(driverProposedPrice, true)}</span>
@@ -390,7 +420,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Diferença:</span>
               <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
-                {isPriceIncrease ? '+' : ''}{formatBRL(priceDifference, true)}
+                {formatUnitDifference()}
               </Badge>
             </div>
 
