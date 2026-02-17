@@ -2843,12 +2843,30 @@ const DriverDashboard = () => {
                           const counterTotal = counterInfo.total;
                           const counterUnitLabel = counterInfo.unit;
                           
-                          // Mostrar exatamente o que o motorista enviou
-                          const driverDisplayValue = driverPricingType === 'PER_TON' && driverUnitPrice
-                            ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
-                            : driverPricingType === 'PER_KM' && driverUnitPrice
-                              ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
-                              : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                          // Derivar valor unitário: usar proposal_unit_price se existir,
+                          // senão calcular a partir do total e dados do frete
+                          const freightPricingType = proposal.freight?.pricing_type;
+                          const effectivePricingType = (driverPricingType && driverPricingType !== 'FIXED') ? driverPricingType : freightPricingType;
+                          
+                          let derivedUnitPrice = driverUnitPrice;
+                          let unitSuffix = '';
+                          
+                          if (effectivePricingType === 'PER_TON') {
+                            unitSuffix = '/ton';
+                            if (!derivedUnitPrice && driverTotal && proposal.freight?.weight) {
+                              const weightInTons = proposal.freight.weight >= 1000 ? proposal.freight.weight / 1000 : proposal.freight.weight;
+                              derivedUnitPrice = driverTotal / weightInTons;
+                            }
+                          } else if (effectivePricingType === 'PER_KM') {
+                            unitSuffix = '/km';
+                            if (!derivedUnitPrice && driverTotal && proposal.freight?.distance_km) {
+                              derivedUnitPrice = driverTotal / proposal.freight.distance_km;
+                            }
+                          }
+                          
+                          const driverDisplayValue = derivedUnitPrice && unitSuffix
+                            ? `R$ ${derivedUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitSuffix}`
+                            : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
                           
                           return (
                             <div className={`p-3 border-t ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>

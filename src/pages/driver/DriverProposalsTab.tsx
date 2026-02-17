@@ -56,21 +56,42 @@ export const DriverProposalsTab: React.FC<DriverProposalsTabProps> = ({
                     showActions={false}
                   />
                   
-                  {/* Informações compactas da proposta - valor POR CARRETA */}
+                  {/* Informações compactas da proposta - valor UNITÁRIO */}
                   {(() => {
-                    const requiredTrucks = proposal.freight?.required_trucks || 1;
-                    const hasMultipleTrucks = requiredTrucks > 1;
-                    const pricePerTruck = getPricePerTruck(proposal.proposed_price, requiredTrucks);
+                    const driverTotal = proposal.proposed_price;
+                    const driverUnitPrice = proposal.proposal_unit_price;
+                    const driverPricingType = proposal.proposal_pricing_type;
+                    const freightPricingType = proposal.freight?.pricing_type;
+                    const effectivePricingType = (driverPricingType && driverPricingType !== 'FIXED') ? driverPricingType : freightPricingType;
+                    
+                    let derivedUnitPrice = driverUnitPrice;
+                    let unitSuffix = '';
+                    
+                    if (effectivePricingType === 'PER_TON') {
+                      unitSuffix = '/ton';
+                      if (!derivedUnitPrice && driverTotal && proposal.freight?.weight) {
+                        const weightInTons = proposal.freight.weight >= 1000 ? proposal.freight.weight / 1000 : proposal.freight.weight;
+                        derivedUnitPrice = driverTotal / weightInTons;
+                      }
+                    } else if (effectivePricingType === 'PER_KM') {
+                      unitSuffix = '/km';
+                      if (!derivedUnitPrice && driverTotal && proposal.freight?.distance_km) {
+                        derivedUnitPrice = driverTotal / proposal.freight.distance_km;
+                      }
+                    }
+                    
+                    const displayValue = derivedUnitPrice && unitSuffix
+                      ? `R$ ${derivedUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unitSuffix}`
+                      : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
                     
                     return (
                       <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-sm font-medium">
-                            Sua Proposta{hasMultipleTrucks ? ' (por carreta)' : ''}:
+                            Sua Proposta{unitSuffix ? ` (${unitSuffix.replace('/', '')})` : ''}:
                           </span>
                           <span className="text-lg font-bold text-primary">
-                            {formatPricePerTruck(pricePerTruck, 1)}
-                            {hasMultipleTrucks && <span className="text-xs font-normal ml-1">/carreta</span>}
+                            {displayValue}
                           </span>
                         </div>
                     
