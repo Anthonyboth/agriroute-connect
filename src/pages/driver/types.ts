@@ -35,6 +35,8 @@ export interface Proposal {
   freight_id: string;
   driver_id: string;
   proposed_price: number;
+  proposal_unit_price?: number | null;
+  proposal_pricing_type?: string | null;
   status: string;
   created_at: string;
   message?: string;

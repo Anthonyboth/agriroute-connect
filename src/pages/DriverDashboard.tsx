@@ -2835,72 +2835,45 @@ const DriverDashboard = () => {
                             ? parseCounterPriceInfo(matchingCounterOffer.message) 
                             : { unitPrice: null, total: null, unit: null };
                           
-                          const freightPricingType = proposal.freight?.pricing_type;
-                          const freightWeight = proposal.freight?.weight || 0;
-                          const freightDistance = proposal.freight?.distance_km || 0;
                           const driverTotal = proposal.proposed_price;
-                          
-                          // Calcular unitário do motorista baseado no tipo de precificação do frete
-                          const driverUnitPrice = (() => {
-                            if (freightPricingType === 'PER_TON' && freightWeight > 0) {
-                              return driverTotal / (freightWeight / 1000); // kg -> ton
-                            }
-                            if (freightPricingType === 'PER_KM' && freightDistance > 0) {
-                              return driverTotal / freightDistance;
-                            }
-                            return null;
-                          })();
-                          const unitLabel = freightPricingType === 'PER_TON' ? 'ton' : freightPricingType === 'PER_KM' ? 'km' : null;
+                          const driverUnitPrice = proposal.proposal_unit_price;
+                          const driverPricingType = proposal.proposal_pricing_type;
                           
                           const counterUnit = counterInfo.unitPrice;
                           const counterTotal = counterInfo.total;
                           const counterUnitLabel = counterInfo.unit;
                           
-                          // Exibir unitário como destaque quando frete é por unidade
-                          const showAsUnit = !!unitLabel && (!!driverUnitPrice || !!counterUnit);
+                          // Mostrar exatamente o que o motorista enviou
+                          const driverDisplayValue = driverPricingType === 'PER_TON' && driverUnitPrice
+                            ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
+                            : driverPricingType === 'PER_KM' && driverUnitPrice
+                              ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
+                              : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
                           
                           return (
                             <div className={`p-3 border-t ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
                               {/* Valor do motorista */}
                               <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium">
-                                  Sua Proposta{showAsUnit ? ` (/${unitLabel})` : ''}:
+                                <span className="text-sm font-medium">Sua Proposta:</span>
+                                <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
+                                  {driverDisplayValue}
                                 </span>
-                                <div className="text-right">
-                                  <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
-                                    {showAsUnit && driverUnitPrice
-                                      ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/${unitLabel}`
-                                      : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                                  </span>
-                                  {showAsUnit && (
-                                    <p className="text-xs text-muted-foreground">
-                                      Total: R$ {driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                    </p>
-                                  )}
-                                </div>
                               </div>
 
                               {/* Contraproposta do produtor */}
                               {proposal.status === 'COUNTER_PROPOSED' && (
-                                <div className="mb-3 p-3 bg-orange-100/50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
-                                  <div className="flex justify-between items-center mb-1">
+                                <div className="mb-2 p-2 bg-orange-100/50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                                  <div className="flex justify-between items-center">
                                     <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
                                       💰 Contraproposta:
                                     </span>
-                                    <div className="text-right">
-                                      <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                                        {counterUnit && counterUnitLabel
-                                          ? `R$ ${counterUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${counterUnitLabel}`
-                                          : counterTotal 
-                                            ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
-                                            : 'Ver detalhes'}
-                                      </span>
-                                      {counterTotal && counterUnit && (
-                                        <p className="text-xs text-orange-500 dark:text-orange-400/70">
-                                          Total: R$ {counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                        </p>
-                                      )}
-                                    </div>
+                                    <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                                      {counterUnit && counterUnitLabel
+                                        ? `R$ ${counterUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${counterUnitLabel}`
+                                        : counterTotal 
+                                          ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                                          : 'Ver detalhes'}
+                                    </span>
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1">
                                     de {matchingCounterOffer?.sender?.full_name || 'Produtor'} • {matchingCounterOffer ? new Date(matchingCounterOffer.created_at).toLocaleDateString('pt-BR') : ''}
@@ -2910,10 +2883,10 @@ const DriverDashboard = () => {
 
                               {/* Botões de ação para contraproposta - 3 opções */}
                               {proposal.status === 'COUNTER_PROPOSED' && (
-                                <div className="grid grid-cols-3 gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
                                   <Button
                                     size="sm"
-                                    className="gradient-primary"
+                                    className="flex-1 gradient-primary text-xs"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (matchingCounterOffer) {
@@ -2921,24 +2894,23 @@ const DriverDashboard = () => {
                                       }
                                     }}
                                   >
-                                    <CheckCircle className="h-3 w-3 mr-1" />
                                     Aceitar
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="secondary"
+                                    className="flex-1 text-xs"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDriverCounterProposal(proposal);
                                     }}
                                   >
-                                    <DollarSign className="h-3 w-3 mr-1" />
                                     Negociar
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    className="flex-1 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (matchingCounterOffer) {
@@ -2946,7 +2918,6 @@ const DriverDashboard = () => {
                                       }
                                     }}
                                   >
-                                    <X className="h-3 w-3 mr-1" />
                                     Recusar
                                   </Button>
                                 </div>
