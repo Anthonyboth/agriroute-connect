@@ -2741,6 +2741,44 @@ const DriverDashboard = () => {
                                   )}
                                 </div>
                               )}
+
+                              {/* Botões de ação para contraproposta */}
+                              {matchingCounterOffer && (
+                                <div className="flex gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                                  <Button
+                                    size="sm"
+                                    className="flex-1 gradient-primary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAcceptCounterOffer(matchingCounterOffer.id, matchingCounterOffer.freight_id);
+                                    }}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Aceitar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRejectCounterOffer(matchingCounterOffer.id);
+                                    }}
+                                  >
+                                    Recusar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setProposalDetailsModal({ open: true, proposal });
+                                    }}
+                                  >
+                                    Detalhes
+                                  </Button>
+                                </div>
+                              )}
                           
                               <div className="flex justify-between items-center">
                                 <Badge 
@@ -2766,7 +2804,7 @@ const DriverDashboard = () => {
                                 </span>
                               </div>
                           
-                              {proposal.message && (
+                              {proposal.message && !matchingCounterOffer && (
                                 <div className="mt-3 pt-3 border-t">
                                   <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
                                   <p className="text-sm">{proposal.message}</p>
