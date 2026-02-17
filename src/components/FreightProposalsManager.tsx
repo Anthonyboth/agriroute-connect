@@ -343,20 +343,22 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="pending">
-                Pendentes {pendingCount > 0 && `(${pendingCount})`}
-              </TabsTrigger>
-              <TabsTrigger value="counter_proposed">
-                Contrapropostas {counterProposedCount > 0 && `(${counterProposedCount})`}
-              </TabsTrigger>
-              <TabsTrigger value="accepted">
-                Aceitas {acceptedCount > 0 && `(${acceptedCount})`}
-              </TabsTrigger>
-              <TabsTrigger value="rejected">
-                Rejeitadas {rejectedCount > 0 && `(${rejectedCount})`}
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto mb-6 -mx-1 px-1">
+              <TabsList className="inline-flex w-max min-w-full gap-1">
+                <TabsTrigger value="pending" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">
+                  Pendentes {pendingCount > 0 && `(${pendingCount})`}
+                </TabsTrigger>
+                <TabsTrigger value="counter_proposed" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">
+                  Contrapropostas {counterProposedCount > 0 && `(${counterProposedCount})`}
+                </TabsTrigger>
+                <TabsTrigger value="accepted" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">
+                  Aceitas {acceptedCount > 0 && `(${acceptedCount})`}
+                </TabsTrigger>
+                <TabsTrigger value="rejected" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">
+                  Rejeitadas {rejectedCount > 0 && `(${rejectedCount})`}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Filtros Avançados */}
             {activeTab === 'pending' && proposals.filter(p => p.status === 'PENDING').length > 0 && (
