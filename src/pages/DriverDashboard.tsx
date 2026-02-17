@@ -1935,7 +1935,7 @@ const DriverDashboard = () => {
     console.log('Menu clicked');
   };
 
-  const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete' | 'cancel') => {
+  const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete' | 'cancel' | 'proposal_sent') => {
     if (!profile?.id) return;
 
     // Travar reentrância (evita múltiplas tentativas gerando mensagens duplicadas)
@@ -1946,6 +1946,12 @@ const DriverDashboard = () => {
     }
 
     try {
+      // Proposta já foi enviada pelo modal - apenas atualizar dados
+      if (action === 'proposal_sent') {
+        fetchMyProposals();
+        return;
+      }
+
       if (action === 'cancel') {
         // Cancelar proposta/aceite
         const { error } = await supabase

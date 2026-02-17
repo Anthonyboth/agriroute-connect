@@ -63,7 +63,7 @@ interface FreightCardProps {
     pricing_type?: "FIXED" | "PER_KM" | "PER_TON";
     price_per_km?: number;
   };
-  onAction?: (action: "propose" | "accept" | "complete" | "edit" | "cancel" | "request-cancel") => void;
+  onAction?: (action: "propose" | "accept" | "complete" | "edit" | "cancel" | "request-cancel" | "proposal_sent") => void;
   showActions?: boolean;
   showProducerActions?: boolean;
   hidePrice?: boolean;
@@ -848,7 +848,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         }
         onSuccess={() => {
           setProposalModalOpen(false);
-          if (onAction) onAction("propose");
+          if (onAction) onAction("proposal_sent");
         }}
       />
 

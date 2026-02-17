@@ -39,7 +39,7 @@ interface FreightCardProps {
     // ✅ necessário para "Solicitado há X dias"
     created_at?: string;
   };
-  onAction?: (action: "propose" | "accept" | "complete" | "edit" | "cancel") => void;
+  onAction?: (action: "propose" | "accept" | "complete" | "edit" | "cancel" | "proposal_sent") => void;
   showActions?: boolean;
   showProducerActions?: boolean;
   isAffiliatedDriver?: boolean;
@@ -162,7 +162,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(
     const handleCancel = useCallback(() => onAction?.("cancel"), [onAction]);
     const handleProposalSuccess = useCallback(() => {
       setProposalModalOpen(false);
-      onAction?.("propose");
+      onAction?.("proposal_sent");
     }, [onAction]);
 
     // GPS precision indicator
