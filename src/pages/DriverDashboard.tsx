@@ -2835,40 +2835,69 @@ const DriverDashboard = () => {
                             ? parseCounterPriceInfo(matchingCounterOffer.message) 
                             : { unitPrice: null, total: null, unit: null };
                           
-                          // Determinar exibição consistente: ambos como TOTAL
+                          const freightPricingType = proposal.freight?.pricing_type;
+                          const freightWeight = proposal.freight?.weight || 0;
+                          const freightDistance = proposal.freight?.distance_km || 0;
                           const driverTotal = proposal.proposed_price;
-                          const counterTotal = counterInfo.total;
+                          
+                          // Calcular unitário do motorista baseado no tipo de precificação do frete
+                          const driverUnitPrice = (() => {
+                            if (freightPricingType === 'PER_TON' && freightWeight > 0) {
+                              return driverTotal / (freightWeight / 1000); // kg -> ton
+                            }
+                            if (freightPricingType === 'PER_KM' && freightDistance > 0) {
+                              return driverTotal / freightDistance;
+                            }
+                            return null;
+                          })();
+                          const unitLabel = freightPricingType === 'PER_TON' ? 'ton' : freightPricingType === 'PER_KM' ? 'km' : null;
+                          
                           const counterUnit = counterInfo.unitPrice;
+                          const counterTotal = counterInfo.total;
                           const counterUnitLabel = counterInfo.unit;
+                          
+                          // Exibir unitário como destaque quando frete é por unidade
+                          const showAsUnit = !!unitLabel && (!!driverUnitPrice || !!counterUnit);
                           
                           return (
                             <div className={`p-3 border-t ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
-                              {/* Valor original do motorista - SEMPRE total */}
+                              {/* Valor do motorista */}
                               <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium">Sua Proposta (total):</span>
-                                <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
-                                  R$ {driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                <span className="text-sm font-medium">
+                                  Sua Proposta{showAsUnit ? ` (/${unitLabel})` : ''}:
                                 </span>
+                                <div className="text-right">
+                                  <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
+                                    {showAsUnit && driverUnitPrice
+                                      ? `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/${unitLabel}`
+                                      : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                                  </span>
+                                  {showAsUnit && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Total: R$ {driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Contraproposta do produtor - total + unitário se aplicável */}
+                              {/* Contraproposta do produtor */}
                               {proposal.status === 'COUNTER_PROPOSED' && (
                                 <div className="mb-3 p-3 bg-orange-100/50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
                                   <div className="flex justify-between items-center mb-1">
                                     <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
-                                      💰 Contraproposta do Produtor:
+                                      💰 Contraproposta:
                                     </span>
                                     <div className="text-right">
                                       <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                                        {counterTotal 
-                                          ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
-                                          : counterUnit
-                                            ? `R$ ${counterUnit.toLocaleString('pt-BR')}/${counterUnitLabel}`
+                                        {counterUnit && counterUnitLabel
+                                          ? `R$ ${counterUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${counterUnitLabel}`
+                                          : counterTotal 
+                                            ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
                                             : 'Ver detalhes'}
                                       </span>
-                                      {counterUnit && counterUnitLabel && counterTotal && (
+                                      {counterTotal && counterUnit && (
                                         <p className="text-xs text-orange-500 dark:text-orange-400/70">
-                                          R$ {counterUnit.toLocaleString('pt-BR')}/{counterUnitLabel}
+                                          Total: R$ {counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                         </p>
                                       )}
                                     </div>
