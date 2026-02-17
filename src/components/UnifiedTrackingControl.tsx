@@ -144,7 +144,7 @@ export const UnifiedTrackingControl = () => {
     executeStopTracking();
   };
 
-  const executeStopTracking = () => {
+  const executeStopTracking = (silent?: boolean) => {
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
@@ -154,7 +154,9 @@ export const UnifiedTrackingControl = () => {
       setWatchId(null);
       setIsTracking(false);
       setShowPenaltyModal(false);
-      toast.info('Rastreamento pausado');
+      if (!silent) {
+        toast.info('Rastreamento pausado');
+      }
     }
   };
 
@@ -172,7 +174,7 @@ export const UnifiedTrackingControl = () => {
         if (import.meta.env.DEV) console.log('[UnifiedTrackingControl] Incident logged for GPS disable');
       });
     }
-    executeStopTracking();
+    executeStopTracking(true);
     toast.warning('Incidente registrado: rastreamento desativado durante frete ativo');
   };
 
