@@ -1949,16 +1949,28 @@ const DriverDashboard = () => {
     };
   }, [profile?.id, canSeeFreights, debouncedFetchOngoing, debouncedFetchAssignments, debouncedFetchAvailable, debouncedFetchProposals, debouncedFetchTransportRequests]);
 
-  // Carregar contra-ofertas - debounced para evitar chamadas excessivas
+  // Carregar contra-ofertas quando myProposals tiver itens COUNTER_PROPOSED
+  // ✅ FIX: Depende de myProposals para evitar race condition onde counterOffers fica vazio
+  const hasCounterProposed = useMemo(
+    () => myProposals.some(p => p.status === 'COUNTER_PROPOSED'),
+    [myProposals]
+  );
+  
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || !hasCounterProposed) {
+      // Limpar counterOffers se não há mais propostas COUNTER_PROPOSED
+      if (!hasCounterProposed && counterOffers.length > 0) {
+        setCounterOffers([]);
+      }
+      return;
+    }
     
     const timeoutId = setTimeout(() => {
       fetchCounterOffers();
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [profile?.id]);
+  }, [profile?.id, hasCounterProposed, fetchCounterOffers]);
 
   // ✅ Filtrar assignments ativos usando função canônica isFinalStatus + filtro de data
   const activeAssignments = useMemo(() => {
