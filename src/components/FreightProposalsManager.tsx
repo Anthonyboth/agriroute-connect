@@ -32,6 +32,8 @@ interface Proposal {
   freight_id: string;
   driver_id: string;
   proposed_price: number;
+  proposal_pricing_type?: string | null;
+  proposal_unit_price?: number | null;
   message?: string;
   delivery_estimate?: string;
   status: string;
@@ -883,6 +885,8 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
           id: counterProposalOpen.proposal.id,
           freight_id: counterProposalOpen.proposal.freight_id,
           proposed_price: counterProposalOpen.proposal.proposed_price,
+          proposal_pricing_type: counterProposalOpen.proposal.proposal_pricing_type,
+          proposal_unit_price: counterProposalOpen.proposal.proposal_unit_price,
           message: counterProposalOpen.proposal.message || '',
           driver_name: counterProposalOpen.proposal.driver?.full_name || 'Motorista',
           driver_id: counterProposalOpen.proposal.driver_id

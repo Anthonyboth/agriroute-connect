@@ -19,6 +19,8 @@ interface ProposalCounterModalProps {
     id: string;
     freight_id: string;
     proposed_price: number; // Já é o valor por carreta do motorista
+    proposal_pricing_type?: string | null; // ✅ Tipo de precificação da proposta do motorista
+    proposal_unit_price?: number | null; // ✅ Valor unitário da proposta do motorista
     message?: string;
     driver_name: string;
     driver_id: string; // ✅ ID do motorista para target_driver_id no chat
@@ -62,8 +64,21 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
   // A proposta do motorista já é por carreta
   const driverProposedPrice = originalProposal.proposed_price;
+  const driverPricingType = originalProposal.proposal_pricing_type;
+  const driverUnitPrice = originalProposal.proposal_unit_price;
   const priceDifference = driverProposedPrice - pricePerTruck;
   const isPriceIncrease = priceDifference > 0;
+
+  // ✅ Formatar exibição do valor do motorista com tipo unitário
+  const formatDriverProposal = () => {
+    if (driverPricingType === 'PER_KM' && driverUnitPrice) {
+      return `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`;
+    }
+    if (driverPricingType === 'PER_TON' && driverUnitPrice) {
+      return `R$ ${driverUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`;
+    }
+    return formatBRL(driverProposedPrice, true);
+  };
 
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -364,8 +379,13 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{formatBRL(driverProposedPrice, true)}</span>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="font-medium">{formatDriverProposal()}</span>
+                {(driverPricingType === 'PER_KM' || driverPricingType === 'PER_TON') && (
+                  <span className="text-xs text-muted-foreground">
+                    Total: {formatBRL(driverProposedPrice, true)}
+                  </span>
+                )}
                 <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
                   {isPriceIncrease ? '+' : ''}{formatBRL(priceDifference, true)}
                 </Badge>
