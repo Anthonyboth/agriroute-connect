@@ -2710,45 +2710,71 @@ const DriverDashboard = () => {
                         />
                         
                         {/* Informações compactas da proposta */}
-                        <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium">Sua Proposta:</span>
-                            <span className="text-lg font-bold text-primary">
-                              R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
-                            </span>
-                          </div>
+                        {(() => {
+                          const matchingCounterOffer = proposal.status === 'COUNTER_PROPOSED' 
+                            ? counterOffers.find(co => co.freight_id === proposal.freight_id && !co.read_at)
+                            : null;
                           
-                          <div className="flex justify-between items-center">
-                            <Badge 
-                              variant={
-                                proposal.status === 'ACCEPTED' ? 'default' :
-                                proposal.status === 'COUNTER_PROPOSED' ? 'outline' :
-                                proposal.status === 'PENDING' ? 'secondary' : 'destructive'
-                              }
-                              className="text-xs"
-                              title={
-                                proposal.status === 'ACCEPTED' ? 'Aceita pelo produtor' :
-                                proposal.status === 'COUNTER_PROPOSED' ? 'O produtor enviou uma contraproposta' :
-                                proposal.status === 'PENDING' ? 'Aguardando análise' : 'Rejeitada'
-                              }
-                            >
-                              {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
-                               proposal.status === 'COUNTER_PROPOSED' ? '🔄 Contraproposta' :
-                               proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
-                            </Badge>
-                            
-                            <span className="text-xs text-muted-foreground">
-                              Enviada {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                          </div>
+                          return (
+                            <div className={`mt-3 p-3 border rounded-lg ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-orange-200 dark:border-orange-800' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Sua Proposta:</span>
+                                <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
+                                  R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
+                                </span>
+                              </div>
+
+                              {matchingCounterOffer && (
+                                <div className="mb-2 p-2 bg-orange-100/50 dark:bg-orange-900/20 rounded-md">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
+                                      Contraproposta do Produtor:
+                                    </span>
+                                    <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                                      R$ {matchingCounterOffer.proposed_price?.toLocaleString('pt-BR') || '—'}
+                                    </span>
+                                  </div>
+                                  {matchingCounterOffer.message && (
+                                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1 line-clamp-2">
+                                      "{matchingCounterOffer.message}"
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                           
-                          {proposal.message && (
-                            <div className="mt-3 pt-3 border-t">
-                              <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
-                              <p className="text-sm">{proposal.message}</p>
+                              <div className="flex justify-between items-center">
+                                <Badge 
+                                  variant={
+                                    proposal.status === 'ACCEPTED' ? 'default' :
+                                    proposal.status === 'COUNTER_PROPOSED' ? 'outline' :
+                                    proposal.status === 'PENDING' ? 'secondary' : 'destructive'
+                                  }
+                                  className={`text-xs ${proposal.status === 'COUNTER_PROPOSED' ? 'border-orange-400 text-orange-700 dark:text-orange-400' : ''}`}
+                                  title={
+                                    proposal.status === 'ACCEPTED' ? 'Aceita pelo produtor' :
+                                    proposal.status === 'COUNTER_PROPOSED' ? 'O produtor enviou uma contraproposta' :
+                                    proposal.status === 'PENDING' ? 'Aguardando análise' : 'Rejeitada'
+                                  }
+                                >
+                                  {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
+                                   proposal.status === 'COUNTER_PROPOSED' ? '🔄 Contraproposta' :
+                                   proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
+                                </Badge>
+                                
+                                <span className="text-xs text-muted-foreground">
+                                  Enviada {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              </div>
+                          
+                              {proposal.message && (
+                                <div className="mt-3 pt-3 border-t">
+                                  <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
+                                  <p className="text-sm">{proposal.message}</p>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          );
+                        })()}
                       </div>
                     ) : null
                   )}
