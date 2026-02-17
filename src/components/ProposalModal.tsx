@@ -179,12 +179,21 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       }
 
       // Inserir nova proposta (apenas se não existir PENDING)
+      // ✅ Calcular valor unitário para salvar
+      const unitPrice = proposalData.pricing_type === 'PER_KM'
+        ? parseFloat(proposalData.proposed_price_per_km || '0')
+        : proposalData.pricing_type === 'PER_TON'
+          ? parseFloat(proposalData.proposed_price_per_ton || '0')
+          : finalProposedPrice;
+
       const { error } = await supabase
         .from('freight_proposals')
         .insert({
           freight_id: freight.id,
           driver_id: driverProfileId,
           proposed_price: finalProposedPrice, // ✅ Valor já calculado por carreta
+          proposal_pricing_type: proposalData.pricing_type,
+          proposal_unit_price: unitPrice,
           message: proposalMessage,
           justification: proposalData.justification,
           delivery_estimate_days: proposalData.delivery_estimate_days,
