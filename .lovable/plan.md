@@ -1,124 +1,104 @@
 
-# Correção do Crash no Android (Tela Pisca e Fecha)
+# Correção DEFINITIVA do Crash Android - Causa Raiz Encontrada
 
-## Problema
+## Problema Real Identificado
 
-O app Android crasha imediatamente ao abrir, exibindo "AgriRoute fechou porque este app tem um bug". A correção anterior (CSS async) resolveu apenas parte do problema. Existem MAIS causas raiz que precisam ser corrigidas.
+O crash acontece ANTES de qualquer código JavaScript executar. O erro está no arquivo **`android/app/src/main/res/values/styles.xml`** -- a configuração do tema de Splash Screen está incorreta.
 
-## Causas Raiz Identificadas
+### O que está errado
 
-### 1. Web Manifest conflitando com Capacitor WebView (PRINCIPAL)
-O `index.html` inclui `<link rel="manifest" href="/site.webmanifest?v=2">`. Quando o Android WebView carrega HTML com manifest PWA, o Chrome WebView pode tentar entrar em modo PWA, conflitando com o ambiente Capacitor e causando crash.
+O tema `AppTheme.NoActionBarLaunch` usa `parent="Theme.SplashScreen"` (API do Android 12 SplashScreen) mas:
 
-### 2. Preloads de imagens que podem não existir no bundle
-O `<link rel="preload" as="image" ...>` para hero images pode falhar no WebView local, gerando erros fatais de preload em alguns dispositivos.
+1. Usa `android:background` em vez de `windowSplashScreenBackground` -- atributo incorreto para esse tema
+2. **Falta o atributo obrigatório `postSplashScreenTheme`** -- sem isso, o Android não sabe para qual tema transicionar após o splash, causando crash da Activity
 
-### 3. Preconnect/DNS-prefetch desnecessários no Android
-Tags como `<link rel="preconnect" href="https://...supabase.co">` e `<link rel="dns-prefetch" ...>` para Stripe, WhatsApp etc. são inúteis no WebView nativo e podem causar erros silenciosos.
+Isso explica por que NENHUMA das correções anteriores (cleanup de manifest, try/catch no JS, preservar console.error) resolveu: o crash acontece na camada nativa do Android, antes do WebView sequer carregar o HTML.
 
-### 4. Console removido em produção (drop_console: true)
-O terser está removendo TODOS os `console.*` calls em produção, incluindo `console.error` e `console.warn`. Isso impede qualquer diagnóstico e pode causar comportamentos inesperados em handlers de erro.
+### Evidencia
 
-### 5. SW gerado pelo VitePWA presente no dist/
-Mesmo sem registro automático, o arquivo `sw.js` no `dist/` pode ser auto-detectado por alguns WebViews Android.
+A documentacao oficial do Android diz:
+> "Create a theme with a parent of Theme.SplashScreen, and set the values of postSplashScreenTheme to the theme that the Activity should use. **Required.**"
+
+O styles.xml atual:
+```text
+<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+    <item name="android:background">@drawable/splash</item>   <-- ERRADO
+    <!-- postSplashScreenTheme AUSENTE -->                      <-- FALTA
+</style>
+```
 
 ## Plano de Correção
 
-### Etapa 1: index.html - Desativar tags problemáticas no Capacitor
+### Etapa 1: Corrigir styles.xml (CAUSA RAIZ)
 
-Adicionar script de detecção nativa no HEAD que remove dinamicamente tags desnecessárias:
-- Remover `<link rel="manifest">` no Capacitor
-- Remover `<link rel="preload">` de hero images no Capacitor
-- Remover `<link rel="preconnect">` e `<link rel="dns-prefetch">` no Capacitor
+Corrigir o tema para usar os atributos corretos da API Theme.SplashScreen:
 
-Isso sera feito adicionando um script inline no HEAD ANTES dessas tags, que detecta o ambiente nativo e remove/desabilita os links.
+```text
+<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+    <item name="windowSplashScreenBackground">#16a34a</item>
+    <item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>
+    <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+</style>
+```
 
-### Etapa 2: vite.config.ts - Parar de remover console.error/warn
+Mudancas:
+- `android:background` substituido por `windowSplashScreenBackground` (cor verde AgriRoute)
+- Adicionado `windowSplashScreenAnimatedIcon` para exibir o splash.png como icone
+- Adicionado `postSplashScreenTheme` apontando para `AppTheme.NoActionBar` (OBRIGATORIO)
 
-Mudar a configuracao do terser para manter `console.error` e `console.warn` em producao:
-- Remover `drop_console: true`
-- Usar apenas `pure_funcs` para remover `console.log`, `console.info`, `console.debug`
-- Isso preserva `console.error` e `console.warn` para diagnostico
+### Etapa 2: Adicionar usesCleartextTraffic ao AndroidManifest (Seguranca)
 
-### Etapa 3: main.tsx - Adicionar try/catch global para boot nativo
+Adicionar `android:usesCleartextTraffic="true"` na tag `<application>` do AndroidManifest.xml para garantir que o Capacitor local server funcione em todos os dispositivos Android.
 
-Envolver o `createRoot(...).render()` em try/catch para capturar erros fatais durante a inicializacao no Android, exibindo uma mensagem de erro util em vez de crash silencioso.
+### Etapa 3: Definir build target ES2017 no Vite (Compatibilidade)
 
-### Etapa 4: capacitor.config.ts - Habilitar debug temporariamente
-
-Habilitar `webContentsDebuggingEnabled: true` no Android para permitir depuracao via Chrome DevTools caso o problema persista.
+Adicionar `target: 'es2017'` ao `build` do `vite.config.ts` para garantir compatibilidade com WebViews mais antigos (Android 7+).
 
 ## Detalhes Tecnicos
 
-### index.html - Script de limpeza nativa (no HEAD, antes das tags)
+### styles.xml (CORREÇÃO PRINCIPAL)
 ```text
-<script>
-  // Detectar Capacitor/nativo e remover tags que causam crash no WebView
-  (function(){
-    var isNative = window.Capacitor || location.protocol === 'capacitor:' || 
-      (location.hostname === 'localhost' && !location.port);
-    if (!isNative) return;
-    
-    // Adiar para quando o DOM do head estiver pronto
-    var observer = new MutationObserver(function(){
-      // Remover manifest (causa conflito PWA/WebView)
-      document.querySelectorAll('link[rel="manifest"]').forEach(function(el){ el.remove(); });
-      // Remover preloads de imagens hero (arquivos podem não existir)
-      document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(el){ el.remove(); });
-      // Remover preconnect/dns-prefetch (inutil em WebView local)
-      document.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').forEach(function(el){ el.remove(); });
-    });
-    observer.observe(document.head, { childList: true });
-    // Executar tambem imediatamente para tags ja presentes
-    document.querySelectorAll('link[rel="manifest"]').forEach(function(el){ el.remove(); });
-    document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(el){ el.remove(); });
-    document.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').forEach(function(el){ el.remove(); });
-  })();
-</script>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#16a34a</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>
 ```
 
-### vite.config.ts - Preservar console.error/warn
+### AndroidManifest.xml
+Adicionar na tag `<application>`:
 ```text
-terserOptions: {
-  compress: {
-    drop_console: false,  // NAO remover todos os console
-    drop_debugger: mode === 'production',
-    pure_funcs: mode === 'production' 
-      ? ['console.log', 'console.info', 'console.debug'] 
-      : []
-  },
+android:usesCleartextTraffic="true"
 ```
 
-### main.tsx - Try/catch no boot
+### vite.config.ts
+Adicionar no bloco `build`:
 ```text
-try {
-  createRoot(document.getElementById('root')!).render(<App />);
-} catch (error) {
-  // Exibir erro no DOM se o React falhar ao montar
-  const root = document.getElementById('root');
-  if (root) {
-    root.innerHTML = '<div style="padding:2rem;text-align:center">' +
-      '<h2>Erro ao iniciar o app</h2>' +
-      '<p>' + (error instanceof Error ? error.message : String(error)) + '</p>' +
-      '<button onclick="location.reload()">Recarregar</button></div>';
-  }
-}
+target: 'es2017',
 ```
 
-### capacitor.config.ts - Debug temporario
-```text
-android: {
-  allowMixedContent: true,
-  webContentsDebuggingEnabled: true,  // TEMPORARIO: habilitar para diagnostico
-},
-```
+## Por que as correções anteriores não funcionaram
 
-## Apos aplicar
+As correções anteriores (cleanup de manifest, try/catch, console.error) foram todas no **nivel web/JavaScript**. Mas o crash acontece no **nivel nativo Android** -- a Activity crasha ao tentar carregar o tema incorreto, ANTES do WebView carregar qualquer HTML ou JS.
 
-O usuario deve:
+## Passos apos aplicar
+
 1. `git pull`
 2. `npm run build`
 3. `npx cap sync`
 4. `npx cap run android`
-
-Se ainda houver crash, o `webContentsDebuggingEnabled: true` permitira conectar Chrome DevTools (`chrome://inspect`) para ver o erro exato.
