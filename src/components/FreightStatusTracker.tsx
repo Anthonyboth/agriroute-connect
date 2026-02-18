@@ -11,6 +11,15 @@ import { format } from 'date-fns';
 import { useFreightEffectiveStatus } from '@/hooks/useFreightEffectiveStatus';
 import { FreightStatusHistory } from '@/components/FreightStatusHistory';
 import { useDriverFreightStatus } from '@/hooks/useDriverFreightStatus';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
 const FreightRealtimeMap = lazy(() => 
@@ -152,6 +161,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDeliveryPendingModal, setShowDeliveryPendingModal] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [serviceType, setServiceType] = useState<string | null>(freightServiceType || null);
 
@@ -354,6 +364,11 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         title: "✅ Status atualizado",
         description: `Progresso atualizado para: ${statusLabel}`,
       });
+
+      // Exibir popup informativo quando motorista reporta entrega
+      if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+        setShowDeliveryPendingModal(true);
+      }
       
       // Notificar o parent para atualizar UI sem recarregar tudo
       if (onStatusUpdated) {
@@ -627,6 +642,26 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Modal informativo: Aguardar confirmação do produtor */}
+      <AlertDialog open={showDeliveryPendingModal} onOpenChange={setShowDeliveryPendingModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Entrega Reportada
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Sua entrega foi registrada com sucesso! Agora é necessário aguardar o <strong>produtor confirmar o recebimento</strong> do frete para que ele seja finalizado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDeliveryPendingModal(false)}>
+              Entendi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
