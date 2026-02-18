@@ -242,24 +242,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
     return FINAL_STATUSES.includes(effectiveCurrentStatus as any);
   }, [effectiveCurrentStatus]);
 
-  const getCurrentLocation = (): Promise<{lat: number, lng: number}> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocalização não suportada'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => reject(error),
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    });
+  const getCurrentLocation = async (): Promise<{lat: number, lng: number}> => {
+    const { getCurrentPositionSafe } = await import('@/utils/location');
+    const position = await getCurrentPositionSafe();
+    return {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude
+    };
   };
 
   const updateStatus = async (newStatus: string) => {

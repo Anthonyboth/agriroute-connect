@@ -29,7 +29,7 @@ export const TrackingDiagnostics: React.FC<TrackingDiagnosticsProps> = ({
 }) => {
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<DiagnosticResult[]>([]);
-  const [currentPosition, setCurrentPosition] = useState<GeolocationPosition | null>(null);
+  const [currentPosition, setCurrentPosition] = useState<{ coords: GeolocationCoordinates } | null>(null);
   const [lastServerUpdate, setLastServerUpdate] = useState<Date | null>(null);
   const [gpsWatchId, setGpsWatchId] = useState<number | null>(null);
 
@@ -104,13 +104,8 @@ export const TrackingDiagnostics: React.FC<TrackingDiagnosticsProps> = ({
 
     // Test 2: GPS Signal
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        });
-      });
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
       
       setCurrentPosition(position);
       

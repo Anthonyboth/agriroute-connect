@@ -275,22 +275,14 @@ const CompleteProfile = () => {
 
   const ensureLocationEnabled = async (): Promise<boolean> => {
     if (locationEnabled) return true;
-    if ('geolocation' in navigator) {
-      try {
-        const enabled = await new Promise<boolean>((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            () => { resolve(true); },
-            () => resolve(false),
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-          );
-        });
-        if (enabled) setLocationEnabled(true);
-        return enabled;
-      } catch {
-        return false;
-      }
+    try {
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      await getCurrentPositionSafe();
+      setLocationEnabled(true);
+      return true;
+    } catch {
+      return false;
     }
-    return false;
   };
 
   const handleSaveAndContinue = async () => {

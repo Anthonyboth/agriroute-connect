@@ -34,45 +34,37 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
     }
   };
 
-  const requestLocationPermission = () => {
+  const requestLocationPermission = async () => {
     setChecking(true);
     
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocationEnabled(true);
-          onPermissionChange(true);
-          toast.success('Localização ativada com sucesso!');
-          setChecking(false);
-        },
-        (error) => {
-          setLocationEnabled(false);
-          onPermissionChange(false);
-          setChecking(false);
-          
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              toast.error('Permissão de localização negada. Por favor, ative nas configurações do navegador.');
-              break;
-            case error.POSITION_UNAVAILABLE:
-              toast.error('Localização indisponível no momento.');
-              break;
-            case error.TIMEOUT:
-              toast.error('Tempo limite para obter localização.');
-              break;
-            default:
-              toast.error('Erro ao obter localização.');
-              break;
-          }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
-      toast.error('Geolocalização não é suportada neste navegador.');
+    try {
+      const { requestPermissionSafe, getCurrentPositionSafe } = await import('@/utils/location');
+      const granted = await requestPermissionSafe();
+      if (!granted) {
+        setLocationEnabled(false);
+        onPermissionChange(false);
+        toast.error('Permissão de localização negada. Por favor, ative nas configurações do navegador.');
+        return;
+      }
+      
+      await getCurrentPositionSafe();
+      setLocationEnabled(true);
+      onPermissionChange(true);
+      toast.success('Localização ativada com sucesso!');
+    } catch (error: any) {
+      setLocationEnabled(false);
+      onPermissionChange(false);
+      
+      if (error?.code === 1) {
+        toast.error('Permissão de localização negada. Por favor, ative nas configurações do navegador.');
+      } else if (error?.code === 2) {
+        toast.error('Localização indisponível no momento.');
+      } else if (error?.code === 3) {
+        toast.error('Tempo limite para obter localização.');
+      } else {
+        toast.error('Erro ao obter localização.');
+      }
+    } finally {
       setChecking(false);
     }
   };

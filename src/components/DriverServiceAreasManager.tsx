@@ -99,24 +99,19 @@ const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerP
     }
   };
 
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          }));
-          toast.success('Localização atual capturada');
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          toast.error('Erro ao obter localização atual');
-        }
-      );
-    } else {
-      toast.error('Geolocalização não suportada neste navegador');
+  const getCurrentLocation = async () => {
+    try {
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
+      setFormData(prev => ({
+        ...prev,
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      }));
+      toast.success('Localização atual capturada');
+    } catch (error) {
+      console.error('Error getting location:', error);
+      toast.error('Erro ao obter localização atual');
     }
   };
 

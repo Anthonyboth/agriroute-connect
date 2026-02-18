@@ -62,38 +62,25 @@ export const UserLocationSelector: React.FC<UserLocationSelectorProps> = ({ onLo
   }, [citySearch, searchCities]);
 
   // Obter localização atual via GPS
-  const getCurrentLocation = () => {
+  const getCurrentLocation = async () => {
     setLoading(true);
     
-    if (!navigator.geolocation) {
-      toast.error('Geolocalização não suportada pelo navegador');
+    try {
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
+      const { latitude, longitude } = position.coords;
+      
+      setManualLat(latitude.toString());
+      setManualLng(longitude.toString());
+      
+      toast.success(`Coordenadas GPS capturadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      toast.info('Digite o nome da sua cidade para confirmar a localização');
+    } catch (error) {
+      console.error('Erro ao obter localização:', error);
+      toast.error('Erro ao obter localização. Verifique as permissões.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        setManualLat(latitude.toString());
-        setManualLng(longitude.toString());
-        
-        toast.success(`Coordenadas GPS capturadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-        toast.info('Digite o nome da sua cidade para confirmar a localização');
-        
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Erro ao obter localização:', error);
-        toast.error('Erro ao obter localização. Verifique as permissões do navegador.');
-        setLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutos
-      }
-    );
   };
 
   // Selecionar cidade da lista de sugestões

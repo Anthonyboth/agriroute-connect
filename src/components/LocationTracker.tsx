@@ -117,8 +117,6 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
-      } else {
-        try { navigator.geolocation.clearWatch(watchId as number); } catch {}
       }
       setWatchId(null);
     }

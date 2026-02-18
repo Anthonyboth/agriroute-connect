@@ -46,13 +46,8 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
       }
 
       // Obter localização atual
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        });
-      });
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
 
       const { latitude, longitude } = position.coords;
 

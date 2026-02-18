@@ -31,28 +31,20 @@ export const DriverRegionManager: React.FC<DriverRegionManagerProps> = ({
   const [selectedCity, setSelectedCity] = useState<{city: string, state: string} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const getCurrentLocation = useCallback(() => {
-    if (navigator.geolocation) {
-      setIsLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          // Para simplificar, vamos apenas capturar as coordenadas
-          // O usuário ainda precisará selecionar a cidade manualmente
-          toast.success(`Localização capturada: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-          toast.info('Por favor, selecione a cidade correspondente à sua localização');
-          setIsLoading(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          toast.error('Erro ao obter localização atual');
-          setIsLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-      );
-    } else {
-      toast.error('Geolocalização não suportada neste navegador');
+  const getCurrentLocation = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
+      const { latitude, longitude } = position.coords;
+      
+      toast.success(`Localização capturada: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      toast.info('Por favor, selecione a cidade correspondente à sua localização');
+    } catch (error) {
+      console.error('Error getting location:', error);
+      toast.error('Erro ao obter localização atual');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
