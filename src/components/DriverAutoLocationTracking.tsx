@@ -6,6 +6,7 @@ import { useOngoingFreightLocation } from '@/hooks/useOngoingFreightLocation';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative } from '@/utils/location';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Navigation } from 'lucide-react';
+import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
 
 export const DriverAutoLocationTracking = () => {
   const { profile } = useAuth();
@@ -13,6 +14,7 @@ export const DriverAutoLocationTracking = () => {
   const [watchId, setWatchId] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [hasUserGesture, setHasUserGesture] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   const { updateFromCoords } = useOngoingFreightLocation({
     driverProfileId: profile?.id ?? null,
@@ -61,19 +63,14 @@ export const DriverAutoLocationTracking = () => {
     
     // Interceptar mensagens nativas em inglês do Capacitor
     if (errorMsg.toLowerCase().includes('missing') && errorMsg.toLowerCase().includes('permission')) {
-      toast.error('Permissão de localização necessária', {
-        description: 'Ative a permissão de localização nas configurações do seu dispositivo.',
-        duration: 6000
-      });
+      setShowPermissionDialog(true);
       return;
     }
     
     if (error && error.code) {
       switch (error.code) {
         case 1:
-          toast.error('Permissão de localização negada', {
-            description: 'Ative nas configurações do dispositivo.'
-          });
+          setShowPermissionDialog(true);
           break;
         case 2:
           toast.error('Localização indisponível', {
@@ -114,9 +111,7 @@ export const DriverAutoLocationTracking = () => {
         try {
           const granted = await requestPermissionSafe();
           if (!granted) {
-            toast.error('Permissão de localização necessária', {
-              description: 'Ative a permissão de localização nas configurações do dispositivo.'
-            });
+            setShowPermissionDialog(true);
             return;
           }
         } catch (permErr: any) {
@@ -163,10 +158,16 @@ export const DriverAutoLocationTracking = () => {
   };
 
   if (!hasActiveFreight || !profile || !['MOTORISTA', 'MOTORISTA_AFILIADO', 'GUINCHO', 'MOTO_FRETE'].includes(profile.role)) {
-    return null;
+    return (
+      <GPSPermissionDeniedDialog 
+        open={showPermissionDialog} 
+        onOpenChange={setShowPermissionDialog} 
+      />
+    );
   }
 
   return (
+    <>
     <Alert className="mb-4">
       <Navigation className="h-4 w-4 animate-pulse" />
       <AlertTitle className="flex items-center gap-2">
@@ -177,5 +178,11 @@ export const DriverAutoLocationTracking = () => {
         O rastreamento será encerrado automaticamente quando o frete for concluído.
       </AlertDescription>
     </Alert>
+
+    <GPSPermissionDeniedDialog 
+      open={showPermissionDialog} 
+      onOpenChange={setShowPermissionDialog} 
+    />
+    </>
   );
 };
