@@ -150,7 +150,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    target: 'es2017',
+    target: 'es2020',
     rollupOptions: {
       output: {
         manualChunks: (id) => {
