@@ -84,13 +84,8 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
 
   const handleUseCurrentLocation = async () => {
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        });
-      });
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
 
       const { latitude, longitude } = position.coords;
       setMapCenter({ lat: latitude, lng: longitude });

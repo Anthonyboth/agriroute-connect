@@ -70,23 +70,9 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
     }
   };
 
-  const getCurrentLocation = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocalização não suportada pelo navegador'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        resolve,
-        reject,
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
-    });
+  const getCurrentLocation = async () => {
+    const { getCurrentPositionSafe } = await import('@/utils/location');
+    return getCurrentPositionSafe();
   };
 
   const handleEmergency = async () => {

@@ -47,44 +47,36 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
     { value: 'REST_STOP', label: 'Parada de Descanso', requiresCounterpart: false },
   ];
 
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocalização não é suportada neste navegador');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+  const getCurrentLocation = async () => {
+    try {
+      const { getCurrentPositionSafe } = await import('@/utils/location');
+      const position = await getCurrentPositionSafe();
+      const { latitude, longitude } = position.coords;
+      
+      try {
+        const response = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
+        );
+        const data = await response.json();
         
-        try {
-          // Usando um serviço de geocodificação reversa simples
-          const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
-          );
-          const data = await response.json();
-          
-          setLocation({
-            lat: latitude,
-            lng: longitude,
-            address: data.locality || data.city || `${latitude}, ${longitude}`
-          });
-          
-          toast.success('Localização capturada com sucesso');
-        } catch (error) {
-          setLocation({
-            lat: latitude,
-            lng: longitude,
-            address: `${latitude}, ${longitude}`
-          });
-          toast.success('Localização capturada');
-        }
-      },
-      (error) => {
-        toast.error('Erro ao obter localização. Verifique as permissões do navegador.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
+        setLocation({
+          lat: latitude,
+          lng: longitude,
+          address: data.locality || data.city || `${latitude}, ${longitude}`
+        });
+        
+        toast.success('Localização capturada com sucesso');
+      } catch (error) {
+        setLocation({
+          lat: latitude,
+          lng: longitude,
+          address: `${latitude}, ${longitude}`
+        });
+        toast.success('Localização capturada');
+      }
+    } catch (error) {
+      toast.error('Erro ao obter localização. Verifique as permissões.');
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -97,16 +97,8 @@ export const FunctionalityTester: React.FC = () => {
         status: 'idle',
         test: async () => {
           try {
-            if ('geolocation' in navigator) {
-              return new Promise((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                  () => resolve(true),
-                  () => resolve(true), // Pode falhar por permissão, mas a API está disponível
-                  { timeout: 5000 }
-                );
-              });
-            }
-            return false;
+            const { checkPermissionSafe } = await import('@/utils/location');
+            return await checkPermissionSafe() || ('geolocation' in navigator);
           } catch {
             return false;
           }

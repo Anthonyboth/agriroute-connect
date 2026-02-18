@@ -41,11 +41,11 @@ export default function DeviceDiagnostics() {
       let success = false;
 
       switch (type) {
-        case 'location':
-          await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject);
-          });
+        case 'location': {
+          const { getCurrentPositionSafe } = await import('@/utils/location');
+          await getCurrentPositionSafe();
           success = true;
+        }
           break;
 
         case 'camera':

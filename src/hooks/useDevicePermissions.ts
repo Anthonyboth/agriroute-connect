@@ -167,9 +167,8 @@ export const useDevicePermissions = () => {
       switch (type) {
         case 'location':
           try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject);
-            });
+            const { getCurrentPositionSafe } = await import('@/utils/location');
+            const position = await getCurrentPositionSafe();
             granted = !!position;
           } catch {
             granted = false;
