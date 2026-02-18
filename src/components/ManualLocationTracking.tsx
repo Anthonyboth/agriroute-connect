@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative } from '@/utils/location';
 import { supabase } from '@/integrations/supabase/client';
+import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
 
 export const ManualLocationTracking = () => {
   const { profile } = useAuth();
@@ -15,6 +16,7 @@ export const ManualLocationTracking = () => {
   const [watchId, setWatchId] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   const startTracking = async () => {
     try {
@@ -23,12 +25,7 @@ export const ManualLocationTracking = () => {
       if (!hasPermission) {
         const granted = await requestPermissionSafe();
         if (!granted) {
-          toast.error('Permissão de localização negada', {
-            description: isNative()
-              ? 'Vá em Configurações > Apps > AgriRoute > Permissões > Localização e selecione "Permitir o tempo todo".'
-              : 'Ative nas configurações do dispositivo para usar o rastreamento.',
-            duration: 10000
-          });
+          setShowPermissionDialog(true);
           return;
         }
       }
@@ -66,9 +63,7 @@ export const ManualLocationTracking = () => {
     if (error && error.code) {
       switch (error.code) {
         case 1: // PERMISSION_DENIED
-          toast.error('Permissão de localização negada', {
-            description: 'Ative nas configurações do dispositivo.'
-          });
+          setShowPermissionDialog(true);
           break;
         case 2: // POSITION_UNAVAILABLE
           toast.error('Localização indisponível', {
@@ -113,6 +108,7 @@ export const ManualLocationTracking = () => {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -172,5 +168,11 @@ export const ManualLocationTracking = () => {
         )}
       </CardContent>
     </Card>
+
+    <GPSPermissionDeniedDialog 
+      open={showPermissionDialog} 
+      onOpenChange={setShowPermissionDialog} 
+    />
+    </>
   );
 };
