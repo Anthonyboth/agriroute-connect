@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Navigation, MapPin, Power, PowerOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
-import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe } from '@/utils/location';
+import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative } from '@/utils/location';
 import { supabase } from '@/integrations/supabase/client';
 
 export const ManualLocationTracking = () => {
@@ -24,7 +24,10 @@ export const ManualLocationTracking = () => {
         const granted = await requestPermissionSafe();
         if (!granted) {
           toast.error('Permissão de localização negada', {
-            description: 'Ative nas configurações do dispositivo para usar o rastreamento.'
+            description: isNative()
+              ? 'Vá em Configurações > Apps > AgriRoute > Permissões > Localização e selecione "Permitir o tempo todo".'
+              : 'Ative nas configurações do dispositivo para usar o rastreamento.',
+            duration: 10000
           });
           return;
         }
