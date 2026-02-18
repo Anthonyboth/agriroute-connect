@@ -1,9 +1,9 @@
+/* MapLibre Markers - PADRÃO OURO (elemento raiz neutro) */
+@import './styles/maplibre-markers.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* MapLibre Markers - PADRÃO OURO (elemento raiz neutro) */
-@import './styles/maplibre-markers.css';
 
 /* Global z-index management - using centralized system */
 @layer components {
