@@ -68,10 +68,39 @@ export const checkPermissionSafe = async (): Promise<boolean> => {
 export const requestPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
     try {
-      const perm = await Geolocation.requestPermissions();
-      return perm.location === 'granted' || perm.coarseLocation === 'granted';
-    } catch (err) {
-      console.warn('[GPS] Erro ao solicitar permissões nativas:', err);
+      // Primeiro, solicitar permissões de localização (foreground)
+      const perm = await Geolocation.requestPermissions({ permissions: ['location', 'coarseLocation'] });
+      console.log('[GPS] Resultado requestPermissions:', JSON.stringify(perm));
+      
+      const granted = perm.location === 'granted' || perm.coarseLocation === 'granted';
+      
+      if (!granted) {
+        // No Android, se o usuário negou 2x, o sistema bloqueia permanentemente.
+        // Nesse caso, precisamos direcionar o usuário para as Configurações.
+        console.warn('[GPS] Permissão negada pelo sistema. Pode ser bloqueio permanente (Android).');
+        
+        // Tentar fallback: getCurrentPosition pode funcionar se o GPS está ativo
+        // mesmo quando checkPermissions/requestPermissions reportam negado
+        try {
+          await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 5000 });
+          console.log('[GPS] Fallback getCurrentPosition funcionou apesar de permissão reportada como negada');
+          return true;
+        } catch (fallbackErr) {
+          console.warn('[GPS] Fallback também falhou:', fallbackErr);
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : err?.message ?? '';
+      console.warn('[GPS] Erro ao solicitar permissões nativas:', msg, err);
+      
+      // "location disabled" = serviços de localização desativados no Android
+      if (msg.toLowerCase().includes('disabled') || msg.toLowerCase().includes('location service')) {
+        console.error('[GPS] Serviços de localização do sistema estão DESATIVADOS');
+      }
+      
       return false;
     }
   }
