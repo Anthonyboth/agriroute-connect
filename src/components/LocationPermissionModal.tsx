@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { MapPin, AlertTriangle, Navigation, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import { checkPermissionSafe, requestPermissionSafe, getCurrentPositionSafe } from '@/utils/location';
 
 interface LocationPermissionModalProps {
   isOpen: boolean;
@@ -23,21 +24,10 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     }
   }, [isOpen]);
 
-  const checkLocationStatus = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          // Já tem permissão
-          onClose(true);
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            // Permissão negada - mostrar modal
-            console.log('Location permission required');
-          }
-        },
-        { timeout: 5000 }
-      );
+  const checkLocationStatus = async () => {
+    const granted = await checkPermissionSafe();
+    if (granted) {
+      onClose(true);
     }
   };
 
@@ -45,55 +35,36 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     setRequesting(true);
     
     try {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            console.log('Location granted:', position.coords);
-            toast.success('Localização ativada com sucesso!');
-            onClose(true);
-          },
-          (error) => {
-            console.error('Location error:', error);
-            let message = 'Erro ao acessar localização';
-            
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                message = mandatory 
-                  ? 'Localização é obrigatória para usar o AgriRoute' 
-                  : 'Permissão de localização negada';
-                break;
-              case error.POSITION_UNAVAILABLE:
-                message = 'Localização não disponível';
-                break;
-              case error.TIMEOUT:
-                message = 'Timeout ao solicitar localização';
-                break;
-            }
-            
-            toast.error(message);
-            
-            if (!mandatory) {
-              onClose(false);
-            }
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000 // 5 minutos
-          }
-        );
-      } else {
-        toast.error('Geolocalização não suportada neste dispositivo');
-        if (!mandatory) {
-          onClose(false);
-        }
+      const granted = await requestPermissionSafe();
+      if (!granted) {
+        const message = mandatory 
+          ? 'Localização é obrigatória para usar o AgriRoute' 
+          : 'Permissão de localização negada';
+        toast.error(message);
+        if (!mandatory) onClose(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error requesting location:', error);
-      toast.error('Erro ao solicitar localização');
-      if (!mandatory) {
-        onClose(false);
+
+      const position = await getCurrentPositionSafe();
+      console.log('Location granted:', position.coords);
+      toast.success('Localização ativada com sucesso!');
+      onClose(true);
+    } catch (error: any) {
+      console.error('Location error:', error);
+      let message = 'Erro ao acessar localização';
+      
+      if (error?.code === 1) {
+        message = mandatory 
+          ? 'Localização é obrigatória para usar o AgriRoute' 
+          : 'Permissão de localização negada';
+      } else if (error?.code === 2) {
+        message = 'Localização não disponível';
+      } else if (error?.code === 3) {
+        message = 'Timeout ao solicitar localização';
       }
+      
+      toast.error(message);
+      if (!mandatory) onClose(false);
     } finally {
       setRequesting(false);
     }
