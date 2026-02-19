@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   MapPin, MessageSquare, Navigation, CheckCircle, Truck, Clock,
-  Car, AlertTriangle, Calendar, Mail, User, Map, Eye, Route
+  Car, AlertTriangle, Calendar, Mail, User, Map, Eye, Route, Wrench
 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
@@ -12,6 +12,7 @@ import { RURAL_STYLE_INLINE } from '@/config/maplibre';
 import { ptBR } from 'date-fns/locale';
 import { generateMarkerIcons, buildMarkersFeatureCollection } from '@/lib/maplibre-canvas-icons';
 import { fetchOSRMRoute } from '@/hooks/maplibre/useOSRMRoute';
+import { normalizeServiceType } from '@/lib/pt-br-validator';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -58,19 +59,37 @@ const MARKERS_LAYER_ID = 'service-markers-layer';
 const ROUTE_SOURCE_ID = 'service-route-source';
 const ROUTE_LAYER_ID = 'service-route-layer';
 
+// Geocodifica endereço via Nominatim (OSM) - retorna coords precisas
+async function geocodeAddressNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=br`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Mini-mapa interativo com marcadores A/B + veículo via canvas WebGL + controles
 const InlineTrackingMap = React.memo(({ 
   originLat, originLng, 
   destLat, destLng,
   driverLat, driverLng,
   isDriverOnline,
-  label 
+  label,
+  locationAddress,
 }: { 
   originLat: number; originLng: number; 
   destLat?: number; destLng?: number;
   driverLat?: number; driverLng?: number;
   isDriverOnline?: boolean;
   label?: string;
+  locationAddress?: string;
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -78,8 +97,23 @@ const InlineTrackingMap = React.memo(({
   const [mapError, setMapError] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
+  // Coordenadas precisas geocodificadas pelo endereço
+  const [geocodedOrigin, setGeocodedOrigin] = useState<{ lat: number; lng: number } | null>(null);
 
-  const origin = useMemo(() => ({ lat: originLat, lng: originLng }), [originLat, originLng]);
+  // Geocodifica o endereço via Nominatim ao montar (se endereço disponível)
+  useEffect(() => {
+    if (!locationAddress) return;
+    geocodeAddressNominatim(locationAddress).then(coords => {
+      if (coords) setGeocodedOrigin(coords);
+    });
+  }, [locationAddress]);
+
+  // Usa coordenadas geocodificadas se disponíveis, senão as originais
+  const origin = useMemo(() => 
+    geocodedOrigin ?? { lat: originLat, lng: originLng },
+    [geocodedOrigin, originLat, originLng]
+  );
+
   const destination = useMemo(() => {
     if (destLat && destLng && destLat !== 0 && destLng !== 0) {
       return { lat: destLat, lng: destLng };
@@ -306,7 +340,7 @@ const InlineTrackingMap = React.memo(({
             className={`flex items-center gap-1.5 px-2 py-1 ${isDriverOnline ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}
           >
             <span className={`w-2 h-2 rounded-full ${isDriverOnline ? 'bg-white animate-pulse' : 'bg-destructive'}`} />
-            {isDriverOnline ? 'Online' : 'Offline'}
+            {isDriverOnline ? 'Ativo' : 'Inativo'}
           </Badge>
         </div>
       )}
@@ -420,14 +454,9 @@ const ServiceRequestInProgressCardComponent = ({
     }
   };
 
+  // Usa normalizeServiceType do pt-br-validator que já tem todos os tipos mapeados
   const getServiceLabel = () => {
-    const labels: Record<string, string> = {
-      GUINCHO: 'Guincho', MUDANCA: 'Mudança', FRETE_URBANO: 'Frete Urbano',
-      TRANSPORTE_PET: 'Transporte PET', ENTREGA_PACOTES: 'Entrega Pacotes',
-      FRETE_MOTO: 'Frete Moto', MECANICO: 'Mecânico', BORRACHEIRO: 'Borracheiro',
-      ELETRICISTA: 'Eletricista', SOCORRO_MECANICO: 'Socorro Mecânico',
-    };
-    return labels[request.service_type] || request.service_type;
+    return normalizeServiceType(request.service_type);
   };
 
   const getStatusBadge = () => {
@@ -435,7 +464,7 @@ const ServiceRequestInProgressCardComponent = ({
       ACCEPTED: 'bg-blue-500', ON_THE_WAY: 'bg-orange-500', IN_PROGRESS: 'bg-yellow-600',
     };
     const labels: Record<string, string> = {
-      ACCEPTED: 'Aceito', ON_THE_WAY: 'A Caminho da Coleta', IN_PROGRESS: 'Em Trânsito',
+      ACCEPTED: 'Aceito', ON_THE_WAY: 'A Caminho do Local', IN_PROGRESS: 'Em Atendimento',
     };
     return (
       <Badge className={`${styles[request.status] || 'bg-muted'} text-xs px-2 py-0.5`}>
@@ -531,16 +560,17 @@ const ServiceRequestInProgressCardComponent = ({
             driverLng={request.driver_lng || undefined}
             isDriverOnline={request.status === 'IN_PROGRESS' || request.status === 'ON_THE_WAY'}
             label={request.city_name || 'Local'}
+            locationAddress={originAddress || request.location_address || undefined}
           />
         )}
 
-        {/* Coleta e Entrega */}
+        {/* Local do Serviço e Destino */}
         <div className="space-y-1.5">
-          {/* COLETA */}
+          {/* LOCAL DO SERVIÇO */}
           <div className="bg-green-50 dark:bg-green-900/20 rounded px-2 py-1.5 space-y-0.5">
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-              <span className="text-[11px] font-bold text-green-700 dark:text-green-400">COLETA</span>
+              <span className="text-[11px] font-bold text-green-700 dark:text-green-400">LOCAL DO SERVIÇO</span>
               {request.city_name && (
                 <span className="text-xs font-semibold text-primary ml-auto">
                   {request.city_name}{request.state ? ` - ${request.state}` : ''}
@@ -554,12 +584,12 @@ const ServiceRequestInProgressCardComponent = ({
             )}
           </div>
 
-          {/* ENTREGA */}
+          {/* DESTINO (quando houver) */}
           {(destAddress || destCity) && (
             <div className="bg-red-50 dark:bg-red-900/20 rounded px-2 py-1.5 space-y-0.5">
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
-                <span className="text-[11px] font-bold text-red-700 dark:text-red-400">ENTREGA</span>
+                <span className="text-[11px] font-bold text-red-700 dark:text-red-400">DESTINO</span>
                 {destCity && (
                   <span className="text-xs font-semibold text-primary ml-auto">
                     {destCity}{destState ? ` - ${destState}` : ''}
@@ -620,25 +650,25 @@ const ServiceRequestInProgressCardComponent = ({
       </CardContent>
 
       <CardFooter className="px-3 pb-3 pt-0 flex gap-2">
-        {/* Etapa 1: ACCEPTED → A Caminho da Coleta */}
+        {/* Etapa 1: ACCEPTED → A Caminho do Local */}
         {request.status === 'ACCEPTED' && (
           <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 h-9" onClick={() => onMarkOnTheWay(request.id)}>
             <Navigation className="h-4 w-4 mr-1" />
-            A Caminho da Coleta
+            A Caminho do Local
           </Button>
         )}
-        {/* Etapa 2: ON_THE_WAY → Em Trânsito */}
+        {/* Etapa 2: ON_THE_WAY → Iniciar Atendimento */}
         {request.status === 'ON_THE_WAY' && (
           <Button size="sm" className="flex-1 bg-yellow-600 hover:bg-yellow-700 h-9" onClick={() => onStartTransit(request.id)}>
-            <Truck className="h-4 w-4 mr-1" />
-            Em Trânsito
+            <Wrench className="h-4 w-4 mr-1" />
+            Iniciar Atendimento
           </Button>
         )}
-        {/* Etapa 3: IN_PROGRESS → Entregue */}
+        {/* Etapa 3: IN_PROGRESS → Concluir Serviço */}
         {request.status === 'IN_PROGRESS' && (
           <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 h-9" onClick={() => onFinishService(request.id)}>
             <CheckCircle className="h-4 w-4 mr-1" />
-            Entregue
+            Concluir Serviço
           </Button>
         )}
         {/* Botão Cancelar */}
