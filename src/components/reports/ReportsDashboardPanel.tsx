@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle, BarChart3, PieChart as PieChartIcon, Activity, Route, Weight, Timer, XCircle, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '@/lib/reports-formatters';
 import {
   ReportPeriodFilter,
   ReportKPICards,
@@ -94,14 +95,21 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         const totalAvaliacoes = Number(kpis.total_avaliacoes) || 0;
         const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
         const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
-        
+
+        // Tonelagem: backend retorna em KG, converter para toneladas
+        const tonsTotal = pesoTotal > 0 ? toTons(pesoTotal) : 0;
+        const tonSubtitle = tonsTotal > 0 ? `${formatTonsPtBR(pesoTotal)} total` : undefined;
+        const rtonValue = rtonMedio != null && rtonMedio > 0 && tonsTotal > 0
+          ? `R$ ${formatNum(rtonMedio, 2)}`
+          : '—';
+
         return [
           { title: 'Faturamento Bruto', value: receitaTotal, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
           { title: 'Lucro Líquido', value: lucroLiquido, format: 'currency', subtitle: `Despesas: ${formatBRL(despesasTotal)}`, icon: TrendingUp, trend: receitaTotal > 0 ? { value: ((lucroLiquido / receitaTotal) * 100), isPositive: lucroLiquido > 0 } : undefined },
           { title: 'Viagens Concluídas', value: viagensConcluidas, format: 'number', subtitle: `${viagensConcluidas} total`, icon: Truck },
           { title: 'Km Rodados', value: kmTotal, format: 'distance', subtitle: `Média: ${formatNum(viagensConcluidas > 0 ? kmTotal / viagensConcluidas : 0, 0)} km/viagem`, icon: MapPin },
           { title: 'R$/km Médio', value: `R$ ${formatNum(rpmMedio, 2)}`, icon: Route },
-          { title: 'R$/ton Médio', value: rtonMedio != null && rtonMedio > 0 ? `R$ ${formatNum(rtonMedio, 2)}` : '—', subtitle: pesoTotal > 0 ? `${formatNum(pesoTotal, 0)} ton total` : undefined, icon: Weight },
+          { title: 'R$/ton Médio', value: rtonValue, subtitle: tonSubtitle, icon: Weight },
           { title: 'Ticket Médio', value: ticketMedio, format: 'currency', subtitle: 'Por carreta/assignment', icon: Package },
           { title: 'Tempo Médio Ciclo', value: avgCycleHours > 0 ? formatHours(avgCycleHours) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
           { title: 'Taxa Conclusão', value: `${taxaConclusao.toFixed(1)}%`, icon: CheckCircle },
@@ -166,7 +174,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       configs.push({
         title: 'Receita por Mês',
         type: 'bar',
-        data: charts.receita_por_mes.map((m: any) => ({ month: m.mes, revenue: m.receita })),
+        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), revenue: m.receita })),
         dataKeys: [{ key: 'revenue', label: 'Receita' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
@@ -238,11 +246,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const motoristaFinanceiroCharts: ChartConfig[] = useMemo(() => {
     if (panel !== 'MOTORISTA') return [];
 
-    // receita_por_mes: [{ mes, receita, viagens }]
+    // receita_por_mes: [{ mes, receita, viagens }] — normaliza mês para PT-BR
     const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
-      month: m.mes,
+      month: formatMonthLabelPtBR(m.mes),
       receita: Number(m.receita) || 0,
-      viagens: Number(m.viagens) || 0,
+      viagens: Math.round(Number(m.viagens) || 0),
     }));
 
     const acumuladoData = (() => {
@@ -265,6 +273,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         data: receitaMes,
         dataKeys: [{ key: 'viagens', label: 'Viagens', color: 'hsl(var(--chart-2))' }],
         xAxisKey: 'month',
+        yAxisTickCount: 'integer' as any,
       },
       {
         title: 'Receita Acumulada no Período',
@@ -280,16 +289,16 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const motoristaOperacionalCharts: ChartConfig[] = useMemo(() => {
     if (panel !== 'MOTORISTA') return [];
 
-    // viagens_por_mes: [{ mes, viagens, km }]
+    // viagens_por_mes: [{ mes, viagens, km }] — normaliza mês para PT-BR
     const viagensMes = (charts?.viagens_por_mes || []).map((d: any) => ({
-      month: d.mes,
-      viagens: Number(d.viagens) || 0,
+      month: formatMonthLabelPtBR(d.mes),
+      viagens: Math.round(Number(d.viagens) || 0),
       km: Number(d.km) || 0,
     }));
 
-    // top_rotas: [{ rota, receita, viagens, km_medio }]
+    // top_rotas: [{ rota, receita, viagens, km_medio }] — normaliza rota
     const topRotas = (charts?.top_rotas || []).map((r: any) => ({
-      name: r.rota || `${r.origem} → ${r.destino}`,
+      name: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
       receita: Number(r.receita) || 0,
       viagens: Number(r.viagens) || 0,
     }));
@@ -298,7 +307,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     const dispersao = (charts?.dispersao_receita_km || []).map((d: any) => ({
       km: Number(d.km) || 0,
       receita: Number(d.receita) || 0,
-      name: d.rota || d.cargo || '',
+      name: formatRouteLabel(d.rota) || d.cargo || '',
     }));
 
     return [
@@ -378,7 +387,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       configs.push({
         title: 'Receita Mensal',
         type: 'bar',
-        data: charts.receita_por_mes.map((m: any) => ({ month: m.mes, revenue: m.receita })),
+        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), revenue: m.receita })),
         dataKeys: [{ key: 'revenue', label: 'Receita', color: '#2E7D32' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
@@ -450,7 +459,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         title: 'Top Rotas por Receita',
         type: 'horizontal-bar',
         data: charts.top_rotas.slice(0, 8).map((r: any) => ({
-          name: `${r.origem} → ${r.destino}`,
+          name: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
           receita: r.receita || 0,
         })),
         dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#1976D2' }],
