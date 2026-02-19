@@ -7,8 +7,10 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle, BarChart3, PieChart as PieChartIcon, Activity, Route } from 'lucide-react';
-import { subDays, endOfDay, startOfDay } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle, BarChart3, PieChart as PieChartIcon, Activity, Route, Weight, Timer, XCircle, ArrowUpDown } from 'lucide-react';
+import { subDays, endOfDay, startOfDay, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   ReportPeriodFilter,
   ReportKPICards,
@@ -26,6 +28,18 @@ interface ReportsDashboardPanelProps {
   profileId: string | undefined;
   title: string;
 }
+
+// Helper to format number
+const formatNum = (v: number, decimals = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+// Helper to format hours
+const formatHours = (hours: number) => {
+  if (hours < 1) return `${Math.round(hours * 60)}min`;
+  if (hours < 24) return `${formatNum(hours, 1)}h`;
+  const days = Math.floor(hours / 24);
+  const remaining = hours % 24;
+  return `${days}d ${Math.round(remaining)}h`;
+};
 
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -61,29 +75,52 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         const totalFretes = Number(kpis.total_fretes) || 0;
         const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
         const taxaConclusao = totalFretes > 0 ? (fretesConcluidos / totalFretes) * 100 : 0;
-        const ticketMedio = fretesConcluidos > 0 ? receitaTotal / fretesConcluidos : 0;
         const servicosReceita = Number(kpis.servicos_receita) || 0;
+        const rsPorKm = Number(kpis.rs_por_km) || 0;
+        const rsPorTon = Number(kpis.rs_por_ton) || 0;
+        const kmMedioViagem = Number(kpis.km_medio_viagem) || 0;
+        const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
+        const tempoMedioCiclo = Number(kpis.tempo_medio_ciclo_horas) || 0;
+        const pesoTotal = Number(kpis.peso_total) || 0;
         
         return [
-          { title: 'Receita Total', value: receitaTotal + servicosReceita, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
-          { title: 'Lucro Líquido', value: lucroLiquido + servicosReceita, format: 'currency', subtitle: `Receita - Despesas`, icon: TrendingUp, trend: lucroLiquido > 0 ? { value: despesasTotal > 0 ? ((lucroLiquido / receitaTotal) * 100) : 100, isPositive: true } : undefined },
-          { title: 'Fretes Concluídos', value: fretesConcluidos, format: 'number', subtitle: `${totalFretes} total`, icon: Truck },
-          { title: 'Taxa de Conclusão', value: `${taxaConclusao.toFixed(1)}%`, icon: CheckCircle },
-          { title: 'Ticket Médio', value: ticketMedio, format: 'currency', icon: Package },
-          { title: 'Distância Total', value: Number(kpis.distancia_total_km) || 0, format: 'distance', icon: MapPin },
+          { title: 'Faturamento Bruto', value: receitaTotal + servicosReceita, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
+          { title: 'Lucro Líquido', value: lucroLiquido + servicosReceita, format: 'currency', subtitle: `Despesas: ${formatBRL(despesasTotal)}`, icon: TrendingUp, trend: receitaTotal > 0 ? { value: ((lucroLiquido / receitaTotal) * 100), isPositive: lucroLiquido > 0 } : undefined },
+          { title: 'Viagens Concluídas', value: fretesConcluidos, format: 'number', subtitle: `${totalFretes} total`, icon: Truck },
+          { title: 'Km Rodados', value: Number(kpis.distancia_total_km) || 0, format: 'distance', subtitle: `Média: ${formatNum(kmMedioViagem, 0)} km/viagem`, icon: MapPin },
+          { title: 'R$/km Médio', value: `R$ ${formatNum(rsPorKm, 2)}`, icon: Route },
+          { title: 'R$/ton Médio', value: rsPorTon > 0 ? `R$ ${formatNum(rsPorTon, 2)}` : '—', subtitle: pesoTotal > 0 ? `${formatNum(pesoTotal, 0)} ton total` : undefined, icon: Weight },
+          { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', subtitle: 'Por carreta/assignment', icon: Package },
+          { title: 'Tempo Médio Ciclo', value: tempoMedioCiclo > 0 ? formatHours(tempoMedioCiclo) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
+          { title: 'Taxa Conclusão', value: `${taxaConclusao.toFixed(1)}%`, icon: CheckCircle },
+          { title: 'Taxa Cancelamento', value: `${taxaCancelamento.toFixed(1)}%`, icon: XCircle },
           { title: 'Avaliação Média', value: Number(kpis.avaliacao_media) || 0, format: 'number', subtitle: `${kpis.total_avaliacoes || 0} avaliações`, icon: Star },
           { title: 'Despesas Totais', value: despesasTotal, format: 'currency', icon: Fuel },
-          { title: 'Serviços Urbanos', value: Number(kpis.servicos_total) || 0, format: 'number', subtitle: servicosReceita > 0 ? `${formatBRL(servicosReceita)} receita` : undefined, icon: Wrench },
         ];
       }
 
-      case 'TRANSPORTADORA':
+      case 'TRANSPORTADORA': {
+        const receitaTotal = Number(kpis.receita_total) || 0;
+        const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
+        const totalMotoristas = Number(kpis.total_motoristas) || 0;
+        const distanciaTotal = Number(kpis.distancia_total_km) || 0;
+        const receitaPorMotorista = Number(kpis.receita_por_motorista) || 0;
+        const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
+        const rsPorKm = Number(kpis.rs_por_km) || 0;
+        const avaliacaoMedia = Number(kpis.avaliacao_media) || 0;
+        
         return [
-          { title: 'Receita Total', value: Number(kpis.receita_total) || 0, format: 'currency', subtitle: `${kpis.fretes_concluidos || 0} fretes`, icon: DollarSign },
+          { title: 'Faturamento Total', value: receitaTotal, format: 'currency', subtitle: `${fretesConcluidos} concluídos`, icon: DollarSign },
           { title: 'Total de Fretes', value: Number(kpis.total_fretes) || 0, format: 'number', icon: Truck },
-          { title: 'Motoristas Ativos', value: Number(kpis.total_motoristas) || 0, format: 'number', icon: Users },
+          { title: 'Motoristas Ativos', value: totalMotoristas, format: 'number', icon: Users },
+          { title: 'Km Total (Frota)', value: distanciaTotal, format: 'distance', icon: MapPin },
           { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', icon: TrendingUp },
+          { title: 'Receita/Motorista', value: receitaPorMotorista, format: 'currency', subtitle: 'Média no período', icon: Users },
+          { title: 'R$/km Médio', value: `R$ ${formatNum(rsPorKm, 2)}`, icon: Route },
+          { title: 'Taxa Cancelamento', value: `${taxaCancelamento.toFixed(1)}%`, icon: XCircle },
+          { title: 'Avaliação Média', value: avaliacaoMedia > 0 ? formatNum(avaliacaoMedia, 1) : '—', icon: Star },
         ];
+      }
 
       case 'PRESTADOR':
         return [
@@ -100,13 +137,13 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     }
   }, [kpis, panel]);
 
-  // Build chart configs based on panel, organized by section for MOTORISTA
+  // Build chart configs for NON-MOTORISTA, NON-TRANSPORTADORA panels
   const chartConfigs: ChartConfig[] = useMemo(() => {
     if (!charts || Object.keys(charts).length === 0) return [];
+    if (panel === 'MOTORISTA' || panel === 'TRANSPORTADORA') return [];
 
     const configs: ChartConfig[] = [];
 
-    // Receita por mês (all panels)
     if (charts.receita_por_mes?.length) {
       configs.push({
         title: 'Receita por Mês',
@@ -118,14 +155,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Volume por dia (produtor)
     if (charts.volume_por_dia?.length && panel === 'PRODUTOR') {
       configs.push({
         title: 'Operações por Dia',
         type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({ 
-          day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0, total: d.total || 0 
-        })),
+        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
         dataKeys: [
           { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
           { key: 'servicos', label: 'Serviços', color: '#1976D2' },
@@ -134,14 +168,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Volume por dia (prestador)
     if (charts.volume_por_dia?.length && panel === 'PRESTADOR') {
       configs.push({
         title: 'Serviços por Dia',
         type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({ 
-          day: d.dia, concluidos: d.concluidos || 0, cancelados: d.cancelados || 0 
-        })),
+        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, concluidos: d.concluidos || 0, cancelados: d.cancelados || 0 })),
         dataKeys: [
           { key: 'concluidos', label: 'Concluídos', color: '#2E7D32' },
           { key: 'cancelados', label: 'Cancelados', color: '#D32F2F' },
@@ -150,85 +181,35 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Valor por dia (produtor)
     if (charts.valor_por_dia?.length) {
       configs.push({
         title: 'Valor Gasto por Dia',
         type: 'bar',
-        data: charts.valor_por_dia.map((d: any) => ({ day: d.dia, valor: d.valor || 0 })),
+        data: charts.valor_por_dia.map((d: any) => ({ day: d.dia, valor: d.valor || d.total || 0 })),
         dataKeys: [{ key: 'valor', label: 'Valor (R$)', color: '#FF9800' }],
         xAxisKey: 'day',
         valueFormatter: formatBRL,
       });
     }
 
-    // Por status
     if (charts.por_status?.length) {
-      configs.push({
-        title: 'Por Status',
-        type: 'pie',
-        data: charts.por_status,
-        dataKeys: [{ key: 'value', label: 'Quantidade' }],
-      });
+      configs.push({ title: 'Por Status', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
     }
 
-    // Por tipo de carga
     if (charts.por_tipo_carga?.length) {
-      configs.push({
-        title: 'Tipos de Carga',
-        type: 'bar',
-        data: charts.por_tipo_carga.slice(0, 5),
-        dataKeys: [{ key: 'value', label: 'Quantidade' }],
-        xAxisKey: 'name',
-      });
+      configs.push({ title: 'Tipos de Carga', type: 'bar', data: charts.por_tipo_carga.slice(0, 5), dataKeys: [{ key: 'value', label: 'Quantidade' }], xAxisKey: 'name' });
     }
 
-    // Por tipo (produtor)
     if (charts.por_tipo?.length) {
-      configs.push({
-        title: 'Tipos de Carga',
-        type: 'bar',
-        data: charts.por_tipo.slice(0, 5),
-        dataKeys: [{ key: 'value', label: 'Quantidade' }],
-        xAxisKey: 'name',
-      });
+      configs.push({ title: 'Tipos de Carga', type: 'bar', data: charts.por_tipo.slice(0, 5), dataKeys: [{ key: 'value', label: 'Quantidade' }], xAxisKey: 'name' });
     }
 
-    // Por tipo de serviço (prestador)
     if (charts.por_tipo_servico?.length) {
-      configs.push({
-        title: 'Tipos de Serviço',
-        type: 'bar',
-        data: charts.por_tipo_servico.slice(0, 5),
-        dataKeys: [{ key: 'value', label: 'Quantidade' }],
-        xAxisKey: 'name',
-      });
+      configs.push({ title: 'Tipos de Serviço', type: 'bar', data: charts.por_tipo_servico.slice(0, 5), dataKeys: [{ key: 'value', label: 'Quantidade' }], xAxisKey: 'name' });
     }
 
-    // Por cidade (prestador)
     if (charts.por_cidade?.length) {
-      configs.push({
-        title: 'Principais Cidades',
-        type: 'bar',
-        data: charts.por_cidade.slice(0, 5),
-        dataKeys: [{ key: 'value', label: 'Serviços' }],
-        xAxisKey: 'name',
-      });
-    }
-
-    // Por Motorista (transportadora)
-    if (charts.por_motorista?.length) {
-      configs.push({
-        title: 'Desempenho por Motorista',
-        type: 'horizontal-bar',
-        data: charts.por_motorista.slice(0, 8).map((d: any) => ({
-          name: d.motorista, receita: d.receita || 0, viagens: d.viagens || 0,
-        })),
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
-        xAxisKey: 'name',
-        valueFormatter: formatBRL,
-        height: 350,
-      });
+      configs.push({ title: 'Principais Cidades', type: 'bar', data: charts.por_cidade.slice(0, 5), dataKeys: [{ key: 'value', label: 'Serviços' }], xAxisKey: 'name' });
     }
 
     return configs;
@@ -238,6 +219,18 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const motoristaFinanceiroCharts: ChartConfig[] = useMemo(() => {
     if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
+
+    // Faturamento diário (linha)
+    if (charts.receita_por_dia?.length) {
+      configs.push({
+        title: 'Faturamento por Dia',
+        type: 'line',
+        data: charts.receita_por_dia.map((d: any) => ({ day: d.dia, receita: d.receita || 0 })),
+        dataKeys: [{ key: 'receita', label: 'Receita', color: '#2E7D32' }],
+        xAxisKey: 'day',
+        valueFormatter: formatBRL,
+      });
+    }
 
     // Receita por mês
     if (charts.receita_por_mes?.length) {
@@ -255,7 +248,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (charts.receita_por_mes?.length) {
       const receitaDespesasData = charts.receita_por_mes.map((m: any) => {
         const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
-        return { month: m.mes, receita: m.receita || 0, despesas: despesa?.valor || despesa?.despesas || 0 };
+        return { month: m.mes, receita: m.receita || 0, despesas: despesa?.despesas || 0 };
       });
       if (receitaDespesasData.some((d: any) => d.despesas > 0 || d.receita > 0)) {
         configs.push({
@@ -300,25 +293,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Lucro líquido por mês (line)
-    if (charts.receita_por_mes?.length) {
-      const lucroData = charts.receita_por_mes.map((m: any) => {
-        const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
-        const lucro = (m.receita || 0) - (despesa?.valor || despesa?.despesas || 0);
-        return { month: m.mes, lucro };
-      });
-      if (lucroData.some((d: any) => d.lucro !== 0)) {
-        configs.push({
-          title: 'Lucro Líquido Mensal',
-          type: 'line',
-          data: lucroData,
-          dataKeys: [{ key: 'lucro', label: 'Lucro', color: '#1976D2' }],
-          xAxisKey: 'month',
-          valueFormatter: formatBRL,
-        });
-      }
-    }
-
     return configs;
   }, [charts, panel]);
 
@@ -326,20 +300,27 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
 
-    // Volume por dia (barras empilhadas fretes + serviços)
+    // Volume por dia
     if (charts.volume_por_dia?.length) {
       configs.push({
-        title: 'Operações por Dia',
+        title: 'Viagens por Dia',
         type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({
-          day: d.dia,
-          fretes: d.fretes || d.total || 0,
-          servicos: d.servicos || 0,
-        })),
+        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
         dataKeys: [
           { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
           { key: 'servicos', label: 'Serviços', color: '#1976D2' },
         ],
+        xAxisKey: 'day',
+      });
+    }
+
+    // Km por dia
+    if (charts.km_por_dia?.length) {
+      configs.push({
+        title: 'Km Rodados por Dia',
+        type: 'bar',
+        data: charts.km_por_dia.map((d: any) => ({ day: d.dia, km: d.km || 0 })),
+        dataKeys: [{ key: 'km', label: 'Km', color: '#1976D2' }],
         xAxisKey: 'day',
       });
     }
@@ -354,10 +335,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Tipos de carga (barras)
+    // Tipos de carga
     if (charts.por_tipo_carga?.length) {
       configs.push({
-        title: 'Tipos de Carga Transportada',
+        title: 'Tipos de Carga',
         type: 'horizontal-bar',
         data: charts.por_tipo_carga.slice(0, 8),
         dataKeys: [{ key: 'value', label: 'Quantidade', color: '#8D6E63' }],
@@ -366,10 +347,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Top rotas (barras horizontais)
+    // Top rotas por receita
     if (charts.top_rotas?.length) {
       configs.push({
-        title: 'Principais Rotas',
+        title: 'Top Rotas por Receita',
         type: 'horizontal-bar',
         data: charts.top_rotas.slice(0, 8).map((r: any) => ({
           name: `${r.origem} → ${r.destino}`,
@@ -382,26 +363,21 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Distância vs Receita (scatter)
-    if (charts.receita_por_mes?.length) {
-      const scatterData = charts.receita_por_mes
-        .filter((m: any) => (m.receita || 0) > 0 || (m.km || 0) > 0)
-        .map((m: any) => ({
-          km: m.km || 0,
-          receita: m.receita || 0,
-          name: m.mes,
-        }));
-      if (scatterData.length > 1) {
-        configs.push({
-          title: 'Distância vs Receita',
-          type: 'scatter',
-          data: scatterData,
-          dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#7B1FA2' }],
-          xAxisKey: 'km',
-          yAxisKey: 'receita',
-          valueFormatter: formatBRL,
-        });
-      }
+    // Scatter R$/km vs distância
+    if (charts.scatter_rs_km?.length > 2) {
+      configs.push({
+        title: 'R$/km vs Distância (identifica fretes bons e ruins)',
+        type: 'scatter',
+        data: charts.scatter_rs_km.map((d: any) => ({
+          km: d.km || 0,
+          rs_km: d.rs_km || 0,
+          name: d.rota || '',
+        })),
+        dataKeys: [{ key: 'rs_km', label: 'R$/km', color: '#7B1FA2' }],
+        xAxisKey: 'km',
+        yAxisKey: 'rs_km',
+        valueFormatter: (v: number) => `R$ ${formatNum(v, 2)}/km`,
+      });
     }
 
     return configs;
@@ -411,7 +387,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
 
-    // Distribuição de avaliações (barras)
     if (charts.avaliacoes_distribuicao?.length) {
       configs.push({
         title: 'Distribuição de Avaliações',
@@ -425,7 +400,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Evolução das avaliações (line)
     if (charts.avaliacoes_trend?.length) {
       configs.push({
         title: 'Evolução da Nota Média',
@@ -439,16 +413,127 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Avaliações como pizza se tiver dados
-    if (charts.avaliacoes_distribuicao?.length) {
+    return configs;
+  }, [charts, panel]);
+
+  // ====== TRANSPORTADORA-specific chart sections ======
+  const transportadoraFinanceiroCharts: ChartConfig[] = useMemo(() => {
+    if (panel !== 'TRANSPORTADORA' || !charts || Object.keys(charts).length === 0) return [];
+    const configs: ChartConfig[] = [];
+
+    // Receita por dia
+    if (charts.receita_por_dia?.length) {
       configs.push({
-        title: 'Proporção de Avaliações',
-        type: 'pie',
-        data: charts.avaliacoes_distribuicao.map((r: any) => ({
-          name: `${r.name || r.stars}★`,
-          value: r.value || r.count || 0,
+        title: 'Faturamento por Dia',
+        type: 'line',
+        data: charts.receita_por_dia.map((d: any) => ({ day: d.dia, receita: d.receita || 0 })),
+        dataKeys: [{ key: 'receita', label: 'Receita', color: '#2E7D32' }],
+        xAxisKey: 'day',
+        valueFormatter: formatBRL,
+      });
+    }
+
+    // Receita por mês
+    if (charts.receita_por_mes?.length) {
+      configs.push({
+        title: 'Receita Mensal',
+        type: 'bar',
+        data: charts.receita_por_mes.map((m: any) => ({ month: m.mes, revenue: m.receita })),
+        dataKeys: [{ key: 'revenue', label: 'Receita', color: '#2E7D32' }],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      });
+    }
+
+    // Por tipo de carga (com receita)
+    if (charts.por_tipo_carga?.length) {
+      configs.push({
+        title: 'Receita por Tipo de Carga',
+        type: 'horizontal-bar',
+        data: charts.por_tipo_carga.slice(0, 8).map((c: any) => ({
+          name: c.name,
+          receita: c.receita || 0,
         })),
-        dataKeys: [{ key: 'value', label: 'Avaliações' }],
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#FF9800' }],
+        xAxisKey: 'name',
+        valueFormatter: formatBRL,
+        height: 300,
+      });
+    }
+
+    return configs;
+  }, [charts, panel]);
+
+  const transportadoraOperacionalCharts: ChartConfig[] = useMemo(() => {
+    if (panel !== 'TRANSPORTADORA' || !charts || Object.keys(charts).length === 0) return [];
+    const configs: ChartConfig[] = [];
+
+    // Volume por dia
+    if (charts.volume_por_dia?.length) {
+      configs.push({
+        title: 'Operações por Dia',
+        type: 'bar',
+        data: charts.volume_por_dia.map((d: any) => ({
+          day: d.dia, concluidos: d.concluidos || 0, cancelados: d.cancelados || 0,
+        })),
+        dataKeys: [
+          { key: 'concluidos', label: 'Concluídos', color: '#2E7D32' },
+          { key: 'cancelados', label: 'Cancelados', color: '#D32F2F' },
+        ],
+        xAxisKey: 'day',
+      });
+    }
+
+    // Ranking motoristas por receita
+    if (charts.por_motorista?.length) {
+      configs.push({
+        title: 'Ranking: Motoristas por Receita',
+        type: 'horizontal-bar',
+        data: charts.por_motorista.slice(0, 10).map((d: any) => ({
+          name: d.motorista || 'Sem nome', receita: d.receita || 0,
+        })),
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
+        xAxisKey: 'name',
+        valueFormatter: formatBRL,
+        height: 350,
+      });
+    }
+
+    // Por status (pizza)
+    if (charts.por_status?.length) {
+      configs.push({
+        title: 'Status dos Fretes',
+        type: 'pie',
+        data: charts.por_status,
+        dataKeys: [{ key: 'value', label: 'Quantidade' }],
+      });
+    }
+
+    // Top rotas
+    if (charts.top_rotas?.length) {
+      configs.push({
+        title: 'Top Rotas por Receita',
+        type: 'horizontal-bar',
+        data: charts.top_rotas.slice(0, 8).map((r: any) => ({
+          name: `${r.origem} → ${r.destino}`,
+          receita: r.receita || 0,
+        })),
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#1976D2' }],
+        xAxisKey: 'name',
+        valueFormatter: formatBRL,
+        height: 350,
+      });
+    }
+
+    // Cidades com mais operações
+    if (charts.por_cidade?.length) {
+      configs.push({
+        title: 'Cidades com Mais Operações',
+        type: 'horizontal-bar',
+        data: charts.por_cidade.slice(0, 8),
+        dataKeys: [{ key: 'value', label: 'Operações', color: '#00796B' }],
+        xAxisKey: 'name',
+        height: 300,
       });
     }
 
@@ -456,6 +541,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   }, [charts, panel]);
 
   const isMotorista = panel === 'MOTORISTA';
+  const isTransportadora = panel === 'TRANSPORTADORA';
 
   // Export sections
   const exportSections = useMemo(() => {
@@ -505,6 +591,43 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     </div>
   );
 
+  // Render a data table
+  const DataTable = ({ title, data, columns }: { title: string; data: any[]; columns: { key: string; label: string; format?: 'currency' | 'number' | 'date' | 'text' }[] }) => {
+    if (!data?.length) return null;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columns.map(col => (
+                  <TableHead key={col.key} className="text-xs">{col.label}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((row, i) => (
+                <TableRow key={i}>
+                  {columns.map(col => (
+                    <TableCell key={col.key} className="text-sm">
+                      {col.format === 'currency' ? formatBRL(Number(row[col.key]) || 0) :
+                       col.format === 'number' ? formatNum(Number(row[col.key]) || 0) :
+                       col.format === 'date' && row[col.key] ? format(new Date(row[col.key]), 'dd/MM/yy', { locale: ptBR }) :
+                       row[col.key] ?? '—'}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -526,12 +649,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       </Card>
 
       {/* KPIs */}
-      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={panel === 'MOTORISTA' ? 3 : (kpiCards.length > 4 ? 6 : 4)} />
+      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={isMotorista ? 4 : (isTransportadora ? 3 : (kpiCards.length > 4 ? 6 : 4))} />
 
-      {/* MOTORISTA: Seções organizadas de gráficos */}
-      {isMotorista ? (
+      {/* MOTORISTA: Seções organizadas */}
+      {isMotorista && (
         <>
-          {/* Seção Financeiro */}
           {motoristaFinanceiroCharts.length > 0 && (
             <>
               <SectionHeader icon={DollarSign} title="Financeiro" subtitle="Receitas, despesas e lucro" />
@@ -539,24 +661,137 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             </>
           )}
 
-          {/* Seção Operacional */}
           {motoristaOperacionalCharts.length > 0 && (
             <>
-              <SectionHeader icon={Activity} title="Operacional" subtitle="Volume, rotas e tipos de carga" />
+              <SectionHeader icon={Activity} title="Operacional" subtitle="Volume, rotas, tipos de carga e eficiência" />
               <ReportCharts charts={motoristaOperacionalCharts} isLoading={isLoading} columns={2} />
             </>
           )}
 
-          {/* Seção Avaliações */}
           {motoristaAvaliacoesCharts.length > 0 && (
             <>
               <SectionHeader icon={Star} title="Avaliações" subtitle="Desempenho e satisfação" />
               <ReportCharts charts={motoristaAvaliacoesCharts} isLoading={isLoading} columns={2} />
             </>
           )}
+
+          {/* Tabelas do Motorista */}
+          {!isLoading && (
+            <>
+              <SectionHeader icon={BarChart3} title="Extrato e Análise" subtitle="Detalhamento de ganhos e fretes" />
+              
+              <DataTable 
+                title="Extrato de Ganhos" 
+                data={tables?.extrato_ganhos || []}
+                columns={[
+                  { key: 'data', label: 'Data', format: 'date' },
+                  { key: 'tipo', label: 'Tipo' },
+                  { key: 'origin_city', label: 'Origem' },
+                  { key: 'destination_city', label: 'Destino' },
+                  { key: 'km', label: 'Km', format: 'number' },
+                  { key: 'receita', label: 'Valor', format: 'currency' },
+                  { key: 'rs_km', label: 'R$/km', format: 'number' },
+                  { key: 'status_final', label: 'Status' },
+                ]}
+              />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DataTable 
+                  title="🏆 Top 10 Fretes Mais Lucrativos (R$/km)"
+                  data={tables?.top_lucrativos || []}
+                  columns={[
+                    { key: 'rota', label: 'Rota' },
+                    { key: 'km', label: 'Km', format: 'number' },
+                    { key: 'receita', label: 'Valor', format: 'currency' },
+                    { key: 'rs_km', label: 'R$/km', format: 'number' },
+                  ]}
+                />
+
+                <DataTable 
+                  title="⚠️ Top 10 Fretes Menos Lucrativos (R$/km)"
+                  data={tables?.bottom_lucrativos || []}
+                  columns={[
+                    { key: 'rota', label: 'Rota' },
+                    { key: 'km', label: 'Km', format: 'number' },
+                    { key: 'receita', label: 'Valor', format: 'currency' },
+                    { key: 'rs_km', label: 'R$/km', format: 'number' },
+                  ]}
+                />
+              </div>
+            </>
+          )}
         </>
-      ) : (
-        /* Other panels: flat chart list */
+      )}
+
+      {/* TRANSPORTADORA: Seções organizadas */}
+      {isTransportadora && (
+        <>
+          {transportadoraFinanceiroCharts.length > 0 && (
+            <>
+              <SectionHeader icon={DollarSign} title="Financeiro" subtitle="Faturamento e receita por tipo" />
+              <ReportCharts charts={transportadoraFinanceiroCharts} isLoading={isLoading} columns={2} />
+            </>
+          )}
+
+          {transportadoraOperacionalCharts.length > 0 && (
+            <>
+              <SectionHeader icon={Activity} title="Operacional" subtitle="Volume, motoristas, rotas e cidades" />
+              <ReportCharts charts={transportadoraOperacionalCharts} isLoading={isLoading} columns={2} />
+            </>
+          )}
+
+          {/* Tabelas da Transportadora */}
+          {!isLoading && (
+            <>
+              <SectionHeader icon={Users} title="Análise por Motorista" subtitle="Desempenho individual da frota" />
+              
+              <DataTable 
+                title="Resumo por Motorista" 
+                data={tables?.resumo_por_motorista || []}
+                columns={[
+                  { key: 'motorista', label: 'Motorista' },
+                  { key: 'viagens', label: 'Viagens', format: 'number' },
+                  { key: 'receita', label: 'Receita', format: 'currency' },
+                  { key: 'km', label: 'Km', format: 'number' },
+                  { key: 'rs_km', label: 'R$/km', format: 'number' },
+                  { key: 'cancelamentos', label: 'Cancel.', format: 'number' },
+                ]}
+              />
+
+              <SectionHeader icon={Route} title="Análise por Rota" subtitle="Rotas mais frequentes e rentáveis" />
+
+              <DataTable 
+                title="Resumo por Rota" 
+                data={tables?.resumo_por_rota || []}
+                columns={[
+                  { key: 'rota', label: 'Rota' },
+                  { key: 'frequencia', label: 'Freq.', format: 'number' },
+                  { key: 'receita', label: 'Receita', format: 'currency' },
+                  { key: 'km_medio', label: 'Km Médio', format: 'number' },
+                  { key: 'rs_km', label: 'R$/km', format: 'number' },
+                ]}
+              />
+
+              <DataTable 
+                title="Histórico de Operações" 
+                data={tables?.ultimas_operacoes || []}
+                columns={[
+                  { key: 'data', label: 'Data', format: 'date' },
+                  { key: 'motorista', label: 'Motorista' },
+                  { key: 'origin_city', label: 'Origem' },
+                  { key: 'destination_city', label: 'Destino' },
+                  { key: 'km', label: 'Km', format: 'number' },
+                  { key: 'receita', label: 'Valor', format: 'currency' },
+                  { key: 'status_final', label: 'Status' },
+                ]}
+              />
+            </>
+          )}
+        </>
+      )}
+
+      {/* Other panels: flat chart list */}
+      {!isMotorista && !isTransportadora && (
         <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
       )}
 
