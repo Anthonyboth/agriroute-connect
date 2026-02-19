@@ -96,11 +96,22 @@ export function useReportsDashboard({
         throw error;
       }
 
+      // A RPC retorna { panel, kpis, charts } — mapeamos para o formato interno
+      const raw = data as any;
+      if (raw && typeof raw === 'object' && 'kpis' in raw) {
+        return {
+          kpis: raw.kpis || {},
+          charts: raw.charts || {},
+          tables: raw.tables || {},
+        } as ReportsDashboardData;
+      }
+
       return (data as unknown as ReportsDashboardData) || DEFAULT_DATA;
     },
     enabled: (enabled ?? !!profileId) && !!profileId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 1,
   });
 
   return {

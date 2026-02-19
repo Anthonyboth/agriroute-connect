@@ -50,6 +50,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     tables,
     isLoading,
     isError,
+    error: dashboardError,
     filters,
     setFilters,
     dateRange,
@@ -76,32 +77,36 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         ];
 
       case 'MOTORISTA': {
+        // Campos retornados pela RPC get_reports_dashboard (MOTORISTA)
         const receitaTotal = Number(kpis.receita_total) || 0;
+        const receitaFretes = Number(kpis.receita_fretes) || 0;
+        const receitaServicos = Number(kpis.receita_servicos) || 0;
+        const lucroLiquido = Number(kpis.lucro_liquido) || 0;
         const despesasTotal = Number(kpis.despesas_total) || 0;
-        const lucroLiquido = receitaTotal - despesasTotal;
-        const totalFretes = Number(kpis.total_fretes) || 0;
-        const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
-        const taxaConclusao = totalFretes > 0 ? (fretesConcluidos / totalFretes) * 100 : 0;
-        const servicosReceita = Number(kpis.servicos_receita) || 0;
-        const rsPorKm = Number(kpis.rs_por_km) || 0;
-        const rsPorTon = Number(kpis.rs_por_ton) || 0;
-        const kmMedioViagem = Number(kpis.km_medio_viagem) || 0;
-        const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
-        const tempoMedioCiclo = Number(kpis.tempo_medio_ciclo_horas) || 0;
+        const viagensConcluidas = Number(kpis.viagens_concluidas) || 0;
+        const kmTotal = Number(kpis.km_total) || 0;
         const pesoTotal = Number(kpis.peso_total) || 0;
+        const rpmMedio = Number(kpis.rpm_medio) || 0;
+        const rtonMedio = kpis.rton_medio != null ? Number(kpis.rton_medio) : null;
+        const ticketMedio = Number(kpis.ticket_medio) || 0;
+        const avgCycleHours = Number(kpis.avg_cycle_hours) || 0;
+        const avaliacaoMedia = Number(kpis.avaliacao_media) || 0;
+        const totalAvaliacoes = Number(kpis.total_avaliacoes) || 0;
+        const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
+        const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
         
         return [
-          { title: 'Faturamento Bruto', value: receitaTotal + servicosReceita, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
-          { title: 'Lucro Líquido', value: lucroLiquido + servicosReceita, format: 'currency', subtitle: `Despesas: ${formatBRL(despesasTotal)}`, icon: TrendingUp, trend: receitaTotal > 0 ? { value: ((lucroLiquido / receitaTotal) * 100), isPositive: lucroLiquido > 0 } : undefined },
-          { title: 'Viagens Concluídas', value: fretesConcluidos, format: 'number', subtitle: `${totalFretes} total`, icon: Truck },
-          { title: 'Km Rodados', value: Number(kpis.distancia_total_km) || 0, format: 'distance', subtitle: `Média: ${formatNum(kmMedioViagem, 0)} km/viagem`, icon: MapPin },
-          { title: 'R$/km Médio', value: `R$ ${formatNum(rsPorKm, 2)}`, icon: Route },
-          { title: 'R$/ton Médio', value: rsPorTon > 0 ? `R$ ${formatNum(rsPorTon, 2)}` : '—', subtitle: pesoTotal > 0 ? `${formatNum(pesoTotal, 0)} ton total` : undefined, icon: Weight },
-          { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', subtitle: 'Por carreta/assignment', icon: Package },
-          { title: 'Tempo Médio Ciclo', value: tempoMedioCiclo > 0 ? formatHours(tempoMedioCiclo) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
+          { title: 'Faturamento Bruto', value: receitaTotal, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
+          { title: 'Lucro Líquido', value: lucroLiquido, format: 'currency', subtitle: `Despesas: ${formatBRL(despesasTotal)}`, icon: TrendingUp, trend: receitaTotal > 0 ? { value: ((lucroLiquido / receitaTotal) * 100), isPositive: lucroLiquido > 0 } : undefined },
+          { title: 'Viagens Concluídas', value: viagensConcluidas, format: 'number', subtitle: `${viagensConcluidas} total`, icon: Truck },
+          { title: 'Km Rodados', value: kmTotal, format: 'distance', subtitle: `Média: ${formatNum(viagensConcluidas > 0 ? kmTotal / viagensConcluidas : 0, 0)} km/viagem`, icon: MapPin },
+          { title: 'R$/km Médio', value: `R$ ${formatNum(rpmMedio, 2)}`, icon: Route },
+          { title: 'R$/ton Médio', value: rtonMedio != null && rtonMedio > 0 ? `R$ ${formatNum(rtonMedio, 2)}` : '—', subtitle: pesoTotal > 0 ? `${formatNum(pesoTotal, 0)} ton total` : undefined, icon: Weight },
+          { title: 'Ticket Médio', value: ticketMedio, format: 'currency', subtitle: 'Por carreta/assignment', icon: Package },
+          { title: 'Tempo Médio Ciclo', value: avgCycleHours > 0 ? formatHours(avgCycleHours) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
           { title: 'Taxa Conclusão', value: `${taxaConclusao.toFixed(1)}%`, icon: CheckCircle },
           { title: 'Taxa Cancelamento', value: `${taxaCancelamento.toFixed(1)}%`, icon: XCircle },
-          { title: 'Avaliação Média', value: Number(kpis.avaliacao_media) || 0, format: 'number', subtitle: `${kpis.total_avaliacoes || 0} avaliações`, icon: Star },
+          { title: 'Avaliação Média', value: avaliacaoMedia, format: 'number', subtitle: `${totalAvaliacoes} avaliações`, icon: Star },
           { title: 'Despesas Totais', value: despesasTotal, format: 'currency', icon: Fuel },
         ];
       }
@@ -229,61 +234,43 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   }, [charts, panel]);
 
   // ====== MOTORISTA-specific chart sections ======
-  // Charts always render their structure — data may be empty (shows "Sem dados") but layout is always visible
+  // Usa os campos retornados pela RPC: receita_por_mes, viagens_por_mes, top_rotas, dispersao_receita_km
   const motoristaFinanceiroCharts: ChartConfig[] = useMemo(() => {
     if (panel !== 'MOTORISTA') return [];
 
-    const receitaDia = (charts?.receita_por_dia || []).map((d: any) => ({ day: d.dia, receita: d.receita || 0 }));
-    const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({ month: m.mes, revenue: m.receita || 0 }));
-    const receitaDespesasData = receitaMes.map((m: any) => {
-      const despesa = charts?.despesas_por_mes?.find((d: any) => d.mes === m.month);
-      return { month: m.month, receita: m.revenue || 0, despesas: despesa?.despesas || 0 };
-    });
+    // receita_por_mes: [{ mes, receita, viagens }]
+    const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
+      month: m.mes,
+      receita: Number(m.receita) || 0,
+      viagens: Number(m.viagens) || 0,
+    }));
+
     const acumuladoData = (() => {
       let acc = 0;
-      return (charts?.receita_por_mes || []).map((m: any) => { acc += m.receita || 0; return { month: m.mes, acumulado: acc }; });
+      return receitaMes.map((m: any) => { acc += m.receita; return { month: m.month, acumulado: acc }; });
     })();
 
     return [
       {
-        title: 'Faturamento por Dia',
-        type: 'line' as const,
-        data: receitaDia,
-        dataKeys: [{ key: 'receita', label: 'Receita', color: '#2E7D32' }],
-        xAxisKey: 'day',
-        valueFormatter: formatBRL,
-      },
-      {
         title: 'Receita Mensal',
         type: 'bar' as const,
         data: receitaMes,
-        dataKeys: [{ key: 'revenue', label: 'Receita', color: '#2E7D32' }],
+        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--primary))' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
       },
       {
-        title: 'Receita vs Despesas',
+        title: 'Viagens por Mês',
         type: 'bar' as const,
-        data: receitaDespesasData,
-        dataKeys: [
-          { key: 'receita', label: 'Receita', color: '#2E7D32' },
-          { key: 'despesas', label: 'Despesas', color: '#C62828' },
-        ],
+        data: receitaMes,
+        dataKeys: [{ key: 'viagens', label: 'Viagens', color: 'hsl(var(--chart-2))' }],
         xAxisKey: 'month',
-        valueFormatter: formatBRL,
       },
       {
-        title: 'Despesas por Categoria',
-        type: 'pie' as const,
-        data: charts?.despesas_por_tipo || [],
-        dataKeys: [{ key: 'value', label: 'Valor' }],
-        valueFormatter: formatBRL,
-      },
-      {
-        title: 'Receita Acumulada',
+        title: 'Receita Acumulada no Período',
         type: 'area' as const,
         data: acumuladoData,
-        dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: '#00796B' }],
+        dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: 'hsl(var(--chart-3))' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
       },
@@ -293,62 +280,52 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const motoristaOperacionalCharts: ChartConfig[] = useMemo(() => {
     if (panel !== 'MOTORISTA') return [];
 
+    // viagens_por_mes: [{ mes, viagens, km }]
+    const viagensMes = (charts?.viagens_por_mes || []).map((d: any) => ({
+      month: d.mes,
+      viagens: Number(d.viagens) || 0,
+      km: Number(d.km) || 0,
+    }));
+
+    // top_rotas: [{ rota, receita, viagens, km_medio }]
+    const topRotas = (charts?.top_rotas || []).map((r: any) => ({
+      name: r.rota || `${r.origem} → ${r.destino}`,
+      receita: Number(r.receita) || 0,
+      viagens: Number(r.viagens) || 0,
+    }));
+
+    // dispersao_receita_km: [{ km, receita, cargo, rota }]
+    const dispersao = (charts?.dispersao_receita_km || []).map((d: any) => ({
+      km: Number(d.km) || 0,
+      receita: Number(d.receita) || 0,
+      name: d.rota || d.cargo || '',
+    }));
+
     return [
       {
-        title: 'Viagens por Dia',
+        title: 'Km Rodados por Mês',
         type: 'bar' as const,
-        data: (charts?.volume_por_dia || []).map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
-        dataKeys: [
-          { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
-          { key: 'servicos', label: 'Serviços', color: '#1976D2' },
-        ],
-        xAxisKey: 'day',
-      },
-      {
-        title: 'Km Rodados por Dia',
-        type: 'bar' as const,
-        data: (charts?.km_por_dia || []).map((d: any) => ({ day: d.dia, km: d.km || 0 })),
-        dataKeys: [{ key: 'km', label: 'Km', color: '#1976D2' }],
-        xAxisKey: 'day',
-      },
-      {
-        title: 'Status dos Fretes',
-        type: 'pie' as const,
-        data: charts?.por_status || [],
-        dataKeys: [{ key: 'value', label: 'Quantidade' }],
-      },
-      {
-        title: 'Tipos de Carga',
-        type: 'horizontal-bar' as const,
-        data: (charts?.por_tipo_carga || []).slice(0, 8),
-        dataKeys: [{ key: 'value', label: 'Quantidade', color: '#8D6E63' }],
-        xAxisKey: 'name',
-        height: 300,
+        data: viagensMes,
+        dataKeys: [{ key: 'km', label: 'Km', color: 'hsl(var(--chart-4))' }],
+        xAxisKey: 'month',
       },
       {
         title: 'Top Rotas por Receita',
         type: 'horizontal-bar' as const,
-        data: (charts?.top_rotas || []).slice(0, 8).map((r: any) => ({
-          name: `${r.origem} → ${r.destino}`,
-          receita: r.receita || 0,
-        })),
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
+        data: topRotas,
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: 'hsl(var(--primary))' }],
         xAxisKey: 'name',
         valueFormatter: formatBRL,
         height: 350,
       },
       {
-        title: 'R$/km vs Distância (fretes bons e ruins)',
+        title: 'Receita vs Distância (dispersão)',
         type: 'scatter' as const,
-        data: (charts?.scatter_rs_km || []).map((d: any) => ({
-          km: d.km || 0,
-          rs_km: d.rs_km || 0,
-          name: d.rota || '',
-        })),
-        dataKeys: [{ key: 'rs_km', label: 'R$/km', color: '#7B1FA2' }],
+        data: dispersao,
+        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: 'hsl(var(--chart-5))' }],
         xAxisKey: 'km',
-        yAxisKey: 'rs_km',
-        valueFormatter: (v: number) => `R$ ${formatNum(v, 2)}/km`,
+        yAxisKey: 'receita',
+        valueFormatter: formatBRL,
       },
     ];
   }, [charts, panel]);
@@ -362,9 +339,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         type: 'bar' as const,
         data: (charts?.avaliacoes_distribuicao || []).map((r: any) => ({
           name: `${r.name || r.stars}★`,
-          value: r.value || r.count || 0,
+          value: Number(r.value || r.count) || 0,
         })),
-        dataKeys: [{ key: 'value', label: 'Avaliações', color: '#FF9800' }],
+        dataKeys: [{ key: 'value', label: 'Avaliações', color: 'hsl(var(--chart-2))' }],
         xAxisKey: 'name',
       },
       {
@@ -372,9 +349,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         type: 'line' as const,
         data: (charts?.avaliacoes_trend || []).map((d: any) => ({
           month: d.mes || d.month,
-          media: d.media || d.avg_rating || 0,
+          media: Number(d.media || d.avg_rating) || 0,
         })),
-        dataKeys: [{ key: 'media', label: 'Nota Média', color: '#FF9800' }],
+        dataKeys: [{ key: 'media', label: 'Nota Média', color: 'hsl(var(--chart-1))' }],
         xAxisKey: 'month',
       },
     ];
@@ -525,9 +502,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <p className="text-muted-foreground font-medium">Nenhum dado encontrado</p>
-        <p className="text-sm text-muted-foreground mt-2">Tente ajustar o período ou verifique se há operações registradas.</p>
+        <AlertCircle className="h-12 w-12 text-destructive/60 mb-4" />
+        <p className="text-foreground font-medium">Erro ao carregar relatórios</p>
+        <p className="text-sm text-muted-foreground mt-1 text-center max-w-xs">
+          {(dashboardError as any)?.message || 'Verifique sua conexão e tente novamente.'}
+        </p>
         <Button onClick={() => refreshNow('retry')} variant="outline" className="mt-4 gap-2">
           <RefreshCw className="h-4 w-4" />
           Tentar novamente
