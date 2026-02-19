@@ -145,8 +145,9 @@ export function useNotificationNavigation() {
       case 'service_chat_message':
         if (!data?.service_request_id) return null;
         return {
-          route: '/dashboard/service-provider',
+          route: dashboardRoute,
           state: {
+            openTab: 'chat',
             openServiceChat: data.service_request_id,
           },
         };
