@@ -31,6 +31,12 @@ export interface FreightHistoryItem {
   cargo_type: string | null;
   source: string;
   created_at: string;
+  // Campos de confirmação (adicionados via migração)
+  delivery_confirmed_at: string | null;
+  delivery_confirmed_by: string | null;
+  payment_confirmed_by_producer_at: string | null;
+  payment_confirmed_by_driver_at: string | null;
+  trip_snapshot: Record<string, any> | null;
 }
 
 export interface FreightAssignmentHistoryItem {
@@ -50,6 +56,11 @@ export interface FreightAssignmentHistoryItem {
   destination_state: string | null;
   cargo_type: string | null;
   created_at: string;
+  // Campos de confirmação (adicionados via migração)
+  delivery_confirmed_at: string | null;
+  payment_confirmed_by_producer_at: string | null;
+  payment_confirmed_by_driver_at: string | null;
+  trip_snapshot: Record<string, any> | null;
 }
 
 interface UseFreightHistoryOptions {
