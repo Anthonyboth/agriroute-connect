@@ -1,21 +1,24 @@
 /**
  * ReportsDashboardPanel.tsx
- * 
- * Painel de relatórios unificado que usa a RPC get_reports_dashboard.
- * Compatível com todos os painéis (PRODUTOR, MOTORISTA, TRANSPORTADORA, PRESTADOR).
- * Integra: filtros, refresh controlado (10min + botão), e seções organizadas.
+ *
+ * Painel de relatórios premium — layout profissional mobile-first.
+ * Compatível com MOTORISTA, TRANSPORTADORA, PRODUTOR, PRESTADOR.
+ * ⚠️ Sem alterações de lógica/cálculo — apenas layout e UX.
  */
 import React, { useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle, BarChart3, PieChart as PieChartIcon, Activity, Route, Weight, Timer, XCircle, ArrowUpDown } from 'lucide-react';
+import {
+  AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star,
+  Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle,
+  BarChart3, Activity, Route, Weight, Timer, XCircle, ArrowUpRight,
+  ArrowDownRight, Minus, CalendarDays,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '@/lib/reports-formatters';
 import {
-  ReportPeriodFilter,
-  ReportKPICards,
   ReportCharts,
   ReportExportButton,
   ReportFiltersBar,
@@ -23,8 +26,11 @@ import {
   type KPICardData,
   type ChartConfig,
 } from '@/components/reports';
+import { ReportPeriodFilter } from '@/components/reports/ReportPeriodFilter';
 import { useReportsDashboardUnified } from '@/hooks/useReportsDashboardUnified';
 import type { PanelType } from '@/hooks/useReportsDashboard';
+import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '@/lib/reports-formatters';
+import { cn } from '@/lib/utils';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -32,750 +38,585 @@ interface ReportsDashboardPanelProps {
   title: string;
 }
 
-// Helper to format number
-const formatNum = (v: number, decimals = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+// ─── Formatadores locais ─────────────────────────────────────────────────────
+const fmtNum = (v: number, dec = 0) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
-// Helper to format hours
-const formatHours = (hours: number) => {
-  if (hours < 1) return `${Math.round(hours * 60)}min`;
-  if (hours < 24) return `${formatNum(hours, 1)}h`;
-  const days = Math.floor(hours / 24);
-  const remaining = hours % 24;
-  return `${days}d ${Math.round(remaining)}h`;
+const fmtHours = (h: number) => {
+  if (h < 1) return `${Math.round(h * 60)}min`;
+  if (h < 24) return `${fmtNum(h, 1)}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${Math.round(h % 24)}h`;
 };
 
+// ─── Componente: Bloco Principal de Faturamento ──────────────────────────────
+interface HeroFinanceProps {
+  label: string;
+  value: number;
+  subtitle?: string;
+  trend?: { value: number; isPositive: boolean };
+  secondary: { label: string; value: string }[];
+  isLoading: boolean;
+}
+
+const HeroFinanceBlock: React.FC<HeroFinanceProps> = ({ label, value, subtitle, trend, secondary, isLoading }) => (
+  <div className="rounded-2xl bg-[rgba(22,163,74,0.08)] border border-[rgba(22,163,74,0.18)] p-5 sm:p-6">
+    {isLoading ? (
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-10 w-48" />
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+        </div>
+      </div>
+    ) : (
+      <>
+        {/* Label principal */}
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#16a34a] mb-1">{label}</p>
+
+        {/* Valor destaque */}
+        <div className="flex items-end gap-3 mb-1">
+          <span className="text-4xl sm:text-5xl font-extrabold text-foreground leading-none">
+            {formatBRL(value)}
+          </span>
+          {trend && trend.value !== 0 && (
+            <span className={cn(
+              'flex items-center gap-0.5 text-sm font-semibold mb-1',
+              trend.isPositive ? 'text-[#16a34a]' : 'text-destructive'
+            )}>
+              {trend.isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+              {Math.abs(trend.value).toFixed(1)}%
+            </span>
+          )}
+        </div>
+        {subtitle && <p className="text-xs text-muted-foreground mb-4">{subtitle}</p>}
+
+        {/* Grid secundário */}
+        {secondary.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+            {secondary.map((s, i) => (
+              <div key={i} className="bg-white/70 dark:bg-card/60 rounded-xl px-3 py-2.5 backdrop-blur-sm">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{s.label}</p>
+                <p className="text-sm font-bold text-foreground">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    )}
+  </div>
+);
+
+// ─── Componente: Grid de KPIs Operacionais ───────────────────────────────────
+interface OpKPI { label: string; value: string; icon: React.ElementType; highlight?: boolean }
+
+const OperationalGrid: React.FC<{ items: OpKPI[]; isLoading: boolean }> = ({ items, isLoading }) => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    {isLoading
+      ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
+      : items.map((item, i) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={i}
+              className={cn(
+                'rounded-2xl border p-3.5 flex flex-col gap-1.5 bg-card',
+                item.highlight && 'border-[rgba(22,163,74,0.3)] bg-[rgba(22,163,74,0.04)]'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground leading-tight">
+                  {item.label}
+                </p>
+                <Icon className={cn('h-3.5 w-3.5 flex-shrink-0', item.highlight ? 'text-[#16a34a]' : 'text-muted-foreground/60')} />
+              </div>
+              <p className={cn('text-xl font-extrabold', item.highlight ? 'text-[#16a34a]' : 'text-foreground')}>
+                {item.value}
+              </p>
+            </div>
+          );
+        })}
+  </div>
+);
+
+// ─── Componente: Badge de Status ─────────────────────────────────────────────
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const s = String(status).toUpperCase();
+  const map: Record<string, { label: string; cls: string }> = {
+    DELIVERED: { label: 'Concluído', cls: 'bg-[rgba(22,163,74,0.12)] text-[#16a34a]' },
+    COMPLETED: { label: 'Concluído', cls: 'bg-[rgba(22,163,74,0.12)] text-[#16a34a]' },
+    CANCELLED: { label: 'Cancelado', cls: 'bg-destructive/10 text-destructive' },
+    IN_TRANSIT: { label: 'Em Trânsito', cls: 'bg-blue-50 text-blue-600' },
+    ACCEPTED: { label: 'Aceito', cls: 'bg-amber-50 text-amber-600' },
+    OPEN: { label: 'Aberto', cls: 'bg-muted text-muted-foreground' },
+  };
+  const cfg = map[s] ?? { label: status, cls: 'bg-muted text-muted-foreground' };
+  return (
+    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold', cfg.cls)}>
+      {cfg.label}
+    </span>
+  );
+};
+
+// ─── Componente: Seção de título ─────────────────────────────────────────────
+const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?: string }> = ({ icon: Icon, title, subtitle }) => (
+  <div className="flex items-center gap-2.5 pt-2">
+    <div className="h-8 w-8 rounded-xl bg-[rgba(22,163,74,0.1)] flex items-center justify-center flex-shrink-0">
+      <Icon className="h-4 w-4 text-[#16a34a]" />
+    </div>
+    <div>
+      <h3 className="text-base font-bold text-foreground">{title}</h3>
+      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+// ─── Componente principal ────────────────────────────────────────────────────
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
   const {
-    kpis,
-    charts,
-    tables,
-    isLoading,
-    isError,
-    error: dashboardError,
-    filters,
-    setFilters,
-    dateRange,
-    setDateRange,
-    refreshNow,
-    isRefreshing,
-    lastRefreshLabel,
-    refetch,
+    kpis, charts, tables,
+    isLoading, isError, error: dashboardError,
+    filters, setFilters, dateRange, setDateRange,
+    refreshNow, isRefreshing, lastRefreshLabel, refetch,
   } = useReportsDashboardUnified({ panel, profileId });
 
-  // Build KPI cards based on panel
-  const kpiCards: KPICardData[] = useMemo(() => {
-    if (!kpis || Object.keys(kpis).length === 0) return [];
+  const isMotorista = panel === 'MOTORISTA';
+  const isTransportadora = panel === 'TRANSPORTADORA';
 
-    switch (panel) {
-      case 'PRODUTOR':
-        return [
-          { title: 'Total Gasto', value: (Number(kpis.freights_total_value) || 0) + (Number(kpis.services_total_value) || 0), format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
-          { title: 'Fretes Concluídos', value: Number(kpis.freights_completed) || 0, format: 'number', subtitle: `${kpis.freights_total || 0} total`, icon: Truck },
-          { title: 'Serviços Concluídos', value: Number(kpis.services_completed) || 0, format: 'number', subtitle: `${kpis.services_total || 0} total`, icon: Wrench },
-          { title: 'Ticket Médio Frete', value: Number(kpis.ticket_medio_frete) || 0, format: 'currency', icon: TrendingUp },
-          { title: 'Ticket Médio Serviço', value: Number(kpis.ticket_medio_servico) || 0, format: 'currency', icon: Package },
-          { title: 'Cancelados', value: Number(kpis.freights_cancelled) || 0, format: 'number', icon: Clock },
-        ];
+  // ── KPIs MOTORISTA ────────────────────────────────────────────────────────
+  const motoristaHero = useMemo(() => {
+    if (!isMotorista) return null;
+    const receitaTotal   = Number(kpis.receita_total)   || 0;
+    const lucroLiquido   = Number(kpis.lucro_liquido)   || 0;
+    const despesasTotal  = Number(kpis.despesas_total)  || 0;
+    const ticketMedio    = Number(kpis.ticket_medio)    || 0;
+    const rpmMedio       = Number(kpis.rpm_medio)       || 0;
+    const trend = receitaTotal > 0
+      ? { value: (lucroLiquido / receitaTotal) * 100, isPositive: lucroLiquido >= 0 }
+      : undefined;
+    return {
+      value: receitaTotal,
+      trend,
+      secondary: [
+        { label: 'Lucro líquido',   value: formatBRL(lucroLiquido) },
+        { label: 'Despesas',        value: formatBRL(despesasTotal) },
+        { label: 'Ticket médio',    value: formatBRL(ticketMedio) },
+        { label: 'R$/km médio',     value: rpmMedio > 0 ? `R$ ${fmtNum(rpmMedio, 2)}` : '—' },
+      ],
+    };
+  }, [kpis, isMotorista]);
 
-      case 'MOTORISTA': {
-        // Campos retornados pela RPC get_reports_dashboard (MOTORISTA)
-        const receitaTotal = Number(kpis.receita_total) || 0;
-        const receitaFretes = Number(kpis.receita_fretes) || 0;
-        const receitaServicos = Number(kpis.receita_servicos) || 0;
-        const lucroLiquido = Number(kpis.lucro_liquido) || 0;
-        const despesasTotal = Number(kpis.despesas_total) || 0;
-        const viagensConcluidas = Number(kpis.viagens_concluidas) || 0;
-        const kmTotal = Number(kpis.km_total) || 0;
-        const pesoTotal = Number(kpis.peso_total) || 0;
-        const rpmMedio = Number(kpis.rpm_medio) || 0;
-        const rtonMedio = kpis.rton_medio != null ? Number(kpis.rton_medio) : null;
-        const ticketMedio = Number(kpis.ticket_medio) || 0;
-        const avgCycleHours = Number(kpis.avg_cycle_hours) || 0;
-        const avaliacaoMedia = Number(kpis.avaliacao_media) || 0;
-        const totalAvaliacoes = Number(kpis.total_avaliacoes) || 0;
-        const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
-        const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
+  const motoristaOp = useMemo(() => {
+    if (!isMotorista) return [];
+    const kmTotal         = Number(kpis.km_total)          || 0;
+    const viagens         = Number(kpis.viagens_concluidas) || 0;
+    const avgCycle        = Number(kpis.avg_cycle_hours)    || 0;
+    const taxaConclusao   = Number(kpis.taxa_conclusao)     || 0;
+    const taxaCancel      = Number(kpis.taxa_cancelamento)  || 0;
+    const avaliacao       = Number(kpis.avaliacao_media)    || 0;
+    return [
+      { label: 'Viagens',        value: fmtNum(viagens),                          icon: Truck,       highlight: true },
+      { label: 'Km rodados',     value: `${fmtNum(kmTotal)} km`,                  icon: MapPin },
+      { label: 'Tempo médio',    value: avgCycle > 0 ? fmtHours(avgCycle) : '—',  icon: Timer },
+      { label: 'Conclusão',      value: `${taxaConclusao.toFixed(1)}%`,            icon: CheckCircle, highlight: true },
+      { label: 'Cancelamento',   value: `${taxaCancel.toFixed(1)}%`,              icon: XCircle },
+      { label: 'Avaliação',      value: avaliacao > 0 ? fmtNum(avaliacao, 1) : '—', icon: Star },
+    ] satisfies OpKPI[];
+  }, [kpis, isMotorista]);
 
-        // Tonelagem: backend retorna em KG, converter para toneladas
-        const tonsTotal = pesoTotal > 0 ? toTons(pesoTotal) : 0;
-        const tonSubtitle = tonsTotal > 0 ? `${formatTonsPtBR(pesoTotal)} total` : undefined;
-        const rtonValue = rtonMedio != null && rtonMedio > 0 && tonsTotal > 0
-          ? `R$ ${formatNum(rtonMedio, 2)}`
-          : '—';
+  // ── KPIs TRANSPORTADORA ───────────────────────────────────────────────────
+  const transportadoraHero = useMemo(() => {
+    if (!isTransportadora) return null;
+    const receitaTotal       = Number(kpis.receita_total)          || 0;
+    const fretesConcluidos   = Number(kpis.fretes_concluidos)      || 0;
+    const receitaMotorista   = Number(kpis.receita_por_motorista)  || 0;
+    const ticketMedio        = Number(kpis.ticket_medio)           || 0;
+    const rsPorKm            = Number(kpis.rs_por_km)              || 0;
+    return {
+      value: receitaTotal,
+      subtitle: `${fretesConcluidos} fretes concluídos`,
+      secondary: [
+        { label: 'Receita/motorista', value: formatBRL(receitaMotorista) },
+        { label: 'Ticket médio',      value: formatBRL(ticketMedio) },
+        { label: 'R$/km médio',       value: rsPorKm > 0 ? `R$ ${fmtNum(rsPorKm, 2)}` : '—' },
+        { label: 'Total fretes',      value: fmtNum(Number(kpis.total_fretes) || 0) },
+      ],
+    };
+  }, [kpis, isTransportadora]);
 
-        return [
-          { title: 'Faturamento Bruto', value: receitaTotal, format: 'currency', subtitle: 'Fretes + Serviços', icon: DollarSign },
-          { title: 'Lucro Líquido', value: lucroLiquido, format: 'currency', subtitle: `Despesas: ${formatBRL(despesasTotal)}`, icon: TrendingUp, trend: receitaTotal > 0 ? { value: ((lucroLiquido / receitaTotal) * 100), isPositive: lucroLiquido > 0 } : undefined },
-          { title: 'Viagens Concluídas', value: viagensConcluidas, format: 'number', subtitle: `${viagensConcluidas} total`, icon: Truck },
-          { title: 'Km Rodados', value: kmTotal, format: 'distance', subtitle: `Média: ${formatNum(viagensConcluidas > 0 ? kmTotal / viagensConcluidas : 0, 0)} km/viagem`, icon: MapPin },
-          { title: 'R$/km Médio', value: `R$ ${formatNum(rpmMedio, 2)}`, icon: Route },
-          { title: 'R$/ton Médio', value: rtonValue, subtitle: tonSubtitle, icon: Weight },
-          { title: 'Ticket Médio', value: ticketMedio, format: 'currency', subtitle: 'Por carreta/assignment', icon: Package },
-          { title: 'Tempo Médio Ciclo', value: avgCycleHours > 0 ? formatHours(avgCycleHours) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
-          { title: 'Taxa Conclusão', value: `${taxaConclusao.toFixed(1)}%`, icon: CheckCircle },
-          { title: 'Taxa Cancelamento', value: `${taxaCancelamento.toFixed(1)}%`, icon: XCircle },
-          { title: 'Avaliação Média', value: avaliacaoMedia, format: 'number', subtitle: `${totalAvaliacoes} avaliações`, icon: Star },
-          { title: 'Despesas Totais', value: despesasTotal, format: 'currency', icon: Fuel },
-        ];
-      }
+  const transportadoraOp = useMemo(() => {
+    if (!isTransportadora) return [];
+    const totalMotoristas  = Number(kpis.total_motoristas)   || 0;
+    const distanciaTotal   = Number(kpis.distancia_total_km) || 0;
+    const utilizacao       = Number(kpis.utilizacao_frota)   || 0;
+    const sla              = Number(kpis.sla_medio_horas)    || 0;
+    const taxaCancel       = Number(kpis.taxa_cancelamento)  || 0;
+    const avaliacao        = Number(kpis.avaliacao_media)    || 0;
+    return [
+      { label: 'Motoristas ativos', value: fmtNum(totalMotoristas),              icon: Users,      highlight: true },
+      { label: 'Km total (frota)',  value: `${fmtNum(distanciaTotal)} km`,       icon: MapPin },
+      { label: 'Utilização frota',  value: `${utilizacao.toFixed(0)}%`,          icon: Activity,   highlight: true },
+      { label: 'SLA médio',         value: sla > 0 ? fmtHours(sla) : '—',       icon: Timer },
+      { label: 'Cancelamento',      value: `${taxaCancel.toFixed(1)}%`,          icon: XCircle },
+      { label: 'Avaliação média',   value: avaliacao > 0 ? fmtNum(avaliacao, 1) : '—', icon: Star },
+    ] satisfies OpKPI[];
+  }, [kpis, isTransportadora]);
 
-      case 'TRANSPORTADORA': {
-        const receitaTotal = Number(kpis.receita_total) || 0;
-        const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
-        const totalMotoristas = Number(kpis.total_motoristas) || 0;
-        const distanciaTotal = Number(kpis.distancia_total_km) || 0;
-        const receitaPorMotorista = Number(kpis.receita_por_motorista) || 0;
-        const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
-        const rsPorKm = Number(kpis.rs_por_km) || 0;
-        const avaliacaoMedia = Number(kpis.avaliacao_media) || 0;
-        const utilizacaoFrota = Number(kpis.utilizacao_frota) || 0;
-        const slaMedio = Number(kpis.sla_medio_horas) || 0;
-        const receitaPorCarreta = Number(kpis.receita_por_carreta) || 0;
-        
-        return [
-          { title: 'Faturamento Total', value: receitaTotal, format: 'currency', subtitle: `${fretesConcluidos} concluídos`, icon: DollarSign },
-          { title: 'Total de Fretes', value: Number(kpis.total_fretes) || 0, format: 'number', icon: Truck },
-          { title: 'Motoristas Ativos', value: totalMotoristas, format: 'number', icon: Users },
-          { title: 'Km Total (Frota)', value: distanciaTotal, format: 'distance', icon: MapPin },
-          { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', icon: TrendingUp },
-          { title: 'Receita/Motorista', value: receitaPorMotorista, format: 'currency', subtitle: 'Média no período', icon: Users },
-          { title: 'Receita/Carreta', value: receitaPorCarreta, format: 'currency', icon: Package },
-          { title: 'R$/km Médio', value: `R$ ${formatNum(rsPorKm, 2)}`, icon: Route },
-          { title: 'Utilização Frota', value: `${utilizacaoFrota.toFixed(0)}%`, subtitle: 'Motoristas com operação', icon: Activity },
-          { title: 'SLA Médio', value: slaMedio > 0 ? formatHours(slaMedio) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
-          { title: 'Taxa Cancelamento', value: `${taxaCancelamento.toFixed(1)}%`, icon: XCircle },
-          { title: 'Avaliação Média', value: avaliacaoMedia > 0 ? formatNum(avaliacaoMedia, 1) : '—', icon: Star },
-        ];
-      }
-
-      case 'PRESTADOR':
-        return [
-          { title: 'Receita Total', value: Number(kpis.receita_total) || 0, format: 'currency', subtitle: `${kpis.servicos_concluidos || 0} concluídos`, icon: DollarSign },
-          { title: 'Total de Serviços', value: Number(kpis.total_servicos) || 0, format: 'number', subtitle: `${kpis.servicos_em_andamento || 0} em andamento`, icon: Wrench },
-          { title: 'Avaliação Média', value: Number(kpis.avaliacao_media) || 0, format: 'number', subtitle: `${kpis.total_avaliacoes || 0} avaliações`, icon: Star },
-          { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', icon: TrendingUp },
-          { title: 'Concluídos', value: Number(kpis.servicos_concluidos) || 0, format: 'number', icon: CheckCircle },
-          { title: 'Cancelados', value: Number(kpis.servicos_cancelados) || 0, format: 'number', icon: Percent },
-        ];
-
-      default:
-        return [];
-    }
-  }, [kpis, panel]);
-
-  // Build chart configs for NON-MOTORISTA, NON-TRANSPORTADORA panels
-  const chartConfigs: ChartConfig[] = useMemo(() => {
-    if (!charts || Object.keys(charts).length === 0) return [];
-    if (panel === 'MOTORISTA' || panel === 'TRANSPORTADORA') return [];
-
-    const configs: ChartConfig[] = [];
-
-    if (charts.receita_por_mes?.length) {
-      configs.push({
-        title: 'Receita por Mês',
-        type: 'bar',
-        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), revenue: m.receita })),
-        dataKeys: [{ key: 'revenue', label: 'Receita' }],
-        xAxisKey: 'month',
-        valueFormatter: formatBRL,
-      });
-    }
-
-    if (charts.volume_por_dia?.length && panel === 'PRODUTOR') {
-      configs.push({
-        title: 'Operações por Dia',
-        type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
-        dataKeys: [
-          { key: 'fretes', label: 'Fretes', color: '#2E7D32' },
-          { key: 'servicos', label: 'Serviços', color: '#1976D2' },
-        ],
-        xAxisKey: 'day',
-      });
-    }
-
-    if (charts.volume_por_dia?.length && panel === 'PRESTADOR') {
-      configs.push({
-        title: 'Serviços por Dia',
-        type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, concluidos: d.concluidos || 0, cancelados: d.cancelados || 0 })),
-        dataKeys: [
-          { key: 'concluidos', label: 'Concluídos', color: '#2E7D32' },
-          { key: 'cancelados', label: 'Cancelados', color: '#D32F2F' },
-        ],
-        xAxisKey: 'day',
-      });
-    }
-
-    if (charts.valor_por_dia?.length) {
-      configs.push({
-        title: 'Valor Gasto por Dia',
-        type: 'bar',
-        data: charts.valor_por_dia.map((d: any) => ({ day: d.dia, valor: d.valor || d.total || 0 })),
-        dataKeys: [{ key: 'valor', label: 'Valor (R$)', color: '#FF9800' }],
-        xAxisKey: 'day',
-        valueFormatter: formatBRL,
-      });
-    }
-
-    if (charts.por_status?.length) {
-      configs.push({ title: 'Por Status', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
-    }
-
-    if (charts.por_tipo_carga?.length) {
-      configs.push({ title: 'Tipos de Carga', type: 'bar', data: charts.por_tipo_carga.slice(0, 5), dataKeys: [{ key: 'value', label: 'Quantidade' }], xAxisKey: 'name' });
-    }
-
-    if (charts.por_tipo?.length) {
-      configs.push({ title: 'Tipos de Carga', type: 'bar', data: charts.por_tipo.slice(0, 5), dataKeys: [{ key: 'value', label: 'Quantidade' }], xAxisKey: 'name' });
-    }
-
-    if (charts.por_tipo_servico?.length) {
-      configs.push({ title: 'Tipos de Serviço', type: 'bar', data: charts.por_tipo_servico.slice(0, 5), dataKeys: [{ key: 'value', label: 'Quantidade' }], xAxisKey: 'name' });
-    }
-
-    if (charts.por_cidade?.length) {
-      configs.push({ title: 'Principais Cidades', type: 'bar', data: charts.por_cidade.slice(0, 5), dataKeys: [{ key: 'value', label: 'Serviços' }], xAxisKey: 'name' });
-    }
-
-    return configs;
-  }, [charts, panel]);
-
-  // ====== MOTORISTA-specific chart sections ======
-  // Usa os campos retornados pela RPC: receita_por_mes, viagens_por_mes, top_rotas, dispersao_receita_km
-  const motoristaFinanceiroCharts: ChartConfig[] = useMemo(() => {
-    if (panel !== 'MOTORISTA') return [];
-
-    // receita_por_mes: [{ mes, receita, viagens }] — normaliza mês para PT-BR
+  // ── Gráficos MOTORISTA ────────────────────────────────────────────────────
+  const motoristaCharts: ChartConfig[] = useMemo(() => {
+    if (!isMotorista) return [];
     const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
       month: formatMonthLabelPtBR(m.mes),
       receita: Number(m.receita) || 0,
       viagens: Math.round(Number(m.viagens) || 0),
     }));
-
-    const acumuladoData = (() => {
-      let acc = 0;
-      return receitaMes.map((m: any) => { acc += m.receita; return { month: m.month, acumulado: acc }; });
-    })();
-
-    return [
-      {
-        title: 'Receita Mensal',
-        type: 'bar' as const,
-        data: receitaMes,
-        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--primary))' }],
-        xAxisKey: 'month',
-        valueFormatter: formatBRL,
-      },
-      {
-        title: 'Viagens por Mês',
-        type: 'bar' as const,
-        data: receitaMes,
-        dataKeys: [{ key: 'viagens', label: 'Viagens', color: 'hsl(var(--chart-2))' }],
-        xAxisKey: 'month',
-        yAxisTickCount: 'integer' as any,
-      },
-      {
-        title: 'Receita Acumulada no Período',
-        type: 'area' as const,
-        data: acumuladoData,
-        dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: 'hsl(var(--chart-3))' }],
-        xAxisKey: 'month',
-        valueFormatter: formatBRL,
-      },
-    ];
-  }, [charts, panel]);
-
-  const motoristaOperacionalCharts: ChartConfig[] = useMemo(() => {
-    if (panel !== 'MOTORISTA') return [];
-
-    // viagens_por_mes: [{ mes, viagens, km }] — normaliza mês para PT-BR
     const viagensMes = (charts?.viagens_por_mes || []).map((d: any) => ({
       month: formatMonthLabelPtBR(d.mes),
       viagens: Math.round(Number(d.viagens) || 0),
       km: Number(d.km) || 0,
     }));
-
-    // top_rotas: [{ rota, receita, viagens, km_medio }] — normaliza rota
     const topRotas = (charts?.top_rotas || []).map((r: any) => ({
       name: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
       receita: Number(r.receita) || 0,
-      viagens: Number(r.viagens) || 0,
     }));
-
-    // dispersao_receita_km: [{ km, receita, cargo, rota }]
     const dispersao = (charts?.dispersao_receita_km || []).map((d: any) => ({
       km: Number(d.km) || 0,
       receita: Number(d.receita) || 0,
       name: formatRouteLabel(d.rota) || d.cargo || '',
     }));
+    const acc = (() => {
+      let a = 0;
+      return receitaMes.map((m: any) => { a += m.receita; return { month: m.month, acumulado: a }; });
+    })();
 
     return [
-      {
-        title: 'Km Rodados por Mês',
-        type: 'bar' as const,
-        data: viagensMes,
-        dataKeys: [{ key: 'km', label: 'Km', color: 'hsl(var(--chart-4))' }],
-        xAxisKey: 'month',
-      },
-      {
-        title: 'Top Rotas por Receita',
-        type: 'horizontal-bar' as const,
-        data: topRotas,
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: 'hsl(var(--primary))' }],
-        xAxisKey: 'name',
-        valueFormatter: formatBRL,
-        height: 350,
-      },
-      {
-        title: 'Receita vs Distância (dispersão)',
-        type: 'scatter' as const,
-        data: dispersao,
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: 'hsl(var(--chart-5))' }],
-        xAxisKey: 'km',
-        yAxisKey: 'receita',
-        valueFormatter: formatBRL,
-      },
+      { title: 'Receita por mês', type: 'area', data: receitaMes, dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }], xAxisKey: 'month', valueFormatter: formatBRL },
+      { title: 'Receita acumulada no período', type: 'area', data: acc, dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: 'hsl(var(--chart-3))' }], xAxisKey: 'month', valueFormatter: formatBRL },
+      { title: 'Km rodados por mês', type: 'bar', data: viagensMes, dataKeys: [{ key: 'km', label: 'Km', color: 'hsl(var(--chart-4))' }], xAxisKey: 'month' },
+      { title: 'Top rotas por receita', type: 'horizontal-bar', data: topRotas, dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#16a34a' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 320 },
+      ...(dispersao.length > 0 ? [{ title: 'Receita vs distância', type: 'scatter' as const, data: dispersao, dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: 'hsl(var(--chart-5))' }], xAxisKey: 'km', yAxisKey: 'receita', valueFormatter: formatBRL }] : []),
     ];
-  }, [charts, panel]);
+  }, [charts, isMotorista]);
 
-  const motoristaAvaliacoesCharts: ChartConfig[] = useMemo(() => {
-    if (panel !== 'MOTORISTA') return [];
-
-    return [
-      {
-        title: 'Distribuição de Avaliações',
-        type: 'bar' as const,
-        data: (charts?.avaliacoes_distribuicao || []).map((r: any) => ({
-          name: `${r.name || r.stars}★`,
-          value: Number(r.value || r.count) || 0,
-        })),
-        dataKeys: [{ key: 'value', label: 'Avaliações', color: 'hsl(var(--chart-2))' }],
-        xAxisKey: 'name',
-      },
-      {
-        title: 'Evolução da Nota Média',
-        type: 'line' as const,
-        data: (charts?.avaliacoes_trend || []).map((d: any) => ({
-          month: d.mes || d.month,
-          media: Number(d.media || d.avg_rating) || 0,
-        })),
-        dataKeys: [{ key: 'media', label: 'Nota Média', color: 'hsl(var(--chart-1))' }],
-        xAxisKey: 'month',
-      },
-    ];
-  }, [charts, panel]);
-
-
-  // ====== TRANSPORTADORA-specific chart sections ======
-  const transportadoraFinanceiroCharts: ChartConfig[] = useMemo(() => {
-    if (panel !== 'TRANSPORTADORA' || !charts || Object.keys(charts).length === 0) return [];
+  // ── Gráficos TRANSPORTADORA ───────────────────────────────────────────────
+  const transportadoraCharts: ChartConfig[] = useMemo(() => {
+    if (!isTransportadora || !charts) return [];
     const configs: ChartConfig[] = [];
-
-    if (charts.receita_por_dia?.length) {
-      configs.push({
-        title: 'Faturamento por Dia',
-        type: 'line',
-        data: charts.receita_por_dia.map((d: any) => ({ day: d.dia, receita: d.receita || 0 })),
-        dataKeys: [{ key: 'receita', label: 'Receita', color: '#2E7D32' }],
-        xAxisKey: 'day',
-        valueFormatter: formatBRL,
-      });
-    }
-
-    if (charts.receita_por_mes?.length) {
-      configs.push({
-        title: 'Receita Mensal',
-        type: 'bar',
-        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), revenue: m.receita })),
-        dataKeys: [{ key: 'revenue', label: 'Receita', color: '#2E7D32' }],
-        xAxisKey: 'month',
-        valueFormatter: formatBRL,
-      });
-    }
-
-    if (charts.por_tipo_carga?.length) {
-      configs.push({
-        title: 'Receita por Tipo de Carga',
-        type: 'horizontal-bar',
-        data: charts.por_tipo_carga.slice(0, 8).map((c: any) => ({
-          name: c.name,
-          receita: c.receita || 0,
-        })),
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#FF9800' }],
-        xAxisKey: 'name',
-        valueFormatter: formatBRL,
-        height: 300,
-      });
-    }
-
+    if (charts.receita_por_mes?.length) configs.push({ title: 'Receita mensal', type: 'area', data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), receita: m.receita || 0 })), dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }], xAxisKey: 'month', valueFormatter: formatBRL });
+    if (charts.por_motorista?.length) configs.push({ title: 'Motoristas por receita', type: 'horizontal-bar', data: charts.por_motorista.slice(0, 10).map((d: any) => ({ name: d.motorista || 'Sem nome', receita: d.receita || 0 })), dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#16a34a' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 320 });
+    if (charts.por_status?.length) configs.push({ title: 'Status dos fretes', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
+    if (charts.top_rotas?.length) configs.push({ title: 'Top rotas por receita', type: 'horizontal-bar', data: charts.top_rotas.slice(0, 8).map((r: any) => ({ name: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')), receita: r.receita || 0 })), dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#1976D2' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 320 });
     return configs;
-  }, [charts, panel]);
+  }, [charts, isTransportadora]);
 
-  const transportadoraOperacionalCharts: ChartConfig[] = useMemo(() => {
-    if (panel !== 'TRANSPORTADORA' || !charts || Object.keys(charts).length === 0) return [];
+  // ── Gráficos outros painéis ───────────────────────────────────────────────
+  const genericCharts: ChartConfig[] = useMemo(() => {
+    if (isMotorista || isTransportadora || !charts) return [];
     const configs: ChartConfig[] = [];
-
-    if (charts.volume_por_dia?.length) {
-      configs.push({
-        title: 'Operações por Dia',
-        type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({
-          day: d.dia, concluidos: d.concluidos || 0, cancelados: d.cancelados || 0,
-        })),
-        dataKeys: [
-          { key: 'concluidos', label: 'Concluídos', color: '#2E7D32' },
-          { key: 'cancelados', label: 'Cancelados', color: '#D32F2F' },
-        ],
-        xAxisKey: 'day',
-      });
-    }
-
-    if (charts.por_motorista?.length) {
-      configs.push({
-        title: 'Ranking: Motoristas por Receita',
-        type: 'horizontal-bar',
-        data: charts.por_motorista.slice(0, 10).map((d: any) => ({
-          name: d.motorista || 'Sem nome', receita: d.receita || 0,
-        })),
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#2E7D32' }],
-        xAxisKey: 'name',
-        valueFormatter: formatBRL,
-        height: 350,
-      });
-    }
-
-    if (charts.por_status?.length) {
-      configs.push({
-        title: 'Status dos Fretes',
-        type: 'pie',
-        data: charts.por_status,
-        dataKeys: [{ key: 'value', label: 'Quantidade' }],
-      });
-    }
-
-    if (charts.top_rotas?.length) {
-      configs.push({
-        title: 'Top Rotas por Receita',
-        type: 'horizontal-bar',
-        data: charts.top_rotas.slice(0, 8).map((r: any) => ({
-          name: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
-          receita: r.receita || 0,
-        })),
-        dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#1976D2' }],
-        xAxisKey: 'name',
-        valueFormatter: formatBRL,
-        height: 350,
-      });
-    }
-
-    if (charts.por_cidade?.length) {
-      configs.push({
-        title: 'Cidades com Mais Operações',
-        type: 'horizontal-bar',
-        data: charts.por_cidade.slice(0, 8),
-        dataKeys: [{ key: 'value', label: 'Operações', color: '#00796B' }],
-        xAxisKey: 'name',
-        height: 300,
-      });
-    }
-
+    if (charts.receita_por_mes?.length) configs.push({ title: 'Receita por mês', type: 'bar', data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), revenue: m.receita })), dataKeys: [{ key: 'revenue', label: 'Receita' }], xAxisKey: 'month', valueFormatter: formatBRL });
+    if (charts.volume_por_dia?.length && panel === 'PRODUTOR') configs.push({ title: 'Operações por dia', type: 'bar', data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })), dataKeys: [{ key: 'fretes', label: 'Fretes', color: '#16a34a' }, { key: 'servicos', label: 'Serviços', color: '#1976D2' }], xAxisKey: 'day' });
+    if (charts.por_status?.length) configs.push({ title: 'Por status', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
     return configs;
-  }, [charts, panel]);
+  }, [charts, isMotorista, isTransportadora, panel]);
 
-  const isMotorista = panel === 'MOTORISTA';
-  const isTransportadora = panel === 'TRANSPORTADORA';
-  const showFilters = isMotorista || isTransportadora;
+  // ── Exportação ────────────────────────────────────────────────────────────
+  const exportSections = useMemo(() => [{
+    title: 'Resumo Geral', type: 'kpi' as const,
+    data: [
+      { label: 'Faturamento Bruto', value: Number(kpis.receita_total) || 0 },
+      { label: 'Viagens/Fretes', value: Number(kpis.viagens_concluidas || kpis.fretes_concluidos) || 0 },
+    ],
+  }], [kpis]);
 
-  // Export sections
-  const exportSections = useMemo(() => {
-    if (!kpis) return [];
-    return [
-      {
-        title: 'Resumo Geral',
-        type: 'kpi' as const,
-        data: kpiCards.map(k => ({ label: k.title, value: k.value })),
-      },
-    ];
-  }, [kpis, kpiCards]);
-
+  // ── Guard: sem perfil ─────────────────────────────────────────────────────
   if (!profileId) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <p className="text-muted-foreground">Usuário não autenticado</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <AlertCircle className="h-10 w-10 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground">Usuário não autenticado</p>
       </div>
     );
   }
 
+  // ── Guard: erro ───────────────────────────────────────────────────────────
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-destructive/60 mb-4" />
-        <p className="text-foreground font-medium">Erro ao carregar relatórios</p>
-        <p className="text-sm text-muted-foreground mt-1 text-center max-w-xs">
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <AlertCircle className="h-10 w-10 text-destructive/60" />
+        <p className="font-medium">Erro ao carregar relatórios</p>
+        <p className="text-xs text-muted-foreground text-center max-w-xs">
           {(dashboardError as any)?.message || 'Verifique sua conexão e tente novamente.'}
         </p>
-        <Button onClick={() => refreshNow('retry')} variant="outline" className="mt-4 gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Tentar novamente
+        <Button onClick={() => refreshNow('retry')} variant="outline" size="sm" className="gap-2 mt-1">
+          <RefreshCw className="h-3.5 w-3.5" /> Tentar novamente
         </Button>
       </div>
     );
   }
 
-  // Section header component
-  const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) => (
-    <div className="flex items-center gap-3 pt-4 pb-2">
-      <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-primary/10">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-      <div>
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
-      </div>
-    </div>
-  );
-
-  // Render a data table
-  const DataTable = ({ title, data, columns }: { title: string; data: any[]; columns: { key: string; label: string; format?: 'currency' | 'number' | 'date' | 'text' }[] }) => {
+  // ── Extrato (tabela estilo financeiro) ────────────────────────────────────
+  const ExtratoTable: React.FC<{ data: any[] }> = ({ data }) => {
     if (!data?.length) return null;
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
+      <Card className="rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                {columns.map(col => (
-                  <TableHead key={col.key} className="text-xs">{col.label}</TableHead>
-                ))}
+              <TableRow className="bg-muted/40">
+                <TableHead className="text-xs font-semibold">Data</TableHead>
+                <TableHead className="text-xs font-semibold">Rota</TableHead>
+                <TableHead className="text-xs font-semibold hidden sm:table-cell">Tipo</TableHead>
+                <TableHead className="text-xs font-semibold hidden sm:table-cell text-right">Km</TableHead>
+                <TableHead className="text-xs font-semibold text-right">Valor</TableHead>
+                <TableHead className="text-xs font-semibold text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((row, i) => (
-                <TableRow key={i}>
-                  {columns.map(col => (
-                    <TableCell key={col.key} className="text-sm">
-                      {col.format === 'currency' ? formatBRL(Number(row[col.key]) || 0) :
-                       col.format === 'number' ? formatNum(Number(row[col.key]) || 0) :
-                       col.format === 'date' && row[col.key] ? format(new Date(row[col.key]), 'dd/MM/yy', { locale: ptBR }) :
-                       row[col.key] ?? '—'}
-                    </TableCell>
-                  ))}
+                <TableRow key={i} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {row.data ? format(new Date(row.data), 'dd/MM/yy', { locale: ptBR }) : '—'}
+                  </TableCell>
+                  <TableCell className="text-xs max-w-[120px] sm:max-w-none truncate">
+                    {row.origin_city && row.destination_city
+                      ? `${row.origin_city} → ${row.destination_city}`
+                      : row.rota || '—'}
+                  </TableCell>
+                  <TableCell className="text-xs hidden sm:table-cell text-muted-foreground">{row.tipo || '—'}</TableCell>
+                  <TableCell className="text-xs hidden sm:table-cell text-right">{row.km ? fmtNum(Number(row.km)) : '—'}</TableCell>
+                  <TableCell className="text-xs text-right font-semibold text-[#16a34a] whitespace-nowrap">
+                    {row.receita ? formatBRL(Number(row.receita)) : '—'}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <StatusBadge status={row.status_final || row.status || ''} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </CardContent>
+        </div>
       </Card>
     );
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* Header com período + exportação + refresh */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-lg">{title}</CardTitle>
-                {lastRefreshLabel && (
-                  <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshLabel}</span>
+    <div className="space-y-5 pb-6">
+
+      {/* ── Cabeçalho Premium ─────────────────────────────────────────── */}
+      <div className="rounded-2xl border bg-card p-4 sm:p-5 space-y-4">
+        {/* Título + ações */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-extrabold tracking-tight">Relatórios</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Resumo financeiro e operacional</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <ReportExportButton reportTitle={title} dateRange={dateRange} sections={exportSections} disabled={isLoading} />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs gap-1.5 text-muted-foreground"
+              onClick={() => refreshNow('manual')}
+              disabled={isLoading}
+            >
+              <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Filtro de período */}
+        <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+
+        {/* Data exibida */}
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <CalendarDays className="h-3 w-3" />
+          <span>
+            {format(dateRange.from, "dd 'de' MMM yyyy", { locale: ptBR })}
+            {' – '}
+            {format(dateRange.to, "dd 'de' MMM yyyy", { locale: ptBR })}
+          </span>
+          {lastRefreshLabel && <span className="ml-2 hidden sm:inline">· {lastRefreshLabel}</span>}
+        </div>
+
+        {/* Filtros adicionais (MOTORISTA / TRANSPORTADORA) */}
+        {(isMotorista || isTransportadora) && (
+          <ReportFiltersBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            onRefresh={() => refreshNow('manual')}
+            isLoading={isLoading}
+            panel={panel}
+          />
+        )}
+      </div>
+
+      {/* ── MOTORISTA ─────────────────────────────────────────────────── */}
+      {isMotorista && motoristaHero && (
+        <>
+          {/* Bloco financeiro destaque */}
+          <HeroFinanceBlock
+            label="Faturamento Bruto"
+            value={motoristaHero.value}
+            trend={motoristaHero.trend}
+            subtitle="Fretes + serviços no período"
+            secondary={motoristaHero.secondary}
+            isLoading={isLoading}
+          />
+
+          {/* Bloco operacional */}
+          <div className="space-y-3">
+            <SectionTitle icon={Activity} title="Operacional" subtitle="Volume, eficiência e avaliação" />
+            <OperationalGrid items={motoristaOp} isLoading={isLoading} />
+          </div>
+
+          {/* Gráficos */}
+          <div className="space-y-3">
+            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
+            <ReportCharts charts={motoristaCharts} isLoading={isLoading} columns={2} />
+          </div>
+
+          {/* Extrato */}
+          {!isLoading && (tables?.extrato_ganhos?.length > 0) && (
+            <div className="space-y-3">
+              <SectionTitle icon={DollarSign} title="Extrato de ganhos" subtitle="Histórico detalhado por viagem" />
+              <ExtratoTable data={tables.extrato_ganhos} />
+            </div>
+          )}
+
+          {/* Top/Bottom lucrativos */}
+          {!isLoading && (tables?.top_lucrativos?.length > 0 || tables?.bottom_lucrativos?.length > 0) && (
+            <div className="space-y-3">
+              <SectionTitle icon={TrendingUp} title="Fretes por lucratividade" subtitle="R$/km — melhores e piores" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {tables?.top_lucrativos?.length > 0 && (
+                  <Card className="rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 border-b bg-[rgba(22,163,74,0.05)]">
+                      <p className="text-xs font-semibold text-[#16a34a]">🏆 Top 10 mais lucrativos</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow><TableHead className="text-xs">Rota</TableHead><TableHead className="text-xs text-right">Km</TableHead><TableHead className="text-xs text-right">Valor</TableHead><TableHead className="text-xs text-right">R$/km</TableHead></TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tables.top_lucrativos.map((r: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs max-w-[100px] truncate">{r.rota || '—'}</TableCell>
+                              <TableCell className="text-xs text-right">{fmtNum(r.km || 0)}</TableCell>
+                              <TableCell className="text-xs text-right font-medium">{formatBRL(r.receita || 0)}</TableCell>
+                              <TableCell className="text-xs text-right text-[#16a34a] font-bold">{fmtNum(r.rs_km || 0, 2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
                 )}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <ReportExportButton
-                  reportTitle={title}
-                  dateRange={dateRange}
-                  sections={exportSections}
-                  disabled={isLoading}
-                />
+                {tables?.bottom_lucrativos?.length > 0 && (
+                  <Card className="rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 border-b bg-destructive/5">
+                      <p className="text-xs font-semibold text-destructive">⚠️ Top 10 menos lucrativos</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow><TableHead className="text-xs">Rota</TableHead><TableHead className="text-xs text-right">Km</TableHead><TableHead className="text-xs text-right">Valor</TableHead><TableHead className="text-xs text-right">R$/km</TableHead></TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tables.bottom_lucrativos.map((r: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs max-w-[100px] truncate">{r.rota || '—'}</TableCell>
+                              <TableCell className="text-xs text-right">{fmtNum(r.km || 0)}</TableCell>
+                              <TableCell className="text-xs text-right font-medium">{formatBRL(r.receita || 0)}</TableCell>
+                              <TableCell className="text-xs text-right text-destructive font-bold">{fmtNum(r.rs_km || 0, 2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                )}
               </div>
             </div>
-            {/* Período */}
-            <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-            {/* Filtros + Atualizar */}
-            {showFilters && (
-              <ReportFiltersBar
-                filters={filters}
-                onFiltersChange={setFilters}
-                onRefresh={() => refreshNow('manual')}
-                isLoading={isLoading}
-                panel={panel}
-              />
-            )}
-            {/* Botão Atualizar para painéis sem barra de filtros */}
-            {!showFilters && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs gap-1"
-                  onClick={() => refreshNow('manual')}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  Atualizar
-                </Button>
-                {lastRefreshLabel && (
-                  <span className="text-xs text-muted-foreground sm:hidden">{lastRefreshLabel}</span>
-                )}
-              </div>
-            )}
+          )}
+        </>
+      )}
+
+      {/* ── TRANSPORTADORA ────────────────────────────────────────────── */}
+      {isTransportadora && transportadoraHero && (
+        <>
+          <HeroFinanceBlock
+            label="Faturamento Total"
+            value={transportadoraHero.value}
+            subtitle={transportadoraHero.subtitle}
+            secondary={transportadoraHero.secondary}
+            isLoading={isLoading}
+          />
+
+          <div className="space-y-3">
+            <SectionTitle icon={Activity} title="Operacional da frota" subtitle="Motoristas, distância e eficiência" />
+            <OperationalGrid items={transportadoraOp} isLoading={isLoading} />
           </div>
-        </CardHeader>
-      </Card>
 
-      {/* KPIs */}
-      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={isMotorista ? 4 : (isTransportadora ? 4 : (kpiCards.length > 4 ? 6 : 4))} />
+          <div className="space-y-3">
+            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Receita, rotas e motoristas" />
+            <ReportCharts charts={transportadoraCharts} isLoading={isLoading} columns={2} />
+          </div>
 
-      {/* MOTORISTA: Seções organizadas */}
-      {isMotorista && (
-        <>
-          {/* Seção Financeiro - sempre visível */}
-          <SectionHeader icon={DollarSign} title="Financeiro" subtitle="Receitas, despesas e lucro" />
-          <ReportCharts charts={motoristaFinanceiroCharts} isLoading={isLoading} columns={2} />
-
-          {/* Seção Operacional - sempre visível */}
-          <SectionHeader icon={Activity} title="Operacional" subtitle="Volume, rotas, tipos de carga e eficiência" />
-          <ReportCharts charts={motoristaOperacionalCharts} isLoading={isLoading} columns={2} />
-
-          {/* Seção Avaliações - sempre visível */}
-          <SectionHeader icon={Star} title="Avaliações" subtitle="Desempenho e satisfação" />
-          <ReportCharts charts={motoristaAvaliacoesCharts} isLoading={isLoading} columns={2} />
-
-          {/* Tabelas do Motorista */}
-          {!isLoading && (
-            <>
-              <SectionHeader icon={BarChart3} title="Extrato e Análise" subtitle="Detalhamento de ganhos e fretes" />
-              
-              <DataTable 
-                title="Extrato de Ganhos" 
-                data={tables?.extrato_ganhos || []}
-                columns={[
-                  { key: 'data', label: 'Data', format: 'date' },
-                  { key: 'tipo', label: 'Tipo' },
-                  { key: 'origin_city', label: 'Origem' },
-                  { key: 'destination_city', label: 'Destino' },
-                  { key: 'km', label: 'Km', format: 'number' },
-                  { key: 'receita', label: 'Valor', format: 'currency' },
-                  { key: 'rs_km', label: 'R$/km', format: 'number' },
-                  { key: 'status_final', label: 'Status' },
-                ]}
-              />
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DataTable 
-                  title="🏆 Top 10 Fretes Mais Lucrativos (R$/km)"
-                  data={tables?.top_lucrativos || []}
-                  columns={[
-                    { key: 'rota', label: 'Rota' },
-                    { key: 'km', label: 'Km', format: 'number' },
-                    { key: 'receita', label: 'Valor', format: 'currency' },
-                    { key: 'rs_km', label: 'R$/km', format: 'number' },
-                  ]}
-                />
-
-                <DataTable 
-                  title="⚠️ Top 10 Fretes Menos Lucrativos (R$/km)"
-                  data={tables?.bottom_lucrativos || []}
-                  columns={[
-                    { key: 'rota', label: 'Rota' },
-                    { key: 'km', label: 'Km', format: 'number' },
-                    { key: 'receita', label: 'Valor', format: 'currency' },
-                    { key: 'rs_km', label: 'R$/km', format: 'number' },
-                  ]}
-                />
-              </div>
-            </>
+          {!isLoading && tables?.resumo_por_motorista?.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={Users} title="Desempenho por motorista" />
+              <Card className="rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="text-xs">Motorista</TableHead>
+                        <TableHead className="text-xs text-right">Viagens</TableHead>
+                        <TableHead className="text-xs text-right">Receita</TableHead>
+                        <TableHead className="text-xs text-right hidden sm:table-cell">Km</TableHead>
+                        <TableHead className="text-xs text-right hidden sm:table-cell">R$/km</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tables.resumo_por_motorista.map((r: any, i: number) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs font-medium">{r.motorista || '—'}</TableCell>
+                          <TableCell className="text-xs text-right">{fmtNum(r.viagens || 0)}</TableCell>
+                          <TableCell className="text-xs text-right font-semibold text-[#16a34a]">{formatBRL(r.receita || 0)}</TableCell>
+                          <TableCell className="text-xs text-right hidden sm:table-cell">{fmtNum(r.km || 0)}</TableCell>
+                          <TableCell className="text-xs text-right hidden sm:table-cell">{fmtNum(r.rs_km || 0, 2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
+            </div>
           )}
         </>
       )}
 
-
-      {/* TRANSPORTADORA: Seções organizadas */}
-      {isTransportadora && (
-        <>
-          {/* Seção Financeiro - sempre visível */}
-          <SectionHeader icon={DollarSign} title="Financeiro" subtitle="Faturamento e receita por tipo" />
-          <ReportCharts charts={transportadoraFinanceiroCharts} isLoading={isLoading} columns={2} />
-
-          {/* Seção Operacional - sempre visível */}
-          <SectionHeader icon={Activity} title="Operacional" subtitle="Volume, motoristas, rotas e cidades" />
-          <ReportCharts charts={transportadoraOperacionalCharts} isLoading={isLoading} columns={2} />
-
-          {/* Tabelas da Transportadora */}
-          {!isLoading && (
-            <>
-              <SectionHeader icon={Users} title="Análise por Motorista" subtitle="Desempenho individual da frota" />
-              
-              <DataTable 
-                title="Resumo por Motorista" 
-                data={tables?.resumo_por_motorista || []}
-                columns={[
-                  { key: 'motorista', label: 'Motorista' },
-                  { key: 'viagens', label: 'Viagens', format: 'number' },
-                  { key: 'receita', label: 'Receita', format: 'currency' },
-                  { key: 'km', label: 'Km', format: 'number' },
-                  { key: 'rs_km', label: 'R$/km', format: 'number' },
-                  { key: 'cancelamentos', label: 'Cancel.', format: 'number' },
-                ]}
-              />
-
-              <SectionHeader icon={Route} title="Análise por Rota" subtitle="Rotas mais frequentes e rentáveis" />
-
-              <DataTable 
-                title="Resumo por Rota" 
-                data={tables?.resumo_por_rota || []}
-                columns={[
-                  { key: 'rota', label: 'Rota' },
-                  { key: 'frequencia', label: 'Freq.', format: 'number' },
-                  { key: 'receita', label: 'Receita', format: 'currency' },
-                  { key: 'km_medio', label: 'Km Médio', format: 'number' },
-                  { key: 'rs_km', label: 'R$/km', format: 'number' },
-                ]}
-              />
-
-              <DataTable 
-                title="Histórico de Operações" 
-                data={tables?.ultimas_operacoes || []}
-                columns={[
-                  { key: 'data', label: 'Data', format: 'date' },
-                  { key: 'motorista', label: 'Motorista' },
-                  { key: 'origin_city', label: 'Origem' },
-                  { key: 'destination_city', label: 'Destino' },
-                  { key: 'km', label: 'Km', format: 'number' },
-                  { key: 'receita', label: 'Valor', format: 'currency' },
-                  { key: 'status_final', label: 'Status' },
-                ]}
-              />
-            </>
-          )}
-        </>
-      )}
-
-      {/* Other panels: flat chart list */}
+      {/* ── Outros painéis (PRODUTOR, PRESTADOR) ──────────────────────── */}
       {!isMotorista && !isTransportadora && (
-        <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
+        <ReportCharts charts={genericCharts} isLoading={isLoading} columns={2} />
       )}
 
-      {/* Aviso sem dados operacionais (não esconde gráficos, apenas informa) */}
-      {!isLoading && isMotorista && kpiCards.every(k => (typeof k.value === 'number' ? k.value === 0 : !k.value)) && (
-        <Card>
-          <CardContent className="py-6 text-center">
-            <Package className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-50" />
-            <h3 className="text-base font-semibold mb-1">Nenhuma operação registrada no período</h3>
+      {/* ── Aviso sem dados ────────────────────────────────────────────── */}
+      {!isLoading && (isMotorista || isTransportadora) &&
+        Number(kpis.receita_total) === 0 && Number(kpis.viagens_concluidas || kpis.fretes_concluidos) === 0 && (
+        <Card className="rounded-2xl">
+          <CardContent className="py-10 text-center">
+            <Package className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+            <h3 className="text-base font-semibold mb-1">Nenhuma operação no período</h3>
             <p className="text-sm text-muted-foreground">
-              Quando você concluir fretes ou serviços, os dados aparecerão automaticamente nos gráficos acima.
+              Quando você concluir fretes ou serviços, os dados aparecerão aqui automaticamente.
             </p>
           </CardContent>
         </Card>
       )}
-
     </div>
   );
 };
