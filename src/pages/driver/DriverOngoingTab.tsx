@@ -382,6 +382,8 @@ export const DriverOngoingTab: React.FC = () => {
                       urgency: r.urgency || undefined,
                       preferred_datetime: r.preferred_datetime || undefined,
                       additional_info: r.additional_info || undefined,
+                      driver_lat: r.driver_lat || undefined,
+                      driver_lng: r.driver_lng || undefined,
                     }}
                     onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho da coleta!")}
                     onStartTransit={(id) => handleTransitionService(id, "IN_PROGRESS", "Em trânsito!")}
