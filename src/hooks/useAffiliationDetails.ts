@@ -36,6 +36,7 @@ export const useAffiliationDetails = () => {
     queryFn: async (): Promise<AffiliationDetails | null> => {
       if (!profile?.id || !companyDriver?.company_id) return null;
       
+      // Buscar dados do company_drivers com informações da empresa (sem join em profiles que causa 403)
       const { data, error } = await supabase
         .from('company_drivers')
         .select(`
@@ -47,14 +48,7 @@ export const useAffiliationDetails = () => {
             address,
             city,
             state,
-            antt_registration,
-            owner:profile_id(
-              id,
-              full_name,
-              email,
-              contact_phone,
-              phone
-            )
+            antt_registration
           )
         `)
         .eq('driver_profile_id', profile.id)
@@ -65,7 +59,6 @@ export const useAffiliationDetails = () => {
       if (!data) return null;
       
       const company = data.company as any;
-      const owner = company?.owner;
       
       return {
         companyId: company?.id || '',
@@ -75,9 +68,9 @@ export const useAffiliationDetails = () => {
         companyCity: company?.city,
         companyState: company?.state,
         companyAntt: company?.antt_registration,
-        ownerName: owner?.full_name || 'Não informado',
-        ownerEmail: owner?.email || 'Não informado',
-        ownerPhone: owner?.contact_phone || owner?.phone,
+        ownerName: 'Não informado',
+        ownerEmail: 'Não informado',
+        ownerPhone: undefined,
         affiliationType: (data.affiliation_type || 'AFFILIATED') as 'AFFILIATED' | 'EMPLOYEE',
         status: (data.status || 'PENDING') as 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'LEFT',
         canAcceptFreights: data.can_accept_freights || false,
