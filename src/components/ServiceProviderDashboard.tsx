@@ -88,6 +88,7 @@ import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 import { ServiceProposalSection } from '@/components/service-provider/ServiceProposalSection';
+import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
 import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useServiceProposals } from '@/hooks/useServiceProposals';
@@ -1313,24 +1314,20 @@ export const ServiceProviderDashboard: React.FC = () => {
           </div>
 
           <TabsContent value="pending" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
+            {/* Cabeçalho */}
+            <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold">Solicitações Disponíveis</h3>
+                <h3 className="text-lg font-semibold">Disponíveis</h3>
                 <p className="text-xs text-muted-foreground">
-                  Atualizado há {Math.floor((new Date().getTime() - lastAvailableRefresh.getTime()) / 60000)} min • 
-                  Atualização em tempo real
+                  Há {Math.floor((new Date().getTime() - lastAvailableRefresh.getTime()) / 60000)} min · tempo real
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {filteredRequests.length}
-                </Badge>
-                <Button 
-                  variant="outline" 
+                <Badge variant="secondary" className="text-xs">{filteredRequests.length}</Badge>
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => {
-                    fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true });
-                  }}
+                  onClick={() => fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true })}
                   className="text-xs h-7"
                   disabled={inFlightRef.current}
                 >
@@ -1340,128 +1337,129 @@ export const ServiceProviderDashboard: React.FC = () => {
             </div>
 
             {/* Barra de Pesquisa */}
-            <div className="mb-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar serviços por descrição ou tipo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 pr-4 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar por descrição ou tipo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 pl-10 pr-9 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
               {searchTerm && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  {filteredRequests.length} {filteredRequests.length === 1 ? 'resultado encontrado' : 'resultados encontrados'} para "{searchTerm}"
-                </p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               )}
             </div>
 
             {filteredRequests.length > 0 ? (
-              <div className="space-y-4">
-                {filteredRequests.map((request) => (
-                  <Button
-                    key={request.id}
-                    variant="ghost"
-                    className="w-full p-0 h-auto text-left hover:bg-transparent group"
-                    onClick={() => {
-                      setSelectedRequest(request);
-                      setShowRequestModal(true);
-                    }}
-                  >
-                    <Card className="w-full transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-primary/50 text-left bg-white/80 backdrop-blur-sm dark:bg-gray-900/80 border-2 border-l-[6px] border-l-green-500">
-                      <CardContent className="p-4 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-primary/10 dark:group-hover:from-gray-900 dark:group-hover:to-primary/5 transition-all duration-300">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold text-sm">
-                            {normalizeServiceType(request.service_type)}
-                          </h3>
-                          <Badge variant={getUrgencyColor(request.urgency)} className="text-xs shadow-sm">
-                            {request.urgency === 'URGENT' ? 'Urgente' : 
-                             request.urgency === 'HIGH' ? 'Alto' :
-                             request.urgency === 'MEDIUM' ? 'Médio' : 'Baixo'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2 mb-3">
-                          <p className="text-sm text-muted-foreground whitespace-normal break-words">
-                            <strong>Problema:</strong> {request.problem_description || 'Não especificado'}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            <MapPin className="inline h-3 w-3 mr-1" />
-                            {getDisplayLocation(request)}
-                          </p>
-                           {request.estimated_price && (
-                             <p className="text-sm font-semibold text-green-600">
-                               <DollarSign className="inline h-3 w-3 mr-1" />
-                               Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                             </p>
-                           )}
-                           <p className="text-xs text-muted-foreground">
-                             <Clock className="inline h-3 w-3 mr-1" />
-                             {new Date(request.created_at).toLocaleTimeString('pt-BR')}
-                           </p>
-                           {/* Proposta compacta no card disponível - somente para clientes cadastrados */}
-                           {request.client_id && (
-                             <ServiceProposalSection
-                               proposals={getProposalsForRequest(request.id)}
-                               currentUserProfileId={profile?.id || ''}
-                               viewerRole="PROVIDER"
-                               onSubmitProposal={() => {}}
-                               onAcceptProposal={() => {}}
-                               onRejectProposal={() => {}}
-                               compact
-                             />
-                           )}
-                        </div>
-                        
-                        <div className="mt-3 text-xs text-primary font-semibold flex items-center justify-center gap-1 group-hover:gap-2 transition-all">
-                          Clique para ver detalhes 
-                          <span className="group-hover:translate-x-1 transition-transform">→</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Button>
-                ))}
+              <div className="space-y-3">
+                {filteredRequests.map((request) => {
+                  const urgencyColor = request.urgency === 'URGENT' || request.urgency === 'HIGH'
+                    ? 'border-l-red-500'
+                    : request.urgency === 'MEDIUM'
+                    ? 'border-l-yellow-500'
+                    : 'border-l-primary';
+
+                  return (
+                    <button
+                      key={request.id}
+                      className="w-full text-left group"
+                      onClick={() => { setSelectedRequest(request); setShowRequestModal(true); }}
+                    >
+                      <Card className={`border-l-4 ${urgencyColor} shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 bg-card`}>
+                        <CardContent className="p-4 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Wrench className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="font-bold text-sm truncate">{normalizeServiceType(request.service_type)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {(request.urgency === 'URGENT' || request.urgency === 'HIGH') && (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 animate-pulse">
+                                  <Zap className="h-3 w-3 mr-0.5" />URGENTE
+                                </Badge>
+                              )}
+                              <Badge variant={getUrgencyColor(request.urgency)} className="text-[10px] px-1.5">
+                                {request.urgency === 'URGENT' ? 'Urgente' : request.urgency === 'HIGH' ? 'Alto' : request.urgency === 'MEDIUM' ? 'Médio' : 'Normal'}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {/* Descrição */}
+                          {request.problem_description && (
+                            <div className="bg-muted/50 rounded-lg px-3 py-2">
+                              <p className="text-xs text-muted-foreground line-clamp-2">{request.problem_description}</p>
+                            </div>
+                          )}
+
+                          {/* Localização + Valor */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
+                              <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                              <span className="truncate">{getDisplayLocation(request)}</span>
+                            </div>
+                            {request.estimated_price ? (
+                              <span className="text-sm font-bold text-green-600 flex-shrink-0">
+                                R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground flex-shrink-0">A combinar</span>
+                            )}
+                          </div>
+
+                          {/* Rodapé */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(request.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                            </span>
+                            <span className="text-[11px] font-semibold text-primary flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
+                              Ver detalhes <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                            </span>
+                          </div>
+
+                          {/* Proposta compacta - somente para clientes cadastrados */}
+                          {request.client_id && (
+                            <ServiceProposalSection
+                              proposals={getProposalsForRequest(request.id)}
+                              currentUserProfileId={profile?.id || ''}
+                              viewerRole="PROVIDER"
+                              onSubmitProposal={() => {}}
+                              onAcceptProposal={() => {}}
+                              onRejectProposal={() => {}}
+                              compact
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <Card className="p-8 text-center space-y-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
+              <Card className="p-8 text-center space-y-4 border-2 border-dashed">
                 {cardCounts.available === 0 ? (
                   <>
                     <Settings className="w-16 h-16 mx-auto text-muted-foreground animate-pulse" />
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Configure seu perfil</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Para começar a receber solicitações, você precisa:
-                      </p>
-                      <ul className="text-left max-w-md mx-auto space-y-2 mb-6 text-sm">
-                        <li className="flex items-start">
-                          <span className="mr-2">✓</span>
-                          <span>Configurar as regiões onde você atende</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="mr-2">✓</span>
-                          <span>Definir os tipos de serviço que oferece</span>
-                        </li>
-                      </ul>
+                      <p className="text-muted-foreground text-sm mb-4">Para receber solicitações, configure sua região e tipos de serviço.</p>
                       <div className="flex gap-3 justify-center flex-wrap">
-                        <Button onClick={() => setActiveTab('cities')}>
+                        <Button onClick={() => setActiveTab('cities')} size="sm">
                           <MapPin className="w-4 h-4 mr-2" />
                           Configurar Regiões
                         </Button>
-                        <Button onClick={() => setActiveTab('services')} variant="outline">
+                        <Button onClick={() => setActiveTab('services')} variant="outline" size="sm">
                           <Wrench className="w-4 h-4 mr-2" />
                           Configurar Serviços
                         </Button>
@@ -1479,93 +1477,48 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="accepted" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Serviços em Andamento</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Em Andamento</h3>
               <Badge variant="secondary" className="text-xs">
                 {ownRequests.filter(r => r.provider_id && ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'].includes(r.status?.toUpperCase())).length}
               </Badge>
             </div>
-            
+
             {(() => {
               const acceptedFiltered = ownRequests.filter(r => r.provider_id && ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'].includes(r.status?.toUpperCase()));
-              
+
               return acceptedFiltered.length > 0 ? (
                 <div className="space-y-4">
                   {acceptedFiltered.map((request) => (
-                  <Card key={request.id} className="shadow-lg border-l-[6px] border-l-orange-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-sm">
-                            {normalizeServiceType(request.service_type)}
-                          </h3>
-                          {!request.client_id && (
-                            <Badge variant="outline" className="text-xs">
-                              <User className="h-3 w-3 mr-1" />
-                              Sem cadastro
-                            </Badge>
-                          )}
-                        </div>
-                        <ServiceStatusBadge status={request.status} />
-                      </div>
-                      
-                       <div className="space-y-3 mb-4">
-                         <div className="bg-muted/50 rounded-lg p-3">
-                           <p className="text-sm text-muted-foreground">
-                             <strong className="text-foreground">Problema:</strong> {request.problem_description}
-                           </p>
-                         </div>
-                         
-                         <div className="grid grid-cols-2 gap-3">
-                           <div className="space-y-1">
-                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Localização</p>
-                             <p className="text-sm flex items-start gap-1">
-                               <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-                               <span>{getDisplayLocation(request)}</span>
-                             </p>
-                             {request.location_address && request.location_address !== getDisplayLocation(request) && (
-                               <p className="text-xs text-muted-foreground pl-4">
-                                 {request.location_address}
-                               </p>
-                             )}
-                           </div>
-                           
-                           <div className="space-y-1">
-                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data/Hora</p>
-                             <p className="text-sm flex items-center gap-1">
-                               <Calendar className="h-3.5 w-3.5 text-primary" />
-                               {request.accepted_at 
-                                 ? new Date(request.accepted_at).toLocaleDateString('pt-BR')
-                                 : new Date(request.created_at).toLocaleDateString('pt-BR')}
-                             </p>
-                           </div>
-                         </div>
-                         
-                         <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200/50">
-                           <div>
-                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Valor do Serviço</p>
-                             <p className="text-lg font-bold text-green-600">
-                               <DollarSign className="inline h-4 w-4" />
-                               {request.estimated_price 
-                                 ? request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-                                 : 'A combinar'}
-                             </p>
-                           </div>
-                         </div>
-                         
-                         {/* Contato do Cliente — visível após aceite */}
-                         {request.provider_id && (
-                           <ContactInfoCard
-                             requesterName={request.profiles?.full_name || request.contact_name}
-                             contactPhone={request.contact_phone}
-                             requesterPhone={request.profiles?.phone}
-                             showWhatsApp={true}
-                           />
-                         )}
-                       </div>
-
-                       {/* Propostas de valor - somente para clientes cadastrados */}
-                        {request.client_id && (
+                    <ServiceRequestInProgressCard
+                      key={request.id}
+                      request={{
+                        id: request.id,
+                        service_type: request.service_type,
+                        status: request.status,
+                        contact_name: request.contact_name || request.profiles?.full_name,
+                        contact_phone: request.contact_phone || request.profiles?.phone,
+                        location_address: request.location_address,
+                        location_lat: request.location_lat,
+                        location_lng: request.location_lng,
+                        problem_description: request.problem_description,
+                        estimated_price: request.estimated_price,
+                        is_emergency: request.is_emergency,
+                        client_id: request.client_id,
+                        city_name: request.city_name,
+                        state: request.state,
+                        created_at: request.created_at,
+                        accepted_at: request.accepted_at,
+                        vehicle_info: request.vehicle_info,
+                        urgency: request.urgency,
+                        additional_info: request.additional_info,
+                      }}
+                      onMarkOnTheWay={(id) => handleStatusChange(id, 'ON_THE_WAY')}
+                      onStartTransit={(id) => handleStatusChange(id, 'IN_PROGRESS')}
+                      onFinishService={(id) => handleStatusChange(id, 'COMPLETED')}
+                      onCancel={() => { setServiceToCancel(request); setCancelDialogOpen(true); }}
+                      proposalsSection={
+                        request.client_id ? (
                           <ServiceProposalSection
                             proposals={getProposalsForRequest(request.id)}
                             currentUserProfileId={profile?.id || ''}
@@ -1575,79 +1528,83 @@ export const ServiceProviderDashboard: React.FC = () => {
                             onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
                             submitting={proposalSubmitting}
                           />
-                        )}
-                      
-                       {/* Botões sequenciais de workflow — via RPC atômica */}
-                       <ServiceWorkflowActions
-                         requestId={request.id}
-                         currentStatus={request.status}
-                         clientId={request.client_id}
-                         estimatedPrice={request.estimated_price}
-                         onStatusChange={handleStatusChange}
-                         onOpenChat={() => {
-                           setSelectedChatRequest(request);
-                           setChatDialogOpen(true);
-                         }}
-                         onCancel={() => {
-                           setServiceToCancel(request);
-                           setCancelDialogOpen(true);
-                         }}
-                       />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-8 text-center space-y-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
-                <Play className="h-16 w-16 mx-auto text-muted-foreground animate-pulse" />
-                <p className="text-muted-foreground">Nenhum serviço em andamento.</p>
-              </Card>
-            );
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center space-y-4 border-2 border-dashed">
+                  <Play className="h-16 w-16 mx-auto text-muted-foreground animate-pulse" />
+                  <p className="text-muted-foreground">Nenhum serviço em andamento.</p>
+                </Card>
+              );
             })()}
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Serviços Concluídos</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Concluídos</h3>
               <Badge variant="secondary" className="text-xs">
                 {ownRequests.filter(r => r.provider_id && r.status === 'COMPLETED').length}
               </Badge>
             </div>
-            
+
             {ownRequests.filter(r => r.provider_id && r.status === 'COMPLETED').length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {ownRequests.filter(r => r.provider_id && r.status === 'COMPLETED').map((request) => (
-                  <Card key={request.id} className="shadow-md border-l-[6px] border-l-green-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-green-50/20 dark:from-gray-900 dark:to-green-950/10">
-                     <CardContent className="p-4">
-                       <div className="flex items-center justify-between mb-3">
-                         <h3 className="font-medium text-sm">
-                           {normalizeServiceType(request.service_type)}
-                         </h3>
-                         <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
-                           Concluído
-                         </Badge>
-                       </div>
-                       
-                       <div className="space-y-2 mb-3">
-                         <p className="text-sm text-muted-foreground">
-                           <strong>Cliente:</strong> {request.profiles?.full_name || request.contact_name || 'Cliente'}
-                         </p>
-                         <p className="text-sm text-muted-foreground">
-                           <MapPin className="inline h-3 w-3 mr-1" />
-                           {getDisplayLocation(request)}
-                         </p>
-                         {request.final_price && (
-                           <p className="text-sm font-medium text-green-600">
-                             <DollarSign className="inline h-3 w-3 mr-1" />
-                             Pago: R$ {request.final_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                           </p>
-                         )}
-                         <p className="text-xs text-muted-foreground">
-                           <Clock className="inline h-3 w-3 mr-1" />
-                           Concluído em: {new Date(request.completed_at || request.updated_at || request.created_at).toLocaleDateString('pt-BR')}
-                         </p>
-                       </div>
-                     </CardContent>
+                  <Card key={request.id} className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-all bg-card">
+                    <CardContent className="p-4 space-y-3">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="font-bold text-sm">{normalizeServiceType(request.service_type)}</span>
+                        </div>
+                        <Badge className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-0">
+                          <CheckCircle className="h-3 w-3 mr-1" />Concluído
+                        </Badge>
+                      </div>
+
+                      {/* Cliente + Localização */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cliente</p>
+                          <p className="text-sm font-medium flex items-center gap-1">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                            {request.profiles?.full_name || request.contact_name || 'Não informado'}
+                          </p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Local</p>
+                          <p className="text-sm flex items-center gap-1 truncate">
+                            <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                            <span className="truncate">{getDisplayLocation(request)}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Valor + Data */}
+                      <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/30 rounded-lg px-3 py-2 border border-green-200/50 dark:border-green-800/50">
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Valor recebido</p>
+                          <p className="text-base font-black text-green-600">
+                            {request.final_price
+                              ? `R$ ${request.final_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                              : request.estimated_price
+                              ? `R$ ${request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                              : 'A combinar'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Concluído em</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(request.completed_at || request.updated_at || request.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
                   </Card>
                 ))}
               </div>
