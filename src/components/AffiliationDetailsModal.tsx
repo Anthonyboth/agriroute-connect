@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { AffiliationDirectChat } from '@/components/AffiliationDirectChat';
 import { 
   Building2, 
   User, 
@@ -19,13 +20,15 @@ import {
   Calendar, 
   CheckCircle, 
   AlertCircle, 
-  Check, 
   X, 
   Loader2, 
   AlertTriangle,
   MapPin,
   FileText,
-  LogOut
+  LogOut,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,6 +43,7 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
   const { affiliationDetails, isLoading, hasAffiliation } = useAffiliationDetails();
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const queryClient = useQueryClient();
 
   const formatCnpj = (cnpj: string) => {
@@ -49,7 +53,9 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
 
   const formatPhone = (phone: string) => {
     if (!phone) return '';
-    return phone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 11) return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+    return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
   };
 
   const formatDate = (dateString: string) => {
@@ -69,8 +75,7 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
     setIsLeaving(true);
 
     try {
-      // Usar atualização direta para motorista sair da transportadora
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('company_drivers')
         .update({ 
           status: 'INACTIVE',
@@ -82,12 +87,10 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
 
       if (error) throw error;
       
-      // Verificar se alguma linha foi afetada
       if (!data || data.length === 0) {
         throw new Error('Não foi possível sair da transportadora. Verifique suas permissões.');
       }
 
-      // Atualizar role do perfil de volta para MOTORISTA
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ role: 'MOTORISTA' })
@@ -95,7 +98,6 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
 
       if (profileError) console.warn('Erro ao atualizar role:', profileError);
 
-      // Invalidar queries relevantes
       queryClient.invalidateQueries({ queryKey: ['affiliation-details'] });
       queryClient.invalidateQueries({ queryKey: ['company-driver'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -221,11 +223,16 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
                 <CardContent className="space-y-3">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Nome</p>
-                    <p className="text-base font-semibold">{affiliationDetails.ownerName}</p>
+                    <p className="text-base font-semibold">
+                      {affiliationDetails.ownerName && affiliationDetails.ownerName !== 'Não informado'
+                        ? affiliationDetails.ownerName
+                        : <span className="text-muted-foreground italic">Não informado</span>
+                      }
+                    </p>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2">
-                    {affiliationDetails.ownerEmail && (
+                    {affiliationDetails.ownerEmail && affiliationDetails.ownerEmail !== 'Não informado' && (
                       <Button variant="outline" size="sm" asChild className="flex-1">
                         <a href={`mailto:${affiliationDetails.ownerEmail}`}>
                           <Mail className="h-4 w-4 mr-2" />
@@ -242,8 +249,57 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
                         </a>
                       </Button>
                     )}
+
+                    {!affiliationDetails.ownerEmail && !affiliationDetails.ownerPhone && affiliationDetails.ownerName === 'Não informado' && (
+                      <p className="text-sm text-muted-foreground italic">
+                        Dados de contato não disponíveis
+                      </p>
+                    )}
                   </div>
                 </CardContent>
+              </Card>
+
+              {/* Chat Permanente com a Transportadora */}
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                      Chat com a Transportadora
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowChat(!showChat)}
+                      className="h-8"
+                    >
+                      {showChat ? (
+                        <>
+                          <ChevronUp className="h-4 w-4 mr-1" />
+                          Ocultar
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4 mr-1" />
+                          Abrir Chat
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {!showChat && (
+                    <p className="text-sm text-muted-foreground">
+                      Canal de comunicação permanente — sempre ativo enquanto você estiver afiliado
+                    </p>
+                  )}
+                </CardHeader>
+                {showChat && (
+                  <CardContent className="pt-0">
+                    <AffiliationDirectChat
+                      companyId={affiliationDetails.companyId}
+                      companyName={affiliationDetails.companyName}
+                    />
+                  </CardContent>
+                )}
               </Card>
 
               {/* Status da Afiliação */}
