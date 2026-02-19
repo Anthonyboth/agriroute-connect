@@ -4174,6 +4174,7 @@ export type Database = {
           company_id: string | null
           completed_at: string | null
           created_at: string
+          delivery_confirmed_at: string | null
           destination_city: string | null
           destination_state: string | null
           distance_km: number | null
@@ -4182,7 +4183,10 @@ export type Database = {
           id: string
           origin_city: string | null
           origin_state: string | null
+          payment_confirmed_by_driver_at: string | null
+          payment_confirmed_by_producer_at: string | null
           status_final: string
+          trip_snapshot: Json | null
           weight_per_truck: number | null
         }
         Insert: {
@@ -4192,6 +4196,7 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
+          delivery_confirmed_at?: string | null
           destination_city?: string | null
           destination_state?: string | null
           distance_km?: number | null
@@ -4200,7 +4205,10 @@ export type Database = {
           id?: string
           origin_city?: string | null
           origin_state?: string | null
+          payment_confirmed_by_driver_at?: string | null
+          payment_confirmed_by_producer_at?: string | null
           status_final: string
+          trip_snapshot?: Json | null
           weight_per_truck?: number | null
         }
         Update: {
@@ -4210,6 +4218,7 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
+          delivery_confirmed_at?: string | null
           destination_city?: string | null
           destination_state?: string | null
           distance_km?: number | null
@@ -4218,7 +4227,10 @@ export type Database = {
           id?: string
           origin_city?: string | null
           origin_state?: string | null
+          payment_confirmed_by_driver_at?: string | null
+          payment_confirmed_by_producer_at?: string | null
           status_final?: string
+          trip_snapshot?: Json | null
           weight_per_truck?: number | null
         }
         Relationships: []
@@ -4795,6 +4807,8 @@ export type Database = {
           company_id: string | null
           completed_at: string | null
           created_at: string
+          delivery_confirmed_at: string | null
+          delivery_confirmed_by: string | null
           destination_city: string | null
           destination_state: string | null
           distance_km: number | null
@@ -4804,12 +4818,15 @@ export type Database = {
           is_guest_freight: boolean
           origin_city: string | null
           origin_state: string | null
+          payment_confirmed_by_driver_at: string | null
+          payment_confirmed_by_producer_at: string | null
           price_per_truck: number
           price_total: number
           producer_id: string | null
           required_trucks: number
           source: string
           status_final: string
+          trip_snapshot: Json | null
           weight: number | null
         }
         Insert: {
@@ -4819,6 +4836,8 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
+          delivery_confirmed_at?: string | null
+          delivery_confirmed_by?: string | null
           destination_city?: string | null
           destination_state?: string | null
           distance_km?: number | null
@@ -4828,12 +4847,15 @@ export type Database = {
           is_guest_freight?: boolean
           origin_city?: string | null
           origin_state?: string | null
+          payment_confirmed_by_driver_at?: string | null
+          payment_confirmed_by_producer_at?: string | null
           price_per_truck?: number
           price_total?: number
           producer_id?: string | null
           required_trucks?: number
           source?: string
           status_final: string
+          trip_snapshot?: Json | null
           weight?: number | null
         }
         Update: {
@@ -4843,6 +4865,8 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
+          delivery_confirmed_at?: string | null
+          delivery_confirmed_by?: string | null
           destination_city?: string | null
           destination_state?: string | null
           distance_km?: number | null
@@ -4852,12 +4876,15 @@ export type Database = {
           is_guest_freight?: boolean
           origin_city?: string | null
           origin_state?: string | null
+          payment_confirmed_by_driver_at?: string | null
+          payment_confirmed_by_producer_at?: string | null
           price_per_truck?: number
           price_total?: number
           producer_id?: string | null
           required_trucks?: number
           source?: string
           status_final?: string
+          trip_snapshot?: Json | null
           weight?: number | null
         }
         Relationships: []
@@ -14476,6 +14503,15 @@ export type Database = {
       }
       run_compliance_expiry_check: { Args: never; Returns: Json }
       sanitize_document: { Args: { doc: string }; Returns: string }
+      save_freight_completion_snapshot: {
+        Args: {
+          p_delivery_confirmed_by?: string
+          p_freight_id: string
+          p_payment_confirmed_by_driver_at?: string
+          p_payment_confirmed_by_producer_at?: string
+        }
+        Returns: Json
+      }
       save_zip_to_cache: {
         Args: {
           p_city_id?: string
