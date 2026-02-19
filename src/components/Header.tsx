@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useHasMultipleProfiles } from '@/hooks/useHasMultipleProfiles';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -103,6 +104,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const [isTransportCompany, setIsTransportCompany] = React.useState(false);
   const { isCompanyDriver } = useCompanyDriver();
+  const { hasMultiple: hasMultipleProfiles } = useHasMultipleProfiles();
 
   // Buscar solicitações de documentos pendentes para motoristas
   const { data: pendingDocRequests } = useQuery({
@@ -144,7 +146,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
-    ...(user?.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
+    ...(hasMultipleProfiles && user?.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user?.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Bell, label: 'Notificações', action: () => setShowNotificationPrefs(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
