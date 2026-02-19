@@ -460,7 +460,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             label="Faturamento Bruto"
             value={motoristaHero.value}
             trend={motoristaHero.trend}
-            subtitle="Fretes + serviços no período"
+            subtitle="Fretes no período"
             secondary={motoristaHero.secondary}
             isLoading={isLoading}
           />
