@@ -1,4 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
+import { useHasMultipleProfiles } from '@/hooks/useHasMultipleProfiles';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
   notifications = 0,
   userProfile
 }) => {
+  const { hasMultiple: hasMultipleProfiles } = useHasMultipleProfiles();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -74,7 +76,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
   // Memoized menu items to prevent recreation on every render
   const menuItems = React.useMemo(() => [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
-    ...(user.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
+    ...(hasMultipleProfiles && user.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
   ], [user.role]);
