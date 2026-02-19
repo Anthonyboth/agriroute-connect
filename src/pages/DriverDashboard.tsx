@@ -2714,7 +2714,7 @@ const DriverDashboard = () => {
           {/* Badge de motorista de empresa/afiliado */}
           {isCompanyDriver && companyName && (
             <div className="mb-4">
-              <CompanyDriverBadge companyName={companyName} isAffiliated={isAffiliated} />
+              <CompanyDriverBadge companyName={companyName} isAffiliated={isAffiliated} driverProfileId={profile?.id} />
             </div>
           )}
 
