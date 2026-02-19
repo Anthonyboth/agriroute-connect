@@ -14428,6 +14428,10 @@ export type Database = {
         }[]
       }
       migrate_profile_to_encrypted: { Args: { p_id: string }; Returns: boolean }
+      normalize_service_type_canonical: {
+        Args: { p_type: string }
+        Returns: string
+      }
       process_freight_withdrawal: {
         Args: { driver_profile_id: string; freight_id_param: string }
         Returns: Json
