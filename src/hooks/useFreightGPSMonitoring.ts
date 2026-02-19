@@ -38,8 +38,37 @@ export const useFreightGPSMonitoring = (
     let consecutiveFailures = 0;
     const MAX_FAILURES = 3;
     let lastIncidentReported: number | null = null;
+    let isCancelled = false;
+
+    // ✅ Verificar se o frete REALMENTE está ativo no banco antes de reportar incidentes
+    const verifyFreightIsActive = async (): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase
+          .from('freights')
+          .select('id, status')
+          .eq('id', freightId)
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+          .maybeSingle();
+
+        if (error) {
+          console.warn('[GPS Monitoring] Erro ao verificar status do frete:', error.message);
+          return false; // Em caso de erro, NÃO reportar incidente
+        }
+
+        if (!data) {
+          console.log('[GPS Monitoring] ⚠️ Frete não encontrado com status ativo. Ignorando incidente GPS.');
+          return false;
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
     const updateLocation = async () => {
+      if (isCancelled) return;
+
       try {
         const position = await getCurrentPositionSafe(2);
         
@@ -85,6 +114,14 @@ export const useFreightGPSMonitoring = (
             console.log(`[GPS] Incidente GPS_DISABLED já reportado há ${minutesAgo} minutos. Pulando...`);
             return;
           }
+
+          // ✅ CRÍTICO: Verificar no banco se o frete REALMENTE está ativo
+          const isReallyActive = await verifyFreightIsActive();
+          if (!isReallyActive) {
+            console.log('[GPS Monitoring] 🛑 Frete NÃO está ativo no banco. Suprimindo notificação GPS_DISABLED.');
+            consecutiveFailures = 0; // Reset para não tentar novamente
+            return;
+          }
           
           try {
             await supabase.functions.invoke('tracking-service/incidents', {
@@ -117,6 +154,7 @@ export const useFreightGPSMonitoring = (
     const intervalId = setInterval(updateLocation, updateInterval);
 
     return () => {
+      isCancelled = true;
       console.log('[GPS Monitoring] Parando rastreamento para frete:', freightId);
       clearInterval(intervalId);
     };

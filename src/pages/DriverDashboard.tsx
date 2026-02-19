@@ -285,7 +285,7 @@ const DriverDashboard = () => {
 
   // Monitoramento GPS para fretes em andamento
   const activeFreight = ongoingFreights.find(f =>
-    f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED'
+    f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED' || f.status === 'LOADING' || f.status === 'LOADED'
   );
   const isFreightActive = !!activeFreight;
   
