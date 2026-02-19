@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   MapPin, MessageSquare, Navigation, CheckCircle, Truck, Clock,
-  Car, AlertTriangle, Calendar, Mail, User, Map
+  Car, AlertTriangle, Calendar, Mail, User, Map, Eye, Route
 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
@@ -58,7 +58,7 @@ const MARKERS_LAYER_ID = 'service-markers-layer';
 const ROUTE_SOURCE_ID = 'service-route-source';
 const ROUTE_LAYER_ID = 'service-route-layer';
 
-// Mini-mapa embutido no card com marcadores A/B + veículo via canvas WebGL
+// Mini-mapa interativo com marcadores A/B + veículo via canvas WebGL + controles
 const InlineTrackingMap = React.memo(({ 
   originLat, originLng, 
   destLat, destLng,
@@ -76,6 +76,8 @@ const InlineTrackingMap = React.memo(({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const iconsRegisteredRef = useRef(false);
   const [mapError, setMapError] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
 
   const origin = useMemo(() => ({ lat: originLat, lng: originLng }), [originLat, originLng]);
   const destination = useMemo(() => {
@@ -117,6 +119,31 @@ const InlineTrackingMap = React.memo(({
     return { center: [origin.lng, origin.lat] as [number, number], zoom: 13 };
   }, [origin, destination, driverPos]);
 
+  // ✅ Centralizar no motorista
+  const handleCenterOnDriver = useCallback(() => {
+    if (mapRef.current && driverPos) {
+      mapRef.current.flyTo({
+        center: [driverPos.lng, driverPos.lat],
+        zoom: 14,
+        duration: 1000,
+      });
+    }
+  }, [driverPos]);
+
+  // ✅ Ver tudo (fit bounds)
+  const handleFitBounds = useCallback(() => {
+    if (!mapRef.current) return;
+    const validPoints = [origin, destination, driverPos].filter(Boolean) as Array<{ lat: number; lng: number }>;
+    if (validPoints.length === 0) return;
+    if (validPoints.length === 1) {
+      mapRef.current.flyTo({ center: [validPoints[0].lng, validPoints[0].lat], zoom: 12, duration: 1000 });
+      return;
+    }
+    const bounds = new maplibregl.LngLatBounds();
+    validPoints.forEach(p => bounds.extend([p.lng, p.lat]));
+    mapRef.current.fitBounds(bounds, { padding: 50, duration: 1000 });
+  }, [origin, destination, driverPos]);
+
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
@@ -126,11 +153,16 @@ const InlineTrackingMap = React.memo(({
         style: RURAL_STYLE_INLINE,
         center,
         zoom,
-        interactive: false,
+        interactive: true,
         attributionControl: false,
       });
 
+      // Add zoom/navigation control
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
       map.on('load', async () => {
+        setMapLoaded(true);
+
         // Register canvas icons (A, B, truck)
         if (!iconsRegisteredRef.current) {
           try {
@@ -201,6 +233,12 @@ const InlineTrackingMap = React.memo(({
                 },
               });
 
+              // Set route info
+              setRouteInfo({
+                distanceText: osrmResult.distanceText,
+                durationText: osrmResult.durationText,
+              });
+
               // Fit bounds to route + markers
               const bounds = new maplibregl.LngLatBounds();
               osrmResult.coordinates.forEach(coord => bounds.extend(coord as [number, number]));
@@ -209,7 +247,6 @@ const InlineTrackingMap = React.memo(({
             }
           } catch (e) {
             console.warn('[InlineTrackingMap] OSRM fallback to straight line:', e);
-            // Fallback: straight line
             const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
             if (routeSource) {
               routeSource.setData({
@@ -245,6 +282,7 @@ const InlineTrackingMap = React.memo(({
       mapRef.current?.remove();
       mapRef.current = null;
       iconsRegisteredRef.current = false;
+      setMapLoaded(false);
     };
   }, [originLat, originLng, destLat, destLng, driverLat, driverLng, center, zoom, origin, destination, driverPos, isDriverOnline]);
 
@@ -257,10 +295,63 @@ const InlineTrackingMap = React.memo(({
   }
 
   return (
-    <div className="relative rounded-lg overflow-hidden border" style={{ height: '200px' }}>
+    <div className="relative rounded-lg overflow-hidden border" style={{ height: '280px' }}>
       <div ref={mapContainer} className="w-full h-full" />
+
+      {/* ✅ Status do motorista */}
+      {mapLoaded && (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge 
+            variant={isDriverOnline ? "default" : "secondary"}
+            className={`flex items-center gap-1.5 px-2 py-1 ${isDriverOnline ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}
+          >
+            <span className={`w-2 h-2 rounded-full ${isDriverOnline ? 'bg-white animate-pulse' : 'bg-destructive'}`} />
+            {isDriverOnline ? 'Online' : 'Offline'}
+          </Badge>
+        </div>
+      )}
+
+      {/* 🚗 Badge de rota OSRM */}
+      {mapLoaded && routeInfo && (
+        <div className="absolute bottom-2 left-2 z-10">
+          <Badge variant="outline" className="text-xs flex items-center gap-1.5 bg-background/90 shadow-sm">
+            <Route className="h-3 w-3 text-primary" />
+            <span>{routeInfo.distanceText}</span>
+            <span className="text-muted-foreground">•</span>
+            <span>{routeInfo.durationText}</span>
+          </Badge>
+        </div>
+      )}
+
+      {/* ✅ Botões de controle */}
+      {mapLoaded && (
+        <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleCenterOnDriver}
+            disabled={!driverPos}
+            className="h-8 px-2 shadow-md"
+            title="Centralizar no motorista"
+          >
+            <Navigation className="h-4 w-4 mr-1" />
+            Centralizar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleFitBounds}
+            className="h-8 px-2 shadow-md bg-background/90"
+            title="Ver trajeto completo"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Ver tudo
+          </Button>
+        </div>
+      )}
+
       {label && (
-        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded z-10">
           📍 {label}
         </div>
       )}
