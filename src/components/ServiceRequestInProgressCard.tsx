@@ -572,13 +572,6 @@ const ServiceRequestInProgressCardComponent = ({
             </div>
           )}
 
-          {/* Botão de navegação - abre Google Maps apenas para rota de navegação GPS */}
-          {hasAnyCoords && (
-            <Button variant="outline" size="sm" className="h-7 text-xs w-full mt-1" onClick={openInMaps}>
-              <Navigation className="h-3 w-3 mr-1" />
-              Navegar até o destino
-            </Button>
-          )}
         </div>
 
         {/* Data preferida */}
