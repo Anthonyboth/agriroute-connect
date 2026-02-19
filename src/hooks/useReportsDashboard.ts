@@ -47,6 +47,11 @@ interface UseReportsDashboardOptions {
   profileId: string | undefined;
   dateRange?: DateRange;
   filters?: Record<string, any>;
+  /**
+   * Quando false, o hook NÃO busca automaticamente.
+   * Útil para fluxos com botão "Atualizar" e auto-refresh controlado.
+   */
+  enabled?: boolean;
 }
 
 const DEFAULT_DATA: ReportsDashboardData = {
@@ -60,6 +65,7 @@ export function useReportsDashboard({
   profileId,
   dateRange,
   filters = {},
+  enabled,
 }: UseReportsDashboardOptions) {
   const [localDateRange, setLocalDateRange] = useState<DateRange>(
     dateRange || {
@@ -92,7 +98,7 @@ export function useReportsDashboard({
 
       return (data as unknown as ReportsDashboardData) || DEFAULT_DATA;
     },
-    enabled: !!profileId,
+    enabled: (enabled ?? !!profileId) && !!profileId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
