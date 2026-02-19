@@ -14,6 +14,7 @@ export interface AffiliationDetails {
   companyAntt?: string;
   
   // Responsável
+  ownerProfileId?: string;
   ownerName: string;
   ownerEmail: string;
   ownerPhone?: string;
@@ -32,11 +33,11 @@ export const useAffiliationDetails = () => {
   const { isCompanyDriver, companyDriver } = useCompanyDriver();
   
   const { data: affiliationDetails, isLoading, error } = useQuery({
-    queryKey: ['affiliation-details', profile?.id],
+    queryKey: ['affiliation-details', profile?.id, companyDriver?.company_id],
     queryFn: async (): Promise<AffiliationDetails | null> => {
       if (!profile?.id || !companyDriver?.company_id) return null;
       
-      // Buscar dados do company_drivers com informações da empresa (sem join em profiles que causa 403)
+      // Buscar dados da afiliação + empresa
       const { data, error } = await supabase
         .from('company_drivers')
         .select(`
@@ -59,6 +60,29 @@ export const useAffiliationDetails = () => {
       if (!data) return null;
       
       const company = data.company as any;
+
+      // Buscar dados do responsável via RPC segura
+      let ownerName = 'Não informado';
+      let ownerEmail = 'Não informado';
+      let ownerPhone: string | undefined = undefined;
+      let ownerProfileId: string | undefined = undefined;
+
+      try {
+        const { data: ownerData, error: ownerError } = await supabase
+          .rpc('get_company_owner_for_affiliated_driver', {
+            p_company_id: companyDriver.company_id,
+          });
+        
+        if (!ownerError && ownerData && ownerData.length > 0) {
+          const owner = ownerData[0];
+          ownerProfileId = owner.owner_profile_id;
+          ownerName = owner.owner_name || 'Não informado';
+          ownerEmail = owner.owner_email || 'Não informado';
+          ownerPhone = owner.owner_phone || undefined;
+        }
+      } catch (e) {
+        // Silently ignore - owner data is optional
+      }
       
       return {
         companyId: company?.id || '',
@@ -68,9 +92,10 @@ export const useAffiliationDetails = () => {
         companyCity: company?.city,
         companyState: company?.state,
         companyAntt: company?.antt_registration,
-        ownerName: 'Não informado',
-        ownerEmail: 'Não informado',
-        ownerPhone: undefined,
+        ownerProfileId,
+        ownerName,
+        ownerEmail,
+        ownerPhone,
         affiliationType: (data.affiliation_type || 'AFFILIATED') as 'AFFILIATED' | 'EMPLOYEE',
         status: (data.status || 'PENDING') as 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'LEFT',
         canAcceptFreights: data.can_accept_freights || false,

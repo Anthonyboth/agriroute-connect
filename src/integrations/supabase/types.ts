@@ -13539,6 +13539,15 @@ export type Database = {
           total_ratings: number
         }[]
       }
+      get_company_owner_for_affiliated_driver: {
+        Args: { p_company_id: string }
+        Returns: {
+          owner_email: string
+          owner_name: string
+          owner_phone: string
+          owner_profile_id: string
+        }[]
+      }
       get_company_report_charts: {
         Args: { p_company_id: string; p_end_at: string; p_start_at: string }
         Returns: Json
