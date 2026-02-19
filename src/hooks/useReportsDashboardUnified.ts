@@ -49,7 +49,7 @@ export function useReportsDashboardUnified({ panel, profileId }: UseReportsDashb
     profileId,
     dateRange,
     filters: rpcFilters,
-    enabled: false, // controlado pelo useControlledRefresh
+    enabled: !!profileId, // executa automaticamente quando profileId está disponível
   });
 
   const {
