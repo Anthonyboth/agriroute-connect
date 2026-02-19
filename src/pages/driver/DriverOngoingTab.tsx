@@ -352,8 +352,8 @@ export const DriverOngoingTab: React.FC = () => {
           {serviceRequests.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
-                <Bike className="h-4 w-4" />
-                Chamados e Serviços ({serviceRequests.length})
+                <Truck className="h-4 w-4" />
+                Fretes Urbanos ({serviceRequests.length})
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {serviceRequests.map((r) => (
