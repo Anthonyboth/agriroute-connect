@@ -24,41 +24,39 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
     }
   }, [profile]);
 
-  const handleServiceToggle = (serviceId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedServices(prev => [...prev, serviceId]);
-    } else {
-      setSelectedServices(prev => prev.filter(id => id !== serviceId));
-    }
-  };
-
-  const handleSave = async () => {
+  const saveServices = async (services: string[]) => {
     if (!profile) return;
-    
-    if (selectedServices.length === 0) {
+
+    if (services.length === 0) {
       toast.error('Você deve selecionar pelo menos um tipo de serviço');
       return;
     }
-    
+
     setLoading(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ service_types: selectedServices })
+        .update({ service_types: services })
         .eq('id', profile.id);
 
       if (error) throw error;
 
-      toast.success('Tipos de serviço atualizados com sucesso!');
+      toast.success('Tipo de serviço atualizado!');
     } catch (error: any) {
       console.error('Erro ao atualizar tipos de serviço:', error);
-      toast.error('Erro ao salvar configurações. Tente novamente.');
+      toast.error('Erro ao salvar. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  const hasChanges = JSON.stringify(selectedServices.sort()) !== JSON.stringify((profile?.service_types || []).sort());
+  const handleServiceToggle = (serviceId: string, checked: boolean) => {
+    const updated = checked
+      ? [...selectedServices, serviceId]
+      : selectedServices.filter(id => id !== serviceId);
+    setSelectedServices(updated);
+    saveServices(updated);
+  };
 
   if (initialLoading) {
     return (
@@ -111,23 +109,13 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
           </p>
         </div>
 
-        {/* Botões */}
-        <div className="flex justify-end gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedServices(profile?.service_types || [])}
-            disabled={!hasChanges || loading}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={!hasChanges || loading}
-            className="gradient-primary"
-          >
-            {loading ? 'Salvando...' : 'Salvar Alterações'}
-          </Button>
-        </div>
+        {/* Indicador de salvamento automático */}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            Salvando...
+          </div>
+        )}
       </CardContent>
     </Card>
   );
