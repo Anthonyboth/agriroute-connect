@@ -3,25 +3,27 @@
  * 
  * Painel de relatórios unificado que usa a RPC get_reports_dashboard.
  * Compatível com todos os painéis (PRODUTOR, MOTORISTA, TRANSPORTADORA, PRESTADOR).
+ * Integra: filtros, refresh controlado (10min + botão), e seções organizadas.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star, Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle, BarChart3, PieChart as PieChartIcon, Activity, Route, Weight, Timer, XCircle, ArrowUpDown } from 'lucide-react';
-import { subDays, endOfDay, startOfDay, format } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ReportPeriodFilter,
   ReportKPICards,
   ReportCharts,
   ReportExportButton,
+  ReportFiltersBar,
   formatBRL,
   type KPICardData,
   type ChartConfig,
 } from '@/components/reports';
-import { useReportsDashboard, type PanelType } from '@/hooks/useReportsDashboard';
-import type { DateRange } from '@/types/reports';
+import { useReportsDashboardUnified } from '@/hooks/useReportsDashboardUnified';
+import type { PanelType } from '@/hooks/useReportsDashboard';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -42,16 +44,21 @@ const formatHours = (hours: number) => {
 };
 
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: startOfDay(subDays(new Date(), 30)),
-    to: endOfDay(new Date()),
-  });
-
-  const { kpis, charts, tables, isLoading, isError, refetch } = useReportsDashboard({
-    panel,
-    profileId,
+  const {
+    kpis,
+    charts,
+    tables,
+    isLoading,
+    isError,
+    filters,
+    setFilters,
     dateRange,
-  });
+    setDateRange,
+    refreshNow,
+    isRefreshing,
+    lastRefreshLabel,
+    refetch,
+  } = useReportsDashboardUnified({ panel, profileId });
 
   // Build KPI cards based on panel
   const kpiCards: KPICardData[] = useMemo(() => {
@@ -108,6 +115,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         const taxaCancelamento = Number(kpis.taxa_cancelamento) || 0;
         const rsPorKm = Number(kpis.rs_por_km) || 0;
         const avaliacaoMedia = Number(kpis.avaliacao_media) || 0;
+        const utilizacaoFrota = Number(kpis.utilizacao_frota) || 0;
+        const slaMedio = Number(kpis.sla_medio_horas) || 0;
+        const receitaPorCarreta = Number(kpis.receita_por_carreta) || 0;
         
         return [
           { title: 'Faturamento Total', value: receitaTotal, format: 'currency', subtitle: `${fretesConcluidos} concluídos`, icon: DollarSign },
@@ -116,7 +126,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
           { title: 'Km Total (Frota)', value: distanciaTotal, format: 'distance', icon: MapPin },
           { title: 'Ticket Médio', value: Number(kpis.ticket_medio) || 0, format: 'currency', icon: TrendingUp },
           { title: 'Receita/Motorista', value: receitaPorMotorista, format: 'currency', subtitle: 'Média no período', icon: Users },
+          { title: 'Receita/Carreta', value: receitaPorCarreta, format: 'currency', icon: Package },
           { title: 'R$/km Médio', value: `R$ ${formatNum(rsPorKm, 2)}`, icon: Route },
+          { title: 'Utilização Frota', value: `${utilizacaoFrota.toFixed(0)}%`, subtitle: 'Motoristas com operação', icon: Activity },
+          { title: 'SLA Médio', value: slaMedio > 0 ? formatHours(slaMedio) : '—', subtitle: 'Aceito → Entregue', icon: Timer },
           { title: 'Taxa Cancelamento', value: `${taxaCancelamento.toFixed(1)}%`, icon: XCircle },
           { title: 'Avaliação Média', value: avaliacaoMedia > 0 ? formatNum(avaliacaoMedia, 1) : '—', icon: Star },
         ];
@@ -220,7 +233,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
 
-    // Faturamento diário (linha)
     if (charts.receita_por_dia?.length) {
       configs.push({
         title: 'Faturamento por Dia',
@@ -232,7 +244,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Receita por mês
     if (charts.receita_por_mes?.length) {
       configs.push({
         title: 'Receita Mensal',
@@ -244,7 +255,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Receita vs Despesas
     if (charts.receita_por_mes?.length) {
       const receitaDespesasData = charts.receita_por_mes.map((m: any) => {
         const despesa = charts.despesas_por_mes?.find((d: any) => d.mes === m.mes);
@@ -265,7 +275,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       }
     }
 
-    // Despesas por categoria (pizza)
     if (charts.despesas_por_tipo?.length) {
       configs.push({
         title: 'Despesas por Categoria',
@@ -276,7 +285,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Receita acumulada (area)
     if (charts.receita_por_mes?.length > 1) {
       let acumulado = 0;
       const areaData = charts.receita_por_mes.map((m: any) => {
@@ -300,7 +308,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (panel !== 'MOTORISTA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
 
-    // Volume por dia
     if (charts.volume_por_dia?.length) {
       configs.push({
         title: 'Viagens por Dia',
@@ -314,7 +321,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Km por dia
     if (charts.km_por_dia?.length) {
       configs.push({
         title: 'Km Rodados por Dia',
@@ -325,7 +331,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Por status (pizza)
     if (charts.por_status?.length) {
       configs.push({
         title: 'Status dos Fretes',
@@ -335,7 +340,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Tipos de carga
     if (charts.por_tipo_carga?.length) {
       configs.push({
         title: 'Tipos de Carga',
@@ -347,7 +351,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Top rotas por receita
     if (charts.top_rotas?.length) {
       configs.push({
         title: 'Top Rotas por Receita',
@@ -363,7 +366,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Scatter R$/km vs distância
     if (charts.scatter_rs_km?.length > 2) {
       configs.push({
         title: 'R$/km vs Distância (identifica fretes bons e ruins)',
@@ -421,7 +423,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (panel !== 'TRANSPORTADORA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
 
-    // Receita por dia
     if (charts.receita_por_dia?.length) {
       configs.push({
         title: 'Faturamento por Dia',
@@ -433,7 +434,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Receita por mês
     if (charts.receita_por_mes?.length) {
       configs.push({
         title: 'Receita Mensal',
@@ -445,7 +445,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Por tipo de carga (com receita)
     if (charts.por_tipo_carga?.length) {
       configs.push({
         title: 'Receita por Tipo de Carga',
@@ -468,7 +467,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (panel !== 'TRANSPORTADORA' || !charts || Object.keys(charts).length === 0) return [];
     const configs: ChartConfig[] = [];
 
-    // Volume por dia
     if (charts.volume_por_dia?.length) {
       configs.push({
         title: 'Operações por Dia',
@@ -484,7 +482,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Ranking motoristas por receita
     if (charts.por_motorista?.length) {
       configs.push({
         title: 'Ranking: Motoristas por Receita',
@@ -499,7 +496,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Por status (pizza)
     if (charts.por_status?.length) {
       configs.push({
         title: 'Status dos Fretes',
@@ -509,7 +505,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Top rotas
     if (charts.top_rotas?.length) {
       configs.push({
         title: 'Top Rotas por Receita',
@@ -525,7 +520,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       });
     }
 
-    // Cidades com mais operações
     if (charts.por_cidade?.length) {
       configs.push({
         title: 'Cidades com Mais Operações',
@@ -542,6 +536,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
   const isMotorista = panel === 'MOTORISTA';
   const isTransportadora = panel === 'TRANSPORTADORA';
+  const showFilters = isMotorista || isTransportadora;
 
   // Export sections
   const exportSections = useMemo(() => {
@@ -570,7 +565,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
         <p className="text-muted-foreground font-medium">Nenhum dado encontrado</p>
         <p className="text-sm text-muted-foreground mt-2">Tente ajustar o período ou verifique se há operações registradas.</p>
-        <Button onClick={() => refetch()} variant="outline" className="mt-4 gap-2">
+        <Button onClick={() => refreshNow('retry')} variant="outline" className="mt-4 gap-2">
           <RefreshCw className="h-4 w-4" />
           Tentar novamente
         </Button>
@@ -630,26 +625,62 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header com período + exportação + refresh */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg">{title}</CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
-              <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-              <ReportExportButton
-                reportTitle={title}
-                dateRange={dateRange}
-                sections={exportSections}
-                disabled={isLoading}
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg">{title}</CardTitle>
+                {lastRefreshLabel && (
+                  <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshLabel}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <ReportExportButton
+                  reportTitle={title}
+                  dateRange={dateRange}
+                  sections={exportSections}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
+            {/* Período */}
+            <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+            {/* Filtros + Atualizar */}
+            {showFilters && (
+              <ReportFiltersBar
+                filters={filters}
+                onFiltersChange={setFilters}
+                onRefresh={() => refreshNow('manual')}
+                isLoading={isLoading}
+                panel={panel}
+              />
+            )}
+            {/* Botão Atualizar para painéis sem barra de filtros */}
+            {!showFilters && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => refreshNow('manual')}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+                {lastRefreshLabel && (
+                  <span className="text-xs text-muted-foreground sm:hidden">{lastRefreshLabel}</span>
+                )}
+              </div>
+            )}
           </div>
         </CardHeader>
       </Card>
 
       {/* KPIs */}
-      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={isMotorista ? 4 : (isTransportadora ? 3 : (kpiCards.length > 4 ? 6 : 4))} />
+      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={isMotorista ? 4 : (isTransportadora ? 4 : (kpiCards.length > 4 ? 6 : 4))} />
 
       {/* MOTORISTA: Seções organizadas */}
       {isMotorista && (
