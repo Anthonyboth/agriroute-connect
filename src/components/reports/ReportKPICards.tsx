@@ -102,7 +102,7 @@ export const ReportKPICards: React.FC<ReportKPICardsProps> = ({
                 {card.trend && (
                   <span className={cn(
                     "text-xs font-medium",
-                    card.trend.isPositive ? "text-green-600" : "text-red-600"
+                    card.trend.isPositive ? "text-success" : "text-destructive"
                   )}>
                     {card.trend.isPositive ? '+' : ''}{card.trend.value.toFixed(1)}%
                   </span>
