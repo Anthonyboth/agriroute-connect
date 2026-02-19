@@ -112,6 +112,10 @@ export type OngoingServiceRequestRow = {
   contact_email?: string | null;
   vehicle_info?: string | null;
   preferred_datetime?: string | null;
+  // Driver location for map
+  driver_lat?: number | null;
+  driver_lng?: number | null;
+  driver_location_updated?: string | null;
 };
 
 export const useDriverOngoingCards = (driverProfileId?: string | null) => {
@@ -342,6 +346,21 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
         console.warn("[useDriverOngoingCards] Falha ao buscar service_requests:", svcErr);
       }
 
+      // 5) Buscar localização atual do motorista para exibir no mapa
+      const { data: driverLocation } = await supabase
+        .from("driver_current_locations")
+        .select("lat, lng, last_gps_update")
+        .eq("driver_profile_id", driverProfileId)
+        .maybeSingle();
+
+      // Enriquecer service requests com localização do motorista
+      const enrichedServiceRequests = (svcReqs || []).map(sr => ({
+        ...sr,
+        driver_lat: driverLocation?.lat || null,
+        driver_lng: driverLocation?.lng || null,
+        driver_location_updated: driverLocation?.last_gps_update || null,
+      }));
+
       // Combina fretes diretos + multi-carretas
       const combinedFreights = [...(directFreights || []), ...(multiTruckFreights || [])] as OngoingFreightRow[];
       const uniqueFreights = combinedFreights.reduce((acc, f) => {
@@ -419,7 +438,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       return {
         freights: enrichedFreights as OngoingFreightRow[],
         assignments: enrichedAssignments as OngoingAssignmentRow[],
-        serviceRequests: (svcReqs || []) as OngoingServiceRequestRow[],
+        serviceRequests: enrichedServiceRequests as OngoingServiceRequestRow[],
       };
     },
   });

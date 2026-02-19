@@ -40,6 +40,8 @@ interface ServiceRequestInProgressCardProps {
     urgency?: string;
     preferred_datetime?: string;
     additional_info?: string;
+    driver_lat?: number;
+    driver_lng?: number;
   };
   onMarkOnTheWay: (id: string) => void;
   onStartTransit: (id: string) => void;
@@ -55,14 +57,18 @@ const MARKERS_LAYER_ID = 'service-markers-layer';
 const ROUTE_SOURCE_ID = 'service-route-source';
 const ROUTE_LAYER_ID = 'service-route-layer';
 
-// Mini-mapa embutido no card com marcadores A/B via canvas WebGL
+// Mini-mapa embutido no card com marcadores A/B + veículo via canvas WebGL
 const InlineTrackingMap = React.memo(({ 
   originLat, originLng, 
   destLat, destLng,
+  driverLat, driverLng,
+  isDriverOnline,
   label 
 }: { 
   originLat: number; originLng: number; 
   destLat?: number; destLng?: number;
+  driverLat?: number; driverLng?: number;
+  isDriverOnline?: boolean;
   label?: string;
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -78,13 +84,24 @@ const InlineTrackingMap = React.memo(({
     return null;
   }, [destLat, destLng]);
 
+  const driverPos = useMemo(() => {
+    if (driverLat && driverLng && driverLat !== 0 && driverLng !== 0) {
+      return { lat: driverLat, lng: driverLng };
+    }
+    return null;
+  }, [driverLat, driverLng]);
+
   // Calculate center and zoom
   const { center, zoom } = useMemo(() => {
-    if (origin && destination) {
-      const cLat = (origin.lat + destination.lat) / 2;
-      const cLng = (origin.lng + destination.lng) / 2;
-      const latDiff = Math.abs(origin.lat - destination.lat);
-      const lngDiff = Math.abs(origin.lng - destination.lng);
+    const points: { lat: number; lng: number }[] = [origin];
+    if (destination) points.push(destination);
+    if (driverPos) points.push(driverPos);
+
+    if (points.length > 1) {
+      const cLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
+      const cLng = points.reduce((s, p) => s + p.lng, 0) / points.length;
+      const latDiff = Math.max(...points.map(p => p.lat)) - Math.min(...points.map(p => p.lat));
+      const lngDiff = Math.max(...points.map(p => p.lng)) - Math.min(...points.map(p => p.lng));
       const maxDiff = Math.max(latDiff, lngDiff);
       let z = 12;
       if (maxDiff > 5) z = 5;
@@ -97,7 +114,7 @@ const InlineTrackingMap = React.memo(({
       return { center: [cLng, cLat] as [number, number], zoom: z };
     }
     return { center: [origin.lng, origin.lat] as [number, number], zoom: 13 };
-  }, [origin, destination]);
+  }, [origin, destination, driverPos]);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -130,24 +147,10 @@ const InlineTrackingMap = React.memo(({
           }
         }
 
-        // Build markers feature collection (A/B markers, no driver for inline card)
-        const fc = buildMarkersFeatureCollection(origin, destination, null, false);
+        // Build markers feature collection (A/B + driver)
+        const fc = buildMarkersFeatureCollection(origin, destination, driverPos, isDriverOnline ?? true);
 
-        // Add markers source + layer
-        map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: fc });
-        map.addLayer({
-          id: MARKERS_LAYER_ID,
-          type: 'symbol',
-          source: MARKERS_SOURCE_ID,
-          layout: {
-            'icon-image': ['get', 'icon'],
-            'icon-size': 0.8,
-            'icon-allow-overlap': true,
-            'icon-anchor': 'bottom',
-          },
-        });
-
-        // Add route line if both A and B exist
+        // Add route line FIRST (below markers)
         if (origin && destination) {
           const routeGeoJSON: GeoJSON.FeatureCollection = {
             type: 'FeatureCollection',
@@ -171,19 +174,39 @@ const InlineTrackingMap = React.memo(({
             source: ROUTE_SOURCE_ID,
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
-              'line-color': '#94a3b8',
+              'line-color': '#3b82f6',
               'line-width': 3,
-              'line-dasharray': [2, 2],
+              'line-dasharray': [3, 2],
             },
-          }, MARKERS_LAYER_ID); // below markers
+          });
         }
 
-        // Fit bounds if both points
-        if (origin && destination) {
-          const bounds = new maplibregl.LngLatBounds();
-          bounds.extend([origin.lng, origin.lat]);
-          bounds.extend([destination.lng, destination.lat]);
-          map.fitBounds(bounds, { padding: 30, maxZoom: 13, duration: 0 });
+        // Add markers source + layer (on top of route)
+        map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: fc });
+        map.addLayer({
+          id: MARKERS_LAYER_ID,
+          type: 'symbol',
+          source: MARKERS_SOURCE_ID,
+          layout: {
+            'icon-image': ['get', 'icon'],
+            'icon-size': 0.9,
+            'icon-allow-overlap': true,
+            'icon-anchor': ['match', ['get', 'markerType'],
+              'origin', 'bottom',
+              'destination', 'bottom',
+              'center', // truck icons are centered
+            ],
+          },
+        });
+
+        // Fit bounds to all points
+        const bounds = new maplibregl.LngLatBounds();
+        bounds.extend([origin.lng, origin.lat]);
+        if (destination) bounds.extend([destination.lng, destination.lat]);
+        if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
+        
+        if (destination || driverPos) {
+          map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
         }
       });
 
@@ -198,7 +221,7 @@ const InlineTrackingMap = React.memo(({
       mapRef.current = null;
       iconsRegisteredRef.current = false;
     };
-  }, [originLat, originLng, destLat, destLng, center, zoom, origin, destination]);
+  }, [originLat, originLng, destLat, destLng, driverLat, driverLng, center, zoom, origin, destination, driverPos, isDriverOnline]);
 
   if (mapError) {
     return (
@@ -209,7 +232,7 @@ const InlineTrackingMap = React.memo(({
   }
 
   return (
-    <div className="relative rounded-lg overflow-hidden border" style={{ height: '160px' }}>
+    <div className="relative rounded-lg overflow-hidden border" style={{ height: '200px' }}>
       <div ref={mapContainer} className="w-full h-full" />
       {label && (
         <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
@@ -388,6 +411,9 @@ const ServiceRequestInProgressCardComponent = ({
             originLng={request.location_lng!}
             destLat={effectiveDestLat || undefined}
             destLng={effectiveDestLng || undefined}
+            driverLat={request.driver_lat || undefined}
+            driverLng={request.driver_lng || undefined}
+            isDriverOnline={request.status === 'IN_PROGRESS' || request.status === 'ON_THE_WAY'}
             label={request.city_name || 'Local'}
           />
         )}
