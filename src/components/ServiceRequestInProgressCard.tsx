@@ -114,6 +114,21 @@ const InlineTrackingMap = React.memo(({
     [geocodedOrigin, originLat, originLng]
   );
 
+  // ✅ Quando geocodedOrigin muda (chegou resultado do Nominatim), atualiza marcador no mapa existente
+  useEffect(() => {
+    if (!geocodedOrigin || !mapRef.current || !mapLoaded) return;
+    const map = mapRef.current;
+    const source = map.getSource(MARKERS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!source) return;
+    // Recalcula feature collection com as novas coordenadas geocodificadas
+    const dest = (destLat && destLng && destLat !== 0 && destLng !== 0) ? { lat: destLat, lng: destLng } : null;
+    const driver = (driverLat && driverLng && driverLat !== 0 && driverLng !== 0) ? { lat: driverLat, lng: driverLng } : null;
+    const fc = buildMarkersFeatureCollection(geocodedOrigin, dest, driver, isDriverOnline ?? true);
+    source.setData(fc);
+    // Voa para a localização correta
+    map.flyTo({ center: [geocodedOrigin.lng, geocodedOrigin.lat], zoom: 15, duration: 800 });
+  }, [geocodedOrigin, mapLoaded, destLat, destLng, driverLat, driverLng, isDriverOnline]);
+
   const destination = useMemo(() => {
     if (destLat && destLng && destLat !== 0 && destLng !== 0) {
       return { lat: destLat, lng: destLng };
@@ -683,15 +698,6 @@ const ServiceRequestInProgressCardComponent = ({
   );
 };
 
-export const ServiceRequestInProgressCard = React.memo(ServiceRequestInProgressCardComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.request.id === nextProps.request.id &&
-    prevProps.request.status === nextProps.request.status &&
-    prevProps.request.estimated_price === nextProps.request.estimated_price &&
-    prevProps.onMarkOnTheWay === nextProps.onMarkOnTheWay &&
-    prevProps.onStartTransit === nextProps.onStartTransit &&
-    prevProps.onFinishService === nextProps.onFinishService &&
-    prevProps.onCancel === nextProps.onCancel &&
-    prevProps.proposalsSection === nextProps.proposalsSection
-  );
-});
+// ✅ Sem memo customizado — deixa React decidir naturalmente
+// Memo customizado anterior bloqueava re-render quando status mudava
+export const ServiceRequestInProgressCard = React.memo(ServiceRequestInProgressCardComponent);
