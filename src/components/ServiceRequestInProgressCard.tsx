@@ -59,20 +59,52 @@ const MARKERS_LAYER_ID = 'service-markers-layer';
 const ROUTE_SOURCE_ID = 'service-route-source';
 const ROUTE_LAYER_ID = 'service-route-layer';
 
-// Geocodifica endereço via Nominatim (OSM) - retorna coords precisas
+// Geocodifica endereço via Nominatim (OSM) com fallback progressivo
 async function geocodeAddressNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=br`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data && data.length > 0) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  // Estratégia: tenta com endereço completo, depois versões simplificadas
+  const buildUrl = (q: string) =>
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br&addressdetails=1`;
+
+  const tryFetch = async (q: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const res = await fetch(buildUrl(q), {
+        headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'AgriRoute/1.0' },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+      return null;
+    } catch {
+      return null;
     }
-    return null;
-  } catch {
-    return null;
+  };
+
+  // 1. Tenta endereço completo
+  let result = await tryFetch(address);
+  if (result) return result;
+
+  // 2. Remove número se houver e tenta só a rua + cidade
+  // Ex: "Ari Kriff , 500, Setor, Primavera do Leste - MT" → "Ari Kriff, Primavera do Leste, MT"
+  const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    // Última parte tem formato "Cidade - UF" ou "Cidade"
+    const lastPart = parts[parts.length - 1];
+    const streetPart = parts[0].replace(/\s*\d+\s*/g, ' ').trim(); // remove números da rua
+    const simplified = `${streetPart}, ${lastPart}`;
+    result = await tryFetch(simplified);
+    if (result) return result;
   }
+
+  // 3. Tenta só cidade/estado (parte após o último hífen ou última parte)
+  if (parts.length >= 1) {
+    const lastPart = parts[parts.length - 1];
+    result = await tryFetch(lastPart);
+    if (result) return result;
+  }
+
+  return null;
 }
 
 // Mini-mapa interativo com marcadores A/B + veículo via canvas WebGL + controles
