@@ -6,7 +6,7 @@
  * ⚠️ Sem alterações de lógica/cálculo — apenas layout e UX.
  */
 import React, { useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -699,12 +699,34 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <OperationalGrid items={prestadorOp} isLoading={isLoading} />
           </div>
 
-          {prestadorCharts.length > 0 && (
-            <div className="space-y-3">
-              <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
+          <div className="space-y-3">
+            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
+            {prestadorCharts.length > 0 ? (
               <ReportCharts charts={prestadorCharts} isLoading={isLoading} columns={2} />
-            </div>
-          )}
+            ) : isLoading ? (
+              <ReportCharts charts={[]} isLoading={true} columns={2} />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {[
+                  'Receita por mês',
+                  'Serviços por categoria',
+                  'Status dos serviços',
+                  'Top cidades',
+                ].map((title) => (
+                  <Card key={title}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                        Sem dados para exibir
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
 
           {!isLoading && tables?.extrato_servicos?.length > 0 && (
             <div className="space-y-3">
