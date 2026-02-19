@@ -934,23 +934,42 @@ export const ServiceProviderDashboard: React.FC = () => {
   // handleCompleteRequest REMOVIDO — toda transição de status agora passa pela RPC
   // transition_service_request_status, chamada pelo componente ServiceWorkflowActions.
 
-  const handleStatusChange = (requestId: string, newStatus: string) => {
-    // ✅ PERF: Update otimista IMEDIATO — atualiza UI antes do refetch
+  const handleStatusChange = async (requestId: string, newStatus: string) => {
+    // ✅ PERF: Update otimista IMEDIATO — atualiza UI antes da chamada ao banco
     setOwnRequests(prev => {
-      // Se COMPLETED, remover da aba "em andamento" imediatamente
       if (newStatus === 'COMPLETED') {
-        const updated = prev.map(r => 
+        return prev.map(r => 
           r.id === requestId ? { ...r, status: newStatus, completed_at: new Date().toISOString() } : r
         );
-        return updated;
       }
-      // Para outras transições (ON_THE_WAY, IN_PROGRESS), atualizar status in-place
       return prev.map(r => 
         r.id === requestId ? { ...r, status: newStatus, updated_at: new Date().toISOString() } : r
       );
     });
 
-    // Background refetch para consistência (sem spatial matching = rápido)
+    try {
+      const { error } = await supabase.rpc('transition_service_request_status', {
+        p_request_id: requestId,
+        p_next_status: newStatus,
+        ...(newStatus === 'COMPLETED' ? { p_final_price: null } : {}),
+      });
+      if (error) throw error;
+
+      const statusLabels: Record<string, string> = {
+        ON_THE_WAY: '🚗 A Caminho do Local!',
+        IN_PROGRESS: '🔧 Atendimento iniciado!',
+        COMPLETED: '✅ Serviço concluído!',
+      };
+      toast({ title: statusLabels[newStatus] || 'Status atualizado!' });
+    } catch (err: any) {
+      console.error('[handleStatusChange] Erro ao atualizar status:', err);
+      toast({ title: 'Erro ao atualizar status', description: err?.message || 'Tente novamente.', variant: 'destructive' });
+      // Reverte update otimista em caso de erro
+      fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
+      return;
+    }
+
+    // Refetch para sincronizar com banco
     setTimeout(() => {
       fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true });
       fetchTotalEarnings();
