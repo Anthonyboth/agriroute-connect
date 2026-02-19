@@ -89,8 +89,18 @@ export function useNotificationNavigation() {
           },
         };
 
-      // ============ CHAT DE FRETE ============
+      // ============ CHAT DE FRETE OU SERVIÇO ============
       case 'chat_message':
+        // Se tem service_request_id (chat de serviço), redirecionar para aba de chat de serviço
+        if (data?.service_request_id) {
+          return {
+            route: dashboardRoute,
+            state: {
+              openTab: 'chat',
+              openServiceChat: data.service_request_id,
+            },
+          };
+        }
         if (!data?.freight_id) return null;
         return {
           route: dashboardRoute,

@@ -259,7 +259,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       }
 
       // 2. SERVIÇOS - Query refatorada em 3 etapas
-      if (['PRODUTOR', 'PRESTADOR_SERVICO', 'PRESTADOR_SERVICOS'].includes(userRole)) {
+      if (['PRODUTOR', 'PRESTADOR_SERVICO', 'PRESTADOR_SERVICOS', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(userRole)) {
         // Etapa 1: Buscar serviços básicos do usuário
         // Determinar se o usuário é prestador ou cliente
         const isProvider = userRole === 'PRESTADOR_SERVICO' || userRole === 'PRESTADOR_SERVICOS';
