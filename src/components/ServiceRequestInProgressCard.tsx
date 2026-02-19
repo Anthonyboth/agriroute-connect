@@ -11,6 +11,7 @@ import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { RURAL_STYLE_INLINE } from '@/config/maplibre';
 import { ptBR } from 'date-fns/locale';
 import { generateMarkerIcons, buildMarkersFeatureCollection } from '@/lib/maplibre-canvas-icons';
+import { fetchOSRMRoute } from '@/hooks/maplibre/useOSRMRoute';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -150,36 +151,22 @@ const InlineTrackingMap = React.memo(({
         // Build markers feature collection (A/B + driver)
         const fc = buildMarkersFeatureCollection(origin, destination, driverPos, isDriverOnline ?? true);
 
-        // Add route line FIRST (below markers)
-        if (origin && destination) {
-          const routeGeoJSON: GeoJSON.FeatureCollection = {
-            type: 'FeatureCollection',
-            features: [{
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [origin.lng, origin.lat],
-                  [destination.lng, destination.lat],
-                ],
-              },
-            }],
-          };
-
-          map.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: routeGeoJSON });
-          map.addLayer({
-            id: ROUTE_LAYER_ID,
-            type: 'line',
-            source: ROUTE_SOURCE_ID,
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': '#3b82f6',
-              'line-width': 3,
-              'line-dasharray': [3, 2],
-            },
-          });
-        }
+        // Add route source (empty initially, filled by OSRM)
+        map.addSource(ROUTE_SOURCE_ID, { 
+          type: 'geojson', 
+          data: { type: 'FeatureCollection', features: [] } 
+        });
+        map.addLayer({
+          id: ROUTE_LAYER_ID,
+          type: 'line',
+          source: ROUTE_SOURCE_ID,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 3.5,
+            'line-dasharray': [3, 2],
+          },
+        });
 
         // Add markers source + layer (on top of route)
         map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: fc });
@@ -199,14 +186,52 @@ const InlineTrackingMap = React.memo(({
           },
         });
 
-        // Fit bounds to all points
-        const bounds = new maplibregl.LngLatBounds();
-        bounds.extend([origin.lng, origin.lat]);
-        if (destination) bounds.extend([destination.lng, destination.lat]);
-        if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
-        
-        if (destination || driverPos) {
-          map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
+        // ✅ Fetch OSRM route (real road path) if both A and B exist
+        if (origin && destination) {
+          try {
+            const osrmResult = await fetchOSRMRoute(origin, destination);
+            const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
+            if (routeSource && osrmResult.coordinates.length >= 2) {
+              routeSource.setData({
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: osrmResult.coordinates,
+                },
+              });
+
+              // Fit bounds to route + markers
+              const bounds = new maplibregl.LngLatBounds();
+              osrmResult.coordinates.forEach(coord => bounds.extend(coord as [number, number]));
+              if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
+              map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
+            }
+          } catch (e) {
+            console.warn('[InlineTrackingMap] OSRM fallback to straight line:', e);
+            // Fallback: straight line
+            const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
+            if (routeSource) {
+              routeSource.setData({
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [[origin.lng, origin.lat], [destination.lng, destination.lat]],
+                },
+              });
+            }
+          }
+        }
+
+        // Fit bounds to markers (if no route to fit)
+        if (!destination) {
+          const bounds = new maplibregl.LngLatBounds();
+          bounds.extend([origin.lng, origin.lat]);
+          if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
+          if (driverPos) {
+            map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
+          }
         }
       });
 
