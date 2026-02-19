@@ -211,24 +211,24 @@ export function useResilientLogin() {
       addStep('Autenticando credenciais', 'success');
       console.log('🟢 [ResilientLogin] Autenticação bem-sucedida');
 
+      // ✅ Usar user diretamente do signInWithPassword (evita chamada extra getUser)
+      const user = authData?.user;
+      
+      if (!user) {
+        addStep('Obtendo dados do usuário', 'error', 'Usuário não retornado pelo login');
+        setLoading(false);
+        return { success: false, error: 'Erro ao obter dados do usuário.' };
+      }
+      
+      addStep('Obtendo dados do usuário', 'success');
+
       // ✅ CRÍTICO: evitar tela de "Conta Pendente" por cache antigo após auto-aprovação
       try {
-        // authData.user pode não existir em alguns cenários; limpamos depois do getUser também.
-        if (authData?.user?.id) clearCachedProfile(authData.user.id);
+        clearCachedProfile(user.id);
       } catch {
         // ignore
       }
 
-      // ✅ CRÍTICO: garantir que o token foi persistido antes de redirecionar
-      addStep('Persistindo sessão', 'pending');
-      const sessionOk = await ensureSessionPersisted(6);
-      if (!sessionOk) {
-        addStep('Persistindo sessão', 'error', 'Sessão não persistiu a tempo');
-        await notifyLoginErrorToTelegram(loginField, 'Session not persisted before redirect', steps);
-      } else {
-        addStep('Persistindo sessão', 'success');
-      }
-      
       // Limpar cooldowns de fetch de perfil
       sessionStorage.removeItem('profile_fetch_cooldown_until');
 
@@ -247,35 +247,14 @@ export function useResilientLogin() {
         }, 150);
       };
       
-      // ========== STEP 3: Obter dados do usuário ==========
-      addStep('Obtendo dados do usuário', 'pending');
-      
-      const { data: { user }, error: getUserError } = await supabase.auth.getUser();
-      
-      if (getUserError || !user) {
-        addStep('Obtendo dados do usuário', 'error', getUserError?.message || 'Usuário não encontrado');
-        await notifyLoginErrorToTelegram(loginField, `getUser failed: ${getUserError?.message}`, steps);
-        setLoading(false);
-        return { success: false, error: 'Erro ao obter dados do usuário.' };
-      }
-      
-      addStep('Obtendo dados do usuário', 'success');
-
-      // ✅ Garantir cache limpo com o user.id real
-      try {
-        clearCachedProfile(user.id);
-      } catch {
-        // ignore
-      }
-      
       // ========== STEP 4: Buscar perfis com retry ==========
       addStep('Carregando perfil', 'pending');
       
       let userProfiles: any[] | null = null;
       let profilesError: any = null;
       
-      // Retry até 3 vezes com delay progressivo
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      // Retry até 2 vezes com delay curto
+      for (let attempt = 1; attempt <= 2; attempt++) {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, user_id, full_name, role, status, active_mode')
@@ -288,9 +267,9 @@ export function useResilientLogin() {
         
         profilesError = error;
         
-        if (attempt < 3) {
-          console.log(`🔄 [ResilientLogin] Retry ${attempt}/3 para buscar perfil...`);
-          await new Promise(r => setTimeout(r, 500 * attempt));
+        if (attempt < 2) {
+          console.log(`🔄 [ResilientLogin] Retry ${attempt}/2 para buscar perfil...`);
+          await new Promise(r => setTimeout(r, 200));
         }
       }
       
