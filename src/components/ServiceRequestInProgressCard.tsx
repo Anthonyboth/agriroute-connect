@@ -1,15 +1,16 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  MapPin, Phone, MessageSquare, Navigation, CheckCircle, Truck, Clock, Wrench,
-  Car, AlertTriangle, Calendar, FileText, Mail, User, Map
+  MapPin, MessageSquare, Navigation, CheckCircle, Truck, Clock,
+  Car, AlertTriangle, Calendar, Mail, User, Map
 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { RURAL_STYLE_INLINE } from '@/config/maplibre';
 import { ptBR } from 'date-fns/locale';
+import { generateMarkerIcons, buildMarkersFeatureCollection } from '@/lib/maplibre-canvas-icons';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -24,6 +25,8 @@ interface ServiceRequestInProgressCardProps {
     location_address?: string;
     location_lat?: number;
     location_lng?: number;
+    destination_lat?: number;
+    destination_lng?: number;
     problem_description?: string;
     estimated_price?: number;
     is_emergency?: boolean;
@@ -46,11 +49,55 @@ interface ServiceRequestInProgressCardProps {
   proposalsSection?: React.ReactNode;
 }
 
-// Mini-mapa embutido no card
-const InlineTrackingMap = React.memo(({ lat, lng, label }: { lat: number; lng: number; label?: string }) => {
+// ✅ Source/Layer IDs para markers no canvas
+const MARKERS_SOURCE_ID = 'service-markers-source';
+const MARKERS_LAYER_ID = 'service-markers-layer';
+const ROUTE_SOURCE_ID = 'service-route-source';
+const ROUTE_LAYER_ID = 'service-route-layer';
+
+// Mini-mapa embutido no card com marcadores A/B via canvas WebGL
+const InlineTrackingMap = React.memo(({ 
+  originLat, originLng, 
+  destLat, destLng,
+  label 
+}: { 
+  originLat: number; originLng: number; 
+  destLat?: number; destLng?: number;
+  label?: string;
+}) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const iconsRegisteredRef = useRef(false);
   const [mapError, setMapError] = useState(false);
+
+  const origin = useMemo(() => ({ lat: originLat, lng: originLng }), [originLat, originLng]);
+  const destination = useMemo(() => {
+    if (destLat && destLng && destLat !== 0 && destLng !== 0) {
+      return { lat: destLat, lng: destLng };
+    }
+    return null;
+  }, [destLat, destLng]);
+
+  // Calculate center and zoom
+  const { center, zoom } = useMemo(() => {
+    if (origin && destination) {
+      const cLat = (origin.lat + destination.lat) / 2;
+      const cLng = (origin.lng + destination.lng) / 2;
+      const latDiff = Math.abs(origin.lat - destination.lat);
+      const lngDiff = Math.abs(origin.lng - destination.lng);
+      const maxDiff = Math.max(latDiff, lngDiff);
+      let z = 12;
+      if (maxDiff > 5) z = 5;
+      else if (maxDiff > 3) z = 6;
+      else if (maxDiff > 1.5) z = 7;
+      else if (maxDiff > 0.8) z = 8;
+      else if (maxDiff > 0.4) z = 9;
+      else if (maxDiff > 0.15) z = 10;
+      else if (maxDiff > 0.05) z = 11;
+      return { center: [cLng, cLat] as [number, number], zoom: z };
+    }
+    return { center: [origin.lng, origin.lat] as [number, number], zoom: 13 };
+  }, [origin, destination]);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -59,19 +106,85 @@ const InlineTrackingMap = React.memo(({ lat, lng, label }: { lat: number; lng: n
       const map = new maplibregl.Map({
         container: mapContainer.current,
         style: RURAL_STYLE_INLINE,
-        center: [lng, lat],
-        zoom: 14,
+        center,
+        zoom,
         interactive: false,
         attributionControl: false,
       });
 
-      map.on('load', () => {
-        // Marker via elemento HTML
-        const el = document.createElement('div');
-        el.innerHTML = `<div style="width:28px;height:28px;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="#ef4444"/></svg>
-        </div>`;
-        new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
+      map.on('load', async () => {
+        // Register canvas icons (A, B, truck)
+        if (!iconsRegisteredRef.current) {
+          try {
+            const icons = await generateMarkerIcons();
+            for (const icon of icons) {
+              if (!map.hasImage(icon.id)) {
+                map.addImage(icon.id, icon.imageData, {
+                  pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+                });
+              }
+            }
+            iconsRegisteredRef.current = true;
+          } catch (e) {
+            console.warn('[InlineTrackingMap] Failed to register icons:', e);
+          }
+        }
+
+        // Build markers feature collection (A/B markers, no driver for inline card)
+        const fc = buildMarkersFeatureCollection(origin, destination, null, false);
+
+        // Add markers source + layer
+        map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: fc });
+        map.addLayer({
+          id: MARKERS_LAYER_ID,
+          type: 'symbol',
+          source: MARKERS_SOURCE_ID,
+          layout: {
+            'icon-image': ['get', 'icon'],
+            'icon-size': 0.8,
+            'icon-allow-overlap': true,
+            'icon-anchor': 'bottom',
+          },
+        });
+
+        // Add route line if both A and B exist
+        if (origin && destination) {
+          const routeGeoJSON: GeoJSON.FeatureCollection = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [origin.lng, origin.lat],
+                  [destination.lng, destination.lat],
+                ],
+              },
+            }],
+          };
+
+          map.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: routeGeoJSON });
+          map.addLayer({
+            id: ROUTE_LAYER_ID,
+            type: 'line',
+            source: ROUTE_SOURCE_ID,
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#94a3b8',
+              'line-width': 3,
+              'line-dasharray': [2, 2],
+            },
+          }, MARKERS_LAYER_ID); // below markers
+        }
+
+        // Fit bounds if both points
+        if (origin && destination) {
+          const bounds = new maplibregl.LngLatBounds();
+          bounds.extend([origin.lng, origin.lat]);
+          bounds.extend([destination.lng, destination.lat]);
+          map.fitBounds(bounds, { padding: 30, maxZoom: 13, duration: 0 });
+        }
       });
 
       map.on('error', () => setMapError(true));
@@ -83,8 +196,9 @@ const InlineTrackingMap = React.memo(({ lat, lng, label }: { lat: number; lng: n
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
+      iconsRegisteredRef.current = false;
     };
-  }, [lat, lng]);
+  }, [originLat, originLng, destLat, destLng, center, zoom, origin, destination]);
 
   if (mapError) {
     return (
@@ -95,7 +209,7 @@ const InlineTrackingMap = React.memo(({ lat, lng, label }: { lat: number; lng: n
   }
 
   return (
-    <div className="relative rounded-lg overflow-hidden border" style={{ height: '140px' }}>
+    <div className="relative rounded-lg overflow-hidden border" style={{ height: '160px' }}>
       <div ref={mapContainer} className="w-full h-full" />
       {label && (
         <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
@@ -116,8 +230,37 @@ const ServiceRequestInProgressCardComponent = ({
   proposalsSection,
 }: ServiceRequestInProgressCardProps) => {
   
+  // Parse additional_info FIRST (needed for dest coords)
+  let parsedInfo: any = null;
+  try {
+    parsedInfo = typeof request.additional_info === 'string'
+      ? JSON.parse(request.additional_info)
+      : request.additional_info;
+    if (typeof parsedInfo !== 'object') parsedInfo = null;
+  } catch { parsedInfo = null; }
+
+  // Extrair endereços e coordenadas de coleta e entrega
+  const originAddress = parsedInfo?.origin?.full_address || parsedInfo?.origin_address || null;
+  const destAddress = parsedInfo?.destination?.full_address || parsedInfo?.destination_address || null;
+  const destCity = parsedInfo?.destination?.city || null;
+  const destState = parsedInfo?.destination?.state || null;
+
+  // ✅ Extrair coordenadas de destino: props > additional_info
+  const effectiveDestLat = request.destination_lat || parsedInfo?.destination?.lat || null;
+  const effectiveDestLng = request.destination_lng || parsedInfo?.destination?.lng || null;
+
+  const isGuestUser = !!request.prospect_user_id && !request.client_id;
+  const hasOriginCoords = !!(request.location_lat && request.location_lng);
+  const hasDestCoords = !!(effectiveDestLat && effectiveDestLng);
+  const hasAnyCoords = hasOriginCoords || hasDestCoords;
+  const isUrgent = request.urgency && ['ALTA', 'URGENTE'].includes(request.urgency.toUpperCase());
+
   const openInMaps = () => {
-    if (request.location_lat && request.location_lng) {
+    if (request.location_lat && request.location_lng && effectiveDestLat && effectiveDestLng) {
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${request.location_lat},${request.location_lng}&destination=${effectiveDestLat},${effectiveDestLng}`, '_blank');
+    } else if (effectiveDestLat && effectiveDestLng) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${effectiveDestLat},${effectiveDestLng}`, '_blank');
+    } else if (request.location_lat && request.location_lng) {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${request.location_lat},${request.location_lng}`, '_blank');
     } else if (request.location_address) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(request.location_address)}`, '_blank');
@@ -184,33 +327,13 @@ const ServiceRequestInProgressCardComponent = ({
     }
   };
 
-  // Parse additional_info
-  let parsedInfo: any = null;
-  try {
-    parsedInfo = typeof request.additional_info === 'string'
-      ? JSON.parse(request.additional_info)
-      : request.additional_info;
-    if (typeof parsedInfo !== 'object') parsedInfo = null;
-  } catch { parsedInfo = null; }
-
-  // Extrair endereços de coleta e entrega do additional_info
-  // Estrutura real: { origin: { full_address, city, ... }, destination: { full_address, city, ... } }
-  const originAddress = parsedInfo?.origin?.full_address || parsedInfo?.origin_address || null;
-  const destAddress = parsedInfo?.destination?.full_address || parsedInfo?.destination_address || null;
-  const destCity = parsedInfo?.destination?.city || null;
-  const destState = parsedInfo?.destination?.state || null;
-
-  const isGuestUser = !!request.prospect_user_id && !request.client_id;
-  const hasCoords = !!(request.location_lat && request.location_lng);
-  const isUrgent = request.urgency && ['ALTA', 'URGENTE'].includes(request.urgency.toUpperCase());
-
   return (
     <Card className={`border-l-4 ${isUrgent ? 'border-l-red-500' : 'border-l-orange-500'} hover:shadow-lg transition-shadow`}>
       <CardContent className="p-3 space-y-2">
         {/* Header compacto */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Wrench className="h-4 w-4 text-primary flex-shrink-0" />
+            <Truck className="h-4 w-4 text-primary flex-shrink-0" />
             <span className="font-bold text-sm truncate">{getServiceLabel()}</span>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -258,60 +381,61 @@ const ServiceRequestInProgressCardComponent = ({
           </div>
         )}
 
+        {/* ✅ Mapa MapLibre com marcadores A/B (canvas WebGL) - ACIMA dos endereços */}
+        {hasOriginCoords && (
+          <InlineTrackingMap 
+            originLat={request.location_lat!} 
+            originLng={request.location_lng!}
+            destLat={effectiveDestLat || undefined}
+            destLng={effectiveDestLng || undefined}
+            label={request.city_name || 'Local'}
+          />
+        )}
+
         {/* Coleta e Entrega */}
-        <div className={`grid ${hasCoords ? 'grid-cols-[1fr,160px]' : 'grid-cols-1'} gap-2`}>
-          <div className="space-y-1.5">
-            {/* COLETA */}
-            <div className="bg-green-50 dark:bg-green-900/20 rounded px-2 py-1.5 space-y-0.5">
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-                <span className="text-[11px] font-bold text-green-700 dark:text-green-400">COLETA</span>
-                {request.city_name && (
-                  <span className="text-xs font-semibold text-primary ml-auto">
-                    {request.city_name}{request.state ? ` - ${request.state}` : ''}
-                  </span>
-                )}
-              </div>
-              {(originAddress || request.location_address) && (
-                <p className="text-xs text-muted-foreground pl-5 line-clamp-2">
-                  {originAddress || request.location_address}
-                </p>
+        <div className="space-y-1.5">
+          {/* COLETA */}
+          <div className="bg-green-50 dark:bg-green-900/20 rounded px-2 py-1.5 space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+              <span className="text-[11px] font-bold text-green-700 dark:text-green-400">COLETA</span>
+              {request.city_name && (
+                <span className="text-xs font-semibold text-primary ml-auto">
+                  {request.city_name}{request.state ? ` - ${request.state}` : ''}
+                </span>
               )}
             </div>
-
-            {/* ENTREGA */}
-            {(destAddress || destCity) && (
-              <div className="bg-red-50 dark:bg-red-900/20 rounded px-2 py-1.5 space-y-0.5">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
-                  <span className="text-[11px] font-bold text-red-700 dark:text-red-400">ENTREGA</span>
-                  {destCity && (
-                    <span className="text-xs font-semibold text-primary ml-auto">
-                      {destCity}{destState ? ` - ${destState}` : ''}
-                    </span>
-                  )}
-                </div>
-                {destAddress && (
-                  <p className="text-xs text-muted-foreground pl-5 line-clamp-2">{destAddress}</p>
-                )}
-              </div>
-            )}
-
-            {(request.location_lat || request.location_address) && (
-              <Button variant="outline" size="sm" className="h-7 text-xs w-full mt-1" onClick={openInMaps}>
-                <Navigation className="h-3 w-3 mr-1" />
-                Abrir no Google Maps
-              </Button>
+            {(originAddress || request.location_address) && (
+              <p className="text-xs text-muted-foreground pl-5 line-clamp-2">
+                {originAddress || request.location_address}
+              </p>
             )}
           </div>
 
-          {/* Mini-mapa de rastreio */}
-          {hasCoords && (
-            <InlineTrackingMap 
-              lat={request.location_lat!} 
-              lng={request.location_lng!} 
-              label={request.city_name || 'Local'}
-            />
+          {/* ENTREGA */}
+          {(destAddress || destCity) && (
+            <div className="bg-red-50 dark:bg-red-900/20 rounded px-2 py-1.5 space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
+                <span className="text-[11px] font-bold text-red-700 dark:text-red-400">ENTREGA</span>
+                {destCity && (
+                  <span className="text-xs font-semibold text-primary ml-auto">
+                    {destCity}{destState ? ` - ${destState}` : ''}
+                  </span>
+                )}
+              </div>
+              {destAddress && (
+                <p className="text-xs text-muted-foreground pl-5 line-clamp-2">{destAddress}</p>
+              )}
+            </div>
+          )}
+
+          {/* Botão de navegação - abre Google Maps apenas para rota de navegação GPS */}
+          {hasAnyCoords && (
+            <Button variant="outline" size="sm" className="h-7 text-xs w-full mt-1" onClick={openInMaps}>
+              <Navigation className="h-3 w-3 mr-1" />
+              Navegar até o destino
+            </Button>
           )}
         </div>
 
