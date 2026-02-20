@@ -410,12 +410,18 @@ const AffiliatedDriverSignup = () => {
             return '';
           }
           
-          const { data: { publicUrl } } = supabase.storage
+          // Generate signed URL (bucket is private)
+          const { data: signedData, error: signError } = await supabase.storage
             .from('profile-photos')
-            .getPublicUrl(fileName);
+            .createSignedUrl(fileName, 86400); // 24h
+
+          if (signError || !signedData?.signedUrl) {
+            console.error(`⚠️ Erro ao gerar signed URL para ${fileType}:`, signError);
+            return '';
+          }
           
           if (import.meta.env.DEV) console.log(`✅ ${fileType} uploaded`);
-          return publicUrl;
+          return signedData.signedUrl;
         } catch (err) {
           console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, err);
           return '';
