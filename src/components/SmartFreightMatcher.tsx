@@ -194,8 +194,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           created_at: f.created_at,
         }));
 
-        // Filter freights by allowed service types
-        const filteredMapped = mapped.filter(f => effectiveTypes.includes(f.service_type as CanonicalServiceType));
+        // ✅ Filtrar por tipos permitidos E por vagas disponíveis (accepted_trucks < required_trucks)
+        const filteredMapped = mapped.filter(
+          (f) =>
+            effectiveTypes.includes(f.service_type as CanonicalServiceType) &&
+            f.accepted_trucks < f.required_trucks
+        );
 
         // Service requests (PET, Pacotes, etc.) as towing/service requests
         const matchedServiceRequests = (serviceResult.data || []);

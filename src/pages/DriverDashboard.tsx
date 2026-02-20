@@ -377,8 +377,9 @@ const DriverDashboard = () => {
 
   // Buscar fretes disponíveis - com match inteligente por região
   const fetchAvailableFreights = useCallback(async () => {
-    // Don't fetch if user is not a driver
-    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
+    // Don't fetch if user is not a driver — usar active_mode (não apenas role cadastrada)
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || (activeMode !== 'MOTORISTA' && activeMode !== 'MOTORISTA_AFILIADO')) return;
 
     devLog('[fetchAvailableFreights] isCompanyDriver:', isCompanyDriver, 'canAcceptFreights:', canAcceptFreights, 'companyId:', companyId);
 
@@ -665,8 +666,9 @@ const DriverDashboard = () => {
   // Buscar propostas do motorista - otimizado
   // ✅ Buscar propostas do motorista - otimizado com tratamento de erro detalhado
   const fetchMyProposals = useCallback(async () => {
-    // Don't fetch if user is not a driver
-    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
+    // Don't fetch if user is not a driver — usar active_mode
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || (activeMode !== 'MOTORISTA' && activeMode !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       const { data, error } = await supabase.functions.invoke('driver-proposals');
