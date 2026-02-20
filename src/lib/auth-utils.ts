@@ -3,6 +3,8 @@
  * Contém lógica de redirecionamento por role e parse de query params
  */
 
+import { getDefaultRouteForProfile } from '@/security/panelAccessGuard';
+
 // Valid roles for signup/login
 export const VALID_ROLES = [
   'ADMIN',
@@ -15,21 +17,12 @@ export const VALID_ROLES = [
 
 export type ValidRole = typeof VALID_ROLES[number];
 
-// Mapeamento único de role -> dashboard
-const ROLE_DASHBOARD_MAP: Record<string, string> = {
-  'ADMIN': '/admin',
-  'PRODUTOR': '/dashboard/producer',
-  'MOTORISTA': '/dashboard/driver',
-  'MOTORISTA_AFILIADO': '/dashboard/driver',
-  'PRESTADOR_SERVICOS': '/dashboard/service-provider',
-  'TRANSPORTADORA': '/dashboard/company',
-};
-
 /**
- * Retorna a rota do dashboard correta para o role especificado
+ * Retorna a rota do dashboard correta para o role especificado.
+ * Delega para panelAccessGuard — fonte única de verdade.
  */
 export function getDashboardByRole(role: string): string {
-  return ROLE_DASHBOARD_MAP[role] || '/';
+  return getDefaultRouteForProfile({ role });
 }
 
 /**

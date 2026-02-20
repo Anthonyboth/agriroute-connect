@@ -3,6 +3,8 @@ import React, { lazy, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { getDefaultRouteForProfile, isRouteAllowedForProfile } from '@/security/panelAccessGuard';
+import { RequirePanel } from '@/components/security/RequirePanel';
 import { Capacitor } from '@capacitor/core';
 import { useDoubleTapResetZoom } from '@/hooks/useDoubleTapResetZoom';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -381,30 +383,20 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     return <AuthLoader message="Revalidando status de aprovação..." />;
   }
 
-  // Redirect to correct dashboard BEFORE checking allowedRoles (better UX)
+  // ✅ ROLE GATE — Camada 1: Redirecionar para o painel correto antes de checar allowedRoles
+  // Usa panelAccessGuard como fonte única de verdade (sem active_mode como critério de painel)
   if (isAuthenticated && profile) {
     const currentPath = window.location.pathname;
-    
-    // Check if user is a transport company
-    if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA' && profile.role !== 'MOTORISTA_AFILIADO') {
-      return <Navigate to="/dashboard/company" replace />;
-    }
-    
-    // Only redirect if user is on a specific dashboard that doesn't match their role
-    if (currentPath === '/dashboard/producer' && profile.role !== 'PRODUTOR') {
-      return <Navigate to={profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO' ? '/dashboard/driver' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
-    }
-    if (currentPath === '/dashboard/driver' && profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
-    }
-    if (currentPath === '/admin' && profile.role !== 'ADMIN') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver'} replace />;
-    }
-    if (currentPath === '/dashboard/service-provider' && profile.role !== 'PRESTADOR_SERVICOS') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO' ? '/dashboard/driver' : '/admin'} replace />;
-    }
-    if (currentPath === '/dashboard/company' && profile.role !== 'TRANSPORTADORA' && profile.active_mode !== 'TRANSPORTADORA') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO' ? '/dashboard/driver' : '/dashboard/service-provider'} replace />;
+
+    // Só age em rotas de painel
+    if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/admin')) {
+      if (!isRouteAllowedForProfile(currentPath, profile)) {
+        const correctRoute = getDefaultRouteForProfile(profile);
+        if (import.meta.env.DEV) {
+          console.warn(`[ProtectedRoute] 🚫 Rota ${currentPath} bloqueada para role ${profile.role} → ${correctRoute}`);
+        }
+        return <Navigate to={correctRoute} replace />;
+      }
     }
   }
 
@@ -605,46 +597,15 @@ const AuthedLanding = () => {
     return <Landing />;
   }
   
-  // ✅ Usuário autenticado: redirecionar para painel apropriado
-  // ✅ PROBLEMA 5: Debug log para diagnóstico de redirecionamento
-  console.log('[AuthedLanding] Redirecionando usuário:', { 
-    role: profile?.role, 
+  // ✅ ROLE GATE — Usar panelAccessGuard como fonte única (remove dependência de active_mode)
+  console.log('[AuthedLanding] Redirecionando usuário:', {
+    role: profile?.role,
     active_mode: profile?.active_mode,
-    isCompany,
-    profileId: profile?.id 
+    profileId: profile?.id,
   });
-  
-  // Redirecionar transportadoras
-  if (isCompany) {
-    return <Navigate to="/dashboard/company" replace />;
-  }
-  
-  // ✅ PROBLEMA 5: Usar active_mode se disponível, senão role
-  const effectiveRole = profile?.active_mode || profile?.role;
-  
-  let to = "/";
-  switch (effectiveRole) {
-    case 'ADMIN':
-      to = '/admin';
-      break;
-    case 'TRANSPORTADORA':
-      to = '/dashboard/company';
-      break;
-    case 'MOTORISTA':
-    case 'MOTORISTA_AFILIADO':
-      to = '/dashboard/driver';
-      break;
-    case 'PRODUTOR':
-      to = '/dashboard/producer';
-      break;
-    case 'PRESTADOR_SERVICOS':
-      to = '/dashboard/service-provider';
-      break;
-    default:
-      to = '/';
-  }
-  
-  return <Navigate to={to} replace />;
+
+  const targetRoute = getDefaultRouteForProfile(profile);
+  return <Navigate to={targetRoute} replace />;
 };
 
 const RedirectIfAuthed = () => {
@@ -740,38 +701,23 @@ const RedirectIfAuthed = () => {
     return <AuthLoader message="Finalizando..." />; // aguardando resolução do perfil
   }
   
-  // Consumir redirect_after_login se existir
+  // ✅ LACUNA 5 CORRIGIDA: Validar redirect_after_login contra os painéis permitidos do perfil
+  // Evita redirecionar para um painel de outra sessão/role anterior
   const after = localStorage.getItem('redirect_after_login');
   if (after && after !== window.location.pathname) {
     localStorage.removeItem('redirect_after_login');
-    return <Navigate to={after} replace />;
+    if (isRouteAllowedForProfile(after, profile)) {
+      return <Navigate to={after} replace />;
+    }
+    // Se a rota salva não é permitida para este role, ignora e usa o painel padrão
+    if (import.meta.env.DEV) {
+      console.warn(`[RedirectIfAuthed] redirect_after_login ignorado (rota não permitida para role ${profile.role}): ${after}`);
+    }
   }
-  
-  // Redirecionar transportadoras
-  if (isCompany) {
-    return <Navigate to="/dashboard/company" replace />;
-  }
-  
-  let to = "/";
-  switch (profile?.role) {
-    case 'ADMIN':
-      to = '/admin';
-      break;
-    case 'MOTORISTA':
-    case 'MOTORISTA_AFILIADO':
-      to = '/dashboard/driver';
-      break;
-    case 'PRODUTOR':
-      to = '/dashboard/producer';
-      break;
-    case 'PRESTADOR_SERVICOS':
-      to = '/dashboard/service-provider';
-      break;
-    default:
-      to = '/';
-  }
-  
-  return <Navigate to={to} replace />;
+
+  // ✅ ROLE GATE: Usar panelAccessGuard como fonte única de verdade
+  const targetRoute = getDefaultRouteForProfile(profile);
+  return <Navigate to={targetRoute} replace />;
 };
 
 const SmartFallback = () => {
@@ -984,9 +930,11 @@ const App = () => {
                           path="/dashboard/producer"
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
-                              <Suspense fallback={<DashboardLoader message="Carregando painel do produtor..." />}>
-                                <ProducerDashboard />
-                              </Suspense>
+                              <RequirePanel panel="PRODUCER">
+                                <Suspense fallback={<DashboardLoader message="Carregando painel do produtor..." />}>
+                                  <ProducerDashboard />
+                                </Suspense>
+                              </RequirePanel>
                             </ProtectedRoute>
                           } 
                         />
@@ -996,9 +944,11 @@ const App = () => {
                           path="/dashboard/driver" 
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["MOTORISTA", "MOTORISTA_AFILIADO"]}>
-                              <Suspense fallback={<DashboardLoader message="Carregando painel do motorista..." />}>
-                                <DriverDashboard />
-                              </Suspense>
+                              <RequirePanel panel="DRIVER">
+                                <Suspense fallback={<DashboardLoader message="Carregando painel do motorista..." />}>
+                                  <DriverDashboard />
+                                </Suspense>
+                              </RequirePanel>
                             </ProtectedRoute>
                           } 
                         />
@@ -1006,9 +956,11 @@ const App = () => {
                           path="/dashboard/service-provider" 
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
-                              <Suspense fallback={<DashboardLoader message="Carregando painel de serviços..." />}>
-                                <ServiceProviderDashboard />
-                              </Suspense>
+                              <RequirePanel panel="SERVICE_PROVIDER">
+                                <Suspense fallback={<DashboardLoader message="Carregando painel de serviços..." />}>
+                                  <ServiceProviderDashboard />
+                                </Suspense>
+                              </RequirePanel>
                             </ProtectedRoute>
                           } 
                         />
@@ -1016,9 +968,11 @@ const App = () => {
                           path="/dashboard/company" 
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
-                              <Suspense fallback={<DashboardLoader message="Carregando painel da transportadora..." />}>
-                                <CompanyDashboard />
-                              </Suspense>
+                              <RequirePanel panel="CARRIER">
+                                <Suspense fallback={<DashboardLoader message="Carregando painel da transportadora..." />}>
+                                  <CompanyDashboard />
+                                </Suspense>
+                              </RequirePanel>
                             </ProtectedRoute>
                           } 
                         />
