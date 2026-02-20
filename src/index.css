@@ -257,22 +257,11 @@
   height: 100% !important;
 }
 
-/* ✅ FIX: Isolar DOM markers do transform do Dialog/Drawer
-   MapLibre posiciona markers via transform: translate(Xpx, Ypx).
-   Quando um ancestral tem transform (Dialog centering), 
-   o containing block muda e causa offset durante animações.
-   Forçar will-change: auto impede optimizações que geram layers GPU separados
-   que ficam dessincronizados durante slide-in/out animations. */
-.maplibregl-marker {
-  will-change: auto !important;
-  backface-visibility: hidden;
-}
+/* DOM markers: sem overrides de will-change ou backface-visibility */
+/* MapLibre gerencia posicionamento via transform: translate(Xpx, Ypx) internamente */
 
-/* ✅ FIX: O container de markers MapLibre deve ter contain para
-   isolar do reflow causado por animações de Dialog/Drawer */
-.maplibregl-overlay {
-  contain: layout;
-}
+/* ✅ NÃO aplicar contain no maplibregl-overlay — quebra pintura WebGL */
+/* .maplibregl-overlay { contain: layout; } — REMOVIDO */
 
 /* Garantir que controles do mapa apareçam */
 .maplibregl-control-container {
