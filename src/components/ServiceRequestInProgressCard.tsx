@@ -132,34 +132,38 @@ const InlineTrackingMap = React.memo(({
   // Coordenadas precisas geocodificadas pelo endereço
   const [geocodedOrigin, setGeocodedOrigin] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Geocodifica o endereço via Nominatim ao montar (se endereço disponível)
+  // ✅ Se originLat/Lng são coordenadas de fallback (centro do Brasil), precisamos geocodificar
+  // Se já são coords GPS reais, NÃO geocodificamos (coords GPS têm prioridade absoluta)
+  const isFallbackCenter = originLat === -15.7801 && originLng === -47.9292;
+
+  // Geocodifica o endereço via Nominatim APENAS quando não há coordenadas GPS reais
   useEffect(() => {
-    if (!locationAddress) return;
+    if (!locationAddress || !isFallbackCenter) return;
     geocodeAddressNominatim(locationAddress).then(coords => {
       if (coords) setGeocodedOrigin(coords);
     });
-  }, [locationAddress]);
+  }, [locationAddress, isFallbackCenter]);
 
-  // Usa coordenadas geocodificadas se disponíveis, senão as originais
+  // Usa coordenadas geocodificadas se disponíveis (e só quando não há GPS real), senão as originais
   const origin = useMemo(() => 
-    geocodedOrigin ?? { lat: originLat, lng: originLng },
-    [geocodedOrigin, originLat, originLng]
+    (isFallbackCenter && geocodedOrigin) ? geocodedOrigin : { lat: originLat, lng: originLng },
+    [geocodedOrigin, originLat, originLng, isFallbackCenter]
   );
 
-  // ✅ Quando geocodedOrigin muda (chegou resultado do Nominatim), atualiza marcador no mapa existente
+  // ✅ Quando geocodedOrigin muda (só ocorre quando isFallbackCenter=true), atualiza marcador e voa para endereço
   useEffect(() => {
-    if (!geocodedOrigin || !mapRef.current || !mapLoaded) return;
+    if (!geocodedOrigin || !isFallbackCenter || !mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
     const source = map.getSource(MARKERS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
-    // Recalcula feature collection com as novas coordenadas geocodificadas
+    // Recalcula feature collection com as coordenadas geocodificadas via endereço
     const dest = (destLat && destLng && destLat !== 0 && destLng !== 0) ? { lat: destLat, lng: destLng } : null;
     const driver = (driverLat && driverLng && driverLat !== 0 && driverLng !== 0) ? { lat: driverLat, lng: driverLng } : null;
     const fc = buildMarkersFeatureCollection(geocodedOrigin, dest, driver, isDriverOnline ?? true);
     source.setData(fc);
     // Voa para a localização correta
     map.flyTo({ center: [geocodedOrigin.lng, geocodedOrigin.lat], zoom: 15, duration: 800 });
-  }, [geocodedOrigin, mapLoaded, destLat, destLng, driverLat, driverLng, isDriverOnline]);
+  }, [geocodedOrigin, isFallbackCenter, mapLoaded, destLat, destLng, driverLat, driverLng, isDriverOnline]);
 
   const destination = useMemo(() => {
     if (destLat && destLng && destLat !== 0 && destLng !== 0) {
