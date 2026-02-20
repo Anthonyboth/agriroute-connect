@@ -24,7 +24,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
 
   return (
     <TooltipProvider>
-      <section data-tutorial="producer-hero" className="relative min-h-[160px] flex items-center justify-center overflow-hidden">
+      <section data-tutorial="producer-hero" className="relative min-h-[280px] flex items-center justify-center overflow-hidden">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
