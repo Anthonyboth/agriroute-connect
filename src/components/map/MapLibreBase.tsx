@@ -156,20 +156,13 @@ export const MapLibreBase = forwardRef<MapLibreBaseRef, MapLibreBaseProps>(({
   return (
     <div 
       className={cn("relative rounded-lg overflow-hidden", className)}
-      style={{ 
-        minHeight: `${minHeight}px`,
-        isolation: 'isolate',
-      }}
+      style={{ minHeight: `${minHeight}px` }}
     >
       {/* ✅ P1: Container do mapa - SEMPRE montado, nunca removido do DOM */}
       <div 
         ref={containerRef}
         className="absolute inset-0"
-        style={{ 
-          width: '100%', 
-          height: '100%', 
-          transform: 'none',
-        }}
+        style={{ width: '100%', height: '100%' }}
       />
 
       {/* ✅ OVERLAY: Verificando suporte WebGL */}
