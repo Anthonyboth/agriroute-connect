@@ -719,7 +719,7 @@ const CompanyDashboard = () => {
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
       />
       
-      <section className="relative py-6 overflow-hidden">
+      <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
