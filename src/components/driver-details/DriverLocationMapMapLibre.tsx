@@ -43,8 +43,11 @@ export const DriverLocationMapMapLibre = ({
       lat: normalizedLocation.lat,
       lng: normalizedLocation.lng,
       type: 'truck',
+      // GPS do motorista: pode ter lat/lng invertido ou micrograus → normalizar
+      skipNormalize: false,
+      label: driverName ?? 'Motorista',
     }];
-  }, [normalizedLocation]);
+  }, [normalizedLocation, driverName]);
 
   // Centralizar quando coordenadas mudarem (usando coordenadas normalizadas)
   const handleLoad = useCallback(() => {
