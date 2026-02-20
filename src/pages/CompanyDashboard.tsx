@@ -59,6 +59,7 @@ import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
+import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
 import { UserCityManager } from '@/components/UserCityManager';
@@ -158,6 +159,8 @@ const CompanyDashboard = () => {
   const [activeTab, setActiveTab] = useState(getInitialTab());
   const [isMuralOpen, setIsMuralOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [serviceChatOpen, setServiceChatOpen] = useState(false);
+  const [selectedChatServiceRequest, setSelectedChatServiceRequest] = useState<any>(null);
 
   useEffect(() => {
     const dismissedAt = localStorage.getItem('mural_dismissed_at');
@@ -1019,6 +1022,7 @@ const CompanyDashboard = () => {
                             onMarkOnTheWay={handleServiceOnTheWay}
                             onStartTransit={handleStartTransit}
                             onFinishService={handleFinishService}
+                            onOpenChat={(req) => { setSelectedChatServiceRequest(req); setServiceChatOpen(true); }}
                           />
                         ))}
                       </div>
@@ -1111,6 +1115,16 @@ const CompanyDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ServiceChat Dialog */}
+      {serviceChatOpen && selectedChatServiceRequest && (
+        <ServiceChatDialog
+          isOpen={serviceChatOpen}
+          onClose={() => { setServiceChatOpen(false); setSelectedChatServiceRequest(null); }}
+          serviceRequest={selectedChatServiceRequest}
+          currentUserProfile={profile}
+        />
+      )}
 
       {/* Modal de Solicitar Serviços */}
       <ServicesModal

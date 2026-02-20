@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   MapPin, MessageSquare, Navigation, CheckCircle, Truck, Clock,
-  Car, AlertTriangle, Calendar, Mail, User, Map, Eye, Route, Wrench
+  Car, AlertTriangle, Calendar, User, Map, Eye, Route, Wrench
 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
@@ -49,6 +49,7 @@ interface ServiceRequestInProgressCardProps {
   onStartTransit: (id: string) => void;
   onFinishService: (id: string) => void;
   onCancel?: (id: string) => void;
+  onOpenChat?: (request: any) => void;
   /** Optional proposals section to render */
   proposalsSection?: React.ReactNode;
 }
@@ -470,6 +471,7 @@ const ServiceRequestInProgressCardComponent = ({
   onStartTransit,
   onFinishService,
   onCancel,
+  onOpenChat,
   proposalsSection,
 }: ServiceRequestInProgressCardProps) => {
   
@@ -533,9 +535,7 @@ const ServiceRequestInProgressCardComponent = ({
   };
 
   const openEmail = () => {
-    if (request.contact_email) {
-      window.open(`mailto:${request.contact_email}`, '_blank');
-    }
+    // Email removido - usar WhatsApp ou Chat da plataforma
   };
 
   // Usa normalizeServiceType do pt-br-validator que já tem todos os tipos mapeados
@@ -616,10 +616,10 @@ const ServiceRequestInProgressCardComponent = ({
                 {request.contact_phone}
               </Button>
             )}
-            {request.contact_email && (
-              <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={openEmail}>
-                <Mail className="h-3 w-3 mr-1" />
-                Email
+            {onOpenChat && request.client_id && (
+              <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => onOpenChat(request)}>
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Chat
               </Button>
             )}
           </div>
