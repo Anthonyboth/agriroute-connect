@@ -6,6 +6,7 @@ import {
   MapPin, MessageSquare, Navigation, CheckCircle, Truck, Clock,
   Car, AlertTriangle, Calendar, User, Map, Eye, Route, Wrench
 } from 'lucide-react';
+import { isFreightType } from '@/lib/item-classification';
 import { formatBRL } from '@/lib/formatters';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { RURAL_STYLE_INLINE } from '@/config/maplibre';
@@ -513,6 +514,8 @@ const ServiceRequestInProgressCardComponent = ({
   const mapOriginLat = request.location_lat || -15.7801;
   const mapOriginLng = request.location_lng || -47.9292;
   const isUrgent = request.urgency && ['ALTA', 'URGENTE'].includes(request.urgency.toUpperCase());
+  // ✅ Fretes urbanos usam terminologia de FRETE; serviços técnicos usam terminologia de SERVIÇO
+  const isFreight = isFreightType(request.service_type);
 
   const openInMaps = () => {
     if (request.location_lat && request.location_lng && effectiveDestLat && effectiveDestLng) {
@@ -742,18 +745,18 @@ const ServiceRequestInProgressCardComponent = ({
             A Caminho do Local
           </Button>
         )}
-        {/* Etapa 2: ON_THE_WAY → Iniciar Atendimento */}
+        {/* Etapa 2: ON_THE_WAY → Iniciar Frete (frete urbano) ou Iniciar Atendimento (serviço) */}
         {request.status === 'ON_THE_WAY' && (
           <Button size="sm" className="flex-1 bg-yellow-600 hover:bg-yellow-700 h-9" onClick={() => onStartTransit(request.id)}>
-            <Wrench className="h-4 w-4 mr-1" />
-            Iniciar Atendimento
+            {isFreight ? <Truck className="h-4 w-4 mr-1" /> : <Wrench className="h-4 w-4 mr-1" />}
+            {isFreight ? 'Iniciar Frete' : 'Iniciar Atendimento'}
           </Button>
         )}
-        {/* Etapa 3: IN_PROGRESS → Concluir Serviço */}
+        {/* Etapa 3: IN_PROGRESS → Concluir Frete (frete urbano) ou Concluir Serviço (serviço) */}
         {request.status === 'IN_PROGRESS' && (
           <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 h-9" onClick={() => onFinishService(request.id)}>
             <CheckCircle className="h-4 w-4 mr-1" />
-            Concluir Serviço
+            {isFreight ? 'Concluir Frete' : 'Concluir Serviço'}
           </Button>
         )}
         {/* Botão Cancelar */}
