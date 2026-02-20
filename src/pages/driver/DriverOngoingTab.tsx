@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
 import { ServiceRequestInProgressCard } from "@/components/ServiceRequestInProgressCard";
+import { ServiceChatDialog } from "@/components/ServiceChatDialog";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
@@ -83,6 +84,8 @@ export const DriverOngoingTab: React.FC = () => {
   const driverProfileId = profile?.id;
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [confirmingReceiptId, setConfirmingReceiptId] = useState<string | null>(null);
+  const [serviceChatOpen, setServiceChatOpen] = useState(false);
+  const [selectedChatServiceRequest, setSelectedChatServiceRequest] = useState<any>(null);
 
   // ✅ GUARD: Valida integridade do componente - evita regressões
   useDashboardIntegrityGuard('driver_ongoing', 'DriverOngoingTab');
@@ -388,6 +391,7 @@ export const DriverOngoingTab: React.FC = () => {
                     onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho da coleta!")}
                     onStartTransit={(id) => handleTransitionService(id, "IN_PROGRESS", "Em trânsito!")}
                     onFinishService={(id) => handleTransitionService(id, "COMPLETED", "Entrega realizada com sucesso!")}
+                    onOpenChat={(req) => { setSelectedChatServiceRequest(req); setServiceChatOpen(true); }}
                   />
                 ))}
               </div>
@@ -454,6 +458,16 @@ export const DriverOngoingTab: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* ServiceChat Dialog */}
+      {serviceChatOpen && selectedChatServiceRequest && (
+        <ServiceChatDialog
+          isOpen={serviceChatOpen}
+          onClose={() => { setServiceChatOpen(false); setSelectedChatServiceRequest(null); }}
+          serviceRequest={selectedChatServiceRequest}
+          currentUserProfile={profile}
+        />
       )}
 
       {/* Modal de detalhes */}

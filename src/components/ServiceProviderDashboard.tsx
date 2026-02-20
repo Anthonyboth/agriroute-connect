@@ -1538,6 +1538,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                       onStartTransit={(id) => handleStatusChange(id, 'IN_PROGRESS')}
                       onFinishService={(id) => handleStatusChange(id, 'COMPLETED')}
                       onCancel={() => { setServiceToCancel(request); setCancelDialogOpen(true); }}
+                      onOpenChat={(req) => { setSelectedChatRequest(req); setChatDialogOpen(true); }}
                       proposalsSection={
                         request.client_id ? (
                           <ServiceProposalSection
