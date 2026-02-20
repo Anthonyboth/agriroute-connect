@@ -117,6 +117,7 @@ const InlineTrackingMap = React.memo(({
   isDriverOnline,
   label,
   locationAddress,
+  destAddress,
 }: { 
   originLat: number; originLng: number; 
   destLat?: number; destLng?: number;
@@ -124,6 +125,8 @@ const InlineTrackingMap = React.memo(({
   isDriverOnline?: boolean;
   label?: string;
   locationAddress?: string;
+  /** Endereço textual do destino, para geocodificar quando não há coords */
+  destAddress?: string;
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -140,6 +143,27 @@ const InlineTrackingMap = React.memo(({
     isFallbackCenter ? null : { lat: originLat, lng: originLng }
   );
   const [geocodingDone, setGeocodingDone] = useState(!isFallbackCenter);
+
+  // ✅ Coordenadas resolvidas do destino (via geocodificação quando não há lat/lng)
+  const hasDestCoords = !!(destLat && destLng && destLat !== 0 && destLng !== 0);
+  const [resolvedDest, setResolvedDest] = useState<{ lat: number; lng: number } | null>(
+    hasDestCoords ? { lat: destLat!, lng: destLng! } : null
+  );
+
+  // Geocodifica o destino via Nominatim quando não há coordenadas GPS
+  useEffect(() => {
+    if (hasDestCoords) {
+      setResolvedDest({ lat: destLat!, lng: destLng! });
+      return;
+    }
+    if (!destAddress) {
+      setResolvedDest(null);
+      return;
+    }
+    geocodeAddressNominatim(destAddress).then(coords => {
+      setResolvedDest(coords);
+    });
+  }, [destAddress, hasDestCoords, destLat, destLng]);
 
   // Geocodifica o endereço via Nominatim ANTES de renderizar o mapa
   useEffect(() => {
@@ -175,12 +199,14 @@ const InlineTrackingMap = React.memo(({
     [resolvedOrigin, originLat, originLng]
   );
 
+  // ✅ Usa resolvedDest (pode ter vindo de geocodificação por endereço)
   const destination = useMemo(() => {
+    if (resolvedDest) return resolvedDest;
     if (destLat && destLng && destLat !== 0 && destLng !== 0) {
       return { lat: destLat, lng: destLng };
     }
     return null;
-  }, [destLat, destLng]);
+  }, [resolvedDest, destLat, destLng]);
 
   const driverPos = useMemo(() => {
     if (driverLat && driverLng && driverLat !== 0 && driverLng !== 0) {
@@ -239,8 +265,8 @@ const InlineTrackingMap = React.memo(({
     mapRef.current.fitBounds(bounds, { padding: 50, duration: 1000 });
   }, [origin, destination, driverPos]);
 
+  // ✅ Inicializar o mapa uma única vez (quando origem estiver geocodificada)
   useEffect(() => {
-    // ✅ Aguardar geocodificação completar antes de montar o mapa
     if (!geocodingDone || !resolvedOrigin) return;
     if (!mapContainer.current || mapRef.current) return;
 
@@ -254,7 +280,6 @@ const InlineTrackingMap = React.memo(({
         attributionControl: false,
       });
 
-      // Add zoom/navigation control
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
       map.on('load', async () => {
@@ -277,10 +302,7 @@ const InlineTrackingMap = React.memo(({
           }
         }
 
-        // Build markers feature collection (A/B + driver)
-        const fc = buildMarkersFeatureCollection(origin, destination, driverPos, isDriverOnline ?? true);
-
-        // Add route source (empty initially, filled by OSRM)
+        // Add route source (empty — será preenchido reativamente)
         map.addSource(ROUTE_SOURCE_ID, { 
           type: 'geojson', 
           data: { type: 'FeatureCollection', features: [] } 
@@ -298,6 +320,7 @@ const InlineTrackingMap = React.memo(({
         });
 
         // Add markers source + layer (on top of route)
+        const fc = buildMarkersFeatureCollection(origin, null, driverPos, isDriverOnline ?? true);
         map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: fc });
         map.addLayer({
           id: MARKERS_LAYER_ID,
@@ -310,63 +333,10 @@ const InlineTrackingMap = React.memo(({
             'icon-anchor': ['match', ['get', 'markerType'],
               'origin', 'bottom',
               'destination', 'bottom',
-              'center', // truck icons are centered
+              'center',
             ],
           },
         });
-
-        // ✅ Fetch OSRM route (real road path) if both A and B exist
-        if (origin && destination) {
-          try {
-            const osrmResult = await fetchOSRMRoute(origin, destination);
-            const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
-            if (routeSource && osrmResult.coordinates.length >= 2) {
-              routeSource.setData({
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                  type: 'LineString',
-                  coordinates: osrmResult.coordinates,
-                },
-              });
-
-              // Set route info
-              setRouteInfo({
-                distanceText: osrmResult.distanceText,
-                durationText: osrmResult.durationText,
-              });
-
-              // Fit bounds to route + markers
-              const bounds = new maplibregl.LngLatBounds();
-              osrmResult.coordinates.forEach(coord => bounds.extend(coord as [number, number]));
-              if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
-              map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
-            }
-          } catch (e) {
-            console.warn('[InlineTrackingMap] OSRM fallback to straight line:', e);
-            const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
-            if (routeSource) {
-              routeSource.setData({
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                  type: 'LineString',
-                  coordinates: [[origin.lng, origin.lat], [destination.lng, destination.lat]],
-                },
-              });
-            }
-          }
-        }
-
-        // Fit bounds to markers (if no route to fit)
-        if (!destination) {
-          const bounds = new maplibregl.LngLatBounds();
-          bounds.extend([origin.lng, origin.lat]);
-          if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
-          if (driverPos) {
-            map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
-          }
-        }
       });
 
       map.on('error', () => setMapError(true));
@@ -381,7 +351,79 @@ const InlineTrackingMap = React.memo(({
       iconsRegisteredRef.current = false;
       setMapLoaded(false);
     };
-  }, [geocodingDone, resolvedOrigin, originLat, originLng, destLat, destLng, driverLat, driverLng, center, zoom, origin, destination, driverPos, isDriverOnline]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geocodingDone, resolvedOrigin]);
+
+  // ✅ Efeito reativo: atualiza rota + marcadores quando destination ou origin mudam
+  // Isso garante que a rota seja desenhada mesmo quando destino chega via geocodificação assíncrona
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const updateRouteAndMarkers = async () => {
+      // Atualiza marcadores
+      if (map.getSource(MARKERS_SOURCE_ID)) {
+        const fc = buildMarkersFeatureCollection(origin, destination, driverPos, isDriverOnline ?? true);
+        (map.getSource(MARKERS_SOURCE_ID) as maplibregl.GeoJSONSource).setData(fc);
+      }
+
+      if (!destination) {
+        // Sem destino: centraliza na origem + motorista
+        if (map.getSource(ROUTE_SOURCE_ID)) {
+          (map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection', features: [],
+          });
+        }
+        return;
+      }
+
+      // Com destino: busca rota OSRM
+      try {
+        const osrmResult = await fetchOSRMRoute(origin, destination);
+        const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
+        if (routeSource && osrmResult.coordinates.length >= 2) {
+          routeSource.setData({
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: osrmResult.coordinates },
+          });
+
+          setRouteInfo({
+            distanceText: osrmResult.distanceText,
+            durationText: osrmResult.durationText,
+          });
+
+          // Fit bounds à rota completa
+          const bounds = new maplibregl.LngLatBounds();
+          osrmResult.coordinates.forEach(coord => bounds.extend(coord as [number, number]));
+          if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
+          map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 500 });
+        }
+      } catch (e) {
+        console.warn('[InlineTrackingMap] OSRM fallback to straight line:', e);
+        const routeSource = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
+        if (routeSource) {
+          routeSource.setData({
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: [[origin.lng, origin.lat], [destination.lng, destination.lat]],
+            },
+          });
+          // Fit bounds para linha reta
+          const bounds = new maplibregl.LngLatBounds();
+          bounds.extend([origin.lng, origin.lat]);
+          bounds.extend([destination.lng, destination.lat]);
+          if (driverPos) bounds.extend([driverPos.lng, driverPos.lat]);
+          map.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 500 });
+        }
+      }
+    };
+
+    updateRouteAndMarkers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapLoaded, origin, destination, driverPos, isDriverOnline]);
 
   if (mapError) {
     return (
@@ -649,6 +691,7 @@ const ServiceRequestInProgressCardComponent = ({
             isDriverOnline={request.status === 'IN_PROGRESS' || request.status === 'ON_THE_WAY'}
             label={request.city_name || 'Local'}
             locationAddress={effectiveLocationAddress || undefined}
+            destAddress={destAddress || (destCity ? `${destCity}${destState ? ` - ${destState}` : ''}` : undefined)}
           />
         )}
 
