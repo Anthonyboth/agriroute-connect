@@ -5,7 +5,7 @@
  * Integra com OSRM para obter rotas por estradas.
  */
 
-import { useEffect, useRef, MutableRefObject, useCallback } from 'react';
+import { useEffect, useRef, MutableRefObject, useCallback, useState } from 'react';
 import { devLog } from '@/lib/devLogger';
 import maplibregl from 'maplibre-gl';
 import { useOSRMRoute, RoutePoint, OSRMRouteResult } from './useOSRMRoute';
@@ -61,7 +61,8 @@ export function useMapLibreRoute(
   } = options;
 
   const sourceId = `${layerId}-source`;
-  const hasAddedLayerRef = useRef(false);
+  // Contador reativo para forçar re-render quando o mapa estiver pronto
+  const [mapReadyTick, setMapReadyTick] = useState(0);
 
   // Buscar rota via OSRM
   const { route, isLoading, error, refetch } = useOSRMRoute({
@@ -71,6 +72,24 @@ export function useMapLibreRoute(
     enabled,
   });
 
+  // Registrar listener 'styledata' para reagir quando o mapa/estilo ficar pronto
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const onStyleReady = () => setMapReadyTick(t => t + 1);
+
+    map.on('styledata', onStyleReady);
+    // Disparar imediatamente se já estiver pronto
+    if (map.isStyleLoaded()) {
+      setMapReadyTick(t => t + 1);
+    }
+
+    return () => {
+      map.off('styledata', onStyleReady);
+    };
+  }, [mapRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Desenhar rota no mapa
   useEffect(() => {
     const map = mapRef.current;
@@ -79,38 +98,29 @@ export function useMapLibreRoute(
     // Limpar layer/source existente
     const cleanup = () => {
       try {
-        if (map.getLayer(layerId)) {
-          map.removeLayer(layerId);
-        }
-        if (map.getSource(sourceId)) {
-          map.removeSource(sourceId);
-        }
-        hasAddedLayerRef.current = false;
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
       } catch (e) {
         // Ignorar erros de cleanup
       }
     };
 
-    // Sem coordenadas? Remover layer
+    // Sem rota: mostrar linha reta enquanto carrega
     if (!route || route.coordinates.length === 0) {
-      // Mostrar linha reta durante loading se habilitado
       if (showLoadingLine && isLoading && origin && destination) {
         const straightLine: [number, number][] = [
           [origin.lng, origin.lat],
           [destination.lng, destination.lat],
         ];
-        
+
         cleanup();
-        
+
         map.addSource(sourceId, {
           type: 'geojson',
           data: {
             type: 'Feature',
             properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: straightLine,
-            },
+            geometry: { type: 'LineString', coordinates: straightLine },
           },
         });
 
@@ -118,19 +128,14 @@ export function useMapLibreRoute(
           id: layerId,
           type: 'line',
           source: sourceId,
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: {
-            'line-color': '#94a3b8', // Cinza durante loading
+            'line-color': '#94a3b8',
             'line-width': lineWidth,
-            'line-dasharray': [2, 2], // Linha tracejada
+            'line-dasharray': [2, 2],
             'line-opacity': 0.5,
           },
         });
-
-        hasAddedLayerRef.current = true;
       } else {
         cleanup();
       }
@@ -148,10 +153,7 @@ export function useMapLibreRoute(
           distance: route.distanceText,
           duration: route.durationText,
         },
-        geometry: {
-          type: 'LineString',
-          coordinates: route.coordinates,
-        },
+        geometry: { type: 'LineString', coordinates: route.coordinates },
       },
     });
 
@@ -159,10 +161,7 @@ export function useMapLibreRoute(
       id: layerId,
       type: 'line',
       source: sourceId,
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': lineColor,
         'line-width': lineWidth,
@@ -170,46 +169,33 @@ export function useMapLibreRoute(
       },
     });
 
-    hasAddedLayerRef.current = true;
-
     devLog('[useMapLibreRoute] Route drawn:', {
       layerId,
       points: route.coordinates.length,
       distance: route.distanceText,
     });
-  }, [mapRef.current, route, isLoading, origin, destination, lineColor, lineWidth, layerId, sourceId, showLoadingLine]);
+  }, [mapReadyTick, route, isLoading, origin, destination, lineColor, lineWidth, layerId, sourceId, showLoadingLine]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup no unmount
   useEffect(() => {
     return () => {
       const map = mapRef.current;
       if (!map) return;
-
       try {
-        if (map.getLayer(layerId)) {
-          map.removeLayer(layerId);
-        }
-        if (map.getSource(sourceId)) {
-          map.removeSource(sourceId);
-        }
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
       } catch (e) {
         // Ignorar erros no unmount
       }
     };
-  }, [layerId, sourceId]);
+  }, [layerId, sourceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const removeRoute = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-
     try {
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId);
-      }
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId);
-      }
-      hasAddedLayerRef.current = false;
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
     } catch (e) {
       console.error('[useMapLibreRoute] Error removing route:', e);
     }
