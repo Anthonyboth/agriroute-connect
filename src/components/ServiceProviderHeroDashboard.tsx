@@ -148,7 +148,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
     <TooltipProvider>
     <div className="min-h-screen bg-background">
       {/* Hero Section — padrão app: min-h-[340px] com imagem bem visível */}
-      <section className="relative min-h-[340px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
