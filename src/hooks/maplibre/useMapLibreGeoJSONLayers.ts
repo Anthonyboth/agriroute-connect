@@ -15,6 +15,7 @@
 import { useRef, useEffect, useCallback, MutableRefObject } from 'react';
 import maplibregl from 'maplibre-gl';
 import { normalizeLatLngPoint } from '@/lib/geo/normalizeLatLngPoint';
+import { assertLatLng, googleMapsLink } from '@/lib/geo/mapHelpers';
 
 // ==================== Types ====================
 
@@ -27,6 +28,15 @@ export interface GeoJSONMarkerData {
   lng: number;
   /** Tipo do marcador (para estilização diferenciada) */
   type?: 'driver' | 'origin' | 'destination' | 'truck' | 'default';
+  /**
+   * Se true, DESABILITA normalizeLatLngPoint para este marker.
+   * Use para coordenadas de cidade/endereço (Nominatim, cities table) que já estão corretas.
+   * Deixe false apenas para GPS de motorista (pode ter lat/lng invertido ou micrograus).
+   * DEFAULT: true (skip normalize) — normalization é opt-in via skipNormalize=false.
+   */
+  skipNormalize?: boolean;
+  /** Label associado (cidade/endereço) — usado no log de debug */
+  label?: string;
   /** Propriedades extras para o GeoJSON */
   properties?: Record<string, any>;
 }
@@ -76,28 +86,57 @@ function markersToGeoJSON(markers: GeoJSONMarkerData[]): GeoJSON.FeatureCollecti
   const features: GeoJSON.Feature[] = [];
 
   for (const marker of markers) {
-    // Normalizar coordenadas (evita lat/lng invertidos)
-    const lat = Number(marker.lat);
-    const lng = Number(marker.lng);
-    
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    const rawLat = Number(marker.lat);
+    const rawLng = Number(marker.lng);
+
+    if (!Number.isFinite(rawLat) || !Number.isFinite(rawLng)) {
       console.warn('[GeoJSONLayers] Coordenadas inválidas para marker:', marker.id);
       continue;
     }
 
-    const normalized = normalizeLatLngPoint({ lat, lng }, 'BR', { silent: true });
-    const point = normalized ?? { lat, lng };
+    // ✅ normalizeLatLngPoint é opt-in: apenas quando skipNormalize === false
+    // Por padrão (skipNormalize === undefined ou true), usa coordenadas brutas.
+    // Isso evita que a heurística de swap inverta coordenadas corretas de cidades/endereços.
+    const shouldNormalize = marker.skipNormalize === false;
+    let finalLat = rawLat;
+    let finalLng = rawLng;
+
+    if (shouldNormalize) {
+      const normalized = normalizeLatLngPoint({ lat: rawLat, lng: rawLng }, 'BR', { silent: false });
+      if (normalized) {
+        finalLat = normalized.lat;
+        finalLng = normalized.lng;
+      }
+    }
+
+    // ✅ Guard de sanidade
+    assertLatLng(finalLat, finalLng, `marker[${marker.id}]`);
+
+    // ✅ [MAP PIN DEBUG] — visível em DEV para diagnóstico de pin no lugar errado
+    if (import.meta.env.DEV) {
+      console.log('[MAP PIN DEBUG]', {
+        id: marker.id,
+        type: marker.type,
+        label: marker.label ?? '(sem label)',
+        raw: { lat: rawLat, lng: rawLng },
+        normalized: shouldNormalize ? { lat: finalLat, lng: finalLng } : null,
+        skipNormalize: marker.skipNormalize ?? true,
+        mapLibreLngLat: [finalLng, finalLat],
+        googleMapsLink: googleMapsLink(finalLat, finalLng),
+      });
+    }
 
     features.push({
       type: 'Feature',
       id: marker.id,
       geometry: {
         type: 'Point',
-        coordinates: [point.lng, point.lat], // GeoJSON = [lng, lat]
+        coordinates: [finalLng, finalLat], // GeoJSON = [lng, lat]
       },
       properties: {
         id: marker.id,
         type: marker.type || 'default',
+        label: marker.label,
         ...marker.properties,
       },
     });
