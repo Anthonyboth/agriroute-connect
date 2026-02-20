@@ -473,6 +473,20 @@ const ServiceRequestInProgressCardComponent = ({
   const hasOriginCoords = !!(request.location_lat && request.location_lng);
   const hasDestCoords = !!(effectiveDestLat && effectiveDestLng);
   const hasAnyCoords = hasOriginCoords || hasDestCoords;
+
+  // ✅ Endereço completo para geocodificação: prioriza location_address, depois monta a partir dos campos
+  const effectiveLocationAddress = originAddress || request.location_address
+    || (request.city_name
+      ? `${request.city_name}${request.state ? ` - ${request.state}` : ''}`
+      : null);
+
+  // ✅ Mostra mapa se tiver coords OU endereço/cidade para geocodificar
+  const shouldShowMap = hasOriginCoords || !!effectiveLocationAddress;
+
+  // ✅ Coordenadas de fallback: se não tiver coords mas tiver cidade, usa centro do Brasil
+  // O InlineTrackingMap vai geocodificar e voar para a localização correta
+  const mapOriginLat = request.location_lat || -15.7801;
+  const mapOriginLng = request.location_lng || -47.9292;
   const isUrgent = request.urgency && ['ALTA', 'URGENTE'].includes(request.urgency.toUpperCase());
 
   const openInMaps = () => {
@@ -597,17 +611,18 @@ const ServiceRequestInProgressCardComponent = ({
         )}
 
         {/* ✅ Mapa MapLibre com marcadores A/B (canvas WebGL) - ACIMA dos endereços */}
-        {hasOriginCoords && (
+        {/* Exibe mapa se tiver coords GPS precisas OU endereço/cidade para geocodificar via Nominatim */}
+        {shouldShowMap && (
           <InlineTrackingMap 
-            originLat={request.location_lat!} 
-            originLng={request.location_lng!}
+            originLat={mapOriginLat} 
+            originLng={mapOriginLng}
             destLat={effectiveDestLat || undefined}
             destLng={effectiveDestLng || undefined}
             driverLat={request.driver_lat || undefined}
             driverLng={request.driver_lng || undefined}
             isDriverOnline={request.status === 'IN_PROGRESS' || request.status === 'ON_THE_WAY'}
             label={request.city_name || 'Local'}
-            locationAddress={originAddress || request.location_address || undefined}
+            locationAddress={effectiveLocationAddress || undefined}
           />
         )}
 

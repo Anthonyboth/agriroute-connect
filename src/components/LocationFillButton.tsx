@@ -96,14 +96,15 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
       size={size}
       onClick={handleFillCurrentLocation}
       disabled={loading}
-      className={`gap-2 ${className}`}
+      className={`gap-1.5 ${className}`}
+      title="Preencher endereço com localização GPS atual"
     >
       {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
       ) : (
-        <MapPin className="h-4 w-4" />
+        <MapPin className="h-3.5 w-3.5" />
       )}
-      <span className="hidden sm:inline">{loading ? 'Obtendo...' : 'Usar GPS'}</span>
+      <span>{loading ? 'Obtendo GPS...' : '📍 Preencher com GPS'}</span>
     </Button>
   );
 };
