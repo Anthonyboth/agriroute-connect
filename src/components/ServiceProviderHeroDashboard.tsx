@@ -147,27 +147,26 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   return (
     <TooltipProvider>
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="relative text-white overflow-hidden">
+      {/* Hero Section — padrão app: min-h-[220px] com imagem visível */}
+      <section className="relative min-h-[220px] flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
             src={heroDesktop}
             alt="Imagem de fundo"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover animate-fade-in"
             loading="eager"
             decoding="async"
           />
         </picture>
-        {/* Overlay */}
+        {/* Overlay mais suave para imagem ficar visível */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
-        
-        <div className="relative container mx-auto px-4 py-6 md:py-8">
-          <div className="text-center">
-            
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 justify-center items-center max-w-2xl mx-auto">
+
+        <div className="relative z-10 w-full">
+          <div className="container mx-auto px-4 text-center text-primary-foreground">
+            {/* Action Buttons com padding vertical para respirar */}
+            <div className="flex flex-col items-center gap-2 px-6 py-5 sm:flex-row sm:flex-wrap sm:justify-center sm:px-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HeroActionButton
@@ -182,7 +181,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                   <p>Defina as cidades onde você atende clientes</p>
                 </TooltipContent>
               </Tooltip>
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HeroActionButton
@@ -197,7 +196,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                   <p>Configure os serviços que você oferece</p>
                 </TooltipContent>
               </Tooltip>
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HeroActionButton
@@ -215,7 +214,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Stats Cards */}
       <div className="container mx-auto px-4 -mt-8 pb-8 relative z-10">
