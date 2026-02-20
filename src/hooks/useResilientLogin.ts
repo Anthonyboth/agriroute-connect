@@ -13,6 +13,7 @@ import { isValidDocument, normalizeDocument } from '@/utils/document';
 import { clearCachedProfile } from '@/lib/profile-cache';
 import { saveProfileToAutofill } from '@/lib/autofill-storage';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
+import { getDefaultRouteForProfile } from '@/security/panelAccessGuard';
 
 const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
@@ -100,23 +101,10 @@ async function notifyLoginErrorToTelegram(
 
 /**
  * Determinar rota de dashboard baseado na role do perfil
+ * Delega para panelAccessGuard — fonte única de verdade.
  */
 function getDashboardRoute(role: string): string {
-  switch (role) {
-    case 'MOTORISTA':
-    case 'MOTORISTA_AFILIADO':
-      return '/dashboard/driver';
-    case 'PRODUTOR':
-      return '/dashboard/producer';
-    case 'TRANSPORTADORA':
-      return '/dashboard/company';
-    case 'PRESTADOR_SERVICOS':
-      return '/dashboard/service-provider';
-    case 'ADMIN':
-      return '/admin';
-    default:
-      return '/';
-  }
+  return getDefaultRouteForProfile({ role });
 }
 
 export function useResilientLogin() {
