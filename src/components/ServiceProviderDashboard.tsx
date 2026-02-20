@@ -1106,7 +1106,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   return (
     <div className="bg-background">
       {/* Hero Section - Padronizado com ProducerDashboard */}
-      <section className="relative min-h-[160px] flex items-center justify-center overflow-hidden animate-fade-in">
+      <section className="relative min-h-[340px] flex items-center justify-center overflow-hidden animate-fade-in">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
@@ -1120,7 +1120,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-primary/40" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 py-10">
               <HeroActionButton 
                 onClick={() => setActiveTab('cities')}
                 icon={<MapPin className="h-4 w-4" />}
