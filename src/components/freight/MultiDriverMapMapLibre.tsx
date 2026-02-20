@@ -134,19 +134,73 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
     destinationLng: destinationLngNum ?? undefined,
   });
 
+  // ✅ FIX: Origem/destino NÃO passam por normalizeLatLngPoint.
+  // Coordenadas de cidades já são corretas — normalize pode inverter por heurística errada.
   const effectiveOrigin = useMemo(() => {
-    if (typeof originLatNum === 'number' && typeof originLngNum === 'number') {
-      return normalizeLatLngPoint({ lat: originLatNum, lng: originLngNum }, 'BR');
+    if (typeof originLatNum === 'number' && typeof originLngNum === 'number' &&
+        Number.isFinite(originLatNum) && Number.isFinite(originLngNum)) {
+      if (import.meta.env.DEV) {
+        console.log('[MAP PIN DEBUG]', {
+          id: 'multi-origin',
+          label: originCity ?? 'Origem',
+          raw: { lat: originLatNum, lng: originLngNum },
+          normalized: null,
+          skipNormalize: true,
+          mapLibreLngLat: [originLngNum, originLatNum],
+          googleMapsLink: `https://www.google.com/maps?q=${originLatNum},${originLngNum}`,
+        });
+      }
+      return { lat: originLatNum, lng: originLngNum };
     }
-    return cityOriginCoords ? normalizeLatLngPoint(cityOriginCoords, 'BR') : null;
-  }, [originLatNum, originLngNum, cityOriginCoords]);
+    if (cityOriginCoords) {
+      if (import.meta.env.DEV) {
+        console.log('[MAP PIN DEBUG]', {
+          id: 'multi-origin-city',
+          label: originCity ?? 'Origem (cidade)',
+          raw: { lat: cityOriginCoords.lat, lng: cityOriginCoords.lng },
+          normalized: null,
+          skipNormalize: true,
+          mapLibreLngLat: [cityOriginCoords.lng, cityOriginCoords.lat],
+          googleMapsLink: `https://www.google.com/maps?q=${cityOriginCoords.lat},${cityOriginCoords.lng}`,
+        });
+      }
+      return cityOriginCoords;
+    }
+    return null;
+  }, [originLatNum, originLngNum, cityOriginCoords, originCity]);
 
   const effectiveDestination = useMemo(() => {
-    if (typeof destinationLatNum === 'number' && typeof destinationLngNum === 'number') {
-      return normalizeLatLngPoint({ lat: destinationLatNum, lng: destinationLngNum }, 'BR');
+    if (typeof destinationLatNum === 'number' && typeof destinationLngNum === 'number' &&
+        Number.isFinite(destinationLatNum) && Number.isFinite(destinationLngNum)) {
+      if (import.meta.env.DEV) {
+        console.log('[MAP PIN DEBUG]', {
+          id: 'multi-destination',
+          label: destinationCity ?? 'Destino',
+          raw: { lat: destinationLatNum, lng: destinationLngNum },
+          normalized: null,
+          skipNormalize: true,
+          mapLibreLngLat: [destinationLngNum, destinationLatNum],
+          googleMapsLink: `https://www.google.com/maps?q=${destinationLatNum},${destinationLngNum}`,
+        });
+      }
+      return { lat: destinationLatNum, lng: destinationLngNum };
     }
-    return cityDestinationCoords ? normalizeLatLngPoint(cityDestinationCoords, 'BR') : null;
-  }, [destinationLatNum, destinationLngNum, cityDestinationCoords]);
+    if (cityDestinationCoords) {
+      if (import.meta.env.DEV) {
+        console.log('[MAP PIN DEBUG]', {
+          id: 'multi-destination-city',
+          label: destinationCity ?? 'Destino (cidade)',
+          raw: { lat: cityDestinationCoords.lat, lng: cityDestinationCoords.lng },
+          normalized: null,
+          skipNormalize: true,
+          mapLibreLngLat: [cityDestinationCoords.lng, cityDestinationCoords.lat],
+          googleMapsLink: `https://www.google.com/maps?q=${cityDestinationCoords.lat},${cityDestinationCoords.lng}`,
+        });
+      }
+      return cityDestinationCoords;
+    }
+    return null;
+  }, [destinationLatNum, destinationLngNum, cityDestinationCoords, destinationCity]);
 
   // OSRM Route
   const { route: osrmRoute } = useOSRMRoute({
@@ -283,14 +337,26 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
     drivers.forEach((driver, index) => {
       if (!driver.lat || !driver.lng) return;
 
+      // ✅ GPS do motorista SIM usa normalize (dados brutos de sensor)
       const normalized = normalizeLatLngPoint({ lat: driver.lat, lng: driver.lng }, 'BR');
       if (!normalized) {
         console.warn('[MultiDriverMapMapLibre] Invalid driver coordinates:', driver.driverId, driver.lat, driver.lng);
         return;
       }
 
+      if (import.meta.env.DEV) {
+        console.log('[MAP PIN DEBUG]', {
+          id: `driver-${driver.driverId}`,
+          label: driver.driverName,
+          raw: { lat: driver.lat, lng: driver.lng },
+          normalized: { lat: normalized.lat, lng: normalized.lng },
+          skipNormalize: false,
+          mapLibreLngLat: [normalized.lng, normalized.lat],
+          googleMapsLink: `https://www.google.com/maps?q=${normalized.lat},${normalized.lng}`,
+        });
+      }
+
       const existingMarker = driverMarkersRef.current.get(driver.driverId);
-      
       if (existingMarker) {
         existingMarker.remove();
       }

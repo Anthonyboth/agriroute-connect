@@ -205,34 +205,63 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     return null;
   }, [driverLocation, initialDriverLatNum, initialDriverLngNum]);
 
-  // ✅ Normalizar coordenadas para Brasil
-  const isValidBrazilCoord = useCallback((lat: number, lng: number): boolean => {
-    return lat >= -35 && lat <= 6 && lng >= -75 && lng <= -30;
-  }, []);
+  // (isValidBrazilCoord removido — normalizeLatLngPoint não é mais aplicado em origem/destino)
 
+  // ✅ FIX: Origem e destino NÃO passam por normalizeLatLngPoint.
+  // Coordenadas de cidades/endereços (banco ou Nominatim) já estão corretas.
+  // A heurística de swap do normalize pode inverter lat/lng válidos.
+  // Apenas GPS do motorista passa por normalize (dados brutos de sensor).
   const mapOrigin = useMemo(() => {
-    const normalized = normalizeLatLngPoint(effectiveOrigin, 'BR');
-    if (normalized && !isValidBrazilCoord(normalized.lat, normalized.lng)) {
-      if (import.meta.env.DEV) console.warn('[FreightRealtimeMap] Origin coords outside Brazil:', normalized);
+    if (!effectiveOrigin) return null;
+    if (!Number.isFinite(effectiveOrigin.lat) || !Number.isFinite(effectiveOrigin.lng)) return null;
+    if (import.meta.env.DEV) {
+      console.log('[MAP PIN DEBUG]', {
+        id: 'origin',
+        label: originCity ? `${originCity}/${originState}` : 'Origem',
+        raw: { lat: effectiveOrigin.lat, lng: effectiveOrigin.lng },
+        normalized: null,
+        skipNormalize: true,
+        mapLibreLngLat: [effectiveOrigin.lng, effectiveOrigin.lat],
+        googleMapsLink: `https://www.google.com/maps?q=${effectiveOrigin.lat},${effectiveOrigin.lng}`,
+      });
     }
-    return normalized;
-  }, [effectiveOrigin, isValidBrazilCoord]);
+    return effectiveOrigin;
+  }, [effectiveOrigin, originCity, originState]);
 
   const mapDestination = useMemo(() => {
-    const normalized = normalizeLatLngPoint(effectiveDestination, 'BR');
-    if (normalized && !isValidBrazilCoord(normalized.lat, normalized.lng)) {
-      if (import.meta.env.DEV) console.warn('[FreightRealtimeMap] Destination coords outside Brazil:', normalized);
+    if (!effectiveDestination) return null;
+    if (!Number.isFinite(effectiveDestination.lat) || !Number.isFinite(effectiveDestination.lng)) return null;
+    if (import.meta.env.DEV) {
+      console.log('[MAP PIN DEBUG]', {
+        id: 'destination',
+        label: destinationCity ? `${destinationCity}/${destinationState}` : 'Destino',
+        raw: { lat: effectiveDestination.lat, lng: effectiveDestination.lng },
+        normalized: null,
+        skipNormalize: true,
+        mapLibreLngLat: [effectiveDestination.lng, effectiveDestination.lat],
+        googleMapsLink: `https://www.google.com/maps?q=${effectiveDestination.lat},${effectiveDestination.lng}`,
+      });
     }
-    return normalized;
-  }, [effectiveDestination, isValidBrazilCoord]);
+    return effectiveDestination;
+  }, [effectiveDestination, destinationCity, destinationState]);
 
+  // ✅ GPS do motorista SIM passa por normalize (dados brutos de sensor podem ter lat/lng invertido)
   const mapDriverLocation = useMemo(() => {
+    if (!effectiveDriverLocation) return null;
     const normalized = normalizeLatLngPoint(effectiveDriverLocation, 'BR');
-    if (normalized && !isValidBrazilCoord(normalized.lat, normalized.lng)) {
-      if (import.meta.env.DEV) console.warn('[FreightRealtimeMap] Driver coords outside Brazil:', normalized);
+    if (import.meta.env.DEV) {
+      console.log('[MAP PIN DEBUG]', {
+        id: 'driver',
+        label: 'Motorista (GPS)',
+        raw: { lat: effectiveDriverLocation.lat, lng: effectiveDriverLocation.lng },
+        normalized: normalized ? { lat: normalized.lat, lng: normalized.lng } : null,
+        skipNormalize: false,
+        mapLibreLngLat: normalized ? [normalized.lng, normalized.lat] : null,
+        googleMapsLink: normalized ? `https://www.google.com/maps?q=${normalized.lat},${normalized.lng}` : null,
+      });
     }
     return normalized;
-  }, [effectiveDriverLocation, isValidBrazilCoord]);
+  }, [effectiveDriverLocation]);
 
   // ✅ DEBUG log (apenas DEV)
   useEffect(() => {
