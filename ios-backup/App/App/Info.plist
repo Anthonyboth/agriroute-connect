@@ -45,8 +45,6 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Usamos seus dados para melhorar a experiência do aplicativo, personalizar conteúdo e fornecer recursos baseados em localização para conectar motoristas e produtores.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
