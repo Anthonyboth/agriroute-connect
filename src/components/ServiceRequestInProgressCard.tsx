@@ -129,41 +129,49 @@ const InlineTrackingMap = React.memo(({
   const [mapError, setMapError] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
-  // Coordenadas precisas geocodificadas pelo endereço
-  const [geocodedOrigin, setGeocodedOrigin] = useState<{ lat: number; lng: number } | null>(null);
-
-  // ✅ Se originLat/Lng são coordenadas de fallback (centro do Brasil), precisamos geocodificar
+  // ✅ Se originLat/Lng são coordenadas de fallback (centro do Brasil), precisamos geocodificar ANTES de montar o mapa
   // Se já são coords GPS reais, NÃO geocodificamos (coords GPS têm prioridade absoluta)
   const isFallbackCenter = originLat === -15.7801 && originLng === -47.9292;
 
-  // Geocodifica o endereço via Nominatim APENAS quando não há coordenadas GPS reais
-  useEffect(() => {
-    if (!locationAddress || !isFallbackCenter) return;
-    geocodeAddressNominatim(locationAddress).then(coords => {
-      if (coords) setGeocodedOrigin(coords);
-    });
-  }, [locationAddress, isFallbackCenter]);
-
-  // Usa coordenadas geocodificadas se disponíveis (e só quando não há GPS real), senão as originais
-  const origin = useMemo(() => 
-    (isFallbackCenter && geocodedOrigin) ? geocodedOrigin : { lat: originLat, lng: originLng },
-    [geocodedOrigin, originLat, originLng, isFallbackCenter]
+  // Coordenadas resolvidas: inicia como null se for fallback (aguarda geocodificação), ou com GPS real imediatamente
+  const [resolvedOrigin, setResolvedOrigin] = useState<{ lat: number; lng: number } | null>(
+    isFallbackCenter ? null : { lat: originLat, lng: originLng }
   );
+  const [geocodingDone, setGeocodingDone] = useState(!isFallbackCenter);
 
-  // ✅ Quando geocodedOrigin muda (só ocorre quando isFallbackCenter=true), atualiza marcador e voa para endereço
+  // Geocodifica o endereço via Nominatim ANTES de renderizar o mapa
   useEffect(() => {
-    if (!geocodedOrigin || !isFallbackCenter || !mapRef.current || !mapLoaded) return;
-    const map = mapRef.current;
-    const source = map.getSource(MARKERS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-    if (!source) return;
-    // Recalcula feature collection com as coordenadas geocodificadas via endereço
-    const dest = (destLat && destLng && destLat !== 0 && destLng !== 0) ? { lat: destLat, lng: destLng } : null;
-    const driver = (driverLat && driverLng && driverLat !== 0 && driverLng !== 0) ? { lat: driverLat, lng: driverLng } : null;
-    const fc = buildMarkersFeatureCollection(geocodedOrigin, dest, driver, isDriverOnline ?? true);
-    source.setData(fc);
-    // Voa para a localização correta
-    map.flyTo({ center: [geocodedOrigin.lng, geocodedOrigin.lat], zoom: 15, duration: 800 });
-  }, [geocodedOrigin, isFallbackCenter, mapLoaded, destLat, destLng, driverLat, driverLng, isDriverOnline]);
+    if (!isFallbackCenter) {
+      // Coords GPS reais — usar diretamente
+      setResolvedOrigin({ lat: originLat, lng: originLng });
+      setGeocodingDone(true);
+      return;
+    }
+    // Precisa geocodificar pelo endereço
+    if (!locationAddress) {
+      // Sem endereço disponível, usa fallback
+      setResolvedOrigin({ lat: originLat, lng: originLng });
+      setGeocodingDone(true);
+      return;
+    }
+    setGeocodingDone(false);
+    setResolvedOrigin(null);
+    geocodeAddressNominatim(locationAddress).then(coords => {
+      if (coords) {
+        setResolvedOrigin(coords);
+      } else {
+        // Nominatim não encontrou — fallback para coords originais
+        setResolvedOrigin({ lat: originLat, lng: originLng });
+      }
+      setGeocodingDone(true);
+    });
+  }, [locationAddress, isFallbackCenter, originLat, originLng]);
+
+  // Usa as coordenadas resolvidas (geocodificadas ou GPS)
+  const origin = useMemo(() => 
+    resolvedOrigin ?? { lat: originLat, lng: originLng },
+    [resolvedOrigin, originLat, originLng]
+  );
 
   const destination = useMemo(() => {
     if (destLat && destLng && destLat !== 0 && destLng !== 0) {
@@ -230,6 +238,8 @@ const InlineTrackingMap = React.memo(({
   }, [origin, destination, driverPos]);
 
   useEffect(() => {
+    // ✅ Aguardar geocodificação completar antes de montar o mapa
+    if (!geocodingDone || !resolvedOrigin) return;
     if (!mapContainer.current || mapRef.current) return;
 
     try {
@@ -369,12 +379,21 @@ const InlineTrackingMap = React.memo(({
       iconsRegisteredRef.current = false;
       setMapLoaded(false);
     };
-  }, [originLat, originLng, destLat, destLng, driverLat, driverLng, center, zoom, origin, destination, driverPos, isDriverOnline]);
+  }, [geocodingDone, resolvedOrigin, originLat, originLng, destLat, destLng, driverLat, driverLng, center, zoom, origin, destination, driverPos, isDriverOnline]);
 
   if (mapError) {
     return (
       <div className="h-32 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
         <Map className="h-4 w-4 mr-1" /> Mapa indisponível
+      </div>
+    );
+  }
+
+  // ✅ Aguardando geocodificação do endereço antes de mostrar o mapa
+  if (!geocodingDone) {
+    return (
+      <div className="h-32 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
+        <MapPin className="h-4 w-4 mr-1 animate-pulse" /> Localizando endereço...
       </div>
     );
   }
