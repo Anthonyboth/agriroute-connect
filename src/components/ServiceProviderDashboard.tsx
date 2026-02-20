@@ -335,7 +335,9 @@ export const ServiceProviderDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') return;
+    // ✅ FIX: Usar active_mode OU role para suportar usuários com múltiplos perfis
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || activeMode !== 'PRESTADOR_SERVICOS') return;
 
     // Buscar dados iniciais (scope: all)
     fetchServiceRequests({ scope: 'all', silent: true });
