@@ -199,19 +199,23 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Generate signed URL (bucket is private)
+      const { data: signedData, error: signError } = await supabase.storage
         .from('profile-photos')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 86400); // 24h
+
+      const photoUrl = signedData?.signedUrl;
+      if (signError || !photoUrl) throw signError || new Error('Erro ao gerar URL da foto');
 
       // Atualizar perfil com nova URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ profile_photo_url: publicUrl })
+        .update({ profile_photo_url: photoUrl })
         .eq('user_id', user.user_id);
 
       if (updateError) throw updateError;
       
-      setCurrentPhotoUrl(publicUrl);
+      setCurrentPhotoUrl(photoUrl);
       
       toast({
         title: "Foto atualizada",
