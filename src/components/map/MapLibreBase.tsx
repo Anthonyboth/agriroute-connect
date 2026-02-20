@@ -12,6 +12,7 @@
 import React, { useRef, forwardRef, useImperativeHandle, useMemo, useEffect } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import '@/styles/maplibre-markers.css';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
