@@ -1106,7 +1106,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   return (
     <div className="bg-background">
       {/* Hero Section - Padronizado com ProducerDashboard */}
-      <section className="relative min-h-[340px] flex items-center justify-center overflow-hidden animate-fade-in">
+      <section className="relative min-h-[260px] flex items-center justify-center overflow-hidden animate-fade-in">
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
