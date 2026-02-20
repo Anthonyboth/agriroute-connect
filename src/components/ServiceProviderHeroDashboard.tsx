@@ -147,8 +147,8 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   return (
     <TooltipProvider>
     <div className="min-h-screen bg-background">
-      {/* Hero Section — padrão app: min-h-[220px] com imagem visível */}
-      <section className="relative min-h-[220px] flex items-center justify-center overflow-hidden">
+      {/* Hero Section — padrão app: min-h-[340px] com imagem bem visível */}
+      <section className="relative min-h-[340px] flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <picture className="absolute inset-0">
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
@@ -166,7 +166,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
             {/* Action Buttons com padding vertical para respirar */}
-            <div className="flex flex-col items-center gap-2 px-6 py-5 sm:flex-row sm:flex-wrap sm:justify-center sm:px-2">
+            <div className="flex flex-col items-center gap-3 px-6 py-10 sm:flex-row sm:flex-wrap sm:justify-center sm:px-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HeroActionButton
