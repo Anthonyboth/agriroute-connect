@@ -1,6 +1,6 @@
 /**
  * Hook para gerar URLs assinadas para imagens do Supabase Storage
- * Lida com buckets privados como identity-selfies
+ * Lida com buckets privados como identity-selfies, profile-photos, driver-documents
  */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,19 @@ interface SignedUrlResult {
   error: string | null;
   refresh: () => Promise<void>;
 }
+
+/** Buckets que são privados e precisam de signed URL */
+const PRIVATE_BUCKETS = new Set([
+  'profile-photos',
+  'identity-selfies',
+  'driver-documents',
+  'chat-images',
+  'proposal-chat-images',
+  'service-chat-images',
+  'mdfe-dactes',
+  'freight-checkins',
+  'freight-attachments',
+]);
 
 /**
  * Extrai bucket e path de uma URL do Supabase Storage
@@ -34,9 +47,9 @@ const extractStoragePath = (url: string): { bucket: string; path: string } | nul
 };
 
 /**
- * Verifica se uma URL assinada ainda é válida
+ * Verifica se uma URL assinada ainda é válida (com margem de 5 min)
  */
-const isSignedUrlExpired = (url: string): boolean => {
+const isSignedUrlValid = (url: string): boolean => {
   try {
     const tokenMatch = url.match(/token=([^&]+)/);
     if (!tokenMatch) return false;
@@ -49,18 +62,19 @@ const isSignedUrlExpired = (url: string): boolean => {
     const exp = payload.exp;
     if (!exp) return false;
     
-    // Adicionar margem de 5 minutos
-    return Date.now() / 1000 > exp - 300;
+    // Válido se faltam mais de 5 minutos
+    return Date.now() / 1000 < exp - 300;
   } catch {
     return false;
   }
 };
 
 /**
- * Hook para gerenciar URLs de imagens com suporte a regeneração de URLs assinadas
+ * Hook para gerenciar URLs de imagens com suporte a regeneração de URLs assinadas.
+ * Gera signed URL automaticamente para buckets privados.
  */
 export const useSignedImageUrl = (originalUrl: string | null | undefined): SignedUrlResult => {
-  const [url, setUrl] = useState<string | null>(originalUrl || null);
+  const [url, setUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,19 +84,29 @@ export const useSignedImageUrl = (originalUrl: string | null | undefined): Signe
       return;
     }
 
-    // Se a URL não é do storage ou não expirou, usar a original
     const storageInfo = extractStoragePath(originalUrl);
+    
+    // Não é uma URL do storage — usar diretamente
     if (!storageInfo) {
       setUrl(originalUrl);
       return;
     }
 
-    // Verificar se precisa regenerar
-    if (!isSignedUrlExpired(originalUrl)) {
+    // Se é um bucket privado OU a URL já é signed, precisamos de signed URL
+    const needsSignedUrl = PRIVATE_BUCKETS.has(storageInfo.bucket) || originalUrl.includes('/object/sign/');
+
+    if (!needsSignedUrl) {
       setUrl(originalUrl);
       return;
     }
 
+    // Se já é uma signed URL válida, reutilizar
+    if (isSignedUrlValid(originalUrl)) {
+      setUrl(originalUrl);
+      return;
+    }
+
+    // Gerar nova signed URL
     setIsLoading(true);
     setError(null);
 
@@ -94,7 +118,7 @@ export const useSignedImageUrl = (originalUrl: string | null | undefined): Signe
       if (signError) {
         console.warn('[useSignedImageUrl] Erro ao gerar signed URL:', signError);
         setError(signError.message);
-        // Tentar usar a URL original mesmo assim
+        // Fallback: tentar URL original
         setUrl(originalUrl);
       } else if (data?.signedUrl) {
         setUrl(data.signedUrl);
@@ -117,7 +141,7 @@ export const useSignedImageUrl = (originalUrl: string | null | undefined): Signe
 };
 
 /**
- * Componente Avatar robusto para motoristas com suporte a URLs assinadas
+ * Helper para obter URL da foto do motorista
  */
 export const getDriverPhotoUrl = (driver: { 
   profile_photo_url?: string | null; 
