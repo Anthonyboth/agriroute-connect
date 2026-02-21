@@ -29,26 +29,35 @@ export interface ServiceHistoryItem {
 
 interface UseServiceHistoryOptions {
   asClient?: boolean; // true = mostrar serviços solicitados, false = serviços prestados
+  includeTransportTypes?: boolean; // true = incluir PET/Pacotes/Guincho (aba "Fretes Urbanos")
   limit?: number;
 }
 
 export function useServiceHistory(options: UseServiceHistoryOptions = {}) {
   const { profile } = useAuth();
-  const { asClient = false, limit = 100 } = options;
+  const { asClient = false, includeTransportTypes = false, limit = 100 } = options;
 
-  // PET e Pacotes são classificados como "Fretes" para fins de histórico
-  const TRANSPORT_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES'];
+  // Tipos de transporte urbano (tratados como "Fretes Urbanos")
+  const TRANSPORT_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO'];
 
   const query = useQuery({
-    queryKey: ['service-request-history', profile?.id, asClient, limit],
+    queryKey: ['service-request-history', profile?.id, asClient, includeTransportTypes, limit],
     queryFn: async () => {
       if (!profile?.id) return [];
 
       let q = supabase
         .from('service_request_history')
-        .select('*')
-        .not('service_type', 'in', `(${TRANSPORT_TYPES.join(',')})`)
-        .order('completed_at', { ascending: false, nullsFirst: false })
+        .select('*');
+
+      // Se includeTransportTypes = true, mostrar APENAS tipos de transporte urbano
+      // Se false, excluir tipos de transporte (mostrar apenas serviços técnicos)
+      if (includeTransportTypes) {
+        q = q.in('service_type', TRANSPORT_TYPES);
+      } else {
+        q = q.not('service_type', 'in', `(${TRANSPORT_TYPES.join(',')})`);
+      }
+
+      q = q.order('completed_at', { ascending: false, nullsFirst: false })
         .limit(limit);
 
       if (asClient) {

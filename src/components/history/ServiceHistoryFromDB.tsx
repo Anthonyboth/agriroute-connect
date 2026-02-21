@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Button } from '@/components/ui/button';
 import {
-  Wrench, MapPin, Calendar, DollarSign, Package, CheckCircle, XCircle, RefreshCw
+  Wrench, Truck, MapPin, Calendar, DollarSign, Package, CheckCircle, XCircle, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,10 +20,13 @@ import { useServiceHistory, ServiceHistoryItem } from '@/hooks/useServiceHistory
 
 interface ServiceHistoryFromDBProps {
   asClient?: boolean;
+  includeTransportTypes?: boolean;
 }
 
-export const ServiceHistoryFromDB: React.FC<ServiceHistoryFromDBProps> = ({ asClient = false }) => {
-  const { items, isLoading, refetch } = useServiceHistory({ asClient });
+const TRANSPORT_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO'];
+
+export const ServiceHistoryFromDB: React.FC<ServiceHistoryFromDBProps> = ({ asClient = false, includeTransportTypes = false }) => {
+  const { items, isLoading, refetch } = useServiceHistory({ asClient, includeTransportTypes });
 
   if (isLoading) {
     return <CenteredSpinner size="lg" />;
@@ -51,9 +54,9 @@ export const ServiceHistoryFromDB: React.FC<ServiceHistoryFromDBProps> = ({ asCl
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-primary" />
+          {includeTransportTypes ? <Truck className="h-5 w-5 text-primary" /> : <Wrench className="h-5 w-5 text-primary" />}
           <h3 className="text-lg font-semibold">
-            Histórico de Serviços ({items.length})
+            {includeTransportTypes ? `Fretes Urbanos (${items.length})` : `Histórico de Serviços (${items.length})`}
           </h3>
         </div>
         <Button variant="ghost" size="sm" onClick={() => refetch()}>
@@ -71,6 +74,8 @@ export const ServiceHistoryFromDB: React.FC<ServiceHistoryFromDBProps> = ({ asCl
 const ServiceHistoryCard: React.FC<{ item: ServiceHistoryItem; asClient: boolean }> = ({ item, asClient }) => {
   const isCompleted = item.status_final === 'COMPLETED';
   const isCancelled = item.status_final === 'CANCELLED';
+  const isTransport = TRANSPORT_TYPES.includes(item.service_type || '');
+  const IconComponent = isTransport ? Truck : Wrench;
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -78,7 +83,7 @@ const ServiceHistoryCard: React.FC<{ item: ServiceHistoryItem; asClient: boolean
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Wrench className="h-4 w-4 text-primary" />
+              <IconComponent className="h-4 w-4 text-primary" />
               <CardTitle className="text-base">
                 {normalizeServiceType(item.service_type || 'SERVICO')}
               </CardTitle>
