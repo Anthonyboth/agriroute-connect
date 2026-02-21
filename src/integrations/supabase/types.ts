@@ -14271,6 +14271,10 @@ export type Database = {
         Returns: boolean
       }
       is_company_owner: { Args: { p_company_id: string }; Returns: boolean }
+      is_company_owner_of_driver_storage: {
+        Args: { file_name: string }
+        Returns: boolean
+      }
       is_current_user_producer_of_freight: {
         Args: { p_freight_id: string }
         Returns: boolean
