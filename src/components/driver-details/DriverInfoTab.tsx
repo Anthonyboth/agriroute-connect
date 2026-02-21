@@ -9,12 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { 
   Phone, Mail, FileText, Calendar, MapPin, User, IdCard, 
   Star, Camera, X, Upload, CheckCircle2, AlertCircle,
-  Clock, Building2, ImageIcon
+  Clock, Building2, ImageIcon, Loader2
 } from "lucide-react";
 import { formatDocument } from "@/utils/document";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSignedImageUrl } from "@/hooks/useSignedImageUrl";
 
 interface DriverInfoTabProps {
   driverData: any;
@@ -33,6 +34,14 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
   // Prioridade: driver_profile (RPC) > driver (join) > driverData direto
   const driver = driverData?.driver_profile || driverData?.driver || driverData;
   const affiliationData = driverData?.driver_profile || driverData?.driver ? driverData : null;
+
+  // Renovar signed URLs expiradas automaticamente
+  const { url: profilePhotoUrl, isLoading: loadingProfile } = useSignedImageUrl(driver?.profile_photo_url);
+  const { url: selfieUrl, isLoading: loadingSelfie } = useSignedImageUrl(driver?.selfie_url);
+  const { url: cnhPhotoUrl, isLoading: loadingCnh } = useSignedImageUrl(driver?.cnh_photo_url);
+
+  // URL efetiva do avatar (perfil ou selfie)
+  const avatarUrl = profilePhotoUrl || selfieUrl;
 
   devLog('📋 [DriverInfoTab] Dados recebidos:', { 
     hasDriver: !!driver, 
@@ -210,7 +219,7 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
             <div className="flex flex-col items-center">
               <div className="relative group">
                 <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
-                  <AvatarImage src={driver.profile_photo_url || driver.selfie_url} />
+                  <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="text-3xl bg-primary/10 text-primary">
                     {driver.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                   </AvatarFallback>
@@ -226,7 +235,7 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
                     >
                       <Camera className="h-4 w-4" />
                     </Button>
-                    {(driver.profile_photo_url || driver.selfie_url) && (
+                    {avatarUrl && (
                       <Button 
                         size="icon" 
                         variant="ghost" 
@@ -368,12 +377,17 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
             <div className="relative group">
               <div 
                 className="border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center justify-center min-h-[150px] cursor-pointer hover:border-primary/50 transition-colors bg-muted/30"
-                onClick={() => driver.cnh_photo_url ? setPreviewImage(driver.cnh_photo_url) : cnhInputRef.current?.click()}
+                onClick={() => cnhPhotoUrl ? setPreviewImage(cnhPhotoUrl) : cnhInputRef.current?.click()}
               >
-                {driver.cnh_photo_url ? (
+                {loadingCnh ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground mt-2">Carregando...</span>
+                  </div>
+                ) : cnhPhotoUrl ? (
                   <>
                     <img 
-                      src={driver.cnh_photo_url} 
+                      src={cnhPhotoUrl} 
                       alt="CNH" 
                       className="max-h-[130px] object-contain rounded"
                     />
@@ -435,12 +449,17 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
           <div className="relative group max-w-xs">
             <div 
               className="border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center justify-center min-h-[200px] cursor-pointer hover:border-primary/50 transition-colors bg-muted/30"
-              onClick={() => driver.selfie_url ? setPreviewImage(driver.selfie_url) : selfieInputRef.current?.click()}
+              onClick={() => selfieUrl ? setPreviewImage(selfieUrl) : selfieInputRef.current?.click()}
             >
-              {driver.selfie_url ? (
+              {loadingSelfie ? (
+                <div className="flex flex-col items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground mt-2">Carregando...</span>
+                </div>
+              ) : selfieUrl ? (
                 <>
                   <img 
-                    src={driver.selfie_url} 
+                    src={selfieUrl} 
                     alt="Selfie" 
                     className="max-h-[180px] object-contain rounded"
                   />
