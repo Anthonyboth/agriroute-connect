@@ -28,7 +28,7 @@ export const DriverHistoryTab: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="services" className="mt-4">
-            <ServiceHistoryFromDB asClient={false} />
+            <ServiceHistoryFromDB asClient={false} includeTransportTypes={true} />
           </TabsContent>
         </Tabs>
       </div>
