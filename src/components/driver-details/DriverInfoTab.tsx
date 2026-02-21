@@ -387,9 +387,14 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
                 ) : cnhPhotoUrl ? (
                   <>
                     <img 
+                      key={cnhPhotoUrl}
                       src={cnhPhotoUrl} 
                       alt="CNH" 
                       className="max-h-[130px] object-contain rounded"
+                      onError={(e) => {
+                        console.warn('[DriverInfoTab] Erro ao carregar imagem CNH:', cnhPhotoUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                     {companyId && (
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
@@ -459,9 +464,14 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
               ) : selfieUrl ? (
                 <>
                   <img 
+                    key={selfieUrl}
                     src={selfieUrl} 
                     alt="Selfie" 
                     className="max-h-[180px] object-contain rounded"
+                    onError={(e) => {
+                      console.warn('[DriverInfoTab] Erro ao carregar imagem Selfie:', selfieUrl);
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                   {companyId && (
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
