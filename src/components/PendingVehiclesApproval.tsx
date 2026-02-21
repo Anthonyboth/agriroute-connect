@@ -15,27 +15,38 @@ export const PendingVehiclesApproval: React.FC<PendingVehiclesApprovalProps> = (
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Buscar veículos pendentes de motoristas afiliados
+  // Buscar veículos pendentes sem join direto com profiles (CLS bloqueia)
   const { data: pendingVehicles } = useQuery({
     queryKey: ['pending-vehicles', companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: vehiclesData, error } = await supabase
         .from('vehicles')
-        .select(`
-          *,
-          driver:profiles!vehicles_driver_id_fkey (
-            id,
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .eq('company_id', companyId)
         .eq('status', 'PENDING')
         .eq('is_company_vehicle', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Buscar nomes dos motoristas via profiles_secure (contorna CLS)
+      const driverIds = [...new Set((vehiclesData || []).map((v: any) => v.driver_id).filter(Boolean))];
+      let driversMap: Record<string, string> = {};
+      if (driverIds.length > 0) {
+        const { data: drivers } = await supabase
+          .from('profiles_secure')
+          .select('id, full_name')
+          .in('id', driverIds);
+        driversMap = (drivers || []).reduce((acc: Record<string, string>, d: any) => {
+          acc[d.id] = d.full_name;
+          return acc;
+        }, {});
+      }
+
+      return (vehiclesData || []).map((v: any) => ({
+        ...v,
+        driver: { full_name: driversMap[v.driver_id] || 'Motorista' },
+      }));
     },
   });
 
