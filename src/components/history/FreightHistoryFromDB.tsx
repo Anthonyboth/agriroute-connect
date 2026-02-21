@@ -81,7 +81,7 @@ function mapHistoryToFreight(item: FreightHistoryItem): any {
 }
 
 export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role, companyId }) => {
-  const { freightHistory, assignmentHistory, transportHistory, isLoading, refetch } = useFreightHistory({ role, companyId });
+  const { freightHistory, assignmentHistory, isLoading, refetch } = useFreightHistory({ role, companyId });
   const [reopenModalOpen, setReopenModalOpen] = useState(false);
   const [freightToReopen, setFreightToReopen] = useState<any>(null);
 
@@ -108,9 +108,8 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
   // + assignment_history para motorista/transportadora
   const items = freightHistory;
   const assignments = !isProducer ? assignmentHistory : [];
-  const transports = transportHistory || [];
 
-  const totalItems = items.length + assignments.length + transports.length;
+  const totalItems = items.length + assignments.length;
 
   if (totalItems === 0) {
     return (
@@ -158,11 +157,6 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
       {/* Motorista/Transportadora: assignment_history */}
       {assignments.map((item) => (
         <AssignmentHistoryCard key={item.id} item={item} />
-      ))}
-
-      {/* Transportes (PET, Pacotes) solicitados como cliente */}
-      {transports.map((item: any) => (
-        <TransportHistoryCard key={item.id} item={item} />
       ))}
 
       {/* Modal de Reabrir Frete */}
