@@ -194,7 +194,7 @@ serve(async (req) => {
           .from('company_drivers')
           .select('id, company_id, driver_profile_id')
           .or(`driver_profile_id.eq.${callerProfileId},driver_profile_id.eq.${user_id}`)
-          .eq('status', 'active')
+          .in('status', ['ACTIVE', 'active'])
           .limit(10);
         
         if (companyRelation && companyRelation.length > 0) {
