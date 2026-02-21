@@ -111,6 +111,8 @@ export const useSignedImageUrl = (originalUrl: string | null | undefined): Signe
     setError(null);
 
     try {
+      console.log('[useSignedImageUrl] Gerando signed URL para:', storageInfo.bucket, storageInfo.path);
+      
       const { data, error: signError } = await supabase.storage
         .from(storageInfo.bucket)
         .createSignedUrl(storageInfo.path, 3600); // 1 hora
@@ -121,7 +123,10 @@ export const useSignedImageUrl = (originalUrl: string | null | undefined): Signe
         // Fallback: tentar URL original
         setUrl(originalUrl);
       } else if (data?.signedUrl) {
-        setUrl(data.signedUrl);
+        console.log('[useSignedImageUrl] Signed URL gerada com sucesso para:', storageInfo.bucket);
+        // Adicionar cache-buster para evitar cache de respostas 403 anteriores
+        const cacheBuster = `${data.signedUrl.includes('?') ? '&' : '?'}_cb=${Date.now()}`;
+        setUrl(data.signedUrl + cacheBuster);
       } else {
         setUrl(originalUrl);
       }
