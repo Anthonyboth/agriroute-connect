@@ -49,7 +49,7 @@ const AdminRegistrations = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('PENDING');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -162,7 +162,7 @@ const AdminRegistrations = () => {
                       <TableRow
                         key={reg.id}
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => navigate(`/admin/cadastros/${reg.id}`)}
+                        onClick={() => navigate(`/admin-v2/cadastros/${reg.id}`)}
                       >
                         <TableCell className="font-medium">{reg.full_name || '—'}</TableCell>
                         <TableCell className="text-sm">{reg.cpf_cnpj || '—'}</TableCell>
