@@ -389,8 +389,8 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   if (isAuthenticated && profile) {
     const currentPath = window.location.pathname;
 
-    // Só age em rotas de painel
-    if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/admin')) {
+    // Só age em rotas de painel (exclui /admin-v2 que tem seu próprio gate via useAdminAuth)
+    if (currentPath.startsWith('/dashboard') || (currentPath.startsWith('/admin') && !currentPath.startsWith('/admin-v2'))) {
       if (!isRouteAllowedForProfile(currentPath, profile)) {
         const correctRoute = getDefaultRouteForProfile(profile);
         if (import.meta.env.DEV) {
