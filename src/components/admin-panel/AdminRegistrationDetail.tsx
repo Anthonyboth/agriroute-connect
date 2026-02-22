@@ -125,7 +125,7 @@ const AdminRegistrationDetail = () => {
         <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/admin/cadastros')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/admin-v2/cadastros')}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
         </Button>
         <h1 className="text-xl font-semibold text-gray-800">Detalhe do Cadastro</h1>

@@ -1,7 +1,7 @@
 /**
  * AdminPanelV2 — Painel Administrativo com allowlist (admin_users).
  * Acessível somente por admins cadastrados diretamente no banco.
- * Rota: /admin/*
+ * Rota: /admin-v2/*
  */
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
@@ -20,6 +20,9 @@ const AdminRegistrationDetail = lazy(() => import('@/components/admin-panel/Admi
 const AdminAuditLogs = lazy(() => import('@/components/admin-panel/AdminAuditLogs'));
 const AdminUsersManager = lazy(() => import('@/components/admin-panel/AdminUsersManager'));
 const AdminSettingsPage = lazy(() => import('@/components/admin-panel/AdminSettingsPage'));
+const AdminFreights = lazy(() => import('@/components/admin-panel/AdminFreights'));
+const AdminRiskManagement = lazy(() => import('@/components/admin-panel/AdminRiskManagement'));
+const AdminReports = lazy(() => import('@/components/admin-panel/AdminReports'));
 
 const AdminPanelV2 = () => {
   const { adminUser, isAdmin, isSuperAdmin, loading, error } = useAdminAuth();
@@ -77,9 +80,12 @@ const AdminPanelV2 = () => {
               <Route index element={<AdminDashboard />} />
               <Route path="cadastros" element={<AdminRegistrations />} />
               <Route path="cadastros/:id" element={<AdminRegistrationDetail />} />
+              <Route path="fretes" element={<AdminFreights />} />
+              <Route path="riscos" element={<AdminRiskManagement />} />
               <Route path="auditoria" element={<AdminAuditLogs />} />
               {isSuperAdmin && (
                 <>
+                  <Route path="relatorios" element={<AdminReports />} />
                   <Route path="admins" element={<AdminUsersManager />} />
                   <Route path="configuracoes" element={<AdminSettingsPage />} />
                 </>

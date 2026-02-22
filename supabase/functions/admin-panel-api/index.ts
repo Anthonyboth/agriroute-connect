@@ -342,6 +342,49 @@ Deno.serve(async (req) => {
         break
       }
 
+      // --- Freights Overview ---
+      case 'freights': {
+        const status = url.searchParams.get('status') || ''
+        const search = url.searchParams.get('q') || ''
+        const pageSize = 30
+
+        let query = serviceClient
+          .from('freights')
+          .select('id, status, cargo_type, price, created_at, origin_city, origin_state, destination_city, destination_state, producer_id, driver_id', { count: 'exact' })
+
+        if (status && status !== 'all') query = query.eq('status', status)
+        if (search) {
+          query = query.or(`origin_city.ilike.%${search}%,destination_city.ilike.%${search}%,cargo_type.ilike.%${search}%`)
+        }
+
+        query = query.order('created_at', { ascending: false }).limit(pageSize)
+
+        const { data, error, count } = await query
+        if (error) {
+          console.error('[ADMIN-API] Freights error:', error)
+          return jsonResponse({ data: [], stats: { total: 0, active: 0, transit: 0, delivered: 0 } })
+        }
+
+        // Get stats
+        const [activeCount, transitCount, deliveredCount] = await Promise.all([
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['PENDING', 'ACCEPTED']),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'IN_TRANSIT'),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'DELIVERED').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+        ])
+
+        console.log(`[ADMIN-API] Freights: ${count} total returned`)
+
+        return jsonResponse({
+          data: data || [],
+          stats: {
+            total: count || 0,
+            active: activeCount.count || 0,
+            transit: transitCount.count || 0,
+            delivered: deliveredCount.count || 0,
+          },
+        })
+      }
+
       default:
         return jsonResponse({ error: `Ação desconhecida: ${action}` }, 404)
     }
