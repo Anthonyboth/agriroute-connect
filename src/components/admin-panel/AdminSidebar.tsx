@@ -41,39 +41,39 @@ export function AdminSidebar({ isSuperAdmin, adminName }: AdminSidebarProps) {
   };
 
   return (
-    <Sidebar className="bg-slate-900 text-white border-r-0">
-      <SidebarContent className="bg-slate-900 flex flex-col h-full">
+    <Sidebar className="bg-[hsl(220,25%,10%)] text-white border-r-0">
+      <SidebarContent className="bg-[hsl(220,25%,10%)] flex flex-col h-full">
         {/* Header */}
-        <div className="px-4 py-5 border-b border-slate-700">
+        <div className="px-4 py-5 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/20 rounded-lg">
-              <Shield className="h-5 w-5 text-emerald-400" />
+            <div className="p-2 bg-primary/20 rounded-lg">
+              <Shield className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-white">AgriRoute</h1>
-              <p className="text-xs text-emerald-400 font-medium">Painel Administrativo</p>
+              <p className="text-xs text-primary font-medium">Painel Administrativo</p>
             </div>
           </div>
-          <div className="mt-3 px-2 py-1.5 bg-slate-800 rounded-md">
-            <p className="text-xs text-slate-400 truncate">👤 {adminName}</p>
+          <div className="mt-3 px-2 py-1.5 bg-white/5 rounded-md">
+            <p className="text-xs text-white/60 truncate">👤 {adminName}</p>
           </div>
         </div>
 
         {/* Menu */}
         <SidebarGroup className="flex-1 pt-2">
-          <SidebarGroupLabel className="text-slate-500 text-[10px] uppercase tracking-wider px-4 pt-3 pb-1">
+          <SidebarGroupLabel className="text-white/30 text-[10px] uppercase tracking-wider px-4 pt-3 pb-1">
             Gestão Principal
           </SidebarGroupLabel>
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton
-                  className={`text-slate-300 hover:text-white hover:bg-slate-800 transition-all mx-2 rounded-lg ${
-                    isActive(item.path) ? 'bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-600/25' : ''
+                  className={`text-white/60 hover:text-white hover:bg-white/10 transition-all mx-2 rounded-lg ${
+                    isActive(item.path) ? 'bg-primary/15 text-primary hover:text-primary hover:bg-primary/20' : ''
                   }`}
                   onClick={() => navigate(item.path)}
                 >
-                  <item.icon className={`h-4 w-4 mr-3 ${isActive(item.path) ? 'text-emerald-400' : ''}`} />
+                  <item.icon className={`h-4 w-4 mr-3 ${isActive(item.path) ? 'text-primary' : ''}`} />
                   <span className="flex-1">{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -82,19 +82,19 @@ export function AdminSidebar({ isSuperAdmin, adminName }: AdminSidebarProps) {
 
           {isSuperAdmin && (
             <>
-              <SidebarGroupLabel className="text-slate-500 text-[10px] uppercase tracking-wider px-4 pt-5 pb-1">
+              <SidebarGroupLabel className="text-white/30 text-[10px] uppercase tracking-wider px-4 pt-5 pb-1">
                 Superadmin
               </SidebarGroupLabel>
               <SidebarMenu>
                 {superAdminItems.map((item) => (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
-                      className={`text-slate-300 hover:text-white hover:bg-slate-800 transition-all mx-2 rounded-lg ${
-                        isActive(item.path) ? 'bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-600/25' : ''
+                      className={`text-white/60 hover:text-white hover:bg-white/10 transition-all mx-2 rounded-lg ${
+                        isActive(item.path) ? 'bg-primary/15 text-primary hover:text-primary hover:bg-primary/20' : ''
                       }`}
                       onClick={() => navigate(item.path)}
                     >
-                      <item.icon className={`h-4 w-4 mr-3 ${isActive(item.path) ? 'text-emerald-400' : ''}`} />
+                      <item.icon className={`h-4 w-4 mr-3 ${isActive(item.path) ? 'text-primary' : ''}`} />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -105,10 +105,10 @@ export function AdminSidebar({ isSuperAdmin, adminName }: AdminSidebarProps) {
         </SidebarGroup>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-slate-700">
+        <div className="px-4 py-3 border-t border-white/10">
           <button
             onClick={() => signOut()}
-            className="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm w-full transition-colors py-1"
+            className="flex items-center gap-2 text-white/40 hover:text-destructive text-sm w-full transition-colors py-1"
           >
             <LogOut className="h-4 w-4" />
             Sair do Painel

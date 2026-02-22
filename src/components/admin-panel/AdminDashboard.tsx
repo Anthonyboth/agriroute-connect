@@ -40,10 +40,10 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACTION_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  APPROVE: { label: 'Aprovado', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle className="h-4 w-4 text-emerald-600" /> },
-  REJECT: { label: 'Reprovado', color: 'bg-red-50 text-red-700 border-red-200', icon: <XCircle className="h-4 w-4 text-red-600" /> },
-  NEEDS_FIX: { label: 'Correção', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: <AlertTriangle className="h-4 w-4 text-amber-600" /> },
-  NOTE: { label: 'Observação', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: <Eye className="h-4 w-4 text-blue-600" /> },
+  APPROVE: { label: 'Aprovado', color: 'bg-success/10 text-success border-success/20', icon: <CheckCircle className="h-4 w-4 text-success" /> },
+  REJECT: { label: 'Reprovado', color: 'bg-destructive/10 text-destructive border-destructive/20', icon: <XCircle className="h-4 w-4 text-destructive" /> },
+  NEEDS_FIX: { label: 'Correção', color: 'bg-warning/10 text-warning border-warning/20', icon: <AlertTriangle className="h-4 w-4 text-warning" /> },
+  NOTE: { label: 'Observação', color: 'bg-primary/10 text-primary border-primary/20', icon: <Eye className="h-4 w-4 text-primary" /> },
 };
 
 const AdminDashboard = () => {
@@ -79,15 +79,15 @@ const AdminDashboard = () => {
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
   return (
-    <div className="flex-1 bg-gray-50/50">
+    <div className="flex-1 bg-muted/30">
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+          <SidebarTrigger className="p-2 hover:bg-muted rounded-md">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
+            <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
             <p className="text-sm text-muted-foreground">
               {greeting}, {adminUser?.full_name?.split(' ')[0] || 'Admin'}
             </p>
@@ -108,23 +108,23 @@ const AdminDashboard = () => {
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         {/* Alert Banner for high pending */}
         {totalPending > 5 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <ShieldAlert className="h-5 w-5 text-amber-600" />
+              <div className="p-2 bg-warning/20 rounded-lg">
+                <ShieldAlert className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-800">
+                <p className="text-sm font-semibold text-warning-foreground">
                   {totalPending} cadastros aguardando análise
                 </p>
-                <p className="text-xs text-amber-600">
+                <p className="text-xs text-warning/80">
                   {highestPendingRole
                     ? `Maior concentração: ${ROLE_LABELS[highestPendingRole[0]] || highestPendingRole[0]} (${highestPendingRole[1]})`
                     : 'Revise os cadastros pendentes para reduzir riscos'}
                 </p>
               </div>
             </div>
-            <Button size="sm" onClick={() => navigate('/admin-v2/cadastros')} className="bg-amber-600 hover:bg-amber-700 gap-2">
+            <Button size="sm" onClick={() => navigate('/admin-v2/cadastros')} className="bg-warning hover:bg-warning/90 text-warning-foreground gap-2">
               Revisar agora <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -136,7 +136,7 @@ const AdminDashboard = () => {
             title="Pendentes"
             value={totalPending}
             icon={<Clock className="h-5 w-5" />}
-            color="amber"
+            color="warning"
             subtitle="Aguardando análise"
             onClick={() => navigate('/admin-v2/cadastros')}
           />
@@ -144,21 +144,21 @@ const AdminDashboard = () => {
             title="Aprovados (7d)"
             value={approved7d}
             icon={<UserCheck className="h-5 w-5" />}
-            color="emerald"
+            color="success"
             subtitle="Últimos 7 dias"
           />
           <StatsCard
             title="Reprovados (7d)"
             value={rejected7d}
             icon={<UserX className="h-5 w-5" />}
-            color="red"
+            color="destructive"
             subtitle="Últimos 7 dias"
           />
           <StatsCard
             title="Taxa de Aprovação"
             value={`${approvalRate}%`}
             icon={<TrendingUp className="h-5 w-5" />}
-            color="blue"
+            color="primary"
             subtitle={`${total7d} analisados (7d)`}
           >
             <Progress value={approvalRate} className="mt-2 h-1.5" />
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
           {/* Left: Pending by role + Quick Actions */}
           <div className="space-y-6">
             {/* Pending by Role */}
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-border/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -181,7 +181,7 @@ const AdminDashboard = () => {
                 <div className="space-y-3">
                   {pendingRoles.length === 0 && (
                     <div className="text-center py-6">
-                      <CheckCircle className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
+                      <CheckCircle className="h-8 w-8 text-success mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">Nenhum cadastro pendente! 🎉</p>
                     </div>
                   )}
@@ -193,13 +193,13 @@ const AdminDashboard = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-sm">
                             {ROLE_ICONS[role] || <Users className="h-4 w-4" />}
-                            <span className="text-gray-700">{ROLE_LABELS[role] || role}</span>
+                            <span className="text-foreground/80">{ROLE_LABELS[role] || role}</span>
                           </div>
-                          <span className="text-sm font-bold text-gray-900">{count}</span>
+                          <span className="text-sm font-bold text-foreground">{count}</span>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className="w-full bg-muted rounded-full h-2">
                           <div
-                            className="h-2 rounded-full bg-amber-500 transition-all"
+                            className="h-2 rounded-full bg-warning transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -211,7 +211,7 @@ const AdminDashboard = () => {
             </Card>
 
             {/* Quick Actions */}
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-border/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Activity className="h-4 w-4 text-muted-foreground" />
@@ -224,10 +224,10 @@ const AdminDashboard = () => {
                   className="w-full justify-start gap-3 h-11"
                   onClick={() => navigate('/admin-v2/cadastros')}
                 >
-                  <FileWarning className="h-4 w-4 text-amber-500" />
+                  <FileWarning className="h-4 w-4 text-warning" />
                   <span>Revisar Cadastros Pendentes</span>
                   {totalPending > 0 && (
-                    <Badge className="ml-auto bg-amber-100 text-amber-700 hover:bg-amber-100">{totalPending}</Badge>
+                    <Badge className="ml-auto bg-warning/15 text-warning hover:bg-warning/15">{totalPending}</Badge>
                   )}
                 </Button>
                 <Button
@@ -235,7 +235,7 @@ const AdminDashboard = () => {
                   className="w-full justify-start gap-3 h-11"
                   onClick={() => navigate('/admin-v2/auditoria')}
                 >
-                  <Eye className="h-4 w-4 text-blue-500" />
+                  <Eye className="h-4 w-4 text-primary" />
                   <span>Ver Logs de Auditoria</span>
                 </Button>
                 <Button
@@ -243,7 +243,7 @@ const AdminDashboard = () => {
                   className="w-full justify-start gap-3 h-11"
                   onClick={() => navigate('/admin-v2/fretes')}
                 >
-                  <Truck className="h-4 w-4 text-purple-500" />
+                  <Truck className="h-4 w-4 text-accent" />
                   <span>Monitorar Fretes Ativos</span>
                 </Button>
               </CardContent>
@@ -251,7 +251,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Right: Recent Actions (wider) */}
-          <Card className="lg:col-span-2 shadow-sm">
+          <Card className="lg:col-span-2 shadow-sm border-border/60">
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Activity className="h-4 w-4 text-muted-foreground" />
@@ -264,15 +264,15 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="space-y-1">
                 {stats?.recent_actions?.map((action: any) => {
-                  const actionInfo = ACTION_LABELS[action.action] || { label: action.action, color: 'bg-gray-50 text-gray-700 border-gray-200', icon: <Eye className="h-4 w-4" /> };
+                  const actionInfo = ACTION_LABELS[action.action] || { label: action.action, color: 'bg-muted text-muted-foreground border-border', icon: <Eye className="h-4 w-4" /> };
                   return (
-                    <div key={action.id} className="flex items-center gap-3 py-3 px-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div key={action.id} className="flex items-center gap-3 py-3 px-3 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex-shrink-0">
                         {actionInfo.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900 truncate">
+                          <span className="text-sm font-medium text-foreground truncate">
                             {action.admin?.full_name || action.admin?.email || 'Admin'}
                           </span>
                           <Badge variant="outline" className={`text-xs ${actionInfo.color} border`}>
@@ -291,7 +291,7 @@ const AdminDashboard = () => {
                 })}
                 {(!stats?.recent_actions || stats.recent_actions.length === 0) && (
                   <div className="text-center py-8">
-                    <Activity className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <Activity className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Nenhuma ação recente</p>
                   </div>
                 )}
@@ -310,26 +310,26 @@ function StatsCard({
   title: string; value: number | string; icon: React.ReactNode; color: string; subtitle: string; onClick?: () => void; children?: React.ReactNode;
 }) {
   const colorMap: Record<string, string> = {
-    amber: 'bg-amber-50 text-amber-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
-    red: 'bg-red-50 text-red-600',
-    blue: 'bg-blue-50 text-blue-600',
-    purple: 'bg-purple-50 text-purple-600',
+    warning: 'bg-warning/10 text-warning',
+    success: 'bg-success/10 text-success',
+    destructive: 'bg-destructive/10 text-destructive',
+    primary: 'bg-primary/10 text-primary',
+    accent: 'bg-accent/10 text-accent',
   };
 
   return (
     <Card
-      className={`shadow-sm transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''}`}
+      className={`shadow-sm border-border/60 transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''}`}
       onClick={onClick}
     >
       <CardContent className="pt-5 pb-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-2xl font-bold text-foreground">{value}</p>
             <p className="text-xs text-muted-foreground">{subtitle}</p>
           </div>
-          <div className={`p-2.5 rounded-xl ${colorMap[color] || colorMap.blue}`}>
+          <div className={`p-2.5 rounded-xl ${colorMap[color] || colorMap.primary}`}>
             {icon}
           </div>
         </div>
