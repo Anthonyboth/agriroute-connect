@@ -31,7 +31,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.service-provider-spatial-matching]
-verify_jwt = false
+verify_jwt = true
 
 [functions.service-provider-areas]
 verify_jwt = true
@@ -298,7 +298,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.admin-delete-fiscal-issuer]
-verify_jwt = false
+verify_jwt = true
 
 [functions.nfe-emitir]
 verify_jwt = true

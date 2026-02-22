@@ -144,17 +144,9 @@ export const SecurityCompleteProfile: React.FC = () => {
       // Recalcular após salvar
       setTimeout(calculateCompletion, 500);
 
-      // Auto-aprovar prestador de serviços ao completar 100%
-      if (profile.role === 'PRESTADOR_SERVICOS' && completionPercentage >= 100 && profile.status !== 'APPROVED') {
-        const { error: approvalError } = await supabase
-          .from('profiles')
-          .update({ status: 'APPROVED' })
-          .eq('id', profile.id);
-
-        if (!approvalError) {
-          toast.success('Dados completos! Seu acesso foi liberado.');
-        }
-      }
+      // SEGURANÇA: PRESTADOR_SERVICOS NÃO pode se auto-aprovar.
+      // Apenas PRODUTOR e TRANSPORTADORA são auto-aprovados via AutomaticApprovalService.
+      // Prestadores requerem aprovação manual/admin.
       
     } catch (error) {
       console.error('Erro ao salvar informações:', error);

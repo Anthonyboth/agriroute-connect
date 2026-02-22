@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeForDisplaySafe } from "@/lib/validation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -351,15 +352,18 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
 
       const el = buildDriverMarkerEl(status);
 
+      const safeName = sanitizeForDisplaySafe(d.driver_name);
+      const safeOrigin = d.freight_origin ? sanitizeForDisplaySafe(d.freight_origin) : '';
+      const safeDest = d.freight_destination ? sanitizeForDisplaySafe(d.freight_destination) : '—';
       const popupHtml = `
         <div style="padding:8px; max-width:220px;">
-          <div style="font-weight:700; margin-bottom:4px;">${d.driver_name}</div>
+          <div style="font-weight:700; margin-bottom:4px;">${safeName}</div>
           <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">Último GPS: ${getLastUpdateText(
             d.last_gps_update,
           )}</div>
           ${
-            d.current_freight_id && d.freight_origin
-              ? `<div style="font-size:12px;"><strong>Rota:</strong> ${d.freight_origin} → ${d.freight_destination || "—"}</div>`
+            d.current_freight_id && safeOrigin
+              ? `<div style="font-size:12px;"><strong>Rota:</strong> ${safeOrigin} → ${safeDest}</div>`
               : `<div style="font-size:12px;"><strong>Status:</strong> ${status === "available" ? "Disponível" : "Offline"}</div>`
           }
         </div>

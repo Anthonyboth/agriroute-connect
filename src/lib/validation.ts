@@ -120,3 +120,39 @@ export const sanitizeInput = (input: string): string => {
     .trim()
     .substring(0, 10000); // Limit length
 };
+
+/**
+ * sanitizeForDisplaySafe - Sanitiza texto para exibição segura em innerHTML/popups.
+ * Combina sanitizeHtml + sanitizeInput para máxima proteção contra XSS.
+ */
+export const sanitizeForDisplaySafe = (text: string): string => {
+  return sanitizeHtml(sanitizeInput(text));
+};
+
+/**
+ * isValidCoordinate - Valida coordenadas geográficas antes de persistência.
+ * Rejeita 0,0 e coordenadas fora dos limites aproximados do Brasil.
+ */
+export const isValidCoordinate = (lat: number, lng: number): boolean => {
+  // Rejeitar 0,0 (coordenada nula)
+  if (lat === 0 && lng === 0) return false;
+  
+  // Rejeitar NaN/Infinity
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  
+  // Limites aproximados do Brasil (com margem)
+  // Lat: -33.75 a 5.27 | Lng: -73.99 a -34.79
+  const BRAZIL_BOUNDS = {
+    minLat: -35,
+    maxLat: 7,
+    minLng: -75,
+    maxLng: -33,
+  };
+  
+  return (
+    lat >= BRAZIL_BOUNDS.minLat &&
+    lat <= BRAZIL_BOUNDS.maxLat &&
+    lng >= BRAZIL_BOUNDS.minLng &&
+    lng <= BRAZIL_BOUNDS.maxLng
+  );
+};

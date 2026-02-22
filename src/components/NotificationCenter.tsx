@@ -161,7 +161,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     // Ratings need special handling (open modal, not navigate)
     if (type === 'rating_pending' && data?.freight_id && data?.rated_user_id) {
       const { data: ratedProfile } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('full_name')
         .eq('id', data.rated_user_id)
         .single();
@@ -179,7 +179,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         .single();
       
       const { data: ratedProfile } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('full_name')
         .eq('id', data.rated_user_id)
         .single();

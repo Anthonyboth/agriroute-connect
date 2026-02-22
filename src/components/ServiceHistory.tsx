@@ -139,12 +139,12 @@ export const ServiceHistory: React.FC = () => {
       const providerIds = [...new Set(filteredRequests.map(s => s.provider_id).filter(Boolean))];
 
       const { data: clientProfiles } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('id, full_name')
         .in('id', clientIds);
 
       const { data: providerProfiles } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('id, full_name')
         .in('id', providerIds);
 
