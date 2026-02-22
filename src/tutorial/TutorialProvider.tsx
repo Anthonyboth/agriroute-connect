@@ -93,20 +93,44 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     autoStartChecked.current = true;
 
-    // Delay to let dashboard render
-    const timer = setTimeout(() => {
+    // Aguardar dashboard renderizar antes de iniciar tutorial
+    const startIfNeeded = () => {
       if (shouldAutoStartTutorial(profileId, createdAt)) {
         const roleSteps = getStepsForRole(role);
         setSteps(roleSteps);
         setCurrentStep(0);
         setIsActive(true);
         setTutorialState(profileId, { started_at: new Date().toISOString() });
-        // Activate tab for first step if needed
         setTimeout(() => activateTabIfNeeded(roleSteps[0]?.targetSelector), 300);
       }
-    }, 1500);
+    };
 
-    return () => clearTimeout(timer);
+    const checkDashboardReady = () =>
+      document.querySelector('[data-dashboard-ready="true"]') !== null;
+
+    let cleanupFn: () => void = () => {};
+
+    if (checkDashboardReady()) {
+      const timer = setTimeout(() => startIfNeeded(), 500);
+      cleanupFn = () => clearTimeout(timer);
+    } else {
+      let startTimer: ReturnType<typeof setTimeout> | null = null;
+      const observer = new MutationObserver(() => {
+        if (checkDashboardReady()) {
+          observer.disconnect();
+          startTimer = setTimeout(() => startIfNeeded(), 500);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+      const fallback = setTimeout(() => observer.disconnect(), 10000);
+      cleanupFn = () => {
+        observer.disconnect();
+        clearTimeout(fallback);
+        if (startTimer) clearTimeout(startTimer);
+      };
+    }
+
+    return () => cleanupFn();
   }, [profileId, role, createdAt, isOnboardingRoute, isProfileReady]);
 
   const startTutorial = useCallback(() => {

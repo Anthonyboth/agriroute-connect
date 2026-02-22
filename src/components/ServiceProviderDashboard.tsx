@@ -1104,7 +1104,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   }
 
   return (
-    <div className="bg-background">
+    <div data-dashboard-ready="true" className="bg-background">
       {/* Hero Section - Padronizado com ProducerDashboard */}
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <picture className="absolute inset-0">

@@ -2495,7 +2495,7 @@ const DriverDashboard = () => {
 
   return (
     <PageDOMErrorBoundary>
-      <div className="min-h-screen bg-background">
+      <div data-dashboard-ready="true" className="min-h-screen bg-background">
         <Header
           user={{ 
             name: profile?.full_name || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'), 
