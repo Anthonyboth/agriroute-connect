@@ -411,9 +411,6 @@ const Auth = () => {
 
       // Verificar se a confirmação por email está desativada
       if (data.session) {
-        // Email confirmation está OFF - usuário já está logado
-        toast.success('Cadastro concluído! Bem-vindo(a).');
-
         // ✅ REGRA DE NEGÓCIO: PRODUTOR e TRANSPORTADORA são aprovados automaticamente e vão direto ao painel
         const signedUpRole = driverType === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : role;
         if (signedUpRole === 'PRODUTOR' || signedUpRole === 'TRANSPORTADORA') {
@@ -443,11 +440,13 @@ const Auth = () => {
             // não bloqueia UX; o login também tentará auto-aprovar se necessário
           }
 
+          toast.success('Conta criada com sucesso! Redirecionando...');
           window.location.href = getDashboardByRole(signedUpRole);
           return;
         }
 
-        // Demais roles seguem para onboarding
+        // Demais roles seguem para onboarding - NÃO dizer "cadastro concluído"
+        toast.info('Conta criada! Complete seu perfil para continuar.');
         navigate('/complete-profile');
       } else {
         // Email confirmation está ON - precisa confirmar email
