@@ -712,9 +712,9 @@ const CompanyDashboard = () => {
   const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount, pendingRatingsCount);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div data-dashboard-ready="true" className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <Header
-        user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} 
+        user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined}
         onLogout={signOut}
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
       />
