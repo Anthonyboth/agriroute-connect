@@ -15,14 +15,14 @@ interface AdminSidebarProps {
 }
 
 const menuItems = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-  { title: 'Cadastros', icon: Users, path: '/admin/cadastros' },
-  { title: 'Auditoria', icon: FileText, path: '/admin/auditoria' },
+  { title: 'Dashboard', icon: LayoutDashboard, path: '/admin-v2' },
+  { title: 'Cadastros', icon: Users, path: '/admin-v2/cadastros' },
+  { title: 'Auditoria', icon: FileText, path: '/admin-v2/auditoria' },
 ];
 
 const superAdminItems = [
-  { title: 'Administradores', icon: Shield, path: '/admin/admins' },
-  { title: 'Configurações', icon: Settings, path: '/admin/configuracoes' },
+  { title: 'Administradores', icon: Shield, path: '/admin-v2/admins' },
+  { title: 'Configurações', icon: Settings, path: '/admin-v2/configuracoes' },
 ];
 
 export function AdminSidebar({ isSuperAdmin, adminName }: AdminSidebarProps) {
@@ -31,7 +31,7 @@ export function AdminSidebar({ isSuperAdmin, adminName }: AdminSidebarProps) {
   const { signOut } = useAuth();
 
   const isActive = (path: string) => {
-    if (path === '/admin') return location.pathname === '/admin';
+    if (path === '/admin-v2') return location.pathname === '/admin-v2' || location.pathname === '/admin-v2/';
     return location.pathname.startsWith(path);
   };
 
