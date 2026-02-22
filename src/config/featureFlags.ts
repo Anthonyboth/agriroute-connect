@@ -24,6 +24,10 @@ export const FEATURE_FLAGS = {
 
   // Emissão assistida de NFA-e para MEI
   enable_nfa_assisted_emission: true,
+
+  // Cobrança por emissão de documento fiscal (NF-e, CT-e, MDF-e, NFS-e)
+  // Desativado temporariamente - reativar quando Pagar.me estiver integrado
+  enable_emission_billing: false,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
