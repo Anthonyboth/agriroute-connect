@@ -411,41 +411,9 @@ const Auth = () => {
 
       // Verificar se a confirmação por email está desativada
       if (data.session) {
-        // ✅ REGRA DE NEGÓCIO: PRODUTOR e TRANSPORTADORA são aprovados automaticamente e vão direto ao painel
-        const signedUpRole = driverType === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : role;
-        if (signedUpRole === 'PRODUTOR' || signedUpRole === 'TRANSPORTADORA') {
-          try {
-            // Aguardar criação do perfil (trigger) e aplicar auto-aprovação como garantia
-            let profileId: string | null = null;
-            for (let attempt = 1; attempt <= 6; attempt++) {
-              const { data: p } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('user_id', data.user.id)
-                .maybeSingle();
-
-              if (p?.id) {
-                profileId = p.id;
-                break;
-              }
-
-              await new Promise((r) => setTimeout(r, 250 * attempt));
-            }
-
-            if (profileId) {
-              await AutomaticApprovalService.triggerApprovalProcess(profileId);
-              clearCachedProfile(data.user.id);
-            }
-          } catch {
-            // não bloqueia UX; o login também tentará auto-aprovar se necessário
-          }
-
-          toast.success('Conta criada com sucesso! Redirecionando...');
-          window.location.href = getDashboardByRole(signedUpRole);
-          return;
-        }
-
-        // Demais roles seguem para onboarding - NÃO dizer "cadastro concluído"
+        // ✅ TODOS os perfis devem completar cadastro (selfie, documentos) antes de acessar o painel.
+        // A aprovação automática (PRODUTOR/TRANSPORTADORA) acontece APÓS o envio dos documentos
+        // no CompleteProfile.tsx, NÃO aqui no signup.
         toast.info('Conta criada! Complete seu perfil para continuar.');
         navigate('/complete-profile');
       } else {
