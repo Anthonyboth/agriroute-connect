@@ -110,6 +110,7 @@ const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
 const AdminPanel = lazyWithRetry(() => import("./pages/AdminPanel"), { retries: 3 });
+const AdminPanelV2 = lazyWithRetry(() => import("./pages/AdminPanelV2"), { retries: 3 });
 const AdminAnnouncementsManager = lazy(() => import("./pages/AdminAnnouncementsManager"));
 const AdminMaintenancePanel = lazy(() => import("./pages/AdminMaintenancePanel"));
 
@@ -896,6 +897,18 @@ const App = () => {
                             </ProtectedRoute>
                           } 
                         />
+                        {/* Admin Panel V2 — allowlist-based, nested routes */}
+                        <Route 
+                          path="/admin-v2/*" 
+                          element={
+                            <ProtectedRoute requiresAuth>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <AdminPanelV2 />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        {/* Legacy Admin Panel */}
                         <Route 
                           path="/admin" 
                           element={

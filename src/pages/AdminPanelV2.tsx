@@ -84,7 +84,7 @@ const AdminPanelV2 = () => {
                   <Route path="configuracoes" element={<AdminSettingsPage />} />
                 </>
               )}
-              <Route path="*" element={<Navigate to="/admin" replace />} />
+              <Route path="*" element={<Navigate to="/admin-v2" replace />} />
             </Routes>
           </Suspense>
         </div>

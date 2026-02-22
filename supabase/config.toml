@@ -338,3 +338,6 @@ verify_jwt = true
 
 [functions.create-guest-rural-freight]
 verify_jwt = false
+
+[functions.admin-panel-api]
+verify_jwt = false
