@@ -26,6 +26,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useFocusNfe, type FocusNfeStatus } from "./useFocusNfe";
+import { isFeatureEnabled } from "@/config/featureFlags";
 
 // =============================================================================
 // TYPES
@@ -461,6 +462,12 @@ export function useIntegrations() {
     documentType: "nfe" | "cte" | "mdfe" | "nfse",
     _documentRef?: string
   ): Promise<{ success: boolean; charged: number; errorMessage?: string }> => {
+    // Feature flag: cobrança desativada temporariamente
+    if (!isFeatureEnabled('enable_emission_billing')) {
+      console.log(`[INTEGRATIONS] Cobrança desativada (feature flag). Emissão de ${documentType} liberada.`);
+      return { success: true, charged: 0 };
+    }
+
     // TODO: Integrar com Pagar.me quando configurado
     // Por enquanto, usa a fiscal_wallet existente
     
