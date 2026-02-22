@@ -72,6 +72,7 @@ export const SHARED_AUTHENTICATED_PATHS = [
   '/cadastro-afiliado',
   '/payment',
   '/service-payment',
+  '/admin-v2', // Admin Panel V2 — gate próprio via useAdminAuth
 ];
 
 /**
