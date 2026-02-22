@@ -110,6 +110,73 @@ export type Database = {
           },
         ]
       }
+      admin_registration_actions: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          internal_notes: string | null
+          message_to_user: string | null
+          metadata: Json | null
+          new_status: string | null
+          previous_status: string | null
+          profile_id: string
+          reason: string | null
+          reason_category: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          internal_notes?: string | null
+          message_to_user?: string | null
+          metadata?: Json | null
+          new_status?: string | null
+          previous_status?: string | null
+          profile_id: string
+          reason?: string | null
+          reason_category?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          internal_notes?: string | null
+          message_to_user?: string | null
+          metadata?: Json | null
+          new_status?: string | null
+          previous_status?: string | null
+          profile_id?: string
+          reason?: string | null
+          reason_category?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_registration_actions_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_registration_actions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_registration_actions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_reports: {
         Row: {
           active_drivers: number | null
@@ -164,6 +231,77 @@ export type Database = {
           total_revenue?: number | null
           total_users?: number | null
           user_growth?: Json | null
+        }
+        Relationships: []
+      }
+      admin_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_users: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          role: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -8481,6 +8619,8 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          admin_message: string | null
+          admin_message_category: string | null
           antt_number: string | null
           aprovado: boolean | null
           background_check_status: string | null
@@ -8561,6 +8701,8 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          admin_message?: string | null
+          admin_message_category?: string | null
           antt_number?: string | null
           aprovado?: boolean | null
           background_check_status?: string | null
@@ -8641,6 +8783,8 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          admin_message?: string | null
+          admin_message_category?: string | null
           antt_number?: string | null
           aprovado?: boolean | null
           background_check_status?: string | null
@@ -13533,6 +13677,7 @@ export type Database = {
         Returns: string
       }
       generate_invite_code: { Args: never; Returns: string }
+      get_admin_role: { Args: never; Returns: string }
       get_affiliated_driver_profile: {
         Args: { p_company_id: string; p_driver_profile_id: string }
         Returns: {
@@ -14265,6 +14410,7 @@ export type Database = {
         Args: { p_driver_profile_id: string }
         Returns: boolean
       }
+      is_allowlisted_admin: { Args: never; Returns: boolean }
       is_antifraud_viewer: { Args: { _user_id: string }; Returns: boolean }
       is_company_driver: {
         Args: { p_company_id: string; p_user_id: string }
