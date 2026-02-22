@@ -72,7 +72,7 @@ const AdminPanelV2 = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-muted/30">
         <AdminSidebar isSuperAdmin={isSuperAdmin} adminName={adminUser?.full_name || adminUser?.email || 'Admin'} />
         <div className="flex-1 flex flex-col min-w-0">
           <Suspense fallback={<div className="flex-1 flex items-center justify-center"><AppSpinner /></div>}>

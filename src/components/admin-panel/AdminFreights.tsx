@@ -14,13 +14,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  PENDING: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
-  ACCEPTED: { label: 'Aceito', className: 'bg-blue-100 text-blue-800' },
-  IN_TRANSIT: { label: 'Em Trânsito', className: 'bg-purple-100 text-purple-800' },
-  DELIVERED: { label: 'Entregue', className: 'bg-green-100 text-green-800' },
-  CONFIRMED: { label: 'Confirmado', className: 'bg-emerald-100 text-emerald-800' },
-  CANCELLED: { label: 'Cancelado', className: 'bg-red-100 text-red-800' },
-  EXPIRED: { label: 'Expirado', className: 'bg-gray-100 text-gray-800' },
+  PENDING: { label: 'Pendente', className: 'bg-warning/15 text-warning border-warning/30' },
+  ACCEPTED: { label: 'Aceito', className: 'bg-primary/15 text-primary border-primary/30' },
+  IN_TRANSIT: { label: 'Em Trânsito', className: 'bg-accent/15 text-accent border-accent/30' },
+  DELIVERED: { label: 'Entregue', className: 'bg-success/15 text-success border-success/30' },
+  CONFIRMED: { label: 'Confirmado', className: 'bg-success/15 text-success border-success/30' },
+  CANCELLED: { label: 'Cancelado', className: 'bg-destructive/15 text-destructive border-destructive/30' },
+  EXPIRED: { label: 'Expirado', className: 'bg-muted text-muted-foreground border-border' },
 };
 
 const AdminFreights = () => {
@@ -38,7 +38,6 @@ const AdminFreights = () => {
     else setLoading(true);
 
     try {
-      // Use the admin API to fetch freight data
       const { data, error } = await callApi<any>('freights', {
         params: {
           status: statusFilter,
@@ -67,14 +66,14 @@ const AdminFreights = () => {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50">
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+    <div className="flex-1 bg-muted/30">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+          <SidebarTrigger className="p-2 hover:bg-muted rounded-md">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">Gestão de Fretes</h1>
+            <h1 className="text-xl font-semibold text-foreground">Gestão de Fretes</h1>
             <p className="text-sm text-muted-foreground">Monitore todos os fretes da plataforma</p>
           </div>
         </div>
@@ -87,17 +86,17 @@ const AdminFreights = () => {
       <div className="p-6 space-y-4 max-w-7xl mx-auto">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MiniStat icon={<Truck className="h-4 w-4 text-blue-600" />} label="Total de Fretes" value={stats.total} color="blue" />
-          <MiniStat icon={<Calendar className="h-4 w-4 text-purple-600" />} label="Ativos" value={stats.active} color="purple" />
-          <MiniStat icon={<MapPin className="h-4 w-4 text-amber-600" />} label="Em Trânsito" value={stats.transit} color="amber" />
-          <MiniStat icon={<DollarSign className="h-4 w-4 text-emerald-600" />} label="Entregues (7d)" value={stats.delivered} color="emerald" />
+          <MiniStat icon={<Truck className="h-4 w-4 text-primary" />} label="Total de Fretes" value={stats.total} color="primary" />
+          <MiniStat icon={<Calendar className="h-4 w-4 text-accent" />} label="Ativos" value={stats.active} color="accent" />
+          <MiniStat icon={<MapPin className="h-4 w-4 text-warning" />} label="Em Trânsito" value={stats.transit} color="warning" />
+          <MiniStat icon={<DollarSign className="h-4 w-4 text-success" />} label="Entregues (7d)" value={stats.delivered} color="success" />
         </div>
 
         {/* Filters */}
-        <Card className="p-4 shadow-sm">
+        <Card className="p-4 shadow-sm border-border/60">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-xs font-medium text-gray-500 mb-1 block uppercase tracking-wide">Buscar</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block uppercase tracking-wide">Buscar</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Origem, destino ou ID..."
@@ -111,7 +110,7 @@ const AdminFreights = () => {
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 mb-1 block uppercase tracking-wide">Status</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block uppercase tracking-wide">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -129,25 +128,25 @@ const AdminFreights = () => {
         </Card>
 
         {/* Info Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-blue-800">Módulo de Fretes em construção</p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-sm font-medium text-foreground">Módulo de Fretes em construção</p>
+            <p className="text-xs text-muted-foreground mt-1">
               A integração completa com a API de fretes está sendo desenvolvida. Em breve você poderá visualizar detalhes completos,
               histórico de tracking, documentos fiscais e indicadores de risco de cada frete.
             </p>
           </div>
         </div>
 
-        {/* Table Placeholder */}
-        <Card className="shadow-sm">
+        {/* Table */}
+        <Card className="shadow-sm border-border/60">
           <CardContent className="p-0">
             {loading ? (
               <div className="flex items-center justify-center py-16"><AppSpinner /></div>
             ) : freights.length > 0 ? (
               <Table>
-                <TableHeader className="bg-gray-50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Origem → Destino</TableHead>
@@ -162,14 +161,14 @@ const AdminFreights = () => {
                   {freights.map((freight: any) => {
                     const statusInfo = STATUS_BADGES[freight.status] || { label: freight.status, className: '' };
                     return (
-                      <TableRow key={freight.id} className="hover:bg-gray-50">
+                      <TableRow key={freight.id} className="hover:bg-muted/30">
                         <TableCell className="text-xs font-mono text-muted-foreground">{freight.id?.slice(0, 8)}...</TableCell>
                         <TableCell className="text-sm">
                           <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-green-500" />
+                            <MapPin className="h-3 w-3 text-success" />
                             <span>{freight.origin_city || '—'}</span>
                             <span className="text-muted-foreground">→</span>
-                            <MapPin className="h-3 w-3 text-red-500" />
+                            <MapPin className="h-3 w-3 text-destructive" />
                             <span>{freight.destination_city || '—'}</span>
                           </div>
                         </TableCell>
@@ -193,7 +192,7 @@ const AdminFreights = () => {
               </Table>
             ) : (
               <div className="text-center py-16">
-                <Truck className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <Truck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-muted-foreground">Nenhum frete encontrado</p>
                 <p className="text-xs text-muted-foreground mt-1">O endpoint de listagem de fretes será implementado em breve</p>
               </div>
@@ -207,13 +206,13 @@ const AdminFreights = () => {
 
 function MiniStat({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
   const bgMap: Record<string, string> = {
-    blue: 'bg-blue-50',
-    purple: 'bg-purple-50',
-    amber: 'bg-amber-50',
-    emerald: 'bg-emerald-50',
+    primary: 'bg-primary/10',
+    accent: 'bg-accent/10',
+    warning: 'bg-warning/10',
+    success: 'bg-success/10',
   };
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm border-border/60">
       <CardContent className="pt-4 pb-3">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${bgMap[color]}`}>
@@ -221,7 +220,7 @@ function MiniStat({ icon, label, value, color }: { icon: React.ReactNode; label:
           </div>
           <div>
             <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="text-xl font-bold text-gray-900">{value}</p>
+            <p className="text-xl font-bold text-foreground">{value}</p>
           </div>
         </div>
       </CardContent>
