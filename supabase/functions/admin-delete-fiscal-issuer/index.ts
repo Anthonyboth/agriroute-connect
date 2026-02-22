@@ -12,36 +12,40 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    // No longer require auth header - internal/admin use only
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Token de autenticação obrigatório' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify user token (optional - if present validate it)
-    const token = authHeader?.replace('Bearer ', '');
-    let user = null;
-    if (token) {
-      const { data, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && data?.user) {
-        user = data.user;
-      }
+    // Validate user token - MANDATORY
+    const token = authHeader.replace('Bearer ', '');
+    const { data, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !data?.user) {
+      return new Response(JSON.stringify({ error: 'Token inválido ou expirado' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    const user = data.user;
 
-    // Check if user is admin (skip for SERVICE_ROLE internal calls or if no token)
-    if (user) {
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
+    // Check if user is admin - MANDATORY
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
 
-      const isAdmin = roles?.some((r: { role: string }) => r.role === 'admin');
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: 'Apenas administradores podem executar esta ação' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    const isAdmin = roles?.some((r: { role: string }) => r.role === 'admin');
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Apenas administradores podem executar esta ação' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Parse body

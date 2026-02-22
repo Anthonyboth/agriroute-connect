@@ -61,7 +61,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
       ])).filter(id => id != null);
 
       const { data: profilesData } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('id, full_name')
         .in('id', allProfileIds);
 

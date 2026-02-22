@@ -43,7 +43,7 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
       // Fetch sender profiles separately
       const senderIds = [...new Set(messagesData?.map(m => m.sender_id) || [])];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('id, full_name, profile_photo_url')
         .in('id', senderIds);
 
