@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getWhatsAppUrl } from '@/lib/support-contact';
@@ -19,6 +20,7 @@ const STORAGE_KEY = 'agriroute-support-button-position';
  * - Acessível: tooltip e aria-label
  */
 export const FloatingSupportButton: React.FC = () => {
+  const location = useLocation();
   const [position, setPosition] = useState<Position>({ x: 24, y: 24 });
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -26,6 +28,9 @@ export const FloatingSupportButton: React.FC = () => {
   const dragStartPos = useRef<Position>({ x: 0, y: 0 });
   const hasMoved = useRef(false);
   const startPosition = useRef<Position>({ x: 0, y: 0 });
+
+  // Esconder no painel administrativo
+  const isAdminPanel = location.pathname.startsWith('/admin');
 
   // Carregar posição salva do localStorage
   useEffect(() => {
@@ -142,6 +147,8 @@ export const FloatingSupportButton: React.FC = () => {
       document.removeEventListener('touchend', handleMouseUp);
     };
   }, [isDragging, position]);
+
+  if (isAdminPanel) return null;
 
   const handleClick = (e: React.MouseEvent) => {
     // Só prevenir navegação se realmente arrastou
