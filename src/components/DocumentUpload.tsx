@@ -115,7 +115,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
               onChange={handleFileUpload}
               disabled={uploading || uploaded}
               className="hidden"
-              capture="environment"
             />
             <Label
               htmlFor={fileType}
