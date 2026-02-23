@@ -123,13 +123,37 @@ Deno.serve(async (req) => {
       case 'stats': {
         const now = new Date()
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-        const [pending, approved7d, rejected7d, pendingByRole, recentActions] = await Promise.all([
+        const [
+          pending, approved7d, rejected7d, needsFix, blocked,
+          pendingByRole, recentActions,
+          // Freight KPIs
+          freightsPending, freightsActive, freightsTransit, freightsDelivered30d, freightsCancelled30d,
+          // Service KPIs
+          servicesOpen, servicesClosed, servicesCancelled,
+          // Totals
+          totalUsers,
+        ] = await Promise.all([
           serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
           serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').gte('created_at', sevenDaysAgo),
           serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'REJECTED').gte('created_at', sevenDaysAgo),
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'NEEDS_FIX'),
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'BLOCKED'),
           serviceClient.from('profiles').select('role').eq('status', 'PENDING'),
-          serviceClient.from('admin_registration_actions').select('*, admin:admin_user_id(full_name, email)').order('created_at', { ascending: false }).limit(10),
+          serviceClient.from('admin_registration_actions').select('*, admin:admin_user_id(full_name, email)').order('created_at', { ascending: false }).limit(15),
+          // Freight KPIs
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['ACCEPTED', 'LOADING', 'LOADED']),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'IN_TRANSIT'),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['DELIVERED', 'CONFIRMED']).gte('created_at', thirtyDaysAgo),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'CANCELLED').gte('created_at', thirtyDaysAgo),
+          // Service KPIs
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).in('status', ['pending', 'accepted']),
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'cancelled'),
+          // Total
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }),
         ])
 
         // Count by role
@@ -142,8 +166,23 @@ Deno.serve(async (req) => {
           pending_total: pending.count || 0,
           approved_7d: approved7d.count || 0,
           rejected_7d: rejected7d.count || 0,
+          needs_fix_total: needsFix.count || 0,
+          blocked_total: blocked.count || 0,
+          total_users: totalUsers.count || 0,
           pending_by_role: roleCounts,
           recent_actions: recentActions.data || [],
+          freight_kpis: {
+            pending: freightsPending.count || 0,
+            active: freightsActive.count || 0,
+            in_transit: freightsTransit.count || 0,
+            delivered_30d: freightsDelivered30d.count || 0,
+            cancelled_30d: freightsCancelled30d.count || 0,
+          },
+          service_kpis: {
+            open: servicesOpen.count || 0,
+            closed: servicesClosed.count || 0,
+            cancelled: servicesCancelled.count || 0,
+          },
         })
       }
 
@@ -163,7 +202,7 @@ Deno.serve(async (req) => {
             .select('id, user_id, full_name, phone, cpf_cnpj, role, status, created_at, selfie_url, document_photo_url, cnh_photo_url, address_proof_url, admin_message, admin_message_category, base_city_name, base_state, document_validation_status, cnh_validation_status', { count: 'exact' })
 
           // ✅ Validar valores de filtro
-          const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_FIX', 'all']
+          const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_FIX', 'BLOCKED', 'all']
           const validRoles = ['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRODUTOR', 'TRANSPORTADORA', 'PRESTADOR_SERVICOS', 'all']
 
           if (status && status !== 'all') {
@@ -177,8 +216,8 @@ Deno.serve(async (req) => {
             }
           }
           if (search && search.length >= 2) {
-            // ✅ Usar filtros separados em vez de interpolação direta
-            query = query.or(`full_name.ilike.%${search}%,cpf_cnpj.ilike.%${search}%,phone.ilike.%${search}%`)
+            // ✅ Usar filtros separados em vez de interpolação direta (inclui email)
+            query = query.or(`full_name.ilike.%${search}%,cpf_cnpj.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
           }
 
           query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
@@ -228,7 +267,7 @@ Deno.serve(async (req) => {
           const { action: regAction, reason, reason_category, message_to_user, internal_notes } = body
 
           // ✅ Validar action
-          const validActions = ['APPROVE', 'REJECT', 'NEEDS_FIX', 'NOTE']
+          const validActions = ['APPROVE', 'REJECT', 'NEEDS_FIX', 'NOTE', 'BLOCK', 'UNBLOCK']
           if (!validActions.includes(regAction)) {
             return jsonResponse(corsHeaders, { error: 'Ação inválida' }, 400)
           }
@@ -247,6 +286,8 @@ Deno.serve(async (req) => {
             case 'APPROVE': newStatus = 'APPROVED'; break
             case 'REJECT': newStatus = 'REJECTED'; break
             case 'NEEDS_FIX': newStatus = 'NEEDS_FIX'; break
+            case 'BLOCK': newStatus = 'BLOCKED'; break
+            case 'UNBLOCK': newStatus = 'APPROVED'; break
             case 'NOTE': newStatus = profile.status; break
             default: return jsonResponse(corsHeaders, { error: 'Ação inválida' }, 400)
           }
@@ -332,18 +373,39 @@ Deno.serve(async (req) => {
         const pageSize = 30
         const offset = (page - 1) * pageSize
         const actionFilter = url.searchParams.get('action') || ''
+        const adminFilter = url.searchParams.get('admin_id') || ''
+        const dateFrom = url.searchParams.get('date_from') || ''
+        const dateTo = url.searchParams.get('date_to') || ''
+        const entityFilter = url.searchParams.get('profile_id') || ''
 
         let query = serviceClient
           .from('admin_registration_actions')
           .select('*, admin:admin_user_id(full_name, email), profile:profile_id(full_name, role)', { count: 'exact' })
-          // ✅ Removido cpf_cnpj do select de audit logs
 
         // ✅ Validar filtro de ação
-        const validAuditActions = ['APPROVE', 'REJECT', 'NEEDS_FIX', 'NOTE', 'all']
+        const validAuditActions = ['APPROVE', 'REJECT', 'NEEDS_FIX', 'NOTE', 'BLOCK', 'UNBLOCK', 'all']
         if (actionFilter && actionFilter !== 'all') {
           if (validAuditActions.includes(actionFilter)) {
             query = query.eq('action', actionFilter)
           }
+        }
+
+        // ✅ Filtro por admin
+        if (adminFilter && isValidUUID(adminFilter)) {
+          query = query.eq('admin_user_id', adminFilter)
+        }
+
+        // ✅ Filtro por data
+        if (dateFrom) {
+          query = query.gte('created_at', dateFrom)
+        }
+        if (dateTo) {
+          query = query.lte('created_at', dateTo + 'T23:59:59Z')
+        }
+
+        // ✅ Filtro por entidade
+        if (entityFilter && isValidUUID(entityFilter)) {
+          query = query.eq('profile_id', entityFilter)
         }
 
         query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)

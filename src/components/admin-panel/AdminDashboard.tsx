@@ -20,8 +20,23 @@ interface DashboardStats {
   pending_total: number;
   approved_7d: number;
   rejected_7d: number;
+  needs_fix_total: number;
+  blocked_total: number;
+  total_users: number;
   pending_by_role: Record<string, number>;
   recent_actions: any[];
+  freight_kpis: {
+    pending: number;
+    active: number;
+    in_transit: number;
+    delivered_30d: number;
+    cancelled_30d: number;
+  };
+  service_kpis: {
+    open: number;
+    closed: number;
+    cancelled: number;
+  };
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -130,39 +145,41 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Pendentes"
-            value={totalPending}
-            icon={<Clock className="h-5 w-5" />}
-            color="warning"
-            subtitle="Aguardando análise"
-            onClick={() => navigate('/admin-v2/cadastros')}
-          />
-          <StatsCard
-            title="Aprovados (7d)"
-            value={approved7d}
-            icon={<UserCheck className="h-5 w-5" />}
-            color="success"
-            subtitle="Últimos 7 dias"
-          />
-          <StatsCard
-            title="Reprovados (7d)"
-            value={rejected7d}
-            icon={<UserX className="h-5 w-5" />}
-            color="destructive"
-            subtitle="Últimos 7 dias"
-          />
-          <StatsCard
-            title="Taxa de Aprovação"
-            value={`${approvalRate}%`}
-            icon={<TrendingUp className="h-5 w-5" />}
-            color="primary"
-            subtitle={`${total7d} analisados (7d)`}
-          >
-            <Progress value={approvalRate} className="mt-2 h-1.5" />
-          </StatsCard>
+        {/* User Stats Grid */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">👤 Cadastros</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatsCard title="Pendentes" value={totalPending} icon={<Clock className="h-5 w-5" />} color="warning" subtitle="Aguardando análise" onClick={() => navigate('/admin-v2/cadastros')} />
+            <StatsCard title="Correção" value={stats?.needs_fix_total || 0} icon={<AlertTriangle className="h-5 w-5" />} color="warning" subtitle="Needs fix" />
+            <StatsCard title="Aprovados (7d)" value={approved7d} icon={<UserCheck className="h-5 w-5" />} color="success" subtitle="Últimos 7 dias" />
+            <StatsCard title="Reprovados (7d)" value={rejected7d} icon={<UserX className="h-5 w-5" />} color="destructive" subtitle="Últimos 7 dias" />
+            <StatsCard title="Bloqueados" value={stats?.blocked_total || 0} icon={<ShieldAlert className="h-5 w-5" />} color="destructive" subtitle="Total" />
+            <StatsCard title="Taxa Aprovação" value={`${approvalRate}%`} icon={<TrendingUp className="h-5 w-5" />} color="primary" subtitle={`${total7d} analisados`}>
+              <Progress value={approvalRate} className="mt-2 h-1.5" />
+            </StatsCard>
+          </div>
+        </div>
+
+        {/* Freight KPIs */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">🚛 Fretes</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <StatsCard title="Abertos" value={stats?.freight_kpis?.pending || 0} icon={<Clock className="h-5 w-5" />} color="warning" subtitle="Aguardando" onClick={() => navigate('/admin-v2/fretes')} />
+            <StatsCard title="Aceitos" value={stats?.freight_kpis?.active || 0} icon={<Truck className="h-5 w-5" />} color="primary" subtitle="Em preparação" />
+            <StatsCard title="Em Trânsito" value={stats?.freight_kpis?.in_transit || 0} icon={<Truck className="h-5 w-5" />} color="accent" subtitle="Ativos" />
+            <StatsCard title="Entregues (30d)" value={stats?.freight_kpis?.delivered_30d || 0} icon={<CheckCircle className="h-5 w-5" />} color="success" subtitle="Últimos 30 dias" />
+            <StatsCard title="Cancelados (30d)" value={stats?.freight_kpis?.cancelled_30d || 0} icon={<XCircle className="h-5 w-5" />} color="destructive" subtitle="Últimos 30 dias" />
+          </div>
+        </div>
+
+        {/* Service KPIs */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">🔧 Serviços</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <StatsCard title="Abertos" value={stats?.service_kpis?.open || 0} icon={<Activity className="h-5 w-5" />} color="warning" subtitle="Em andamento" />
+            <StatsCard title="Concluídos" value={stats?.service_kpis?.closed || 0} icon={<CheckCircle className="h-5 w-5" />} color="success" subtitle="Total" />
+            <StatsCard title="Cancelados" value={stats?.service_kpis?.cancelled || 0} icon={<XCircle className="h-5 w-5" />} color="destructive" subtitle="Total" />
+          </div>
         </div>
 
         {/* Two-column layout */}

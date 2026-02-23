@@ -37,6 +37,7 @@ const STATUS_INFO: Record<string, { label: string; color: string; icon: any }> =
   APPROVED: { label: 'Aprovado', color: 'bg-success/15 text-success', icon: CheckCircle },
   REJECTED: { label: 'Reprovado', color: 'bg-destructive/15 text-destructive', icon: XCircle },
   NEEDS_FIX: { label: 'Aguardando Correção', color: 'bg-orange-100 text-orange-800', icon: AlertTriangle },
+  BLOCKED: { label: 'Bloqueado', color: 'bg-destructive/20 text-destructive', icon: Shield },
 };
 
 const FREIGHT_STATUS: Record<string, { label: string; className: string }> = {
@@ -60,7 +61,7 @@ const AdminRegistrationDetail = () => {
 
   // Action dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogAction, setDialogAction] = useState<'APPROVE' | 'REJECT' | 'NEEDS_FIX'>('APPROVE');
+  const [dialogAction, setDialogAction] = useState<'APPROVE' | 'REJECT' | 'NEEDS_FIX' | 'BLOCK' | 'UNBLOCK'>('APPROVE');
   const [reason, setReason] = useState('');
   const [reasonCategory, setReasonCategory] = useState('');
   const [messageToUser, setMessageToUser] = useState('');
@@ -102,7 +103,7 @@ const AdminRegistrationDetail = () => {
     if (error) {
       toast.error(`Erro: ${error}`);
     } else {
-      const labels = { APPROVE: 'aprovado', REJECT: 'reprovado', NEEDS_FIX: 'correção solicitada' };
+      const labels = { APPROVE: 'aprovado', REJECT: 'reprovado', NEEDS_FIX: 'correção solicitada', BLOCK: 'bloqueado', UNBLOCK: 'desbloqueado' };
       toast.success(`Cadastro ${labels[dialogAction]} com sucesso`);
       setDialogOpen(false);
       setReason(''); setReasonCategory(''); setMessageToUser(''); setInternalNotes('');
@@ -111,7 +112,7 @@ const AdminRegistrationDetail = () => {
     setSubmitting(false);
   };
 
-  const openDialog = (action: 'APPROVE' | 'REJECT' | 'NEEDS_FIX') => {
+  const openDialog = (action: 'APPROVE' | 'REJECT' | 'NEEDS_FIX' | 'BLOCK' | 'UNBLOCK') => {
     setDialogAction(action);
     setDialogOpen(true);
   };
@@ -178,6 +179,15 @@ const AdminRegistrationDetail = () => {
           <Button onClick={() => openDialog('NEEDS_FIX')} variant="outline" className="text-orange-600 border-orange-300">
             <AlertTriangle className="h-4 w-4 mr-2" /> Solicitar Correção
           </Button>
+          {profile.status !== 'BLOCKED' ? (
+            <Button onClick={() => openDialog('BLOCK')} variant="outline" className="text-destructive border-destructive/30">
+              <Shield className="h-4 w-4 mr-2" /> Bloquear
+            </Button>
+          ) : (
+            <Button onClick={() => openDialog('UNBLOCK')} variant="outline" className="text-success border-success/30">
+              <CheckCircle className="h-4 w-4 mr-2" /> Desbloquear
+            </Button>
+          )}
         </div>
 
         {/* Admin Message Alert */}
@@ -690,11 +700,15 @@ const AdminRegistrationDetail = () => {
               {dialogAction === 'APPROVE' && '✅ Aprovar Cadastro'}
               {dialogAction === 'REJECT' && '❌ Reprovar Cadastro'}
               {dialogAction === 'NEEDS_FIX' && '⚠️ Solicitar Correção'}
+              {dialogAction === 'BLOCK' && '🚫 Bloquear Usuário'}
+              {dialogAction === 'UNBLOCK' && '🔓 Desbloquear Usuário'}
             </DialogTitle>
             <DialogDescription>
               {dialogAction === 'APPROVE' && `Confirma a aprovação de ${profile.full_name}?`}
               {dialogAction === 'REJECT' && 'Informe o motivo da reprovação.'}
               {dialogAction === 'NEEDS_FIX' && 'Descreva o que o usuário precisa corrigir.'}
+              {dialogAction === 'BLOCK' && `Informe o motivo do bloqueio de ${profile.full_name}.`}
+              {dialogAction === 'UNBLOCK' && `Confirma o desbloqueio de ${profile.full_name}?`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -14,10 +14,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  PENDING: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' },
-  APPROVED: { label: 'Aprovado', className: 'bg-green-100 text-green-800 hover:bg-green-100' },
-  REJECTED: { label: 'Reprovado', className: 'bg-red-100 text-red-800 hover:bg-red-100' },
+  PENDING: { label: 'Pendente', className: 'bg-warning/15 text-warning hover:bg-warning/15' },
+  APPROVED: { label: 'Aprovado', className: 'bg-success/15 text-success hover:bg-success/15' },
+  REJECTED: { label: 'Reprovado', className: 'bg-destructive/15 text-destructive hover:bg-destructive/15' },
   NEEDS_FIX: { label: 'Correção', className: 'bg-orange-100 text-orange-800 hover:bg-orange-100' },
+  BLOCKED: { label: 'Bloqueado', className: 'bg-destructive/20 text-destructive hover:bg-destructive/20' },
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -117,6 +118,7 @@ const AdminRegistrations = () => {
                   <SelectItem value="NEEDS_FIX">Correção</SelectItem>
                   <SelectItem value="APPROVED">Aprovado</SelectItem>
                   <SelectItem value="REJECTED">Reprovado</SelectItem>
+                  <SelectItem value="BLOCKED">Bloqueado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
