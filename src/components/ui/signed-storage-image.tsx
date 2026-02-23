@@ -10,10 +10,11 @@ interface SignedStorageImageProps {
   alt: string;
   className?: string;
   onClick?: () => void;
+  adminMode?: boolean;
 }
 
-export const SignedStorageImage = ({ src, alt, className, onClick }: SignedStorageImageProps) => {
-  const { url, isLoading } = useSignedImageUrl(src);
+export const SignedStorageImage = ({ src, alt, className, onClick, adminMode = false }: SignedStorageImageProps) => {
+  const { url, isLoading } = useSignedImageUrl(src, { preferAdminApi: adminMode });
 
   if (isLoading) {
     return (
