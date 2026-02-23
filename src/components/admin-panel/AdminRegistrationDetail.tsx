@@ -497,6 +497,7 @@ const AdminRegistrationDetail = () => {
                           <SignedStorageImage
                             src={profile[key]}
                             alt={label}
+                            adminMode
                             className="w-full h-40 object-cover rounded-lg border"
                           />
                         </div>
@@ -769,6 +770,7 @@ const AdminRegistrationDetail = () => {
               <SignedStorageImage
                 src={imageDialog.url}
                 alt={imageDialog.label}
+                adminMode
                 className="max-w-full max-h-[70vh] object-contain rounded-lg"
               />
             )}
@@ -817,7 +819,7 @@ function ValidationRow({ label, status }: { label: string; status?: string | nul
 function DocThumb({ url, label, onClick }: { url: string; label: string; onClick: () => void }) {
   return (
     <div className="space-y-1 cursor-pointer hover:opacity-80 transition-opacity" onClick={onClick}>
-      <SignedStorageImage src={url} alt={label} className="w-full h-24 object-cover rounded-lg border" />
+      <SignedStorageImage src={url} alt={label} adminMode className="w-full h-24 object-cover rounded-lg border" />
       <p className="text-[10px] text-center text-muted-foreground">{label}</p>
     </div>
   );
