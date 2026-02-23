@@ -109,10 +109,25 @@ const isSignedUrlValid = (url: string): boolean => {
   }
 };
 
-const getAdminSignedUrl = async (bucket: string, path: string): Promise<string | null> => {
-  try {
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getAccessTokenWithRetry = async (): Promise<string | null> => {
+  // Em alguns cenários do painel admin, a sessão ainda não foi hidratada no primeiro render.
+  // Fazemos algumas tentativas curtas antes de desistir.
+  for (const delay of [0, 250, 800]) {
+    if (delay > 0) await wait(delay);
+
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
+    if (token) return token;
+  }
+
+  return null;
+};
+
+const getAdminSignedUrl = async (bucket: string, path: string): Promise<string | null> => {
+  try {
+    const token = await getAccessTokenWithRetry();
 
     if (!token) return null;
 
