@@ -43,6 +43,12 @@ const AdminPanelV2 = () => {
   }
 
   if (error || !isAdmin) {
+    // On admin subdomain, redirect to admin login instead of showing "Acesso Negado"
+    const isAdminHost = ['painel-2025.agriroute-connect.com.br', 'www.painel-2025.agriroute-connect.com.br'].includes(window.location.hostname);
+    if (isAdminHost) {
+      return <Navigate to="/admin-login" replace />;
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="text-center space-y-6 max-w-md">
