@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { devLog } from '@/lib/devLogger';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { AuthContext } from '@/hooks/useAuth';
 import { subscriptionWithRetry } from '@/lib/query-utils';
 import { RatingType } from '@/hooks/useRatingSubmit';
 
@@ -40,7 +40,9 @@ const RatingContext = createContext<RatingContextType | undefined>(undefined);
 export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [serviceToRate, setServiceToRate] = useState<{ serviceRequestId: string; userId: string; userName: string; serviceType?: string } | null>(null);
   const [freightToRate, setFreightToRate] = useState<{ freightId: string; userId: string; userRole: string; userName: string } | null>(null);
-  const { profile } = useAuth();
+  // Use AuthContext directly to avoid throwing when AuthProvider is temporarily unavailable
+  const authContext = useContext(AuthContext);
+  const profile = authContext?.profile;
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const realtimeConnectedRef = useRef(false);
