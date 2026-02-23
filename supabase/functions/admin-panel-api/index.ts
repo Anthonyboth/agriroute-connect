@@ -350,20 +350,37 @@ Deno.serve(async (req) => {
 
         const { field, status, notes } = body
 
-        const allowedFields = ['document_validation_status', 'cnh_validation_status', 'rntrc_validation_status', 'validation_status']
-        const allowedStatuses = ['PENDING', 'VALIDATED', 'REJECTED']
+        const allowedFields = [
+          'document_validation_status',
+          'cnh_validation_status',
+          'rntrc_validation_status',
+          'validation_status',
+          'background_check_status',
+        ]
+
+        const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
+        const allowedStatuses = ['PENDING', 'VALIDATED', 'APPROVED', 'REJECTED']
 
         if (!allowedFields.includes(field)) {
           return jsonResponse(corsHeaders, { error: 'Campo de validação inválido' }, 400)
         }
 
-        if (!allowedStatuses.includes(status)) {
+        if (!allowedStatuses.includes(normalizedStatus)) {
           return jsonResponse(corsHeaders, { error: 'Status de validação inválido' }, 400)
         }
 
+        const dbStatus =
+          field === 'background_check_status'
+            ? normalizedStatus === 'VALIDATED'
+              ? 'APPROVED'
+              : normalizedStatus
+            : normalizedStatus === 'APPROVED'
+              ? 'VALIDATED'
+              : normalizedStatus
+
         const { data: profile, error: profileError } = await serviceClient
           .from('profiles')
-          .select('status, document_validation_status, cnh_validation_status, rntrc_validation_status, validation_status')
+          .select('status, document_validation_status, cnh_validation_status, rntrc_validation_status, validation_status, background_check_status')
           .eq('id', entityId)
           .single()
 
@@ -378,7 +395,7 @@ Deno.serve(async (req) => {
           .maybeSingle()
 
         const updateData: Record<string, unknown> = {
-          [field]: status,
+          [field]: dbStatus,
         }
 
         if (typeof notes === 'string') {
@@ -386,7 +403,7 @@ Deno.serve(async (req) => {
         }
 
         if (field === 'validation_status') {
-          if (status === 'PENDING') {
+          if (dbStatus === 'PENDING') {
             updateData.validated_at = null
             updateData.validated_by = null
           } else {
@@ -413,13 +430,13 @@ Deno.serve(async (req) => {
             reason_category: 'VALIDATION',
             internal_notes: typeof notes === 'string' && notes.trim().length > 0
               ? notes.slice(0, 1000)
-              : `Validação ${field} alterada para ${status}`,
+              : `Validação ${field} alterada para ${dbStatus}`,
             previous_status: profile.status,
             new_status: profile.status,
             metadata: {
               validation_field: field,
               previous_validation_status: previousValue,
-              new_validation_status: status,
+              new_validation_status: dbStatus,
             },
           })
           .catch((logErr) => {
@@ -430,7 +447,7 @@ Deno.serve(async (req) => {
           success: true,
           field,
           previous_status: previousValue,
-          new_status: status,
+          new_status: dbStatus,
         })
       }
 

@@ -55,7 +55,8 @@ type ValidationFieldKey =
   | 'document_validation_status'
   | 'cnh_validation_status'
   | 'rntrc_validation_status'
-  | 'validation_status';
+  | 'validation_status'
+  | 'background_check_status';
 
 const AdminRegistrationDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,7 +86,7 @@ const AdminRegistrationDetail = () => {
 
   useEffect(() => { fetchDetail(); }, [id]);
 
-  const handleValidationAction = async (field: ValidationFieldKey, status: 'VALIDATED' | 'REJECTED') => {
+  const handleValidationAction = async (field: ValidationFieldKey, status: 'VALIDATED' | 'REJECTED' | 'APPROVED') => {
     if (!id) return;
     const actionKey = `${field}:${status}`;
     setValidationSubmitting(actionKey);
@@ -102,7 +103,8 @@ const AdminRegistrationDetail = () => {
     if (error) {
       toast.error(`Erro ao atualizar validação: ${error}`);
     } else {
-      toast.success(`Validação atualizada para ${status === 'VALIDATED' ? 'VALIDADA' : 'REPROVADA'}`);
+      const approvedStatuses = new Set(['VALIDATED', 'APPROVED']);
+      toast.success(`Validação atualizada para ${approvedStatuses.has(status) ? 'APROVADA' : 'REPROVADA'}`);
       fetchDetail();
     }
 
@@ -367,7 +369,13 @@ const AdminRegistrationDetail = () => {
                     onReject={() => handleValidationAction('validation_status', 'REJECTED')}
                     isSubmitting={validationSubmitting === 'validation_status:VALIDATED' || validationSubmitting === 'validation_status:REJECTED'}
                   />
-                  <InfoRow label="Background Check" value={profile.background_check_status || '—'} />
+                  <ValidationRow
+                    label="Background Check"
+                    status={profile.background_check_status}
+                    onApprove={() => handleValidationAction('background_check_status', 'APPROVED')}
+                    onReject={() => handleValidationAction('background_check_status', 'REJECTED')}
+                    isSubmitting={validationSubmitting === 'background_check_status:APPROVED' || validationSubmitting === 'background_check_status:REJECTED'}
+                  />
                   <InfoRow label="Notas de Validação" value={profile.validation_notes} />
                   <InfoRow label="Validado em" value={profile.validated_at ? format(new Date(profile.validated_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '—'} />
                   <Separator className="my-2" />
@@ -885,33 +893,38 @@ function ValidationRow({
     pending: '⏳',
     verified: '✅',
   };
+
   const s = status?.toLowerCase() || '';
+  const isApproved = ['validated', 'approved', 'valid', 'verified'].includes(s);
+  const isRejected = ['rejected', 'invalid'].includes(s);
 
   return (
-    <div className="flex items-center justify-between gap-2 py-0.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className={`text-xs font-medium ${colors[s] || ''}`}>
-          {icons[s] || ''} {status || '—'}
-        </span>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 px-2 text-xs text-success border-success/30"
-          onClick={onApprove}
-          disabled={isSubmitting || status === 'VALIDATED'}
-        >
-          Aprovar
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 px-2 text-xs text-destructive border-destructive/30"
-          onClick={onReject}
-          disabled={isSubmitting || status === 'REJECTED'}
-        >
-          Reprovar
-        </Button>
+    <div className="py-1.5 border-b border-border/60 last:border-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <span className={`text-xs font-medium ${colors[s] || ''}`}>
+            {icons[s] || ''} {status || '—'}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs text-success border-success/30"
+            onClick={onApprove}
+            disabled={isSubmitting || isApproved}
+          >
+            Aprovar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs text-destructive border-destructive/30"
+            onClick={onReject}
+            disabled={isSubmitting || isRejected}
+          >
+            Reprovar
+          </Button>
+        </div>
       </div>
     </div>
   );
