@@ -112,6 +112,7 @@ const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
 const AdminPanel = lazyWithRetry(() => import("./pages/AdminPanel"), { retries: 3 });
 const AdminPanelV2 = lazyWithRetry(() => import("./pages/AdminPanelV2"), { retries: 3 });
+const AdminLogin = lazyWithRetry(() => import("./pages/AdminLogin"), { retries: 3 });
 const AdminAnnouncementsManager = lazy(() => import("./pages/AdminAnnouncementsManager"));
 const AdminMaintenancePanel = lazy(() => import("./pages/AdminMaintenancePanel"));
 
@@ -903,6 +904,7 @@ const App = () => {
                         <Route path="/" element={<AuthedLanding />} />
                         <Route path="/landing" element={<Landing />} />
                         <Route path="/auth" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><Auth /></Suspense>} />
+                        <Route path="/admin-login" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><AdminLogin /></Suspense>} />
                         <Route path="/reset-password" element={<Suspense fallback={<AppLoader variant="inline" />}><ResetPassword /></Suspense>} />
                         <Route path="/confirm-email" element={<Suspense fallback={<AppLoader variant="inline" />}><ConfirmEmail /></Suspense>} />
                         <Route 
