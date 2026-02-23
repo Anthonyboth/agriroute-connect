@@ -871,7 +871,7 @@ const useAuthInternal = () => {
 
 type AuthContextValue = ReturnType<typeof useAuthInternal>;
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = useAuthInternal();
