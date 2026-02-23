@@ -201,9 +201,42 @@ async function notifyErrorToTelegram(errorData: {
   }
 }
 
+// Helper function to sanitize a single argument for production console output
+function sanitizeConsoleArg(arg: any): any {
+  if (typeof arg === 'string') {
+    return arg
+      .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
+      .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
+      .replace(/\b(sk_|pk_|api_|key_)[a-zA-Z0-9]{20,}\b/g, '[API_KEY]')
+      .replace(/\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g, '[CPF]')
+      .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, '[CNPJ]')
+      .replace(/\b(\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-.\s]?\d{4}\b/g, '[PHONE]')
+      .substring(0, 500);
+  }
+  if (typeof arg === 'object' && arg !== null) {
+    try {
+      const str = JSON.stringify(arg);
+      const sanitized = sanitizeConsoleArg(str);
+      return JSON.parse(sanitized);
+    } catch {
+      return '[OBJECT]';
+    }
+  }
+  return arg;
+}
+
 // Capturar e NOTIFICAR erros (não suprimir)
 // Defer error monitoring setup to not block TTI on initial load
 if (typeof window !== 'undefined' && !isPublicPage) {
+  // SECURITY: Sanitize console.log in production to prevent PII leakage in DevTools
+  if (import.meta.env.PROD) {
+    const originalConsoleLog = console.log;
+    console.log = (...args: any[]) => {
+      const sanitizedArgs = args.map(sanitizeConsoleArg);
+      originalConsoleLog.apply(console, sanitizedArgs);
+    };
+  }
   const isWebSocketError = (message: string) => {
     return (message.includes('WebSocket') || message.includes('websocket')) &&
            (message.includes('ERR_NAME_NOT_RESOLVED') || 
@@ -230,22 +263,8 @@ if (typeof window !== 'undefined' && !isPublicPage) {
     const message = args[0]?.toString() || '';
     
     // SECURITY: In production, sanitize console output to prevent sensitive data exposure
-    // In development, allow full logging for debugging
     if (import.meta.env.PROD) {
-      // Sanitize args before logging in production
-      const sanitizedArgs = args.map(arg => {
-        if (typeof arg === 'string') {
-          return arg
-            .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
-            .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
-            .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
-            .replace(/\b(sk_|pk_|api_|key_)[a-zA-Z0-9]{20,}\b/g, '[API_KEY]')
-            .replace(/\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g, '[CPF]')
-            .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, '[CNPJ]')
-            .substring(0, 500);
-        }
-        return arg;
-      });
+      const sanitizedArgs = args.map(sanitizeConsoleArg);
       originalConsoleError.apply(console, sanitizedArgs);
     } else {
       // Development: full logging for debugging
@@ -275,18 +294,7 @@ if (typeof window !== 'undefined' && !isPublicPage) {
     
     // SECURITY: In production, sanitize console output
     if (import.meta.env.PROD) {
-      const sanitizedArgs = args.map(arg => {
-        if (typeof arg === 'string') {
-          return arg
-            .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
-            .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
-            .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
-            .replace(/\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g, '[CPF]')
-            .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, '[CNPJ]')
-            .substring(0, 500);
-        }
-        return arg;
-      });
+      const sanitizedArgs = args.map(sanitizeConsoleArg);
       originalConsoleWarn.apply(console, sanitizedArgs);
     } else {
       originalConsoleWarn.apply(console, args);
