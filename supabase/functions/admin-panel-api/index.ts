@@ -497,6 +497,88 @@ Deno.serve(async (req) => {
         })
       }
 
+      // --- Comprehensive User Detail ---
+      case 'user-detail': {
+        if (!entityId || !isValidUUID(entityId)) {
+          return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
+        }
+
+        // Fetch profile with ALL fields
+        const { data: profile, error: profileErr } = await serviceClient
+          .from('profiles')
+          .select('*')
+          .eq('id', entityId)
+          .single()
+
+        if (profileErr || !profile) {
+          return jsonResponse(corsHeaders, { error: 'Usuário não encontrado' }, 404)
+        }
+
+        // Parallel fetch of related data
+        const [
+          vehiclesRes,
+          freightsAsProducerRes,
+          freightsAsDriverRes,
+          companyRes,
+          companyDriversRes,
+          actionsRes,
+          badgesRes,
+          expensesRes,
+          availabilityRes,
+          balanceRes,
+        ] = await Promise.all([
+          // Vehicles owned by this user
+          serviceClient.from('vehicles').select('*').eq('driver_id', entityId).order('created_at', { ascending: false }),
+          // Freights as producer (last 20)
+          serviceClient.from('freights').select('id, status, cargo_type, price, origin_city, origin_state, destination_city, destination_state, created_at, distance_km, reference_number').eq('producer_id', entityId).order('created_at', { ascending: false }).limit(20),
+          // Freights as driver (last 20)
+          serviceClient.from('freights').select('id, status, cargo_type, price, origin_city, origin_state, destination_city, destination_state, created_at, distance_km, reference_number').eq('driver_id', entityId).order('created_at', { ascending: false }).limit(20),
+          // Transport company (if owner)
+          serviceClient.from('transport_companies').select('*').eq('profile_id', entityId).maybeSingle(),
+          // Company driver affiliations
+          serviceClient.from('company_drivers').select('id, status, company_id, affiliation_type, can_accept_freights, created_at, accepted_at, company:company_id(company_name, company_cnpj)').eq('driver_profile_id', entityId),
+          // Admin actions history
+          serviceClient.from('admin_registration_actions').select('*, admin:admin_user_id(full_name, email)').eq('profile_id', entityId).order('created_at', { ascending: false }),
+          // Badges
+          serviceClient.from('driver_badges').select('*, badge:badge_type_id(name, icon, description, category)').eq('driver_id', entityId),
+          // Recent expenses (last 10)
+          serviceClient.from('driver_expenses').select('id, expense_type, amount, expense_date, description').eq('driver_id', entityId).order('expense_date', { ascending: false }).limit(10),
+          // Availability
+          serviceClient.from('driver_availability').select('*').eq('driver_id', entityId).order('available_date', { ascending: false }).limit(5),
+          // Balance transactions (last 10)
+          serviceClient.from('balance_transactions').select('id, transaction_type, amount, status, created_at, description').eq('provider_id', entityId).order('created_at', { ascending: false }).limit(10),
+        ])
+
+        // Freight stats
+        const freightsProducer = freightsAsProducerRes.data || []
+        const freightsDriver = freightsAsDriverRes.data || []
+        const allFreights = [...freightsProducer, ...freightsDriver]
+        
+        const freightStats = {
+          total_as_producer: freightsProducer.length,
+          total_as_driver: freightsDriver.length,
+          completed: allFreights.filter((f: any) => ['DELIVERED', 'CONFIRMED'].includes(f.status)).length,
+          cancelled: allFreights.filter((f: any) => f.status === 'CANCELLED').length,
+          active: allFreights.filter((f: any) => ['PENDING', 'ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(f.status)).length,
+          total_value: allFreights.reduce((sum: number, f: any) => sum + (Number(f.price) || 0), 0),
+        }
+
+        return jsonResponse(corsHeaders, {
+          profile,
+          vehicles: vehiclesRes.data || [],
+          freights_as_producer: freightsProducer,
+          freights_as_driver: freightsDriver,
+          freight_stats: freightStats,
+          company: companyRes.data || null,
+          company_affiliations: companyDriversRes.data || [],
+          actions: actionsRes.data || [],
+          badges: badgesRes.data || [],
+          expenses: expensesRes.data || [],
+          availability: availabilityRes.data || [],
+          balance_transactions: balanceRes.data || [],
+        })
+      }
+
       default:
         return jsonResponse(corsHeaders, { error: 'Rota não encontrada' }, 404)
     }
