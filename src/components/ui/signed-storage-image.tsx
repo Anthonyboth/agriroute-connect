@@ -2,6 +2,7 @@
  * Componente para exibir imagens de buckets privados do Supabase Storage.
  * Regenera automaticamente URLs assinadas expiradas.
  */
+import { useEffect, useState } from 'react';
 import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
 import { Loader2 } from 'lucide-react';
 
@@ -14,7 +15,12 @@ interface SignedStorageImageProps {
 }
 
 export const SignedStorageImage = ({ src, alt, className, onClick, adminMode = false }: SignedStorageImageProps) => {
-  const { url, isLoading } = useSignedImageUrl(src, { preferAdminApi: adminMode });
+  const { url, isLoading, refresh } = useSignedImageUrl(src, { preferAdminApi: adminMode });
+  const [hasRetried, setHasRetried] = useState(false);
+
+  useEffect(() => {
+    setHasRetried(false);
+  }, [src]);
 
   if (isLoading) {
     return (
@@ -32,6 +38,11 @@ export const SignedStorageImage = ({ src, alt, className, onClick, adminMode = f
       alt={alt}
       className={className}
       onClick={onClick}
+      onError={() => {
+        if (hasRetried) return;
+        setHasRetried(true);
+        void refresh();
+      }}
     />
   );
 };

@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
 
         const { data, error } = await serviceClient.storage
           .from(bucket)
-          .createSignedUrl(path, 300) // 5 min expiry
+          .createSignedUrl(path, 3600) // 1 hora para evitar expiração durante análise admin
 
         if (error) {
           console.error(`[ADMIN-API] Signed URL error for ${bucket}/${path}:`, error.message)

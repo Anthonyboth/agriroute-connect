@@ -166,7 +166,11 @@ const AdminRegistrationDetail = () => {
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
-          {profile.status !== 'APPROVED' && (
+          {profile.status === 'APPROVED' ? (
+            <Button disabled variant="outline">
+              <CheckCircle className="h-4 w-4 mr-2" /> Já aprovado
+            </Button>
+          ) : (
             <Button onClick={() => openDialog('APPROVE')} className="bg-success hover:bg-success/90 text-success-foreground">
               <CheckCircle className="h-4 w-4 mr-2" /> Aprovar
             </Button>
