@@ -6,19 +6,27 @@
  * 2. Transicionar AppBoot: CHECKING_AUTH → LOADING_PROFILE → READY
  * 3. Emitir logs estruturados para debugging
  * 4. Nunca bloquear em INITIALIZING
+ * 5. Resiliente a AuthProvider ausente (não crashar se context falhar)
  */
 
-import React, { useEffect, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useEffect, useRef, useContext } from 'react';
+import { AuthContext } from '@/hooks/useAuth';
 import { useAppBoot } from '@/contexts/AppBootContext';
 
 export const BootOrchestrator: React.FC = () => {
-  const { session, profile, loading: authLoading, user } = useAuth();
+  // Use AuthContext directly instead of useAuth() to avoid throwing
+  // when AuthProvider is missing or crashed during initialization
+  const authContext = useContext(AuthContext);
   const { phase, setPhase, setError, bootAttempt, recordStepTiming } = useAppBoot();
   
   const hasStartedRef = useRef(false);
   const lastAttemptRef = useRef(0);
   const stepStartRef = useRef<Record<string, number>>({});
+
+  const session = authContext?.session;
+  const profile = authContext?.profile;
+  const authLoading = authContext?.loading ?? true;
+  const user = authContext?.user;
 
   // Log helper
   const logStep = (step: string, status: 'START' | 'OK' | 'FAIL', details?: any) => {
@@ -38,6 +46,14 @@ export const BootOrchestrator: React.FC = () => {
     }
   };
 
+  // If AuthProvider is not available, force READY immediately
+  useEffect(() => {
+    if (!authContext && phase !== 'READY') {
+      console.warn('[BootOrchestrator] AuthProvider not available - forcing READY');
+      setPhase('READY');
+    }
+  }, [authContext, phase, setPhase]);
+
   // Reset on new boot attempt
   useEffect(() => {
     if (bootAttempt !== lastAttemptRef.current) {
@@ -50,6 +66,9 @@ export const BootOrchestrator: React.FC = () => {
 
   // Main orchestration effect - deterministic transitions
   useEffect(() => {
+    // Skip if AuthProvider is not available
+    if (!authContext) return;
+
     // Phase 1: Immediately transition out of INITIALIZING
     if (phase === 'INITIALIZING') {
       if (!hasStartedRef.current) {
@@ -86,12 +105,11 @@ export const BootOrchestrator: React.FC = () => {
         setPhase('READY');
       }
     }
-  }, [phase, authLoading, session, user, profile, setPhase, setError, bootAttempt, recordStepTiming]);
+  }, [authContext, phase, authLoading, session, user, profile, setPhase, setError, bootAttempt, recordStepTiming]);
 
   // Safety: if stuck in INITIALIZING (hasStarted but phase didn't change)
   useEffect(() => {
     if (phase === 'INITIALIZING' && hasStartedRef.current) {
-      // hasStarted is true but we're still in INITIALIZING = setPhase failed
       const timer = setTimeout(() => {
         if (phase === 'INITIALIZING') {
           console.warn('[BootOrchestrator] Forçando transição de INITIALIZING - setPhase pode ter falhado');
@@ -107,7 +125,6 @@ export const BootOrchestrator: React.FC = () => {
   // Safety: if stuck in CHECKING_AUTH or LOADING_PROFILE for too long with authLoading=false
   useEffect(() => {
     if (!authLoading && (phase === 'CHECKING_AUTH' || phase === 'LOADING_PROFILE')) {
-      // Give it a short grace period then force READY
       const timer = setTimeout(() => {
         if (phase === 'CHECKING_AUTH' || phase === 'LOADING_PROFILE') {
           console.warn(`[BootOrchestrator] Forçando READY - auth não está carregando mas phase=${phase}`);
