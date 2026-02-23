@@ -100,10 +100,23 @@ async function notifyLoginErrorToTelegram(
 }
 
 /**
- * Determinar rota de dashboard baseado na role do perfil
+ * Hostnames do painel administrativo (subdomínio dedicado)
+ */
+const ADMIN_HOSTNAMES = [
+  'painel-2025.agriroute-connect.com.br',
+  'www.painel-2025.agriroute-connect.com.br',
+];
+
+/**
+ * Determinar rota de dashboard baseado na role do perfil.
+ * Se o hostname for do painel admin, redireciona para /admin-v2.
  * Delega para panelAccessGuard — fonte única de verdade.
  */
 function getDashboardRoute(role: string): string {
+  // ✅ HOSTNAME GATE: Se no subdomínio admin, sempre ir para /admin-v2
+  if (ADMIN_HOSTNAMES.includes(window.location.hostname)) {
+    return '/admin-v2';
+  }
   return getDefaultRouteForProfile({ role });
 }
 
@@ -397,12 +410,15 @@ export function useResilientLogin() {
     
     console.log(`🟢 [ResilientLogin] Perfil selecionado: ${targetRole} -> ${targetRoute}`);
 
+    // ✅ HOSTNAME GATE: Se no subdomínio admin, ir para /admin-v2
+    const finalRoute = ADMIN_HOSTNAMES.includes(window.location.hostname) ? '/admin-v2' : targetRoute;
+
     try {
-      navigate(targetRoute, { replace: true });
+      navigate(finalRoute, { replace: true });
     } finally {
       setTimeout(() => {
         if (window.location.pathname === '/auth') {
-          window.location.href = targetRoute;
+          window.location.href = finalRoute;
         }
       }, 150);
     }
