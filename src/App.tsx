@@ -509,6 +509,12 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   return <>{children}</>;
 };
 
+// ✅ Hostnames do painel administrativo (subdomínio dedicado)
+const ADMIN_HOSTNAMES = [
+  'painel-2025.agriroute-connect.com.br',
+  'www.painel-2025.agriroute-connect.com.br',
+];
+
 // ✅ Componente para autoredirecionar da home "/" para o painel correto
 const AuthedLanding = () => {
   const { isAuthenticated, profile, loading } = useAuth();
@@ -523,7 +529,7 @@ const AuthedLanding = () => {
       return !!localStorage.getItem('sb-shnvtxejjecbnztdbbbl-auth-token');
     } catch { return false; }
   }, []);
-  
+
   // Timeout para loading (8s)
   React.useEffect(() => {
     if (loading || isCheckingCompany) {
@@ -577,7 +583,12 @@ const AuthedLanding = () => {
       checkCompany();
     }
   }, [profile]);
-  
+
+  // ✅ HOSTNAME GATE: Se acessando pelo subdomínio admin, redirecionar para /admin-v2
+  if (ADMIN_HOSTNAMES.includes(window.location.hostname)) {
+    return <Navigate to="/admin-v2" replace />;
+  }
+
   // Se ainda carregando e não tem perfil:
   // - Se há sessão em cache → spinner (usuário provavelmente logado, evita flash da Landing)
   // - Se não há sessão → Landing direto
