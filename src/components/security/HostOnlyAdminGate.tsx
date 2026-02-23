@@ -2,8 +2,9 @@
  * HostOnlyAdminGate
  * 
  * Quando o hostname é do subdomínio admin (painel-2025.*),
- * BLOQUEIA todas as rotas que NÃO começam com /admin-v2.
- * Redireciona automaticamente para /admin-v2/dashboard.
+ * BLOQUEIA todas as rotas que NÃO começam com /admin-v2 ou /admin-login.
+ * - Se não autenticado e fora do /admin-login → redireciona para /admin-login
+ * - Se autenticado e fora do /admin-v2 → redireciona para /admin-v2/dashboard
  * 
  * No domínio principal (agriroute-connect.com.br), não faz nada.
  */
@@ -15,23 +16,31 @@ const ADMIN_ONLY_HOSTNAMES = [
   'www.painel-2025.agriroute-connect.com.br',
 ];
 
+export function isAdminHostname(hostname: string = window.location.hostname): boolean {
+  return ADMIN_ONLY_HOSTNAMES.includes(hostname);
+}
+
 export function HostOnlyAdminGate() {
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hostname = window.location.hostname;
-    if (!ADMIN_ONLY_HOSTNAMES.includes(hostname)) return;
+    if (!isAdminHostname()) return;
 
-    // Allow /admin-v2/* routes
-    if (location.pathname.startsWith('/admin-v2')) return;
+    const path = location.pathname;
 
-    // Allow /auth for login flow
-    if (location.pathname === '/auth') return;
+    // Allow admin panel routes
+    if (path.startsWith('/admin-v2')) return;
 
-    // Everything else → redirect to admin dashboard
-    console.warn(`[HostOnlyAdminGate] Bloqueando rota ${location.pathname} no host admin → /admin-v2/dashboard`);
-    navigate('/admin-v2/dashboard', { replace: true });
+    // Allow admin login page
+    if (path === '/admin-login') return;
+
+    // Allow reset-password flow (needed for "Esqueci minha senha")
+    if (path === '/reset-password') return;
+
+    // Everything else → redirect to admin login
+    console.warn(`[HostOnlyAdminGate] Bloqueando rota ${path} no host admin → /admin-login`);
+    navigate('/admin-login', { replace: true });
   }, [location.pathname, navigate]);
 
   return null;
