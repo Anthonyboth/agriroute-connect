@@ -10,7 +10,8 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('Origin') || ''
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  const isPreview = origin.includes('.lovable.app') || origin.includes('localhost')
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : isPreview ? origin : ALLOWED_ORIGINS[0]
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -25,6 +26,7 @@ const ALLOWED_BUCKETS = [
   'identity-selfies',
   'driver-documents',
   'vehicle-documents',
+  'freight-attachments',
 ]
 
 // ✅ Validação UUID
@@ -36,11 +38,15 @@ function isValidUUID(value: string): boolean {
 
 // ✅ Sanitização de input para filtros PostgREST
 function sanitizeSearchInput(input: string): string {
-  // Remove caracteres especiais que podem ser usados em injection PostgREST
   return input
     .replace(/[%_\\'"(),.;:!@#$^&*=+\[\]{}|<>?/~`]/g, '')
     .trim()
-    .slice(0, 100) // Limite de 100 caracteres
+    .slice(0, 100)
+}
+
+function clampInt(val: string | null, min: number, max: number, fallback: number): number {
+  const n = parseInt(val || '') || fallback
+  return Math.max(min, Math.min(max, n))
 }
 
 Deno.serve(async (req) => {
@@ -53,9 +59,9 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(Boolean)
-    // Path: /admin-panel-api/{action}/{id?}
     const action = pathParts[1] || ''
     const entityId = pathParts[2] || ''
+    const subAction = pathParts[3] || ''
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -64,19 +70,13 @@ Deno.serve(async (req) => {
     // ✅ Validar presença do header Authorization
     const authHeader = req.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      })
+      return jsonResponse(corsHeaders, { error: 'Não autenticado' }, 401)
     }
 
-    // Auth client - validates the user's JWT
     const authClient = createClient(supabaseUrl, anonKey, {
       auth: { persistSession: false },
       global: { headers: { Authorization: authHeader } },
     })
-
-    // Service client - elevated operations
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     })
@@ -84,13 +84,10 @@ Deno.serve(async (req) => {
     // 1) Validate JWT
     const { data: { user }, error: authError } = await authClient.auth.getUser()
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      })
+      return jsonResponse(corsHeaders, { error: 'Não autenticado' }, 401)
     }
 
-    // 2) Check allowlist (case-insensitive email comparison)
+    // 2) Check allowlist
     const { data: adminUser, error: adminError } = await serviceClient
       .from('admin_users')
       .select('id, email, role, is_active, full_name')
@@ -99,16 +96,12 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (adminError || !adminUser) {
-      console.warn(`[ADMIN-API] Unauthorized access attempt by user_id=${user.id} email=${user.email}`)
-      return new Response(JSON.stringify({ error: 'Acesso negado' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      })
+      console.warn(`[ADMIN-API] Unauthorized access attempt by user_id=${user.id}`)
+      return jsonResponse(corsHeaders, { error: 'Acesso negado' }, 403)
     }
 
-    console.log(`[ADMIN-API] Admin ${adminUser.email} (${adminUser.role}) -> ${action}`)
+    console.log(`[ADMIN-API] Admin ${adminUser.email} (${adminUser.role}) -> ${action}/${entityId}${subAction ? '/' + subAction : ''}`)
 
-    // ✅ Validar método HTTP permitido
     if (!['GET', 'POST', 'PUT', 'PATCH'].includes(req.method)) {
       return jsonResponse(corsHeaders, { error: 'Método não suportado' }, 405)
     }
@@ -119,7 +112,8 @@ Deno.serve(async (req) => {
 
     // ===================== ROUTING =====================
     switch (action) {
-      // --- Dashboard Stats ---
+
+      // ==================== DASHBOARD STATS ====================
       case 'stats': {
         const now = new Date()
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -128,11 +122,8 @@ Deno.serve(async (req) => {
         const [
           pending, approved7d, rejected7d, needsFix, blocked,
           pendingByRole, recentActions,
-          // Freight KPIs
           freightsPending, freightsActive, freightsTransit, freightsDelivered30d, freightsCancelled30d,
-          // Service KPIs
           servicesOpen, servicesClosed, servicesCancelled,
-          // Totals
           totalUsers,
         ] = await Promise.all([
           serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
@@ -142,21 +133,17 @@ Deno.serve(async (req) => {
           serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'BLOCKED'),
           serviceClient.from('profiles').select('role').eq('status', 'PENDING'),
           serviceClient.from('admin_registration_actions').select('*, admin:admin_user_id(full_name, email)').order('created_at', { ascending: false }).limit(15),
-          // Freight KPIs
-          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['NEW', 'APPROVED', 'OPEN']),
           serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['ACCEPTED', 'LOADING', 'LOADED']),
           serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'IN_TRANSIT'),
-          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['DELIVERED', 'CONFIRMED']).gte('created_at', thirtyDaysAgo),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']).gte('created_at', thirtyDaysAgo),
           serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'CANCELLED').gte('created_at', thirtyDaysAgo),
-          // Service KPIs
           serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).in('status', ['pending', 'accepted']),
           serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
           serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'cancelled'),
-          // Total
           serviceClient.from('profiles').select('id', { count: 'exact', head: true }),
         ])
 
-        // Count by role
         const roleCounts: Record<string, number> = {}
         pendingByRole.data?.forEach((p: any) => {
           roleCounts[p.role] = (roleCounts[p.role] || 0) + 1
@@ -186,14 +173,14 @@ Deno.serve(async (req) => {
         })
       }
 
-      // --- List Registrations ---
+      // ==================== REGISTRATIONS ====================
       case 'registrations': {
         if (req.method === 'GET' || !body.action) {
           const status = url.searchParams.get('status') || ''
           const role = url.searchParams.get('role') || ''
           const rawSearch = url.searchParams.get('q') || ''
-          const search = sanitizeSearchInput(rawSearch) // ✅ Sanitizado
-          const page = Math.max(1, Math.min(100, parseInt(url.searchParams.get('page') || '1') || 1))
+          const search = sanitizeSearchInput(rawSearch)
+          const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
           const pageSize = 20
           const offset = (page - 1) * pageSize
 
@@ -201,27 +188,20 @@ Deno.serve(async (req) => {
             .from('profiles')
             .select('id, user_id, full_name, phone, cpf_cnpj, role, status, created_at, selfie_url, document_photo_url, cnh_photo_url, address_proof_url, admin_message, admin_message_category, base_city_name, base_state, document_validation_status, cnh_validation_status', { count: 'exact' })
 
-          // ✅ Validar valores de filtro
           const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_FIX', 'BLOCKED', 'all']
           const validRoles = ['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRODUTOR', 'TRANSPORTADORA', 'PRESTADOR_SERVICOS', 'all']
 
-          if (status && status !== 'all') {
-            if (validStatuses.includes(status)) {
-              query = query.eq('status', status)
-            }
+          if (status && status !== 'all' && validStatuses.includes(status)) {
+            query = query.eq('status', status)
           }
-          if (role && role !== 'all') {
-            if (validRoles.includes(role)) {
-              query = query.eq('role', role)
-            }
+          if (role && role !== 'all' && validRoles.includes(role)) {
+            query = query.eq('role', role)
           }
           if (search && search.length >= 2) {
-            // ✅ Usar filtros separados em vez de interpolação direta (inclui email)
             query = query.or(`full_name.ilike.%${search}%,cpf_cnpj.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
           }
 
           query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
-
           const { data, error, count } = await query
           if (error) throw error
 
@@ -236,9 +216,8 @@ Deno.serve(async (req) => {
         break
       }
 
-      // --- Registration Detail ---
+      // ==================== REGISTRATION DETAIL ====================
       case 'registration': {
-        // ✅ Validar UUID
         if (!entityId || !isValidUUID(entityId)) {
           return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
         }
@@ -252,7 +231,6 @@ Deno.serve(async (req) => {
 
           if (error) throw error
 
-          // Get action history
           const { data: actions } = await serviceClient
             .from('admin_registration_actions')
             .select('*, admin:admin_user_id(full_name, email)')
@@ -262,17 +240,13 @@ Deno.serve(async (req) => {
           return jsonResponse(corsHeaders, { profile, actions: actions || [] })
         }
 
-        // --- POST Actions (approve/reject/needs-fix) ---
         if (req.method === 'POST' && body.action) {
           const { action: regAction, reason, reason_category, message_to_user, internal_notes } = body
-
-          // ✅ Validar action
           const validActions = ['APPROVE', 'REJECT', 'NEEDS_FIX', 'NOTE', 'BLOCK', 'UNBLOCK']
           if (!validActions.includes(regAction)) {
             return jsonResponse(corsHeaders, { error: 'Ação inválida' }, 400)
           }
 
-          // Get current profile
           const { data: profile, error: pErr } = await serviceClient
             .from('profiles')
             .select('status, role, full_name')
@@ -292,91 +266,53 @@ Deno.serve(async (req) => {
             default: return jsonResponse(corsHeaders, { error: 'Ação inválida' }, 400)
           }
 
-          // Update profile status
           if (regAction !== 'NOTE') {
             const updateData: Record<string, unknown> = { status: newStatus }
             if (message_to_user && typeof message_to_user === 'string') {
-              updateData.admin_message = message_to_user.slice(0, 1000) // ✅ Limite
+              updateData.admin_message = message_to_user.slice(0, 1000)
               updateData.admin_message_category = typeof reason_category === 'string' ? reason_category.slice(0, 100) : null
             }
             if (regAction === 'APPROVE') {
               updateData.admin_message = null
               updateData.admin_message_category = null
             }
-
-            const { error: updateErr } = await serviceClient
-              .from('profiles')
-              .update(updateData)
-              .eq('id', entityId)
-
+            const { error: updateErr } = await serviceClient.from('profiles').update(updateData).eq('id', entityId)
             if (updateErr) throw updateErr
           }
 
-          // Log action (✅ sem dados sensíveis no log)
-          const { error: logErr } = await serviceClient
-            .from('admin_registration_actions')
-            .insert({
-              admin_user_id: adminUser.id,
-              profile_id: entityId,
-              action: regAction,
-              reason: typeof reason === 'string' ? reason.slice(0, 500) : null,
-              reason_category: typeof reason_category === 'string' ? reason_category.slice(0, 100) : null,
-              internal_notes: typeof internal_notes === 'string' ? internal_notes.slice(0, 1000) : null,
-              previous_status: profile.status,
-              new_status: newStatus,
-              message_to_user: typeof message_to_user === 'string' ? message_to_user.slice(0, 1000) : null,
-            })
-
-          if (logErr) console.error('[ADMIN-API] Error logging action:', logErr.message)
-
-          return jsonResponse(corsHeaders, {
-            success: true,
+          await serviceClient.from('admin_registration_actions').insert({
+            admin_user_id: adminUser.id,
+            profile_id: entityId,
+            action: regAction,
+            reason: typeof reason === 'string' ? reason.slice(0, 500) : null,
+            reason_category: typeof reason_category === 'string' ? reason_category.slice(0, 100) : null,
+            internal_notes: typeof internal_notes === 'string' ? internal_notes.slice(0, 1000) : null,
             previous_status: profile.status,
             new_status: newStatus,
-          })
+            message_to_user: typeof message_to_user === 'string' ? message_to_user.slice(0, 1000) : null,
+          }).catch((e) => console.error('[ADMIN-API] Error logging action:', e?.message))
+
+          return jsonResponse(corsHeaders, { success: true, previous_status: profile.status, new_status: newStatus })
         }
         break
       }
 
-      // --- Registration Validation Fields ---
+      // ==================== REGISTRATION VALIDATION ====================
       case 'registration-validation': {
-        if (!entityId || !isValidUUID(entityId)) {
-          return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
-        }
-
-        if (req.method !== 'POST') {
-          return jsonResponse(corsHeaders, { error: 'Método não suportado para esta rota' }, 405)
-        }
+        if (!entityId || !isValidUUID(entityId)) return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
+        if (req.method !== 'POST') return jsonResponse(corsHeaders, { error: 'Método não suportado' }, 405)
 
         const { field, status, notes } = body
-
-        const allowedFields = [
-          'document_validation_status',
-          'cnh_validation_status',
-          'rntrc_validation_status',
-          'validation_status',
-          'background_check_status',
-        ]
-
+        const allowedFields = ['document_validation_status', 'cnh_validation_status', 'rntrc_validation_status', 'validation_status', 'background_check_status']
         const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
         const allowedStatuses = ['PENDING', 'VALIDATED', 'APPROVED', 'REJECTED']
 
-        if (!allowedFields.includes(field)) {
-          return jsonResponse(corsHeaders, { error: 'Campo de validação inválido' }, 400)
-        }
+        if (!allowedFields.includes(field)) return jsonResponse(corsHeaders, { error: 'Campo inválido' }, 400)
+        if (!allowedStatuses.includes(normalizedStatus)) return jsonResponse(corsHeaders, { error: 'Status inválido' }, 400)
 
-        if (!allowedStatuses.includes(normalizedStatus)) {
-          return jsonResponse(corsHeaders, { error: 'Status de validação inválido' }, 400)
-        }
-
-        const dbStatus =
-          field === 'background_check_status'
-            ? normalizedStatus === 'VALIDATED'
-              ? 'APPROVED'
-              : normalizedStatus
-            : normalizedStatus === 'APPROVED'
-              ? 'VALIDATED'
-              : normalizedStatus
+        const dbStatus = field === 'background_check_status'
+          ? normalizedStatus === 'VALIDATED' ? 'APPROVED' : normalizedStatus
+          : normalizedStatus === 'APPROVED' ? 'VALIDATED' : normalizedStatus
 
         const { data: profile, error: profileError } = await serviceClient
           .from('profiles')
@@ -384,105 +320,51 @@ Deno.serve(async (req) => {
           .eq('id', entityId)
           .single()
 
-        if (profileError || !profile) {
-          return jsonResponse(corsHeaders, { error: 'Cadastro não encontrado' }, 404)
-        }
+        if (profileError || !profile) return jsonResponse(corsHeaders, { error: 'Não encontrado' }, 404)
 
-        const { data: adminProfile } = await serviceClient
-          .from('profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle()
+        const { data: adminProfile } = await serviceClient.from('profiles').select('id').eq('user_id', user.id).maybeSingle()
 
-        const updateData: Record<string, unknown> = {
-          [field]: dbStatus,
-        }
-
-        if (typeof notes === 'string') {
-          updateData.validation_notes = notes.slice(0, 1000)
-        }
-
+        const updateData: Record<string, unknown> = { [field]: dbStatus }
+        if (typeof notes === 'string') updateData.validation_notes = notes.slice(0, 1000)
         if (field === 'validation_status') {
-          if (dbStatus === 'PENDING') {
-            updateData.validated_at = null
-            updateData.validated_by = null
-          } else {
-            updateData.validated_at = new Date().toISOString()
-            updateData.validated_by = adminProfile?.id || null
-          }
+          if (dbStatus === 'PENDING') { updateData.validated_at = null; updateData.validated_by = null }
+          else { updateData.validated_at = new Date().toISOString(); updateData.validated_by = adminProfile?.id || null }
         }
 
-        const { error: updateError } = await serviceClient
-          .from('profiles')
-          .update(updateData)
-          .eq('id', entityId)
-
+        const { error: updateError } = await serviceClient.from('profiles').update(updateData).eq('id', entityId)
         if (updateError) throw updateError
 
         const previousValue = (profile as Record<string, unknown>)[field]
+        await serviceClient.from('admin_registration_actions').insert({
+          admin_user_id: adminUser.id,
+          profile_id: entityId,
+          action: 'NOTE',
+          reason_category: 'VALIDATION',
+          internal_notes: typeof notes === 'string' && notes.trim().length > 0 ? notes.slice(0, 1000) : `Validação ${field} alterada para ${dbStatus}`,
+          previous_status: profile.status,
+          new_status: profile.status,
+          metadata: { validation_field: field, previous_validation_status: previousValue, new_validation_status: dbStatus },
+        }).catch((e) => console.error('[ADMIN-API] Error logging validation:', e?.message))
 
-        await serviceClient
-          .from('admin_registration_actions')
-          .insert({
-            admin_user_id: adminUser.id,
-            profile_id: entityId,
-            action: 'NOTE',
-            reason_category: 'VALIDATION',
-            internal_notes: typeof notes === 'string' && notes.trim().length > 0
-              ? notes.slice(0, 1000)
-              : `Validação ${field} alterada para ${dbStatus}`,
-            previous_status: profile.status,
-            new_status: profile.status,
-            metadata: {
-              validation_field: field,
-              previous_validation_status: previousValue,
-              new_validation_status: dbStatus,
-            },
-          })
-          .catch((logErr) => {
-            console.error('[ADMIN-API] Error logging validation action:', logErr?.message || 'unknown')
-          })
-
-        return jsonResponse(corsHeaders, {
-          success: true,
-          field,
-          previous_status: previousValue,
-          new_status: dbStatus,
-        })
+        return jsonResponse(corsHeaders, { success: true, field, previous_status: previousValue, new_status: dbStatus })
       }
 
-      // --- Signed URL for documents ---
+      // ==================== SIGNED URL ====================
       case 'signed-url': {
         const bucket = url.searchParams.get('bucket') || ''
         const path = url.searchParams.get('path') || ''
-
         if (!bucket || !path) return jsonResponse(corsHeaders, { error: 'Bucket e path obrigatórios' }, 400)
+        if (!ALLOWED_BUCKETS.includes(bucket)) return jsonResponse(corsHeaders, { error: 'Bucket não permitido' }, 403)
+        if (path.includes('..') || path.startsWith('/')) return jsonResponse(corsHeaders, { error: 'Path inválido' }, 400)
 
-        // ✅ Validar bucket permitido
-        if (!ALLOWED_BUCKETS.includes(bucket)) {
-          console.warn(`[ADMIN-API] Tentativa de acessar bucket não permitido: ${bucket} por admin ${adminUser.email}`)
-          return jsonResponse(corsHeaders, { error: 'Bucket não permitido' }, 403)
-        }
-
-        // ✅ Validar path (prevenir traversal)
-        if (path.includes('..') || path.startsWith('/')) {
-          return jsonResponse(corsHeaders, { error: 'Path inválido' }, 400)
-        }
-
-        const { data, error } = await serviceClient.storage
-          .from(bucket)
-          .createSignedUrl(path, 3600) // 1 hora para evitar expiração durante análise admin
-
-        if (error) {
-          console.error(`[ADMIN-API] Signed URL error for ${bucket}/${path}:`, error.message)
-          return jsonResponse(corsHeaders, { error: 'Não foi possível gerar URL' }, 500)
-        }
+        const { data, error } = await serviceClient.storage.from(bucket).createSignedUrl(path, 3600)
+        if (error) return jsonResponse(corsHeaders, { error: 'Não foi possível gerar URL' }, 500)
         return jsonResponse(corsHeaders, { signedUrl: data.signedUrl })
       }
 
-      // --- Audit Logs ---
+      // ==================== AUDIT LOGS ====================
       case 'audit-logs': {
-        const page = Math.max(1, Math.min(100, parseInt(url.searchParams.get('page') || '1') || 1))
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
         const pageSize = 30
         const offset = (page - 1) * pageSize
         const actionFilter = url.searchParams.get('action') || ''
@@ -495,176 +377,146 @@ Deno.serve(async (req) => {
           .from('admin_registration_actions')
           .select('*, admin:admin_user_id(full_name, email), profile:profile_id(full_name, role)', { count: 'exact' })
 
-        // ✅ Validar filtro de ação
         const validAuditActions = ['APPROVE', 'REJECT', 'NEEDS_FIX', 'NOTE', 'BLOCK', 'UNBLOCK', 'all']
-        if (actionFilter && actionFilter !== 'all') {
-          if (validAuditActions.includes(actionFilter)) {
-            query = query.eq('action', actionFilter)
-          }
+        if (actionFilter && actionFilter !== 'all' && validAuditActions.includes(actionFilter)) {
+          query = query.eq('action', actionFilter)
         }
-
-        // ✅ Filtro por admin
-        if (adminFilter && isValidUUID(adminFilter)) {
-          query = query.eq('admin_user_id', adminFilter)
-        }
-
-        // ✅ Filtro por data
-        if (dateFrom) {
-          query = query.gte('created_at', dateFrom)
-        }
-        if (dateTo) {
-          query = query.lte('created_at', dateTo + 'T23:59:59Z')
-        }
-
-        // ✅ Filtro por entidade
-        if (entityFilter && isValidUUID(entityFilter)) {
-          query = query.eq('profile_id', entityFilter)
-        }
+        if (adminFilter && isValidUUID(adminFilter)) query = query.eq('admin_user_id', adminFilter)
+        if (dateFrom) query = query.gte('created_at', dateFrom)
+        if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59Z')
+        if (entityFilter && isValidUUID(entityFilter)) query = query.eq('profile_id', entityFilter)
 
         query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
-
         const { data, error, count } = await query
         if (error) throw error
 
-        return jsonResponse(corsHeaders, {
-          data: data || [],
-          total: count || 0,
-          page,
-          pageSize,
-        })
+        return jsonResponse(corsHeaders, { data: data || [], total: count || 0, page, pageSize })
       }
 
-      // --- Admin Users (superadmin only) ---
+      // ==================== ADMIN USERS (superadmin) ====================
       case 'admin-users': {
-        if (adminUser.role !== 'superadmin') {
-          return jsonResponse(corsHeaders, { error: 'Apenas superadmin pode gerenciar admins' }, 403)
-        }
+        if (adminUser.role !== 'superadmin') return jsonResponse(corsHeaders, { error: 'Apenas superadmin' }, 403)
 
         if (req.method === 'GET' || !body.action) {
-          const { data, error } = await serviceClient
-            .from('admin_users')
+          const { data, error } = await serviceClient.from('admin_users')
             .select('id, email, full_name, role, is_active, created_at, updated_at')
-            // ✅ Select explícito (sem user_id desnecessário)
             .order('created_at', { ascending: false })
-
           if (error) throw error
           return jsonResponse(corsHeaders, { data: data || [] })
         }
 
-        // PATCH - update admin
         if (req.method === 'PATCH' || body.action === 'update') {
           const targetId = entityId || body.id
-          if (!targetId || !isValidUUID(targetId)) {
-            return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
-          }
+          if (!targetId || !isValidUUID(targetId)) return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
 
           const updates: Record<string, unknown> = {}
           if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
-          if (typeof body.role === 'string' && ['superadmin', 'admin', 'viewer'].includes(body.role)) {
-            updates.role = body.role
-          }
+          if (typeof body.role === 'string' && ['superadmin', 'admin', 'viewer'].includes(body.role)) updates.role = body.role
+          if (Object.keys(updates).length === 0) return jsonResponse(corsHeaders, { error: 'Nenhum campo válido' }, 400)
 
-          if (Object.keys(updates).length === 0) {
-            return jsonResponse(corsHeaders, { error: 'Nenhum campo válido para atualizar' }, 400)
-          }
-
-          const { error } = await serviceClient
-            .from('admin_users')
-            .update(updates)
-            .eq('id', targetId)
-
+          const { error } = await serviceClient.from('admin_users').update(updates).eq('id', targetId)
           if (error) throw error
-
-          // Audit log (✅ sem dados sensíveis)
-          await serviceClient.from('admin_registration_actions').insert({
-            admin_user_id: adminUser.id,
-            profile_id: adminUser.id,
-            action: 'NOTE',
-            internal_notes: `Admin ${targetId} atualizado: campos=${Object.keys(updates).join(',')}`,
-            previous_status: 'N/A',
-            new_status: 'N/A',
-          }).catch(() => {})
-
           return jsonResponse(corsHeaders, { success: true })
         }
         break
       }
 
-      // --- Settings ---
+      // ==================== SETTINGS ====================
       case 'settings': {
-        // ✅ Leitura: admin pode ler, escrita: superadmin only
         if (req.method === 'GET' || !body.action) {
-          const { data, error } = await serviceClient
-            .from('admin_settings')
-            .select('id, setting_key, setting_value, description, updated_at')
-            .order('setting_key')
-
+          const { data, error } = await serviceClient.from('admin_settings')
+            .select('id, setting_key, setting_value, description, updated_at').order('setting_key')
           if (error) throw error
           return jsonResponse(corsHeaders, { data: data || [] })
         }
-
         if (req.method === 'PUT' || body.action === 'update') {
-          if (adminUser.role !== 'superadmin') {
-            return jsonResponse(corsHeaders, { error: 'Apenas superadmin pode alterar configurações' }, 403)
-          }
-
+          if (adminUser.role !== 'superadmin') return jsonResponse(corsHeaders, { error: 'Apenas superadmin' }, 403)
           const { setting_key, setting_value } = body
-          if (!setting_key || typeof setting_key !== 'string') {
-            return jsonResponse(corsHeaders, { error: 'setting_key obrigatório' }, 400)
-          }
-
-          const { error } = await serviceClient
-            .from('admin_settings')
-            .update({ setting_value, updated_by: adminUser.id })
-            .eq('setting_key', setting_key)
-
+          if (!setting_key || typeof setting_key !== 'string') return jsonResponse(corsHeaders, { error: 'setting_key obrigatório' }, 400)
+          const { error } = await serviceClient.from('admin_settings').update({ setting_value, updated_by: adminUser.id }).eq('setting_key', setting_key)
           if (error) throw error
           return jsonResponse(corsHeaders, { success: true })
         }
         break
       }
 
-      // --- Freights Overview ---
+      // ==================== FREIGHTS LIST ====================
       case 'freights': {
+        // Sub-route: freights/{id} -> freight detail
+        if (entityId && isValidUUID(entityId)) {
+          return await handleFreightDetail(serviceClient, entityId, corsHeaders)
+        }
+
         const status = url.searchParams.get('status') || ''
         const rawSearch = url.searchParams.get('q') || ''
-        const search = sanitizeSearchInput(rawSearch) // ✅ Sanitizado
-        const pageSize = 30
+        const search = sanitizeSearchInput(rawSearch)
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+        const pageSize = clampInt(url.searchParams.get('pageSize'), 1, 50, 20)
+        const dateFrom = url.searchParams.get('dateFrom') || ''
+        const dateTo = url.searchParams.get('dateTo') || ''
+        const offset = (page - 1) * pageSize
 
         let query = serviceClient
           .from('freights')
-          .select('id, status, cargo_type, price, created_at, origin_city, origin_state, destination_city, destination_state, producer_id, driver_id', { count: 'exact' })
+          .select('id, created_at, status, origin_city, origin_state, destination_city, destination_state, cargo_type, price, pickup_date, delivery_date, producer_id, driver_id, distance_km, weight, vehicle_type_required, reference_number, required_trucks, accepted_trucks, urgency, is_guest_freight, company_id', { count: 'exact' })
 
-        // ✅ Validar status
-        const validFreightStatuses = ['PENDING', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'all']
-        if (status && status !== 'all') {
-          if (validFreightStatuses.includes(status)) {
-            query = query.eq('status', status)
-          }
+        const validFreightStatuses = ['NEW', 'APPROVED', 'OPEN', 'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'all']
+        if (status && status !== 'all' && validFreightStatuses.includes(status)) {
+          query = query.eq('status', status)
         }
         if (search && search.length >= 2) {
           query = query.or(`origin_city.ilike.%${search}%,destination_city.ilike.%${search}%,cargo_type.ilike.%${search}%`)
         }
+        if (dateFrom) query = query.gte('created_at', dateFrom)
+        if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59Z')
 
-        query = query.order('created_at', { ascending: false }).limit(pageSize)
-
+        query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
         const { data, error, count } = await query
         if (error) {
-          console.error('[ADMIN-API] Freights error:', error.message)
-          return jsonResponse(corsHeaders, { data: [], stats: { total: 0, active: 0, transit: 0, delivered: 0 } })
+          console.error('[ADMIN-API] Freights list error:', error.message)
+          return jsonResponse(corsHeaders, { data: [], total: 0, stats: {} })
         }
 
-        // Get stats
-        const [activeCount, transitCount, deliveredCount] = await Promise.all([
-          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['PENDING', 'ACCEPTED']),
+        // Resolve producer/driver names
+        const profileIds = new Set<string>()
+        data?.forEach((f: any) => {
+          if (f.producer_id) profileIds.add(f.producer_id)
+          if (f.driver_id) profileIds.add(f.driver_id)
+        })
+
+        let profileMap: Record<string, { full_name: string; phone: string }> = {}
+        if (profileIds.size > 0) {
+          const { data: profiles } = await serviceClient
+            .from('profiles')
+            .select('id, full_name, phone')
+            .in('id', Array.from(profileIds))
+          profiles?.forEach((p: any) => { profileMap[p.id] = { full_name: p.full_name, phone: p.phone } })
+        }
+
+        const enrichedData = data?.map((f: any) => ({
+          ...f,
+          producer_name: profileMap[f.producer_id]?.full_name || null,
+          driver_name: profileMap[f.driver_id]?.full_name || null,
+        })) || []
+
+        // Stats
+        const now = new Date()
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const [activeCount, transitCount, deliveredCount, totalCount] = await Promise.all([
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['NEW', 'APPROVED', 'OPEN', 'ACCEPTED', 'LOADING', 'LOADED']),
           serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'IN_TRANSIT'),
-          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'DELIVERED').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).in('status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']).gte('created_at', sevenDaysAgo),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }),
         ])
 
         return jsonResponse(corsHeaders, {
-          data: data || [],
+          data: enrichedData,
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
           stats: {
-            total: count || 0,
+            total: totalCount.count || 0,
             active: activeCount.count || 0,
             transit: transitCount.count || 0,
             delivered: deliveredCount.count || 0,
@@ -672,69 +524,59 @@ Deno.serve(async (req) => {
         })
       }
 
-      // --- Comprehensive User Detail ---
+      // ==================== USER DETAIL 360° ====================
       case 'user-detail': {
-        if (!entityId || !isValidUUID(entityId)) {
-          return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
+        if (!entityId || !isValidUUID(entityId)) return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
+
+        // Sub-routes
+        if (subAction === 'freights') {
+          return await handleUserFreights(serviceClient, entityId, url, corsHeaders)
+        }
+        if (subAction === 'services') {
+          return await handleUserServices(serviceClient, entityId, url, corsHeaders)
+        }
+        if (subAction === 'timeline') {
+          return await handleUserTimeline(serviceClient, entityId, corsHeaders)
         }
 
-        // Fetch profile with ALL fields
         const { data: profile, error: profileErr } = await serviceClient
           .from('profiles')
           .select('*')
           .eq('id', entityId)
           .single()
 
-        if (profileErr || !profile) {
-          return jsonResponse(corsHeaders, { error: 'Usuário não encontrado' }, 404)
-        }
+        if (profileErr || !profile) return jsonResponse(corsHeaders, { error: 'Usuário não encontrado' }, 404)
 
-        // Parallel fetch of related data
         const [
-          vehiclesRes,
-          freightsAsProducerRes,
-          freightsAsDriverRes,
-          companyRes,
-          companyDriversRes,
-          actionsRes,
-          badgesRes,
-          expensesRes,
-          availabilityRes,
-          balanceRes,
+          vehiclesRes, freightsAsProducerRes, freightsAsDriverRes,
+          companyRes, companyDriversRes, actionsRes,
+          badgesRes, expensesRes, availabilityRes, balanceRes,
+          serviceReqAsClient, serviceReqAsProvider,
         ] = await Promise.all([
-          // Vehicles owned by this user
           serviceClient.from('vehicles').select('*').eq('driver_id', entityId).order('created_at', { ascending: false }),
-          // Freights as producer (last 20)
           serviceClient.from('freights').select('id, status, cargo_type, price, origin_city, origin_state, destination_city, destination_state, created_at, distance_km, reference_number').eq('producer_id', entityId).order('created_at', { ascending: false }).limit(20),
-          // Freights as driver (last 20)
           serviceClient.from('freights').select('id, status, cargo_type, price, origin_city, origin_state, destination_city, destination_state, created_at, distance_km, reference_number').eq('driver_id', entityId).order('created_at', { ascending: false }).limit(20),
-          // Transport company (if owner)
           serviceClient.from('transport_companies').select('*').eq('profile_id', entityId).maybeSingle(),
-          // Company driver affiliations
           serviceClient.from('company_drivers').select('id, status, company_id, affiliation_type, can_accept_freights, created_at, accepted_at, company:company_id(company_name, company_cnpj)').eq('driver_profile_id', entityId),
-          // Admin actions history
           serviceClient.from('admin_registration_actions').select('*, admin:admin_user_id(full_name, email)').eq('profile_id', entityId).order('created_at', { ascending: false }),
-          // Badges
           serviceClient.from('driver_badges').select('*, badge:badge_type_id(name, icon, description, category)').eq('driver_id', entityId),
-          // Recent expenses (last 10)
           serviceClient.from('driver_expenses').select('id, expense_type, amount, expense_date, description').eq('driver_id', entityId).order('expense_date', { ascending: false }).limit(10),
-          // Availability
           serviceClient.from('driver_availability').select('*').eq('driver_id', entityId).order('available_date', { ascending: false }).limit(5),
-          // Balance transactions (last 10)
           serviceClient.from('balance_transactions').select('id, transaction_type, amount, status, created_at, description').eq('provider_id', entityId).order('created_at', { ascending: false }).limit(10),
+          serviceClient.from('service_requests').select('id, service_type, status, location_address, estimated_price, final_price, created_at').eq('client_id', entityId).order('created_at', { ascending: false }).limit(20),
+          serviceClient.from('service_requests').select('id, service_type, status, location_address, estimated_price, final_price, created_at').eq('provider_id', entityId).order('created_at', { ascending: false }).limit(20),
         ])
 
-        // Freight stats
         const freightsProducer = freightsAsProducerRes.data || []
         const freightsDriver = freightsAsDriverRes.data || []
         const allFreights = [...freightsProducer, ...freightsDriver]
-        
+
         const freightStats = {
           total_as_producer: freightsProducer.length,
           total_as_driver: freightsDriver.length,
-          completed: allFreights.filter((f: any) => ['DELIVERED', 'CONFIRMED'].includes(f.status)).length,
+          completed: allFreights.filter((f: any) => ['DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length,
           cancelled: allFreights.filter((f: any) => f.status === 'CANCELLED').length,
-          active: allFreights.filter((f: any) => ['PENDING', 'ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(f.status)).length,
+          active: allFreights.filter((f: any) => ['NEW', 'APPROVED', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(f.status)).length,
           total_value: allFreights.reduce((sum: number, f: any) => sum + (Number(f.price) || 0), 0),
         }
 
@@ -751,6 +593,174 @@ Deno.serve(async (req) => {
           expenses: expensesRes.data || [],
           availability: availabilityRes.data || [],
           balance_transactions: balanceRes.data || [],
+          services_as_client: serviceReqAsClient.data || [],
+          services_as_provider: serviceReqAsProvider.data || [],
+        })
+      }
+
+      // ==================== RISK METRICS ====================
+      case 'risk': {
+        const now = new Date()
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+        const [
+          pendingReg, needsFixReg, rejected30d, blocked,
+          fraudEvents, auditEvents,
+          cancelledFreights30d, totalFreights30d,
+          duplicateCpf,
+        ] = await Promise.all([
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'NEEDS_FIX'),
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'REJECTED').gte('created_at', thirtyDaysAgo),
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'BLOCKED'),
+          serviceClient.from('antifraud_nfe_events').select('id, severity, rule_code, created_at, status', { count: 'exact' }).eq('resolved', false).order('created_at', { ascending: false }).limit(20),
+          serviceClient.from('auditoria_eventos').select('id, tipo, severidade, descricao, created_at, resolvido', { count: 'exact' }).eq('resolvido', false).order('created_at', { ascending: false }).limit(20),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'CANCELLED').gte('created_at', thirtyDaysAgo),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
+          // Duplicate CPF detection
+          serviceClient.rpc('get_duplicate_cpfs').catch(() => ({ data: [], error: null })),
+        ])
+
+        const pending = pendingReg.count || 0
+        const rejected = rejected30d.count || 0
+        const fraudCount = fraudEvents.count || 0
+        const auditCount = auditEvents.count || 0
+        const cancelledF = cancelledFreights30d.count || 0
+        const totalF = totalFreights30d.count || 0
+        const cancelRate = totalF > 0 ? Math.round((cancelledF / totalF) * 100) : 0
+
+        const riskScore = Math.min(100, Math.round(
+          (pending * 1.5 + rejected * 3 + fraudCount * 10 + auditCount * 2 + (blocked.count || 0) * 5 + cancelRate) / 5
+        ))
+
+        return jsonResponse(corsHeaders, {
+          risk_score: riskScore,
+          pending_registrations: pending,
+          needs_fix_registrations: needsFixReg.count || 0,
+          rejected_30d: rejected,
+          blocked_total: blocked.count || 0,
+          fraud_events: fraudEvents.data || [],
+          fraud_count: fraudCount,
+          audit_events: auditEvents.data || [],
+          audit_count: auditCount,
+          freight_cancel_rate: cancelRate,
+          cancelled_freights_30d: cancelledF,
+          total_freights_30d: totalF,
+          duplicate_cpfs: (duplicateCpf as any)?.data || [],
+        })
+      }
+
+      // ==================== REPORTS ====================
+      case 'reports': {
+        const reportType = entityId || 'overview'
+        const now = new Date()
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString()
+
+        if (reportType === 'registrations') {
+          // Registrations report
+          const { data: regData } = await serviceClient
+            .from('profiles')
+            .select('role, status, created_at')
+            .gte('created_at', ninetyDaysAgo)
+
+          // Group by month and status
+          const byMonth: Record<string, Record<string, number>> = {}
+          const byRole: Record<string, number> = {}
+          const byStatus: Record<string, number> = {}
+
+          regData?.forEach((r: any) => {
+            const month = r.created_at?.substring(0, 7) || 'unknown'
+            if (!byMonth[month]) byMonth[month] = {}
+            byMonth[month][r.status] = (byMonth[month][r.status] || 0) + 1
+            byRole[r.role] = (byRole[r.role] || 0) + 1
+            byStatus[r.status] = (byStatus[r.status] || 0) + 1
+          })
+
+          return jsonResponse(corsHeaders, { type: 'registrations', by_month: byMonth, by_role: byRole, by_status: byStatus, total: regData?.length || 0 })
+        }
+
+        if (reportType === 'freights') {
+          const { data: freightData } = await serviceClient
+            .from('freights')
+            .select('status, origin_state, destination_state, price, created_at, cargo_type, distance_km')
+            .gte('created_at', ninetyDaysAgo)
+
+          const byMonth: Record<string, Record<string, number>> = {}
+          const byStatus: Record<string, number> = {}
+          const byState: Record<string, number> = {}
+          const byCargo: Record<string, number> = {}
+          let totalValue = 0
+          let totalDistance = 0
+
+          freightData?.forEach((f: any) => {
+            const month = f.created_at?.substring(0, 7) || 'unknown'
+            if (!byMonth[month]) byMonth[month] = {}
+            byMonth[month][f.status] = (byMonth[month][f.status] || 0) + 1
+            byStatus[f.status] = (byStatus[f.status] || 0) + 1
+            if (f.origin_state) byState[f.origin_state] = (byState[f.origin_state] || 0) + 1
+            if (f.cargo_type) byCargo[f.cargo_type] = (byCargo[f.cargo_type] || 0) + 1
+            totalValue += Number(f.price) || 0
+            totalDistance += Number(f.distance_km) || 0
+          })
+
+          const total = freightData?.length || 0
+          const completed = byStatus['DELIVERED'] || 0 + (byStatus['COMPLETED'] || 0)
+          const cancelled = byStatus['CANCELLED'] || 0
+          const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
+          const cancelRate = total > 0 ? Math.round((cancelled / total) * 100) : 0
+
+          return jsonResponse(corsHeaders, {
+            type: 'freights',
+            by_month: byMonth,
+            by_status: byStatus,
+            by_state: byState,
+            by_cargo: byCargo,
+            total,
+            total_value: totalValue,
+            total_distance: totalDistance,
+            avg_value: total > 0 ? Math.round(totalValue / total) : 0,
+            completion_rate: completionRate,
+            cancel_rate: cancelRate,
+          })
+        }
+
+        if (reportType === 'admin-activity') {
+          const { data: adminActions } = await serviceClient
+            .from('admin_registration_actions')
+            .select('action, admin_user_id, created_at, admin:admin_user_id(full_name, email)')
+            .gte('created_at', ninetyDaysAgo)
+
+          const byAdmin: Record<string, { name: string; count: number; actions: Record<string, number> }> = {}
+          const byAction: Record<string, number> = {}
+          const byMonth: Record<string, number> = {}
+
+          adminActions?.forEach((a: any) => {
+            const adminName = a.admin?.full_name || a.admin?.email || a.admin_user_id
+            if (!byAdmin[a.admin_user_id]) byAdmin[a.admin_user_id] = { name: adminName, count: 0, actions: {} }
+            byAdmin[a.admin_user_id].count++
+            byAdmin[a.admin_user_id].actions[a.action] = (byAdmin[a.admin_user_id].actions[a.action] || 0) + 1
+            byAction[a.action] = (byAction[a.action] || 0) + 1
+            const month = a.created_at?.substring(0, 7) || 'unknown'
+            byMonth[month] = (byMonth[month] || 0) + 1
+          })
+
+          return jsonResponse(corsHeaders, { type: 'admin-activity', by_admin: byAdmin, by_action: byAction, by_month: byMonth, total: adminActions?.length || 0 })
+        }
+
+        // Overview
+        const [totalUsers, totalFreights, totalServices] = await Promise.all([
+          serviceClient.from('profiles').select('id', { count: 'exact', head: true }),
+          serviceClient.from('freights').select('id', { count: 'exact', head: true }),
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }),
+        ])
+
+        return jsonResponse(corsHeaders, {
+          type: 'overview',
+          total_users: totalUsers.count || 0,
+          total_freights: totalFreights.count || 0,
+          total_services: totalServices.count || 0,
         })
       }
 
@@ -758,18 +768,116 @@ Deno.serve(async (req) => {
         return jsonResponse(corsHeaders, { error: 'Rota não encontrada' }, 404)
     }
 
-    return jsonResponse(corsHeaders, { error: 'Método não suportado para esta rota' }, 405)
+    return jsonResponse(corsHeaders, { error: 'Método não suportado' }, 405)
 
   } catch (error: unknown) {
-    // ✅ Nunca expor detalhes internos do erro
     const message = error instanceof Error ? error.message : 'Erro interno'
     console.error('[ADMIN-API] Error:', message)
     return new Response(
-      JSON.stringify({ error: 'Erro interno do servidor' }), // ✅ Mensagem genérica
+      JSON.stringify({ error: 'Erro interno do servidor' }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
+
+// ==================== HANDLER: Freight Detail ====================
+async function handleFreightDetail(serviceClient: any, freightId: string, corsHeaders: Record<string, string>) {
+  const { data: freight, error } = await serviceClient
+    .from('freights')
+    .select('*')
+    .eq('id', freightId)
+    .single()
+
+  if (error || !freight) return jsonResponse(corsHeaders, { error: 'Frete não encontrado' }, 404)
+
+  // Resolve producer + driver names, assignments, trip progress
+  const [producerRes, driverRes, assignmentsRes, tripProgressRes, checkinsRes] = await Promise.all([
+    freight.producer_id
+      ? serviceClient.from('profiles').select('id, full_name, phone, role, cpf_cnpj, base_city_name, base_state').eq('id', freight.producer_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    freight.driver_id
+      ? serviceClient.from('profiles').select('id, full_name, phone, role, cpf_cnpj, base_city_name, base_state').eq('id', freight.driver_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    serviceClient.from('freight_assignments').select('*, driver:driver_id(full_name, phone), vehicle:vehicle_id(license_plate, vehicle_type)').eq('freight_id', freightId),
+    serviceClient.from('driver_trip_progress').select('*').eq('freight_id', freightId).order('created_at', { ascending: false }).limit(50).catch(() => ({ data: [] })),
+    serviceClient.from('driver_checkins').select('*').eq('freight_id', freightId).order('checked_at', { ascending: false }).catch(() => ({ data: [] })),
+  ])
+
+  return jsonResponse(corsHeaders, {
+    freight,
+    producer: producerRes.data || null,
+    driver: driverRes.data || null,
+    assignments: assignmentsRes.data || [],
+    trip_progress: tripProgressRes.data || [],
+    checkins: checkinsRes.data || [],
+  })
+}
+
+// ==================== HANDLER: User Freights ====================
+async function handleUserFreights(serviceClient: any, userId: string, url: URL, corsHeaders: Record<string, string>) {
+  const role = url.searchParams.get('role') || 'all'
+  const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+  const pageSize = 20
+  const offset = (page - 1) * pageSize
+
+  const fields = 'id, status, cargo_type, price, origin_city, origin_state, destination_city, destination_state, created_at, distance_km, reference_number, pickup_date, delivery_date'
+
+  const queries = []
+  if (role === 'all' || role === 'producer') {
+    queries.push(serviceClient.from('freights').select(fields, { count: 'exact' }).eq('producer_id', userId).order('created_at', { ascending: false }).range(offset, offset + pageSize - 1))
+  }
+  if (role === 'all' || role === 'driver') {
+    queries.push(serviceClient.from('freights').select(fields, { count: 'exact' }).eq('driver_id', userId).order('created_at', { ascending: false }).range(offset, offset + pageSize - 1))
+  }
+
+  const results = await Promise.all(queries)
+  const data = results.flatMap((r: any) => r.data || [])
+  const total = results.reduce((sum: number, r: any) => sum + (r.count || 0), 0)
+
+  return jsonResponse(corsHeaders, { data, total, page, pageSize })
+}
+
+// ==================== HANDLER: User Services ====================
+async function handleUserServices(serviceClient: any, userId: string, url: URL, corsHeaders: Record<string, string>) {
+  const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+  const pageSize = 20
+  const offset = (page - 1) * pageSize
+
+  const [asClient, asProvider] = await Promise.all([
+    serviceClient.from('service_requests').select('id, service_type, status, location_address, estimated_price, final_price, created_at, completed_at', { count: 'exact' }).eq('client_id', userId).order('created_at', { ascending: false }).range(offset, offset + pageSize - 1),
+    serviceClient.from('service_requests').select('id, service_type, status, location_address, estimated_price, final_price, created_at, completed_at', { count: 'exact' }).eq('provider_id', userId).order('created_at', { ascending: false }).range(offset, offset + pageSize - 1),
+  ])
+
+  return jsonResponse(corsHeaders, {
+    as_client: asClient.data || [],
+    as_provider: asProvider.data || [],
+    total_client: asClient.count || 0,
+    total_provider: asProvider.count || 0,
+  })
+}
+
+// ==================== HANDLER: User Timeline ====================
+async function handleUserTimeline(serviceClient: any, userId: string, corsHeaders: Record<string, string>) {
+  const [actions, freightEvents] = await Promise.all([
+    serviceClient.from('admin_registration_actions')
+      .select('id, action, reason, created_at, admin:admin_user_id(full_name)')
+      .eq('profile_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    serviceClient.from('freights')
+      .select('id, status, created_at, origin_city, destination_city, reference_number')
+      .or(`producer_id.eq.${userId},driver_id.eq.${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(30),
+  ])
+
+  const timeline = [
+    ...(actions.data || []).map((a: any) => ({ type: 'admin_action', ...a, timestamp: a.created_at })),
+    ...(freightEvents.data || []).map((f: any) => ({ type: 'freight', ...f, timestamp: f.created_at })),
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+  return jsonResponse(corsHeaders, { timeline })
+}
 
 function jsonResponse(corsHeaders: Record<string, string>, data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {

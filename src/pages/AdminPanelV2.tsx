@@ -21,6 +21,7 @@ const AdminAuditLogs = lazy(() => import('@/components/admin-panel/AdminAuditLog
 const AdminUsersManager = lazy(() => import('@/components/admin-panel/AdminUsersManager'));
 const AdminSettingsPage = lazy(() => import('@/components/admin-panel/AdminSettingsPage'));
 const AdminFreights = lazy(() => import('@/components/admin-panel/AdminFreights'));
+const AdminFreightDetail = lazy(() => import('@/components/admin-panel/AdminFreightDetail'));
 const AdminRiskManagement = lazy(() => import('@/components/admin-panel/AdminRiskManagement'));
 const AdminReports = lazy(() => import('@/components/admin-panel/AdminReports'));
 
@@ -87,6 +88,7 @@ const AdminPanelV2 = () => {
               <Route path="cadastros" element={<AdminRegistrations />} />
               <Route path="cadastros/:id" element={<AdminRegistrationDetail />} />
               <Route path="fretes" element={<AdminFreights />} />
+              <Route path="fretes/:id" element={<AdminFreightDetail />} />
               <Route path="riscos" element={<AdminRiskManagement />} />
               <Route path="auditoria" element={<AdminAuditLogs />} />
               {isSuperAdmin && (
