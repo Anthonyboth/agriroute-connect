@@ -47,6 +47,7 @@ import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
 import { LoopPreventionBoundary } from '@/components/LoopPreventionBoundary';
 import { TutorialProvider } from '@/tutorial';
+import { HostOnlyAdminGate } from '@/components/security/HostOnlyAdminGate';
 
 // ✅ RELEASE HARDENING: Import centralized env config and health check
 import { ENV, PLATFORM, validateEnvironment } from '@/config/env';
@@ -896,6 +897,7 @@ const App = () => {
                       <FloatingSupportButton />
                       <SilentCityBootstrap />
                       <SwipeNavigationHandler />
+                      <HostOnlyAdminGate />
                       <main>
                         <Routes>
                         <Route path="/" element={<AuthedLanding />} />
