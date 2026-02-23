@@ -313,7 +313,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         />
 
         {/* Conteúdo principal com scroll */}
-        <ScrollArea className="flex-1 px-4 sm:px-6 pb-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 scrollbar-thin">
           {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             {/* Coluna da Esquerda - 70% (lg:col-span-2) */}
@@ -386,7 +386,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
