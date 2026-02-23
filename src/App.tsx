@@ -727,6 +727,11 @@ const RedirectIfAuthed = () => {
     }
   }
 
+  // ✅ HOSTNAME GATE: Se acessando pelo subdomínio admin, redirecionar para /admin-v2
+  if (ADMIN_HOSTNAMES.includes(window.location.hostname)) {
+    return <Navigate to="/admin-v2" replace />;
+  }
+
   // ✅ ROLE GATE: Usar panelAccessGuard como fonte única de verdade
   const targetRoute = getDefaultRouteForProfile(profile);
   return <Navigate to={targetRoute} replace />;
