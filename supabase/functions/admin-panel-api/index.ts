@@ -338,6 +338,102 @@ Deno.serve(async (req) => {
         break
       }
 
+      // --- Registration Validation Fields ---
+      case 'registration-validation': {
+        if (!entityId || !isValidUUID(entityId)) {
+          return jsonResponse(corsHeaders, { error: 'ID inválido' }, 400)
+        }
+
+        if (req.method !== 'POST') {
+          return jsonResponse(corsHeaders, { error: 'Método não suportado para esta rota' }, 405)
+        }
+
+        const { field, status, notes } = body
+
+        const allowedFields = ['document_validation_status', 'cnh_validation_status', 'rntrc_validation_status', 'validation_status']
+        const allowedStatuses = ['PENDING', 'VALIDATED', 'REJECTED']
+
+        if (!allowedFields.includes(field)) {
+          return jsonResponse(corsHeaders, { error: 'Campo de validação inválido' }, 400)
+        }
+
+        if (!allowedStatuses.includes(status)) {
+          return jsonResponse(corsHeaders, { error: 'Status de validação inválido' }, 400)
+        }
+
+        const { data: profile, error: profileError } = await serviceClient
+          .from('profiles')
+          .select('status, document_validation_status, cnh_validation_status, rntrc_validation_status, validation_status')
+          .eq('id', entityId)
+          .single()
+
+        if (profileError || !profile) {
+          return jsonResponse(corsHeaders, { error: 'Cadastro não encontrado' }, 404)
+        }
+
+        const { data: adminProfile } = await serviceClient
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        const updateData: Record<string, unknown> = {
+          [field]: status,
+        }
+
+        if (typeof notes === 'string') {
+          updateData.validation_notes = notes.slice(0, 1000)
+        }
+
+        if (field === 'validation_status') {
+          if (status === 'PENDING') {
+            updateData.validated_at = null
+            updateData.validated_by = null
+          } else {
+            updateData.validated_at = new Date().toISOString()
+            updateData.validated_by = adminProfile?.id || null
+          }
+        }
+
+        const { error: updateError } = await serviceClient
+          .from('profiles')
+          .update(updateData)
+          .eq('id', entityId)
+
+        if (updateError) throw updateError
+
+        const previousValue = (profile as Record<string, unknown>)[field]
+
+        await serviceClient
+          .from('admin_registration_actions')
+          .insert({
+            admin_user_id: adminUser.id,
+            profile_id: entityId,
+            action: 'NOTE',
+            reason_category: 'VALIDATION',
+            internal_notes: typeof notes === 'string' && notes.trim().length > 0
+              ? notes.slice(0, 1000)
+              : `Validação ${field} alterada para ${status}`,
+            previous_status: profile.status,
+            new_status: profile.status,
+            metadata: {
+              validation_field: field,
+              previous_validation_status: previousValue,
+              new_validation_status: status,
+            },
+          })
+          .catch((logErr) => {
+            console.error('[ADMIN-API] Error logging validation action:', logErr?.message || 'unknown')
+          })
+
+        return jsonResponse(corsHeaders, {
+          success: true,
+          field,
+          previous_status: previousValue,
+          new_status: status,
+        })
+      }
+
       // --- Signed URL for documents ---
       case 'signed-url': {
         const bucket = url.searchParams.get('bucket') || ''
