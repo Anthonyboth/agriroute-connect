@@ -14,40 +14,22 @@ import { toast } from 'sonner';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { PasswordInput } from '@/components/ui/password-input';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
-import { useAuth } from '@/hooks/useAuth';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdminAuth();
 
-  // Se já autenticado, ir direto para o admin
+  // Se já autenticado E é admin, ir direto para o painel
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/admin-v2/dashboard', { replace: true });
+    if (!adminLoading && isAdmin) {
+      navigate('/admin-v2', { replace: true });
     }
-  }, [isAuthenticated, authLoading, navigate]);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          navigate('/admin-v2/dashboard', { replace: true });
-          return;
-        }
-      } catch (err) {
-        console.error('Session check failed:', err);
-      } finally {
-        setIsCheckingSession(false);
-      }
-    };
-    checkSession();
-  }, [navigate]);
+  }, [isAdmin, adminLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +55,7 @@ const AdminLogin = () => {
 
       if (data.session) {
         toast.success('Login realizado com sucesso!');
-        navigate('/admin-v2/dashboard', { replace: true });
+        navigate('/admin-v2', { replace: true });
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -83,7 +65,7 @@ const AdminLogin = () => {
     }
   };
 
-  if (isCheckingSession || authLoading) {
+  if (adminLoading) {
     return <AppSpinner fullscreen />;
   }
 
