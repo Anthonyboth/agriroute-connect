@@ -69,43 +69,52 @@ function formatSuspiciousRolesAlert(suspiciousProfiles: any[]): string {
   return message;
 }
 
-function formatAdminConflictAlert(conflicts: any[]): string {
-  let message = `🚨 <b>ALERTA CRÍTICO - PRIVILÉGIOS ADMINISTRATIVOS ELEVADOS DETECTADOS</b>\n\n`;
-  message += `⚠️ <b>Total de administradores:</b> ${conflicts.length}\n\n`;
-  message += `⚠️ <b>Descrição:</b> Usuários com privilégios administrativos REAIS (admin) detectados na tabela user_roles\n\n`;
+function uniqueUserIds(ids: Array<string | null | undefined>): string[] {
+  return [...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length > 0))];
+}
+
+function formatUnauthorizedAdminAlert(unauthorizedAdmins: any[]): string {
+  let message = `🚨 <b>ALERTA CRÍTICO - ADMIN FORA DA ALLOWLIST DETECTADO</b>\n\n`;
+  message += `⚠️ <b>Total de usuários com role admin fora da allowlist:</b> ${unauthorizedAdmins.length}\n\n`;
+  message += `⚠️ <b>Descrição:</b> Usuários com role <code>admin</code> em <code>user_roles</code> sem vínculo ativo em <code>admin_users</code>.\n\n`;
   
-  conflicts.forEach((conflict, index) => {
-    message += `<b>${index + 1}. Administrador Detectado</b>\n`;
-    message += `   👤 Email: ${conflict.email || 'N/A'}\n`;
-    message += `   🆔 User ID: ${conflict.user_id?.substring(0, 12)}...\n`;
-    message += `   📋 Profile Role: <code>${conflict.profile_role}</code>\n`;
-    message += `   🔑 Privilégio Administrativo: <code>${conflict.admin_role}</code>\n`;
+  unauthorizedAdmins.forEach((admin, index) => {
+    message += `<b>${index + 1}. Usuário com Privilégio Elevado</b>\n`;
+    message += `   👤 Email: ${admin.email || 'N/A'}\n`;
+    message += `   🆔 User ID: ${admin.user_id?.substring(0, 12)}...\n`;
+    message += `   📋 Profile Role: <code>${admin.profile_role}</code>\n`;
+    message += `   🔑 Role Elevada: <code>${admin.admin_role}</code>\n`;
     message += `\n`;
   });
   
   message += `\n🔍 <b>Ação Requerida:</b>\n`;
-  message += `   • Revisar se estes privilégios são legítimos\n`;
-  message += `   • Verificar necessidade de acesso elevado\n`;
-  message += `   • Revogar privilégios se não autorizados\n\n`;
-  message += `ℹ️ <b>Nota:</b> Apenas privilégios de 'admin' são monitorados. Roles de negócio não são reportadas.\n\n`;
+  message += `   • Validar legitimidade destes privilégios\n`;
+  message += `   • Se legítimo, incluir o usuário na allowlist (admin_users)\n`;
+  message += `   • Se não legítimo, revogar role admin imediatamente\n\n`;
   message += `⏰ Verificação realizada em: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Cuiaba' })}`;
   
   return message;
 }
 
 function formatMonitoringSummary(stats: any): string {
-  const allClear = stats.suspiciousCount === 0 && stats.realAdminCount === 0;
+  const allClear = stats.suspiciousCount === 0 && stats.unauthorizedAdminCount === 0;
   
   let message = `${allClear ? '✅' : '⚠️'} <b>RELATÓRIO DE MONITORAMENTO DE SEGURANÇA</b>\n\n`;
   message += `📊 <b>Estatísticas da Verificação:</b>\n`;
   message += `   • Perfis verificados: ${stats.totalProfiles}\n`;
   message += `   • Perfis com roles inválidas: ${stats.suspiciousCount}\n`;
-  message += `   • Administradores reais (admin): ${stats.realAdminCount}\n\n`;
+  message += `   • Administradores allowlist ativos: ${stats.allowlistedAdminCount}\n`;
+  message += `   • Usuários com role admin (user_roles): ${stats.elevatedRoleCount}\n`;
+  message += `   • Admins não allowlisted (risco): ${stats.unauthorizedAdminCount}\n\n`;
   
   if (allClear) {
     message += `✅ <b>Status:</b> Sistema OK - Nenhuma anomalia detectada\n\n`;
   } else {
     message += `🚨 <b>Status:</b> ATENÇÃO - Anomalias detectadas!\n\n`;
+  }
+
+  if (stats.allowlistedAdminCount === 0) {
+    message += `ℹ️ <b>Atenção operacional:</b> Nenhum admin ativo na allowlist (admin_users).\n\n`;
   }
   
   message += `ℹ️ <b>Nota:</b> Roles de negócio (driver, producer, service_provider) não são reportadas como conflitos.\n\n`;
@@ -142,55 +151,74 @@ serve(async (req) => {
       throw new Error(`Erro ao buscar profiles: ${profilesError.message}`);
     }
 
-    const suspiciousProfiles = allProfiles.filter(
+    const profiles = allProfiles ?? [];
+    const suspiciousProfiles = profiles.filter(
       profile => !VALID_ROLES.includes(profile.role)
     );
 
     logStep('Profiles suspeitos encontrados', { count: suspiciousProfiles.length });
 
-    // 2. Verificar usuários com PRIVILÉGIOS ADMINISTRATIVOS REAIS (admin)
+    // 2. Verificar admins allowlisted ativos e privilégios admin em user_roles
     logStep('Verificando privilégios administrativos elevados');
-    const { data: adminUsers, error: adminError } = await supabaseAdmin
+    const { data: elevatedAdminRoles, error: adminError } = await supabaseAdmin
       .from('user_roles')
-      .select(`
-        user_id,
-        role
-      `)
-      .in('role', ['admin']); // APENAS role administrativa real (admin)
+      .select('user_id, role')
+      .eq('role', 'admin');
 
     if (adminError) {
       throw new Error(`Erro ao buscar admin roles: ${adminError.message}`);
     }
 
-    // Buscar profiles desses usuários para comparação
-    const adminUserIds = adminUsers.map(u => u.user_id);
-    const { data: adminProfiles, error: adminProfilesError } = await supabaseAdmin
-      .from('profiles')
-      .select('user_id, email, role')
-      .in('user_id', adminUserIds);
+    const { data: allowlistedAdmins, error: allowlistedError } = await supabaseAdmin
+      .from('admin_users')
+      .select('user_id, email, role, is_active')
+      .eq('is_active', true)
+      .not('user_id', 'is', null);
 
-    if (adminProfilesError) {
-      throw new Error(`Erro ao buscar admin profiles: ${adminProfilesError.message}`);
+    if (allowlistedError) {
+      throw new Error(`Erro ao buscar admins allowlisted: ${allowlistedError.message}`);
     }
 
-    // Detectar conflitos (apenas para auditoria - não é necessariamente um problema)
-    const conflicts = adminUsers.map(adminUser => {
-      const profile = adminProfiles.find(p => p.user_id === adminUser.user_id);
-      return {
-        user_id: adminUser.user_id,
-        email: profile?.email,
-        profile_role: profile?.role,
-        admin_role: adminUser.role
-      };
-    });
+    const elevatedAdminUserIds = uniqueUserIds((elevatedAdminRoles ?? []).map(u => u.user_id));
+    const allowlistedAdminUserIds = new Set(uniqueUserIds((allowlistedAdmins ?? []).map(a => a.user_id)));
+    const unauthorizedAdminUserIds = elevatedAdminUserIds.filter(userId => !allowlistedAdminUserIds.has(userId));
 
-    logStep('Conflitos encontrados', { count: conflicts.length });
+    let unauthorizedAdmins: any[] = [];
+
+    if (unauthorizedAdminUserIds.length > 0) {
+      const { data: unauthorizedProfiles, error: unauthorizedProfilesError } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id, email, role')
+        .in('user_id', unauthorizedAdminUserIds);
+
+      if (unauthorizedProfilesError) {
+        throw new Error(`Erro ao buscar profiles de admins não allowlisted: ${unauthorizedProfilesError.message}`);
+      }
+
+      unauthorizedAdmins = unauthorizedAdminUserIds.map((userId) => {
+        const profile = unauthorizedProfiles?.find(p => p.user_id === userId);
+        const elevatedRole = elevatedAdminRoles?.find(r => r.user_id === userId);
+
+        return {
+          user_id: userId,
+          email: profile?.email,
+          profile_role: profile?.role,
+          admin_role: elevatedRole?.role ?? 'admin'
+        };
+      });
+    }
+
+    logStep('Admins allowlisted detectados', { count: allowlistedAdmins?.length || 0 });
+    logStep('Admins com role admin em user_roles', { count: elevatedAdminUserIds.length });
+    logStep('Admins não allowlisted detectados', { count: unauthorizedAdmins.length });
 
     // 3. Preparar estatísticas
     const stats = {
-      totalProfiles: allProfiles.length,
+      totalProfiles: profiles.length,
       suspiciousCount: suspiciousProfiles.length,
-      realAdminCount: adminUsers.length // Apenas admin real
+      allowlistedAdminCount: allowlistedAdmins?.length || 0,
+      elevatedRoleCount: elevatedAdminUserIds.length,
+      unauthorizedAdminCount: unauthorizedAdmins.length,
     };
 
     // 4. Enviar alertas ao Telegram
@@ -203,9 +231,9 @@ serve(async (req) => {
       if (sent) alertsSent++;
     }
 
-    // Enviar alerta de privilégios administrativos reais (CRÍTICO - apenas admin)
-    if (conflicts.length > 0) {
-      const message = formatAdminConflictAlert(conflicts);
+    // Enviar alerta apenas para admins elevados fora da allowlist
+    if (unauthorizedAdmins.length > 0) {
+      const message = formatUnauthorizedAdminAlert(unauthorizedAdmins);
       const sent = await sendTelegramAlert(message);
       if (sent) alertsSent++;
     }
@@ -228,7 +256,7 @@ serve(async (req) => {
         role: p.role,
         created_at: p.created_at
       })),
-      conflicts: conflicts.map(c => ({
+      unauthorizedAdmins: unauthorizedAdmins.map(c => ({
         email: c.email,
         profile_role: c.profile_role,
         admin_role: c.admin_role
