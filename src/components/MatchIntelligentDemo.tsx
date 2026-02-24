@@ -105,7 +105,7 @@ export const MatchIntelligentDemo: React.FC = () => {
           
           return (
             <div key={driverType.id}>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30">
                   <IconComponent className="h-5 w-5" />
                   <span className="font-semibold">{driverType.label}</span>
@@ -114,7 +114,7 @@ export const MatchIntelligentDemo: React.FC = () => {
                 <span className="text-sm text-muted-foreground">Vê apenas fretes compatíveis:</span>
               </div>
 
-              <div className="grid gap-3 ml-6">
+              <div className="grid gap-3 ml-0 sm:ml-6">
                 {DEMO_FREIGHTS.map((freight) => {
                   const FreightIcon = getServiceIcon(freight.service);
                   const isCompatible = freight.compatible[driverType.id as keyof typeof freight.compatible];
@@ -122,14 +122,14 @@ export const MatchIntelligentDemo: React.FC = () => {
                   return (
                     <div 
                       key={`${driverType.id}-${freight.id}`}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                      className={`flex flex-col gap-3 p-3 rounded-lg border transition-all sm:flex-row sm:items-center sm:justify-between ${
                         isCompatible 
                           ? 'bg-green-50 border-green-200' 
                           : 'bg-red-50 border-red-200 opacity-50'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded ${isCompatible ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className={`p-2 rounded shrink-0 ${isCompatible ? 'bg-green-100' : 'bg-red-100'}`}>
                           {isCompatible ? (
                             <Check className="h-4 w-4 text-green-600" />
                           ) : (
@@ -137,20 +137,24 @@ export const MatchIntelligentDemo: React.FC = () => {
                           )}
                         </div>
                         
-                        <div className="flex items-center gap-2">
-                          <FreightIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{freight.cargo}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <FreightIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium break-words">{freight.cargo}</span>
+                            <Badge className={getServiceColor(freight.service)}>
+                              {freight.service === 'CARGA' ? 'Carga' : 
+                               freight.service === 'MUDANCA' ? 'Mudança' : 'Guincho'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 break-words sm:hidden">
+                            {freight.origin} → {freight.destination}
+                          </div>
                         </div>
-                        
-                        <Badge className={getServiceColor(freight.service)}>
-                          {freight.service === 'CARGA' ? 'Carga' : 
-                           freight.service === 'MUDANCA' ? 'Mudança' : 'Guincho'}
-                        </Badge>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-left sm:text-right shrink-0">
                         <div className="font-semibold text-green-600">{freight.price}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground hidden sm:block">
                           {freight.origin} → {freight.destination}
                         </div>
                       </div>
