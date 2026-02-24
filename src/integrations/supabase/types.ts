@@ -14302,6 +14302,20 @@ export type Database = {
           status: string
         }[]
       }
+      get_unified_freight_feed: {
+        Args: {
+          p_company_id?: string
+          p_date?: string
+          p_debug?: boolean
+          p_panel: string
+          p_profile_id: string
+        }
+        Returns: Json
+      }
+      get_unified_service_feed: {
+        Args: { p_debug?: boolean; p_profile_id: string }
+        Returns: Json
+      }
       get_unusual_hour_logins: {
         Args: {
           end_hour?: number
