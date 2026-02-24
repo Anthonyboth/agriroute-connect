@@ -541,6 +541,9 @@ const AuthedLanding = () => {
       }, 8000);
       return () => clearTimeout(timer);
     }
+
+    // ✅ Evitar estado travado de timeout quando carregamento normalizar
+    setLoadingTimeout(false);
   }, [loading, isCheckingCompany]);
   
   // Verificar se é transportadora
@@ -589,6 +592,44 @@ const AuthedLanding = () => {
   // ✅ HOSTNAME GATE: Se acessando pelo subdomínio admin, redirecionar para /admin-v2
   if (ADMIN_HOSTNAMES.includes(window.location.hostname)) {
     return <Navigate to="/admin-v2" replace />;
+  }
+
+  // ✅ Evitar spinner infinito na home quando sessão em cache trava o loading
+  if (loadingTimeout && (loading || isCheckingCompany)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+        <div className="text-center space-y-4 max-w-md">
+          <AlertCircle className="h-12 w-12 mx-auto text-warning" />
+          <h2 className="text-2xl font-bold">Carregamento demorou demais</h2>
+          <p className="text-muted-foreground">
+            Detectamos uma sessão possivelmente travada no preview. Tente recarregar ou entrar novamente.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => {
+                sessionStorage.removeItem('profile_fetch_cooldown_until');
+                window.location.reload();
+              }}
+            >
+              Tentar Novamente
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                try {
+                  Object.keys(localStorage)
+                    .filter((key) => key.startsWith('sb-') && key.endsWith('-auth-token'))
+                    .forEach((key) => localStorage.removeItem(key));
+                } catch {}
+                window.location.href = '/auth';
+              }}
+            >
+              Ir para Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Se ainda carregando e não tem perfil:
