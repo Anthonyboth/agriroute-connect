@@ -95,12 +95,14 @@ import Shield from 'lucide-react/dist/esm/icons/shield';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
+import { useParallax } from '@/hooks/useParallax';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
   // P0 HOTFIX: Removido authModal state - cadastro agora é via /auth direto
   
   const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
+  const { ref: parallaxRef, style: parallaxStyle } = useParallax(0.2);
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
     isOpen: false,
@@ -247,13 +249,17 @@ const Landing: React.FC = () => {
       </header>
 
       {/* Hero Section - Fixed height to prevent CLS */}
-      <section className="hero-section relative h-screen min-h-[600px] w-full flex items-center justify-center overflow-hidden" style={{ contain: 'layout paint' }}>
+      <section 
+        ref={parallaxRef as React.RefObject<HTMLElement>}
+        className="hero-section relative h-screen min-h-[600px] w-full flex items-center justify-center overflow-hidden" 
+        style={{ contain: 'layout paint' }}
+      >
         {/* Hero background with inline placeholder for faster LCP */}
         <div 
           className="absolute inset-0 bg-[#1a1a2e]"
           aria-hidden="true"
         />
-        <picture>
+        <picture className="absolute inset-0 -top-[15%] -bottom-[15%]" style={parallaxStyle}>
           <source
             media="(max-width: 640px)"
             srcSet={heroMobile}
