@@ -97,6 +97,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
       const result = await fetchAvailableMarketplaceItems({
         profile,
+        roleOverride: 'TRANSPORTADORA',
         freightLimit: 80,
         serviceLimit: 40,
         debug: import.meta.env.DEV,

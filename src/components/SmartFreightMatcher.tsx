@@ -156,9 +156,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
+      const driverPanelRole = String(profile?.role || '').toUpperCase() === 'MOTORISTA_AFILIADO'
+        ? 'MOTORISTA_AFILIADO'
+        : 'MOTORISTA';
+
       // ✅ FONTE ÚNICA: usa hook autoritativo (get_authoritative_feed)
       const result = await fetchAvailableMarketplaceItems({
         profile,
+        roleOverride: driverPanelRole,
         freightLimit: 80,
         serviceLimit: 50,
         debug: import.meta.env.DEV,
