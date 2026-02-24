@@ -5,6 +5,7 @@ interface UseMarketplaceAvailabilityGuaranteeOptions {
   refresh: () => Promise<void> | void;
   dependencies: Array<string | number | boolean | null | undefined>;
   minIntervalMs?: number;
+  intervalMs?: number;
 }
 
 /**
@@ -20,6 +21,7 @@ export function useMarketplaceAvailabilityGuarantee({
   refresh,
   dependencies,
   minIntervalMs = 1200,
+  intervalMs = 10 * 60 * 1000,
 }: UseMarketplaceAvailabilityGuaranteeOptions) {
   const lastRefreshAtRef = useRef(0);
 
@@ -61,6 +63,19 @@ export function useMarketplaceAvailabilityGuarantee({
       window.removeEventListener('online', onOnline);
     };
   }, [enabled, runRefresh]);
+
+  // Auto-refresh controlado (10min por padrão)
+  useEffect(() => {
+    if (!enabled || intervalMs <= 0) return;
+
+    const intervalId = window.setInterval(() => {
+      runRefresh();
+    }, intervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [enabled, intervalMs, runRefresh]);
 
   return { forceRefresh: runRefresh };
 }

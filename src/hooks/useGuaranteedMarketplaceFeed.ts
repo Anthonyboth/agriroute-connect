@@ -1,122 +1,95 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  normalizeServiceType,
-  getAllowedServiceTypesFromProfile,
-  type CanonicalServiceType,
-} from '@/lib/service-type-normalization';
-
-const TRANSPORT_QUERY_TYPES = [
-  'TRANSPORTE_PET',
-  'ENTREGA_PACOTES',
-  'GUINCHO',
-  'REBOQUE',
-  'GUINCHO_FREIGHT',
-  'MUDANCA',
-  'MUDANCAS',
-  'MUDANCA_RESIDENCIAL',
-  'MUDANCA_COMERCIAL',
-  'FRETE_MOTO',
-  'FRETE_URBANO',
-] as const;
-
-const OPEN_FREIGHT_STATUSES = ['OPEN', 'IN_NEGOTIATION'] as const;
 
 interface GuaranteedMarketplaceFeedParams {
   profile: any;
   freightLimit?: number;
   serviceLimit?: number;
+  debug?: boolean;
 }
+
+interface UnifiedFeedDebugSummary {
+  total_candidates: number;
+  total_eligible: number;
+  total_excluded: number;
+  excluded: Array<{
+    item_type: 'FREIGHT' | 'SERVICE';
+    item_id: string;
+    service_type: string;
+    reason: string;
+  }>;
+}
+
+interface GuaranteedMarketplaceResult {
+  freights: any[];
+  serviceRequests: any[];
+  allowedTransportTypes: string[];
+  debug: {
+    freight: UnifiedFeedDebugSummary | null;
+    service: UnifiedFeedDebugSummary | null;
+  };
+}
+
+const TRANSPORT_SERVICE_TYPES = [
+  'TRANSPORTE_PET',
+  'ENTREGA_PACOTES',
+  'GUINCHO',
+  'MUDANCA',
+  'FRETE_MOTO',
+] as const;
 
 export function useGuaranteedMarketplaceFeed() {
   const resolveAllowedTransportTypes = useCallback((profile: any): string[] => {
-    const allowedCanonical = getAllowedServiceTypesFromProfile(profile, 'TRANSPORTADORA');
-
-    return TRANSPORT_QUERY_TYPES.filter((rawType) => {
-      const canonical = normalizeServiceType(rawType);
-      return allowedCanonical.includes(canonical as CanonicalServiceType);
-    });
-  }, []);
-
-  const fetchUrbanServices = useCallback(async (allowedTransportTypes: string[], serviceLimit = 50) => {
-    if (allowedTransportTypes.length === 0) return [];
-
-    const secureQuery = await supabase
-      .from('service_requests_secure')
-      .select(
-        `id, service_type, status, provider_id, location_address, destination_address,
-         location_city, location_state, destination_city, destination_state,
-         urgency, estimated_price, created_at, preferred_datetime, problem_description, contact_name`
-      )
-      .in('status', ['OPEN'])
-      .is('provider_id', null)
-      .in('service_type', allowedTransportTypes)
-      .order('created_at', { ascending: false })
-      .limit(serviceLimit);
-
-    if (!secureQuery.error) {
-      return secureQuery.data || [];
-    }
-
-    // Fallback defensivo: alguns ambientes podem negar SELECT na view segura.
-    // Mantemos SELECT estrito em campos necessários da UI.
-    const fallbackQuery = await supabase
-      .from('service_requests')
-      .select(
-        `id, service_type, status, provider_id, location_address, destination_address,
-         location_city, location_state, destination_city, destination_state,
-         urgency, estimated_price, created_at, preferred_datetime, problem_description, contact_name`
-      )
-      .in('status', ['OPEN'])
-      .is('provider_id', null)
-      .in('service_type', allowedTransportTypes)
-      .order('created_at', { ascending: false })
-      .limit(serviceLimit);
-
-    if (fallbackQuery.error) throw fallbackQuery.error;
-
-    if (import.meta.env.DEV) {
-      console.warn('[useGuaranteedMarketplaceFeed] Fallback para service_requests aplicado:', {
-        secureError: secureQuery.error?.message,
-        returned: fallbackQuery.data?.length || 0,
-      });
-    }
-
-    return fallbackQuery.data || [];
+    const profileTypes = new Set<string>((profile?.service_types || []).map((t: string) => String(t).toUpperCase()));
+    return TRANSPORT_SERVICE_TYPES.filter((t) => profileTypes.has(t));
   }, []);
 
   const fetchAvailableMarketplaceItems = useCallback(async ({
     profile,
     freightLimit = 80,
     serviceLimit = 50,
-  }: GuaranteedMarketplaceFeedParams) => {
+    debug = false,
+  }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
+    const panel = String(profile?.active_mode || profile?.role || 'TRANSPORTADORA').toUpperCase();
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
-    const [freightsResult, services] = await Promise.all([
-      supabase
-        .from('freights')
-        .select(
-          `
-          id, cargo_type, weight, origin_address, destination_address, origin_city, origin_state,
-          destination_city, destination_state, pickup_date, delivery_date, price, urgency, status,
-          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at, driver_id
-        `,
-        )
-        .in('status', OPEN_FREIGHT_STATUSES)
-        .is('driver_id', null)
-        .order('created_at', { ascending: false })
-        .limit(freightLimit),
-      fetchUrbanServices(allowedTransportTypes, serviceLimit),
+    const [freightRpc, serviceRpc] = await Promise.all([
+      supabase.rpc('get_unified_freight_feed', {
+        p_panel: panel === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : 'MOTORISTA',
+        p_profile_id: profile?.id,
+        p_company_id: profile?.company_id || null,
+        p_debug: debug,
+      }),
+      supabase.rpc('get_unified_service_feed', {
+        p_profile_id: profile?.id,
+        p_debug: debug,
+      }),
     ]);
 
-    if (freightsResult.error) throw freightsResult.error;
+    if (freightRpc.error) throw freightRpc.error;
+    if (serviceRpc.error) throw serviceRpc.error;
+
+    const freightPayload = (freightRpc.data || {}) as any;
+    const servicePayload = (serviceRpc.data || {}) as any;
+
+    const freights = Array.isArray(freightPayload.items) ? freightPayload.items.slice(0, freightLimit) : [];
+
+    // Para transportadora: mantemos apenas serviços urbanos de transporte
+    const rawServices = Array.isArray(servicePayload.items) ? servicePayload.items : [];
+    const serviceRequests = rawServices
+      .filter((item: any) => allowedTransportTypes.includes(String(item.service_type || '').toUpperCase()))
+      .slice(0, serviceLimit);
 
     return {
-      freights: freightsResult.data || [],
-      serviceRequests: services || [],
+      freights,
+      serviceRequests,
       allowedTransportTypes,
+      debug: {
+        freight: debug ? (freightPayload.debug as UnifiedFeedDebugSummary) : null,
+        service: debug ? (servicePayload.debug as UnifiedFeedDebugSummary) : null,
+      },
     };
-  }, [fetchUrbanServices, resolveAllowedTransportTypes]);
+  }, [resolveAllowedTransportTypes]);
 
   return {
     fetchAvailableMarketplaceItems,
