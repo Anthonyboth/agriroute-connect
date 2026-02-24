@@ -511,27 +511,21 @@ export const ServiceProviderDashboard: React.FC = () => {
   const fetchServiceRequests = async (options: { 
     scope?: 'all' | 'available'; 
     silent?: boolean;
-    /** ✅ PERF: Pular spatial matching em refetches de status change */
     skipSpatialMatching?: boolean;
   } = {}) => {
     const { scope = 'all', silent = true, skipSpatialMatching = false } = options;
     
-    // ✅ PERF: Throttle reduzido para 3s (era 10s)
     const now = Date.now();
     if (silent && (now - lastFetchRef.current) < 3000) {
-      console.log('Throttled fetch request');
       return;
     }
     
-    // Prevent concurrent fetches
     if (inFlightRef.current) {
-      console.log('Fetch already in progress');
       return;
     }
     
     const providerId = getProviderProfileId();
     if (!providerId) {
-      console.warn('Provider ID not found');
       setInitialLoading(false);
       return;
     }
@@ -539,80 +533,52 @@ export const ServiceProviderDashboard: React.FC = () => {
     try {
       inFlightRef.current = true;
       
-      // Show loading state ONLY on first load (not on background refetches)
       if (scope === 'all' && !silent) {
         setInitialLoading(true);
       }
       
       lastFetchRef.current = now;
-      
-      console.log('🔍 [ServiceProviderDashboard] Fetching requests...', {
-        providerId,
-        timestamp: new Date().toISOString()
-      });
 
-      // 1. Execute spatial matching APENAS no carregamento inicial (não em status changes)
-      if (!skipSpatialMatching) {
-        console.log('🔍 Executing spatial matching for provider...');
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
-            'provider-spatial-matching',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
-              }
-            }
-          );
+      // ✅ RPC UNIFICADA DETERMINÍSTICA — nunca esconde itens elegíveis
+      const isDebug = import.meta.env.DEV;
 
-          if (spatialError) {
-            console.warn('Spatial matching warning:', spatialError);
-          } else {
-            console.log('Spatial matching completed:', spatialData);
-          }
-        } catch (spatialError) {
-          console.warn('Spatial matching failed (non-critical):', spatialError);
-        }
-      } else {
-        console.log('⚡ Skipping spatial matching (status change refetch)');
-      }
-
-      // 2. Fetch based on scope
+      // 1. Buscar serviços disponíveis via RPC unificada
       let cityBasedRequests: any[] = [];
-      let providerRequests: any[] = [];
-      
       if (scope === 'all' || scope === 'available') {
-        console.log('🔍 Fetching service requests for provider (APENAS serviços)...', {
-          providerId,
-          providerServiceTypes: profile?.service_types,
-          profileRole: profile?.role,
-          timestamp: new Date().toISOString()
-        });
-        try {
-          // Usar RPC exclusiva que retorna APENAS serviços (nunca fretes)
-          const { data, error: cityError } = await supabase.rpc(
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
+          'get_unified_service_feed',
+          { p_profile_id: providerId, p_debug: isDebug }
+        );
+
+        if (rpcError) {
+          console.error('[ServiceProviderDashboard] RPC get_unified_service_feed falhou:', rpcError);
+          // Fallback: tentar RPC anterior
+          const { data: fallbackData, error: fallbackError } = await supabase.rpc(
             'get_services_for_provider',
             { p_provider_id: providerId }
           );
-
-          if (cityError) {
-            console.warn('Error fetching services:', cityError);
-          } else {
-            cityBasedRequests = data || [];
-            console.log('Services found (já filtrado pela RPC):', {
-              total: cityBasedRequests.length,
-              serviceTypes: [...new Set(cityBasedRequests.map((r: any) => r.service_type))]
-            });
+          if (!fallbackError) {
+            cityBasedRequests = fallbackData || [];
           }
-        } catch (cityError) {
-          console.warn('Service requests query failed:', cityError);
+        } else {
+          const payload = (rpcData || {}) as any;
+          cityBasedRequests = Array.isArray(payload.items) ? payload.items : [];
+
+          if (isDebug) {
+            console.group('🔍 [ServiceProviderDashboard] Feed Determinístico');
+            console.log('Itens retornados:', cityBasedRequests.length);
+            console.log('Tipos:', [...new Set(cityBasedRequests.map((r: any) => r.service_type))]);
+            if (payload.debug) {
+              console.log('Debug:', payload.debug);
+            }
+            console.groupEnd();
+          }
         }
       }
 
+      // 2. Buscar serviços próprios (aceitos/em andamento/completos)
+      let providerRequests: any[] = [];
       if (scope === 'all') {
-        // 3. Fetch provider's accepted requests (usando view segura para PII)
         const { data, error: providerError } = await supabase
           .from('service_requests_secure')
           .select('*')
@@ -623,11 +589,10 @@ export const ServiceProviderDashboard: React.FC = () => {
           console.error('Error fetching provider requests:', providerError);
           throw providerError;
         }
-        
         providerRequests = data || [];
       }
 
-      // 4. Buscar perfis dos clientes separadamente
+      // 3. Resolver perfis dos clientes
       const clientIds = [...new Set([
         ...(providerRequests || []).map(r => r.client_id),
         ...(cityBasedRequests || []).map(r => r.client_id)
@@ -635,8 +600,6 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       const clientsMap = new Map();
       if (clientIds.length > 0) {
-        // ✅ Usar profiles_secure para contornar RLS que impede
-        // prestadores de ver perfis de clientes diretamente
         const { data: clients, error: clientsError } = await supabase
           .from('profiles_secure')
           .select('id, full_name, phone')
@@ -649,24 +612,19 @@ export const ServiceProviderDashboard: React.FC = () => {
         }
       }
 
-      // 5. Process and update appropriate state
+      // 4. Montar arrays de estado
       if (scope === 'all') {
-        // Full update: separate available and own requests
         const available: ServiceRequest[] = [];
         const own: ServiceRequest[] = [];
         
-        // Process city-based (available) - RPC já filtra apenas serviços
-        // ✅ CONFIAR NA RPC - não re-filtrar no frontend!
-        // A RPC get_services_for_provider já filtra por tipo, cidade e raio
         (cityBasedRequests || []).forEach((r: any) => {
-          
           const client = clientsMap.get(r.client_id);
           available.push({
             id: r.id || r.request_id,
             service_type: r.service_type,
             location_address: r.location_address,
-            city_name: r.city_name,
-            state: r.state,
+            city_name: r.location_city || r.city_name,
+            state: r.location_state || r.state,
             problem_description: r.problem_description,
             urgency: r.urgency,
             contact_phone: r.contact_phone,
@@ -689,7 +647,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           } as ServiceRequest);
         });
         
-        // Process own requests
         (providerRequests || []).forEach((r: any) => {
           const client = clientsMap.get(r.client_id);
           own.push({

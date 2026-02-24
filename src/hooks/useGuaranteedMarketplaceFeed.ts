@@ -53,6 +53,7 @@ export function useGuaranteedMarketplaceFeed() {
     const panel = String(profile?.active_mode || profile?.role || 'TRANSPORTADORA').toUpperCase();
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
+    // ✅ RPCs DETERMINÍSTICAS — nunca escondem itens elegíveis
     const [freightRpc, serviceRpc] = await Promise.all([
       supabase.rpc('get_unified_freight_feed', {
         p_panel: panel === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : 'MOTORISTA',
@@ -67,7 +68,9 @@ export function useGuaranteedMarketplaceFeed() {
     ]);
 
     if (freightRpc.error) throw freightRpc.error;
-    if (serviceRpc.error) throw serviceRpc.error;
+    if (serviceRpc.error) {
+      console.warn('[useGuaranteedMarketplaceFeed] Service RPC falhou (não bloqueante):', serviceRpc.error);
+    }
 
     const freightPayload = (freightRpc.data || {}) as any;
     const servicePayload = (serviceRpc.data || {}) as any;
@@ -75,10 +78,19 @@ export function useGuaranteedMarketplaceFeed() {
     const freights = Array.isArray(freightPayload.items) ? freightPayload.items.slice(0, freightLimit) : [];
 
     // Para transportadora: mantemos apenas serviços urbanos de transporte
-    const rawServices = Array.isArray(servicePayload.items) ? servicePayload.items : [];
+    const rawServices = Array.isArray(servicePayload?.items) ? servicePayload.items : [];
     const serviceRequests = rawServices
       .filter((item: any) => allowedTransportTypes.includes(String(item.service_type || '').toUpperCase()))
       .slice(0, serviceLimit);
+
+    if (debug && import.meta.env.DEV) {
+      console.group('🔍 [useGuaranteedMarketplaceFeed] Debug');
+      console.log('Fretes:', freights.length, 'Serviços:', serviceRequests.length);
+      console.log('Tipos urbanos permitidos:', allowedTransportTypes);
+      if (freightPayload.debug) console.log('Debug freight:', freightPayload.debug);
+      if (servicePayload?.debug) console.log('Debug service:', servicePayload.debug);
+      console.groupEnd();
+    }
 
     return {
       freights,
@@ -86,7 +98,7 @@ export function useGuaranteedMarketplaceFeed() {
       allowedTransportTypes,
       debug: {
         freight: debug ? (freightPayload.debug as UnifiedFeedDebugSummary) : null,
-        service: debug ? (servicePayload.debug as UnifiedFeedDebugSummary) : null,
+        service: debug ? (servicePayload?.debug as UnifiedFeedDebugSummary) : null,
       },
     };
   }, [resolveAllowedTransportTypes]);
