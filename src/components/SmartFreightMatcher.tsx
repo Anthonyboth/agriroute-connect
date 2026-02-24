@@ -30,7 +30,6 @@ import {
   DollarSign,
   Bike,
   PawPrint,
-  Bug,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -98,8 +97,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [feedDebug, setFeedDebug] = useState<any | null>(null);
   const [, startTransition] = useTransition();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -233,13 +230,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           fallbackMatches: 0,
           totalChecked: Number(freightPayload?.debug?.total_candidates || unifiedFreights.length),
         });
-
-        if (import.meta.env.DEV) {
-          setFeedDebug({
-            freight: freightPayload?.debug || null,
-            service: servicePayload?.debug || null,
-          });
-        }
       }
   }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType]);
 
@@ -548,16 +538,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                   <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                   <span className="hidden sm:inline">{loading ? 'Atualizando...' : 'Atualizar'}</span>
                 </Button>
-                {import.meta.env.DEV && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setDebugOpen((prev) => !prev)}
-                    className="flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Bug className="h-4 w-4" />
-                    Debug Feed
-                  </Button>
-                )}
                 {lastRefreshAt && !loading && (
                   <span className="text-xs text-muted-foreground hidden md:inline">
                     Atualizado às {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -625,47 +605,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         </CardContent>
       </Card>
 
-      {import.meta.env.DEV && debugOpen && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Bug className="h-4 w-4" />
-              Debug Feed (DEV)
-            </CardTitle>
-            <CardDescription>
-              Mostra candidatos, elegíveis e 10 primeiros excluídos com motivo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="rounded-md border p-3">
-                <p className="font-medium">Fretes</p>
-                <p>Candidatos: {feedDebug?.freight?.total_candidates ?? 0}</p>
-                <p>Elegíveis: {feedDebug?.freight?.total_eligible ?? 0}</p>
-                <p>Excluídos: {feedDebug?.freight?.total_excluded ?? 0}</p>
-              </div>
-              <div className="rounded-md border p-3">
-                <p className="font-medium">Serviços</p>
-                <p>Candidatos: {feedDebug?.service?.total_candidates ?? 0}</p>
-                <p>Elegíveis: {feedDebug?.service?.total_eligible ?? 0}</p>
-                <p>Excluídos: {feedDebug?.service?.total_excluded ?? 0}</p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {[...(feedDebug?.freight?.excluded || []), ...(feedDebug?.service?.excluded || [])]
-                .slice(0, 10)
-                .map((item: any) => (
-                  <div key={`${item.item_type}-${item.item_id}`} className="flex items-center justify-between rounded-md border p-2">
-                    <span className="font-mono text-xs">{String(item.item_id).slice(0, 8)}...</span>
-                    <Badge variant="outline">{item.item_type}</Badge>
-                    <Badge variant="secondary">{item.reason}</Badge>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ✅ TABS DINÂMICAS: exibe conforme tipos de serviço do motorista */}
       <Tabs

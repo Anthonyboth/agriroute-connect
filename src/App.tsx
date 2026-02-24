@@ -15,7 +15,7 @@ import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBou
 const GlobalRatingModals = lazy(() => import("@/components/GlobalRatingModals").then(m => ({ default: m.GlobalRatingModals })));
 // Toaster deferred to avoid pulling ui-vendor (Radix Toast) on landing page
 const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
-const LazyMatchDebugPanel = lazy(() => import("@/components/MatchDebugPanel").then(m => ({ default: m.MatchDebugPanel })));
+
 // Sonner deferred to avoid loading sonner package on landing page
 const LazySonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
 import { ThemeProvider } from "next-themes";
@@ -1134,7 +1134,7 @@ const App = () => {
             <PreviewFreshBuildBanner />
             <Suspense fallback={null}><LazyToaster /></Suspense>
             <Suspense fallback={null}><LazySonner /></Suspense>
-            <Suspense fallback={null}><LazyMatchDebugPanel /></Suspense>
+            
           </TutorialProvider>
           </SubscriptionProvider>
                 </DeferredTooltipProvider>
