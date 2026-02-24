@@ -8,10 +8,8 @@ interface LoopPreventionBoundaryProps {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  RENDER_RATE: 'Loop rápido de renderização',
   REACT_UPDATE_DEPTH: 'React: profundidade máxima de atualização',
   REACT_TOO_MANY_RERENDERS: 'React: muitos re-renders / hooks instáveis',
-  EVENT_LOOP_BLOCKED: 'Congelamento de thread principal (event loop bloqueado)',
 };
 
 export const LoopPreventionBoundary: React.FC<LoopPreventionBoundaryProps> = ({ children }) => {
@@ -41,18 +39,6 @@ export const LoopPreventionBoundary: React.FC<LoopPreventionBoundaryProps> = ({ 
           <div>
             <span className="font-medium">Tipo:</span> {triggerLabel}
           </div>
-
-          {tripDetails?.trigger === 'RENDER_RATE' && (
-            <div>
-              <span className="font-medium">Renders:</span> {tripDetails.renderCount} em {((tripDetails.windowMs || 0) / 1000).toFixed(0)}s
-            </div>
-          )}
-
-          {tripDetails?.trigger === 'EVENT_LOOP_BLOCKED' && (
-            <div>
-              <span className="font-medium">Atraso do event loop:</span> {tripDetails.driftMs ?? 0}ms
-            </div>
-          )}
 
           {tripDetails?.errorMessage && (
             <div className="mt-1 text-destructive/80">
