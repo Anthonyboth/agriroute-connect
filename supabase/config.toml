@@ -341,3 +341,6 @@ verify_jwt = false
 
 [functions.admin-panel-api]
 verify_jwt = false
+
+[functions.delete-user-account]
+verify_jwt = false
