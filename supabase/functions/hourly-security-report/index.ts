@@ -213,15 +213,18 @@ serve(async (req) => {
     // 8. ERROS CRÍTICOS DE EDGE FUNCTIONS (última 1h)
     // ==========================================
     logStep('Verificando erros de edge functions');
+    // Only count BACKEND errors — frontend React crashes are NOT edge function errors
     const { count: criticalErrors } = await supabaseAdmin
       .from('error_logs')
       .select('*', { count: 'exact', head: true })
       .eq('error_category', 'CRITICAL')
+      .neq('error_type', 'FRONTEND')
       .gte('created_at', oneHourAgo.toISOString());
 
     const { count: totalEdgeErrors } = await supabaseAdmin
       .from('error_logs')
       .select('*', { count: 'exact', head: true })
+      .neq('error_type', 'FRONTEND')
       .gte('created_at', oneHourAgo.toISOString());
 
     if ((criticalErrors || 0) > 0) {
