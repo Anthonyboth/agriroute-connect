@@ -74,12 +74,43 @@ export function useGuaranteedMarketplaceFeed() {
     if (error) throw error;
 
     const payload = (data || {}) as any;
-    const freights = Array.isArray(payload?.freights) ? payload.freights.slice(0, freightLimit) : [];
-    const serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
+
+    let freights = Array.isArray(payload?.freights) ? payload.freights.slice(0, freightLimit) : [];
+    let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
+
+    // 🔒 Blindagem estrita por cidade para perfis individuais
+    // Evita vazamento de itens fora das cidades explicitamente marcadas pelo usuário.
+    const shouldEnforceStrictCity = panel === 'MOTORISTA' || panel === 'MOTORISTA_AFILIADO' || panel === 'PRESTADOR_SERVICOS';
+    if (shouldEnforceStrictCity && profile?.user_id) {
+      const { data: userCities, error: userCitiesError } = await supabase
+        .from('user_cities')
+        .select('city_id')
+        .eq('user_id', profile.user_id)
+        .eq('is_active', true);
+
+      if (!userCitiesError) {
+        const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
+
+        if (activeCityIds.size === 0) {
+          freights = [];
+          serviceRequests = [];
+        } else {
+          freights = freights.filter((f: any) => {
+            const originCityId = f?.origin_city_id ? String(f.origin_city_id) : '';
+            return !!originCityId && activeCityIds.has(originCityId);
+          });
+
+          serviceRequests = serviceRequests.filter((s: any) => {
+            const cityId = s?.city_id ? String(s.city_id) : '';
+            return !!cityId && activeCityIds.has(cityId);
+          });
+        }
+      }
+    }
 
     const metrics = {
       feed_total_eligible: Number(payload?.metrics?.feed_total_eligible || 0),
-      feed_total_displayed: Number(payload?.metrics?.feed_total_displayed || freights.length + serviceRequests.length),
+      feed_total_displayed: freights.length + serviceRequests.length,
       fallback_used: Boolean(payload?.metrics?.fallback_used),
       role: String(payload?.metrics?.role || panel),
     };

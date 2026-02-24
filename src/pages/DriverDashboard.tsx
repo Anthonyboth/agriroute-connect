@@ -386,47 +386,8 @@ const DriverDashboard = () => {
     devLog('[fetchAvailableFreights] isCompanyDriver:', isCompanyDriver, 'canAcceptFreights:', canAcceptFreights, 'companyId:', companyId);
 
     try {
-      // Motorista afiliado sem permissão de aceitar fretes autônomos
-      if (isCompanyDriver && companyId && !canAcceptFreights) {
-        devLog('[fetchAvailableFreights] Motorista de empresa SEM canAcceptFreights → apenas fretes da transportadora');
-
-        const { data, error } = await supabase
-          .from('freights')
-          .select('*')
-          .eq('company_id', companyId)
-          .eq('status', 'OPEN')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        const companyFreights: Freight[] = (data || [])
-          .filter((f: any) => (f.accepted_trucks || 0) < (f.required_trucks || 1))
-          .map((f: any) => ({
-            id: f.id,
-            cargo_type: f.cargo_type,
-            weight: f.weight,
-            origin_address: f.origin_address,
-            destination_address: f.destination_address,
-            pickup_date: f.pickup_date,
-            delivery_date: f.delivery_date,
-            price: f.price,
-            urgency: ((['LOW', 'MEDIUM', 'HIGH'] as const).includes(String(f.urgency || '').toUpperCase() as any)
-              ? String(f.urgency).toUpperCase()
-              : 'LOW') as Freight['urgency'],
-            status: f.status,
-            distance_km: f.distance_km,
-            minimum_antt_price: f.minimum_antt_price,
-            service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
-            accepted_trucks: f.accepted_trucks || 0,
-            required_trucks: f.required_trucks || 1,
-            pricing_type: f.pricing_type || 'FIXED',
-            price_per_km: f.price_per_km || undefined,
-          }));
-
-        if (isMountedRef.current) setAvailableFreights(companyFreights);
-        devLog('[fetchAvailableFreights] Fretes da transportadora (restrito):', companyFreights.length);
-        return;
-      }
+      // Motorista afiliado (com ou sem restrição) também usa feed autoritativo.
+      // Isso impede vazamento por query direta em freights sem filtro de cidade/tipo.
 
       // Fonte única de verdade para match por cidade/tipo/status
       const result = await fetchAvailableMarketplaceItems({
