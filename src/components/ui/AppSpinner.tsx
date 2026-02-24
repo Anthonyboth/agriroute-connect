@@ -51,16 +51,11 @@ export const AppSpinner = ({
   const spinner = (
     <div
       className={cn(
-        'animate-spin rounded-full',
+        'rounded-full border-[3px] border-primary/20 border-t-primary animate-spin',
         sizeClass,
         className
       )}
-      style={{
-        ...sizeStyle,
-        background: `conic-gradient(from 180deg, transparent 0%, transparent 15%, hsl(var(--primary)) 85%)`,
-        mask: `radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px))`,
-        WebkitMask: `radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px))`,
-      }}
+      style={sizeStyle}
       role="status"
       aria-label="Carregando"
     />
