@@ -37,10 +37,11 @@ const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg';
 
 const ALERT_LAST_SENT_KEY = 'loop_prevention_last_alert_at';
-const FETCH_FLOOD_WINDOW_MS = 10_000; // 10s
-const FETCH_FLOOD_THRESHOLD = 30; // 30 requests iguais em 10s = flood
+const FETCH_FLOOD_WINDOW_MS = 15_000; // 15s
+const FETCH_FLOOD_THRESHOLD = 40; // 40 requests iguais em 15s = flood
 const LONG_TASK_WINDOW_MS = 30_000; // 30s
-const LONG_TASK_THRESHOLD = 10; // 10 long tasks em 30s
+const LONG_TASK_THRESHOLD = 20; // 20 long tasks em 30s (increased to avoid false positives on slow devices)
+const BOOT_GRACE_PERIOD_MS = 15_000; // Ignore long tasks during first 15s of page load
 
 function safeNow(): number {
   return Date.now();
@@ -191,6 +192,7 @@ export function useLoopPrevention(options: LoopPreventionOptions = {}) {
   const renderTimesRef = useRef<number[]>([]);
   const tripDetailsRef = useRef<LoopTripDetails | null>(null);
   const longTaskTimesRef = useRef<number[]>([]);
+  const mountTimeRef = useRef(safeNow());
 
   const trip = useCallback(
     (details: LoopTripDetails) => {
@@ -299,6 +301,7 @@ export function useLoopPrevention(options: LoopPreventionOptions = {}) {
   }, [trip]);
 
   // Detector 4: long task flood (PerformanceObserver)
+  // Grace period: ignore first BOOT_GRACE_PERIOD_MS to avoid false positives during initial load
   useEffect(() => {
     if (typeof PerformanceObserver === 'undefined') return;
 
@@ -308,8 +311,12 @@ export function useLoopPrevention(options: LoopPreventionOptions = {}) {
         if (isTrippedRef.current) return;
 
         const now = safeNow();
+
+        // Skip long tasks during boot grace period (initial page load is naturally heavy)
+        if (now - mountTimeRef.current < BOOT_GRACE_PERIOD_MS) return;
+
         for (const entry of list.getEntries()) {
-          if (entry.duration > 50) {
+          if (entry.duration > 100) { // Only count tasks > 100ms (not just > 50ms)
             longTaskTimesRef.current.push(now);
           }
         }
@@ -324,7 +331,7 @@ export function useLoopPrevention(options: LoopPreventionOptions = {}) {
             trigger: 'LONG_TASK_FLOOD',
             renderCount: arr.length,
             windowMs: LONG_TASK_WINDOW_MS,
-            errorMessage: `${arr.length} long tasks in ${LONG_TASK_WINDOW_MS / 1000}s`,
+            errorMessage: `${arr.length} long tasks (>100ms) in ${LONG_TASK_WINDOW_MS / 1000}s (after boot grace)`,
           });
         }
       });
