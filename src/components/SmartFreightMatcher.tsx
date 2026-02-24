@@ -127,7 +127,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     canSeeFreightByType,
   } = useDriverFreightVisibility({
     serviceTypes: profile?.service_types,
-    defaultToRuralWhenEmpty: false,
+    // Alinhar com backend autoritativo: quando vazio, assumir CARGA (evita ocultar fretes elegíveis)
+    defaultToRuralWhenEmpty: true,
   });
 
   const fetchCompatibleFreights = useCallback(async () => {
@@ -636,7 +637,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           </TabsList>
         )}
 
-        {!hasRuralFreights && !hasUrbanFreights ? (
+        {!hasRuralFreights && !hasUrbanFreights && filteredFreights.length === 0 && filteredRequests.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <h3 className="font-semibold mb-2">Nenhum tipo de frete ativo</h3>
