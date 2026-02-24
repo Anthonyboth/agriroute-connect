@@ -130,7 +130,7 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
     //   3. Realtime do Supabase (quando disponível)
     staleTime: 10 * 60 * 1000, // ✅ 10 minutos (alinhado com padrão global)
     gcTime: 15 * 60 * 1000, // 15 minutos
-    refetchOnMount: 'always' as const, // Refetch ao entrar na tela (dados críticos)
+    refetchOnMount: true, // ✅ PERFORMANCE: Usa cache se fresh, refetch se stale
     refetchOnWindowFocus: true, // Refetch ao voltar para aba
     // ❌ PROIBIDO: refetchInterval - atualiza via focus/botão/10min global
     queryFn: async () => {

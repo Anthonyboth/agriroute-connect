@@ -1656,7 +1656,8 @@ const DriverDashboard = () => {
         return;
       }
       
-      if (isMountedRef.current) setLoading(true);
+      // ✅ PERFORMANCE: Não bloquear UI com loading - dados carregam em background
+      // Cada aba mostra seus próprios skeletons via React Query
       
       console.log('[DriverDashboard] 🚀 Perfil:', { 
         isCompanyDriver, 
@@ -1665,44 +1666,29 @@ const DriverDashboard = () => {
         role: profile?.role 
       });
       
-      try {
-        // Construir lista de fetches baseado em permissões
-        const fetchPromises = [
-          fetchOngoingFreights(),
-          fetchMyAssignments(),
-          fetchDriverCheckins(),
-          fetchPendingPayments()
-        ];
-        
-        // ✅ Usar canSeeFreights: autônomos sempre veem, empresas só se permitido
-        if (canSeeFreights) {
-          fetchPromises.push(
-            fetchAvailableFreights(),
-            fetchMyProposals(),
-            fetchTransportRequests()
-          );
-        } else {
-          // Se não pode ver fretes, garantir que estados estão vazios
-          if (isMountedRef.current) {
-            setAvailableFreights([]);
-            setMyProposals([]);
-            setTransportRequests([]);
-          }
-        }
-        
-        await Promise.all(fetchPromises);
-        
-        // ✅ Se deve usar chat ou não pode ver fretes, ir para tab "ongoing"
-        if (mustUseChat || !canSeeFreights) {
-          setActiveTab('ongoing');
-        }
-      } catch (err) {
+      // ✅ Se deve usar chat ou não pode ver fretes, ir para tab "ongoing"
+      if (mustUseChat || !canSeeFreights) {
+        setActiveTab('ongoing');
+      }
+      
+      // Disparar fetches em background SEM await (não bloqueia a UI)
+      fetchOngoingFreights();
+      fetchMyAssignments();
+      fetchDriverCheckins();
+      fetchPendingPayments();
+      
+      // ✅ Usar canSeeFreights: autônomos sempre veem, empresas só se permitido
+      if (canSeeFreights) {
+        fetchAvailableFreights();
+        fetchMyProposals();
+        fetchTransportRequests();
+      } else {
+        // Se não pode ver fretes, garantir que estados estão vazios
         if (isMountedRef.current) {
-          console.error('Erro ao carregar dados do dashboard do motorista:', err);
-          toast.error('Erro ao carregar dados do dashboard');
+          setAvailableFreights([]);
+          setMyProposals([]);
+          setTransportRequests([]);
         }
-      } finally {
-        if (isMountedRef.current) setLoading(false);
       }
     };
 
@@ -1728,10 +1714,11 @@ const DriverDashboard = () => {
     const handleFreightAccepted = (event: CustomEvent) => {
       if (import.meta.env.DEV) console.log('🎯 Frete aceito, navegando para aba Em Andamento:', event.detail?.freightId);
       
-      // Invalidar queries e recarregar dados
+      // ✅ PERFORMANCE: Invalidar cache do React Query para refetch imediato
       queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['available-freights'] });
       queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
       
       fetchOngoingFreights();
       fetchMyAssignments();
@@ -2356,6 +2343,7 @@ const DriverDashboard = () => {
           queryClient.invalidateQueries({ queryKey: ['available-freights'] });
           queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
           queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+          queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
 
           // Forçar refetch imediato das queries para obter dados atualizados do banco
           await queryClient.refetchQueries({ queryKey: ['driver-assignments'] });
@@ -2470,9 +2458,7 @@ const DriverDashboard = () => {
     }
   };
 
-  if (loading) {
-    return <AppSpinner fullscreen />;
-  }
+  // ✅ PERFORMANCE: Removido loading bloqueante - dashboard visível imediatamente
 
   if (showDetails && selectedFreightId) {
     return (
@@ -2765,61 +2751,59 @@ const DriverDashboard = () => {
             </Alert>
           )}
           
+          {/* ✅ PERFORMANCE: Lazy rendering - só monta a aba ativa */}
           <TabsContent value="available" className="space-y-4">
-            <DriverAvailableTab
-              profileId={profile?.id}
-              onFreightAction={handleFreightAction}
-              onCountsChange={({ total }) => setAvailableCountUI(total)}
-              onFetchAvailable={fetchAvailableFreights}
-            />
+            {activeTab === 'available' && (
+              <DriverAvailableTab
+                profileId={profile?.id}
+                onFreightAction={handleFreightAction}
+                onCountsChange={({ total }) => setAvailableCountUI(total)}
+                onFetchAvailable={fetchAvailableFreights}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="ongoing" className="space-y-3">
-            {/*
-              ✅ Restauração do card completo de frete em andamento.
-              O bloco abaixo estava usando um card “simplificado” (só De/Para/Valor) e por isso sumiram:
-              - botões de status (A caminho / Carregado / Em trânsito / Entrega)
-              - ações completas (cancelamento, acesso a NF-es, adiantamento via tela de detalhes)
-              - e a cidade/UF aparecia no formato errado.
-
-              A aba volta a usar o componente dedicado DriverOngoingTab (fonte única do card em andamento).
-            */}
-            <DriverOngoingTab />
+            {activeTab === 'ongoing' && <DriverOngoingTab />}
           </TabsContent>
 
           <TabsContent value="scheduled">
-            <DriverScheduledTab />
+            {activeTab === 'scheduled' && <DriverScheduledTab />}
           </TabsContent>
 
-
           <TabsContent value="calendar" className="space-y-4">
-            <DriverAreasTab
-              driverId={profile?.id}
-              onFreightAction={handleFreightAction}
-              canAcceptFreights={canAcceptFreights}
-              isAffiliated={isAffiliated}
-              companyId={companyId}
-            />
+            {activeTab === 'calendar' && (
+              <DriverAreasTab
+                driverId={profile?.id}
+                onFreightAction={handleFreightAction}
+                canAcceptFreights={canAcceptFreights}
+                isAffiliated={isAffiliated}
+                companyId={companyId}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="cities" className="space-y-4">
-            <DriverCitiesTab
-              onCitiesUpdate={() => {
-                fetchAvailableFreights();
-                toast.success('Configuração de cidades atualizada!');
-              }}
-            />
+            {activeTab === 'cities' && (
+              <DriverCitiesTab
+                onCitiesUpdate={() => {
+                  fetchAvailableFreights();
+                  toast.success('Configuração de cidades atualizada!');
+                }}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="services">
-            <DriverServicesTab />
+            {activeTab === 'services' && <DriverServicesTab />}
           </TabsContent>
 
           <TabsContent value="my-requests">
-            <MyRequestsTab />
+            {activeTab === 'my-requests' && <MyRequestsTab />}
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-6">
+            {activeTab === 'my-trips' && (<>
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
@@ -3062,10 +3046,11 @@ const DriverDashboard = () => {
                 </div>
               </div>
             )}
+            </>)}
           </TabsContent>
 
           <TabsContent value="counter-offers" className="space-y-4">
-            <SafeListWrapper>
+            {activeTab === 'counter-offers' && (<SafeListWrapper>
               <h3 className="text-lg font-semibold">Contra-ofertas Recebidas</h3>
             {counterOffers.length > 0 ? (
               <div className="space-y-4">
@@ -3119,15 +3104,15 @@ const DriverDashboard = () => {
                 Você não tem contra-ofertas pendentes
               </p>
             )}
-            </SafeListWrapper>
+            </SafeListWrapper>)}
           </TabsContent>
 
           <TabsContent value="vehicles" className="space-y-4">
-            <DriverVehiclesTab driverProfile={profile} />
+            {activeTab === 'vehicles' && <DriverVehiclesTab driverProfile={profile} />}
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
-            <SafeListWrapper>
+            {activeTab === 'payments' && (<SafeListWrapper>
               <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Pagamentos Pendentes</h3>
               <Badge variant="secondary" className="text-sm font-medium">
@@ -3259,35 +3244,35 @@ const DriverDashboard = () => {
                 </SafeListWrapper>
               </div>
             )}
-            </SafeListWrapper>
+            </SafeListWrapper>)}
           </TabsContent>
 
           <TabsContent value="advances" className="space-y-4">
-            <DriverAdvancesTab driverId={profile?.id || ''} />
+            {activeTab === 'advances' && <DriverAdvancesTab driverId={profile?.id || ''} />}
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
-            <DriverRatingsTab userProfileId={profile?.id || ''} />
+            {activeTab === 'ratings' && <DriverRatingsTab userProfileId={profile?.id || ''} />}
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
-            <DriverChatTab userProfileId={profile?.id || ''} userRole={profile?.active_mode || profile?.role || 'MOTORISTA'} />
+            {activeTab === 'chat' && <DriverChatTab userProfileId={profile?.id || ''} userRole={profile?.active_mode || profile?.role || 'MOTORISTA'} />}
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
-            <DriverHistoryTab />
+            {activeTab === 'historico' && <DriverHistoryTab />}
           </TabsContent>
 
           <TabsContent value="affiliations" className="mt-6">
-            <DriverAffiliationsTab />
+            {activeTab === 'affiliations' && <DriverAffiliationsTab />}
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6">
-            <DriverReportsTab driverId={profile?.id || ''} />
+            {activeTab === 'reports' && <DriverReportsTab driverId={profile?.id || ''} />}
           </TabsContent>
 
           <TabsContent value="fiscal" className="mt-6">
-            <FiscalTab userRole="MOTORISTA" />
+            {activeTab === 'fiscal' && <FiscalTab userRole="MOTORISTA" />}
           </TabsContent>
 
         </Tabs>
