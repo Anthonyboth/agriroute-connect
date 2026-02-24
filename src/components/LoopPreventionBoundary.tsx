@@ -9,11 +9,9 @@ interface LoopPreventionBoundaryProps {
 
 const TRIGGER_LABELS: Record<string, string> = {
   RENDER_RATE: 'Loop rápido de renderização',
-  RENDER_RATE_SLOW: 'Loop lento de renderização (sustentado)',
   REACT_UPDATE_DEPTH: 'React: profundidade máxima de atualização',
-  REACT_TOO_MANY_RERENDERS: 'React: muitos re-renders',
-  FETCH_FLOOD: 'Flood de requisições de rede',
-  LONG_TASK_FLOOD: 'CPU sobrecarregada (tarefas longas)',
+  REACT_TOO_MANY_RERENDERS: 'React: muitos re-renders / hooks instáveis',
+  EVENT_LOOP_BLOCKED: 'Congelamento de thread principal (event loop bloqueado)',
 };
 
 export const LoopPreventionBoundary: React.FC<LoopPreventionBoundaryProps> = ({ children }) => {
@@ -44,22 +42,15 @@ export const LoopPreventionBoundary: React.FC<LoopPreventionBoundaryProps> = ({ 
             <span className="font-medium">Tipo:</span> {triggerLabel}
           </div>
 
-          {tripDetails?.trigger === 'FETCH_FLOOD' && tripDetails.fetchUrl && (
-            <>
-              <div><span className="font-medium">URL:</span> {tripDetails.fetchUrl}</div>
-              <div><span className="font-medium">Chamadas:</span> {tripDetails.fetchCount}x em 10s</div>
-            </>
-          )}
-
-          {(tripDetails?.trigger === 'RENDER_RATE' || tripDetails?.trigger === 'RENDER_RATE_SLOW') && (
+          {tripDetails?.trigger === 'RENDER_RATE' && (
             <div>
               <span className="font-medium">Renders:</span> {tripDetails.renderCount} em {((tripDetails.windowMs || 0) / 1000).toFixed(0)}s
             </div>
           )}
 
-          {tripDetails?.trigger === 'LONG_TASK_FLOOD' && (
+          {tripDetails?.trigger === 'EVENT_LOOP_BLOCKED' && (
             <div>
-              <span className="font-medium">Long tasks:</span> {tripDetails.renderCount} em {((tripDetails.windowMs || 0) / 1000).toFixed(0)}s
+              <span className="font-medium">Atraso do event loop:</span> {tripDetails.driftMs ?? 0}ms
             </div>
           )}
 

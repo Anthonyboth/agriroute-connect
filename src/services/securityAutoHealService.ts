@@ -200,6 +200,15 @@ export class SecurityAutoHealService {
     const msg = error.message.toLowerCase();
     const stack = error.stack?.toLowerCase() || '';
 
+    // React hook order mismatch / render loop crítico
+    if (
+      msg.includes('rendered more hooks than during the previous render') ||
+      msg.includes('too many re-renders') ||
+      msg.includes('maximum update depth exceeded')
+    ) {
+      return 'HOOKS';
+    }
+
     // CHUNK_LOAD deve ser checado ANTES de NETWORK (contém "failed to fetch")
     if (msg.includes('dynamically imported') || msg.includes('loading chunk') || msg.includes('loading css chunk')) {
       return 'CHUNK_LOAD';
@@ -260,6 +269,9 @@ export class SecurityAutoHealService {
       case 'DATABASE':
         // Nunca auto-corrigir erros de banco — risco de dados
         return [];
+      case 'HOOKS':
+        // Hook mismatch normalmente exige reload completo para restaurar ordem de hooks
+        return ['CHUNK_RELOAD'];
       default:
         return ['CACHE_CLEAR'];
     }

@@ -1,9 +1,7 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { SmartFreightMatcher } from "@/components/SmartFreightMatcher";
 import { AdvancedFreightSearch } from "@/components/AdvancedFreightSearch";
 import { SafeListWrapper } from "@/components/SafeListWrapper";
-import { RefreshButton } from "@/components/ui/RefreshButton";
-import { useUnifiedMatchFeed } from "@/hooks/match";
 
 interface DriverAvailableTabProps {
   profileId: string | undefined;
@@ -18,16 +16,21 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
   onCountsChange,
   onFetchAvailable,
 }) => {
+  const handleAdvancedSearch = useCallback(() => {
+    onFetchAvailable();
+  }, [onFetchAvailable]);
+
+  const handleCountsChange = useCallback((counts: { total: number; highUrgency: number }) => {
+    onCountsChange({ total: counts.total });
+  }, [onCountsChange]);
+
   return (
     <SafeListWrapper>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
 
         <AdvancedFreightSearch
-          onSearch={(filters) => {
-            console.log("Advanced search filters:", filters);
-            onFetchAvailable();
-          }}
+          onSearch={handleAdvancedSearch}
           userRole="MOTORISTA"
         />
       </div>
@@ -35,9 +38,7 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
       <SmartFreightMatcher
         key={`freight-matcher-${profileId || "loading"}`}
         onFreightAction={onFreightAction}
-        onCountsChange={(counts) => {
-          onCountsChange({ total: counts.total });
-        }}
+        onCountsChange={handleCountsChange}
       />
     </SafeListWrapper>
   );
