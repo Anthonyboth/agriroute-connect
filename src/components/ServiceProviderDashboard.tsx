@@ -592,6 +592,37 @@ export const ServiceProviderDashboard: React.FC = () => {
         providerRequests = data || [];
       }
 
+      // 🔒 Blindagem estrita por cidade no painel de prestador
+      // Mesmo que o backend retorne candidatos por raio, o painel só exibe city_id explicitamente configurado.
+      if (user?.id) {
+        const { data: userCities, error: userCitiesError } = await supabase
+          .from('user_cities')
+          .select('city_id')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+
+        if (!userCitiesError) {
+          const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
+          if (activeCityIds.size === 0) {
+            cityBasedRequests = [];
+          } else {
+            const beforeCount = cityBasedRequests.length;
+            cityBasedRequests = cityBasedRequests.filter((r: any) => {
+              const cityId = r?.city_id ? String(r.city_id) : '';
+              return !!cityId && activeCityIds.has(cityId);
+            });
+
+            if (import.meta.env.DEV && beforeCount !== cityBasedRequests.length) {
+              console.warn('[ServiceProviderDashboard] Itens removidos por city_id não autorizado', {
+                before: beforeCount,
+                after: cityBasedRequests.length,
+                removed: beforeCount - cityBasedRequests.length,
+              });
+            }
+          }
+        }
+      }
+
       // 3. Resolver perfis dos clientes
       const clientIds = [...new Set([
         ...(providerRequests || []).map(r => r.client_id),
