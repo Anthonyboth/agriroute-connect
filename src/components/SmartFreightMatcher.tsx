@@ -40,9 +40,9 @@ import { showErrorToast } from "@/lib/error-handler";
 import { SafeListWrapper } from "@/components/SafeListWrapper";
 import {
   normalizeServiceType,
-  getAllowedServiceTypesFromProfile,
   type CanonicalServiceType,
 } from "@/lib/service-type-normalization";
+import { useDriverFreightVisibility } from "@/hooks/useDriverFreightVisibility";
 import { subscriptionWithRetry } from "@/lib/query-utils";
 import { debounce } from "@/lib/utils";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
@@ -112,9 +112,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     };
   }, []);
 
-  const allowedTypesFromProfile = useMemo(() => {
-    return getAllowedServiceTypesFromProfile(profile);
-  }, [profile?.role, profile?.service_types]);
+  const {
+    normalizedServiceTypes: allowedTypesFromProfile,
+    hasRuralFreights,
+    hasUrbanFreights,
+    showTabSelector,
+    canSeeFreightByType,
+  } = useDriverFreightVisibility({
+    serviceTypes: profile?.service_types,
+    defaultToRuralWhenEmpty: false,
+  });
 
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id || !user?.id) return;
@@ -287,12 +294,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       const spatialData = spatialResult.data;
 
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
-        const effectiveTypes = allowedTypesFromProfile.length > 0
-          ? allowedTypesFromProfile
-          : ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO", "ENTREGA_PACOTES", "TRANSPORTE_PET"] as CanonicalServiceType[];
-
         spatialFreights = spatialData.freights
-          .filter((f: any) => effectiveTypes.includes(normalizeServiceType(f.service_type)))
+          .filter((f: any) => canSeeFreightByType(f.service_type))
           .map((f: any) => ({
             freight_id: f.id || f.freight_id,
             cargo_type: f.cargo_type,
@@ -364,7 +367,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       }
       updateLockRef.current = false;
     }
-  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, onCountsChange]);
+  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, onCountsChange]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -447,12 +450,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const autoRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
-  // Refresh inicial ao montar
+  // Refresh inicial e também quando tipos de serviço mudarem
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     fetchCompatibleFreights();
     setLastRefreshAt(new Date());
-  }, [profile?.id, user?.id]);
+  }, [profile?.id, user?.id, allowedTypesFromProfile, fetchCompatibleFreights]);
   
   // Auto-refresh a cada 10 minutos (configurável)
   useEffect(() => {
@@ -543,9 +546,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     });
   }, [towingRequests, searchTerm, selectedVehicleType]);
 
-  const hasRuralFreights = allowedTypesFromProfile.includes("CARGA");
-  const hasUrbanFreights = allowedTypesFromProfile.some((t) => t !== "CARGA");
-  const showFreightTabs = hasRuralFreights && hasUrbanFreights;
+  const showFreightTabs = showTabSelector;
 
   const [activeTab, setActiveTab] = useState<"freights" | "services">(
     hasRuralFreights ? "freights" : "services",
