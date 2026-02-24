@@ -6,8 +6,6 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { purgeCSSPlugin } from '@fullhuman/postcss-purgecss';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
-// @ts-ignore - critical package doesn't have type definitions
-import { generate } from 'critical';
 
 // ✅ RELEASE HARDENING: Generate unique build ID
 const BUILD_ID = `${new Date().toISOString().replace(/[:.T-]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}`;
