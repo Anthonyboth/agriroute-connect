@@ -1903,30 +1903,19 @@ const DriverDashboard = () => {
       fetchPendingPayments();
     });
     
-    // ✅ Usar canSeeFreights para subscriptions
+    // ✅ CRITICAL FIX: Removida subscription global em `freights` (sem filtro) 
+    // que causava refetch a cada mudança de QUALQUER frete no sistema inteiro.
+    // Agora só reage a mudanças nos fretes do próprio motorista (já coberto acima).
+    
     if (canSeeFreights) {
+      // ✅ Propostas: filtrar por driver_id
       channelBuilder.on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
-        table: 'freights' 
+        table: 'freight_proposals',
+        filter: `driver_id=eq.${profile.id}`
       }, () => {
-        debouncedFetchAvailable(); // ✅ Debounced
-      });
-      
-      channelBuilder.on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'freight_matches' 
-      }, () => {
-        debouncedFetchAvailable(); // ✅ Debounced
-      });
-      
-      channelBuilder.on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'freight_proposals' 
-      }, () => {
-        debouncedFetchProposals(); // ✅ Debounced
+        debouncedFetchProposals();
       });
       
       channelBuilder.on('postgres_changes', {
@@ -1935,8 +1924,8 @@ const DriverDashboard = () => {
         table: 'service_requests', 
         filter: `provider_id=eq.${profile.id}` 
       }, () => {
-        debouncedFetchOngoing(); // ✅ Debounced
-        debouncedFetchTransportRequests(); // ✅ Debounced
+        debouncedFetchOngoing();
+        debouncedFetchTransportRequests();
       });
     }
     
@@ -1953,7 +1942,7 @@ const DriverDashboard = () => {
       supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, canSeeFreights, debouncedFetchOngoing, debouncedFetchAssignments, debouncedFetchAvailable, debouncedFetchProposals, debouncedFetchTransportRequests]);
+  }, [profile?.id, canSeeFreights, debouncedFetchOngoing, debouncedFetchAssignments, debouncedFetchProposals, debouncedFetchTransportRequests]);
 
   // Carregar contra-ofertas quando myProposals tiver itens COUNTER_PROPOSED
   // ✅ FIX: Depende de myProposals para evitar race condition onde counterOffers fica vazio

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { getDeviceId } from '@/utils/deviceDetection';
 import { syncDevicePermissions } from '@/services/deviceService';
@@ -104,6 +104,9 @@ export const useDevicePermissions = () => {
   };
 
   // Verificar permissões sem ativar dispositivos
+  // ✅ Ref para comparação rasa — evitar sync redundante
+  const lastSyncedRef = useRef('');
+
   const checkAllPermissions = useCallback(async () => {
     setLoading(true);
     
@@ -114,7 +117,6 @@ export const useDevicePermissions = () => {
         Promise.resolve(checkStoragePermission()),
       ]);
 
-      // Câmera e microfone: apenas verificar status via Permissions API, não ativar
       let camera: PermissionStatus = 'unsupported';
       let microphone: PermissionStatus = 'unsupported';
 
@@ -144,13 +146,18 @@ export const useDevicePermissions = () => {
 
       setPermissions(newPermissions);
       
-      // Sincronizar apenas permissões verificadas
+      // ✅ CRITICAL FIX: Comparação rasa para evitar sync redundante
+      const syncKey = `${location}:${notifications}:${storage}`;
+      if (syncKey === lastSyncedRef.current) {
+        return; // Nada mudou, não sincronizar
+      }
+      lastSyncedRef.current = syncKey;
+
       const deviceId = getDeviceId();
       await syncDevicePermissions(deviceId, {
         location: location === 'granted',
         push: notifications === 'granted',
         storage: storage === 'granted'
-        // Não sincronizar câmera/microfone até serem usados
       });
     } catch (error) {
       console.error('Erro ao verificar permissões:', error);
