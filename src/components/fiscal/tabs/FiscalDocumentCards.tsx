@@ -45,6 +45,7 @@ interface DocumentCardProps {
   onManage: () => void;
   hasCertificate?: boolean;
   requiresCertificate?: boolean;
+  actionLabel?: string;
 }
 
 const DocumentCard: React.FC<DocumentCardProps> = ({
@@ -59,6 +60,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   onManage,
   hasCertificate,
   requiresCertificate,
+  actionLabel = 'Emitir',
 }) => {
   const needsCertificate = requiresCertificate && !hasCertificate;
   const isActionable = enabled && !needsCertificate;
@@ -108,7 +110,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
               onClick={onEmit}
             >
               <Plus className="h-4 w-4 mr-1" />
-              Emitir
+              {actionLabel}
             </Button>
             <Button 
               size="sm" 
@@ -207,6 +209,7 @@ export const FiscalDocumentCards: React.FC<FiscalDocumentCardsProps> = ({
       requiresCertificate: false,
       onEmit: () => setShowGtaUpload(true),
       onManage: () => {},
+      actionLabel: 'Enviar',
     },
   ];
 
