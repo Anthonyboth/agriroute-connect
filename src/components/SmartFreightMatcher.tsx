@@ -156,7 +156,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
-      const driverPanelRole = String(profile?.role || '').toUpperCase() === 'MOTORISTA_AFILIADO'
+      const resolvedMode = String(profile?.active_mode || profile?.role || '').toUpperCase();
+      const driverPanelRole = resolvedMode === 'MOTORISTA_AFILIADO'
         ? 'MOTORISTA_AFILIADO'
         : 'MOTORISTA';
 
