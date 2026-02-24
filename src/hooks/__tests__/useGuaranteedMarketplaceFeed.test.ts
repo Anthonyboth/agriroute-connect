@@ -17,13 +17,30 @@ import { renderHook } from '@testing-library/react';
 // =============================================
 
 const mockRpc = vi.fn();
+const mockGetUser = vi.fn();
+const mockFrom = vi.fn((table: string) => {
+  if (table === 'user_cities') {
+    return {
+      select: () => ({
+        eq: () => ({
+          eq: () => Promise.resolve({ data: [{ city_id: 'city-1' }], error: null }),
+        }),
+      }),
+    };
+  }
+
+  return {
+    select: () => ({ eq: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) }),
+  };
+});
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: (...args: any[]) => mockRpc(...args),
-    from: () => ({
-      select: () => ({ eq: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) }),
-    }),
+    from: (table: string) => mockFrom(table),
+    auth: {
+      getUser: () => mockGetUser(),
+    },
   },
 }));
 
@@ -51,6 +68,7 @@ function authoritativeFeedPayload(freights: any[], services: any[], opts?: {
 function makeFreight(overrides: Partial<any> = {}) {
   return {
     id: 'freight-1', cargo_type: 'SOJA', weight: 30000,
+    origin_city_id: 'city-1',
     origin_city: 'Uberlândia', origin_state: 'MG',
     destination_city: 'São Paulo', destination_state: 'SP',
     price: 5000, urgency: 'LOW', status: 'OPEN',
@@ -64,6 +82,7 @@ function makeFreight(overrides: Partial<any> = {}) {
 function makeService(overrides: Partial<any> = {}) {
   return {
     id: 'service-1', kind: 'SERVICE', service_type: 'GUINCHO',
+    city_id: 'city-1',
     location_address: 'Uberlândia, MG', location_city: 'Uberlândia',
     location_state: 'MG', problem_description: 'Carro não liga',
     urgency: 'HIGH', status: 'OPEN', created_at: '2026-01-01T00:00:00Z',
@@ -79,6 +98,7 @@ function makeService(overrides: Partial<any> = {}) {
 describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
   });
 
   async function callFeed(profile: any, opts?: { debug?: boolean }) {

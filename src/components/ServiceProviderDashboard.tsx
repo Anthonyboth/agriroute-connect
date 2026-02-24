@@ -592,16 +592,25 @@ export const ServiceProviderDashboard: React.FC = () => {
         providerRequests = data || [];
       }
 
-      // 🔒 Blindagem estrita por cidade no painel de prestador
+      // 🔒 Blindagem estrita por cidade no painel de prestador (fail-closed)
       // Mesmo que o backend retorne candidatos por raio, o painel só exibe city_id explicitamente configurado.
-      if (user?.id) {
+      if (!user?.id) {
+        console.error('[ServiceProviderDashboard] Usuário sem auth.id para validar cidades. Aplicando fail-closed.');
+        cityBasedRequests = [];
+      } else {
         const { data: userCities, error: userCitiesError } = await supabase
           .from('user_cities')
           .select('city_id')
           .eq('user_id', user.id)
           .eq('is_active', true);
 
-        if (!userCitiesError) {
+        if (userCitiesError) {
+          console.error('[ServiceProviderDashboard] Falha ao carregar user_cities. Aplicando fail-closed para evitar vazamento regional.', {
+            user_id: user.id,
+            error: userCitiesError,
+          });
+          cityBasedRequests = [];
+        } else {
           const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
           if (activeCityIds.size === 0) {
             cityBasedRequests = [];
