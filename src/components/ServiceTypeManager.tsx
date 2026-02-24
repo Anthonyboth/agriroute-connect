@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Settings, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -34,59 +34,53 @@ export const ServiceTypeManager: React.FC = () => {
     }
   }, [profile]);
 
-  const handleServiceToggle = (serviceId: string, checked: boolean) => {
-    // Normalizar para canônico
-    const canonicalId = toCanonical(serviceId);
-    
-    if (checked) {
-      setSelectedServices(prev => {
-        // Evitar duplicatas
-        if (prev.includes(canonicalId)) return prev;
-        return [...prev, canonicalId];
-      });
-    } else {
-      // Não permite desmarcar todos os serviços
-      if (selectedServices.length > 1) {
-        setSelectedServices(prev => prev.filter(id => id !== canonicalId));
-      } else {
-        toast.error('Você deve ter pelo menos um tipo de serviço selecionado');
-      }
-    }
-  };
-
-  const handleSave = async () => {
+  const saveServices = async (services: string[]) => {
     if (!profile || !user) return;
-    
+    if (services.length === 0) {
+      toast.error('Você deve ter pelo menos um tipo de serviço selecionado');
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ service_types: selectedServices })
+        .update({ service_types: services })
         .eq('id', profile.id);
 
       if (error) throw error;
 
-      // ✅ Atualizar cache do perfil para que SmartFreightMatcher use os novos tipos
-      const updatedProfile = { ...profile, service_types: selectedServices };
+      const updatedProfile = { ...profile, service_types: services };
       setCachedProfile(user.id, updatedProfile);
-      
-      // ✅ Limpar cooldown para forçar refetch
       sessionStorage.removeItem('profile_fetch_cooldown_until');
-      
-      // ✅ Atualizar contexto de auth sem recarregar o app inteiro
       await refreshProfile();
       
-      toast.success('Tipos de serviço atualizados!');
-      
+      toast.success('Tipo de serviço atualizado!');
     } catch (error: any) {
       console.error('Erro ao atualizar tipos de serviço:', error);
-      toast.error('Erro ao salvar configurações. Tente novamente.');
+      toast.error('Erro ao salvar. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  const hasChanges = JSON.stringify(selectedServices.sort()) !== JSON.stringify((profile?.service_types || ['CARGA']).sort());
+  const handleServiceToggle = (serviceId: string, checked: boolean) => {
+    const canonicalId = toCanonical(serviceId);
+    
+    let updated: string[];
+    if (checked) {
+      if (selectedServices.includes(canonicalId)) return;
+      updated = [...selectedServices, canonicalId];
+    } else {
+      if (selectedServices.length <= 1) {
+        toast.error('Você deve ter pelo menos um tipo de serviço selecionado');
+        return;
+      }
+      updated = selectedServices.filter(id => id !== canonicalId);
+    }
+    setSelectedServices(updated);
+    saveServices(updated);
+  };
 
   if (initialLoading) {
     return (
@@ -139,23 +133,13 @@ export const ServiceTypeManager: React.FC = () => {
           </p>
         </div>
 
-        {/* Botões */}
-        <div className="flex justify-end gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedServices(profile?.service_types || ['CARGA'])}
-            disabled={!hasChanges || loading}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={!hasChanges || loading}
-            className="gradient-primary"
-          >
-            {loading ? 'Salvando...' : 'Salvar Alterações'}
-          </Button>
-        </div>
+        {/* Indicador de salvamento automático */}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            Salvando...
+          </div>
+        )}
       </CardContent>
     </Card>
   );
