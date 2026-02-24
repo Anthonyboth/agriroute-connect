@@ -5,6 +5,7 @@ import { Brain, MapPin, Settings, Wrench, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SISTEMA_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
+import { useParallax } from '@/hooks/useParallax';
 
 interface DriverDashboardHeroProps {
   profileName?: string;
@@ -27,11 +28,15 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
 }) => {
   const displayName = profileName?.split(' ')[0] || (activeMode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista');
   const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
+  const { ref: parallaxRef, style: parallaxStyle } = useParallax(0.15);
 
   return (
     <TooltipProvider>
-      <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden">
-        <picture className="absolute inset-0">
+      <section 
+        ref={parallaxRef as React.RefObject<HTMLElement>} 
+        className="relative min-h-[280px] flex items-center justify-center overflow-hidden"
+      >
+        <picture className="absolute inset-0 -top-[15%] -bottom-[15%]" style={parallaxStyle}>
           <source media="(max-width: 640px)" srcSet={heroMobile} type="image/webp" />
           <img 
             src={heroDesktop}
