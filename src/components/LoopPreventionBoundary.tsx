@@ -1,51 +1,91 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useLoopPrevention } from '@/hooks/useLoopPrevention';
+import { AlertCircle, RefreshCw, RotateCcw } from 'lucide-react';
 
 interface LoopPreventionBoundaryProps {
   children: React.ReactNode;
 }
+
+const TRIGGER_LABELS: Record<string, string> = {
+  RENDER_RATE: 'Loop rápido de renderização',
+  RENDER_RATE_SLOW: 'Loop lento de renderização (sustentado)',
+  REACT_UPDATE_DEPTH: 'React: profundidade máxima de atualização',
+  REACT_TOO_MANY_RERENDERS: 'React: muitos re-renders',
+  FETCH_FLOOD: 'Flood de requisições de rede',
+  LONG_TASK_FLOOD: 'CPU sobrecarregada (tarefas longas)',
+};
 
 export const LoopPreventionBoundary: React.FC<LoopPreventionBoundaryProps> = ({ children }) => {
   const { isTripped, tripDetails, reset } = useLoopPrevention();
 
   if (!isTripped) return <>{children}</>;
 
+  const triggerLabel = tripDetails?.trigger
+    ? TRIGGER_LABELS[tripDetails.trigger] || tripDetails.trigger
+    : 'Desconhecido';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-card-foreground shadow-sm">
-        <h1 className="text-lg font-semibold">Detectamos um loop e pausamos o app</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Para evitar travamento em produção, o aplicativo foi interrompido automaticamente e o incidente foi enviado
-          para o Telegram.
-        </p>
-
-        {tripDetails?.trigger ? (
-          <div className="mt-4 rounded-md border border-border bg-muted p-3 text-xs">
-            <div><span className="font-medium">Motivo:</span> {tripDetails.trigger}</div>
-            {typeof tripDetails.renderCount === 'number' ? (
-              <div><span className="font-medium">Renders:</span> {tripDetails.renderCount} / {tripDetails.windowMs}ms</div>
-            ) : null}
-            {tripDetails.errorMessage ? (
-              <div className="mt-1"><span className="font-medium">Erro:</span> {tripDetails.errorMessage}</div>
-            ) : null}
+      <div className="w-full max-w-lg rounded-lg border border-destructive/30 bg-card p-6 text-card-foreground shadow-lg">
+        <div className="flex items-center gap-3 mb-4">
+          <AlertCircle className="h-8 w-8 text-destructive flex-shrink-0" />
+          <div>
+            <h1 className="text-lg font-semibold">Proteção anti-loop ativada</h1>
+            <p className="text-sm text-muted-foreground">
+              O app foi pausado automaticamente para evitar travamento.
+              A equipe foi notificada via Telegram.
+            </p>
           </div>
-        ) : null}
+        </div>
+
+        <div className="rounded-md border border-border bg-muted p-3 text-xs space-y-1">
+          <div>
+            <span className="font-medium">Tipo:</span> {triggerLabel}
+          </div>
+
+          {tripDetails?.trigger === 'FETCH_FLOOD' && tripDetails.fetchUrl && (
+            <>
+              <div><span className="font-medium">URL:</span> {tripDetails.fetchUrl}</div>
+              <div><span className="font-medium">Chamadas:</span> {tripDetails.fetchCount}x em 10s</div>
+            </>
+          )}
+
+          {(tripDetails?.trigger === 'RENDER_RATE' || tripDetails?.trigger === 'RENDER_RATE_SLOW') && (
+            <div>
+              <span className="font-medium">Renders:</span> {tripDetails.renderCount} em {((tripDetails.windowMs || 0) / 1000).toFixed(0)}s
+            </div>
+          )}
+
+          {tripDetails?.trigger === 'LONG_TASK_FLOOD' && (
+            <div>
+              <span className="font-medium">Long tasks:</span> {tripDetails.renderCount} em {((tripDetails.windowMs || 0) / 1000).toFixed(0)}s
+            </div>
+          )}
+
+          {tripDetails?.errorMessage && (
+            <div className="mt-1 text-destructive/80">
+              <span className="font-medium">Erro:</span> {tripDetails.errorMessage}
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
           <Button
             type="button"
             onClick={() => window.location.reload()}
-            className="w-full"
+            className="w-full gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Recarregar agora
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={reset}
-            className="w-full"
+            className="w-full gap-2"
           >
+            <RotateCcw className="h-4 w-4" />
             Tentar recuperar
           </Button>
         </div>
