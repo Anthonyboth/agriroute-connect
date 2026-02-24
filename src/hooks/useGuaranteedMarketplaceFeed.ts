@@ -1,11 +1,15 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+type FeedPanelRole = 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
+
 interface GuaranteedMarketplaceFeedParams {
   profile: any;
   freightLimit?: number;
   serviceLimit?: number;
   debug?: boolean;
+  /** Força o papel do feed quando active_mode estiver inconsistente com o painel atual */
+  roleOverride?: FeedPanelRole;
 }
 
 interface UnifiedFeedDebugSummary {
@@ -73,8 +77,10 @@ export function useGuaranteedMarketplaceFeed() {
     freightLimit = 80,
     serviceLimit = 50,
     debug = false,
+    roleOverride,
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
-    const panel = String(profile?.active_mode || profile?.role || 'TRANSPORTADORA').toUpperCase();
+    const rawPanel = roleOverride || profile?.active_mode || profile?.role || 'TRANSPORTADORA';
+    const panel = String(rawPanel).toUpperCase();
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
     const emptyResult: GuaranteedMarketplaceResult = {

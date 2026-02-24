@@ -101,12 +101,13 @@ describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
   });
 
-  async function callFeed(profile: any, opts?: { debug?: boolean }) {
+  async function callFeed(profile: any, opts?: { debug?: boolean; roleOverride?: 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA' }) {
     const { useGuaranteedMarketplaceFeed } = await import('../useGuaranteedMarketplaceFeed');
     const { result } = renderHook(() => useGuaranteedMarketplaceFeed());
     return result.current.fetchAvailableMarketplaceItems({
       profile,
       debug: opts?.debug ?? false,
+      roleOverride: opts?.roleOverride,
     });
   }
 
@@ -155,6 +156,35 @@ describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
     expect(result.debug.freight!.excluded[0].reason).toBe('OUTSIDE_RADIUS_300KM');
   });
 
+  // ─── Cenário 2.1: Role override no painel do motorista afiliado ───
+  it('Força MOTORISTA_AFILIADO quando active_mode está inconsistente, mantendo blindagem por city_id', async () => {
+    mockRpc.mockResolvedValueOnce(
+      authoritativeFeedPayload(
+        [
+          makeFreight({ id: 'f-city-allowed', origin_city_id: 'city-1' }),
+          makeFreight({ id: 'f-city-blocked', origin_city_id: 'city-999' }),
+        ],
+        []
+      )
+    );
+
+    const result = await callFeed(
+      {
+        id: 'driver-aff-1',
+        role: 'MOTORISTA_AFILIADO',
+        active_mode: 'TRANSPORTADORA',
+        service_types: ['CARGA'],
+      },
+      { roleOverride: 'MOTORISTA_AFILIADO' }
+    );
+
+    expect(result.freights).toHaveLength(1);
+    expect(result.freights[0].id).toBe('f-city-allowed');
+    expect(mockRpc).toHaveBeenCalledWith('get_authoritative_feed', expect.objectContaining({
+      p_role: 'MOTORISTA_AFILIADO',
+    }));
+  });
+
   // ─── Cenário 3: Serviço OPEN aparece para prestador ───
   it('Serviço OPEN aparece para prestador com city + service_type compatível', async () => {
     mockRpc.mockResolvedValueOnce(
@@ -165,6 +195,8 @@ describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
       id: 'provider-1',
       active_mode: 'TRANSPORTADORA',
       service_types: ['GUINCHO'],
+    }, {
+      roleOverride: 'PRESTADOR_SERVICOS',
     });
 
     expect(result.serviceRequests).toHaveLength(1);

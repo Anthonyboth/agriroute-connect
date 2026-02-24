@@ -389,9 +389,12 @@ const DriverDashboard = () => {
       // Motorista afiliado (com ou sem restrição) também usa feed autoritativo.
       // Isso impede vazamento por query direta em freights sem filtro de cidade/tipo.
 
+      const driverPanelRole = activeMode === 'MOTORISTA_AFILIADO' ? 'MOTORISTA_AFILIADO' : 'MOTORISTA';
+
       // Fonte única de verdade para match por cidade/tipo/status
       const result = await fetchAvailableMarketplaceItems({
         profile,
+        roleOverride: driverPanelRole,
         freightLimit: 80,
         serviceLimit: 50,
         debug: import.meta.env.DEV,
