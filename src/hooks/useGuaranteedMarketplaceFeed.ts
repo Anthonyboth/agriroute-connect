@@ -56,6 +56,18 @@ export function useGuaranteedMarketplaceFeed() {
     return TRANSPORT_SERVICE_TYPES.filter((t) => profileTypes.has(t));
   }, []);
 
+  const resolveAuthenticatedUserId = useCallback(async (profile: any): Promise<string | null> => {
+    if (profile?.user_id) return String(profile.user_id);
+
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('[useGuaranteedMarketplaceFeed] Falha ao resolver auth user para blindagem de cidade:', error);
+      return null;
+    }
+
+    return data?.user?.id || null;
+  }, []);
+
   const fetchAvailableMarketplaceItems = useCallback(async ({
     profile,
     freightLimit = 80,
@@ -65,8 +77,36 @@ export function useGuaranteedMarketplaceFeed() {
     const panel = String(profile?.active_mode || profile?.role || 'TRANSPORTADORA').toUpperCase();
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
+    const emptyResult: GuaranteedMarketplaceResult = {
+      freights: [],
+      serviceRequests: [],
+      allowedTransportTypes,
+      metrics: {
+        feed_total_eligible: 0,
+        feed_total_displayed: 0,
+        fallback_used: false,
+        role: panel,
+      },
+      debug: {
+        freight: null,
+        service: null,
+        excludedItems: [],
+      },
+    };
+
+    const resolvedUserId = await resolveAuthenticatedUserId(profile);
+    if (!resolvedUserId) {
+      if (import.meta.env.DEV) {
+        console.error('[useGuaranteedMarketplaceFeed] BLOQUEADO: não foi possível resolver user_id autenticado para feed autoritativo. Retornando feed vazio (fail-closed).', {
+          panel,
+          profile_id: profile?.id,
+        });
+      }
+      return emptyResult;
+    }
+
     const { data, error } = await supabase.rpc('get_authoritative_feed', {
-      p_user_id: profile?.user_id || null,
+      p_user_id: resolvedUserId,
       p_role: panel,
       p_debug: debug,
     });
@@ -78,17 +118,26 @@ export function useGuaranteedMarketplaceFeed() {
     let freights = Array.isArray(payload?.freights) ? payload.freights.slice(0, freightLimit) : [];
     let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
 
-    // 🔒 Blindagem estrita por cidade para perfis individuais
+    // 🔒 Blindagem estrita por cidade para perfis individuais (fail-closed)
     // Evita vazamento de itens fora das cidades explicitamente marcadas pelo usuário.
     const shouldEnforceStrictCity = panel === 'MOTORISTA' || panel === 'MOTORISTA_AFILIADO' || panel === 'PRESTADOR_SERVICOS';
-    if (shouldEnforceStrictCity && profile?.user_id) {
+    if (shouldEnforceStrictCity) {
       const { data: userCities, error: userCitiesError } = await supabase
         .from('user_cities')
         .select('city_id')
-        .eq('user_id', profile.user_id)
+        .eq('user_id', resolvedUserId)
         .eq('is_active', true);
 
-      if (!userCitiesError) {
+      if (userCitiesError) {
+        // Fail-closed: se não conseguimos validar cidades ativas, não exibimos itens.
+        console.error('[useGuaranteedMarketplaceFeed] Falha ao carregar user_cities. Aplicando fail-closed para evitar vazamento regional.', {
+          panel,
+          user_id: resolvedUserId,
+          error: userCitiesError,
+        });
+        freights = [];
+        serviceRequests = [];
+      } else {
         const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
 
         if (activeCityIds.size === 0) {
@@ -150,7 +199,7 @@ export function useGuaranteedMarketplaceFeed() {
         excludedItems: debug ? (debugPayload?.excluded_items || []) : [],
       },
     };
-  }, [resolveAllowedTransportTypes]);
+  }, [resolveAllowedTransportTypes, resolveAuthenticatedUserId]);
 
   return {
     fetchAvailableMarketplaceItems,
