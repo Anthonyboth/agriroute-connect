@@ -1,0 +1,47 @@
+
+-- Fix: Remove invalid record (coordinate stored as city name)
+DELETE FROM cities WHERE id = '6a1e84e0-f1a4-42c0-9d7a-a596ac6ea456' AND name = '-15.568866' AND state = 'MT';
+
+-- Insert missing MT municipalities with approximate coordinates from IBGE
+INSERT INTO cities (name, state, ibge_code, lat, lng) VALUES
+  ('Boa Esperança do Norte', 'MT', NULL, -13.40, -54.12),
+  ('Ipiranga do Norte', 'MT', '5104526', -12.24, -56.15),
+  ('Itanhangá', 'MT', '5104542', -12.23, -56.64),
+  ('Itaúba', 'MT', '5104559', -11.06, -55.28),
+  ('Itiquira', 'MT', '5104609', -17.21, -54.14),
+  ('Jaciara', 'MT', '5104807', -15.97, -54.97),
+  ('Jangada', 'MT', '5104906', -15.24, -56.49),
+  ('Jauru', 'MT', '5105002', -15.34, -58.87),
+  ('Juruena', 'MT', '5105176', -10.32, -58.49),
+  ('Juscimeira', 'MT', '5105200', -16.05, -54.88),
+  ('Lambari d''Oeste', 'MT', '5105234', -15.32, -58.00),
+  ('Luciara', 'MT', '5105309', -11.22, -50.67),
+  ('Marcelândia', 'MT', '5105580', -11.11, -54.44),
+  ('Matupá', 'MT', '5105606', -10.18, -54.92),
+  ('Mirassol d''Oeste', 'MT', '5105622', -15.68, -58.10),
+  ('Nobres', 'MT', '5105903', -14.73, -56.33),
+  ('Nortelândia', 'MT', '5106000', -14.46, -56.80),
+  ('Nossa Senhora do Livramento', 'MT', '5106109', -15.77, -56.35),
+  ('Nova Bandeirantes', 'MT', '5106158', -9.85, -57.86),
+  ('Nova Brasilândia', 'MT', '5106208', -14.96, -54.97),
+  ('Nova Canaã do Norte', 'MT', '5106216', -10.56, -55.95),
+  ('Nova Lacerda', 'MT', '5106182', -14.47, -59.60),
+  ('Nova Nazaré', 'MT', '5106174', -13.95, -51.47),
+  ('Nova Olímpia', 'MT', '5106232', -14.80, -57.29),
+  ('Nova Santa Helena', 'MT', '5106190', -10.82, -55.19),
+  ('Nova Xavantina', 'MT', '5106257', -14.66, -52.35),
+  ('Novo Horizonte do Norte', 'MT', '5106273', -11.41, -57.35),
+  ('Novo Mundo', 'MT', '5106265', -9.96, -55.20),
+  ('Novo Santo Antônio', 'MT', '5106315', -12.29, -50.97),
+  ('Paranaíta', 'MT', '5106299', -9.67, -56.48),
+  ('Pedra Preta', 'MT', '5106372', -16.62, -54.47),
+  ('Peixoto de Azevedo', 'MT', '5106422', -10.22, -54.98),
+  ('Planalto da Serra', 'MT', '5106455', -14.65, -54.78),
+  ('Poconé', 'MT', '5106505', -16.26, -56.62),
+  ('Pontal do Araguaia', 'MT', '5106653', -15.85, -52.01),
+  ('Ponte Branca', 'MT', '5106703', -16.08, -52.84),
+  ('Porto Alegre do Norte', 'MT', '5106778', -10.88, -51.63),
+  ('Porto dos Gaúchos', 'MT', '5106802', -11.53, -57.41),
+  ('Porto Esperidião', 'MT', '5106828', -15.86, -58.46),
+  ('Porto Estrela', 'MT', '5106851', -15.32, -57.22)
+ON CONFLICT DO NOTHING;
