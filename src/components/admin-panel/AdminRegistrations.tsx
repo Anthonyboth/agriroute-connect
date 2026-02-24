@@ -81,12 +81,12 @@ const AdminRegistrations = () => {
   };
 
   return (
-    <div className="flex-1">
-      <header className="bg-white border-b px-6 py-4 flex items-center gap-4">
-        <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+    <div className="flex-1 bg-muted/30">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center gap-4">
+        <SidebarTrigger className="p-2 hover:bg-muted rounded-md">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
-        <h1 className="text-xl font-semibold text-gray-800">Cadastros</h1>
+        <h1 className="text-xl font-semibold text-foreground">Cadastros</h1>
         <Badge variant="outline" className="ml-2">{total} registros</Badge>
       </header>
 
@@ -95,7 +95,7 @@ const AdminRegistrations = () => {
         <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-600 mb-1 block">Buscar</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Buscar</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Nome, CPF/CNPJ ou telefone"
@@ -109,7 +109,7 @@ const AdminRegistrations = () => {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 mb-1 block">Status</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Status</label>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -123,7 +123,7 @@ const AdminRegistrations = () => {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 mb-1 block">Tipo</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Tipo</label>
               <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setPage(1); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -145,7 +145,7 @@ const AdminRegistrations = () => {
               <div className="flex items-center justify-center py-12"><AppSpinner /></div>
             ) : (
               <Table>
-                <TableHeader className="bg-gray-50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF/CNPJ</TableHead>
@@ -163,7 +163,7 @@ const AdminRegistrations = () => {
                     return (
                       <TableRow
                         key={reg.id}
-                        className="cursor-pointer hover:bg-gray-50"
+                        className="cursor-pointer hover:bg-muted/30"
                         onClick={() => navigate(`/admin-v2/cadastros/${reg.id}`)}
                       >
                         <TableCell className="font-medium">{reg.full_name || '—'}</TableCell>

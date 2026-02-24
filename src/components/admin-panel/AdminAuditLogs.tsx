@@ -43,12 +43,12 @@ const AdminAuditLogs = () => {
   const totalPages = Math.ceil(total / 30);
 
   return (
-    <div className="flex-1">
-      <header className="bg-white border-b px-6 py-4 flex items-center gap-4">
-        <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+    <div className="flex-1 bg-muted/30">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center gap-4">
+        <SidebarTrigger className="p-2 hover:bg-muted rounded-md">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
-        <h1 className="text-xl font-semibold text-gray-800">Auditoria</h1>
+        <h1 className="text-xl font-semibold text-foreground">Auditoria</h1>
         <Badge variant="outline">{total} registros</Badge>
       </header>
 
@@ -56,7 +56,7 @@ const AdminAuditLogs = () => {
         <Card className="p-4">
           <div className="flex items-center gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-600 mb-1 block">Filtrar por ação</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Filtrar por ação</label>
               <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -77,7 +77,7 @@ const AdminAuditLogs = () => {
               <div className="flex items-center justify-center py-12"><AppSpinner /></div>
             ) : (
               <Table>
-                <TableHeader className="bg-gray-50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Data/Hora</TableHead>
                     <TableHead>Admin</TableHead>
