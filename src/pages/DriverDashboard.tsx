@@ -2447,8 +2447,21 @@ const DriverDashboard = () => {
     }
   };
 
-  // ✅ PERFORMANCE: Removido loading bloqueante - dashboard visível imediatamente
+  // ✅ GUARD CRÍTICO: não renderizar árvore pesada antes do perfil estar pronto.
+  // Isso evita transições de props (undefined -> valor) em componentes filhos com hooks,
+  // principal causa do erro "Rendered fewer hooks than expected".
+  if (!profile?.id) {
+    return (
+      <PageDOMErrorBoundary>
+        <div data-dashboard-ready="true" className="min-h-screen bg-background">
+          <AppSpinner />
+        </div>
+      </PageDOMErrorBoundary>
+    );
+  }
 
+  // ✅ PERFORMANCE: Removido loading bloqueante global em estados normais -
+  // este fallback só aparece durante bootstrap do perfil.
   if (showDetails && selectedFreightId) {
     return (
       <FreightDetails
