@@ -1,28 +1,30 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightHistoryFromDB } from '@/components/history/FreightHistoryFromDB';
 import { ServiceHistoryFromDB } from '@/components/history/ServiceHistoryFromDB';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { Truck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-
-const URBAN_TYPES = [
-  'GUINCHO', 'FRETE_MOTO', 'FRETE_URBANO', 'MUDANCA', 'MUDANCA_RESIDENCIAL',
-  'MUDANCA_COMERCIAL', 'TRANSPORTE_PET', 'ENTREGA_PACOTES',
-];
+import { useDriverFreightVisibility } from '@/hooks/useDriverFreightVisibility';
 
 export const DriverHistoryTab: React.FC = () => {
   const { profile } = useAuth();
 
-  const { hasRural, hasUrban } = useMemo(() => {
-    const types: string[] = profile?.service_types || [];
-    const rural = types.length === 0 || types.includes('CARGA');
-    const urban = types.some(t => URBAN_TYPES.includes(t));
-    return { hasRural: rural, hasUrban: urban };
-  }, [profile?.service_types]);
+  const { hasRuralFreights: hasRural, hasUrbanFreights: hasUrban } = useDriverFreightVisibility({
+    serviceTypes: profile?.service_types,
+    defaultToRuralWhenEmpty: false,
+  });
 
-  const showBoth = hasRural && hasUrban;
   const [activeTab, setActiveTab] = useState<string>(hasRural ? 'freights' : 'services');
+
+  useEffect(() => {
+    if (!hasRural && hasUrban && activeTab !== 'services') {
+      setActiveTab('services');
+    }
+    if (!hasUrban && hasRural && activeTab !== 'freights') {
+      setActiveTab('freights');
+    }
+  }, [hasRural, hasUrban, activeTab]);
 
   // Single tab: rural only
   if (hasRural && !hasUrban) {
@@ -41,6 +43,17 @@ export const DriverHistoryTab: React.FC = () => {
       <SafeListWrapper>
         <div className="space-y-4">
           <ServiceHistoryFromDB asClient={false} includeTransportTypes={true} />
+        </div>
+      </SafeListWrapper>
+    );
+  }
+
+  // Nenhum tipo ativo
+  if (!hasRural && !hasUrban) {
+    return (
+      <SafeListWrapper>
+        <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          Nenhum tipo de frete ativo no seu perfil. Ative pelo menos um tipo de serviço para visualizar o histórico.
         </div>
       </SafeListWrapper>
     );
