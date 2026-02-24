@@ -134,6 +134,7 @@ export function useSecurityAntiError() {
           firstArg.includes('Maximum update depth') ||
           firstArg.includes('Too many re-renders') ||
           firstArg.includes('Rendered more hooks than during the previous render') ||
+          firstArg.includes('Rendered fewer hooks than expected') ||
           firstArg.includes('Cannot update a component')
         ) {
           const errorMsg = args.map(a => typeof a === 'string' ? a : String(a)).join(' ');

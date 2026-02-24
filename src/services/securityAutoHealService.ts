@@ -203,6 +203,7 @@ export class SecurityAutoHealService {
     // React hook order mismatch / render loop crítico
     if (
       msg.includes('rendered more hooks than during the previous render') ||
+      msg.includes('rendered fewer hooks than expected') ||
       msg.includes('too many re-renders') ||
       msg.includes('maximum update depth exceeded')
     ) {
