@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 const RURAL_SERVICE_TYPES = new Set(['CARGA']);
 const URBAN_SERVICE_TYPES = new Set([
@@ -71,11 +71,12 @@ export const useDriverFreightVisibility = ({
   const hasRuralFreights = normalizedServiceTypes.some((type) => RURAL_SERVICE_TYPES.has(type));
   const hasUrbanFreights = normalizedServiceTypes.some((type) => URBAN_SERVICE_TYPES.has(type));
 
-  const canSeeFreightByType = (freightServiceType: string | null | undefined): boolean => {
+  // ✅ CRITICAL FIX: useCallback para identidade estável entre renders
+  const canSeeFreightByType = useCallback((freightServiceType: string | null | undefined): boolean => {
     const normalized = normalizeDriverServiceTypeStrict(String(freightServiceType || ''));
     if (!normalized) return false;
     return normalizedServiceTypes.includes(normalized);
-  };
+  }, [normalizedServiceTypes]);
 
   return {
     normalizedServiceTypes,

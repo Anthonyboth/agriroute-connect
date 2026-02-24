@@ -103,6 +103,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const isMountedRef = useRef(true);
   const updateLockRef = useRef(false);
   const fetchIdRef = useRef(0);
+  const lastFetchAtRef = useRef(0);
+  // ✅ CRITICAL FIX: Refs para callbacks externos — evita deps instáveis no fetch
+  const onCountsChangeRef = useRef(onCountsChange);
+  onCountsChangeRef.current = onCountsChange;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -126,10 +130,18 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id || !user?.id) return;
 
+    // ✅ CRITICAL FIX: Guard de frequência — mín 2s entre fetches
+    const now = Date.now();
+    if (now - lastFetchAtRef.current < 2000) {
+      devLog("[SmartFreightMatcher] Fetch throttled (< 2s)");
+      return;
+    }
+
     if (updateLockRef.current) {
       devLog("[SmartFreightMatcher] Fetch já em andamento, ignorando...");
       return;
     }
+    lastFetchAtRef.current = now;
 
     const currentFetchId = ++fetchIdRef.current;
     updateLockRef.current = true;
@@ -219,7 +231,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           setCompatibleFreights(filteredMapped);
           setTowingRequests(matchedServiceRequests);
           const highUrgency = filteredMapped.filter((f) => f.urgency === "HIGH").length;
-          onCountsChange?.({ total: filteredMapped.length + matchedServiceRequests.length, highUrgency });
+          onCountsChangeRef.current?.({ total: filteredMapped.length + matchedServiceRequests.length, highUrgency });
         }
         return;
       }
@@ -349,7 +361,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         setTowingRequests(matchedServiceRequests);
 
         const highUrgency = finalFreights.filter((f) => f.urgency === "HIGH").length;
-        onCountsChange?.({ total: finalFreights.length + matchedServiceRequests.length, highUrgency });
+        onCountsChangeRef.current?.({ total: finalFreights.length + matchedServiceRequests.length, highUrgency });
 
         setMatchingStats({
           exactMatches: rpcFreights.length,
@@ -367,7 +379,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       }
       updateLockRef.current = false;
     }
-  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, onCountsChange]);
+  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -450,40 +462,33 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const autoRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
-  // Refresh inicial e também quando tipos de serviço mudarem
+  // ✅ CRITICAL FIX: Ref para fetchCompatibleFreights — evita loop de deps no useEffect
+  const fetchRef = useRef(fetchCompatibleFreights);
+  fetchRef.current = fetchCompatibleFreights;
+
+  // Refresh inicial — deps estáveis apenas (IDs primitivos)
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
-    fetchCompatibleFreights();
+    fetchRef.current();
     setLastRefreshAt(new Date());
-  }, [profile?.id, user?.id, allowedTypesFromProfile, fetchCompatibleFreights]);
+  }, [profile?.id, user?.id]);
   
-  // Auto-refresh a cada 10 minutos (configurável)
+  // Auto-refresh a cada 10 minutos (sem dep em fetchCompatibleFreights)
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     
-    // Limpa intervalo anterior
-    if (autoRefreshIntervalRef.current) {
-      clearInterval(autoRefreshIntervalRef.current);
-    }
-    
-    // Configura novo intervalo
-    autoRefreshIntervalRef.current = setInterval(() => {
+    const intervalId = setInterval(() => {
       if (isMountedRef.current && !updateLockRef.current) {
         devLog('[SmartFreightMatcher] Auto-refresh (10min)');
-        fetchCompatibleFreights();
+        fetchRef.current();
         setLastRefreshAt(new Date());
       }
     }, AUTO_REFRESH_MS);
     
-    return () => {
-      if (autoRefreshIntervalRef.current) {
-        clearInterval(autoRefreshIntervalRef.current);
-      }
-    };
-  }, [profile?.id, user?.id, fetchCompatibleFreights]);
+    return () => clearInterval(intervalId);
+  }, [profile?.id, user?.id]);
   
-  // ✅ Realtime APENAS para user_cities (mudanças de área do motorista)
-  // NÃO usar realtime para freights (gera muitos eventos)
+  // Realtime para user_cities (sem dep em fetchCompatibleFreights)
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     
@@ -496,7 +501,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           () => {
             if (!isMountedRef.current) return;
             toast.info("Suas cidades de atendimento foram atualizadas. Recarregando fretes...");
-            fetchCompatibleFreights();
+            fetchRef.current();
             setLastRefreshAt(new Date());
           },
         ),
@@ -505,7 +510,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         retryDelayMs: 5000,
         onError: (error) => {
           console.error("[SmartFreightMatcher] Realtime error (não crítico):", error);
-          // ❌ REMOVIDO: polling de fallback de 30s que causava spam
         },
       },
     );
@@ -513,7 +517,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     return () => {
       cleanup();
     };
-  }, [profile?.id, user?.id, fetchCompatibleFreights]);
+  }, [profile?.id, user?.id]);
 
   const filteredFreights = useMemo(() => {
     return compatibleFreights.filter((freight) => {
