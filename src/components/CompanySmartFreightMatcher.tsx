@@ -28,6 +28,7 @@ import { normalizeFreightStatus, isOpenStatus } from "@/lib/freight-status";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { useMarketplaceAvailabilityGuarantee } from '@/hooks/useMarketplaceAvailabilityGuarantee';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
+import { runFeedIntegrityGuard } from '@/security/feedIntegrityGuard';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -94,16 +95,16 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     try {
       if (import.meta.env.DEV) console.log("🔍 [FRETES I.A] Buscando fretes para company:", company.id);
 
-      const {
-        freights: freightsData,
-        serviceRequests: serviceData,
-        allowedTransportTypes,
-      } = await fetchAvailableMarketplaceItems({
+      const result = await fetchAvailableMarketplaceItems({
         profile,
         freightLimit: 80,
         serviceLimit: 40,
         debug: import.meta.env.DEV,
       });
+
+      const freightsData = result.freights;
+      const serviceData = result.serviceRequests;
+      const allowedTransportTypes = result.allowedTransportTypes;
 
       if (import.meta.env.DEV) {
         console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
@@ -170,6 +171,16 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         assigned: drivers?.length || 0,
       });
       setLastUpdateTime(new Date());
+
+      // ✅ INTEGRITY GUARD: verifica discrepâncias entre backend e frontend
+      runFeedIntegrityGuard({
+        scope: 'carrier',
+        backendEligible: result.metrics?.feed_total_eligible ?? (freightsData?.length || 0) + (serviceData?.length || 0),
+        backendDisplayed: result.metrics?.feed_total_displayed ?? normalizedFreights.length + (serviceData?.length || 0),
+        renderedDisplayed: normalizedFreights.length + (serviceData?.length || 0),
+        fallbackUsed: result.metrics?.fallback_used ?? false,
+        role: 'TRANSPORTADORA',
+      });
     } catch (error: any) {
       console.error("[CompanySmartFreightMatcher] erro:", error);
       toast.error(error?.message || "Erro ao carregar fretes");

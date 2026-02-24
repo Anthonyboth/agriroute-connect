@@ -48,6 +48,7 @@ import { debounce } from "@/lib/utils";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { formatSolicitadoHa } from "@/lib/formatters";
 import { runFeedIntegrityGuard } from '@/security/feedIntegrityGuard';
+import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -85,6 +86,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const { profile, user } = useAuth();
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights, companyId: permissionCompanyId } = useDriverPermissions();
+  const { fetchAvailableMarketplaceItems } = useGuaranteedMarketplaceFeed();
 
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [towingRequests, setTowingRequests] = useState<any[]>([]);
@@ -147,47 +149,22 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     const currentFetchId = ++fetchIdRef.current;
     updateLockRef.current = true;
 
-      const activeMode = profile?.active_mode || profile?.role;
-      const isCompany = activeMode === "TRANSPORTADORA";
-      const panelMode = isCompany
-        ? 'TRANSPORTADORA'
-        : (isAffiliated && !canAcceptFreights ? 'MOTORISTA_AFILIADO' : 'MOTORISTA');
-
-      const resolvedCompanyId = companyId || permissionCompanyId || null;
-      if (panelMode === 'TRANSPORTADORA' && !resolvedCompanyId) {
-        throw new Error('Configuração inválida: p_company_id é obrigatório para TRANSPORTADORA.');
-      }
-
+    try {
       setLoading(true);
 
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
-      const [freightResult, serviceResult] = await Promise.all([
-        supabase.rpc('get_unified_freight_feed', {
-          p_panel: panelMode,
-          p_profile_id: profile.id,
-          p_company_id: resolvedCompanyId,
-          p_debug: import.meta.env.DEV,
-        }),
-        supabase.rpc('get_unified_service_feed', {
-          p_profile_id: profile.id,
-          p_debug: import.meta.env.DEV,
-        }),
-      ]);
+      // ✅ FONTE ÚNICA: usa hook autoritativo (get_authoritative_feed)
+      const result = await fetchAvailableMarketplaceItems({
+        profile,
+        freightLimit: 80,
+        serviceLimit: 50,
+        debug: import.meta.env.DEV,
+      });
 
-      if (freightResult.error) {
-        throw freightResult.error;
-      }
-      if (serviceResult.error) {
-        console.warn('[SmartFreightMatcher] Serviço unificado falhou (não bloqueante):', serviceResult.error);
-      }
-
-      const freightPayload = (freightResult.data || {}) as any;
-      const servicePayload = (serviceResult.data || {}) as any;
-
-      const unifiedFreights: CompatibleFreight[] = (Array.isArray(freightPayload.items) ? freightPayload.items : []).map((f: any) => ({
-        freight_id: f.id,
+      const unifiedFreights: CompatibleFreight[] = (result.freights || []).map((f: any) => ({
+        freight_id: f.id || f.freight_id,
         cargo_type: f.cargo_type || '',
         weight: Number(f.weight || 0),
         origin_address: f.origin_address || `${f.origin_city || ""}, ${f.origin_state || ""}`,
@@ -209,7 +186,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         created_at: String(f.created_at || ''),
       }));
 
-      const unifiedServices = (Array.isArray(servicePayload.items) ? servicePayload.items : []).filter((s: any) => {
+      const unifiedServices = (result.serviceRequests || []).filter((s: any) => {
         const canonical = normalizeServiceType(String(s.service_type || ''));
         return canSeeFreightByType(canonical) && canonical !== 'CARGA';
       });
@@ -227,12 +204,31 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         onCountsChangeRef.current?.({ total: unifiedFreights.length + unifiedServices.length, highUrgency });
 
         setMatchingStats({
-          exactMatches: Number(freightPayload?.debug?.total_eligible || unifiedFreights.length),
-          fallbackMatches: 0,
-          totalChecked: Number(freightPayload?.debug?.total_candidates || unifiedFreights.length),
+          exactMatches: result.metrics.feed_total_eligible,
+          fallbackMatches: result.metrics.fallback_used ? 1 : 0,
+          totalChecked: result.metrics.feed_total_eligible,
+        });
+
+        // ✅ INTEGRITY GUARD: verifica discrepâncias
+        runFeedIntegrityGuard({
+          scope: 'unified',
+          backendEligible: result.metrics.feed_total_eligible,
+          backendDisplayed: result.metrics.feed_total_displayed,
+          renderedDisplayed: unifiedFreights.length + unifiedServices.length,
+          fallbackUsed: result.metrics.fallback_used,
+          role: result.metrics.role,
         });
       }
-  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType]);
+    } catch (error: any) {
+      console.error("[SmartFreightMatcher] Erro ao buscar feed autoritativo:", error);
+      if (isMountedRef.current) {
+        showErrorToast(toast, "Erro ao carregar fretes", error);
+      }
+    } finally {
+      updateLockRef.current = false;
+      setLoading(false);
+    }
+  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, fetchAvailableMarketplaceItems]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
