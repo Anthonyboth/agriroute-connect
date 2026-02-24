@@ -47,6 +47,7 @@ import { subscriptionWithRetry } from "@/lib/query-utils";
 import { debounce } from "@/lib/utils";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { formatSolicitadoHa } from "@/lib/formatters";
+import { runFeedIntegrityGuard } from '@/security/feedIntegrityGuard';
 
 interface CompatibleFreight {
   freight_id: string;

@@ -13711,6 +13711,10 @@ export type Database = {
           total_ratings: number
         }[]
       }
+      get_authoritative_feed: {
+        Args: { p_debug?: boolean; p_role: string; p_user_id: string }
+        Returns: Json
+      }
       get_company_owner_for_affiliated_driver: {
         Args: { p_company_id: string }
         Returns: {

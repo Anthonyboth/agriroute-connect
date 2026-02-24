@@ -24,9 +24,21 @@ interface GuaranteedMarketplaceResult {
   freights: any[];
   serviceRequests: any[];
   allowedTransportTypes: string[];
+  metrics: {
+    feed_total_eligible: number;
+    feed_total_displayed: number;
+    fallback_used: boolean;
+    role: string;
+  };
   debug: {
     freight: UnifiedFeedDebugSummary | null;
     service: UnifiedFeedDebugSummary | null;
+    excludedItems: Array<{
+      item_type: 'FREIGHT' | 'SERVICE';
+      item_id: string;
+      service_type?: string;
+      reason: string;
+    }>;
   };
 }
 
@@ -52,58 +64,59 @@ export function useGuaranteedMarketplaceFeed() {
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
     const panel = String(profile?.active_mode || profile?.role || 'TRANSPORTADORA').toUpperCase();
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
-    const resolvedCompanyId = profile?.company_id || null;
 
-    if (panel === 'TRANSPORTADORA' && !resolvedCompanyId) {
-      throw new Error('Configuração inválida: p_company_id é obrigatório para TRANSPORTADORA.');
-    }
+    const { data, error } = await supabase.rpc('get_authoritative_feed', {
+      p_user_id: profile?.user_id || null,
+      p_role: panel,
+      p_debug: debug,
+    });
 
-    // ✅ RPCs DETERMINÍSTICAS — nunca escondem itens elegíveis
-    const [freightRpc, serviceRpc] = await Promise.all([
-      supabase.rpc('get_unified_freight_feed', {
-        p_panel: panel === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : 'MOTORISTA',
-        p_profile_id: profile?.id,
-        p_company_id: resolvedCompanyId,
-        p_debug: debug,
-      }),
-      supabase.rpc('get_unified_service_feed', {
-        p_profile_id: profile?.id,
-        p_debug: debug,
-      }),
-    ]);
+    if (error) throw error;
 
-    if (freightRpc.error) throw freightRpc.error;
-    if (serviceRpc.error) {
-      console.warn('[useGuaranteedMarketplaceFeed] Service RPC falhou (não bloqueante):', serviceRpc.error);
-    }
+    const payload = (data || {}) as any;
+    const freights = Array.isArray(payload?.freights) ? payload.freights.slice(0, freightLimit) : [];
+    const serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
 
-    const freightPayload = (freightRpc.data || {}) as any;
-    const servicePayload = (serviceRpc.data || {}) as any;
+    const metrics = {
+      feed_total_eligible: Number(payload?.metrics?.feed_total_eligible || 0),
+      feed_total_displayed: Number(payload?.metrics?.feed_total_displayed || freights.length + serviceRequests.length),
+      fallback_used: Boolean(payload?.metrics?.fallback_used),
+      role: String(payload?.metrics?.role || panel),
+    };
 
-    const freights = Array.isArray(freightPayload.items) ? freightPayload.items.slice(0, freightLimit) : [];
+    const debugPayload = payload?.debug || null;
 
-    // Para transportadora: mantemos apenas serviços urbanos de transporte
-    const rawServices = Array.isArray(servicePayload?.items) ? servicePayload.items : [];
-    const serviceRequests = rawServices
-      .filter((item: any) => allowedTransportTypes.includes(String(item.service_type || '').toUpperCase()))
-      .slice(0, serviceLimit);
+    if (import.meta.env.DEV) {
+      if (metrics.fallback_used && (freights.length > 0 || serviceRequests.length > 0)) {
+        console.error('[FeedIntegrity] Fallback autoritativo ativado: itens exibidos via fail-safe simplificado.', {
+          role: metrics.role,
+          freights: freights.length,
+          services: serviceRequests.length,
+          eligible: metrics.feed_total_eligible,
+          displayed: metrics.feed_total_displayed,
+        });
+      }
 
-    if (debug && import.meta.env.DEV) {
-      console.group('🔍 [useGuaranteedMarketplaceFeed] Debug');
-      console.log('Fretes:', freights.length, 'Serviços:', serviceRequests.length);
-      console.log('Tipos urbanos permitidos:', allowedTransportTypes);
-      if (freightPayload.debug) console.log('Debug freight:', freightPayload.debug);
-      if (servicePayload?.debug) console.log('Debug service:', servicePayload.debug);
-      console.groupEnd();
+      if (debug) {
+        console.group('🔍 [useGuaranteedMarketplaceFeed] Authoritative Feed Debug');
+        console.log('Fretes:', freights.length, 'Serviços:', serviceRequests.length);
+        console.log('Tipos urbanos permitidos (perfil):', allowedTransportTypes);
+        console.log('Metrics:', metrics);
+        if (debugPayload?.freight) console.log('Debug freight:', debugPayload.freight);
+        if (debugPayload?.service) console.log('Debug service:', debugPayload.service);
+        console.groupEnd();
+      }
     }
 
     return {
       freights,
       serviceRequests,
       allowedTransportTypes,
+      metrics,
       debug: {
-        freight: debug ? (freightPayload.debug as UnifiedFeedDebugSummary) : null,
-        service: debug ? (servicePayload?.debug as UnifiedFeedDebugSummary) : null,
+        freight: debug ? (debugPayload?.freight as UnifiedFeedDebugSummary) : null,
+        service: debug ? (debugPayload?.service as UnifiedFeedDebugSummary) : null,
+        excludedItems: debug ? (debugPayload?.excluded_items || []) : [],
       },
     };
   }, [resolveAllowedTransportTypes]);
@@ -113,3 +126,4 @@ export function useGuaranteedMarketplaceFeed() {
     resolveAllowedTransportTypes,
   };
 }
+
