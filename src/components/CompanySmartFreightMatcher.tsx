@@ -22,9 +22,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCargoTypesByCategory } from "@/lib/cargo-types";
 import { useTransportCompany } from "@/hooks/useTransportCompany";
+import { useAuth } from "@/hooks/useAuth";
 import { useLastUpdate } from "@/hooks/useLastUpdate";
 import { normalizeFreightStatus, isOpenStatus } from "@/lib/freight-status";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
+import { useMarketplaceAvailabilityGuarantee } from '@/hooks/useMarketplaceAvailabilityGuarantee';
+import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -56,7 +59,9 @@ interface CompanySmartFreightMatcherProps {
 }
 
 export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProps> = ({ onTabChange }) => {
+  const { profile } = useAuth();
   const { drivers, company } = useTransportCompany();
+  const { fetchAvailableMarketplaceItems } = useGuaranteedMarketplaceFeed();
   const queryClient = useQueryClient();
 
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
@@ -89,48 +94,18 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     try {
       if (import.meta.env.DEV) console.log("🔍 [FRETES I.A] Buscando fretes para company:", company.id);
 
-      // ✅ IMPORTANTÍSSIMO: tipar como literal (resolve TS2345)
-      const OPEN_STATUSES = ["OPEN", "IN_NEGOTIATION"] as const;
+      const { freights: freightsData, serviceRequests: serviceData, allowedTransportTypes } =
+        await fetchAvailableMarketplaceItems({
+          profile,
+          freightLimit: 80,
+          serviceLimit: 40,
+        });
 
-      // 1) Buscar fretes rurais da tabela freights
-      const { data: freightsData, error: freightsError } = await supabase
-        .from("freights")
-        .select(
-          `
-          id, cargo_type, weight, origin_address, destination_address, origin_city, origin_state,
-          destination_city, destination_state, pickup_date, delivery_date, price, urgency, status,
-          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at, driver_id
-        `,
-        )
-        .in("status", OPEN_STATUSES)
-        .is("driver_id", null)
-        .order("created_at", { ascending: false })
-        .limit(80);
-
-      if (freightsError) throw freightsError;
-
-      // 2) Buscar service_requests urbanos/PET/Pacotes (TRANSPORTE_PET, ENTREGA_PACOTES, GUINCHO, etc.)
-      const SERVICE_TYPES_TO_FETCH = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO'] as const;
-      
-      const { data: serviceData, error: serviceError } = await supabase
-        .from("service_requests_secure")
-        .select(
-          `id, service_type, status, provider_id, location_address, destination_address,
-           location_city, location_state, destination_city, destination_state,
-           urgency, estimated_price, created_at, preferred_datetime, problem_description, contact_name`
-        )
-        .eq("status", "OPEN")
-        .is("provider_id", null)
-        .in("service_type", SERVICE_TYPES_TO_FETCH as unknown as string[])
-        .order("created_at", { ascending: false })
-        .limit(40);
-
-      if (serviceError) {
-        console.warn("⚠️ [FRETES I.A] Erro ao buscar service_requests:", serviceError.message);
+      if (import.meta.env.DEV) {
+        console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
+        console.log("📦 [FRETES I.A] " + (serviceData?.length || 0) + " service_requests retornados");
+        console.log("🧭 [FRETES I.A] Tipos urbanos permitidos:", allowedTransportTypes);
       }
-
-      if (import.meta.env.DEV) console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
-      if (import.meta.env.DEV) console.log("📦 [FRETES I.A] " + (serviceData?.length || 0) + " service_requests retornados");
 
       const normalizedFreights: CompatibleFreight[] = [];
       let discardedByStatus = 0;
@@ -200,12 +175,14 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [company?.id, drivers?.length]);
+  }, [company?.id, drivers?.length, profile, fetchAvailableMarketplaceItems]);
 
-  React.useEffect(() => {
-    if (company?.id) fetchCompatibleFreights();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  useMarketplaceAvailabilityGuarantee({
+    enabled: !!company?.id,
+    refresh: fetchCompatibleFreights,
+    dependencies: [company?.id, drivers?.length, JSON.stringify(profile?.service_types || [])],
+    minIntervalMs: 900,
+  });
 
   const handleAssignFreight = async (targetId: string, driverId: string) => {
     if (!driverId) {
