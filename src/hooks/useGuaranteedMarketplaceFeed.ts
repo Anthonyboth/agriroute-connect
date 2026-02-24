@@ -52,13 +52,18 @@ export function useGuaranteedMarketplaceFeed() {
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
     const panel = String(profile?.active_mode || profile?.role || 'TRANSPORTADORA').toUpperCase();
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
+    const resolvedCompanyId = profile?.company_id || null;
+
+    if (panel === 'TRANSPORTADORA' && !resolvedCompanyId) {
+      throw new Error('Configuração inválida: p_company_id é obrigatório para TRANSPORTADORA.');
+    }
 
     // ✅ RPCs DETERMINÍSTICAS — nunca escondem itens elegíveis
     const [freightRpc, serviceRpc] = await Promise.all([
       supabase.rpc('get_unified_freight_feed', {
         p_panel: panel === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : 'MOTORISTA',
         p_profile_id: profile?.id,
-        p_company_id: profile?.company_id || null,
+        p_company_id: resolvedCompanyId,
         p_debug: debug,
       }),
       supabase.rpc('get_unified_service_feed', {

@@ -17,7 +17,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FreightCard } from "@/components/FreightCard";
-import { Brain, RefreshCw, Search, Zap, Package, Clock, Truck, Bike, Wrench, PawPrint, DollarSign, MessageSquare, MapPin, Bug } from "lucide-react";
+import { Brain, RefreshCw, Search, Zap, Package, Clock, Truck, Bike, Wrench, PawPrint, DollarSign, MessageSquare, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCargoTypesByCategory } from "@/lib/cargo-types";
@@ -78,8 +78,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignTargetId, setAssignTargetId] = useState<string>("");
   const [assignTargetType, setAssignTargetType] = useState<"freight" | "service">("freight");
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any | null>(null);
   const fetchingRef = React.useRef(false);
 
   const fetchCompatibleFreights = useCallback(async () => {
@@ -100,7 +98,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         freights: freightsData,
         serviceRequests: serviceData,
         allowedTransportTypes,
-        debug,
       } = await fetchAvailableMarketplaceItems({
         profile,
         freightLimit: 80,
@@ -173,17 +170,11 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         assigned: drivers?.length || 0,
       });
       setLastUpdateTime(new Date());
-      if (import.meta.env.DEV) {
-        setDebugInfo(debug || null);
-      }
     } catch (error: any) {
       console.error("[CompanySmartFreightMatcher] erro:", error);
       toast.error(error?.message || "Erro ao carregar fretes");
       setCompatibleFreights([]);
       setMatchingStats({ total: 0, matched: 0, assigned: 0 });
-      if (import.meta.env.DEV) {
-        setDebugInfo(null);
-      }
     } finally {
       setLoading(false);
       fetchingRef.current = false;
@@ -390,16 +381,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 )}
               </Button>
 
-              {import.meta.env.DEV && (
-                <Button
-                  variant="outline"
-                  onClick={() => setDebugOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Bug className="h-4 w-4" />
-                  Debug Feed
-                </Button>
-              )}
             </div>
 
             <div className="w-full md:w-80">
@@ -700,55 +681,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         )}
       </Tabs>
 
-      {import.meta.env.DEV && (
-        <Dialog open={debugOpen} onOpenChange={setDebugOpen}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Bug className="h-4 w-4" />
-                Debug Feed (DEV)
-              </DialogTitle>
-              <DialogDescription>
-                Diagnóstico de elegibilidade para fretes/serviços no painel da transportadora.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Card className="p-3">
-                  <p className="font-medium">Fretes</p>
-                  <p>Candidatos: {debugInfo?.freight?.total_candidates ?? 0}</p>
-                  <p>Elegíveis: {debugInfo?.freight?.total_eligible ?? 0}</p>
-                  <p>Excluídos: {debugInfo?.freight?.total_excluded ?? 0}</p>
-                </Card>
-                <Card className="p-3">
-                  <p className="font-medium">Serviços</p>
-                  <p>Candidatos: {debugInfo?.service?.total_candidates ?? 0}</p>
-                  <p>Elegíveis: {debugInfo?.service?.total_eligible ?? 0}</p>
-                  <p>Excluídos: {debugInfo?.service?.total_excluded ?? 0}</p>
-                </Card>
-              </div>
-
-              <div>
-                <p className="font-medium mb-2">Primeiros excluídos (até 10)</p>
-                <ScrollArea className="h-56 border rounded-md p-3">
-                  <div className="space-y-2">
-                    {[...(debugInfo?.freight?.excluded || []), ...(debugInfo?.service?.excluded || [])]
-                      .slice(0, 10)
-                      .map((item: any) => (
-                        <div key={`${item.item_type}-${item.item_id}`} className="flex items-center justify-between rounded border p-2">
-                          <span className="font-mono text-xs">{String(item.item_id).slice(0, 8)}...</span>
-                          <Badge variant="outline">{item.item_type}</Badge>
-                          <Badge variant="secondary">{item.reason}</Badge>
-                        </div>
-                      ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Modal de seleção de motorista para atribuição */}
       <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>

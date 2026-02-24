@@ -155,6 +155,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         ? 'TRANSPORTADORA'
         : (isAffiliated && !canAcceptFreights ? 'MOTORISTA_AFILIADO' : 'MOTORISTA');
 
+      const resolvedCompanyId = companyId || permissionCompanyId || null;
+      if (panelMode === 'TRANSPORTADORA' && !resolvedCompanyId) {
+        throw new Error('Configuração inválida: p_company_id é obrigatório para TRANSPORTADORA.');
+      }
+
       setLoading(true);
 
       if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -164,7 +169,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         supabase.rpc('get_unified_freight_feed', {
           p_panel: panelMode,
           p_profile_id: profile.id,
-          p_company_id: companyId || permissionCompanyId || null,
+          p_company_id: resolvedCompanyId,
           p_debug: import.meta.env.DEV,
         }),
         supabase.rpc('get_unified_service_feed', {
