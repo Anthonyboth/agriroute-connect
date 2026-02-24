@@ -61,12 +61,12 @@ const AdminSettingsPage = () => {
   if (loading) return <div className="flex-1 flex items-center justify-center"><AppSpinner /></div>;
 
   return (
-    <div className="flex-1">
-      <header className="bg-white border-b px-6 py-4 flex items-center gap-4">
-        <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+    <div className="flex-1 bg-muted/30">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center gap-4">
+        <SidebarTrigger className="p-2 hover:bg-muted rounded-md">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
-        <h1 className="text-xl font-semibold text-gray-800">Configurações</h1>
+        <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
       </header>
 
       <div className="p-6 space-y-6">

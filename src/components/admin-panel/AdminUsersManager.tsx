@@ -79,23 +79,23 @@ VALUES (
 -- SELECT id FROM auth.users WHERE email = 'email@exemplo.com';`;
 
   return (
-    <div className="flex-1">
-      <header className="bg-white border-b px-6 py-4 flex items-center gap-4">
-        <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+    <div className="flex-1 bg-muted/30">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center gap-4">
+        <SidebarTrigger className="p-2 hover:bg-muted rounded-md">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
-        <h1 className="text-xl font-semibold text-gray-800">Administradores</h1>
+        <h1 className="text-xl font-semibold text-foreground">Administradores</h1>
       </header>
 
       <div className="p-6 space-y-4">
         {/* Info Banner */}
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-primary/5 border-primary/20">
           <CardContent className="pt-4">
             <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+              <Info className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-blue-800">Admins são gerenciados via banco de dados</p>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-sm font-medium text-foreground">Admins são gerenciados via banco de dados</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Por segurança, novos administradores só podem ser adicionados diretamente no banco de dados (SQL Editor do Supabase).
                 </p>
                 <Button size="sm" variant="outline" className="mt-2" onClick={() => setShowSqlDialog(true)}>
@@ -113,7 +113,7 @@ VALUES (
               <div className="flex items-center justify-center py-12"><AppSpinner /></div>
             ) : (
               <Table>
-                <TableHeader className="bg-gray-50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
@@ -173,7 +173,7 @@ VALUES (
               Execute o SQL abaixo no SQL Editor do Supabase Dashboard.
             </DialogDescription>
           </DialogHeader>
-          <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+          <pre className="bg-[hsl(220,25%,10%)] text-[hsl(142,70%,65%)] p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
             {sqlInstructions}
           </pre>
           <DialogFooter>
