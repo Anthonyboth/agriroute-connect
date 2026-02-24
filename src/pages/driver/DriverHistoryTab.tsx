@@ -1,13 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightHistoryFromDB } from '@/components/history/FreightHistoryFromDB';
 import { ServiceHistoryFromDB } from '@/components/history/ServiceHistoryFromDB';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
-import { History, Truck, Wrench } from 'lucide-react';
+import { Truck } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+
+const URBAN_TYPES = [
+  'GUINCHO', 'FRETE_MOTO', 'FRETE_URBANO', 'MUDANCA', 'MUDANCA_RESIDENCIAL',
+  'MUDANCA_COMERCIAL', 'TRANSPORTE_PET', 'ENTREGA_PACOTES',
+];
 
 export const DriverHistoryTab: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('freights');
+  const { profile } = useAuth();
 
+  const { hasRural, hasUrban } = useMemo(() => {
+    const types: string[] = profile?.service_types || [];
+    const rural = types.length === 0 || types.includes('CARGA');
+    const urban = types.some(t => URBAN_TYPES.includes(t));
+    return { hasRural: rural, hasUrban: urban };
+  }, [profile?.service_types]);
+
+  const showBoth = hasRural && hasUrban;
+  const [activeTab, setActiveTab] = useState<string>(hasRural ? 'freights' : 'services');
+
+  // Single tab: rural only
+  if (hasRural && !hasUrban) {
+    return (
+      <SafeListWrapper>
+        <div className="space-y-4">
+          <FreightHistoryFromDB role="MOTORISTA" />
+        </div>
+      </SafeListWrapper>
+    );
+  }
+
+  // Single tab: urban only
+  if (hasUrban && !hasRural) {
+    return (
+      <SafeListWrapper>
+        <div className="space-y-4">
+          <ServiceHistoryFromDB asClient={false} includeTransportTypes={true} />
+        </div>
+      </SafeListWrapper>
+    );
+  }
+
+  // Both tabs
   return (
     <SafeListWrapper>
       <div className="space-y-4">
