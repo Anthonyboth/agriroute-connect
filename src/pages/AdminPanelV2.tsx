@@ -24,6 +24,7 @@ const AdminFreights = lazy(() => import('@/components/admin-panel/AdminFreights'
 const AdminFreightDetail = lazy(() => import('@/components/admin-panel/AdminFreightDetail'));
 const AdminRiskManagement = lazy(() => import('@/components/admin-panel/AdminRiskManagement'));
 const AdminReports = lazy(() => import('@/components/admin-panel/AdminReports'));
+const AdminAnnouncements = lazy(() => import('@/components/admin-panel/AdminAnnouncements'));
 
 const AdminPanelV2 = () => {
   const { adminUser, isAdmin, isSuperAdmin, loading, error } = useAdminAuth();
@@ -89,6 +90,7 @@ const AdminPanelV2 = () => {
               <Route path="cadastros/:id" element={<AdminRegistrationDetail />} />
               <Route path="fretes" element={<AdminFreights />} />
               <Route path="fretes/:id" element={<AdminFreightDetail />} />
+              <Route path="avisos" element={<AdminAnnouncements />} />
               <Route path="riscos" element={<AdminRiskManagement />} />
               <Route path="auditoria" element={<AdminAuditLogs />} />
               {isSuperAdmin && (
