@@ -30,6 +30,7 @@ import {
   DollarSign,
   Bike,
   PawPrint,
+  Bug,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,6 +98,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
 
   const [isUpdating, setIsUpdating] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [feedDebug, setFeedDebug] = useState<any | null>(null);
   const [, startTransition] = useTransition();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -146,239 +149,93 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     const currentFetchId = ++fetchIdRef.current;
     updateLockRef.current = true;
 
-    const activeMode = profile?.active_mode || profile?.role;
-    const isCompany = activeMode === "TRANSPORTADORA";
+      const activeMode = profile?.active_mode || profile?.role;
+      const isCompany = activeMode === "TRANSPORTADORA";
+      const panelMode = isCompany
+        ? 'TRANSPORTADORA'
+        : (isAffiliated && !canAcceptFreights ? 'MOTORISTA_AFILIADO' : 'MOTORISTA');
 
-    setLoading(true);
+      setLoading(true);
 
-    if (abortControllerRef.current) abortControllerRef.current.abort();
-    abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      abortControllerRef.current = new AbortController();
 
-    try {
-      if (isCompany) {
-        // Transportadora: busca direta de fretes abertos + service_requests de transporte
-        const effectiveTypes = allowedTypesFromProfile.length > 0
-          ? allowedTypesFromProfile
-          : ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO", "ENTREGA_PACOTES", "TRANSPORTE_PET"] as CanonicalServiceType[];
-
-        const TRANSPORT_SERVICE_TYPES = ['TRANSPORTE_PET', 'ENTREGA_PACOTES', 'GUINCHO', 'MUDANCA', 'MUDANCA_RESIDENCIAL', 'MUDANCA_COMERCIAL', 'FRETE_MOTO'];
-        const allowedTransportTypes = TRANSPORT_SERVICE_TYPES.filter(t => {
-          // Subtipos de MUDANCA são permitidos se o usuário tem MUDANCA no perfil
-          const canonical = normalizeServiceType(t);
-          return effectiveTypes.includes(t as CanonicalServiceType) || effectiveTypes.includes(canonical);
-        });
-
-        const [freightsResult, serviceResult] = await Promise.all([
-          supabase
-            .from("freights")
-            .select("*")
-            .in("status", ["OPEN", "IN_NEGOTIATION"])
-            .is("driver_id", null)
-            .order("created_at", { ascending: false })
-            .limit(100),
-          allowedTransportTypes.length > 0
-            ? supabase
-                .from("service_requests_secure")
-                .select("*")
-                .in("status", ["OPEN"])
-                .is("provider_id", null)
-                .in("service_type", allowedTransportTypes)
-                .order("created_at", { ascending: false })
-                .limit(50)
-            : Promise.resolve({ data: [], error: null }),
-        ]);
-
-        if (freightsResult.error) throw freightsResult.error;
-
-        const mapped: CompatibleFreight[] = (freightsResult.data || []).map((f: any) => ({
-          freight_id: f.id,
-          cargo_type: f.cargo_type,
-          weight: f.weight || 0,
-          origin_address: f.origin_address || `${f.origin_city || ""}, ${f.origin_state || ""}`,
-          destination_address: f.destination_address || `${f.destination_city || ""}, ${f.destination_state || ""}`,
-          origin_city: f.origin_city,
-          origin_state: f.origin_state,
-          destination_city: f.destination_city,
-          destination_state: f.destination_state,
-          pickup_date: String(f.pickup_date || ""),
-          delivery_date: String(f.delivery_date || ""),
-          price: f.price || 0,
-          urgency: String(f.urgency || "LOW"),
-          status: f.status,
-          service_type: normalizeServiceType(f.service_type),
-          distance_km: 0,
-          minimum_antt_price: f.minimum_antt_price || 0,
-          required_trucks: f.required_trucks || 1,
-          accepted_trucks: f.accepted_trucks || 0,
-          created_at: f.created_at,
-        }));
-
-        // ✅ Filtrar por tipos permitidos E por vagas disponíveis (accepted_trucks < required_trucks)
-        const filteredMapped = mapped.filter(
-          (f) =>
-            effectiveTypes.includes(f.service_type as CanonicalServiceType) &&
-            f.accepted_trucks < f.required_trucks
-        );
-
-        // Service requests (PET, Pacotes, etc.) as towing/service requests
-        const matchedServiceRequests = (serviceResult.data || []);
-
-        if (
-          currentFetchId === fetchIdRef.current &&
-          isMountedRef.current &&
-          !abortControllerRef.current?.signal.aborted
-        ) {
-          setCompatibleFreights(filteredMapped);
-          setTowingRequests(matchedServiceRequests);
-          const highUrgency = filteredMapped.filter((f) => f.urgency === "HIGH").length;
-          onCountsChangeRef.current?.({ total: filteredMapped.length + matchedServiceRequests.length, highUrgency });
-        }
-        return;
-      }
-
-      // MOTORISTA: usar RPC + Edge Function espacial em paralelo
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const [rpcResult, spatialResult] = await Promise.all([
-        // RPC server-side: filtra por city_id, raio, service_types, visibility
-        supabase.rpc("get_freights_for_driver", { p_driver_id: profile.id }),
-        // Edge function: match espacial para fretes + service_requests
-        supabase.functions.invoke("driver-spatial-matching", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: session?.access_token ? `Bearer ${session.access_token}` : "",
-          },
+      const [freightResult, serviceResult] = await Promise.all([
+        supabase.rpc('get_unified_freight_feed', {
+          p_panel: panelMode,
+          p_profile_id: profile.id,
+          p_company_id: companyId || permissionCompanyId || null,
+          p_debug: import.meta.env.DEV,
+        }),
+        supabase.rpc('get_unified_service_feed', {
+          p_profile_id: profile.id,
+          p_debug: import.meta.env.DEV,
         }),
       ]);
 
-      // Process RPC results (already filtered server-side by city + type + visibility)
-      let rpcFreights: CompatibleFreight[] = [];
-      if (!rpcResult.error && Array.isArray(rpcResult.data)) {
-        setHasActiveCities(rpcResult.data.length > 0 || true);
-        rpcFreights = rpcResult.data.map((f: any) => ({
-          freight_id: f.id ?? f.freight_id,
-          cargo_type: f.cargo_type,
-          weight: f.weight || 0,
-          origin_address: f.origin_address || `${f.origin_city || ""}, ${f.origin_state || ""}`,
-          destination_address: f.destination_address || `${f.destination_city || ""}, ${f.destination_state || ""}`,
-          origin_city: f.origin_city,
-          origin_state: f.origin_state,
-          destination_city: f.destination_city,
-          destination_state: f.destination_state,
-          pickup_date: String(f.pickup_date || ""),
-          delivery_date: String(f.delivery_date || ""),
-          price: f.price || 0,
-          urgency: String(f.urgency || "LOW"),
-          status: f.status || "OPEN",
-          service_type: normalizeServiceType(f.service_type),
-          distance_km: f.distance_to_origin_km || f.distance_km || 0,
-          minimum_antt_price: f.minimum_antt_price || 0,
-          required_trucks: f.required_trucks || 1,
-          accepted_trucks: f.accepted_trucks || 0,
-          created_at: f.created_at,
-          vehicle_type_required: f.vehicle_type_required || undefined,
-          vehicle_axles_required: f.vehicle_axles_required || undefined,
-          pricing_type: f.pricing_type || undefined,
-          price_per_km: f.price_per_km || undefined,
-        }));
-
-        // Check if driver has cities configured (empty result = no cities)
-        if (rpcResult.data.length === 0) {
-          const { count } = await supabase
-            .from("user_cities")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("is_active", true)
-            .in("type", ["MOTORISTA_ORIGEM", "MOTORISTA_DESTINO"] as any);
-          setHasActiveCities((count || 0) > 0);
-        }
-      } else {
-        console.warn("[SmartFreightMatcher] RPC falhou (não bloqueante):", rpcResult.error);
-        setHasActiveCities(false);
+      if (freightResult.error) {
+        throw freightResult.error;
+      }
+      if (serviceResult.error) {
+        console.warn('[SmartFreightMatcher] Serviço unificado falhou (não bloqueante):', serviceResult.error);
       }
 
-      // Process spatial results
-      let spatialFreights: CompatibleFreight[] = [];
-      let matchedServiceRequests: any[] = [];
-      const spatialData = spatialResult.data;
+      const freightPayload = (freightResult.data || {}) as any;
+      const servicePayload = (serviceResult.data || {}) as any;
 
-      if (spatialData?.freights && Array.isArray(spatialData.freights)) {
-        spatialFreights = spatialData.freights
-          .filter((f: any) => canSeeFreightByType(f.service_type))
-          .map((f: any) => ({
-            freight_id: f.id || f.freight_id,
-            cargo_type: f.cargo_type,
-            weight: f.weight || 0,
-            origin_address: f.origin_address || `${f.origin_city || ""}, ${f.origin_state || ""}`,
-            destination_address: f.destination_address || `${f.destination_city || ""}, ${f.destination_state || ""}`,
-            origin_city: f.origin_city,
-            origin_state: f.origin_state,
-            destination_city: f.destination_city,
-            destination_state: f.destination_state,
-            pickup_date: String(f.pickup_date || ""),
-            delivery_date: String(f.delivery_date || ""),
-            price: f.price || 0,
-            urgency: String(f.urgency || "LOW"),
-            status: f.status,
-            service_type: normalizeServiceType(f.service_type),
-            distance_km: f.distance_km || 0,
-            minimum_antt_price: f.minimum_antt_price || 0,
-            required_trucks: f.required_trucks || 1,
-            accepted_trucks: f.accepted_trucks || 0,
-            created_at: f.created_at,
-            vehicle_type_required: f.vehicle_type_required || undefined,
-            vehicle_axles_required: f.vehicle_axles_required || undefined,
-            pricing_type: f.pricing_type || undefined,
-            price_per_km: f.price_per_km || undefined,
-          }));
-      }
+      const unifiedFreights: CompatibleFreight[] = (Array.isArray(freightPayload.items) ? freightPayload.items : []).map((f: any) => ({
+        freight_id: f.id,
+        cargo_type: f.cargo_type || '',
+        weight: Number(f.weight || 0),
+        origin_address: f.origin_address || `${f.origin_city || ""}, ${f.origin_state || ""}`,
+        destination_address: f.destination_address || `${f.destination_city || ""}, ${f.destination_state || ""}`,
+        origin_city: f.origin_city,
+        origin_state: f.origin_state,
+        destination_city: f.destination_city,
+        destination_state: f.destination_state,
+        pickup_date: String(f.pickup_date || ''),
+        delivery_date: String(f.delivery_date || ''),
+        price: Number(f.price || 0),
+        urgency: String(f.urgency || 'LOW'),
+        status: String(f.status || 'OPEN'),
+        service_type: normalizeServiceType(f.service_type),
+        distance_km: Number(f.distance_km || 0),
+        minimum_antt_price: Number(f.minimum_antt_price || 0),
+        required_trucks: Number(f.required_trucks || 1),
+        accepted_trucks: Number(f.accepted_trucks || 0),
+        created_at: String(f.created_at || ''),
+      }));
 
-      if (spatialData?.service_requests && Array.isArray(spatialData.service_requests)) {
-        matchedServiceRequests = spatialData.service_requests;
-      }
-
-      if (spatialResult.error) console.warn("[SmartFreightMatcher] spatialError:", spatialResult.error);
-
-      // Merge + deduplicate (RPC is authoritative, spatial adds extras)
-      const uniqueMap = new Map<string, CompatibleFreight>();
-      // RPC results first (authoritative, server-filtered)
-      rpcFreights.forEach((f) => uniqueMap.set(f.freight_id, f));
-      // Spatial adds any extras not in RPC
-      spatialFreights.forEach((f) => {
-        if (!uniqueMap.has(f.freight_id)) uniqueMap.set(f.freight_id, f);
+      const unifiedServices = (Array.isArray(servicePayload.items) ? servicePayload.items : []).filter((s: any) => {
+        const canonical = normalizeServiceType(String(s.service_type || ''));
+        return canSeeFreightByType(canonical) && canonical !== 'CARGA';
       });
-      const finalFreights = Array.from(uniqueMap.values());
 
       if (
         currentFetchId === fetchIdRef.current &&
         isMountedRef.current &&
         !abortControllerRef.current?.signal.aborted
       ) {
-        setCompatibleFreights(finalFreights);
-        setTowingRequests(matchedServiceRequests);
+        setCompatibleFreights(unifiedFreights);
+        setTowingRequests(unifiedServices);
+        setHasActiveCities(unifiedFreights.length > 0 || unifiedServices.length > 0);
 
-        const highUrgency = finalFreights.filter((f) => f.urgency === "HIGH").length;
-        onCountsChangeRef.current?.({ total: finalFreights.length + matchedServiceRequests.length, highUrgency });
+        const highUrgency = unifiedFreights.filter((f) => f.urgency === 'HIGH').length;
+        onCountsChangeRef.current?.({ total: unifiedFreights.length + unifiedServices.length, highUrgency });
 
         setMatchingStats({
-          exactMatches: rpcFreights.length,
-          fallbackMatches: spatialFreights.filter((f) => !rpcFreights.some((r) => r.freight_id === f.freight_id)).length,
-          totalChecked: finalFreights.length,
+          exactMatches: Number(freightPayload?.debug?.total_eligible || unifiedFreights.length),
+          fallbackMatches: 0,
+          totalChecked: Number(freightPayload?.debug?.total_candidates || unifiedFreights.length),
         });
+
+        if (import.meta.env.DEV) {
+          setFeedDebug({
+            freight: freightPayload?.debug || null,
+            service: servicePayload?.debug || null,
+          });
+        }
       }
-    } catch (error: any) {
-      console.error("[SmartFreightMatcher] erro geral:", error);
-      toast.error("Erro ao carregar fretes. Tente novamente.");
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-        setIsUpdating(false);
-      }
-      updateLockRef.current = false;
-    }
   }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
@@ -686,6 +543,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                   <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                   <span className="hidden sm:inline">{loading ? 'Atualizando...' : 'Atualizar'}</span>
                 </Button>
+                {import.meta.env.DEV && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setDebugOpen((prev) => !prev)}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <Bug className="h-4 w-4" />
+                    Debug Feed
+                  </Button>
+                )}
                 {lastRefreshAt && !loading && (
                   <span className="text-xs text-muted-foreground hidden md:inline">
                     Atualizado às {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -752,6 +619,48 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           </div>
         </CardContent>
       </Card>
+
+      {import.meta.env.DEV && debugOpen && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Bug className="h-4 w-4" />
+              Debug Feed (DEV)
+            </CardTitle>
+            <CardDescription>
+              Mostra candidatos, elegíveis e 10 primeiros excluídos com motivo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="rounded-md border p-3">
+                <p className="font-medium">Fretes</p>
+                <p>Candidatos: {feedDebug?.freight?.total_candidates ?? 0}</p>
+                <p>Elegíveis: {feedDebug?.freight?.total_eligible ?? 0}</p>
+                <p>Excluídos: {feedDebug?.freight?.total_excluded ?? 0}</p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="font-medium">Serviços</p>
+                <p>Candidatos: {feedDebug?.service?.total_candidates ?? 0}</p>
+                <p>Elegíveis: {feedDebug?.service?.total_eligible ?? 0}</p>
+                <p>Excluídos: {feedDebug?.service?.total_excluded ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {[...(feedDebug?.freight?.excluded || []), ...(feedDebug?.service?.excluded || [])]
+                .slice(0, 10)
+                .map((item: any) => (
+                  <div key={`${item.item_type}-${item.item_id}`} className="flex items-center justify-between rounded-md border p-2">
+                    <span className="font-mono text-xs">{String(item.item_id).slice(0, 8)}...</span>
+                    <Badge variant="outline">{item.item_type}</Badge>
+                    <Badge variant="secondary">{item.reason}</Badge>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ✅ TABS DINÂMICAS: exibe conforme tipos de serviço do motorista */}
       <Tabs
