@@ -87,27 +87,50 @@ export const GtaUploadDialog: React.FC<GtaUploadDialogProps> = ({
     setIsUploading(true);
 
     try {
-      // Upload do arquivo
+      // Upload do arquivo para bucket existente
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `gta_${Date.now()}.${fileExt}`;
-      const filePath = `gtas/${profile?.id}/${fileName}`;
+      const filePath = `${profile?.user_id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('documents')
+        .from('freight-attachments')
         .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+      // Gerar signed URL (bucket é privado)
+      const { data: signedData } = await supabase.storage
+        .from('freight-attachments')
+        .createSignedUrl(filePath, 3600);
 
-      // Salvar registro (em tabela genérica de documentos ou specific de GTA se existir)
-      // Por enquanto apenas mostramos sucesso - implementar tabela gta_documents se necessário
-      
-      toast.success('GT-A enviado com sucesso!', {
-        description: `Número: ${formData.numero}`,
+      const fileUrl = signedData?.signedUrl || filePath;
+
+      // Persistir metadados na tabela freight_sanitary_documents
+      if (freightId) {
+        const { error: insertError } = await supabase
+          .from('freight_sanitary_documents')
+          .insert({
+            freight_id: freightId,
+            document_type: 'GTA',
+            document_number: formData.numero,
+            issue_date: formData.data_emissao,
+            file_url: filePath,
+            origin_property: formData.uf_origem || null,
+            destination_property: formData.uf_destino || null,
+            animal_count: formData.quantidade ? parseInt(formData.quantidade) : null,
+            notes: [
+              formData.especie_animal ? `Espécie: ${formData.especie_animal}` : '',
+              formData.observacoes || '',
+            ].filter(Boolean).join(' | ') || null,
+            validation_status: 'pending',
+            created_by: profile?.id || null,
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      toast.success('GT-A enviada com sucesso!', {
+        description: `Número: ${formData.numero}${freightId ? ' — vinculada ao frete' : ' — sem frete vinculado'}`,
       });
       
       onClose();
