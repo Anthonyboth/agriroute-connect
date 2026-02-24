@@ -25,6 +25,11 @@ const AdminFreightDetail = lazy(() => import('@/components/admin-panel/AdminFrei
 const AdminRiskManagement = lazy(() => import('@/components/admin-panel/AdminRiskManagement'));
 const AdminReports = lazy(() => import('@/components/admin-panel/AdminReports'));
 const AdminAnnouncements = lazy(() => import('@/components/admin-panel/AdminAnnouncements'));
+const AdminFinancial = lazy(() => import('@/components/admin-panel/AdminFinancial'));
+const AdminVehicles = lazy(() => import('@/components/admin-panel/AdminVehicles'));
+const AdminCompanies = lazy(() => import('@/components/admin-panel/AdminCompanies'));
+const AdminServices = lazy(() => import('@/components/admin-panel/AdminServices'));
+const AdminNotifications = lazy(() => import('@/components/admin-panel/AdminNotifications'));
 
 const AdminPanelV2 = () => {
   const { adminUser, isAdmin, isSuperAdmin, loading, error } = useAdminAuth();
@@ -90,7 +95,12 @@ const AdminPanelV2 = () => {
               <Route path="cadastros/:id" element={<AdminRegistrationDetail />} />
               <Route path="fretes" element={<AdminFreights />} />
               <Route path="fretes/:id" element={<AdminFreightDetail />} />
+              <Route path="servicos" element={<AdminServices />} />
+              <Route path="transportadoras" element={<AdminCompanies />} />
+              <Route path="veiculos" element={<AdminVehicles />} />
+              <Route path="financeiro" element={<AdminFinancial />} />
               <Route path="avisos" element={<AdminAnnouncements />} />
+              <Route path="notificacoes" element={<AdminNotifications />} />
               <Route path="riscos" element={<AdminRiskManagement />} />
               <Route path="auditoria" element={<AdminAuditLogs />} />
               {isSuperAdmin && (

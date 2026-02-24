@@ -6,7 +6,8 @@ import {
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard, Users, FileText, Shield, Settings, LogOut,
-  Truck, ShieldAlert, BarChart3, Megaphone,
+  Truck, ShieldAlert, BarChart3, Megaphone, DollarSign, Building2,
+  Wrench, Bell, Car,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,12 @@ const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/admin-v2' },
   { title: 'Cadastros', icon: Users, path: '/admin-v2/cadastros', badge: 'cadastros' },
   { title: 'Fretes', icon: Truck, path: '/admin-v2/fretes' },
+  { title: 'Serviços', icon: Wrench, path: '/admin-v2/servicos' },
+  { title: 'Transportadoras', icon: Building2, path: '/admin-v2/transportadoras' },
+  { title: 'Veículos', icon: Car, path: '/admin-v2/veiculos' },
+  { title: 'Financeiro', icon: DollarSign, path: '/admin-v2/financeiro' },
   { title: 'Mural de Avisos', icon: Megaphone, path: '/admin-v2/avisos' },
+  { title: 'Notificações', icon: Bell, path: '/admin-v2/notificacoes' },
   { title: 'Gestão de Risco', icon: ShieldAlert, path: '/admin-v2/riscos' },
   { title: 'Auditoria', icon: FileText, path: '/admin-v2/auditoria' },
 ];

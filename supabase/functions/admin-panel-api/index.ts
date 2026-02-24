@@ -764,6 +764,265 @@ Deno.serve(async (req) => {
         })
       }
 
+      // ==================== FINANCIAL ====================
+      case 'financial': {
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+        const pageSize = 20
+        const offset = (page - 1) * pageSize
+        const typeFilter = url.searchParams.get('type') || 'all'
+        const statusFilter2 = url.searchParams.get('status') || 'all'
+
+        let query = serviceClient
+          .from('balance_transactions')
+          .select('id, transaction_type, amount, status, created_at, description, reference_type, reference_id, provider_id, balance_before, balance_after', { count: 'exact' })
+
+        if (typeFilter && typeFilter !== 'all') query = query.eq('transaction_type', typeFilter)
+        if (statusFilter2 && statusFilter2 !== 'all') query = query.eq('status', statusFilter2)
+
+        query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
+        const { data, error, count } = await query
+        if (error) throw error
+
+        // Resolve provider names
+        const providerIds = new Set<string>()
+        data?.forEach((t: any) => { if (t.provider_id) providerIds.add(t.provider_id) })
+        let providerMap: Record<string, string> = {}
+        if (providerIds.size > 0) {
+          const { data: profiles } = await serviceClient.from('profiles').select('id, full_name').in('id', Array.from(providerIds))
+          profiles?.forEach((p: any) => { providerMap[p.id] = p.full_name })
+        }
+
+        const enriched = data?.map((t: any) => ({ ...t, provider_name: providerMap[t.provider_id] || null })) || []
+
+        // Stats
+        const [totalCredits, totalDebits, pendingPayouts] = await Promise.all([
+          serviceClient.from('balance_transactions').select('amount').eq('transaction_type', 'credit').eq('status', 'completed'),
+          serviceClient.from('balance_transactions').select('amount').eq('transaction_type', 'debit').eq('status', 'completed'),
+          serviceClient.from('driver_payout_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        ])
+
+        const sumCredits = totalCredits.data?.reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0) || 0
+        const sumDebits = totalDebits.data?.reduce((s: number, r: any) => s + Math.abs(Number(r.amount) || 0), 0) || 0
+
+        return jsonResponse(corsHeaders, {
+          data: enriched,
+          total: count || 0,
+          page, pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+          stats: { total_credits: sumCredits, total_debits: sumDebits, pending_payouts: pendingPayouts.count || 0 },
+        })
+      }
+
+      // ==================== VEHICLES ====================
+      case 'vehicles': {
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+        const pageSize = 20
+        const offset = (page - 1) * pageSize
+        const rawSearch = url.searchParams.get('q') || ''
+        const search = sanitizeSearchInput(rawSearch)
+
+        let query = serviceClient
+          .from('vehicles')
+          .select('id, license_plate, vehicle_type, brand, model, year, color, axle_count, has_tracker, antt_rntrc, driver_id, created_at, capacity_kg, capacity_m3', { count: 'exact' })
+
+        if (search && search.length >= 2) {
+          query = query.or(`license_plate.ilike.%${search}%,brand.ilike.%${search}%,model.ilike.%${search}%,antt_rntrc.ilike.%${search}%`)
+        }
+
+        query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
+        const { data, error, count } = await query
+        if (error) throw error
+
+        // Resolve driver names
+        const driverIds = new Set<string>()
+        data?.forEach((v: any) => { if (v.driver_id) driverIds.add(v.driver_id) })
+        let driverMap: Record<string, string> = {}
+        if (driverIds.size > 0) {
+          const { data: profiles } = await serviceClient.from('profiles').select('id, full_name').in('id', Array.from(driverIds))
+          profiles?.forEach((p: any) => { driverMap[p.id] = p.full_name })
+        }
+
+        const enriched = data?.map((v: any) => ({ ...v, driver_name: driverMap[v.driver_id] || null })) || []
+
+        const [totalVehicles, withTracker] = await Promise.all([
+          serviceClient.from('vehicles').select('id', { count: 'exact', head: true }),
+          serviceClient.from('vehicles').select('id', { count: 'exact', head: true }).eq('has_tracker', true),
+        ])
+
+        return jsonResponse(corsHeaders, {
+          data: enriched,
+          total: count || 0,
+          page, pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+          stats: { total: totalVehicles.count || 0, with_tracker: withTracker.count || 0 },
+        })
+      }
+
+      // ==================== TRANSPORT COMPANIES ====================
+      case 'companies': {
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+        const pageSize = 20
+        const offset = (page - 1) * pageSize
+        const rawSearch = url.searchParams.get('q') || ''
+        const search = sanitizeSearchInput(rawSearch)
+
+        let query = serviceClient
+          .from('transport_companies')
+          .select('id, company_name, company_cnpj, company_type, profile_id, is_verified, created_at, city, state, phone, email, total_vehicles, total_drivers, status', { count: 'exact' })
+
+        if (search && search.length >= 2) {
+          query = query.or(`company_name.ilike.%${search}%,company_cnpj.ilike.%${search}%`)
+        }
+
+        query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
+        const { data, error, count } = await query
+        if (error) throw error
+
+        // Resolve owner names
+        const profileIds = new Set<string>()
+        data?.forEach((c: any) => { if (c.profile_id) profileIds.add(c.profile_id) })
+        let profileMap: Record<string, string> = {}
+        if (profileIds.size > 0) {
+          const { data: profiles } = await serviceClient.from('profiles').select('id, full_name').in('id', Array.from(profileIds))
+          profiles?.forEach((p: any) => { profileMap[p.id] = p.full_name })
+        }
+
+        const enriched = data?.map((c: any) => ({ ...c, owner_name: profileMap[c.profile_id] || null })) || []
+
+        const [totalCompanies, verified] = await Promise.all([
+          serviceClient.from('transport_companies').select('id', { count: 'exact', head: true }),
+          serviceClient.from('transport_companies').select('id', { count: 'exact', head: true }).eq('is_verified', true),
+        ])
+
+        return jsonResponse(corsHeaders, {
+          data: enriched,
+          total: count || 0,
+          page, pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+          stats: { total: totalCompanies.count || 0, verified: verified.count || 0 },
+        })
+      }
+
+      // ==================== SERVICE REQUESTS ====================
+      case 'services': {
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+        const pageSize = 20
+        const offset = (page - 1) * pageSize
+        const statusFilter3 = url.searchParams.get('status') || 'all'
+        const rawSearch = url.searchParams.get('q') || ''
+        const search = sanitizeSearchInput(rawSearch)
+
+        let query = serviceClient
+          .from('service_requests')
+          .select('id, service_type, status, location_address, estimated_price, final_price, created_at, completed_at, client_id, provider_id, urgency_level, description', { count: 'exact' })
+
+        if (statusFilter3 && statusFilter3 !== 'all') query = query.eq('status', statusFilter3)
+        if (search && search.length >= 2) {
+          query = query.or(`service_type.ilike.%${search}%,location_address.ilike.%${search}%,description.ilike.%${search}%`)
+        }
+
+        query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1)
+        const { data, error, count } = await query
+        if (error) throw error
+
+        // Resolve client/provider names
+        const pIds = new Set<string>()
+        data?.forEach((s: any) => { if (s.client_id) pIds.add(s.client_id); if (s.provider_id) pIds.add(s.provider_id) })
+        let pMap: Record<string, string> = {}
+        if (pIds.size > 0) {
+          const { data: profiles } = await serviceClient.from('profiles').select('id, full_name').in('id', Array.from(pIds))
+          profiles?.forEach((p: any) => { pMap[p.id] = p.full_name })
+        }
+
+        const enriched = data?.map((s: any) => ({
+          ...s,
+          client_name: pMap[s.client_id] || null,
+          provider_name: pMap[s.provider_id] || null,
+        })) || []
+
+        const [openSvc, completedSvc, cancelledSvc] = await Promise.all([
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).in('status', ['pending', 'accepted']),
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+          serviceClient.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'cancelled'),
+        ])
+
+        return jsonResponse(corsHeaders, {
+          data: enriched,
+          total: count || 0,
+          page, pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+          stats: { open: openSvc.count || 0, completed: completedSvc.count || 0, cancelled: cancelledSvc.count || 0 },
+        })
+      }
+
+      // ==================== NOTIFICATIONS ====================
+      case 'notifications': {
+        if (req.method === 'POST' && body.action === 'send') {
+          // Send notification to user(s)
+          const { target_user_ids, title, message, type } = body
+          if (!title || !message) return jsonResponse(corsHeaders, { error: 'Título e mensagem obrigatórios' }, 400)
+
+          const notifType = typeof type === 'string' ? type : 'admin_message'
+          const notifications: any[] = []
+
+          if (Array.isArray(target_user_ids) && target_user_ids.length > 0) {
+            for (const uid of target_user_ids.slice(0, 100)) {
+              if (isValidUUID(uid)) {
+                notifications.push({
+                  user_id: uid,
+                  title: String(title).slice(0, 200),
+                  message: String(message).slice(0, 2000),
+                  type: notifType,
+                  is_read: false,
+                })
+              }
+            }
+          } else if (body.target === 'all') {
+            // Broadcast to all active users
+            const { data: allUsers } = await serviceClient.from('profiles').select('user_id').eq('status', 'APPROVED').limit(500)
+            allUsers?.forEach((u: any) => {
+              if (u.user_id) {
+                notifications.push({
+                  user_id: u.user_id,
+                  title: String(title).slice(0, 200),
+                  message: String(message).slice(0, 2000),
+                  type: notifType,
+                  is_read: false,
+                })
+              }
+            })
+          }
+
+          if (notifications.length === 0) return jsonResponse(corsHeaders, { error: 'Nenhum destinatário válido' }, 400)
+
+          const { error } = await serviceClient.from('notifications').insert(notifications)
+          if (error) throw error
+
+          return jsonResponse(corsHeaders, { success: true, sent_count: notifications.length })
+        }
+
+        // List recent notifications sent by admins
+        const page = clampInt(url.searchParams.get('page'), 1, 100, 1)
+        const pageSize = 30
+        const offset = (page - 1) * pageSize
+
+        const { data, error, count } = await serviceClient
+          .from('notifications')
+          .select('id, user_id, title, message, type, is_read, created_at', { count: 'exact' })
+          .eq('type', 'admin_message')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + pageSize - 1)
+
+        if (error) throw error
+
+        return jsonResponse(corsHeaders, {
+          data: data || [],
+          total: count || 0,
+          page, pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+        })
+      }
+
       default:
         return jsonResponse(corsHeaders, { error: 'Rota não encontrada' }, 404)
     }
