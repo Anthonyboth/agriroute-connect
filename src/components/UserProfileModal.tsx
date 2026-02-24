@@ -242,37 +242,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
+      // ✅ Apple App Store 5.1.1(v): Exclusão completa via edge function (deleta dados + auth.users)
+      const { data, error } = await supabase.functions.invoke('delete-user-account');
       
-      if (profileError) throw profileError;
+      if (error) throw error;
       
-      const { data: remainingProfiles, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.user_id);
-      
-      if (checkError) throw checkError;
-      
-      if (!remainingProfiles || remainingProfiles.length === 0) {
+      if (data?.success) {
         await supabase.auth.signOut();
         toast({
           title: "Conta excluída",
-          description: "Sua conta foi excluída com sucesso.",
+          description: "Sua conta e todos os seus dados foram excluídos permanentemente.",
         });
         window.location.href = '/';
       } else {
-        toast({
-          title: "Perfil excluído",
-          description: "Este perfil foi excluído. Você ainda tem outros perfis ativos.",
-        });
-        
-        await queryClient.invalidateQueries({ queryKey: ['profiles'] });
-        await queryClient.invalidateQueries({ queryKey: ['profile'] });
-        
-        onClose();
+        throw new Error(data?.error || 'Erro desconhecido ao excluir conta');
       }
     } catch (error: any) {
       console.error('Erro ao excluir conta:', error);
