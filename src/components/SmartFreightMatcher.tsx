@@ -543,6 +543,23 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     });
   }, [towingRequests, searchTerm, selectedVehicleType]);
 
+  const hasRuralFreights = allowedTypesFromProfile.includes("CARGA");
+  const hasUrbanFreights = allowedTypesFromProfile.some((t) => t !== "CARGA");
+  const showFreightTabs = hasRuralFreights && hasUrbanFreights;
+
+  const [activeTab, setActiveTab] = useState<"freights" | "services">(
+    hasRuralFreights ? "freights" : "services",
+  );
+
+  useEffect(() => {
+    if (!hasRuralFreights && hasUrbanFreights && activeTab !== "services") {
+      setActiveTab("services");
+    }
+    if (!hasUrbanFreights && hasRuralFreights && activeTab !== "freights") {
+      setActiveTab("freights");
+    }
+  }, [hasRuralFreights, hasUrbanFreights, activeTab]);
+
   useEffect(() => {
     if (!onCountsChange) return;
     const total = filteredFreights.length + filteredRequests.length;
@@ -731,30 +748,47 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         </CardContent>
       </Card>
 
-      {/* ✅ TABS SEPARADAS: Fretes vs Serviços */}
-      <Tabs defaultValue="freights" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="freights" className="flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            Fretes
-            {filteredFreights.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {filteredFreights.length}
-              </Badge>
+      {/* ✅ TABS DINÂMICAS: exibe conforme tipos de serviço do motorista */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as "freights" | "services")}
+        className="w-full"
+      >
+        {showFreightTabs && (
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            {hasRuralFreights && (
+              <TabsTrigger value="freights" className="flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                Fretes
+                {filteredFreights.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                    {filteredFreights.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="services" className="flex items-center gap-2">
-            <Bike className="h-4 w-4" />
-            Fretes Urbanos
-            {filteredRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {filteredRequests.length}
-              </Badge>
+            {hasUrbanFreights && (
+              <TabsTrigger value="services" className="flex items-center gap-2">
+                <Bike className="h-4 w-4" />
+                Fretes Urbanos
+                {filteredRequests.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                    {filteredRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
             )}
-          </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        )}
 
-        {loading ? (
+        {!hasRuralFreights && !hasUrbanFreights ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <h3 className="font-semibold mb-2">Nenhum tipo de frete ativo</h3>
+              <p className="text-muted-foreground">Ative pelo menos um tipo de serviço para visualizar fretes compatíveis.</p>
+            </CardContent>
+          </Card>
+        ) : loading ? (
           <div className="text-center py-8">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">Carregando...</p>
