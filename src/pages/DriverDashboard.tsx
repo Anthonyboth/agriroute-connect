@@ -2061,7 +2061,6 @@ const DriverDashboard = () => {
                 description: errorDetails || 'Você já tem uma carreta aceita para este frete. Abrindo seus fretes em andamento…',
               });
 
-              // Atualizar listas e ir para "Em Andamento" (comportamento idempotente)
               queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
               queryClient.invalidateQueries({ queryKey: ['available-freights'] });
               queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
@@ -2078,6 +2077,20 @@ const DriverDashboard = () => {
                 description: errorDetails || 'Aguarde a confirmação do produtor.',
               });
               setActiveTab('ongoing');
+              return;
+            }
+
+            // ✅ Frete já totalmente aceito (409 com current_status ACCEPTED)
+            const freightFull =
+              errorBody?.current_status === 'ACCEPTED' ||
+              (typeof errorMsg === 'string' && errorMsg.includes('Freight not available')) ||
+              (typeof errorDetails === 'string' && errorDetails.includes('fully accepted'));
+
+            if (freightFull) {
+              toast.info('Este frete já foi totalmente aceito', {
+                description: 'Todas as vagas foram preenchidas. Procure outro frete disponível.',
+              });
+              queryClient.invalidateQueries({ queryKey: ['available-freights'] });
               return;
             }
 

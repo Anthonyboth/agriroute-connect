@@ -242,6 +242,20 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           return;
         }
 
+        // ✅ Frete já totalmente aceito (409 com current_status ACCEPTED)
+        const freightFull =
+          errorBody?.current_status === "ACCEPTED" ||
+          (typeof title === "string" && title.includes("Freight not available")) ||
+          (typeof description === "string" && description.includes("fully accepted"));
+
+        if (freightFull) {
+          toast.info("Este frete já foi totalmente aceito", {
+            description: "Todas as vagas foram preenchidas. Procure outro frete disponível.",
+          });
+          onAction?.("accept");
+          return;
+        }
+
         // ✅ PT-BR fallback (evitar inglês na UI)
         if (typeof title === "string" && (title.includes("Edge function returned") || /\d{3}/.test(title))) {
           title = "Não foi possível aceitar o frete";
