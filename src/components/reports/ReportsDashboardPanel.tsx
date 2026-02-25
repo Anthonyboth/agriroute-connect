@@ -38,6 +38,7 @@ import type { PanelType } from '@/hooks/useReportsDashboard';
 import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '@/lib/reports-formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { BI } from './reports-enterprise-theme';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -67,44 +68,38 @@ interface HeroFinanceProps {
 }
 
 const HeroFinanceBlock: React.FC<HeroFinanceProps> = ({ label, value, subtitle, trend, secondary, isLoading }) => (
-  <div className="rounded-2xl bg-[rgba(22,163,74,0.08)] border border-[rgba(22,163,74,0.18)] p-5 sm:p-6">
+  <div className={cn(BI.radius, 'bg-[hsl(142,71%,45%)]/6 border border-[hsl(142,71%,45%)]/15 p-4 sm:p-5')}>
     {isLoading ? (
       <div className="space-y-3">
         <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-10 w-48" />
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+        <Skeleton className="h-9 w-48" />
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-11 rounded-xl" />)}
         </div>
       </div>
     ) : (
       <>
-        {/* Label principal */}
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#16a34a] mb-1">{label}</p>
-
-        {/* Valor destaque */}
-        <div className="flex items-end gap-3 mb-1">
-          <span className="text-4xl sm:text-5xl font-extrabold text-foreground leading-none">
-            {formatBRL(value)}
-          </span>
+        <p className={cn(BI.label, BI.good, 'mb-1')}>{label}</p>
+        <div className="flex items-end gap-3 mb-0.5">
+          <span className={cn(BI.valueLg, 'text-foreground')}>{formatBRL(value)}</span>
           {trend && trend.value !== 0 && (
             <span className={cn(
               'flex items-center gap-0.5 text-sm font-semibold mb-1',
-              trend.isPositive ? 'text-[#16a34a]' : 'text-destructive'
+              trend.isPositive ? BI.good : 'text-destructive'
             )}>
               {trend.isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
               {Math.abs(trend.value).toFixed(1)}%
             </span>
           )}
         </div>
-        {subtitle && <p className="text-xs text-muted-foreground mb-4">{subtitle}</p>}
+        {subtitle && <p className={cn(BI.sub, 'mb-3')}>{subtitle}</p>}
 
-        {/* Grid secundário */}
         {secondary.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+          <div className={cn('grid grid-cols-2 sm:grid-cols-4', BI.gridGap, 'mt-2')}>
             {secondary.map((s, i) => (
-              <div key={i} className="bg-white/70 dark:bg-card/60 rounded-xl px-3 py-2.5 backdrop-blur-sm">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{s.label}</p>
-                <p className="text-sm font-bold text-foreground">{s.value}</p>
+              <div key={i} className={cn(BI.radius, BI.cardGlass, 'px-3 py-2')}>
+                <p className={BI.label}>{s.label}</p>
+                <p className="text-sm font-bold text-foreground mt-0.5 tabular-nums">{s.value}</p>
               </div>
             ))}
           </div>
@@ -118,26 +113,25 @@ const HeroFinanceBlock: React.FC<HeroFinanceProps> = ({ label, value, subtitle, 
 interface OpKPI { label: string; value: string; icon: React.ElementType; highlight?: boolean }
 
 const OperationalGrid: React.FC<{ items: OpKPI[]; isLoading: boolean }> = ({ items, isLoading }) => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+  <div className={cn('grid grid-cols-2 sm:grid-cols-3', BI.gridGap)}>
     {isLoading
-      ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
+      ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[68px] rounded-2xl" />)
       : items.map((item, i) => {
           const Icon = item.icon;
           return (
             <div
               key={i}
               className={cn(
-                'rounded-2xl border p-3.5 flex flex-col gap-1.5 bg-card',
-                item.highlight && 'border-[rgba(22,163,74,0.3)] bg-[rgba(22,163,74,0.04)]'
+                BI.radius, BI.cardSoft, BI.cardHover,
+                'p-3 flex flex-col gap-1',
+                item.highlight && 'border-[hsl(142,71%,45%)]/25 bg-[hsl(142,71%,45%)]/4'
               )}
             >
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground leading-tight">
-                  {item.label}
-                </p>
-                <Icon className={cn('h-3.5 w-3.5 flex-shrink-0', item.highlight ? 'text-[#16a34a]' : 'text-muted-foreground/60')} />
+                <p className={BI.label}>{item.label}</p>
+                <Icon className={cn('h-3 w-3 flex-shrink-0', item.highlight ? BI.good : 'text-muted-foreground/50')} />
               </div>
-              <p className={cn('text-xl font-extrabold', item.highlight ? 'text-[#16a34a]' : 'text-foreground')}>
+              <p className={cn(BI.value, 'text-lg', item.highlight ? BI.good : 'text-foreground')}>
                 {item.value}
               </p>
             </div>
@@ -150,16 +144,16 @@ const OperationalGrid: React.FC<{ items: OpKPI[]; isLoading: boolean }> = ({ ite
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const s = String(status).toUpperCase();
   const map: Record<string, { label: string; cls: string }> = {
-    DELIVERED: { label: 'Concluído', cls: 'bg-[rgba(22,163,74,0.12)] text-[#16a34a]' },
-    COMPLETED: { label: 'Concluído', cls: 'bg-[rgba(22,163,74,0.12)] text-[#16a34a]' },
+    DELIVERED: { label: 'Concluído', cls: 'bg-[hsl(142,71%,45%)]/12 text-[hsl(142,71%,45%)]' },
+    COMPLETED: { label: 'Concluído', cls: 'bg-[hsl(142,71%,45%)]/12 text-[hsl(142,71%,45%)]' },
     CANCELLED: { label: 'Cancelado', cls: 'bg-destructive/10 text-destructive' },
-    IN_TRANSIT: { label: 'Em Trânsito', cls: 'bg-blue-50 text-blue-600' },
-    ACCEPTED: { label: 'Aceito', cls: 'bg-amber-50 text-amber-600' },
+    IN_TRANSIT: { label: 'Em Trânsito', cls: 'bg-blue-500/10 text-blue-500' },
+    ACCEPTED: { label: 'Aceito', cls: 'bg-amber-500/10 text-amber-500' },
     OPEN: { label: 'Aberto', cls: 'bg-muted text-muted-foreground' },
   };
   const cfg = map[s] ?? { label: status, cls: 'bg-muted text-muted-foreground' };
   return (
-    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold', cfg.cls)}>
+    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide', cfg.cls)}>
       {cfg.label}
     </span>
   );
@@ -171,11 +165,10 @@ const VirtualizedProducerTable: React.FC<{ rows: any[] }> = ({ rows }) => {
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 40,
+    estimateSize: () => 36,
     overscan: 15,
   });
 
-  // Scroll to top when rows change (filter/drilldown)
   useEffect(() => {
     parentRef.current?.scrollTo({ top: 0 });
   }, [rows]);
@@ -185,30 +178,35 @@ const VirtualizedProducerTable: React.FC<{ rows: any[] }> = ({ rows }) => {
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const row = rows[virtualRow.index];
+          const isEven = virtualRow.index % 2 === 0;
           return (
             <div
               key={virtualRow.index}
               className="absolute left-0 w-full"
               style={{ top: 0, transform: `translateY(${virtualRow.start}px)`, height: `${virtualRow.size}px` }}
             >
-              <div className="flex items-center h-full border-b border-border hover:bg-muted/30 transition-colors text-xs">
-                <div className="flex-none w-[70px] px-4 text-muted-foreground whitespace-nowrap tabular-nums">
+              <div className={cn(
+                'flex items-center h-full text-xs',
+                BI.tableRow, BI.tableRowHover,
+                isEven && BI.tableRowEven,
+              )}>
+                <div className="flex-none w-[70px] px-3 text-muted-foreground whitespace-nowrap tabular-nums">
                   {row.__date && isValid(row.__date) ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
                 </div>
-                <div className="flex-1 min-w-0 px-4 truncate">{row.__rota}</div>
-                <div className="flex-none w-[80px] px-4 text-muted-foreground hidden sm:block">
+                <div className="flex-1 min-w-0 px-3 truncate">{row.__rota}</div>
+                <div className="flex-none w-[80px] px-3 text-muted-foreground hidden sm:block">
                   {row.__tipo ? row.__tipo.charAt(0).toUpperCase() + row.__tipo.slice(1) : '—'}
                 </div>
-                <div className="flex-none w-[60px] px-4 text-right tabular-nums hidden sm:block">
+                <div className="flex-none w-[60px] px-3 text-right tabular-nums hidden sm:block">
                   {row.__km > 0 ? fmtNum(row.__km) : '—'}
                 </div>
-                <div className="flex-none w-[90px] px-4 text-right font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums">
+                <div className={cn('flex-none w-[90px] px-3 text-right font-semibold whitespace-nowrap tabular-nums', BI.good)}>
                   {row.__valor > 0 ? formatBRL(row.__valor) : '—'}
                 </div>
-                <div className="flex-none w-[80px] px-4 text-center">
+                <div className="flex-none w-[80px] px-3 text-center">
                   <StatusBadge status={row.__status} />
                 </div>
-                <div className="flex-none w-[100px] px-4 text-muted-foreground truncate hidden md:block">
+                <div className="flex-none w-[100px] px-3 text-muted-foreground truncate hidden md:block">
                   {row.__motorista || '—'}
                 </div>
               </div>
@@ -220,15 +218,22 @@ const VirtualizedProducerTable: React.FC<{ rows: any[] }> = ({ rows }) => {
   );
 };
 
-const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?: string }> = ({ icon: Icon, title, subtitle }) => (
-  <div className="flex items-center gap-2.5 pt-2">
-    <div className="h-8 w-8 rounded-xl bg-[rgba(22,163,74,0.1)] flex items-center justify-center flex-shrink-0">
-      <Icon className="h-4 w-4 text-[#16a34a]" />
+// ─── SectionTitle Enterprise ─────────────────────────────────────────────────
+const SectionTitle: React.FC<{
+  icon: React.ElementType;
+  title: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+}> = ({ icon: Icon, title, subtitle, actions }) => (
+  <div className="flex items-center justify-between gap-2 pt-1">
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 text-muted-foreground/60 flex-shrink-0" />
+      <div>
+        <h3 className={BI.sectionTitle}>{title}</h3>
+        {subtitle && <p className={BI.sectionSub}>{subtitle}</p>}
+      </div>
     </div>
-    <div>
-      <h3 className="text-base font-bold text-foreground">{title}</h3>
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-    </div>
+    {actions && <div className="flex items-center gap-1.5">{actions}</div>}
   </div>
 );
 
@@ -296,29 +301,25 @@ const HighlightsGrid: React.FC<{ items: Insight[]; isLoading: boolean }> = ({ it
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div className={cn('grid grid-cols-2 sm:grid-cols-3', BI.gridGap)}>
       {items.slice(0, 6).map((it, i) => (
         <div
           key={i}
           className={cn(
-            'rounded-2xl border p-3 bg-card',
-            it.tone === 'good' && 'border-[rgba(22,163,74,0.28)] bg-[rgba(22,163,74,0.06)]',
-            it.tone === 'bad' && 'border-destructive/25 bg-destructive/5'
+            BI.radius, BI.cardSoft, BI.cardHover, 'p-3',
+            it.tone === 'good' && BI.goodBg,
+            it.tone === 'bad' && BI.badBg,
           )}
         >
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {it.label}
-          </p>
-          <p
-            className={cn(
-              'mt-1 text-base font-extrabold tabular-nums',
-              it.tone === 'good' && 'text-[#16a34a]',
-              it.tone === 'bad' && 'text-destructive'
-            )}
-          >
+          <p className={BI.label}>{it.label}</p>
+          <p className={cn(
+            'mt-1 text-base font-extrabold tabular-nums',
+            it.tone === 'good' && BI.good,
+            it.tone === 'bad' && BI.bad,
+          )}>
             {it.value}
           </p>
-          {it.hint && <p className="text-[11px] text-muted-foreground mt-0.5">{it.hint}</p>}
+          {it.hint && <p className={cn(BI.sub, 'mt-0.5')}>{it.hint}</p>}
         </div>
       ))}
     </div>
@@ -1913,27 +1914,24 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         <>
           {/* ── 1. Hero Executivo: Gasto Total ───────────────────────────── */}
           {produtorHero ? (
-            <div className="rounded-2xl bg-[rgba(59,130,246,0.08)] border border-[rgba(59,130,246,0.18)] p-5 sm:p-6">
+            <div className={cn(BI.radius, 'bg-blue-500/6 border border-blue-500/15 p-4 sm:p-5')}>
               {isLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-36" />
-                  <Skeleton className="h-10 w-48" />
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                    {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+                  <Skeleton className="h-9 w-48" />
+                  <div className={cn('grid grid-cols-2 sm:grid-cols-4 pt-2', BI.gridGap)}>
+                    {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-11 rounded-xl" />)}
                   </div>
                 </div>
               ) : (
                 <>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-blue-500 mb-1">Gasto total no período</p>
-                  <div className="flex items-end gap-3 mb-1">
-                    <span className="text-4xl sm:text-5xl font-extrabold text-foreground leading-none tabular-nums">
-                      {formatBRL(produtorHero.value)}
-                    </span>
+                  <p className={cn(BI.label, 'text-blue-500 mb-1')}>Gasto total no período</p>
+                  <div className="flex items-end gap-3 mb-0.5">
+                    <span className={cn(BI.valueLg, 'text-foreground')}>{formatBRL(produtorHero.value)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-4">{produtorHero.subtitle}</p>
+                  <p className={cn(BI.sub, 'mb-3')}>{produtorHero.subtitle}</p>
 
-                  {/* KPIs estratégicos 2x4 */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className={cn('grid grid-cols-2 sm:grid-cols-4', BI.gridGap)}>
                     {(() => {
                       const totalFretes = Number(kpis.total_fretes) || producerHistoryAgg.total;
                       const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || producerHistoryAgg.completed;
@@ -1959,14 +1957,14 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                         const Icon = item.icon;
                         return (
                           <div key={i} className={cn(
-                            'bg-white/70 dark:bg-card/60 rounded-xl px-3 py-2.5 backdrop-blur-sm',
+                            BI.radius, BI.cardGlass, 'px-3 py-2',
                             item.highlight && 'ring-1 ring-blue-500/20'
                           )}>
                             <div className="flex items-center justify-between mb-0.5">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
+                              <p className={BI.label}>{item.label}</p>
                               <Icon className={cn('h-3 w-3 flex-shrink-0', item.highlight ? 'text-blue-500' : 'text-muted-foreground/50')} />
                             </div>
-                            <p className={cn('text-sm font-bold tabular-nums', item.highlight && 'text-blue-600 dark:text-blue-400')}>
+                            <p className={cn('text-sm font-bold tabular-nums', item.highlight && 'text-blue-500')}>
                               {item.value}
                             </p>
                           </div>
@@ -1985,7 +1983,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
           {!isLoading && (
             <div className="space-y-2">
               <SectionTitle icon={AlertTriangle} title="Gestão por exceção" subtitle="Alertas e atenção imediata" />
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className={cn('grid grid-cols-2 sm:grid-cols-4', BI.gridGap)}>
                 {(() => {
                   const totalFretes = Number(kpis.total_fretes) || producerHistoryAgg.total;
                   const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || producerHistoryAgg.completed;
@@ -1997,68 +1995,44 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                   type AlertCard = { icon: string; label: string; value: string; hint?: string; tone: 'good' | 'neutral' | 'bad' };
                   const alerts: AlertCard[] = [];
 
-                  // Cancelados
                   alerts.push({
-                    icon: '🔴',
-                    label: 'Cancelados',
+                    icon: '🔴', label: 'Cancelados',
                     value: `${fmtNum(cancelados)} (${cancelRate.toFixed(1)}%)`,
                     tone: cancelRate >= 10 ? 'bad' : cancelRate > 0 ? 'neutral' : 'good',
                     hint: cancelRate >= 10 ? 'Taxa acima de 10%' : undefined,
                   });
-
-                  // Em aberto
                   alerts.push({
-                    icon: '🟠',
-                    label: 'Em aberto',
+                    icon: '🟠', label: 'Em aberto',
                     value: fmtNum(fretesAbertos),
                     tone: fretesAbertos >= 5 ? 'bad' : fretesAbertos > 0 ? 'neutral' : 'good',
                     hint: fretesAbertos >= 5 ? 'Muitos fretes aguardando' : undefined,
                   });
+                  alerts.push({ icon: '🟠', label: 'Em trânsito', value: fmtNum(emTransito), tone: 'neutral' });
 
-                  // Em trânsito
-                  alerts.push({
-                    icon: '🟠',
-                    label: 'Em trânsito',
-                    value: fmtNum(emTransito),
-                    tone: 'neutral',
-                  });
-
-                  // Baixa atividade
                   if (totalFretes === 0) {
-                    alerts.push({
-                      icon: '🟡',
-                      label: 'Baixa atividade',
-                      value: 'Sem fretes',
-                      hint: 'Amplie o período ou crie um frete',
-                      tone: 'neutral',
-                    });
+                    alerts.push({ icon: '🟡', label: 'Baixa atividade', value: 'Sem fretes', hint: 'Amplie o período ou crie um frete', tone: 'neutral' });
                   } else {
-                    alerts.push({
-                      icon: '✅',
-                      label: 'Atividade',
-                      value: `${fmtNum(totalFretes)} fretes`,
-                      tone: 'good',
-                    });
+                    alerts.push({ icon: '✅', label: 'Atividade', value: `${fmtNum(totalFretes)} fretes`, tone: 'good' });
                   }
 
                   return alerts.map((a, i) => (
                     <div key={i} className={cn(
-                      'rounded-2xl border p-3 bg-card',
-                      a.tone === 'bad' && 'border-destructive/25 bg-destructive/5',
-                      a.tone === 'good' && 'border-[rgba(22,163,74,0.28)] bg-[rgba(22,163,74,0.04)]',
+                      BI.radius, BI.cardSoft, BI.cardHover, 'p-3',
+                      a.tone === 'bad' && BI.badBg,
+                      a.tone === 'good' && BI.goodBg,
                     )}>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-sm">{a.icon}</span>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{a.label}</p>
+                        <span className="text-sm leading-none">{a.icon}</span>
+                        <p className={BI.label}>{a.label}</p>
                       </div>
                       <p className={cn(
                         'text-base font-extrabold tabular-nums',
-                        a.tone === 'bad' && 'text-destructive',
-                        a.tone === 'good' && 'text-[#16a34a]',
+                        a.tone === 'bad' && BI.bad,
+                        a.tone === 'good' && BI.good,
                       )}>
                         {a.value}
                       </p>
-                      {a.hint && <p className="text-[11px] text-muted-foreground mt-0.5">{a.hint}</p>}
+                      {a.hint && <p className={cn(BI.sub, 'mt-0.5')}>{a.hint}</p>}
                     </div>
                   ));
                 })()}
@@ -2130,23 +2104,23 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             {producerRows.length > 0 ? (
               <>
                 {filteredProducerRows.length > 0 ? (
-                  <Card className="rounded-2xl overflow-hidden">
-                    <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/20">
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-semibold text-foreground">{filteredProducerRows.length}</span> registros encontrados
+                   <Card className={cn(BI.radius, BI.card, 'overflow-hidden')}>
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/40 bg-muted/10">
+                      <p className={BI.sub}>
+                        <span className="font-semibold text-foreground">{filteredProducerRows.length}</span> registros
                       </p>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full caption-bottom text-sm">
-                        <thead className="sticky top-0 bg-card z-10 [&_tr]:border-b">
-                          <tr className="bg-muted/40 border-b transition-colors">
-                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground">Data</th>
-                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground">Rota</th>
-                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground hidden sm:table-cell">Tipo</th>
-                            <th className="h-10 px-4 text-right align-middle text-xs font-semibold text-muted-foreground hidden sm:table-cell">Km</th>
-                            <th className="h-10 px-4 text-right align-middle text-xs font-semibold text-muted-foreground">Valor</th>
-                            <th className="h-10 px-4 text-center align-middle text-xs font-semibold text-muted-foreground">Status</th>
-                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground hidden md:table-cell">Motorista</th>
+                        <thead className={BI.tableHeader}>
+                          <tr>
+                            <th className={cn(BI.tableHeaderCell, 'text-left')}>Data</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-left')}>Rota</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-left hidden sm:table-cell')}>Tipo</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>Km</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-right')}>Valor</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-center')}>Status</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-left hidden md:table-cell')}>Motorista</th>
                           </tr>
                         </thead>
                       </table>
