@@ -2487,9 +2487,9 @@ const DriverDashboard = () => {
             </Alert>
           )}
 
-          {/* ✅ FASE 4 - Alerta de Localização Desativada (apenas para motoristas independentes) */}
-          {/* Usa isLocationEnabled que verifica permissão real do dispositivo */}
-          {!isTransportCompany && !isLocationEnabled && !isLocationSyncing && (
+          {/* ✅ FASE 4 - Alerta de Localização Desativada (apenas para motoristas independentes, NÃO afiliados) */}
+          {/* Motoristas afiliados têm localização gerenciada pela transportadora */}
+          {!isTransportCompany && !isAffiliated && !isLocationEnabled && !isLocationSyncing && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Localização Desativada</AlertTitle>
@@ -2497,7 +2497,7 @@ const DriverDashboard = () => {
                 Você não pode aceitar fretes sem localização ativa.
                 <Button 
                   variant="link" 
-                  onClick={() => navigate('/complete-profile')}
+                  onClick={() => setShowLocationManager(true)}
                   className="p-0 h-auto ml-2 text-destructive-foreground underline"
                 >
                   Ativar agora
