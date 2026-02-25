@@ -5,7 +5,7 @@
  * Compatível com MOTORISTA, TRANSPORTADORA, PRODUTOR, PRESTADOR.
  * ⚠️ Sem alterações de lógica/cálculo — apenas layout e UX.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,8 +14,9 @@ import {
   AlertCircle, RefreshCw, DollarSign, Truck, Wrench, MapPin, Star,
   Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle,
   BarChart3, Activity, Route, Weight, Timer, XCircle, ArrowUpRight,
-  ArrowDownRight, Minus, CalendarDays,
+  ArrowDownRight, Minus, CalendarDays, Filter, Search, X,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -331,6 +332,47 @@ const MotoristaInsightsBlock: React.FC<{ kpis: any; charts: any; tables?: any; i
   );
 };
 
+// ─── Tipos: Slicers MOTORISTA ────────────────────────────────────────────────
+type MotoristaSlicers = {
+  status: string[];
+  cargoTypes: string[];
+  routes: string[];
+  minKm?: number;
+  maxKm?: number;
+  minRevenue?: number;
+  maxRevenue?: number;
+  searchRoute?: string;
+};
+
+const EMPTY_SLICERS: MotoristaSlicers = {
+  status: [], cargoTypes: [], routes: [],
+  minKm: undefined, maxKm: undefined,
+  minRevenue: undefined, maxRevenue: undefined,
+  searchRoute: '',
+};
+
+// ─── Toggle chip ─────────────────────────────────────────────────────────────
+const ToggleChip: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
+  <button
+    onClick={onClick}
+    type="button"
+    className={cn(
+      'px-2.5 py-1 rounded-full text-[11px] font-semibold border transition',
+      active
+        ? 'bg-[rgba(22,163,74,0.15)] border-[rgba(22,163,74,0.3)] text-[#16a34a]'
+        : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+    )}
+  >
+    {children}
+  </button>
+);
+
+// ─── Status label map ────────────────────────────────────────────────────────
+const STATUS_LABELS: Record<string, string> = {
+  DELIVERED: 'Concluído', COMPLETED: 'Concluído', CANCELLED: 'Cancelado',
+  IN_TRANSIT: 'Em Trânsito', ACCEPTED: 'Aceito', OPEN: 'Aberto',
+};
+
 // ─── Componente principal ────────────────────────────────────────────────────
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
   const {
@@ -343,6 +385,90 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const isMotorista = panel === 'MOTORISTA';
   const isTransportadora = panel === 'TRANSPORTADORA';
   const isPrestador = panel === 'PRESTADOR';
+
+  // ── Slicers state (MOTORISTA only) ────────────────────────────────────────
+  const [slicers, setSlicers] = useState<MotoristaSlicers>(EMPTY_SLICERS);
+  const resetSlicers = () => setSlicers(EMPTY_SLICERS);
+
+  const toggleSlicer = (field: 'status' | 'cargoTypes' | 'routes', value: string) => {
+    setSlicers((prev) => {
+      const arr = prev[field];
+      return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] };
+    });
+  };
+
+  // ── Normalize extrato rows ────────────────────────────────────────────────
+  const extratoRows = useMemo(() => {
+    if (!isMotorista) return [];
+    return (tables?.extrato_ganhos || []).map((r: any) => {
+      const rota = r.rota || (r.origin_city && r.destination_city ? `${r.origin_city} → ${r.destination_city}` : '—');
+      return {
+        ...r,
+        __rota: formatRouteLabel(rota),
+        __status: String(r.status_final || r.status || '').toUpperCase(),
+        __tipo: String(r.tipo || '').toLowerCase(),
+        __km: Number(r.km) || 0,
+        __receita: Number(r.receita) || 0,
+      };
+    });
+  }, [tables?.extrato_ganhos, isMotorista]);
+
+  // ── Slicer options ────────────────────────────────────────────────────────
+  const slicerOptions = useMemo(() => {
+    const statusSet = new Set<string>();
+    const cargoSet = new Set<string>();
+    const routeSet = new Set<string>();
+    for (const r of extratoRows) {
+      if (r.__status) statusSet.add(r.__status);
+      if (r.__tipo) cargoSet.add(r.__tipo);
+      if (r.__rota && r.__rota !== '—') routeSet.add(r.__rota);
+    }
+    const kmVals = extratoRows.map((r: any) => r.__km).filter(Number.isFinite);
+    const revVals = extratoRows.map((r: any) => r.__receita).filter(Number.isFinite);
+    return {
+      statuses: Array.from(statusSet).sort(),
+      cargoTypes: Array.from(cargoSet).sort(),
+      routes: Array.from(routeSet).sort(),
+      kmMin: kmVals.length ? Math.min(...kmVals) : 0,
+      kmMax: kmVals.length ? Math.max(...kmVals) : 0,
+      revMin: revVals.length ? Math.min(...revVals) : 0,
+      revMax: revVals.length ? Math.max(...revVals) : 0,
+    };
+  }, [extratoRows]);
+
+  // ── Filter extrato rows ───────────────────────────────────────────────────
+  const filteredExtratoRows = useMemo(() => {
+    const { status, cargoTypes, routes, minKm, maxKm, minRevenue, maxRevenue, searchRoute } = slicers;
+    const q = (searchRoute || '').trim().toLowerCase();
+    return extratoRows.filter((r: any) => {
+      if (status.length && !status.includes(r.__status)) return false;
+      if (cargoTypes.length && !cargoTypes.includes(r.__tipo)) return false;
+      if (routes.length && !routes.includes(r.__rota)) return false;
+      if (q && !r.__rota.toLowerCase().includes(q)) return false;
+      if (minKm != null && r.__km < minKm) return false;
+      if (maxKm != null && r.__km > maxKm) return false;
+      if (minRevenue != null && r.__receita < minRevenue) return false;
+      if (maxRevenue != null && r.__receita > maxRevenue) return false;
+      return true;
+    });
+  }, [extratoRows, slicers]);
+
+  // ── Computed top/bottom from filtered rows ────────────────────────────────
+  const computedTopBottom = useMemo(() => {
+    const rows = filteredExtratoRows
+      .filter((r: any) => r.__km > 0 && r.__receita > 0)
+      .map((r: any) => ({ rota: r.__rota, km: r.__km, receita: r.__receita, rs_km: r.__receita / r.__km }));
+    rows.sort((a, b) => b.rs_km - a.rs_km);
+    return { top: rows.slice(0, 10), bottom: rows.slice(-10).reverse() };
+  }, [filteredExtratoRows]);
+
+  const activeFiltersCount =
+    (slicers.status.length ? 1 : 0) + (slicers.cargoTypes.length ? 1 : 0) +
+    (slicers.routes.length ? 1 : 0) + (slicers.minKm != null || slicers.maxKm != null ? 1 : 0) +
+    (slicers.minRevenue != null || slicers.maxRevenue != null ? 1 : 0) +
+    (slicers.searchRoute?.trim() ? 1 : 0);
+
+  const hasSlicerFilters = activeFiltersCount > 0;
 
   // ── KPIs MOTORISTA ────────────────────────────────────────────────────────
   const motoristaHero = useMemo(() => {
@@ -725,20 +851,165 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <ReportCharts charts={motoristaCharts} isLoading={isLoading} columns={2} />
           </div>
 
-          {/* Extrato */}
-          {!isLoading && (tables?.extrato_ganhos?.length > 0) && (
+          {/* ── PowerBI Slicers ──────────────────────────────────────── */}
+          {!isLoading && extratoRows.length > 0 && (
             <div className="space-y-3">
-              <SectionTitle icon={DollarSign} title="Extrato de ganhos" subtitle="Histórico detalhado por viagem" />
-              <ExtratoTable data={tables.extrato_ganhos} />
+              <SectionTitle icon={Filter} title="Filtros analíticos" subtitle="Slicers PowerBI — filtre extrato e lucratividade" />
+              <div className="rounded-2xl border bg-card p-4 space-y-4">
+                {/* Header: count + clear */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-[11px] text-muted-foreground">
+                    <span className="font-semibold text-foreground">{filteredExtratoRows.length}</span>
+                    {' de '}
+                    <span className="font-semibold text-foreground">{extratoRows.length}</span>
+                    {' registros'}
+                    {hasSlicerFilters && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(22,163,74,0.1)] text-[#16a34a] text-[10px] font-semibold">
+                        <Filter className="h-2.5 w-2.5" /> {activeFiltersCount} filtro{activeFiltersCount > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="ghost" size="sm"
+                      className="h-7 text-[11px] gap-1"
+                      onClick={() => setSlicers((p) => ({ ...p, status: ['COMPLETED', 'DELIVERED'] }))}
+                    >
+                      <CheckCircle className="h-3 w-3" /> Concluídos
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm"
+                      className="h-7 text-[11px] gap-1"
+                      onClick={() => setSlicers((p) => ({ ...p, status: ['CANCELLED'] }))}
+                    >
+                      <XCircle className="h-3 w-3" /> Cancelados
+                    </Button>
+                    {hasSlicerFilters && (
+                      <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1 text-destructive" onClick={resetSlicers}>
+                        <X className="h-3 w-3" /> Limpar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Status chips */}
+                  {slicerOptions.statuses.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Status</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {slicerOptions.statuses.map((s) => (
+                          <ToggleChip key={s} active={slicers.status.includes(s)} onClick={() => toggleSlicer('status', s)}>
+                            {STATUS_LABELS[s] || s}
+                          </ToggleChip>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cargo type chips */}
+                  {slicerOptions.cargoTypes.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Tipo de carga</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {slicerOptions.cargoTypes.slice(0, 8).map((t) => (
+                          <ToggleChip key={t} active={slicers.cargoTypes.includes(t)} onClick={() => toggleSlicer('cargoTypes', t)}>
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                          </ToggleChip>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Route search + chips */}
+                  {slicerOptions.routes.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rota</p>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <Input
+                          className="h-7 text-[11px] pl-7"
+                          placeholder="Buscar rota..."
+                          value={slicers.searchRoute || ''}
+                          onChange={(e) => setSlicers((p) => ({ ...p, searchRoute: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
+                        {slicerOptions.routes
+                          .filter((r) => !slicers.searchRoute?.trim() || r.toLowerCase().includes(slicers.searchRoute.trim().toLowerCase()))
+                          .slice(0, 10)
+                          .map((r) => (
+                            <ToggleChip key={r} active={slicers.routes.includes(r)} onClick={() => toggleSlicer('routes', r)}>
+                              {compactText(r, 25)}
+                            </ToggleChip>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Range: km + receita */}
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Faixa de Km <span className="font-normal">({fmtNum(slicerOptions.kmMin)}–{fmtNum(slicerOptions.kmMax)})</span>
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                          value={slicers.minKm ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, minKm: e.target.value ? Number(e.target.value) : undefined }))}
+                        />
+                        <span className="text-muted-foreground text-[10px]">—</span>
+                        <Input
+                          type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                          value={slicers.maxKm ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, maxKm: e.target.value ? Number(e.target.value) : undefined }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Faixa de Receita <span className="font-normal">({formatBRL(slicerOptions.revMin)}–{formatBRL(slicerOptions.revMax)})</span>
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                          value={slicers.minRevenue ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, minRevenue: e.target.value ? Number(e.target.value) : undefined }))}
+                        />
+                        <span className="text-muted-foreground text-[10px]">—</span>
+                        <Input
+                          type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                          value={slicers.maxRevenue ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, maxRevenue: e.target.value ? Number(e.target.value) : undefined }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Top/Bottom lucrativos */}
-          {!isLoading && (tables?.top_lucrativos?.length > 0 || tables?.bottom_lucrativos?.length > 0) && (
+          {/* Extrato */}
+          {!isLoading && extratoRows.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={DollarSign} title="Extrato de ganhos" subtitle="Histórico detalhado por viagem" />
+              {filteredExtratoRows.length > 0 ? (
+                <ExtratoTable data={filteredExtratoRows} />
+              ) : (
+                <Card className="rounded-2xl p-6 flex flex-col items-center gap-2">
+                  <p className="text-sm text-muted-foreground">Nenhum registro com esses filtros</p>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={resetSlicers}>
+                    <X className="h-3 w-3" /> Limpar filtros
+                  </Button>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Top/Bottom lucrativos (computed from filtered rows when slicers active) */}
+          {!isLoading && (hasSlicerFilters ? (computedTopBottom.top.length > 0 || computedTopBottom.bottom.length > 0) : (tables?.top_lucrativos?.length > 0 || tables?.bottom_lucrativos?.length > 0)) && (
             <div className="space-y-3">
               <SectionTitle icon={TrendingUp} title="Fretes por lucratividade" subtitle="R$/km — melhores e piores" />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {tables?.top_lucrativos?.length > 0 && (
+                {(hasSlicerFilters ? computedTopBottom.top : tables?.top_lucrativos || []).length > 0 && (
                   <Card className="rounded-2xl overflow-hidden">
                     <div className="px-4 py-3 border-b bg-[rgba(22,163,74,0.05)]">
                       <p className="text-xs font-semibold text-[#16a34a]">🏆 Top 10 mais lucrativos</p>
@@ -749,7 +1020,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                           <TableRow><TableHead className="text-xs">Rota</TableHead><TableHead className="text-xs text-right">Km</TableHead><TableHead className="text-xs text-right">Valor</TableHead><TableHead className="text-xs text-right">R$/km</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
-                          {tables.top_lucrativos.map((r: any, i: number) => (
+                          {(hasSlicerFilters ? computedTopBottom.top : tables?.top_lucrativos || []).map((r: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell className="text-xs max-w-[100px] truncate">{r.rota || '—'}</TableCell>
                               <TableCell className="text-xs text-right">{fmtNum(r.km || 0)}</TableCell>
@@ -762,7 +1033,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                     </div>
                   </Card>
                 )}
-                {tables?.bottom_lucrativos?.length > 0 && (
+                {(hasSlicerFilters ? computedTopBottom.bottom : tables?.bottom_lucrativos || []).length > 0 && (
                   <Card className="rounded-2xl overflow-hidden">
                     <div className="px-4 py-3 border-b bg-destructive/5">
                       <p className="text-xs font-semibold text-destructive">⚠️ Top 10 menos lucrativos</p>
@@ -773,7 +1044,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                           <TableRow><TableHead className="text-xs">Rota</TableHead><TableHead className="text-xs text-right">Km</TableHead><TableHead className="text-xs text-right">Valor</TableHead><TableHead className="text-xs text-right">R$/km</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
-                          {tables.bottom_lucrativos.map((r: any, i: number) => (
+                          {(hasSlicerFilters ? computedTopBottom.bottom : tables?.bottom_lucrativos || []).map((r: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell className="text-xs max-w-[100px] truncate">{r.rota || '—'}</TableCell>
                               <TableCell className="text-xs text-right">{fmtNum(r.km || 0)}</TableCell>
