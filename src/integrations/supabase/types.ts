@@ -5869,6 +5869,7 @@ export type Database = {
           eta_average_speed_kmh: number | null
           eta_calculated_at: string | null
           eta_remaining_distance_km: number | null
+          expires_at: string | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null
@@ -5989,6 +5990,7 @@ export type Database = {
           eta_average_speed_kmh?: number | null
           eta_calculated_at?: string | null
           eta_remaining_distance_km?: number | null
+          expires_at?: string | null
           extra_fees?: number | null
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
@@ -6109,6 +6111,7 @@ export type Database = {
           eta_average_speed_kmh?: number | null
           eta_calculated_at?: string | null
           eta_remaining_distance_km?: number | null
+          expires_at?: string | null
           extra_fees?: number | null
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
@@ -10586,6 +10589,7 @@ export type Database = {
           destination_lng: number | null
           destination_state: string | null
           estimated_price: number | null
+          expires_at: string | null
           final_price: number | null
           id: string
           in_progress_at: string | null
@@ -10638,6 +10642,7 @@ export type Database = {
           destination_lng?: number | null
           destination_state?: string | null
           estimated_price?: number | null
+          expires_at?: string | null
           final_price?: number | null
           id?: string
           in_progress_at?: string | null
@@ -10690,6 +10695,7 @@ export type Database = {
           destination_lng?: number | null
           destination_state?: string | null
           estimated_price?: number | null
+          expires_at?: string | null
           final_price?: number | null
           id?: string
           in_progress_at?: string | null
@@ -13711,10 +13717,22 @@ export type Database = {
           total_ratings: number
         }[]
       }
-      get_authoritative_feed: {
-        Args: { p_debug?: boolean; p_role: string; p_user_id: string }
-        Returns: Json
-      }
+      get_authoritative_feed:
+        | {
+            Args: { p_debug?: boolean; p_role: string; p_user_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_debug?: boolean
+              p_expiry_bucket?: string
+              p_role: string
+              p_sort?: string
+              p_types?: string[]
+              p_user_id: string
+            }
+            Returns: Json
+          }
       get_company_owner_for_affiliated_driver: {
         Args: { p_company_id: string }
         Returns: {
@@ -14817,6 +14835,7 @@ export type Database = {
           eta_average_speed_kmh: number | null
           eta_calculated_at: string | null
           eta_remaining_distance_km: number | null
+          expires_at: string | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null
@@ -14946,6 +14965,7 @@ export type Database = {
           eta_average_speed_kmh: number | null
           eta_calculated_at: string | null
           eta_remaining_distance_km: number | null
+          expires_at: string | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { ExpiryBucket, SortOption } from '@/components/MarketplaceFilters';
 
 type FeedPanelRole = 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
 
@@ -8,8 +9,11 @@ interface GuaranteedMarketplaceFeedParams {
   freightLimit?: number;
   serviceLimit?: number;
   debug?: boolean;
-  /** Força o papel do feed quando active_mode estiver inconsistente com o painel atual */
   roleOverride?: FeedPanelRole;
+  /** Filtros de marketplace */
+  filterTypes?: string[];
+  filterExpiryBucket?: ExpiryBucket;
+  filterSort?: SortOption;
 }
 
 interface UnifiedFeedDebugSummary {
@@ -33,6 +37,7 @@ interface GuaranteedMarketplaceResult {
     feed_total_displayed: number;
     fallback_used: boolean;
     role: string;
+    filters?: { types: string[] | null; expiry_bucket: string; sort: string };
   };
   debug: {
     freight: UnifiedFeedDebugSummary | null;
@@ -62,13 +67,11 @@ export function useGuaranteedMarketplaceFeed() {
 
   const resolveAuthenticatedUserId = useCallback(async (profile: any): Promise<string | null> => {
     if (profile?.user_id) return String(profile.user_id);
-
     const { data, error } = await supabase.auth.getUser();
     if (error) {
-      console.error('[useGuaranteedMarketplaceFeed] Falha ao resolver auth user para blindagem de cidade:', error);
+      console.error('[useGuaranteedMarketplaceFeed] Falha ao resolver auth user:', error);
       return null;
     }
-
     return data?.user?.id || null;
   }, []);
 
@@ -78,6 +81,9 @@ export function useGuaranteedMarketplaceFeed() {
     serviceLimit = 50,
     debug = false,
     roleOverride,
+    filterTypes,
+    filterExpiryBucket,
+    filterSort,
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
     const rawPanel = roleOverride || profile?.active_mode || profile?.role || 'TRANSPORTADORA';
     const panel = String(rawPanel).toUpperCase();
@@ -98,30 +104,27 @@ export function useGuaranteedMarketplaceFeed() {
         fallback_used: false,
         role: panel,
       },
-      debug: {
-        freight: null,
-        service: null,
-        excludedItems: [],
-      },
+      debug: { freight: null, service: null, excludedItems: [] },
     };
 
     const resolvedUserId = await resolveAuthenticatedUserId(profile);
     if (!resolvedUserId) {
       if (import.meta.env.DEV) {
-        console.error('[useGuaranteedMarketplaceFeed] BLOQUEADO: não foi possível resolver user_id autenticado para feed autoritativo. Retornando feed vazio (fail-closed).', {
-          panel,
-          profile_id: profile?.id,
-        });
+        console.error('[useGuaranteedMarketplaceFeed] BLOQUEADO: user_id não resolvido. Feed vazio (fail-closed).', { panel, profile_id: profile?.id });
       }
       return emptyResult;
     }
 
-    const { data, error } = await supabase.rpc('get_authoritative_feed', {
+    const rpcParams = {
       p_user_id: resolvedUserId,
       p_role: rpcRole,
       p_debug: debug,
-    });
+      p_types: (filterTypes && filterTypes.length > 0) ? filterTypes : undefined,
+      p_expiry_bucket: (filterExpiryBucket && filterExpiryBucket !== 'ALL') ? filterExpiryBucket : undefined,
+      p_sort: filterSort || undefined,
+    };
 
+    const { data, error } = await supabase.rpc('get_authoritative_feed', rpcParams);
     if (error) throw error;
 
     const payload = (data || {}) as any;
@@ -129,9 +132,7 @@ export function useGuaranteedMarketplaceFeed() {
     let freights = Array.isArray(payload?.freights) ? payload.freights.slice(0, freightLimit) : [];
     let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
 
-    // 🔒 Blindagem estrita por cidade para perfis individuais (fail-closed)
-    // MOTORISTA_AFILIADO usa escopo autoritativo do backend (empresa + afiliados ativos),
-    // então não aplicamos um segundo fail-closed local por user_cities do usuário autenticado.
+    // Blindagem estrita por cidade para perfis individuais (fail-closed)
     const shouldEnforceStrictCity = panel === 'MOTORISTA' || panel === 'PRESTADOR_SERVICOS';
     if (shouldEnforceStrictCity) {
       const { data: userCities, error: userCitiesError } = await supabase
@@ -141,17 +142,11 @@ export function useGuaranteedMarketplaceFeed() {
         .eq('is_active', true);
 
       if (userCitiesError) {
-        // Fail-closed: se não conseguimos validar cidades ativas, não exibimos itens.
-        console.error('[useGuaranteedMarketplaceFeed] Falha ao carregar user_cities. Aplicando fail-closed para evitar vazamento regional.', {
-          panel,
-          user_id: resolvedUserId,
-          error: userCitiesError,
-        });
+        console.error('[useGuaranteedMarketplaceFeed] Falha ao carregar user_cities. Fail-closed.', { panel, user_id: resolvedUserId, error: userCitiesError });
         freights = [];
         serviceRequests = [];
       } else {
         const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
-
         if (activeCityIds.size === 0) {
           freights = [];
           serviceRequests = [];
@@ -160,7 +155,6 @@ export function useGuaranteedMarketplaceFeed() {
             const originCityId = f?.origin_city_id ? String(f.origin_city_id) : '';
             return !!originCityId && activeCityIds.has(originCityId);
           });
-
           serviceRequests = serviceRequests.filter((s: any) => {
             const cityId = s?.city_id ? String(s.city_id) : '';
             return !!cityId && activeCityIds.has(cityId);
@@ -174,30 +168,18 @@ export function useGuaranteedMarketplaceFeed() {
       feed_total_displayed: freights.length + serviceRequests.length,
       fallback_used: Boolean(payload?.metrics?.fallback_used),
       role: panel,
+      filters: payload?.metrics?.filters || undefined,
     };
 
     const debugPayload = payload?.debug || null;
 
-    if (import.meta.env.DEV) {
-      if (metrics.fallback_used && (freights.length > 0 || serviceRequests.length > 0)) {
-        console.error('[FeedIntegrity] Fallback autoritativo ativado: itens exibidos via fail-safe simplificado.', {
-          role: metrics.role,
-          freights: freights.length,
-          services: serviceRequests.length,
-          eligible: metrics.feed_total_eligible,
-          displayed: metrics.feed_total_displayed,
-        });
-      }
-
-      if (debug) {
-        console.group('🔍 [useGuaranteedMarketplaceFeed] Authoritative Feed Debug');
-        console.log('Fretes:', freights.length, 'Serviços:', serviceRequests.length);
-        console.log('Tipos urbanos permitidos (perfil):', allowedTransportTypes);
-        console.log('Metrics:', metrics);
-        if (debugPayload?.freight) console.log('Debug freight:', debugPayload.freight);
-        if (debugPayload?.service) console.log('Debug service:', debugPayload.service);
-        console.groupEnd();
-      }
+    if (import.meta.env.DEV && debug) {
+      console.group('🔍 [useGuaranteedMarketplaceFeed] Feed Debug');
+      console.log('Fretes:', freights.length, 'Serviços:', serviceRequests.length);
+      console.log('Filtros aplicados:', metrics.filters);
+      console.log('Metrics:', metrics);
+      if (debugPayload?.viewer) console.log('Viewer:', debugPayload.viewer);
+      console.groupEnd();
     }
 
     return {
@@ -218,4 +200,3 @@ export function useGuaranteedMarketplaceFeed() {
     resolveAllowedTransportTypes,
   };
 }
-
