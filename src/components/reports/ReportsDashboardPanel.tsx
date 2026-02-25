@@ -385,6 +385,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const isMotorista = panel === 'MOTORISTA';
   const isTransportadora = panel === 'TRANSPORTADORA';
   const isPrestador = panel === 'PRESTADOR';
+  const isProdutor = panel === 'PRODUTOR';
 
   // ── Slicers state (MOTORISTA only) ────────────────────────────────────────
   const [slicers, setSlicers] = useState<MotoristaSlicers>(EMPTY_SLICERS);
@@ -679,15 +680,83 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     return configs;
   }, [charts, isPrestador]);
 
-  // ── Gráficos outros painéis ───────────────────────────────────────────────
+  // ── KPIs PRODUTOR ─────────────────────────────────────────────────────────
+  const produtorHero = useMemo(() => {
+    if (!isProdutor) return null;
+    const receitaTotal = Number(kpis.receita_total) || 0;
+    const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || 0;
+    const ticketMedio = Number(kpis.ticket_medio) || 0;
+    const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
+    return {
+      value: receitaTotal,
+      subtitle: `${fretesConcluidos} fretes concluídos no período`,
+      secondary: [
+        { label: 'Ticket médio', value: formatBRL(ticketMedio) },
+        { label: 'Taxa conclusão', value: `${taxaConclusao.toFixed(1)}%` },
+        { label: 'Fretes concluídos', value: fmtNum(fretesConcluidos) },
+        { label: 'Total fretes', value: fmtNum(Number(kpis.total_fretes) || 0) },
+      ],
+    };
+  }, [kpis, isProdutor]);
+
+  const produtorOp = useMemo(() => {
+    if (!isProdutor) return [];
+    const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || 0;
+    const taxaCancel = Number(kpis.taxa_cancelamento) || 0;
+    const avgKm = Number(kpis.km_medio || kpis.distancia_media_km) || 0;
+    const fretesAbertos = Number(kpis.fretes_abertos) || 0;
+    const avaliacao = Number(kpis.avaliacao_media) || 0;
+    const rsPorKm = Number(kpis.rs_por_km) || 0;
+    return [
+      { label: 'Concluídos', value: fmtNum(fretesConcluidos), icon: CheckCircle, highlight: true },
+      { label: 'Abertos', value: fmtNum(fretesAbertos), icon: Package },
+      { label: 'Km médio', value: avgKm > 0 ? `${fmtNum(avgKm, 1)} km` : '—', icon: MapPin },
+      { label: 'R$/km', value: rsPorKm > 0 ? `R$ ${fmtNum(rsPorKm, 2)}` : '—', icon: TrendingUp, highlight: true },
+      { label: 'Cancelamento', value: `${taxaCancel.toFixed(1)}%`, icon: XCircle },
+      { label: 'Avaliação', value: avaliacao > 0 ? `${fmtNum(avaliacao, 1)} ★` : '—', icon: Star },
+    ] satisfies OpKPI[];
+  }, [kpis, isProdutor]);
+
+  // ── Gráficos PRODUTOR ──────────────────────────────────────────────────────
+  const produtorCharts: ChartConfig[] = useMemo(() => {
+    if (!isProdutor || !charts) return [];
+    const configs: ChartConfig[] = [];
+    if (charts.receita_por_mes?.length) {
+      configs.push({
+        title: 'Receita por mês',
+        type: 'area',
+        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), receita: Number(m.receita) || 0 })),
+        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--chart-1))' }],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      });
+    }
+    if (charts.volume_por_dia?.length) {
+      configs.push({
+        title: 'Operações por dia',
+        type: 'bar',
+        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
+        dataKeys: [
+          { key: 'fretes', label: 'Fretes', color: 'hsl(var(--chart-1))' },
+          { key: 'servicos', label: 'Serviços', color: 'hsl(var(--chart-2))' },
+        ],
+        xAxisKey: 'day',
+      });
+    }
+    if (charts.por_status?.length) {
+      configs.push({ title: 'Por status', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
+    }
+    return configs;
+  }, [charts, isProdutor]);
+
+  // ── Gráficos genéricos (fallback) ──────────────────────────────────────────
   const genericCharts: ChartConfig[] = useMemo(() => {
-    if (isMotorista || isTransportadora || isPrestador || !charts) return [];
+    if (isMotorista || isTransportadora || isPrestador || isProdutor || !charts) return [];
     const configs: ChartConfig[] = [];
     if (charts.receita_por_mes?.length) configs.push({ title: 'Receita por mês', type: 'bar', data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), revenue: m.receita })), dataKeys: [{ key: 'revenue', label: 'Receita' }], xAxisKey: 'month', valueFormatter: formatBRL });
-    if (charts.volume_por_dia?.length && panel === 'PRODUTOR') configs.push({ title: 'Operações por dia', type: 'bar', data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })), dataKeys: [{ key: 'fretes', label: 'Fretes', color: '#16a34a' }, { key: 'servicos', label: 'Serviços', color: '#1976D2' }], xAxisKey: 'day' });
     if (charts.por_status?.length) configs.push({ title: 'Por status', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
     return configs;
-  }, [charts, isMotorista, isTransportadora, isPrestador, panel]);
+  }, [charts, isMotorista, isTransportadora, isPrestador, isProdutor]);
 
   // ── Exportação ────────────────────────────────────────────────────────────
   const exportSections = useMemo(() => [{
@@ -1211,8 +1280,31 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         </>
       )}
 
-      {/* ── Outros painéis (PRODUTOR) ─────────────────────────────────── */}
-      {!isMotorista && !isTransportadora && !isPrestador && (
+      {/* ── PRODUTOR ─────────────────────────────────────────────────── */}
+      {isProdutor && produtorHero && (
+        <>
+          <HeroFinanceBlock
+            label="Receita do período"
+            value={produtorHero.value}
+            subtitle={produtorHero.subtitle}
+            secondary={produtorHero.secondary}
+            isLoading={isLoading}
+          />
+
+          <div className="space-y-3">
+            <SectionTitle icon={Activity} title="Operacional" subtitle="Volume, qualidade e eficiência" />
+            <OperationalGrid items={produtorOp} isLoading={isLoading} />
+          </div>
+
+          <div className="space-y-3">
+            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Receita e distribuição operacional" />
+            <ReportCharts charts={produtorCharts} isLoading={isLoading} columns={2} />
+          </div>
+        </>
+      )}
+
+      {/* ── Outros painéis (fallback) ─────────────────────────────────── */}
+      {!isMotorista && !isTransportadora && !isPrestador && !isProdutor && (
         <ReportCharts charts={genericCharts} isLoading={isLoading} columns={2} />
       )}
 
