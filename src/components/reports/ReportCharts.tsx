@@ -7,10 +7,10 @@ import {
   ScatterChart, Scatter, ZAxis, AreaChart, Area, ReferenceLine
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, TrendingDown, Activity, BarChart3 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Hook: useIsMobile — safe for SSR
+// Hook: useIsMobile
 // ═══════════════════════════════════════════════════════════════════════════════
 function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(false);
@@ -102,7 +102,7 @@ interface ReportChartsProps {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// A2) computeDomain — escala dinâmica para eixos
+// computeDomain — escala dinâmica para eixos
 // ═══════════════════════════════════════════════════════════════════════════════
 function computeDomain(values: number[]): [number, number] {
   const clean = values.filter(v => Number.isFinite(v));
@@ -113,10 +113,17 @@ function computeDomain(values: number[]): [number, number] {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// A3) computeMiniKpi — PowerBI-like header
+// BUG FIX: getPrimaryKey — scatter usa yAxisKey, outros usam dataKeys[0].key
+// ═══════════════════════════════════════════════════════════════════════════════
+function getPrimaryKey(config: ChartConfig): string | undefined {
+  if (config.type === 'scatter') return config.yAxisKey || config.dataKeys?.[0]?.key;
+  return config.dataKeys?.[0]?.key;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// computeMiniKpi — PowerBI header (corrigido)
 // ═══════════════════════════════════════════════════════════════════════════════
 type MiniKpi = {
-  primaryLabel: 'TOTAL' | 'ÚLTIMO';
   primaryValue: number;
   maxValue: number;
   avgValue: number;
@@ -126,16 +133,15 @@ type MiniKpi = {
 };
 
 function computeMiniKpi(config: ChartConfig): MiniKpi | null {
-  const dk = config.dataKeys?.[0]?.key;
+  const dk = getPrimaryKey(config);
   if (!dk) return null;
 
   if (config.type === 'pie') {
     const values = (config.data || []).map((d: any) => Number(d?.[dk])).filter(v => Number.isFinite(v));
     if (!values.length) return null;
     const total = values.reduce((a, b) => a + b, 0);
-    const maxValue = Math.max(...values);
     return {
-      primaryLabel: 'TOTAL', primaryValue: total, maxValue, avgValue: total / values.length,
+      primaryValue: total, maxValue: Math.max(...values), avgValue: total / values.length,
       deltaPct: null, points: values.length,
       insight: { label: 'Distribuição', variant: 'neutral' },
     };
@@ -148,10 +154,11 @@ function computeMiniKpi(config: ChartConfig): MiniKpi | null {
     const xVals = (config.data || []).map((d: any) => Number(d?.[xKey])).filter(v => Number.isFinite(v));
     const avgY = yVals.length ? yVals.reduce((a, b) => a + b, 0) / yVals.length : 0;
     const avgX = xVals.length ? xVals.reduce((a, b) => a + b, 0) / xVals.length : 0;
+    const rpk = avgX > 0 ? avgY / avgX : 0;
     return {
-      primaryLabel: 'TOTAL', primaryValue: config.data.length, maxValue: Math.max(...yVals, 0),
+      primaryValue: avgY, maxValue: Math.max(...yVals, 0),
       avgValue: avgY, deltaPct: null, points: config.data.length,
-      insight: { label: avgX > 0 ? `R$/km: ${formatBRL(avgY / avgX)}` : `${config.data.length} pontos`, variant: 'neutral' },
+      insight: { label: rpk > 0 ? `R$/km: ${rpk.toFixed(2)}` : `${config.data.length} pontos`, variant: 'neutral' },
     };
   }
 
@@ -161,7 +168,6 @@ function computeMiniKpi(config: ChartConfig): MiniKpi | null {
   const maxValue = Math.max(...values);
   const avgValue = values.reduce((a, b) => a + b, 0) / values.length;
   const isAccum = dk === 'acumulado' || /acumulad/i.test(config.title);
-  const primaryLabel = isAccum ? 'ÚLTIMO' : 'TOTAL';
   const primaryValue = isAccum ? values[values.length - 1] : values.reduce((a, b) => a + b, 0);
 
   const first = values[0];
@@ -181,60 +187,147 @@ function computeMiniKpi(config: ChartConfig): MiniKpi | null {
     insight = { label: 'Estável', variant: 'neutral' };
   }
 
-  return { primaryLabel, primaryValue, maxValue, avgValue, deltaPct, points: values.length, insight };
+  return { primaryValue, maxValue, avgValue, deltaPct, points: values.length, insight };
 }
 
-// ── Mini KPI strip component ────────────────────────────────────────────────
-const MiniKpiStrip: React.FC<{ kpi: MiniKpi; fmt: (v: number) => string; isSparse: boolean }> = ({ kpi, fmt, isSparse }) => (
-  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 pb-2 pt-0.5">
-    {/* Primary */}
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-        {kpi.primaryLabel}
-      </span>
-      <span className="text-base font-extrabold text-foreground tabular-nums">
+// ═══════════════════════════════════════════════════════════════════════════════
+// PowerBIHeader — clean, dense, no clutter
+// ═══════════════════════════════════════════════════════════════════════════════
+const PowerBIHeader: React.FC<{ kpi: MiniKpi; fmt: (v: number) => string }> = ({ kpi, fmt }) => (
+  <div className="px-1 pb-2 pt-0.5 space-y-0.5">
+    {/* Line 1: primary value + delta/badge */}
+    <div className="flex items-baseline gap-2">
+      <span className="text-lg font-extrabold text-foreground tabular-nums leading-tight">
         {fmt(kpi.primaryValue)}
       </span>
+      {kpi.deltaPct != null ? (
+        <span className={cn(
+          'inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums',
+          kpi.deltaPct > 0 && 'text-emerald-400',
+          kpi.deltaPct < 0 && 'text-red-400',
+          kpi.deltaPct === 0 && 'text-muted-foreground',
+        )}>
+          {kpi.deltaPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : kpi.deltaPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+          {kpi.deltaPct >= 0 ? '+' : ''}{kpi.deltaPct.toFixed(1)}%
+        </span>
+      ) : (
+        <span className={cn(
+          'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold',
+          kpi.insight.variant === 'up' && 'bg-emerald-950/30 text-emerald-400',
+          kpi.insight.variant === 'down' && 'bg-red-950/30 text-red-400',
+          kpi.insight.variant === 'neutral' && 'bg-blue-950/20 text-blue-400',
+          kpi.insight.variant === 'warn' && 'bg-amber-950/20 text-amber-400',
+        )}>
+          {kpi.insight.variant === 'up' && <TrendingUp className="h-2.5 w-2.5" />}
+          {kpi.insight.variant === 'down' && <TrendingDown className="h-2.5 w-2.5" />}
+          {kpi.insight.variant === 'neutral' && <Activity className="h-2.5 w-2.5" />}
+          {kpi.insight.label}
+        </span>
+      )}
     </div>
-    {/* Chips */}
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums bg-muted/40 text-muted-foreground">
-      Máx: {fmt(kpi.maxValue)}
-    </span>
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums bg-muted/40 text-muted-foreground">
-      Média: {fmt(kpi.avgValue)}
-    </span>
-    {!isSparse && kpi.deltaPct != null && (
-      <span className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
-        kpi.deltaPct > 0 && 'bg-emerald-950/30 text-emerald-400',
-        kpi.deltaPct < 0 && 'bg-red-950/30 text-red-400',
-        kpi.deltaPct === 0 && 'bg-muted/40 text-muted-foreground',
-      )}>
-        {kpi.deltaPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : kpi.deltaPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-        Δ: {kpi.deltaPct >= 0 ? '+' : ''}{kpi.deltaPct.toFixed(1)}%
-      </span>
-    )}
-    {/* Insight chip */}
-    <span className={cn(
-      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold',
-      kpi.insight.variant === 'up' && 'bg-emerald-950/30 text-emerald-400',
-      kpi.insight.variant === 'down' && 'bg-red-950/30 text-red-400',
-      kpi.insight.variant === 'neutral' && 'bg-blue-950/20 text-blue-400',
-      kpi.insight.variant === 'warn' && 'bg-amber-950/20 text-amber-400',
-    )}>
-      {kpi.insight.variant === 'up' && <TrendingUp className="h-3 w-3" />}
-      {kpi.insight.variant === 'down' && <TrendingDown className="h-3 w-3" />}
-      {kpi.insight.variant === 'neutral' && <Activity className="h-3 w-3" />}
-      {kpi.insight.label}
-    </span>
-    {isSparse && (
-      <span className="text-[9px] text-muted-foreground/60">Pontos: {kpi.points}</span>
-    )}
+    {/* Line 2: max · avg */}
+    <div className="flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums">
+      <span>Máx {fmt(kpi.maxValue)}</span>
+      <span className="opacity-30">·</span>
+      <span>Média {fmt(kpi.avgValue)}</span>
+    </div>
   </div>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// A4) Compute average for ReferenceLine (only when >= 3 points)
+// TrendSummaryCard — line/area with < 3 points
+// ═══════════════════════════════════════════════════════════════════════════════
+const TrendSummaryCard: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
+  const dk = getPrimaryKey(config);
+  const values = dk ? config.data.map(d => Number(d[dk])).filter(v => Number.isFinite(v)) : [];
+  const last = values[values.length - 1] ?? 0;
+  const first = values[0] ?? 0;
+  const hasTwo = values.length === 2;
+  const delta = hasTwo && Math.abs(first) > 0 ? ((last - first) / Math.abs(first)) * 100 : null;
+  const label = config.xAxisKey ? String(config.data[config.data.length - 1]?.[config.xAxisKey] || '') : '';
+
+  return (
+    <div className="flex flex-col items-center justify-center py-6 gap-2" style={{ minHeight: 160 }}>
+      <span className="text-3xl font-extrabold text-foreground tabular-nums">{fmt(last)}</span>
+      {label && <span className="text-xs text-muted-foreground">{formatChartLabel(label)}</span>}
+      {delta != null && (
+        <span className={cn(
+          'inline-flex items-center gap-1 text-xs font-semibold tabular-nums',
+          delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-red-400' : 'text-muted-foreground',
+        )}>
+          {delta > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+          {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+        </span>
+      )}
+      <span className="text-[9px] text-muted-foreground/50 bg-muted/20 rounded-full px-3 py-1">
+        Sem tendência suficiente ({values.length} {values.length === 1 ? 'registro' : 'registros'})
+      </span>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CategorySummaryCard — bar/hbar with 1 category
+// ═══════════════════════════════════════════════════════════════════════════════
+const CategorySummaryCard: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
+  const dk = getPrimaryKey(config);
+  const val = dk ? Number(config.data[0]?.[dk]) || 0 : 0;
+  const label = config.xAxisKey ? String(config.data[0]?.[config.xAxisKey] || '') : '';
+  const color = config.dataKeys[0]?.color || CHART_COLORS[0];
+
+  return (
+    <div className="flex flex-col items-center justify-center py-6 gap-3" style={{ minHeight: 160 }}>
+      <span className="text-3xl font-extrabold text-foreground tabular-nums">{fmt(val)}</span>
+      {label && (
+        <span className="text-xs font-medium text-muted-foreground">{formatChartLabel(label)}</span>
+      )}
+      {/* Progress-style bar */}
+      <div className="w-full max-w-[200px] h-3 rounded-full bg-muted/20 overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: '100%', background: color }} />
+      </div>
+      <span className="text-[9px] text-muted-foreground/50">1 categoria no período</span>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ScatterSummaryTiles — scatter < 4 points, compact 2x2 tiles
+// ═══════════════════════════════════════════════════════════════════════════════
+const ScatterSummaryTiles: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
+  const yKey = config.yAxisKey || config.dataKeys?.[0]?.key || 'receita';
+  const xKey = config.xAxisKey || 'km';
+  const yVals = config.data.map(d => Number(d[yKey])).filter(v => Number.isFinite(v));
+  const xVals = config.data.map(d => Number(d[xKey])).filter(v => Number.isFinite(v));
+  const avgY = yVals.length ? yVals.reduce((a, b) => a + b, 0) / yVals.length : 0;
+  const avgX = xVals.length ? xVals.reduce((a, b) => a + b, 0) / xVals.length : 0;
+  const rpk = avgX > 0 ? avgY / avgX : 0;
+
+  const tiles = [
+    { label: 'Pontos', value: String(config.data.length) },
+    { label: 'Receita média', value: fmt(avgY) },
+    { label: 'Km médio', value: formatCompactNumber(Math.round(avgX)) },
+    { label: 'R$/km médio', value: rpk > 0 ? `R$ ${rpk.toFixed(2)}` : '—' },
+  ];
+
+  return (
+    <div className="py-3" style={{ minHeight: 140 }}>
+      <p className="text-[10px] text-muted-foreground/60 text-center mb-3">
+        Amostra insuficiente para dispersão (mín. 4 pontos).
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {tiles.map((t, i) => (
+          <div key={i} className="border border-border/30 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">{t.label}</p>
+            <p className="text-xl font-extrabold text-foreground tabular-nums mt-0.5">{t.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// computeAverage for ReferenceLine (only >= 3 points)
 // ═══════════════════════════════════════════════════════════════════════════════
 function computeAverage(config: ChartConfig): number | null {
   const { type, data, dataKeys } = config;
@@ -249,63 +342,6 @@ function computeAverage(config: ChartConfig): number | null {
   if (avg === 0) return null;
   return avg;
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// A5) SinglePointAnalytic — for line/area with 1 data point
-// ═══════════════════════════════════════════════════════════════════════════════
-const SinglePointAnalytic: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
-  const dk = config.dataKeys?.[0]?.key;
-  const val = dk ? Number(config.data[0]?.[dk]) || 0 : 0;
-  const label = config.xAxisKey ? String(config.data[0]?.[config.xAxisKey] || '') : '';
-  return (
-    <div className="flex flex-col items-center justify-center py-8 gap-2" style={{ minHeight: 180 }}>
-      <span className="text-3xl font-extrabold text-foreground tabular-nums">{fmt(val)}</span>
-      {label && <span className="text-xs text-muted-foreground">{formatChartLabel(label)}</span>}
-      <span className="text-[10px] text-muted-foreground/60 bg-muted/30 rounded-full px-3 py-1">
-        Apenas 1 registro no período
-      </span>
-    </div>
-  );
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// A5) SparseScatterAnalytic — for scatter with < 4 points
-// ═══════════════════════════════════════════════════════════════════════════════
-const SparseScatterAnalytic: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
-  const yKey = config.yAxisKey || config.dataKeys?.[0]?.key || 'receita';
-  const xKey = config.xAxisKey || 'km';
-  const yVals = config.data.map(d => Number(d[yKey])).filter(v => Number.isFinite(v));
-  const xVals = config.data.map(d => Number(d[xKey])).filter(v => Number.isFinite(v));
-  const avgY = yVals.length ? yVals.reduce((a, b) => a + b, 0) / yVals.length : 0;
-  const avgX = xVals.length ? xVals.reduce((a, b) => a + b, 0) / xVals.length : 0;
-  const rpmAvg = avgX > 0 ? avgY / avgX : 0;
-
-  return (
-    <div className="flex flex-col items-center justify-center py-8 gap-3" style={{ minHeight: 180 }}>
-      <BarChart3 className="h-8 w-8 text-muted-foreground/30" />
-      <span className="text-xs font-semibold text-muted-foreground">Resumo da dispersão</span>
-      <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-        <div className="bg-muted/20 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase">Pontos</p>
-          <p className="text-lg font-bold">{config.data.length}</p>
-        </div>
-        <div className="bg-muted/20 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase">Média Receita</p>
-          <p className="text-lg font-bold tabular-nums">{fmt(avgY)}</p>
-        </div>
-        <div className="bg-muted/20 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase">Média Km</p>
-          <p className="text-lg font-bold tabular-nums">{formatCompactNumber(avgX)}</p>
-        </div>
-        <div className="bg-muted/20 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase">R$/km médio</p>
-          <p className="text-lg font-bold tabular-nums">{rpmAvg > 0 ? `R$ ${rpmAvg.toFixed(2)}` : '—'}</p>
-        </div>
-      </div>
-      <span className="text-[9px] text-muted-foreground/50">Mínimo 4 pontos para gráfico de dispersão</span>
-    </div>
-  );
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Premium Tooltip
@@ -381,12 +417,13 @@ const ChartSkeleton: React.FC<{ height?: number }> = ({ height = 300 }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Defaults
+// Dark premium axis/grid constants (Parte 6)
 // ═══════════════════════════════════════════════════════════════════════════════
-const AXIS_TICK = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
+const AXIS_TICK = { fontSize: 11, fill: 'rgba(255,255,255,0.55)' };
+const AXIS_LABEL_FILL = 'rgba(255,255,255,0.35)';
 const MARGIN = { top: 12, right: 16, bottom: 8, left: 4 };
 const MARGIN_MOBILE = { top: 8, right: 10, bottom: 6, left: 0 };
-const GRID_PROPS = { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.06)' } as const;
+const GRID_PROPS = { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.08)' } as const;
 
 const REFLINE_STYLE = {
   stroke: 'rgba(255,255,255,0.18)',
@@ -395,7 +432,7 @@ const REFLINE_STYLE = {
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RenderChart — with density heuristic, dynamic domain, ReferenceLine
+// RenderChart — density heuristic + summary cards
 // ═══════════════════════════════════════════════════════════════════════════════
 const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ config, isMobile }) => {
   const { type, data, dataKeys, xAxisKey = 'name', valueFormatter = String } = config;
@@ -403,35 +440,38 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
   const isSingle = pointCount === 1;
   const isSparse = pointCount <= 2;
 
-  // A1) Density heuristic
+  // Empty
   if (pointCount === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-10" style={{ minHeight: 180 }}>
+      <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-10" style={{ minHeight: 160 }}>
         <span className="text-4xl opacity-30">📊</span>
         <span className="text-xs">Sem dados para exibir</span>
       </div>
     );
   }
 
-  // Single point: line/area → analytic card
-  if (isSingle && (type === 'line' || type === 'area')) {
-    return <SinglePointAnalytic config={config} fmt={valueFormatter} />;
+  // Parte 3: line/area < 3 → TrendSummaryCard
+  if ((type === 'line' || type === 'area') && pointCount < 3) {
+    return <TrendSummaryCard config={config} fmt={valueFormatter} />;
   }
 
-  // Scatter < 4 → analytic card
+  // Parte 3: bar/hbar 1 category → CategorySummaryCard
+  if ((type === 'bar' || type === 'horizontal-bar') && isSingle) {
+    return <CategorySummaryCard config={config} fmt={valueFormatter} />;
+  }
+
+  // Parte 3/4: scatter < 4 → ScatterSummaryTiles
   if (type === 'scatter' && pointCount < 4) {
-    return <SparseScatterAnalytic config={config} fmt={valueFormatter} />;
+    return <ScatterSummaryTiles config={config} fmt={valueFormatter} />;
   }
 
-  // A1) Dynamic height
-  const dynamicHeight = isSingle ? 220 : isSparse ? 240 : (config.height || 300);
+  const dynamicHeight = isSparse ? 240 : (config.height || 300);
   const height = isMobile ? Math.min(dynamicHeight, 230) : dynamicHeight;
 
   const avg = computeAverage(config);
   const margin = isMobile ? MARGIN_MOBILE : MARGIN;
   const legendMaxItems = isMobile ? 6 : 8;
 
-  // A2) Extract values for dynamic domain
   const primaryKey = dataKeys[0]?.key;
   const allValues = primaryKey
     ? data.map(d => Number(d[primaryKey])).filter(v => Number.isFinite(v))
@@ -459,14 +499,12 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
     domain,
   };
 
-  // A4) ReferenceLine label
   const refLabel = avg != null ? {
     value: `Média: ${formatCompactNumber(avg)}`,
     position: 'insideTopRight' as const,
-    style: { fontSize: 9, fill: 'rgba(255,255,255,0.35)', fontWeight: 600 },
+    style: { fontSize: 9, fill: AXIS_LABEL_FILL, fontWeight: 600 },
   } : undefined;
 
-  // Sparse adjustments
   const dotSize = isSparse ? { r: 5, strokeWidth: 2, fill: '#fff' } : (isMobile ? false : { r: 3, strokeWidth: 2, fill: '#fff' });
 
   switch (type) {
@@ -497,19 +535,23 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
         ...item,
         [xAxisKey]: formatChartLabel(String(item[xAxisKey] || '')),
       }));
+      // Parte 5: single bar → wider bar, dynamic Y, less grid
+      const barSz = isSingle ? 48 : (isMobile ? 32 : 40);
+      const maxBarSz = isSingle ? 56 : (isMobile ? 32 : 40);
+      const barRadius: [number, number, number, number] = isSingle ? [10, 10, 6, 6] : [6, 6, 0, 0];
       return (
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={formatted} margin={margin}>
-            <CartesianGrid {...GRID_PROPS} />
-            <XAxis {...xAxisProps} />
-            <YAxis {...yAxisProps} />
+            <CartesianGrid {...GRID_PROPS} vertical={isSingle ? false : undefined} />
+            <XAxis {...xAxisProps} tick={isSingle ? { ...AXIS_TICK, fontSize: 13 } : AXIS_TICK} />
+            <YAxis {...yAxisProps} tickCount={isSingle ? 4 : undefined} />
             {avg != null && <ReferenceLine y={avg} label={refLabel} {...REFLINE_STYLE} />}
             <Tooltip content={<ChartTooltipCard valueFormatter={valueFormatter} />} />
             {!isSparse && <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />}
             {dataKeys.map((dk, i) => (
               <Bar key={dk.key} dataKey={dk.key} name={formatChartLabel(dk.label)}
                 fill={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
-                radius={[6, 6, 0, 0]} maxBarSize={isMobile ? 32 : 40} animationDuration={500}
+                radius={barRadius} barSize={barSz} maxBarSize={maxBarSz} animationDuration={500}
               />
             ))}
           </BarChart>
@@ -656,7 +698,6 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
     <div className={cn(`grid ${gridCols} gap-5`, className)}>
       {charts.map((chart, index) => {
         const kpi = computeMiniKpi(chart);
-        const isSparse = chart.data.length <= 2;
         const fmt = chart.valueFormatter || formatCompactNumber;
         return (
           <Card key={index} className="rounded-2xl overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -667,7 +708,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
             </CardHeader>
             <CardContent className="px-2 sm:px-4 pb-4 pt-1.5">
               {kpi && chart.data.length > 0 && (
-                <MiniKpiStrip kpi={kpi} fmt={fmt} isSparse={isSparse} />
+                <PowerBIHeader kpi={kpi} fmt={fmt} />
               )}
               <RenderChart config={chart} isMobile={isMobile} />
             </CardContent>
