@@ -19,7 +19,7 @@ import {
   AlertTriangle, PlusCircle, Eye, Zap,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ReportCharts,
@@ -28,6 +28,7 @@ import {
   formatBRL,
   type KPICardData,
   type ChartConfig,
+  type Drilldown,
 } from '@/components/reports';
 import { ReportPeriodFilter } from '@/components/reports/ReportPeriodFilter';
 import { useReportsDashboardUnified } from '@/hooks/useReportsDashboardUnified';
@@ -218,7 +219,7 @@ function groupSum(rows: any[], keyGetter: (r: any) => string, valueGetter: (r: a
   }
   return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
 }
-type Drilldown = { kind: 'route' | 'cargo' | 'status'; value: string };
+// Drilldown type imported from ReportCharts
 
 function pickBestWorstMonths(receitaMes: { month: string; receita: number; viagens: number }[]) {
   const rows = receitaMes.filter((r) => r.month);
@@ -558,6 +559,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     minKm: undefined, maxKm: undefined, minValue: undefined, maxValue: undefined,
     onlyLate: false, onlyNoProposals: false,
   });
+  const [producerRowsLimit, setProducerRowsLimit] = useState(100);
 
   const toggleProducerSlicer = (field: 'status' | 'cargoTypes', value: string) => {
     setProducerSlicers((prev) => {
@@ -1009,31 +1011,31 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
     if (charts?.receita_por_mes?.length) {
       configs.push({
-        title: 'Receita por mês',
+        title: 'Gasto por mês',
         type: 'area',
-        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), receita: Number(m.receita) || 0 })),
-        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--chart-1))' }],
+        data: charts.receita_por_mes.map((m: any) => ({ month: formatMonthLabelPtBR(m.mes), gasto: Number(m.receita) || 0 })),
+        dataKeys: [{ key: 'gasto', label: 'Gasto', color: 'hsl(var(--chart-1))' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
       });
     } else if (legacyCharts?.spending_by_month?.length) {
       configs.push({
-        title: 'Receita por mês',
+        title: 'Gasto por mês',
         type: 'area',
         data: legacyCharts.spending_by_month.map((m: any) => ({
           month: formatMonthLabelPtBR(m.month),
-          receita: (Number(m.freight_spending) || 0) + (Number(m.service_spending) || 0),
+          gasto: (Number(m.freight_spending) || 0) + (Number(m.service_spending) || 0),
         })),
-        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--chart-1))' }],
+        dataKeys: [{ key: 'gasto', label: 'Gasto', color: 'hsl(var(--chart-1))' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
       });
     } else if (useHistoryFallback && producerHistoryAgg.monthly.length) {
       configs.push({
-        title: 'Receita por mês',
+        title: 'Gasto por mês',
         type: 'area',
-        data: producerHistoryAgg.monthly.map((m: any) => ({ month: formatMonthLabelPtBR(m.month), receita: Number(m.receita) || 0 })),
-        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--chart-1))' }],
+        data: producerHistoryAgg.monthly.map((m: any) => ({ month: formatMonthLabelPtBR(m.month), gasto: Number(m.receita) || 0 })),
+        dataKeys: [{ key: 'gasto', label: 'Gasto', color: 'hsl(var(--chart-1))' }],
         xAxisKey: 'month',
         valueFormatter: formatBRL,
       });
@@ -1120,7 +1122,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     const topRoutes = groupSum(filteredProducerRows, r => r.__rota, r => r.__valor)
       .sort((a, b) => b.value - a.value).slice(0, 10).map(x => ({ name: x.name, gasto: x.value }));
     if (topRoutes.length) {
-      configs.push({ title: 'Top rotas por gasto', type: 'horizontal-bar' as const, data: topRoutes, dataKeys: [{ key: 'gasto', label: 'Gasto (R$)', color: '#16a34a' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 340 });
+      configs.push({ title: 'Top rotas por gasto', type: 'horizontal-bar' as const, data: topRoutes, dataKeys: [{ key: 'gasto', label: 'Gasto (R$)', color: '#16a34a' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 340, onDrilldown: applyDrilldown, drilldownKind: 'route' as const });
     }
 
     const hasTipo = filteredProducerRows.some(r => r.__tipo);
@@ -1128,14 +1130,14 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       const byTipo = groupSum(filteredProducerRows, r => r.__tipo, r => r.__valor)
         .sort((a, b) => b.value - a.value).slice(0, 10).map(x => ({ name: x.name.charAt(0).toUpperCase() + x.name.slice(1), gasto: x.value }));
       if (byTipo.length) {
-        configs.push({ title: 'Gasto por tipo de carga', type: 'horizontal-bar' as const, data: byTipo, dataKeys: [{ key: 'gasto', label: 'Gasto (R$)', color: '#2563eb' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 340 });
+        configs.push({ title: 'Gasto por tipo de carga', type: 'horizontal-bar' as const, data: byTipo, dataKeys: [{ key: 'gasto', label: 'Gasto (R$)', color: '#2563eb' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 340, onDrilldown: applyDrilldown, drilldownKind: 'cargo' as const });
       }
     }
 
     const byStatus = groupSum(filteredProducerRows, r => r.__status, r => 1)
       .sort((a, b) => b.value - a.value).map(x => ({ name: STATUS_LABELS[x.name] || x.name, value: x.value }));
     if (byStatus.length) {
-      configs.push({ title: 'Distribuição por status', type: 'pie' as const, data: byStatus, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
+      configs.push({ title: 'Distribuição por status', type: 'pie' as const, data: byStatus, dataKeys: [{ key: 'value', label: 'Quantidade' }], onDrilldown: applyDrilldown, drilldownKind: 'status' as const });
     }
 
     return configs;
@@ -2068,6 +2070,24 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
               <>
                 {filteredProducerRows.length > 0 ? (
                   <Card className="rounded-2xl overflow-hidden">
+                    {/* Pagination header */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/20">
+                      <p className="text-xs text-muted-foreground">
+                        Mostrando <span className="font-semibold text-foreground">{Math.min(producerRowsLimit, filteredProducerRows.length)}</span> de <span className="font-semibold text-foreground">{filteredProducerRows.length}</span>
+                      </p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                          onClick={() => setProducerRowsLimit(v => v + 100)}
+                          disabled={producerRowsLimit >= filteredProducerRows.length}>
+                          Mostrar mais
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px]"
+                          onClick={() => setProducerRowsLimit(100)}
+                          disabled={producerRowsLimit <= 100}>
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
@@ -2082,10 +2102,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredProducerRows.map((row: any, i: number) => (
+                          {filteredProducerRows.slice(0, producerRowsLimit).map((row: any, i: number) => (
                             <TableRow key={i} className="hover:bg-muted/30 transition-colors">
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-                                {row.__date ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
+                                {row.__date && isValid(row.__date) ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
                               </TableCell>
                               <TableCell className="text-xs max-w-[120px] sm:max-w-none truncate">
                                 {row.__rota}
