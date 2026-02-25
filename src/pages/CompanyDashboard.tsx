@@ -1018,6 +1018,7 @@ const CompanyDashboard = () => {
                         {activeServices.map((service) => (
                           <ServiceRequestInProgressCard
                             key={`service-${service.id}`}
+                            uiNomenclature="FREIGHT"
                             request={service}
                             onMarkOnTheWay={handleServiceOnTheWay}
                             onStartTransit={handleStartTransit}
