@@ -115,13 +115,12 @@ export const isInProgressFreight = (pickupDate: string | null, status: string): 
     return true;
   }
   
-  // Status ACCEPTED: depende da data de pickup
+  // Status ACCEPTED: sempre em andamento (motorista já aceitou)
+  // ✅ FIX: Fretes ACCEPTED com pickup futuro devem aparecer em "Em Andamento"
+  // para que o motorista veja o frete que acabou de aceitar.
+  // A distinção "agendado" é apenas visual (label/badge), não esconde o card.
   if (normalizedStatus === 'ACCEPTED') {
-    if (!pickupDate) return true; // Sem data = assume que está em andamento
-    
-    const classification = classifyFreightByPickupDate(pickupDate);
-    // Em andamento se pickup é hoje ou já passou
-    return classification.status === 'today' || classification.status === 'current' || classification.status === 'overdue';
+    return true;
   }
   
   // Outros status (OPEN, etc.) não são "em andamento"
