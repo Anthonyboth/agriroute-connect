@@ -38,7 +38,7 @@ interface ProposalForModal {
     price: number;
     distance_km: number;
     weight: number;
-    producer_id: string;
+    producer_id: string | null;
     required_trucks?: number;
     pricing_type?: string;
     price_per_km?: number;
@@ -108,6 +108,7 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
   // ✅ SEGURANÇA: Diferença de preço calculada POR CARRETA (não total)
   const priceDiff = proposal.proposed_price - originalPricePerTruck.displayPrice;
   const relevantCounterOffers = counterOffers.filter(co => co.freight_id === proposal.freight_id);
+  const hasRegisteredProducer = Boolean(proposal.freight?.producer_id || proposal.freight?.producer?.id);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -356,7 +357,7 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
           )}
 
           {/* 5. CONTRAPROPOSTAS RECEBIDAS */}
-          {relevantCounterOffers.length > 0 && (
+          {hasRegisteredProducer && relevantCounterOffers.length > 0 && (
             <>
               <Separator />
               <div>
@@ -433,14 +434,20 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
               <MessageSquare className="h-4 w-4" />
               Chat de Negociação
             </div>
-            <Suspense fallback={<CenteredSpinner className="h-32" />}>
-              <ProposalChatPanel
-                proposalId={proposal.id}
-                currentUserId={proposal.driver_id}
-                currentUserName="Você"
-                userRole="driver"
-              />
-            </Suspense>
+            {hasRegisteredProducer ? (
+              <Suspense fallback={<CenteredSpinner className="h-32" />}>
+                <ProposalChatPanel
+                  proposalId={proposal.id}
+                  currentUserId={proposal.driver_id}
+                  currentUserName="Você"
+                  userRole="driver"
+                />
+              </Suspense>
+            ) : (
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                Este frete foi criado por solicitante sem cadastro. Chat e contraproposta ficam desabilitados.
+              </div>
+            )}
           </div>
         </div>
 

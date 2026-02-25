@@ -507,8 +507,13 @@ const DriverDashboard = () => {
 
       const proposals = (data?.proposals as any[]) || [];
       const ongoing = (data?.ongoingFreights as any[]) || [];
+
+      const proposalsWithRegisteredProducer = proposals.filter((p: any) => {
+        const freight = p?.freight;
+        return Boolean(freight && (freight.producer_id || freight.producer?.id));
+      });
       
-      if (isMountedRef.current) setMyProposals(proposals);
+      if (isMountedRef.current) setMyProposals(proposalsWithRegisteredProducer);
       
       // ✅ Não sobrescrever ongoingFreights aqui.
       // A fonte autoritativa para "Em Andamento" é fetchOngoingFreights(),

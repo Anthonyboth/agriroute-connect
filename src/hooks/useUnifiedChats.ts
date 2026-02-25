@@ -75,7 +75,9 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           console.error('[useUnifiedChats] Erro ao buscar fretes:', freightsError);
         }
 
-        const freightIds = (userFreights || []).map((f: any) => f.id);
+        // ✅ Regra de segurança: fretes sem produtor cadastrado não devem abrir chat de frete
+        const eligibleFreights = (userFreights || []).filter((f: any) => Boolean(f?.producer_id));
+        const freightIds = eligibleFreights.map((f: any) => f.id);
 
         if (freightIds.length > 0) {
           // Etapa 2: Buscar mensagens SEM JOINS
@@ -86,9 +88,9 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             .order('created_at', { ascending: false });
 
           // Etapa 3: Buscar perfis necessários incluindo company_id (usando view segura)
-          const producerIds = [...new Set((userFreights || []).map((f: any) => f.producer_id).filter(Boolean))];
-          const driverIds = [...new Set((userFreights || []).map((f: any) => f.driver_id).filter(Boolean))];
-          const companyIds = [...new Set((userFreights || []).map((f: any) => f.company_id).filter(Boolean))];
+          const producerIds = [...new Set(eligibleFreights.map((f: any) => f.producer_id).filter(Boolean))];
+          const driverIds = [...new Set(eligibleFreights.map((f: any) => f.driver_id).filter(Boolean))];
+          const companyIds = [...new Set(eligibleFreights.map((f: any) => f.company_id).filter(Boolean))];
           
           // Usar profiles_secure para mascarar PII de outros usuários
           const { data: profiles } = await (supabase as any)
@@ -153,7 +155,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           // Criar mapa de perfis para lookup rápido (tipagem explícita para profiles_secure)
           interface SecureProfile { id: string; full_name?: string; role?: string; phone?: string; active_mode?: string; }
           const profileMap = new Map<string, SecureProfile>((profiles as SecureProfile[] || []).map((p) => [p.id, p]));
-          const freightMap = new Map((userFreights || []).map((f: any) => [f.id, f]) || []);
+          const freightMap = new Map((eligibleFreights || []).map((f: any) => [f.id, f]) || []);
 
           // Agrupar mensagens por freight_id
           const conversationMap = new Map();
