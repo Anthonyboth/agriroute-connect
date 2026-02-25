@@ -120,7 +120,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         if (activeDriversCount === 0) {
           setEmptyFreightHint('Não há motoristas ativos na transportadora para receber fretes no matcher.');
         } else if (freightCandidates > 0 && freightCityExcluded > 0) {
-          setEmptyFreightHint('Existem fretes OPEN, mas todos foram filtrados por cidade dos motoristas ativos. Atualize as cidades dos motoristas para visualizar os fretes de teste.');
+          setEmptyFreightHint('Existem fretes OPEN, mas todos foram filtrados por cidade ativa da transportadora neste painel. Revise as cidades marcadas em "Cidades" da transportadora.');
         } else {
           setEmptyFreightHint('Não há fretes abertos com vagas no momento.');
         }
@@ -130,7 +130,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
       if ((serviceData?.length || 0) === 0) {
         if (serviceTypeExcluded > 0) {
-          setEmptyServiceHint('Há serviços OPEN no sistema, mas os tipos não são compatíveis com os tipos de serviço dos motoristas ativos.');
+          setEmptyServiceHint('Há serviços OPEN no sistema, mas os tipos não são compatíveis com os tipos de serviço do perfil da transportadora.');
         } else if (serviceStatusExcluded > 0) {
           setEmptyServiceHint('Existem serviços, porém já não estão mais com status OPEN.');
         } else {
