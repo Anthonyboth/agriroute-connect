@@ -164,30 +164,25 @@ export const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
         </div>
       )}
 
-      {/* Prazo + Ordenação */}
+      {/* Prazo + Ordenação (selects) */}
       <div className="flex flex-wrap gap-2 items-center">
-        {/* Chips de prazo */}
-        <div className="flex flex-wrap gap-1.5">
-          {EXPIRY_OPTIONS.map((opt) => {
-            const isActive = filters.expiryBucket === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => onChange({ ...filters, expiryBucket: opt.value })}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer
-                  ${isActive
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : "bg-muted/30 text-muted-foreground border-muted hover:bg-muted/50"
-                  }`}
-              >
-                <span>{opt.icon}</span>
-                <span>{opt.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <Select
+          value={filters.expiryBucket}
+          onValueChange={(v) => onChange({ ...filters, expiryBucket: v as ExpiryBucket })}
+        >
+          <SelectTrigger className="h-8 w-[200px] text-xs">
+            <Clock className="h-3 w-3 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {EXPIRY_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.icon} {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Ordenação */}
         <div className="ml-auto">
           <Select
             value={filters.sort}
