@@ -407,9 +407,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           {/* Filtros de Marketplace */}
           <div className="mb-4">
             <MarketplaceFilters
-              availableTypes={Array.from(
-                new Set((profile?.service_types as unknown as string[] || ['CARGA']).map((t) => normalizeServiceType(String(t)))),
-              )}
               filters={marketplaceFilters}
               onChange={(newFilters) => {
                 setMarketplaceFilters(newFilters);
