@@ -92,34 +92,34 @@ export const DriverDetailsModal = ({
           </Card>
         ) : (
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="w-full overflow-x-auto flex items-center justify-start gap-1 p-1 h-auto">
-              <TabsTrigger value="info" aria-label="Informações" className="shrink-0 min-w-[108px] gap-2 text-xs">
-                <User className="h-4 w-4" />
-                Info
+            <TabsList className="w-full flex items-center justify-start gap-1 overflow-x-auto whitespace-nowrap p-1 h-auto">
+              <TabsTrigger value="info" aria-label="Informações" className="shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <User className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Informações</span>
               </TabsTrigger>
-              <TabsTrigger value="location" aria-label="Localização" className="shrink-0 min-w-[108px] gap-2 text-xs">
-                <MapPin className="h-4 w-4" />
-                Local
+              <TabsTrigger value="location" aria-label="Localização" className="shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Local</span>
               </TabsTrigger>
-              <TabsTrigger value="freights" aria-label="Fretes" className="shrink-0 min-w-[108px] gap-2 text-xs">
-                <Truck className="h-4 w-4" />
-                Fretes
+              <TabsTrigger value="freights" aria-label="Fretes" className="shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <Truck className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Fretes</span>
               </TabsTrigger>
-              <TabsTrigger value="performance" aria-label="Performance" className="shrink-0 min-w-[124px] gap-2 text-xs">
-                <TrendingUp className="h-4 w-4" />
-                Performance
+              <TabsTrigger value="performance" aria-label="Performance" className="shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Desempenho</span>
               </TabsTrigger>
-              <TabsTrigger value="vehicles" aria-label="Veículos" className="shrink-0 min-w-[112px] gap-2 text-xs">
-                <Car className="h-4 w-4" />
-                Veículos
+              <TabsTrigger value="vehicles" aria-label="Veículos" className="shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <Car className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Veículos</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" aria-label="Configurações" className="shrink-0 min-w-[120px] gap-2 text-xs">
-                <Settings className="h-4 w-4" />
-                Config
+              <TabsTrigger value="settings" aria-label="Configurações" className="shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <Settings className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Configuração</span>
               </TabsTrigger>
-              <TabsTrigger value="chat" aria-label="Chat" className="relative shrink-0 min-w-[100px] gap-2 text-xs">
-                <MessageCircle className="h-4 w-4" />
-                Chat
+              <TabsTrigger value="chat" aria-label="Chat" className="relative shrink-0 min-w-fit px-3 gap-2 text-xs font-medium leading-none">
+                <MessageCircle className="h-4 w-4 shrink-0" />
+                <span className="inline-block whitespace-nowrap">Bate-papo</span>
                 {unreadChatCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs absolute -top-1 -right-1">
                     {unreadChatCount}
