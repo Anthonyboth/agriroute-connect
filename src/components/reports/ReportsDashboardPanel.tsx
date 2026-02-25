@@ -6,6 +6,7 @@
  * ⚠️ Sem alterações de lógica/cálculo — apenas layout e UX.
  */
 import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +33,7 @@ import { useReportsDashboardUnified } from '@/hooks/useReportsDashboardUnified';
 import { useProducerReportData } from '@/hooks/useProducerReportData';
 import type { PanelType } from '@/hooks/useReportsDashboard';
 import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '@/lib/reports-formatters';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface ReportsDashboardPanelProps {
@@ -391,6 +393,90 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const producerLegacy = useProducerReportData(isProdutor ? profileId : undefined, dateRange);
   const hasUnifiedProducerData = isProdutor && ((Object.keys(kpis || {}).length > 0) || (Object.keys(charts || {}).length > 0));
 
+  const producerHistoryQuery = useQuery({
+    queryKey: ['producer-history-fallback', profileId, dateRange.from.toISOString(), dateRange.to.toISOString()],
+    queryFn: async () => {
+      if (!profileId) return [] as any[];
+      const { data, error } = await supabase
+        .from('freight_history')
+        .select('status_final, completed_at, cancelled_at, created_at, distance_km, price_total, origin_city, destination_city')
+        .eq('producer_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isProdutor && !!profileId,
+    staleTime: 60 * 1000,
+  });
+
+  const producerHistoryRows = useMemo(() => {
+    if (!isProdutor) return [] as any[];
+    const fromTs = dateRange.from.getTime();
+    const toTs = dateRange.to.getTime();
+    return (producerHistoryQuery.data || []).filter((r: any) => {
+      const dt = new Date(r.completed_at || r.cancelled_at || r.created_at).getTime();
+      return Number.isFinite(dt) && dt >= fromTs && dt <= toTs;
+    });
+  }, [producerHistoryQuery.data, dateRange.from, dateRange.to, isProdutor]);
+
+  const producerHistoryAgg = useMemo(() => {
+    const rows = producerHistoryRows;
+    const isDone = (s: string) => ['DELIVERED', 'COMPLETED'].includes(String(s || '').toUpperCase());
+    const isCancelled = (s: string) => String(s || '').toUpperCase() === 'CANCELLED';
+
+    let completed = 0;
+    let cancelled = 0;
+    let revenue = 0;
+    let distance = 0;
+    const statusMap = new Map<string, number>();
+    const monthMap = new Map<string, number>();
+    const dayMap = new Map<string, number>();
+
+    for (const r of rows) {
+      const status = String(r.status_final || '').toUpperCase();
+      const dtRaw = r.completed_at || r.cancelled_at || r.created_at;
+      const dt = new Date(dtRaw);
+      if (!Number.isFinite(dt.getTime())) continue;
+
+      statusMap.set(status || 'OUTROS', (statusMap.get(status || 'OUTROS') || 0) + 1);
+      const monthKey = format(dt, 'yyyy-MM');
+      const dayKey = format(dt, 'dd/MM');
+      dayMap.set(dayKey, (dayMap.get(dayKey) || 0) + 1);
+
+      if (isDone(status)) {
+        const price = Number(r.price_total) || 0;
+        const km = Number(r.distance_km) || 0;
+        completed += 1;
+        revenue += price;
+        distance += km;
+        monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + price);
+      } else if (isCancelled(status)) {
+        cancelled += 1;
+      }
+    }
+
+    const total = rows.length;
+    const avgPrice = completed > 0 ? revenue / completed : 0;
+    const avgDistance = completed > 0 ? distance / completed : 0;
+
+    return {
+      total,
+      completed,
+      cancelled,
+      pending: 0,
+      revenue,
+      distance,
+      avgPrice,
+      avgDistance,
+      completionRate: total > 0 ? (completed / total) * 100 : 0,
+      cancellationRate: total > 0 ? (cancelled / total) * 100 : 0,
+      monthly: Array.from(monthMap.entries()).map(([month, total]) => ({ month, receita: total })),
+      daily: Array.from(dayMap.entries()).map(([day, fretes]) => ({ day, fretes, servicos: 0 })),
+      status: Array.from(statusMap.entries()).map(([name, value]) => ({ name, value })),
+    };
+  }, [producerHistoryRows]);
+
   // ── Slicers state (MOTORISTA only) ────────────────────────────────────────
   const [slicers, setSlicers] = useState<MotoristaSlicers>(EMPTY_SLICERS);
   const resetSlicers = () => setSlicers(EMPTY_SLICERS);
@@ -689,12 +775,27 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (!isProdutor) return null;
 
     const legacySummary = !hasUnifiedProducerData ? producerLegacy.summary : null;
+    const useHistoryFallback = !hasUnifiedProducerData && Number(legacySummary?.freights?.total || 0) === 0 && producerHistoryAgg.total > 0;
 
-    const receitaTotal = Number(kpis.receita_total) || Number(legacySummary?.freights?.total_spent) || 0;
-    const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || Number(legacySummary?.freights?.completed) || 0;
-    const totalFretes = Number(kpis.total_fretes) || Number(legacySummary?.freights?.total) || 0;
-    const ticketMedio = Number(kpis.ticket_medio) || Number(legacySummary?.freights?.avg_price) || 0;
-    const taxaConclusao = Number(kpis.taxa_conclusao) || (totalFretes > 0 ? (fretesConcluidos / totalFretes) * 100 : 0);
+    const receitaTotal = Number(kpis.receita_total)
+      || Number(legacySummary?.freights?.total_spent)
+      || (useHistoryFallback ? producerHistoryAgg.revenue : 0);
+
+    const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas)
+      || Number(legacySummary?.freights?.completed)
+      || (useHistoryFallback ? producerHistoryAgg.completed : 0);
+
+    const totalFretes = Number(kpis.total_fretes)
+      || Number(legacySummary?.freights?.total)
+      || (useHistoryFallback ? producerHistoryAgg.total : 0);
+
+    const ticketMedio = Number(kpis.ticket_medio)
+      || Number(legacySummary?.freights?.avg_price)
+      || (useHistoryFallback ? producerHistoryAgg.avgPrice : 0);
+
+    const taxaConclusao = Number(kpis.taxa_conclusao)
+      || (totalFretes > 0 ? (fretesConcluidos / totalFretes) * 100 : 0)
+      || (useHistoryFallback ? producerHistoryAgg.completionRate : 0);
 
     return {
       value: receitaTotal,
@@ -706,20 +807,23 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         { label: 'Total fretes', value: fmtNum(totalFretes) },
       ],
     };
-  }, [kpis, isProdutor, producerLegacy.summary, hasUnifiedProducerData]);
+  }, [kpis, isProdutor, producerLegacy.summary, hasUnifiedProducerData, producerHistoryAgg]);
 
   const produtorOp = useMemo(() => {
     if (!isProdutor) return [];
 
     const legacySummary = !hasUnifiedProducerData ? producerLegacy.summary : null;
+    const useHistoryFallback = !hasUnifiedProducerData && Number(legacySummary?.freights?.total || 0) === 0 && producerHistoryAgg.total > 0;
 
-    const totalFretes = Number(kpis.total_fretes) || Number(legacySummary?.freights?.total) || 0;
-    const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || Number(legacySummary?.freights?.completed) || 0;
+    const totalFretes = Number(kpis.total_fretes) || Number(legacySummary?.freights?.total) || (useHistoryFallback ? producerHistoryAgg.total : 0);
+    const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || Number(legacySummary?.freights?.completed) || (useHistoryFallback ? producerHistoryAgg.completed : 0);
     const fretesAbertos = Number(kpis.fretes_abertos) || Number(legacySummary?.freights?.pending) || 0;
-    const taxaCancel = Number(kpis.taxa_cancelamento) || (totalFretes > 0 ? ((Number(legacySummary?.freights?.cancelled) || 0) / totalFretes) * 100 : 0);
-    const avgKm = Number(kpis.km_medio || kpis.distancia_media_km) || Number(legacySummary?.freights?.avg_distance_km) || 0;
+    const taxaCancel = Number(kpis.taxa_cancelamento) || (totalFretes > 0 ? ((Number(legacySummary?.freights?.cancelled) || (useHistoryFallback ? producerHistoryAgg.cancelled : 0)) / totalFretes) * 100 : 0);
+    const avgKm = Number(kpis.km_medio || kpis.distancia_media_km) || Number(legacySummary?.freights?.avg_distance_km) || (useHistoryFallback ? producerHistoryAgg.avgDistance : 0);
     const avaliacao = Number(kpis.avaliacao_media) || 0;
-    const rsPorKm = Number(kpis.rs_por_km) || (legacySummary?.freights?.total_distance_km ? (Number(legacySummary?.freights?.total_spent) || 0) / Number(legacySummary?.freights?.total_distance_km) : 0);
+    const rsPorKm = Number(kpis.rs_por_km)
+      || (legacySummary?.freights?.total_distance_km ? (Number(legacySummary?.freights?.total_spent) || 0) / Number(legacySummary?.freights?.total_distance_km) : 0)
+      || (useHistoryFallback && producerHistoryAgg.distance > 0 ? producerHistoryAgg.revenue / producerHistoryAgg.distance : 0);
 
     return [
       { label: 'Concluídos', value: fmtNum(fretesConcluidos), icon: CheckCircle, highlight: true },
@@ -729,7 +833,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       { label: 'Cancelamento', value: `${taxaCancel.toFixed(1)}%`, icon: XCircle },
       { label: 'Avaliação', value: avaliacao > 0 ? `${fmtNum(avaliacao, 1)} ★` : '—', icon: Star },
     ] satisfies OpKPI[];
-  }, [kpis, isProdutor, producerLegacy.summary, hasUnifiedProducerData]);
+  }, [kpis, isProdutor, producerLegacy.summary, hasUnifiedProducerData, producerHistoryAgg]);
 
   // ── Gráficos PRODUTOR ──────────────────────────────────────────────────────
   const produtorCharts: ChartConfig[] = useMemo(() => {
@@ -737,6 +841,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
     const configs: ChartConfig[] = [];
     const legacyCharts = !hasUnifiedProducerData ? producerLegacy.charts : null;
+    const useHistoryFallback = !hasUnifiedProducerData
+      && (Number(producerLegacy.summary?.freights?.total || 0) === 0)
+      && producerHistoryAgg.total > 0;
 
     if (charts?.receita_por_mes?.length) {
       configs.push({
@@ -759,6 +866,15 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         xAxisKey: 'month',
         valueFormatter: formatBRL,
       });
+    } else if (useHistoryFallback && producerHistoryAgg.monthly.length) {
+      configs.push({
+        title: 'Receita por mês',
+        type: 'area',
+        data: producerHistoryAgg.monthly.map((m: any) => ({ month: formatMonthLabelPtBR(m.month), receita: Number(m.receita) || 0 })),
+        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--chart-1))' }],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      });
     }
 
     if (charts?.volume_por_dia?.length) {
@@ -772,17 +888,16 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         ],
         xAxisKey: 'day',
       });
-    } else if (legacyCharts?.top_routes?.length) {
+    } else if (useHistoryFallback && producerHistoryAgg.daily.length) {
       configs.push({
-        title: 'Top rotas',
-        type: 'horizontal-bar',
-        data: legacyCharts.top_routes.slice(0, 8).map((r: any) => ({
-          name: formatRouteLabel(`${r.origin || '—'} → ${r.destination || '—'}`),
-          total: Number(r.count) || 0,
-        })),
-        dataKeys: [{ key: 'total', label: 'Fretes', color: 'hsl(var(--chart-2))' }],
-        xAxisKey: 'name',
-        height: 320,
+        title: 'Operações por dia',
+        type: 'bar',
+        data: producerHistoryAgg.daily,
+        dataKeys: [
+          { key: 'fretes', label: 'Fretes', color: 'hsl(var(--chart-1))' },
+          { key: 'servicos', label: 'Serviços', color: 'hsl(var(--chart-2))' },
+        ],
+        xAxisKey: 'day',
       });
     }
 
@@ -790,10 +905,12 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       configs.push({ title: 'Por status', type: 'pie', data: charts.por_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
     } else if (legacyCharts?.by_status?.length) {
       configs.push({ title: 'Por status', type: 'pie', data: legacyCharts.by_status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
+    } else if (useHistoryFallback && producerHistoryAgg.status.length) {
+      configs.push({ title: 'Por status', type: 'pie', data: producerHistoryAgg.status, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
     }
 
     return configs;
-  }, [charts, isProdutor, producerLegacy.charts, hasUnifiedProducerData]);
+  }, [charts, isProdutor, producerLegacy.charts, producerLegacy.summary, hasUnifiedProducerData, producerHistoryAgg]);
 
   // ── Gráficos genéricos (fallback) ──────────────────────────────────────────
   const genericCharts: ChartConfig[] = useMemo(() => {
@@ -1374,7 +1491,8 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       {/* ── Aviso sem dados ────────────────────────────────────────────── */}
       {!isLoading && (isMotorista || isTransportadora || isPrestador || isProdutor) &&
         Number(kpis.receita_total || produtorHero?.value || 0) === 0 &&
-        Number(kpis.servicos_concluidos || kpis.viagens_concluidas || kpis.fretes_concluidos || produtorHero?.secondary?.[2]?.value?.toString().replace(/\D/g, '') || 0) === 0 && (
+        Number(kpis.servicos_concluidos || kpis.viagens_concluidas || kpis.fretes_concluidos || 0) === 0 &&
+        (!isProdutor || producerHistoryAgg.total === 0) && (
         <Card className="rounded-2xl">
           <CardContent className="py-10 text-center">
             <Wrench className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
