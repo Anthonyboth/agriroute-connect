@@ -84,7 +84,7 @@ export function useGuaranteedMarketplaceFeed() {
     const rpcRole: FeedPanelRole = (
       ['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRESTADOR_SERVICOS', 'TRANSPORTADORA'].includes(panel)
         ? panel
-        : 'MOTORISTA'
+        : 'TRANSPORTADORA'
     ) as FeedPanelRole;
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
