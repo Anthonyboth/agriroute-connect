@@ -127,7 +127,7 @@ serve(async (req) => {
         ...p,
         freight: freightById.get(p.freight_id) || null,
       }))
-      .filter((p: any) => Boolean(p.freight?.producer_id || p.freight?.producer?.id));
+      .filter((p: any) => Boolean(p.freight?.producer?.id));
 
     // Compute ongoing freights from accepted proposals or by driver_id
     const acceptedFreightIds = new Set(

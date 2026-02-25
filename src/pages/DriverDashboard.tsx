@@ -510,7 +510,7 @@ const DriverDashboard = () => {
 
       const proposalsWithRegisteredProducer = proposals.filter((p: any) => {
         const freight = p?.freight;
-        return Boolean(freight && (freight.producer_id || freight.producer?.id));
+        return Boolean(freight?.producer?.id);
       });
       
       if (isMountedRef.current) setMyProposals(proposalsWithRegisteredProducer);
