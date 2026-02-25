@@ -1097,26 +1097,32 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     }
 
     if (charts?.volume_por_dia?.length) {
+      const sortedDaily = [...charts.volume_por_dia]
+        .sort((a: any, b: any) => new Date(a.dia).getTime() - new Date(b.dia).getTime());
       configs.push({
         title: 'Operações por dia',
         type: 'bar',
-        data: charts.volume_por_dia.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
+        data: sortedDaily.map((d: any) => ({ day: d.dia, fretes: d.fretes || 0, servicos: d.servicos || 0 })),
         dataKeys: [
           { key: 'fretes', label: 'Fretes', color: 'hsl(var(--chart-1))' },
           { key: 'servicos', label: 'Serviços', color: 'hsl(var(--chart-2))' },
         ],
         xAxisKey: 'day',
+        yAxisAllowDecimals: false,
       });
     } else if (useHistoryFallback && producerHistoryAgg.daily.length) {
+      const sortedDaily = [...producerHistoryAgg.daily]
+        .sort((a: any, b: any) => new Date(a.day).getTime() - new Date(b.day).getTime());
       configs.push({
         title: 'Operações por dia',
         type: 'bar',
-        data: producerHistoryAgg.daily,
+        data: sortedDaily,
         dataKeys: [
           { key: 'fretes', label: 'Fretes', color: 'hsl(var(--chart-1))' },
           { key: 'servicos', label: 'Serviços', color: 'hsl(var(--chart-2))' },
         ],
         xAxisKey: 'day',
+        yAxisAllowDecimals: false,
       });
     }
 
