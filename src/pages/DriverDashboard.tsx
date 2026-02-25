@@ -507,7 +507,8 @@ const DriverDashboard = () => {
 
   // Buscar assignments do motorista (fretes com valores individualizados)
   const fetchMyAssignments = useCallback(async () => {
-    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || (activeMode !== 'MOTORISTA' && activeMode !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -543,12 +544,13 @@ const DriverDashboard = () => {
         full: error
       });
     }
-  }, [profile?.id, profile?.role]);
+  }, [profile?.id, profile?.role, profile?.active_mode]);
 
   // ✅ Buscar fretes em andamento E service_requests aceitos
   const fetchOngoingFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
-    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || (activeMode !== 'MOTORISTA' && activeMode !== 'MOTORISTA_AFILIADO')) return;
 
     if (import.meta.env.DEV) console.log('🔍 Buscando fretes ativos e serviços aceitos do motorista:', profile.id);
     try {
@@ -795,20 +797,22 @@ const DriverDashboard = () => {
       console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
     }
-  }, [profile?.id, profile?.role]);
+  }, [profile?.id, profile?.role, profile?.active_mode]);
 
   // Buscar solicitações de transporte (guincho, mudanças) disponíveis para motoristas
   const fetchTransportRequests = useCallback(async () => {
-    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || (activeMode !== 'MOTORISTA' && activeMode !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       if (import.meta.env.DEV) console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
       
       // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
+      // ✅ FIX: Incluir TODOS os tipos de transporte urbano (não apenas GUINCHO/MUDANCA)
       const { data, error } = await supabase
         .from('service_requests_secure')
         .select('*')
-        .in('service_type', ['GUINCHO', 'MUDANCA'])
+        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'])
         .eq('status', 'OPEN')
         .is('provider_id', null)
         .order('created_at', { ascending: true });
@@ -825,7 +829,7 @@ const DriverDashboard = () => {
       console.error('Error fetching transport requests:', error);
       toast.error('Erro ao carregar solicitações de transporte');
     }
-  }, [profile?.id, profile?.role]);
+  }, [profile?.id, profile?.role, profile?.active_mode]);
 
   // Aceitar solicitação de transporte
   const handleAcceptTransportRequest = async (requestId: string) => {
