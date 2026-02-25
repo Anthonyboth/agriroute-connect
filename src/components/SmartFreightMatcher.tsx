@@ -766,6 +766,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                           vehicle_axles_required: freight.vehicle_axles_required,
                           pricing_type: freight.pricing_type as any,
                           price_per_km: freight.price_per_km,
+                          producer_id: (freight as any).producer_id || null,
                         }}
                         onAction={(action) => handleFreightAction(freight.freight_id, action)}
                         showActions={true}

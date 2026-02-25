@@ -62,6 +62,8 @@ interface FreightCardProps {
     vehicle_axles_required?: number;
     pricing_type?: "FIXED" | "PER_KM" | "PER_TON";
     price_per_km?: number;
+    /** ID do produtor - se ausente, contraproposta é desabilitada */
+    producer_id?: string | null;
   };
   onAction?: (action: "propose" | "accept" | "complete" | "edit" | "cancel" | "request-cancel" | "proposal_sent") => void;
   showActions?: boolean;
@@ -772,13 +774,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 >
                   Aceitar ({availableSlots})
                 </Button>
-                <Button
-                  onClick={() => setProposalModalOpen(true)}
-                  className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
-                  variant="outline"
-                >
-                  Contraproposta
-                </Button>
+                {freight.producer_id && (
+                  <Button
+                    onClick={() => setProposalModalOpen(true)}
+                    className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
+                    variant="outline"
+                  >
+                    Contraproposta
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 xs:grid-cols-[0.85fr_1.15fr] gap-2">
@@ -789,14 +793,16 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 >
                   Aceitar
                 </Button>
-                <Button
-                  onClick={() => setProposalModalOpen(true)}
-                  className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
-                  size="sm"
-                  variant="outline"
-                >
-                  Contraproposta
-                </Button>
+                {freight.producer_id && (
+                  <Button
+                    onClick={() => setProposalModalOpen(true)}
+                    className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
+                    size="sm"
+                    variant="outline"
+                  >
+                    Contraproposta
+                  </Button>
+                )}
               </div>
             )}
 

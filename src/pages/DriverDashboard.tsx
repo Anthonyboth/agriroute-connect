@@ -375,6 +375,21 @@ const DriverDashboard = () => {
     });
   }, [ongoingFreights, assignmentFreightIds]);
 
+  // ✅ Contagem de fretes agendados (ACCEPTED com pickup futuro)
+  const scheduledCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return (ongoingFreights || []).filter(f => {
+      if (isFinalStatus(f.status) || assignmentFreightIds.has(f.id)) return false;
+      const status = String((f as any)?.status || '').trim().toUpperCase();
+      if (status !== 'ACCEPTED') return false;
+      if (!f.pickup_date) return false;
+      const pickupDate = new Date(f.pickup_date);
+      pickupDate.setHours(0, 0, 0, 0);
+      return pickupDate > today;
+    }).length;
+  }, [ongoingFreights, assignmentFreightIds]);
+
   // Buscar fretes disponíveis - fonte autoritativa (sem fallback espacial legado)
   const { fetchAvailableMarketplaceItems } = useGuaranteedMarketplaceFeed();
 
@@ -2348,6 +2363,7 @@ const DriverDashboard = () => {
               >
                 <Clock className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Agendados</span>
+                <TabBadge count={scheduledCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="calendar" 
