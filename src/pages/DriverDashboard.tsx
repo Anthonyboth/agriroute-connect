@@ -376,19 +376,36 @@ const DriverDashboard = () => {
   }, [ongoingFreights, assignmentFreightIds]);
 
   // ✅ Contagem de fretes agendados (ACCEPTED com pickup futuro)
+  // Inclui tanto fretes diretos quanto assignments
   const scheduledCount = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return (ongoingFreights || []).filter(f => {
+    
+    const isFutureAccepted = (status: string, pickupDate: string | null | undefined) => {
+      if (String(status || '').trim().toUpperCase() !== 'ACCEPTED') return false;
+      if (!pickupDate) return false;
+      const d = new Date(pickupDate);
+      d.setHours(0, 0, 0, 0);
+      return d > today;
+    };
+
+    // Fretes diretos (excluindo os que já estão em assignments para evitar dupla contagem)
+    const directScheduled = (ongoingFreights || []).filter(f => {
       if (isFinalStatus(f.status) || assignmentFreightIds.has(f.id)) return false;
-      const status = String((f as any)?.status || '').trim().toUpperCase();
-      if (status !== 'ACCEPTED') return false;
-      if (!f.pickup_date) return false;
-      const pickupDate = new Date(f.pickup_date);
-      pickupDate.setHours(0, 0, 0, 0);
-      return pickupDate > today;
+      return isFutureAccepted(f.status, f.pickup_date);
     }).length;
-  }, [ongoingFreights, assignmentFreightIds]);
+
+    // Assignments com pickup futuro
+    const assignmentScheduled = (myAssignments || []).filter(a => {
+      if (!a?.freight) return false;
+      const freightStatus = a.freight.status;
+      const assignmentStatus = a.status;
+      if (isFinalStatus(freightStatus) || isFinalStatus(assignmentStatus)) return false;
+      return isFutureAccepted(assignmentStatus || freightStatus, a.freight.pickup_date);
+    }).length;
+
+    return directScheduled + assignmentScheduled;
+  }, [ongoingFreights, assignmentFreightIds, myAssignments]);
 
   // Buscar fretes disponíveis - fonte autoritativa (sem fallback espacial legado)
   const { fetchAvailableMarketplaceItems } = useGuaranteedMarketplaceFeed();
