@@ -341,7 +341,6 @@ const DriverDashboard = () => {
 
 
   const [loading, setLoading] = useState(true);
-  const [availableCountUI, setAvailableCountUI] = useState(0);
 
   // Eliminar duplicações entre myAssignments e ongoingFreights
   const assignmentFreightIds = useMemo(() => 
@@ -479,14 +478,10 @@ const DriverDashboard = () => {
       
       if (isMountedRef.current) setMyProposals(proposals);
       
-      // ✅ Não mesclar service_requests (motoristas não veem serviços)
-      if (isMountedRef.current) {
-        // Remover duplicatas mas não mesclar com service_requests
-        const dedupedOngoing = ongoing.filter(
-          (item: any, index: number, self: any[]) => self.findIndex((x: any) => x.id === item.id) === index
-        );
-        setOngoingFreights(dedupedOngoing);
-      }
+      // ✅ Não sobrescrever ongoingFreights aqui.
+      // A fonte autoritativa para "Em Andamento" é fetchOngoingFreights(),
+      // que consolida fretes diretos + assignments + serviços aceitos.
+      // Isso evita race condition com resposta parcial da edge function driver-proposals.
 
       // ✅ OTIMIZADO: Usar query única com .in() ao invés de N+1
       if (ongoing.length > 0) {
@@ -2273,7 +2268,7 @@ const DriverDashboard = () => {
         {/* Stats Cards Compactos - Navegáveis */}
         <DriverDashboardStats
           canSeeFreights={canSeeFreights}
-          availableCount={availableCountUI}
+          availableCount={statistics.availableCount}
           activeTrips={statistics.activeTrips}
           pendingProposals={statistics.pendingProposals}
           showEarnings={showEarnings}
@@ -2523,7 +2518,6 @@ const DriverDashboard = () => {
               <DriverAvailableTab
                 profileId={profile?.id}
                 onFreightAction={handleFreightAction}
-                onCountsChange={({ total }) => setAvailableCountUI(total)}
                 onFetchAvailable={fetchAvailableFreights}
               />
             )}
