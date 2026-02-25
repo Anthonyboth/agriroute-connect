@@ -531,27 +531,31 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t mt-2 gap-3">
-          <div className="flex gap-2 flex-1 min-w-0">
-            <Input
-              placeholder="Nome da busca..."
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="h-8 text-sm max-w-[180px]"
-            />
-            <Button variant="outline" size="sm" onClick={saveSearch} className="h-8 text-xs shrink-0">
-              Salvar
-            </Button>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
-              <X className="mr-1 h-3 w-3" />
-              Limpar
-            </Button>
-            <Button size="sm" onClick={handleSearch} className="h-8 text-xs gradient-primary">
-              <Search className="mr-1 h-3 w-3" />
-              Buscar ({getActiveFiltersCount()})
-            </Button>
+        <div className="sticky bottom-0 bg-background border-t pt-3 pb-1 mt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Salvar busca */}
+            <div className="flex gap-2 flex-1 min-w-0">
+              <Input
+                placeholder="Nome da busca..."
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="h-9 text-sm flex-1"
+              />
+              <Button variant="outline" size="sm" onClick={saveSearch} className="h-9 text-xs shrink-0 px-3">
+                Salvar
+              </Button>
+            </div>
+            {/* Ações */}
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs px-3">
+                <X className="mr-1 h-3.5 w-3.5" />
+                Limpar
+              </Button>
+              <Button size="sm" onClick={handleSearch} className="h-9 text-xs px-4 gradient-primary">
+                <Search className="mr-1 h-3.5 w-3.5" />
+                Buscar ({getActiveFiltersCount()})
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
