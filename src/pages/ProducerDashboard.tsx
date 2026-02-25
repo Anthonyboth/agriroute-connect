@@ -1621,7 +1621,6 @@ const ProducerDashboard = () => {
               <h3 className="text-lg font-semibold">
                 Fretes Abertos ({classifiedOpenItems.counts.freights})
               </h3>
-              <CreateFreightWizardModal onFreightCreated={fetchFreights} userProfile={profile} />
             </div>
 
             {classifiedOpenItems.counts.freights === 0 ? (
