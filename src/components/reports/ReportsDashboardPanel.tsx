@@ -1644,6 +1644,21 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         {/* Filtro de período */}
         <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
 
+        {/* Transportadora: Saved Views + Governance */}
+        {isTransportadora && (
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-border/50">
+            <CarrierSavedViewsBar
+              carrierSlicers={carrierSlicers}
+              setCarrierSlicers={setCarrierSlicers}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              carrierScorecardSort={carrierScorecardSort}
+              setCarrierScorecardSort={setCarrierScorecardSort}
+            />
+            <CarrierGovernanceBar />
+          </div>
+        )}
+
         {/* Data exibida */}
         {!isProdutor && !isTransportadora && (
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -2145,7 +2160,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       {/* ── TRANSPORTADORA — Control Tower Enterprise ─────────────────── */}
       {isTransportadora && (
         <>
-          {/* ── 1. Hero Executivo ─────────────────────────────────────────── */}
+          {/* ── 1. Hero Executivo + Benchmark Δ% ─────────────────────────── */}
           {transportadoraHero ? (
             <div className={cn(BI.radius, 'bg-[hsl(142,71%,45%)]/6 border border-[hsl(142,71%,45%)]/15 p-4 sm:p-5')}>
               {isLoading ? (
@@ -2161,50 +2176,18 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                   <p className={cn(BI.label, BI.good, 'mb-1')}>Receita total no período</p>
                   <div className="flex items-end gap-3 mb-0.5">
                     <span className={cn(BI.valueLg, 'text-foreground')}>{formatBRL(transportadoraHero.value)}</span>
+                    {carrierBenchmark.hasPrev && carrierBenchmark.deltas.revenue !== null && (
+                      <span className={cn(
+                        'flex items-center gap-0.5 text-sm font-semibold mb-1',
+                        carrierBenchmark.deltas.revenue >= 0 ? BI.good : 'text-destructive'
+                      )}>
+                        {carrierBenchmark.deltas.revenue >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                        {Math.abs(carrierBenchmark.deltas.revenue).toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                   <p className={cn(BI.sub, 'mb-3')}>{transportadoraHero.subtitle}</p>
-
-                  <div className={cn('grid grid-cols-2 sm:grid-cols-4', BI.gridGap)}>
-                    {(() => {
-                      const totalFretes = Number(kpis.total_fretes) || 0;
-                      const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
-                      const totalMotoristas = Number(kpis.total_motoristas) || 0;
-                      const utilizacao = Number(kpis.utilizacao_frota) || 0;
-                      const receitaMotorista = Number(kpis.receita_por_motorista) || 0;
-                      const ticketMedio = Number(kpis.ticket_medio) || 0;
-                      const rsPorKm = Number(kpis.rs_por_km) || 0;
-                      const sla = Number(kpis.sla_medio_horas) || 0;
-
-                      const items = [
-                        { label: 'Concluídos', value: fmtNum(fretesConcluidos), icon: CheckCircle, highlight: true },
-                        { label: 'Total fretes', value: fmtNum(totalFretes), icon: Package },
-                        { label: 'Motoristas', value: fmtNum(totalMotoristas), icon: Users, highlight: true },
-                        { label: 'Utilização frota', value: `${utilizacao.toFixed(0)}%`, icon: Activity },
-                        { label: 'Receita/motorista', value: receitaMotorista > 0 ? formatBRL(receitaMotorista) : '—', icon: DollarSign },
-                        { label: 'Ticket médio', value: ticketMedio > 0 ? formatBRL(ticketMedio) : '—', icon: TrendingUp },
-                        { label: 'R$/km médio', value: rsPorKm > 0 ? `R$ ${fmtNum(rsPorKm, 2)}` : '—', icon: MapPin },
-                        { label: 'SLA médio', value: sla > 0 ? fmtHours(sla) : '—', icon: Timer },
-                      ];
-
-                      return items.map((item, i) => {
-                        const Icon = item.icon;
-                        return (
-                          <div key={i} className={cn(
-                            BI.radius, BI.cardGlass, 'px-3 py-2',
-                            item.highlight && 'ring-1 ring-[hsl(142,71%,45%)]/20'
-                          )}>
-                            <div className="flex items-center justify-between mb-0.5">
-                              <p className={BI.label}>{item.label}</p>
-                              <Icon className={cn('h-3 w-3 flex-shrink-0', item.highlight ? BI.good : 'text-muted-foreground/50')} />
-                            </div>
-                            <p className={cn('text-sm font-bold tabular-nums', item.highlight && BI.good)}>
-                              {item.value}
-                            </p>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                  <CarrierHeroBenchmark kpis={kpis} benchmark={carrierBenchmark} isLoading={isLoading} />
                 </>
               )}
             </div>
@@ -2212,94 +2195,17 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <Skeleton className="h-48 rounded-2xl" />
           ) : null}
 
-          {/* ── 2. Gestão por Exceção ─────────────────────────────────────── */}
+          {/* ── 2. Alertas Inteligentes (Enterprise) ─────────────────────── */}
           {!isLoading && (
             <div className="space-y-2">
-              <SectionTitle icon={AlertTriangle} title="Gestão por exceção" subtitle="Alertas e atenção imediata" />
-              <div className={cn('grid grid-cols-2 sm:grid-cols-3', BI.gridGap)}>
-                {(() => {
-                  const totalFretes = Number(kpis.total_fretes) || 0;
-                  const cancelados = Number(kpis.cancelados || 0);
-                  const taxaCancel = Number(kpis.taxa_cancelamento) || (totalFretes > 0 ? (cancelados / totalFretes) * 100 : 0);
-                  const fretesAbertos = Number(kpis.fretes_abertos) || 0;
-                  const emTransito = Number(kpis.em_transito || kpis.in_transit) || 0;
-                  const sla = Number(kpis.sla_medio_horas) || 0;
-
-                  // Best driver by R$/km from scorecard
-                  const bestDriver = carrierScorecard.length > 0
-                    ? [...carrierScorecard].sort((a, b) => b.rs_km - a.rs_km)[0]
-                    : null;
-                  // Worst driver by cancel rate
-                  const worstDriver = carrierScorecard.length > 0
-                    ? [...carrierScorecard].filter(d => d.cancel > 0).sort((a, b) => b.cancel - a.cancel)[0]
-                    : null;
-
-                  type AlertCard = { icon: string; label: string; value: string; hint?: string; tone: 'good' | 'neutral' | 'bad'; onClick?: () => void };
-                  const alerts: AlertCard[] = [];
-
-                  alerts.push({
-                    icon: '🔴', label: 'Cancelamento',
-                    value: `${taxaCancel.toFixed(1)}%`,
-                    tone: taxaCancel >= 10 ? 'bad' : taxaCancel > 0 ? 'neutral' : 'good',
-                    hint: taxaCancel >= 10 ? 'Taxa acima de 10%' : undefined,
-                    onClick: taxaCancel > 0 ? () => setCarrierSlicers(s => ({ ...s, status: ['CANCELLED'] })) : undefined,
-                  });
-                  if (fretesAbertos > 0) {
-                    alerts.push({
-                      icon: '🟠', label: 'Em aberto', value: fmtNum(fretesAbertos),
-                      tone: fretesAbertos >= 5 ? 'bad' : 'neutral',
-                      onClick: () => setCarrierSlicers(s => ({ ...s, status: ['OPEN'] })),
-                    });
-                  }
-                  if (emTransito > 0) {
-                    alerts.push({ icon: '🟠', label: 'Em trânsito', value: fmtNum(emTransito), tone: 'neutral',
-                      onClick: () => setCarrierSlicers(s => ({ ...s, status: ['IN_TRANSIT'] })),
-                    });
-                  }
-                  if (sla > 0 && sla > 48) {
-                    alerts.push({ icon: '🟡', label: 'SLA alto', value: fmtHours(sla), hint: 'Acima de 48h', tone: 'bad' });
-                  }
-                  if (worstDriver) {
-                    alerts.push({
-                      icon: '🟡', label: 'Alto cancelamento', value: `${worstDriver.driver}`,
-                      hint: `${worstDriver.cancel} cancelamentos`, tone: 'bad',
-                      onClick: () => setCarrierSlicers(s => ({ ...s, driverQuery: worstDriver.driver })),
-                    });
-                  }
-                  if (bestDriver && bestDriver.rs_km > 0) {
-                    alerts.push({
-                      icon: '🟢', label: 'Melhor R$/km', value: `R$ ${fmtNum(bestDriver.rs_km, 2)}`,
-                      hint: bestDriver.driver, tone: 'good',
-                      onClick: () => setCarrierSlicers(s => ({ ...s, driverQuery: bestDriver.driver })),
-                    });
-                  }
-                  if (totalFretes === 0) {
-                    alerts.push({ icon: '🟡', label: 'Sem atividade', value: 'Nenhum frete', hint: 'Amplie o período', tone: 'neutral' });
-                  }
-
-                  return alerts.slice(0, 6).map((a, i) => (
-                    <div key={i} className={cn(
-                      BI.radius, BI.cardSoft, BI.cardHover, 'p-3',
-                      a.tone === 'bad' && BI.badBg,
-                      a.tone === 'good' && BI.goodBg,
-                      a.onClick && 'cursor-pointer',
-                    )} onClick={a.onClick}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-sm leading-none">{a.icon}</span>
-                        <p className={BI.label}>{a.label}</p>
-                      </div>
-                      <p className={cn(
-                        'text-base font-extrabold tabular-nums',
-                        a.tone === 'bad' && BI.bad,
-                        a.tone === 'good' && BI.good,
-                      )}>
-                        {a.value}
-                      </p>
-                      {a.hint && <p className={cn(BI.sub, 'mt-0.5')}>{a.hint}</p>}
-                    </div>
-                  ));
-                })()}
-              </div>
+              <SectionTitle icon={AlertTriangle} title="Alertas inteligentes" subtitle="Gestão por exceção com ação imediata" />
+              <CarrierSmartAlerts
+                kpis={kpis}
+                carrierScorecard={carrierScorecard}
+                benchmark={carrierBenchmark}
+                filteredCarrierRows={filteredCarrierRows}
+                setCarrierSlicers={setCarrierSlicers}
+              />
             </div>
           )}
 
@@ -2333,6 +2239,19 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             </div>
           )}
 
+          {/* ── 6.5. Insights automáticos (PowerBI-like) ─────────────────── */}
+          {!isLoading && filteredCarrierRows.length > 0 && (
+            <div className="space-y-2">
+              <SectionTitle icon={Zap} title="Insights automáticos" subtitle="Análise inteligente do dataset atual" />
+              <CarrierInsightsPanel
+                filteredCarrierRows={filteredCarrierRows}
+                carrierScorecard={carrierScorecard}
+                benchmark={carrierBenchmark}
+                setCarrierSlicers={setCarrierSlicers}
+              />
+            </div>
+          )}
+
           {/* ── 7. Gráficos originais (fallback) ─────────────────────────── */}
           {transportadoraCharts.length > 0 && carrierDriverCharts.length === 0 && (
             <div className="space-y-3">
@@ -2341,58 +2260,17 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             </div>
           )}
 
-          {/* ── 8. Scorecard por Motorista (BI) ──────────────────────────── */}
-          {!isLoading && sortedCarrierScorecard.length > 0 && (
+          {/* ── 8. Scorecard Avançado + Quadrante ─────────────────────────── */}
+          {!isLoading && carrierScorecard.length > 0 && (
             <div className="space-y-3">
-              <SectionTitle icon={Users} title="Scorecard por motorista" subtitle="Performance individual"
-                actions={
-                  <div className="flex items-center gap-1">
-                    <Button variant={carrierScorecardSort === 'revenue' ? 'secondary' : 'ghost'} size="sm" className="h-6 text-[10px]"
-                      onClick={() => setCarrierScorecardSort('revenue')}>Receita</Button>
-                    <Button variant={carrierScorecardSort === 'rs_km' ? 'secondary' : 'ghost'} size="sm" className="h-6 text-[10px]"
-                      onClick={() => setCarrierScorecardSort('rs_km')}>R$/km</Button>
-                  </div>
-                }
+              <SectionTitle icon={Users} title="Scorecard por motorista" subtitle="Ranking multi-critério + quadrante" />
+              <CarrierScorecardAdvanced
+                scorecard={carrierScorecard}
+                sortKey={carrierScorecardSort}
+                setSortKey={setCarrierScorecardSort}
+                setCarrierSlicers={setCarrierSlicers}
+                filteredCarrierRows={filteredCarrierRows}
               />
-              <Card className={cn(BI.radius, BI.card, 'overflow-hidden')}>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className={BI.tableHeader}>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-left')}>Motorista</TableHead>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-right')}>Viagens</TableHead>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-right')}>Receita</TableHead>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>Km</TableHead>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>R$/km</TableHead>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>Cancel.</TableHead>
-                        <TableHead className={cn(BI.tableHeaderCell, 'text-center')}>Badge</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedCarrierScorecard.map((r, i) => {
-                        const isTop = i === 0 && r.revenue > 0;
-                        const isRisk = r.cancel >= 3 || (r.trips > 0 && r.cancel / r.trips > 0.2);
-                        return (
-                          <TableRow key={i} className={cn(BI.tableRow, BI.tableRowHover, i % 2 === 0 && BI.tableRowEven,
-                            'cursor-pointer')}
-                            onClick={() => setCarrierSlicers(s => ({ ...s, driverQuery: r.driver }))}>
-                            <TableCell className={cn(BI.tableCell, 'font-medium')}>{r.driver || '—'}</TableCell>
-                            <TableCell className={BI.tableCellNum}>{fmtNum(r.trips)}</TableCell>
-                            <TableCell className={cn(BI.tableCellNum, 'font-semibold', BI.good)}>{formatBRL(r.revenue)}</TableCell>
-                            <TableCell className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{fmtNum(r.km)}</TableCell>
-                            <TableCell className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{r.rs_km > 0 ? fmtNum(r.rs_km, 2) : '—'}</TableCell>
-                            <TableCell className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{fmtNum(r.cancel)}</TableCell>
-                            <TableCell className={cn(BI.tableCell, 'text-center')}>
-                              {isTop && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[hsl(142,71%,45%)]/12 text-[hsl(142,71%,45%)]">Top</span>}
-                              {isRisk && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-destructive/10 text-destructive">Risco</span>}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </Card>
             </div>
           )}
 
