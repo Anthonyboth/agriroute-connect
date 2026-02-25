@@ -93,33 +93,33 @@ export const DriverDetailsModal = ({
         ) : (
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="w-full overflow-x-auto flex items-center justify-start gap-1 p-1 h-auto">
-              <TabsTrigger value="info" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+              <TabsTrigger value="info" aria-label="Informações" className="shrink-0 min-w-[108px] gap-2 text-xs">
                 <User className="h-4 w-4" />
-                <span>Info</span>
+                Info
               </TabsTrigger>
-              <TabsTrigger value="location" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+              <TabsTrigger value="location" aria-label="Localização" className="shrink-0 min-w-[108px] gap-2 text-xs">
                 <MapPin className="h-4 w-4" />
-                <span>Local</span>
+                Local
               </TabsTrigger>
-              <TabsTrigger value="freights" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+              <TabsTrigger value="freights" aria-label="Fretes" className="shrink-0 min-w-[108px] gap-2 text-xs">
                 <Truck className="h-4 w-4" />
-                <span>Fretes</span>
+                Fretes
               </TabsTrigger>
-              <TabsTrigger value="performance" className="shrink-0 min-w-[104px] gap-1.5 text-[11px]">
+              <TabsTrigger value="performance" aria-label="Performance" className="shrink-0 min-w-[124px] gap-2 text-xs">
                 <TrendingUp className="h-4 w-4" />
-                <span>Performance</span>
+                Performance
               </TabsTrigger>
-              <TabsTrigger value="vehicles" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+              <TabsTrigger value="vehicles" aria-label="Veículos" className="shrink-0 min-w-[112px] gap-2 text-xs">
                 <Car className="h-4 w-4" />
-                <span>Veículos</span>
+                Veículos
               </TabsTrigger>
-              <TabsTrigger value="settings" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+              <TabsTrigger value="settings" aria-label="Configurações" className="shrink-0 min-w-[120px] gap-2 text-xs">
                 <Settings className="h-4 w-4" />
-                <span>Config</span>
+                Config
               </TabsTrigger>
-              <TabsTrigger value="chat" className="relative shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+              <TabsTrigger value="chat" aria-label="Chat" className="relative shrink-0 min-w-[100px] gap-2 text-xs">
                 <MessageCircle className="h-4 w-4" />
-                <span>Chat</span>
+                Chat
                 {unreadChatCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs absolute -top-1 -right-1">
                     {unreadChatCount}
