@@ -17,7 +17,10 @@ export const DriverProposalsTab: React.FC<DriverProposalsTabProps> = ({
   proposals,
   onProposalClick,
 }) => {
-  const pendingProposals = proposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED');
+  const pendingProposals = proposals.filter(p => 
+    (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') &&
+    Boolean((p.freight as any)?.producer_id || (p.freight as any)?.producer?.id)
+  );
 
   return (
     <div className="space-y-6">
