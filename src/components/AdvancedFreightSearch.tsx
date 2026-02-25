@@ -267,314 +267,221 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-primary" />
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-background">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Filter className="h-4 w-4 text-primary" />
             Busca Avançada de Fretes
           </DialogTitle>
-          <DialogDescription>
-            Configure filtros detalhados para encontrar exatamente o que você procura
+          <DialogDescription className="text-xs">
+            Configure filtros detalhados para encontrar o frete ideal.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna 1: Localização e Datas */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Localização
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <UnifiedLocationInput
-                    label="Cidade de Origem"
-                    placeholder="CEP ou nome da cidade"
-                    value={filters.origin_city && filters.origin_state ? `${filters.origin_city}, ${filters.origin_state}` : ''}
-                    onChange={(value, locationData) => {
-                      if (locationData) {
-                        handleFilterChange('origin_city', locationData.city);
-                        handleFilterChange('origin_state', locationData.state);
-                        handleFilterChange('origin_city_id', locationData.cityId || '');
-                      }
-                    }}
-                  />
-                  
-                  <UnifiedLocationInput
-                    label="Cidade de Destino"
-                    placeholder="CEP ou nome da cidade"
-                    value={filters.destination_city && filters.destination_state ? `${filters.destination_city}, ${filters.destination_state}` : ''}
-                    onChange={(value, locationData) => {
-                      if (locationData) {
-                        handleFilterChange('destination_city', locationData.city);
-                        handleFilterChange('destination_state', locationData.state);
-                        handleFilterChange('destination_city_id', locationData.cityId || '');
-                      }
-                    }}
-                  />
-                  
-                  
-                </div>
+        <div className="space-y-5">
+          {/* === Localização === */}
+          <section>
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-3">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              Localização
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <UnifiedLocationInput
+                label="Cidade de Origem"
+                placeholder="CEP ou nome da cidade"
+                value={filters.origin_city && filters.origin_state ? `${filters.origin_city}, ${filters.origin_state}` : ''}
+                onChange={(value, locationData) => {
+                  if (locationData) {
+                    handleFilterChange('origin_city', locationData.city);
+                    handleFilterChange('origin_state', locationData.state);
+                    handleFilterChange('origin_city_id', locationData.cityId || '');
+                  }
+                }}
+              />
+              <UnifiedLocationInput
+                label="Cidade de Destino"
+                placeholder="CEP ou nome da cidade"
+                value={filters.destination_city && filters.destination_state ? `${filters.destination_city}, ${filters.destination_state}` : ''}
+                onChange={(value, locationData) => {
+                  if (locationData) {
+                    handleFilterChange('destination_city', locationData.city);
+                    handleFilterChange('destination_state', locationData.state);
+                    handleFilterChange('destination_city_id', locationData.cityId || '');
+                  }
+                }}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Corredor Rodoviário</Label>
+                <Select value={filters.route_corridor} onValueChange={(value) => handleFilterChange('route_corridor', value)}>
+                  <SelectTrigger className="h-9 text-sm bg-background">
+                    <SelectValue placeholder="Selecione uma rota" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    {routeCorridors.map(corridor => (
+                      <SelectItem key={corridor} value={corridor}>{corridor}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Distância Máxima: {filters.max_distance_km} km</Label>
+                <input
+                  type="range"
+                  min="50"
+                  max="3000"
+                  step="50"
+                  value={filters.max_distance_km}
+                  onChange={(e) => handleFilterChange('max_distance_km', parseInt(e.target.value))}
+                  className="w-full mt-2 accent-primary"
+                />
+              </div>
+            </div>
+          </section>
 
-                <div className="space-y-2">
-                  <Label>Corredor Rodoviário</Label>
-                  <Select value={filters.route_corridor} onValueChange={(value) => handleFilterChange('route_corridor', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma rota" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {routeCorridors.map(corridor => (
-                        <SelectItem key={corridor} value={corridor}>{corridor}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <Separator />
 
-                <div className="space-y-2">
-                  <Label>Distância Máxima: {filters.max_distance_km} km</Label>
-                  <input
-                    type="range"
-                    min="50"
-                    max="3000"
-                    step="50"
-                    value={filters.max_distance_km}
-                    onChange={(e) => handleFilterChange('max_distance_km', parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  Datas e Agendamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Apenas fretes agendados</Label>
+          {/* === Datas + Carga especial (inline) === */}
+          <section>
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-3">
+              <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+              Agendamento &amp; Carga Especial
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
+              {[
+                { label: 'Agendados', key: 'scheduled_only' as const, icon: null },
+                { label: 'Datas flexíveis', key: 'flexible_dates_only' as const, icon: null },
+                { label: 'Urgentes', key: 'urgent_only' as const, icon: <Zap className="h-3 w-3 text-amber-500" /> },
+                { label: 'Carga viva', key: 'live_cargo' as const, icon: null },
+                { label: 'Refrigerado', key: 'refrigerated' as const, icon: null },
+                { label: 'Perigosa', key: 'hazardous_cargo' as const, icon: null },
+              ].map(({ label, key, icon }) => (
+                <div key={key} className="flex items-center gap-2">
                   <Switch
-                    checked={filters.scheduled_only}
-                    onCheckedChange={(checked) => handleFilterChange('scheduled_only', checked)}
+                    id={key}
+                    checked={filters[key] as boolean}
+                    onCheckedChange={(checked) => handleFilterChange(key, checked)}
+                    className="scale-90"
                   />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label>Com datas flexíveis</Label>
-                  <Switch
-                    checked={filters.flexible_dates_only}
-                    onCheckedChange={(checked) => handleFilterChange('flexible_dates_only', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-amber-500" />
-                    Apenas urgentes
+                  <Label htmlFor={key} className="text-xs cursor-pointer flex items-center gap-1">
+                    {icon}
+                    {label}
                   </Label>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* === Tipo de Carga + Veículo (2 cols) === */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-3">
+                <Package className="h-3.5 w-3.5 text-primary" />
+                Tipo de Carga
+              </h3>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 max-h-44 overflow-y-auto pr-1">
+                {cargoCategories.map(category => (
+                  <label key={category} className="flex items-center gap-1.5 text-xs cursor-pointer py-0.5">
+                    <input
+                      type="checkbox"
+                      checked={filters.cargo_categories.includes(category)}
+                      onChange={(e) => handleArrayFilterChange('cargo_categories', category, e.target.checked)}
+                      className="rounded accent-primary"
+                    />
+                    {category}
+                  </label>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Peso mín. (t)</Label>
+                  <Input type="number" min="0" value={filters.min_weight} onChange={(e) => handleFilterChange('min_weight', parseFloat(e.target.value) || 0)} className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Peso máx. (t)</Label>
+                  <Input type="number" min="0" value={filters.max_weight} onChange={(e) => handleFilterChange('max_weight', parseFloat(e.target.value) || 100)} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-3">
+                <Truck className="h-3.5 w-3.5 text-primary" />
+                Veículo
+              </h3>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                {vehicleTypes.map(type => (
+                  <label key={type} className="flex items-center gap-1.5 text-xs cursor-pointer py-0.5">
+                    <input
+                      type="checkbox"
+                      checked={filters.vehicle_types.includes(type)}
+                      onChange={(e) => handleArrayFilterChange('vehicle_types', type, e.target.checked)}
+                      className="rounded accent-primary"
+                    />
+                    {type}
+                  </label>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Eixos mín.</Label>
+                  <Input type="number" min="2" max="9" value={filters.min_axles} onChange={(e) => handleFilterChange('min_axles', parseInt(e.target.value) || 2)} className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Eixos máx.</Label>
+                  <Input type="number" min="2" max="9" value={filters.max_axles} onChange={(e) => handleFilterChange('max_axles', parseInt(e.target.value) || 9)} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* === Preço + Qualidade (inline) === */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-3">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                Preço e Pagamento
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Preço mín. (R$)</Label>
+                  <Input type="number" min="0" value={filters.min_price} onChange={(e) => handleFilterChange('min_price', parseFloat(e.target.value) || 0)} className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Preço máx. (R$)</Label>
+                  <Input type="number" min="0" value={filters.max_price} onChange={(e) => handleFilterChange('max_price', parseFloat(e.target.value) || 50000)} className="h-8 text-sm" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <Switch
+                  id="advance_payment"
+                  checked={filters.advance_payment_available}
+                  onCheckedChange={(checked) => handleFilterChange('advance_payment_available', checked)}
+                  className="scale-90"
+                />
+                <Label htmlFor="advance_payment" className="text-xs cursor-pointer">Adiantamento disponível</Label>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Qualidade</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
                   <Switch
-                    checked={filters.urgent_only}
-                    onCheckedChange={(checked) => handleFilterChange('urgent_only', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Coluna 2: Carga e Veículo */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Tipo de Carga
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="max-h-48 overflow-y-auto space-y-2">
-                  {cargoCategories.map(category => (
-                    <div key={category} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={category}
-                        checked={filters.cargo_categories.includes(category)}
-                        onChange={(e) => handleArrayFilterChange('cargo_categories', category, e.target.checked)}
-                      />
-                      <Label htmlFor={category} className="text-sm cursor-pointer">
-                        {category}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Carga viva (gado, aves)</Label>
-                    <Switch
-                      checked={filters.live_cargo}
-                      onCheckedChange={(checked) => handleFilterChange('live_cargo', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label>Refrigerado</Label>
-                    <Switch
-                      checked={filters.refrigerated}
-                      onCheckedChange={(checked) => handleFilterChange('refrigerated', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label>Carga perigosa</Label>
-                    <Switch
-                      checked={filters.hazardous_cargo}
-                      onCheckedChange={(checked) => handleFilterChange('hazardous_cargo', checked)}
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Peso mín. (t)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={filters.min_weight}
-                      onChange={(e) => handleFilterChange('min_weight', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Peso máx. (t)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={filters.max_weight}
-                      onChange={(e) => handleFilterChange('max_weight', parseFloat(e.target.value) || 100)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  Veículo
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  {vehicleTypes.map(type => (
-                    <div key={type} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={type}
-                        checked={filters.vehicle_types.includes(type)}
-                        onChange={(e) => handleArrayFilterChange('vehicle_types', type, e.target.checked)}
-                      />
-                      <Label htmlFor={type} className="text-sm cursor-pointer">
-                        {type}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Eixos mín.</Label>
-                    <Input
-                      type="number"
-                      min="2"
-                      max="9"
-                      value={filters.min_axles}
-                      onChange={(e) => handleFilterChange('min_axles', parseInt(e.target.value) || 2)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Eixos máx.</Label>
-                    <Input
-                      type="number"
-                      min="2"
-                      max="9"
-                      value={filters.max_axles}
-                      onChange={(e) => handleFilterChange('max_axles', parseInt(e.target.value) || 9)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Coluna 3: Preço e Configurações */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Preço e Pagamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Preço mín. (R$)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={filters.min_price}
-                      onChange={(e) => handleFilterChange('min_price', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Preço máx. (R$)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={filters.max_price}
-                      onChange={(e) => handleFilterChange('max_price', parseFloat(e.target.value) || 50000)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Adiantamento disponível</Label>
-                    <Switch
-                      checked={filters.advance_payment_available}
-                      onCheckedChange={(checked) => handleFilterChange('advance_payment_available', checked)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Configurações de Qualidade</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Apenas produtores confiáveis</Label>
-                  <Switch
+                    id="trusted_producers"
                     checked={filters.trusted_producers_only}
                     onCheckedChange={(checked) => handleFilterChange('trusted_producers_only', checked)}
+                    className="scale-90"
                   />
+                  <Label htmlFor="trusted_producers" className="text-xs cursor-pointer">Apenas produtores confiáveis</Label>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Avaliação mínima: {filters.minimum_rating}★</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs">Avaliação mínima: {filters.minimum_rating}★</Label>
                   <input
                     type="range"
                     min="0"
@@ -582,69 +489,68 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
                     step="0.5"
                     value={filters.minimum_rating}
                     onChange={(e) => handleFilterChange('minimum_rating', parseFloat(e.target.value))}
-                    className="w-full"
+                    className="w-full accent-primary"
                   />
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <Label>Seguro obrigatório</Label>
+                <div className="flex items-center gap-2">
                   <Switch
+                    id="has_insurance"
                     checked={filters.has_insurance}
                     onCheckedChange={(checked) => handleFilterChange('has_insurance', checked)}
+                    className="scale-90"
                   />
+                  <Label htmlFor="has_insurance" className="text-xs cursor-pointer">Seguro obrigatório</Label>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+          </section>
 
-            {/* Buscas Salvas */}
-            {savedSearches.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Buscas Salvas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {savedSearches.slice(0, 3).map(saved => (
+          {/* Buscas Salvas */}
+          {savedSearches.length > 0 && (
+            <>
+              <Separator />
+              <section>
+                <h3 className="text-sm font-semibold text-foreground mb-2">Buscas Salvas</h3>
+                <div className="flex flex-wrap gap-2">
+                  {savedSearches.slice(0, 5).map(saved => (
                     <Button
                       key={saved.id}
                       variant="outline"
                       size="sm"
                       onClick={() => loadSavedSearch(saved)}
-                      className="w-full justify-start text-left"
+                      className="h-7 text-xs"
                     >
-                      <Target className="mr-2 h-3 w-3" />
+                      <Target className="mr-1 h-3 w-3" />
                       {saved.name}
                     </Button>
                   ))}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+              </section>
+            </>
+          )}
         </div>
 
-        {/* Footer com ações */}
-        <div className="flex items-center justify-between pt-6 border-t">
-          <div className="flex gap-2">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Nome da busca..."
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                className="w-48"
-              />
-              <Button variant="outline" onClick={saveSearch}>
-                Salvar Busca
-              </Button>
-            </div>
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 border-t mt-2 gap-3">
+          <div className="flex gap-2 flex-1 min-w-0">
+            <Input
+              placeholder="Nome da busca..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="h-8 text-sm max-w-[180px]"
+            />
+            <Button variant="outline" size="sm" onClick={saveSearch} className="h-8 text-xs shrink-0">
+              Salvar
+            </Button>
           </div>
-
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={clearFilters}>
-              <X className="mr-2 h-4 w-4" />
+          <div className="flex gap-2 shrink-0">
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+              <X className="mr-1 h-3 w-3" />
               Limpar
             </Button>
-            <Button onClick={handleSearch} className="gradient-primary">
-              <Search className="mr-2 h-4 w-4" />
-              Buscar ({getActiveFiltersCount()} filtros)
+            <Button size="sm" onClick={handleSearch} className="h-8 text-xs gradient-primary">
+              <Search className="mr-1 h-3 w-3" />
+              Buscar ({getActiveFiltersCount()})
             </Button>
           </div>
         </div>
