@@ -5,7 +5,8 @@
  * Compatível com MOTORISTA, TRANSPORTADORA, PRODUTOR, PRESTADOR.
  * ⚠️ Sem alterações de lógica/cálculo — apenas layout e UX.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -164,7 +165,61 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-// ─── Componente: Seção de título ─────────────────────────────────────────────
+// ─── Componente: Extrato Virtualizado ────────────────────────────────────────
+const VirtualizedProducerTable: React.FC<{ rows: any[] }> = ({ rows }) => {
+  const parentRef = useRef<HTMLDivElement | null>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 40,
+    overscan: 15,
+  });
+
+  // Scroll to top when rows change (filter/drilldown)
+  useEffect(() => {
+    parentRef.current?.scrollTo({ top: 0 });
+  }, [rows]);
+
+  return (
+    <div ref={parentRef} className="max-h-[600px] overflow-auto">
+      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.index}
+              className="absolute left-0 w-full"
+              style={{ top: 0, transform: `translateY(${virtualRow.start}px)`, height: `${virtualRow.size}px` }}
+            >
+              <div className="flex items-center h-full border-b border-border hover:bg-muted/30 transition-colors text-xs">
+                <div className="flex-none w-[70px] px-4 text-muted-foreground whitespace-nowrap tabular-nums">
+                  {row.__date && isValid(row.__date) ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
+                </div>
+                <div className="flex-1 min-w-0 px-4 truncate">{row.__rota}</div>
+                <div className="flex-none w-[80px] px-4 text-muted-foreground hidden sm:block">
+                  {row.__tipo ? row.__tipo.charAt(0).toUpperCase() + row.__tipo.slice(1) : '—'}
+                </div>
+                <div className="flex-none w-[60px] px-4 text-right tabular-nums hidden sm:block">
+                  {row.__km > 0 ? fmtNum(row.__km) : '—'}
+                </div>
+                <div className="flex-none w-[90px] px-4 text-right font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums">
+                  {row.__valor > 0 ? formatBRL(row.__valor) : '—'}
+                </div>
+                <div className="flex-none w-[80px] px-4 text-center">
+                  <StatusBadge status={row.__status} />
+                </div>
+                <div className="flex-none w-[100px] px-4 text-muted-foreground truncate hidden md:block">
+                  {row.__motorista || '—'}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?: string }> = ({ icon: Icon, title, subtitle }) => (
   <div className="flex items-center gap-2.5 pt-2">
     <div className="h-8 w-8 rounded-xl bg-[rgba(22,163,74,0.1)] flex items-center justify-center flex-shrink-0">
@@ -559,7 +614,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     minKm: undefined, maxKm: undefined, minValue: undefined, maxValue: undefined,
     onlyLate: false, onlyNoProposals: false,
   });
-  const [producerRowsLimit, setProducerRowsLimit] = useState(100);
+  // producerRowsLimit removed — now using @tanstack/react-virtual
 
   const toggleProducerSlicer = (field: 'status' | 'cargoTypes', value: string) => {
     setProducerSlicers((prev) => {
@@ -2070,65 +2125,26 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
               <>
                 {filteredProducerRows.length > 0 ? (
                   <Card className="rounded-2xl overflow-hidden">
-                    {/* Pagination header */}
                     <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/20">
                       <p className="text-xs text-muted-foreground">
-                        Mostrando <span className="font-semibold text-foreground">{Math.min(producerRowsLimit, filteredProducerRows.length)}</span> de <span className="font-semibold text-foreground">{filteredProducerRows.length}</span>
+                        <span className="font-semibold text-foreground">{filteredProducerRows.length}</span> registros encontrados
                       </p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="h-7 text-[11px]"
-                          onClick={() => setProducerRowsLimit(v => v + 100)}
-                          disabled={producerRowsLimit >= filteredProducerRows.length}>
-                          Mostrar mais
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-[11px]"
-                          onClick={() => setProducerRowsLimit(100)}
-                          disabled={producerRowsLimit <= 100}>
-                          Reset
-                        </Button>
-                      </div>
                     </div>
                     <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/40">
-                            <TableHead className="text-xs font-semibold">Data</TableHead>
-                            <TableHead className="text-xs font-semibold">Rota</TableHead>
-                            <TableHead className="text-xs font-semibold hidden sm:table-cell">Tipo</TableHead>
-                            <TableHead className="text-xs font-semibold hidden sm:table-cell text-right">Km</TableHead>
-                            <TableHead className="text-xs font-semibold text-right">Valor</TableHead>
-                            <TableHead className="text-xs font-semibold text-center">Status</TableHead>
-                            <TableHead className="text-xs font-semibold hidden md:table-cell">Motorista</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredProducerRows.slice(0, producerRowsLimit).map((row: any, i: number) => (
-                            <TableRow key={i} className="hover:bg-muted/30 transition-colors">
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-                                {row.__date && isValid(row.__date) ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
-                              </TableCell>
-                              <TableCell className="text-xs max-w-[120px] sm:max-w-none truncate">
-                                {row.__rota}
-                              </TableCell>
-                              <TableCell className="text-xs hidden sm:table-cell text-muted-foreground">
-                                {row.__tipo ? row.__tipo.charAt(0).toUpperCase() + row.__tipo.slice(1) : '—'}
-                              </TableCell>
-                              <TableCell className="text-xs hidden sm:table-cell text-right tabular-nums">
-                                {row.__km > 0 ? fmtNum(row.__km) : '—'}
-                              </TableCell>
-                              <TableCell className="text-xs text-right font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums">
-                                {row.__valor > 0 ? formatBRL(row.__valor) : '—'}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <StatusBadge status={row.__status} />
-                              </TableCell>
-                              <TableCell className="text-xs hidden md:table-cell text-muted-foreground truncate max-w-[100px]">
-                                {row.__motorista || '—'}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <table className="w-full caption-bottom text-sm">
+                        <thead className="sticky top-0 bg-card z-10 [&_tr]:border-b">
+                          <tr className="bg-muted/40 border-b transition-colors">
+                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground">Data</th>
+                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground">Rota</th>
+                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground hidden sm:table-cell">Tipo</th>
+                            <th className="h-10 px-4 text-right align-middle text-xs font-semibold text-muted-foreground hidden sm:table-cell">Km</th>
+                            <th className="h-10 px-4 text-right align-middle text-xs font-semibold text-muted-foreground">Valor</th>
+                            <th className="h-10 px-4 text-center align-middle text-xs font-semibold text-muted-foreground">Status</th>
+                            <th className="h-10 px-4 text-left align-middle text-xs font-semibold text-muted-foreground hidden md:table-cell">Motorista</th>
+                          </tr>
+                        </thead>
+                      </table>
+                      <VirtualizedProducerTable rows={filteredProducerRows} />
                     </div>
                   </Card>
                 ) : (
