@@ -1298,7 +1298,24 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
 
           <div className="space-y-3">
             <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Receita e distribuição operacional" />
-            <ReportCharts charts={produtorCharts} isLoading={isLoading} columns={2} />
+            {produtorCharts.length > 0 ? (
+              <ReportCharts charts={produtorCharts} isLoading={isLoading} columns={2} />
+            ) : isLoading ? (
+              <ReportCharts charts={[]} isLoading={true} columns={2} />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {['Receita por mês', 'Operações por dia', 'Por status'].map((t) => (
+                  <Card key={t} className="rounded-2xl">
+                    <CardHeader><CardTitle className="text-base">{t}</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
+                        Sem dados para exibir
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -1309,7 +1326,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       )}
 
       {/* ── Aviso sem dados ────────────────────────────────────────────── */}
-      {!isLoading && (isMotorista || isTransportadora || isPrestador) &&
+      {!isLoading && (isMotorista || isTransportadora || isPrestador || isProdutor) &&
         Number(kpis.receita_total) === 0 && Number(kpis.servicos_concluidos || kpis.viagens_concluidas || kpis.fretes_concluidos) === 0 && (
         <Card className="rounded-2xl">
           <CardContent className="py-10 text-center">
