@@ -29,6 +29,8 @@ import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { useMarketplaceAvailabilityGuarantee } from '@/hooks/useMarketplaceAvailabilityGuarantee';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
 import { runFeedIntegrityGuard } from '@/security/feedIntegrityGuard';
+import { MarketplaceFilters, ExpiryBadge, DEFAULT_FILTERS, type MarketplaceFiltersState } from '@/components/MarketplaceFilters';
+import { normalizeServiceType } from '@/lib/service-type-normalization';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -71,6 +73,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCargoType, setSelectedCargoType] = useState<string>("all");
+  const [marketplaceFilters, setMarketplaceFilters] = useState<MarketplaceFiltersState>(DEFAULT_FILTERS);
 
   const [matchingStats, setMatchingStats] = useState({ total: 0, matched: 0, assigned: 0 });
   const [emptyFreightHint, setEmptyFreightHint] = useState("Não há fretes abertos com vagas no momento.");
@@ -103,6 +106,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         freightLimit: 80,
         serviceLimit: 40,
         debug: import.meta.env.DEV,
+        filterTypes: marketplaceFilters.selectedTypes.length > 0 ? marketplaceFilters.selectedTypes : undefined,
+        filterExpiryBucket: marketplaceFilters.expiryBucket !== 'ALL' ? marketplaceFilters.expiryBucket : undefined,
+        filterSort: marketplaceFilters.sort,
       });
 
       const freightsData = result.freights;
@@ -224,7 +230,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [company?.id, drivers?.length, profile, fetchAvailableMarketplaceItems]);
+  }, [company?.id, drivers?.length, profile, fetchAvailableMarketplaceItems, marketplaceFilters]);
 
   useMarketplaceAvailabilityGuarantee({
     enabled: !!company?.id,
@@ -398,6 +404,22 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
             </div>
           </div>
 
+          {/* Filtros de Marketplace */}
+          <div className="mb-4">
+            <MarketplaceFilters
+              availableTypes={Array.from(
+                new Set((profile?.service_types as unknown as string[] || ['CARGA']).map((t) => normalizeServiceType(String(t)))),
+              )}
+              filters={marketplaceFilters}
+              onChange={(newFilters) => {
+                setMarketplaceFilters(newFilters);
+                setTimeout(() => fetchCompatibleFreights(), 100);
+              }}
+              showRpmSort={true}
+              showDistSort={true}
+            />
+          </div>
+
           <div className="space-y-4 mb-6">
             <div className="flex gap-4 flex-wrap">
               <div className="relative flex-1 min-w-[220px]">
@@ -426,45 +448,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                   "Atualizar"
                 )}
               </Button>
-
-            </div>
-
-            <div className="w-full md:w-80">
-              <Select value={selectedCargoType} onValueChange={setSelectedCargoType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de carga" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-
-                  <SelectGroup>
-                    <SelectLabel className="text-primary font-medium">Carga (Agrícola)</SelectLabel>
-                    {getCargoTypesByCategory("rural").map((cargo) => (
-                      <SelectItem key={cargo.value} value={cargo.value}>
-                        {cargo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  <SelectGroup>
-                    <SelectLabel className="text-blue-600 font-medium">Carga Viva</SelectLabel>
-                    {getCargoTypesByCategory("carga_viva").map((cargo) => (
-                      <SelectItem key={cargo.value} value={cargo.value}>
-                        {cargo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  <SelectGroup>
-                    <SelectLabel className="text-gray-600 font-medium">Outros</SelectLabel>
-                    {getCargoTypesByCategory("outros").map((cargo) => (
-                      <SelectItem key={cargo.value} value={cargo.value}>
-                        {cargo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-primary/5 rounded-lg">

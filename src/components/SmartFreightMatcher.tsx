@@ -49,6 +49,7 @@ import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { formatSolicitadoHa } from "@/lib/formatters";
 import { runFeedIntegrityGuard } from '@/security/feedIntegrityGuard';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
+import { MarketplaceFilters, ExpiryBadge, DEFAULT_FILTERS, type MarketplaceFiltersState } from '@/components/MarketplaceFilters';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -95,6 +96,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCargoType, setSelectedCargoType] = useState<string>("all");
   const [selectedVehicleType, setSelectedVehicleType] = useState<string>("all");
+  const [marketplaceFilters, setMarketplaceFilters] = useState<MarketplaceFiltersState>(DEFAULT_FILTERS);
 
   const [matchingStats, setMatchingStats] = useState({ exactMatches: 0, fallbackMatches: 0, totalChecked: 0 });
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
@@ -168,6 +170,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         freightLimit: 80,
         serviceLimit: 50,
         debug: import.meta.env.DEV,
+        filterTypes: marketplaceFilters.selectedTypes.length > 0 ? marketplaceFilters.selectedTypes : undefined,
+        filterExpiryBucket: marketplaceFilters.expiryBucket !== 'ALL' ? marketplaceFilters.expiryBucket : undefined,
+        filterSort: marketplaceFilters.sort,
       });
 
       const unifiedFreights: CompatibleFreight[] = (result.freights || []).map((f: any) => ({
@@ -235,7 +240,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       updateLockRef.current = false;
       setLoading(false);
     }
-  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, fetchAvailableMarketplaceItems]);
+  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, fetchAvailableMarketplaceItems, marketplaceFilters]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -517,6 +522,23 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             </div>
           )}
 
+          {/* Filtros de Marketplace */}
+          <div className="mb-4">
+            <MarketplaceFilters
+              availableTypes={Array.from(
+                new Set((profile?.service_types as unknown as string[] || ['CARGA']).map((t) => normalizeServiceType(String(t)))),
+              )}
+              filters={marketplaceFilters}
+              onChange={(newFilters) => {
+                setMarketplaceFilters(newFilters);
+                // Refetch ao alterar filtros
+                setTimeout(() => fetchRef.current(), 100);
+              }}
+              showRpmSort={hasRuralFreights}
+              showDistSort={hasRuralFreights}
+            />
+          </div>
+
           <div className="space-y-4 mb-6">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
@@ -548,62 +570,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                   </span>
                 )}
               </div>
-            </div>
-
-            <div className="w-full md:w-80">
-              <Select value={selectedCargoType} onValueChange={setSelectedCargoType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de carga" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-
-                  <SelectGroup>
-                    <SelectLabel className="text-primary font-medium">Carga (Agrícola)</SelectLabel>
-                    {getCargoTypesByCategory("rural").map((cargo) => (
-                      <SelectItem key={cargo.value} value={cargo.value}>
-                        {cargo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  <SelectGroup>
-                    <SelectLabel className="text-blue-600 font-medium">Carga Viva</SelectLabel>
-                    {getCargoTypesByCategory("carga_viva").map((cargo) => (
-                      <SelectItem key={cargo.value} value={cargo.value}>
-                        {cargo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  <SelectGroup>
-                    <SelectLabel className="text-gray-600 font-medium">Outros</SelectLabel>
-                    {getCargoTypesByCategory("outros").map((cargo) => (
-                      <SelectItem key={cargo.value} value={cargo.value}>
-                        {cargo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro por Tipo de Veículo */}
-            <div className="w-full md:w-60">
-              <Select value={selectedVehicleType} onValueChange={setSelectedVehicleType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tipo de veículo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os veículos</SelectItem>
-                  <SelectItem value="CARGA">🚛 Caminhão</SelectItem>
-                  <SelectItem value="FRETE_MOTO">🏍️ Moto</SelectItem>
-                  <SelectItem value="GUINCHO">🚗 Guincho</SelectItem>
-                  <SelectItem value="MUDANCA">📦 Mudança</SelectItem>
-                  <SelectItem value="ENTREGA_PACOTES">📬 Pacotes</SelectItem>
-                  <SelectItem value="TRANSPORTE_PET">🐾 Pet</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
@@ -873,6 +839,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                               <Clock className="h-3 w-3" />
                               <span>{formatSolicitadoHa(r.created_at)}</span>
                             </div>
+                            <ExpiryBadge expiresAt={r.expires_at} />
 
                             {r.urgency && (
                               <Badge
