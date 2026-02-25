@@ -751,33 +751,33 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 Aceitar Frete por Moto
               </Button>
             ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={() => setBulkAcceptorOpen(true)}
-                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                  className="gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
                 >
-                  Aceitar ({availableSlots} vagas)
+                  Aceitar ({availableSlots})
                 </Button>
                 <Button
                   onClick={() => setProposalModalOpen(true)}
-                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 whitespace-nowrap text-xs sm:text-sm px-2"
+                  className="border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
                   variant="outline"
                 >
                   Contraproposta
                 </Button>
               </div>
             ) : (
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={() => handleAcceptFreight(1)}
-                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                  className="gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
                   size="sm"
                 >
-                  Aceitar Frete
+                  Aceitar
                 </Button>
                 <Button
                   onClick={() => setProposalModalOpen(true)}
-                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 whitespace-nowrap text-xs sm:text-sm px-2"
+                  className="border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
                   size="sm"
                   variant="outline"
                 >
