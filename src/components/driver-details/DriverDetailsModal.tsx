@@ -92,16 +92,34 @@ export const DriverDetailsModal = ({
           </Card>
         ) : (
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
-              <TabsTrigger value="info"><User className="h-4 w-4" /><span className="hidden sm:inline ml-2">Info</span></TabsTrigger>
-              <TabsTrigger value="location"><MapPin className="h-4 w-4" /><span className="hidden sm:inline ml-2">Local</span></TabsTrigger>
-              <TabsTrigger value="freights"><Truck className="h-4 w-4" /><span className="hidden sm:inline ml-2">Fretes</span></TabsTrigger>
-              <TabsTrigger value="performance"><TrendingUp className="h-4 w-4" /><span className="hidden sm:inline ml-2">Perf</span></TabsTrigger>
-              <TabsTrigger value="vehicles"><Car className="h-4 w-4" /><span className="hidden sm:inline ml-2">Veíc</span></TabsTrigger>
-              <TabsTrigger value="settings"><Settings className="h-4 w-4" /><span className="hidden sm:inline ml-2">Config</span></TabsTrigger>
-              <TabsTrigger value="chat" className="relative">
+            <TabsList className="w-full overflow-x-auto flex items-center justify-start gap-1 p-1 h-auto">
+              <TabsTrigger value="info" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+                <User className="h-4 w-4" />
+                <span>Info</span>
+              </TabsTrigger>
+              <TabsTrigger value="location" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+                <MapPin className="h-4 w-4" />
+                <span>Local</span>
+              </TabsTrigger>
+              <TabsTrigger value="freights" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+                <Truck className="h-4 w-4" />
+                <span>Fretes</span>
+              </TabsTrigger>
+              <TabsTrigger value="performance" className="shrink-0 min-w-[104px] gap-1.5 text-[11px]">
+                <TrendingUp className="h-4 w-4" />
+                <span>Performance</span>
+              </TabsTrigger>
+              <TabsTrigger value="vehicles" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+                <Car className="h-4 w-4" />
+                <span>Veículos</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="shrink-0 min-w-[92px] gap-1.5 text-[11px]">
+                <Settings className="h-4 w-4" />
+                <span>Config</span>
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="relative shrink-0 min-w-[92px] gap-1.5 text-[11px]">
                 <MessageCircle className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Chat</span>
+                <span>Chat</span>
                 {unreadChatCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs absolute -top-1 -right-1">
                     {unreadChatCount}
