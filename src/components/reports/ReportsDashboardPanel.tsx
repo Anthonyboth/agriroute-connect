@@ -16,6 +16,7 @@ import {
   Fuel, Clock, TrendingUp, Users, Percent, Package, CheckCircle,
   BarChart3, Activity, Route, Weight, Timer, XCircle, ArrowUpRight,
   ArrowDownRight, Minus, CalendarDays, Filter, Search, X,
+  AlertTriangle, PlusCircle, Eye, Zap,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
@@ -499,6 +500,122 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] };
     });
   };
+
+  // ── Producer Slicers state ────────────────────────────────────────────────
+  type ProducerSlicers = {
+    status: string[];
+    cargoTypes: string[];
+    routeQuery: string;
+    minKm?: number;
+    maxKm?: number;
+    minValue?: number;
+    maxValue?: number;
+    onlyLate: boolean;
+    onlyNoProposals: boolean;
+  };
+
+  const [producerSlicers, setProducerSlicers] = useState<ProducerSlicers>({
+    status: [], cargoTypes: [], routeQuery: '',
+    minKm: undefined, maxKm: undefined, minValue: undefined, maxValue: undefined,
+    onlyLate: false, onlyNoProposals: false,
+  });
+  const resetProducerSlicers = () => setProducerSlicers({
+    status: [], cargoTypes: [], routeQuery: '',
+    minKm: undefined, maxKm: undefined, minValue: undefined, maxValue: undefined,
+    onlyLate: false, onlyNoProposals: false,
+  });
+
+  const toggleProducerSlicer = (field: 'status' | 'cargoTypes', value: string) => {
+    setProducerSlicers((prev) => {
+      const arr = prev[field];
+      return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] };
+    });
+  };
+
+  // ── Producer rows normalization ───────────────────────────────────────────
+  const producerRows = useMemo(() => {
+    if (!isProdutor) return [] as any[];
+    const base = (tables?.extrato_fretes || tables?.extrato_ganhos || producerHistoryRows || []).map((r: any) => {
+      const rota = r.rota || (r.origin_city && r.destination_city ? `${r.origin_city} → ${r.destination_city}` : '—');
+      const status = String(r.status_final || r.status || '').toUpperCase();
+      return {
+        ...r,
+        __rota: formatRouteLabel(rota),
+        __status: status,
+        __tipo: String(r.tipo || r.cargo_type || '').toLowerCase(),
+        __km: Number(r.km || r.distance_km) || 0,
+        __valor: Number(r.valor || r.receita || r.cost || r.price_total) || 0,
+        __date: r.data ? new Date(r.data) : r.completed_at ? new Date(r.completed_at) : r.created_at ? new Date(r.created_at) : null,
+        __isLate: Boolean(r.atrasado || r.late || false),
+        __hasProposals: r.proposals_count !== undefined ? Number(r.proposals_count) > 0 : undefined,
+        __motorista: r.motorista || r.driver_name || null,
+      };
+    });
+    return base;
+  }, [tables, producerHistoryRows, isProdutor]);
+
+  // ── Producer slicer options ───────────────────────────────────────────────
+  const producerSlicerOptions = useMemo(() => {
+    const statusSet = new Set<string>();
+    const cargoSet = new Set<string>();
+    for (const r of producerRows) {
+      if (r.__status) statusSet.add(r.__status);
+      if (r.__tipo && r.__tipo !== '') cargoSet.add(r.__tipo);
+    }
+    const kmVals = producerRows.map((r: any) => r.__km).filter(Number.isFinite);
+    const valVals = producerRows.map((r: any) => r.__valor).filter(Number.isFinite);
+    const hasLateField = producerRows.some((r: any) => r.atrasado !== undefined || r.late !== undefined);
+    const hasProposalField = producerRows.some((r: any) => r.proposals_count !== undefined);
+    return {
+      statuses: Array.from(statusSet).sort(),
+      cargoTypes: Array.from(cargoSet).sort(),
+      kmMin: kmVals.length ? Math.min(...kmVals) : 0,
+      kmMax: kmVals.length ? Math.max(...kmVals) : 0,
+      valMin: valVals.length ? Math.min(...valVals) : 0,
+      valMax: valVals.length ? Math.max(...valVals) : 0,
+      hasLateField,
+      hasProposalField,
+    };
+  }, [producerRows]);
+
+  // ── Filter producer rows ──────────────────────────────────────────────────
+  const filteredProducerRows = useMemo(() => {
+    let rows = producerRows;
+    const s = producerSlicers;
+    if (s.status.length) rows = rows.filter((r: any) => s.status.includes(r.__status));
+    if (s.cargoTypes.length) rows = rows.filter((r: any) => s.cargoTypes.includes(r.__tipo));
+    if (s.routeQuery.trim()) {
+      const q = s.routeQuery.trim().toLowerCase();
+      rows = rows.filter((r: any) => r.__rota.toLowerCase().includes(q));
+    }
+    if (s.minKm !== undefined) rows = rows.filter((r: any) => r.__km >= s.minKm!);
+    if (s.maxKm !== undefined) rows = rows.filter((r: any) => r.__km <= s.maxKm!);
+    if (s.minValue !== undefined) rows = rows.filter((r: any) => r.__valor >= s.minValue!);
+    if (s.maxValue !== undefined) rows = rows.filter((r: any) => r.__valor <= s.maxValue!);
+    if (s.onlyLate) rows = rows.filter((r: any) => r.__isLate);
+    if (s.onlyNoProposals) rows = rows.filter((r: any) => r.__hasProposals === false);
+    return rows;
+  }, [producerRows, producerSlicers]);
+
+  const hasProducerSlicerFilters = useMemo(() => {
+    const s = producerSlicers;
+    return s.status.length > 0 || s.cargoTypes.length > 0 || s.routeQuery.trim() !== '' ||
+      s.minKm !== undefined || s.maxKm !== undefined || s.minValue !== undefined || s.maxValue !== undefined ||
+      s.onlyLate || s.onlyNoProposals;
+  }, [producerSlicers]);
+
+  const activeProducerFiltersCount = useMemo(() => {
+    const s = producerSlicers;
+    let c = 0;
+    if (s.status.length) c++;
+    if (s.cargoTypes.length) c++;
+    if (s.routeQuery.trim()) c++;
+    if (s.minKm !== undefined || s.maxKm !== undefined) c++;
+    if (s.minValue !== undefined || s.maxValue !== undefined) c++;
+    if (s.onlyLate) c++;
+    if (s.onlyNoProposals) c++;
+    return c;
+  }, [producerSlicers]);
 
   // ── Normalize extrato rows ────────────────────────────────────────────────
   const extratoRows = useMemo(() => {
@@ -1022,9 +1139,19 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-extrabold tracking-tight">Relatórios</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Resumo financeiro e operacional</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isProdutor ? 'Control Tower · Produtor' : 'Resumo financeiro e operacional'}
+            </p>
+            {isProdutor && lastRefreshLabel && (
+              <p className="text-[11px] text-muted-foreground mt-1">Atualizado {lastRefreshLabel}</p>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {isProdutor && (
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[hsl(var(--chart-1))]/10 text-[hsl(var(--chart-1))] border border-[hsl(var(--chart-1))]/20">
+                Produtor
+              </span>
+            )}
             <ReportExportButton reportTitle={title} dateRange={dateRange} sections={exportSections} disabled={isLoading} />
             <Button
               variant="ghost"
@@ -1043,15 +1170,143 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
 
         {/* Data exibida */}
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <CalendarDays className="h-3 w-3" />
-          <span>
-            {format(dateRange.from, "dd 'de' MMM yyyy", { locale: ptBR })}
-            {' – '}
-            {format(dateRange.to, "dd 'de' MMM yyyy", { locale: ptBR })}
-          </span>
-          {lastRefreshLabel && <span className="ml-2 hidden sm:inline">· {lastRefreshLabel}</span>}
-        </div>
+        {!isProdutor && (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <CalendarDays className="h-3 w-3" />
+            <span>
+              {format(dateRange.from, "dd 'de' MMM yyyy", { locale: ptBR })}
+              {' – '}
+              {format(dateRange.to, "dd 'de' MMM yyyy", { locale: ptBR })}
+            </span>
+            {lastRefreshLabel && <span className="ml-2 hidden sm:inline">· {lastRefreshLabel}</span>}
+          </div>
+        )}
+
+        {/* Producer Slicers BI */}
+        {isProdutor && producerRows.length > 0 && (
+          <div className="space-y-3 pt-1 border-t border-border/50">
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-2">
+              <p className="text-[11px] text-muted-foreground">
+                <span className="font-semibold text-foreground">{filteredProducerRows.length}</span>
+                {' de '}
+                <span className="font-semibold text-foreground">{producerRows.length}</span>
+                {' registros'}
+                {hasProducerSlicerFilters && (
+                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(var(--chart-1))]/10 text-[hsl(var(--chart-1))] text-[10px] font-semibold">
+                    <Filter className="h-2.5 w-2.5" /> {activeProducerFiltersCount} filtro{activeProducerFiltersCount > 1 ? 's' : ''}
+                  </span>
+                )}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1"
+                  onClick={() => setProducerSlicers((p) => ({ ...p, status: ['DELIVERED', 'COMPLETED'] }))}>
+                  <CheckCircle className="h-3 w-3" /> Concluídos
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1"
+                  onClick={() => setProducerSlicers((p) => ({ ...p, status: ['CANCELLED'] }))}>
+                  <XCircle className="h-3 w-3" /> Cancelados
+                </Button>
+                {hasProducerSlicerFilters && (
+                  <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1 text-destructive" onClick={resetProducerSlicers}>
+                    <X className="h-3 w-3" /> Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Status chips */}
+              {producerSlicerOptions.statuses.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Status</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {producerSlicerOptions.statuses.map((s) => (
+                      <ToggleChip key={s} active={producerSlicers.status.includes(s)} onClick={() => toggleProducerSlicer('status', s)}>
+                        {STATUS_LABELS[s] || s}
+                      </ToggleChip>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cargo type chips */}
+              {producerSlicerOptions.cargoTypes.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Tipo de carga</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {producerSlicerOptions.cargoTypes.slice(0, 8).map((t) => (
+                      <ToggleChip key={t} active={producerSlicers.cargoTypes.includes(t)} onClick={() => toggleProducerSlicer('cargoTypes', t)}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </ToggleChip>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Route search */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rota</p>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input className="h-7 text-[11px] pl-7" placeholder="Buscar rota..."
+                    value={producerSlicers.routeQuery}
+                    onChange={(e) => setProducerSlicers((p) => ({ ...p, routeQuery: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Ranges + toggles */}
+              <div className="space-y-3">
+                {(producerSlicerOptions.kmMax > 0) && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Faixa Km <span className="font-normal">({fmtNum(producerSlicerOptions.kmMin)}–{fmtNum(producerSlicerOptions.kmMax)})</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                        value={producerSlicers.minKm ?? ''} onChange={(e) => setProducerSlicers((p) => ({ ...p, minKm: e.target.value ? Number(e.target.value) : undefined }))} />
+                      <span className="text-muted-foreground text-[10px]">—</span>
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                        value={producerSlicers.maxKm ?? ''} onChange={(e) => setProducerSlicers((p) => ({ ...p, maxKm: e.target.value ? Number(e.target.value) : undefined }))} />
+                    </div>
+                  </div>
+                )}
+                {(producerSlicerOptions.valMax > 0) && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Faixa Valor <span className="font-normal">({formatBRL(producerSlicerOptions.valMin)}–{formatBRL(producerSlicerOptions.valMax)})</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                        value={producerSlicers.minValue ?? ''} onChange={(e) => setProducerSlicers((p) => ({ ...p, minValue: e.target.value ? Number(e.target.value) : undefined }))} />
+                      <span className="text-muted-foreground text-[10px]">—</span>
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                        value={producerSlicers.maxValue ?? ''} onChange={(e) => setProducerSlicers((p) => ({ ...p, maxValue: e.target.value ? Number(e.target.value) : undefined }))} />
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" disabled={!producerSlicerOptions.hasLateField}
+                    onClick={() => producerSlicerOptions.hasLateField && setProducerSlicers((p) => ({ ...p, onlyLate: !p.onlyLate }))}
+                    className={cn('px-2.5 py-1 rounded-full text-[11px] font-semibold border transition',
+                      !producerSlicerOptions.hasLateField && 'opacity-40 cursor-not-allowed',
+                      producerSlicers.onlyLate ? 'bg-amber-500/15 border-amber-500/30 text-amber-600' : 'bg-muted/30 border-border text-muted-foreground'
+                    )}>
+                    ⏱ Atrasados {!producerSlicerOptions.hasLateField && '(em breve)'}
+                  </button>
+                  <button type="button" disabled={!producerSlicerOptions.hasProposalField}
+                    onClick={() => producerSlicerOptions.hasProposalField && setProducerSlicers((p) => ({ ...p, onlyNoProposals: !p.onlyNoProposals }))}
+                    className={cn('px-2.5 py-1 rounded-full text-[11px] font-semibold border transition',
+                      !producerSlicerOptions.hasProposalField && 'opacity-40 cursor-not-allowed',
+                      producerSlicers.onlyNoProposals ? 'bg-amber-500/15 border-amber-500/30 text-amber-600' : 'bg-muted/30 border-border text-muted-foreground'
+                    )}>
+                    📭 Sem proposta {!producerSlicerOptions.hasProposalField && '(em breve)'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filtros adicionais (MOTORISTA / TRANSPORTADORA / PRESTADOR) */}
         {(isMotorista || isTransportadora || isPrestador) && (
@@ -1454,41 +1709,271 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         </>
       )}
 
-      {/* ── PRODUTOR ─────────────────────────────────────────────────── */}
-      {isProdutor && produtorHero && (
+      {/* ── PRODUTOR — Control Tower Enterprise ─────────────────────── */}
+      {isProdutor && (
         <>
-          <HeroFinanceBlock
-            label="Receita do período"
-            value={produtorHero.value}
-            subtitle={produtorHero.subtitle}
-            secondary={produtorHero.secondary}
-            isLoading={isLoading}
-          />
+          {/* ── 1. Hero Executivo: Gasto Total ───────────────────────────── */}
+          {produtorHero ? (
+            <div className="rounded-2xl bg-[rgba(59,130,246,0.08)] border border-[rgba(59,130,246,0.18)] p-5 sm:p-6">
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-10 w-48" />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                    {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-blue-500 mb-1">Gasto total no período</p>
+                  <div className="flex items-end gap-3 mb-1">
+                    <span className="text-4xl sm:text-5xl font-extrabold text-foreground leading-none tabular-nums">
+                      {formatBRL(produtorHero.value)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">{produtorHero.subtitle}</p>
 
+                  {/* KPIs estratégicos 2x4 */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(() => {
+                      const totalFretes = Number(kpis.total_fretes) || producerHistoryAgg.total;
+                      const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || producerHistoryAgg.completed;
+                      const fretesAbertos = Number(kpis.fretes_abertos) || 0;
+                      const emTransito = Number(kpis.em_transito || kpis.in_transit) || 0;
+                      const cancelRate = totalFretes > 0 ? ((Number(kpis.taxa_cancelamento) || (producerHistoryAgg.cancelled / totalFretes * 100))).toFixed(1) : '0.0';
+                      const custoMedioFrete = fretesConcluidos > 0 ? produtorHero.value / fretesConcluidos : 0;
+                      const kmTotal = Number(kpis.km_total) || producerHistoryAgg.distance;
+                      const custoMedioKm = kmTotal > 0 ? produtorHero.value / kmTotal : 0;
+
+                      const items = [
+                        { label: 'Publicados', value: fmtNum(totalFretes), icon: Package },
+                        { label: 'Concluídos', value: fmtNum(fretesConcluidos), icon: CheckCircle, highlight: true },
+                        { label: 'Em aberto', value: fmtNum(fretesAbertos), icon: Eye },
+                        { label: 'Em trânsito', value: fmtNum(emTransito), icon: Truck },
+                        { label: 'Cancelados', value: `${cancelRate}%`, icon: XCircle },
+                        { label: 'Custo/frete', value: custoMedioFrete > 0 ? formatBRL(custoMedioFrete) : '—', icon: DollarSign },
+                        { label: 'Custo/km', value: custoMedioKm > 0 ? `R$ ${fmtNum(custoMedioKm, 2)}` : '—', icon: MapPin },
+                        { label: 'SLA no prazo', value: '—', icon: Timer },
+                      ];
+
+                      return items.map((item, i) => {
+                        const Icon = item.icon;
+                        return (
+                          <div key={i} className={cn(
+                            'bg-white/70 dark:bg-card/60 rounded-xl px-3 py-2.5 backdrop-blur-sm',
+                            item.highlight && 'ring-1 ring-blue-500/20'
+                          )}>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
+                              <Icon className={cn('h-3 w-3 flex-shrink-0', item.highlight ? 'text-blue-500' : 'text-muted-foreground/50')} />
+                            </div>
+                            <p className={cn('text-sm font-bold tabular-nums', item.highlight && 'text-blue-600 dark:text-blue-400')}>
+                              {item.value}
+                            </p>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : isLoading ? (
+            <Skeleton className="h-48 rounded-2xl" />
+          ) : null}
+
+          {/* ── 2. Gestão por Exceção (Management by Exception) ──────────── */}
+          {!isLoading && (
+            <div className="space-y-2">
+              <SectionTitle icon={AlertTriangle} title="Gestão por exceção" subtitle="Alertas e atenção imediata" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {(() => {
+                  const totalFretes = Number(kpis.total_fretes) || producerHistoryAgg.total;
+                  const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || producerHistoryAgg.completed;
+                  const cancelados = Number(kpis.cancelados) || producerHistoryAgg.cancelled;
+                  const cancelRate = totalFretes > 0 ? (cancelados / totalFretes) * 100 : 0;
+                  const fretesAbertos = Number(kpis.fretes_abertos) || 0;
+                  const emTransito = Number(kpis.em_transito || kpis.in_transit) || 0;
+
+                  type AlertCard = { icon: string; label: string; value: string; hint?: string; tone: 'good' | 'neutral' | 'bad' };
+                  const alerts: AlertCard[] = [];
+
+                  // Cancelados
+                  alerts.push({
+                    icon: '🔴',
+                    label: 'Cancelados',
+                    value: `${fmtNum(cancelados)} (${cancelRate.toFixed(1)}%)`,
+                    tone: cancelRate >= 10 ? 'bad' : cancelRate > 0 ? 'neutral' : 'good',
+                    hint: cancelRate >= 10 ? 'Taxa acima de 10%' : undefined,
+                  });
+
+                  // Em aberto
+                  alerts.push({
+                    icon: '🟠',
+                    label: 'Em aberto',
+                    value: fmtNum(fretesAbertos),
+                    tone: fretesAbertos >= 5 ? 'bad' : fretesAbertos > 0 ? 'neutral' : 'good',
+                    hint: fretesAbertos >= 5 ? 'Muitos fretes aguardando' : undefined,
+                  });
+
+                  // Em trânsito
+                  alerts.push({
+                    icon: '🟠',
+                    label: 'Em trânsito',
+                    value: fmtNum(emTransito),
+                    tone: 'neutral',
+                  });
+
+                  // Baixa atividade
+                  if (totalFretes === 0) {
+                    alerts.push({
+                      icon: '🟡',
+                      label: 'Baixa atividade',
+                      value: 'Sem fretes',
+                      hint: 'Amplie o período ou crie um frete',
+                      tone: 'neutral',
+                    });
+                  } else {
+                    alerts.push({
+                      icon: '✅',
+                      label: 'Atividade',
+                      value: `${fmtNum(totalFretes)} fretes`,
+                      tone: 'good',
+                    });
+                  }
+
+                  return alerts.map((a, i) => (
+                    <div key={i} className={cn(
+                      'rounded-2xl border p-3 bg-card',
+                      a.tone === 'bad' && 'border-destructive/25 bg-destructive/5',
+                      a.tone === 'good' && 'border-[rgba(22,163,74,0.28)] bg-[rgba(22,163,74,0.04)]',
+                    )}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-sm">{a.icon}</span>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{a.label}</p>
+                      </div>
+                      <p className={cn(
+                        'text-base font-extrabold tabular-nums',
+                        a.tone === 'bad' && 'text-destructive',
+                        a.tone === 'good' && 'text-[#16a34a]',
+                      )}>
+                        {a.value}
+                      </p>
+                      {a.hint && <p className="text-[11px] text-muted-foreground mt-0.5">{a.hint}</p>}
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ── 3. Operacional Grid ──────────────────────────────────────── */}
           <div className="space-y-3">
             <SectionTitle icon={Activity} title="Operacional" subtitle="Volume, qualidade e eficiência" />
             <OperationalGrid items={produtorOp} isLoading={isLoading} />
           </div>
 
+          {/* ── 4. Gráficos ──────────────────────────────────────────────── */}
           <div className="space-y-3">
-            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Receita e distribuição operacional" />
+            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Distribuição operacional" />
             {produtorCharts.length > 0 ? (
               <ReportCharts charts={produtorCharts} isLoading={isLoading} columns={2} />
             ) : isLoading ? (
               <ReportCharts charts={[]} isLoading={true} columns={2} />
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {['Receita por mês', 'Operações por dia', 'Por status'].map((t) => (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {['Gasto por mês', 'Operações por dia', 'Por status'].map((t) => (
                   <Card key={t} className="rounded-2xl">
                     <CardHeader><CardTitle className="text-base">{t}</CardTitle></CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
-                        Sem dados para exibir
+                      <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground gap-2">
+                        <BarChart3 className="h-8 w-8 opacity-20" />
+                        <span className="text-xs">Amplie o período para ver tendências</span>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* ── 5. Extrato BI (tabela enterprise) ────────────────────────── */}
+          <div className="space-y-3">
+            <SectionTitle icon={DollarSign} title="Extrato de fretes" subtitle="Detalhamento operacional" />
+            {producerRows.length > 0 ? (
+              <>
+                {filteredProducerRows.length > 0 ? (
+                  <Card className="rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40">
+                            <TableHead className="text-xs font-semibold">Data</TableHead>
+                            <TableHead className="text-xs font-semibold">Rota</TableHead>
+                            <TableHead className="text-xs font-semibold hidden sm:table-cell">Tipo</TableHead>
+                            <TableHead className="text-xs font-semibold hidden sm:table-cell text-right">Km</TableHead>
+                            <TableHead className="text-xs font-semibold text-right">Valor</TableHead>
+                            <TableHead className="text-xs font-semibold text-center">Status</TableHead>
+                            <TableHead className="text-xs font-semibold hidden md:table-cell">Motorista</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredProducerRows.map((row: any, i: number) => (
+                            <TableRow key={i} className="hover:bg-muted/30 transition-colors">
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                                {row.__date ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
+                              </TableCell>
+                              <TableCell className="text-xs max-w-[120px] sm:max-w-none truncate">
+                                {row.__rota}
+                              </TableCell>
+                              <TableCell className="text-xs hidden sm:table-cell text-muted-foreground">
+                                {row.__tipo ? row.__tipo.charAt(0).toUpperCase() + row.__tipo.slice(1) : '—'}
+                              </TableCell>
+                              <TableCell className="text-xs hidden sm:table-cell text-right tabular-nums">
+                                {row.__km > 0 ? fmtNum(row.__km) : '—'}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums">
+                                {row.__valor > 0 ? formatBRL(row.__valor) : '—'}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <StatusBadge status={row.__status} />
+                              </TableCell>
+                              <TableCell className="text-xs hidden md:table-cell text-muted-foreground truncate max-w-[100px]">
+                                {row.__motorista || '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="rounded-2xl p-6 flex flex-col items-center gap-2">
+                    <Filter className="h-8 w-8 text-muted-foreground/30" />
+                    <p className="text-sm font-medium">Nenhum registro com esses filtros</p>
+                    <p className="text-xs text-muted-foreground">Ajuste os slicers acima para ver mais resultados</p>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs mt-1" onClick={resetProducerSlicers}>
+                      <X className="h-3 w-3" /> Limpar filtros
+                    </Button>
+                  </Card>
+                )}
+              </>
+            ) : !isLoading ? (
+              <Card className="rounded-2xl p-8 flex flex-col items-center gap-3">
+                <Package className="h-10 w-10 text-muted-foreground/30" />
+                <h3 className="text-base font-semibold">Nenhum frete no período</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-xs">
+                  Crie um frete ou amplie o período de análise para 90 dias ou "Tudo".
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs"
+                    onClick={() => setDateRange({ from: new Date(new Date().setDate(new Date().getDate() - 90)), to: new Date() })}>
+                    <CalendarDays className="h-3 w-3" /> Últimos 90 dias
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <Skeleton className="h-40 rounded-2xl" />
             )}
           </div>
         </>
@@ -1499,11 +1984,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         <ReportCharts charts={genericCharts} isLoading={isLoading} columns={2} />
       )}
 
-      {/* ── Aviso sem dados ────────────────────────────────────────────── */}
-      {!isLoading && (isMotorista || isTransportadora || isPrestador || isProdutor) &&
-        Number(kpis.receita_total || produtorHero?.value || 0) === 0 &&
-        Number(kpis.servicos_concluidos || kpis.viagens_concluidas || kpis.fretes_concluidos || 0) === 0 &&
-        (!isProdutor || producerHistoryAgg.total === 0) && (
+      {/* ── Aviso sem dados (non-producer panels) ─────────────────────── */}
+      {!isLoading && (isMotorista || isTransportadora || isPrestador) &&
+        Number(kpis.receita_total || 0) === 0 &&
+        Number(kpis.servicos_concluidos || kpis.viagens_concluidas || kpis.fretes_concluidos || 0) === 0 && (
         <Card className="rounded-2xl">
           <CardContent className="py-10 text-center">
             <Wrench className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
