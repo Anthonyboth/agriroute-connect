@@ -130,8 +130,9 @@ export function useGuaranteedMarketplaceFeed() {
     let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
 
     // 🔒 Blindagem estrita por cidade para perfis individuais (fail-closed)
-    // Evita vazamento de itens fora das cidades explicitamente marcadas pelo usuário.
-    const shouldEnforceStrictCity = panel === 'MOTORISTA' || panel === 'MOTORISTA_AFILIADO' || panel === 'PRESTADOR_SERVICOS';
+    // MOTORISTA_AFILIADO usa escopo autoritativo do backend (empresa + afiliados ativos),
+    // então não aplicamos um segundo fail-closed local por user_cities do usuário autenticado.
+    const shouldEnforceStrictCity = panel === 'MOTORISTA' || panel === 'PRESTADOR_SERVICOS';
     if (shouldEnforceStrictCity) {
       const { data: userCities, error: userCitiesError } = await supabase
         .from('user_cities')

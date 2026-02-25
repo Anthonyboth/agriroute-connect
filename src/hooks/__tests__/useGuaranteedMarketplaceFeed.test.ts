@@ -156,13 +156,13 @@ describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
     expect(result.debug.freight!.excluded[0].reason).toBe('OUTSIDE_RADIUS_300KM');
   });
 
-  // ─── Cenário 2.1: Role override no painel do motorista afiliado ───
-  it('Força MOTORISTA_AFILIADO quando active_mode está inconsistente, mantendo blindagem por city_id', async () => {
+  // ─── Cenário 2.1: Motorista afiliado usa escopo autoritativo do backend (sem dupla filtragem local) ───
+  it('Mantém payload autoritativo para MOTORISTA_AFILIADO sem fail-closed local por user_cities do usuário', async () => {
     mockRpc.mockResolvedValueOnce(
       authoritativeFeedPayload(
         [
           makeFreight({ id: 'f-city-allowed', origin_city_id: 'city-1' }),
-          makeFreight({ id: 'f-city-blocked', origin_city_id: 'city-999' }),
+          makeFreight({ id: 'f-city-from-company-scope', origin_city_id: 'city-999' }),
         ],
         []
       )
@@ -178,8 +178,7 @@ describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
       { roleOverride: 'MOTORISTA_AFILIADO' }
     );
 
-    expect(result.freights).toHaveLength(1);
-    expect(result.freights[0].id).toBe('f-city-allowed');
+    expect(result.freights).toHaveLength(2);
     expect(mockRpc).toHaveBeenCalledWith('get_authoritative_feed', expect.objectContaining({
       p_role: 'MOTORISTA_AFILIADO',
     }));
