@@ -624,6 +624,32 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     });
   };
 
+  // ── Carrier Slicers state (TRANSPORTADORA) ────────────────────────────────
+  type CarrierSlicers = {
+    status: string[];
+    driverQuery: string;
+    routeQuery: string;
+    minKm?: number;
+    maxKm?: number;
+    minRevenue?: number;
+    maxRevenue?: number;
+  };
+
+  const EMPTY_CARRIER_SLICERS: CarrierSlicers = {
+    status: [], driverQuery: '', routeQuery: '',
+    minKm: undefined, maxKm: undefined, minRevenue: undefined, maxRevenue: undefined,
+  };
+
+  const [carrierSlicers, setCarrierSlicers] = useState<CarrierSlicers>(EMPTY_CARRIER_SLICERS);
+  const resetCarrierSlicers = () => setCarrierSlicers(EMPTY_CARRIER_SLICERS);
+
+  const toggleCarrierStatus = (value: string) => {
+    setCarrierSlicers((prev) => ({
+      ...prev,
+      status: prev.status.includes(value) ? prev.status.filter(v => v !== value) : [...prev.status, value],
+    }));
+  };
+
   // ── Producer rows normalization ───────────────────────────────────────────
   const producerRows = useMemo(() => {
     if (!isProdutor) return [] as any[];
@@ -1240,6 +1266,240 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     return configs;
   }, [spendSeries, filteredProducerRows, isProdutor]);
 
+  // ── Carrier rows normalization (TRANSPORTADORA) ────────────────────────────
+  const carrierRows = useMemo(() => {
+    if (!isTransportadora) return [] as any[];
+    const base = (tables?.extrato_fretes || tables?.extrato_ganhos || []).map((r: any) => {
+      const rota = r.rota || (r.origin_city && r.destination_city ? `${r.origin_city} → ${r.destination_city}` : '—');
+      return {
+        ...r,
+        __rota: formatRouteLabel(rota),
+        __status: String(r.status_final || r.status || '').toUpperCase(),
+        __driver: String(r.motorista || r.driver || r.driver_name || '').trim(),
+        __km: Number(r.km || r.distance_km) || 0,
+        __revenue: Number(r.receita || r.valor || r.price_total) || 0,
+        __date: r.data ? new Date(r.data) : r.completed_at ? new Date(r.completed_at) : r.created_at ? new Date(r.created_at) : null,
+      };
+    });
+    return base;
+  }, [tables, isTransportadora]);
+
+  const carrierSlicerOptions = useMemo(() => {
+    const statusSet = new Set<string>();
+    for (const r of carrierRows) { if (r.__status) statusSet.add(r.__status); }
+    const kmVals = carrierRows.map((r: any) => r.__km).filter(Number.isFinite);
+    const revVals = carrierRows.map((r: any) => r.__revenue).filter(Number.isFinite);
+    return {
+      statuses: Array.from(statusSet).sort(),
+      kmMin: kmVals.length ? Math.min(...kmVals) : 0,
+      kmMax: kmVals.length ? Math.max(...kmVals) : 0,
+      revMin: revVals.length ? Math.min(...revVals) : 0,
+      revMax: revVals.length ? Math.max(...revVals) : 0,
+    };
+  }, [carrierRows]);
+
+  const filteredCarrierRows = useMemo(() => {
+    let rows = carrierRows;
+    const s = carrierSlicers;
+    if (s.status.length) rows = rows.filter((r: any) => s.status.includes(r.__status));
+    if (s.driverQuery.trim()) {
+      const q = s.driverQuery.trim().toLowerCase();
+      rows = rows.filter((r: any) => r.__driver.toLowerCase().includes(q));
+    }
+    if (s.routeQuery.trim()) {
+      const q = s.routeQuery.trim().toLowerCase();
+      rows = rows.filter((r: any) => r.__rota.toLowerCase().includes(q));
+    }
+    if (s.minKm !== undefined) rows = rows.filter((r: any) => r.__km >= s.minKm!);
+    if (s.maxKm !== undefined) rows = rows.filter((r: any) => r.__km <= s.maxKm!);
+    if (s.minRevenue !== undefined) rows = rows.filter((r: any) => r.__revenue >= s.minRevenue!);
+    if (s.maxRevenue !== undefined) rows = rows.filter((r: any) => r.__revenue <= s.maxRevenue!);
+    return rows;
+  }, [carrierRows, carrierSlicers]);
+
+  const hasCarrierSlicerFilters = useMemo(() => {
+    const s = carrierSlicers;
+    return s.status.length > 0 || s.driverQuery.trim() !== '' || s.routeQuery.trim() !== '' ||
+      s.minKm !== undefined || s.maxKm !== undefined || s.minRevenue !== undefined || s.maxRevenue !== undefined;
+  }, [carrierSlicers]);
+
+  const activeCarrierFiltersCount = useMemo(() => {
+    const s = carrierSlicers;
+    let c = 0;
+    if (s.status.length) c++;
+    if (s.driverQuery.trim()) c++;
+    if (s.routeQuery.trim()) c++;
+    if (s.minKm !== undefined || s.maxKm !== undefined) c++;
+    if (s.minRevenue !== undefined || s.maxRevenue !== undefined) c++;
+    return c;
+  }, [carrierSlicers]);
+
+  const applyCarrierDrilldown = (d: Drilldown) => {
+    if (d.kind === 'route') setCarrierSlicers(s => ({ ...s, routeQuery: d.value }));
+    if (d.kind === 'driver') setCarrierSlicers(s => ({ ...s, driverQuery: d.value }));
+    if (d.kind === 'status') setCarrierSlicers(s => ({ ...s, status: [d.value.toUpperCase()] }));
+  };
+
+  const carrierSpendSeries = useMemo(() => {
+    if (!isTransportadora) return [];
+    return buildSpendSeries(filteredCarrierRows, dateRange.from, dateRange.to);
+  }, [filteredCarrierRows, dateRange, isTransportadora]);
+
+  const carrierTrendCharts: ChartConfig[] = useMemo(() => {
+    if (!isTransportadora || !carrierSpendSeries.length) return [];
+    const configs: ChartConfig[] = [];
+    const series = carrierSpendSeries.map(x => ({ period: x.key, receita: x.spend }));
+    configs.push({
+      title: 'Receita ao longo do tempo', type: 'area',
+      data: series,
+      dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }],
+      xAxisKey: 'period', valueFormatter: formatBRL,
+    });
+    let acc = 0;
+    const accSeries = carrierSpendSeries.map(x => { acc += x.spend; return { period: x.key, acumulado: acc }; });
+    configs.push({
+      title: 'Receita acumulada', type: 'area',
+      data: accSeries,
+      dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: 'hsl(var(--chart-3))' }],
+      xAxisKey: 'period', valueFormatter: formatBRL,
+    });
+    return configs;
+  }, [carrierSpendSeries, isTransportadora]);
+
+  const carrierDriverCharts: ChartConfig[] = useMemo(() => {
+    if (!isTransportadora) return [];
+    const configs: ChartConfig[] = [];
+    const byRoute = groupSum(filteredCarrierRows, r => r.__rota, r => r.__revenue)
+      .sort((a, b) => b.value - a.value).slice(0, 8);
+    if (byRoute.length) {
+      configs.push({
+        title: 'Top rotas por receita', type: 'horizontal-bar' as const,
+        data: byRoute, dataKeys: [{ key: 'value', label: 'Receita', color: '#16a34a' }],
+        xAxisKey: 'name', valueFormatter: formatBRL, height: 300,
+        onDrilldown: applyCarrierDrilldown, drilldownKind: 'route' as const,
+      });
+    }
+    const byDriver = groupSum(filteredCarrierRows, r => r.__driver || '—', r => r.__revenue)
+      .sort((a, b) => b.value - a.value).slice(0, 10);
+    if (byDriver.length) {
+      configs.push({
+        title: 'Receita por motorista', type: 'horizontal-bar' as const,
+        data: byDriver, dataKeys: [{ key: 'value', label: 'Receita', color: '#2563eb' }],
+        xAxisKey: 'name', valueFormatter: formatBRL, height: 320,
+        onDrilldown: applyCarrierDrilldown, drilldownKind: 'driver' as const,
+      });
+    }
+    const byStatus = groupSum(filteredCarrierRows, r => r.__status, r => 1)
+      .sort((a, b) => b.value - a.value).map(x => ({ name: STATUS_LABELS[x.name] || x.name, value: x.value }));
+    if (byStatus.length) {
+      configs.push({
+        title: 'Distribuição por status', type: 'pie' as const,
+        data: byStatus, dataKeys: [{ key: 'value', label: 'Quantidade' }],
+        onDrilldown: applyCarrierDrilldown, drilldownKind: 'status' as const,
+      });
+    }
+    const bins = [
+      { label: '0–100 km', min: 0, max: 100 },
+      { label: '100–300 km', min: 100, max: 300 },
+      { label: '300–600 km', min: 300, max: 600 },
+      { label: '600+ km', min: 600, max: Infinity },
+    ];
+    const binData = bins.map(b => ({
+      name: b.label,
+      value: filteredCarrierRows.filter(r => r.__km >= b.min && r.__km < b.max).reduce((sum, r) => sum + r.__revenue, 0),
+    })).filter(b => b.value > 0);
+    if (binData.length > 1) {
+      configs.push({
+        title: 'Receita por faixa de distância', type: 'bar' as const,
+        data: binData, dataKeys: [{ key: 'value', label: 'Receita', color: '#f59e0b' }],
+        xAxisKey: 'name', valueFormatter: formatBRL,
+      });
+    }
+    return configs;
+  }, [filteredCarrierRows, isTransportadora]);
+
+  const carrierEfficiencyCharts: ChartConfig[] = useMemo(() => {
+    if (!isTransportadora || !carrierSpendSeries.length) return [];
+    const configs: ChartConfig[] = [];
+    const effSeries = carrierSpendSeries.filter(x => x.km > 0).map(x => ({
+      period: x.key, rs_km: x.spend / x.km,
+    }));
+    if (effSeries.length) {
+      configs.push({
+        title: 'R$/km tendência', type: 'line',
+        data: effSeries,
+        dataKeys: [{ key: 'rs_km', label: 'R$/km', color: '#FF9800' }],
+        xAxisKey: 'period',
+        valueFormatter: (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      });
+    }
+    const outliers = filteredCarrierRows
+      .filter(r => r.__km > 0 && r.__revenue > 0)
+      .map(r => ({ name: r.__driver || r.__rota, rs_km: r.__revenue / r.__km, receita: r.__revenue, km: r.__km }));
+    const topOutliers = [...outliers].sort((a, b) => b.rs_km - a.rs_km).slice(0, 10);
+    if (topOutliers.length) {
+      configs.push({
+        title: 'Maior R$/km (top 10)', type: 'horizontal-bar' as const,
+        data: topOutliers.map(o => ({ name: o.name, rs_km: Number(o.rs_km.toFixed(2)) })),
+        dataKeys: [{ key: 'rs_km', label: 'R$/km', color: '#16a34a' }],
+        xAxisKey: 'name',
+        valueFormatter: (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        height: 340,
+      });
+    }
+    if (filteredCarrierRows.filter(r => r.__km > 0 && r.__revenue > 0).length >= 10) {
+      const scatterData = filteredCarrierRows
+        .filter(r => r.__km > 0 && r.__revenue > 0)
+        .map(r => ({ km: r.__km, receita: r.__revenue, name: r.__driver || r.__rota }));
+      configs.push({
+        title: 'Receita vs Km', type: 'scatter',
+        data: scatterData,
+        dataKeys: [{ key: 'receita', label: 'Receita', color: 'hsl(var(--chart-5))' }],
+        xAxisKey: 'km', yAxisKey: 'receita', valueFormatter: formatBRL,
+      });
+    }
+    return configs;
+  }, [carrierSpendSeries, filteredCarrierRows, isTransportadora]);
+
+  const carrierScorecard = useMemo(() => {
+    if (!isTransportadora) return [];
+    const base = tables?.resumo_por_motorista?.length
+      ? (tables.resumo_por_motorista as any[]).map((r: any) => ({
+          driver: String(r.motorista || r.driver || '').trim(),
+          trips: Number(r.viagens || r.fretes) || 0,
+          revenue: Number(r.receita) || 0,
+          km: Number(r.km) || 0,
+          rs_km: Number(r.rs_km) || (Number(r.km) > 0 ? Number(r.receita) / Number(r.km) : 0),
+          cancel: Number(r.cancelamentos || r.taxa_cancelamento) || 0,
+        }))
+      : (() => {
+          const map = new Map<string, { driver: string; trips: number; revenue: number; km: number; cancel: number }>();
+          for (const r of filteredCarrierRows) {
+            const d = r.__driver || '—';
+            const cur = map.get(d) || { driver: d, trips: 0, revenue: 0, km: 0, cancel: 0 };
+            cur.trips += 1;
+            cur.revenue += r.__revenue;
+            cur.km += r.__km;
+            if (r.__status === 'CANCELLED') cur.cancel += 1;
+            map.set(d, cur);
+          }
+          return Array.from(map.values()).map(x => ({ ...x, rs_km: x.km > 0 ? x.revenue / x.km : 0 }));
+        })();
+    let rows = base;
+    if (carrierSlicers.driverQuery.trim()) {
+      const q = carrierSlicers.driverQuery.trim().toLowerCase();
+      rows = rows.filter(r => r.driver.toLowerCase().includes(q));
+    }
+    return rows.sort((a, b) => b.revenue - a.revenue);
+  }, [tables, filteredCarrierRows, isTransportadora, carrierSlicers.driverQuery]);
+
+  const [carrierScorecardSort, setCarrierScorecardSort] = useState<'revenue' | 'rs_km'>('revenue');
+  const sortedCarrierScorecard = useMemo(() => {
+    return [...carrierScorecard].sort((a, b) =>
+      carrierScorecardSort === 'revenue' ? b.revenue - a.revenue : b.rs_km - a.rs_km
+    );
+  }, [carrierScorecard, carrierScorecardSort]);
+
   // ── Gráficos genéricos (fallback) ──────────────────────────────────────────
   const genericCharts: ChartConfig[] = useMemo(() => {
     if (isMotorista || isTransportadora || isPrestador || isProdutor || !charts) return [];
@@ -1340,9 +1600,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
           <div>
             <h1 className="text-xl font-extrabold tracking-tight">Relatórios</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isProdutor ? 'Control Tower · Produtor' : 'Resumo financeiro e operacional'}
+              {isProdutor ? 'Control Tower · Produtor' : isTransportadora ? 'Control Tower · Transportadora' : 'Resumo financeiro e operacional'}
             </p>
-            {isProdutor && lastRefreshLabel && (
+            {(isProdutor || isTransportadora) && lastRefreshLabel && (
               <p className="text-[11px] text-muted-foreground mt-1">Atualizado {lastRefreshLabel}</p>
             )}
           </div>
@@ -1350,6 +1610,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             {isProdutor && (
               <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[hsl(var(--chart-1))]/10 text-[hsl(var(--chart-1))] border border-[hsl(var(--chart-1))]/20">
                 Produtor
+              </span>
+            )}
+            {isTransportadora && (
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[hsl(142,71%,45%)]/10 text-[hsl(142,71%,45%)] border border-[hsl(142,71%,45%)]/20">
+                Transportadora
               </span>
             )}
             <ReportExportButton reportTitle={title} dateRange={dateRange} sections={exportSections} disabled={isLoading} />
@@ -1370,7 +1635,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
 
         {/* Data exibida */}
-        {!isProdutor && (
+        {!isProdutor && !isTransportadora && (
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <CalendarDays className="h-3 w-3" />
             <span>
@@ -1503,6 +1768,112 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                     📭 Sem proposta {!producerSlicerOptions.hasProposalField && '(em breve)'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Carrier Slicers BI (TRANSPORTADORA) */}
+        {isTransportadora && carrierRows.length > 0 && (
+          <div className="space-y-3 pt-1 border-t border-border/50">
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-2">
+              <p className="text-[11px] text-muted-foreground">
+                <span className="font-semibold text-foreground">{filteredCarrierRows.length}</span>
+                {' de '}
+                <span className="font-semibold text-foreground">{carrierRows.length}</span>
+                {' registros'}
+                {hasCarrierSlicerFilters && (
+                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(142,71%,45%)]/10 text-[hsl(142,71%,45%)] text-[10px] font-semibold">
+                    <Filter className="h-2.5 w-2.5" /> {activeCarrierFiltersCount} filtro{activeCarrierFiltersCount > 1 ? 's' : ''}
+                  </span>
+                )}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1"
+                  onClick={() => setCarrierSlicers((p) => ({ ...p, status: ['DELIVERED', 'COMPLETED'] }))}>
+                  <CheckCircle className="h-3 w-3" /> Concluídos
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1"
+                  onClick={() => setCarrierSlicers((p) => ({ ...p, status: ['CANCELLED'] }))}>
+                  <XCircle className="h-3 w-3" /> Cancelados
+                </Button>
+                {hasCarrierSlicerFilters && (
+                  <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1 text-destructive" onClick={resetCarrierSlicers}>
+                    <X className="h-3 w-3" /> Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Status chips */}
+              {carrierSlicerOptions.statuses.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Status</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {carrierSlicerOptions.statuses.map((s) => (
+                      <ToggleChip key={s} active={carrierSlicers.status.includes(s)} onClick={() => toggleCarrierStatus(s)}>
+                        {STATUS_LABELS[s] || s}
+                      </ToggleChip>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Driver search */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Motorista</p>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input className="h-7 text-[11px] pl-7" placeholder="Buscar motorista..."
+                    value={carrierSlicers.driverQuery}
+                    onChange={(e) => setCarrierSlicers((p) => ({ ...p, driverQuery: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Route search */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rota</p>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input className="h-7 text-[11px] pl-7" placeholder="Buscar rota..."
+                    value={carrierSlicers.routeQuery}
+                    onChange={(e) => setCarrierSlicers((p) => ({ ...p, routeQuery: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Range filters */}
+              <div className="space-y-3">
+                {(carrierSlicerOptions.kmMax > 0) && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Faixa Km <span className="font-normal">({fmtNum(carrierSlicerOptions.kmMin)}–{fmtNum(carrierSlicerOptions.kmMax)})</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                        value={carrierSlicers.minKm ?? ''} onChange={(e) => setCarrierSlicers((p) => ({ ...p, minKm: e.target.value ? Number(e.target.value) : undefined }))} />
+                      <span className="text-muted-foreground text-[10px]">—</span>
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                        value={carrierSlicers.maxKm ?? ''} onChange={(e) => setCarrierSlicers((p) => ({ ...p, maxKm: e.target.value ? Number(e.target.value) : undefined }))} />
+                    </div>
+                  </div>
+                )}
+                {(carrierSlicerOptions.revMax > 0) && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Faixa Receita <span className="font-normal">({formatBRL(carrierSlicerOptions.revMin)}–{formatBRL(carrierSlicerOptions.revMax)})</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                        value={carrierSlicers.minRevenue ?? ''} onChange={(e) => setCarrierSlicers((p) => ({ ...p, minRevenue: e.target.value ? Number(e.target.value) : undefined }))} />
+                      <span className="text-muted-foreground text-[10px]">—</span>
+                      <Input type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                        value={carrierSlicers.maxRevenue ?? ''} onChange={(e) => setCarrierSlicers((p) => ({ ...p, maxRevenue: e.target.value ? Number(e.target.value) : undefined }))} />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1761,58 +2132,333 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         </>
       )}
 
-      {/* ── TRANSPORTADORA ────────────────────────────────────────────── */}
-      {isTransportadora && transportadoraHero && (
+      {/* ── TRANSPORTADORA — Control Tower Enterprise ─────────────────── */}
+      {isTransportadora && (
         <>
-          <HeroFinanceBlock
-            label="Faturamento Total"
-            value={transportadoraHero.value}
-            subtitle={transportadoraHero.subtitle}
-            secondary={transportadoraHero.secondary}
-            isLoading={isLoading}
-          />
+          {/* ── 1. Hero Executivo ─────────────────────────────────────────── */}
+          {transportadoraHero ? (
+            <div className={cn(BI.radius, 'bg-[hsl(142,71%,45%)]/6 border border-[hsl(142,71%,45%)]/15 p-4 sm:p-5')}>
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-9 w-48" />
+                  <div className={cn('grid grid-cols-2 sm:grid-cols-4 pt-2', BI.gridGap)}>
+                    {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-11 rounded-xl" />)}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className={cn(BI.label, BI.good, 'mb-1')}>Receita total no período</p>
+                  <div className="flex items-end gap-3 mb-0.5">
+                    <span className={cn(BI.valueLg, 'text-foreground')}>{formatBRL(transportadoraHero.value)}</span>
+                  </div>
+                  <p className={cn(BI.sub, 'mb-3')}>{transportadoraHero.subtitle}</p>
 
+                  <div className={cn('grid grid-cols-2 sm:grid-cols-4', BI.gridGap)}>
+                    {(() => {
+                      const totalFretes = Number(kpis.total_fretes) || 0;
+                      const fretesConcluidos = Number(kpis.fretes_concluidos) || 0;
+                      const totalMotoristas = Number(kpis.total_motoristas) || 0;
+                      const utilizacao = Number(kpis.utilizacao_frota) || 0;
+                      const receitaMotorista = Number(kpis.receita_por_motorista) || 0;
+                      const ticketMedio = Number(kpis.ticket_medio) || 0;
+                      const rsPorKm = Number(kpis.rs_por_km) || 0;
+                      const sla = Number(kpis.sla_medio_horas) || 0;
+
+                      const items = [
+                        { label: 'Concluídos', value: fmtNum(fretesConcluidos), icon: CheckCircle, highlight: true },
+                        { label: 'Total fretes', value: fmtNum(totalFretes), icon: Package },
+                        { label: 'Motoristas', value: fmtNum(totalMotoristas), icon: Users, highlight: true },
+                        { label: 'Utilização frota', value: `${utilizacao.toFixed(0)}%`, icon: Activity },
+                        { label: 'Receita/motorista', value: receitaMotorista > 0 ? formatBRL(receitaMotorista) : '—', icon: DollarSign },
+                        { label: 'Ticket médio', value: ticketMedio > 0 ? formatBRL(ticketMedio) : '—', icon: TrendingUp },
+                        { label: 'R$/km médio', value: rsPorKm > 0 ? `R$ ${fmtNum(rsPorKm, 2)}` : '—', icon: MapPin },
+                        { label: 'SLA médio', value: sla > 0 ? fmtHours(sla) : '—', icon: Timer },
+                      ];
+
+                      return items.map((item, i) => {
+                        const Icon = item.icon;
+                        return (
+                          <div key={i} className={cn(
+                            BI.radius, BI.cardGlass, 'px-3 py-2',
+                            item.highlight && 'ring-1 ring-[hsl(142,71%,45%)]/20'
+                          )}>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <p className={BI.label}>{item.label}</p>
+                              <Icon className={cn('h-3 w-3 flex-shrink-0', item.highlight ? BI.good : 'text-muted-foreground/50')} />
+                            </div>
+                            <p className={cn('text-sm font-bold tabular-nums', item.highlight && BI.good)}>
+                              {item.value}
+                            </p>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : isLoading ? (
+            <Skeleton className="h-48 rounded-2xl" />
+          ) : null}
+
+          {/* ── 2. Gestão por Exceção ─────────────────────────────────────── */}
+          {!isLoading && (
+            <div className="space-y-2">
+              <SectionTitle icon={AlertTriangle} title="Gestão por exceção" subtitle="Alertas e atenção imediata" />
+              <div className={cn('grid grid-cols-2 sm:grid-cols-3', BI.gridGap)}>
+                {(() => {
+                  const totalFretes = Number(kpis.total_fretes) || 0;
+                  const cancelados = Number(kpis.cancelados || 0);
+                  const taxaCancel = Number(kpis.taxa_cancelamento) || (totalFretes > 0 ? (cancelados / totalFretes) * 100 : 0);
+                  const fretesAbertos = Number(kpis.fretes_abertos) || 0;
+                  const emTransito = Number(kpis.em_transito || kpis.in_transit) || 0;
+                  const sla = Number(kpis.sla_medio_horas) || 0;
+
+                  // Best driver by R$/km from scorecard
+                  const bestDriver = carrierScorecard.length > 0
+                    ? [...carrierScorecard].sort((a, b) => b.rs_km - a.rs_km)[0]
+                    : null;
+                  // Worst driver by cancel rate
+                  const worstDriver = carrierScorecard.length > 0
+                    ? [...carrierScorecard].filter(d => d.cancel > 0).sort((a, b) => b.cancel - a.cancel)[0]
+                    : null;
+
+                  type AlertCard = { icon: string; label: string; value: string; hint?: string; tone: 'good' | 'neutral' | 'bad'; onClick?: () => void };
+                  const alerts: AlertCard[] = [];
+
+                  alerts.push({
+                    icon: '🔴', label: 'Cancelamento',
+                    value: `${taxaCancel.toFixed(1)}%`,
+                    tone: taxaCancel >= 10 ? 'bad' : taxaCancel > 0 ? 'neutral' : 'good',
+                    hint: taxaCancel >= 10 ? 'Taxa acima de 10%' : undefined,
+                    onClick: taxaCancel > 0 ? () => setCarrierSlicers(s => ({ ...s, status: ['CANCELLED'] })) : undefined,
+                  });
+                  if (fretesAbertos > 0) {
+                    alerts.push({
+                      icon: '🟠', label: 'Em aberto', value: fmtNum(fretesAbertos),
+                      tone: fretesAbertos >= 5 ? 'bad' : 'neutral',
+                      onClick: () => setCarrierSlicers(s => ({ ...s, status: ['OPEN'] })),
+                    });
+                  }
+                  if (emTransito > 0) {
+                    alerts.push({ icon: '🟠', label: 'Em trânsito', value: fmtNum(emTransito), tone: 'neutral',
+                      onClick: () => setCarrierSlicers(s => ({ ...s, status: ['IN_TRANSIT'] })),
+                    });
+                  }
+                  if (sla > 0 && sla > 48) {
+                    alerts.push({ icon: '🟡', label: 'SLA alto', value: fmtHours(sla), hint: 'Acima de 48h', tone: 'bad' });
+                  }
+                  if (worstDriver) {
+                    alerts.push({
+                      icon: '🟡', label: 'Alto cancelamento', value: `${worstDriver.driver}`,
+                      hint: `${worstDriver.cancel} cancelamentos`, tone: 'bad',
+                      onClick: () => setCarrierSlicers(s => ({ ...s, driverQuery: worstDriver.driver })),
+                    });
+                  }
+                  if (bestDriver && bestDriver.rs_km > 0) {
+                    alerts.push({
+                      icon: '🟢', label: 'Melhor R$/km', value: `R$ ${fmtNum(bestDriver.rs_km, 2)}`,
+                      hint: bestDriver.driver, tone: 'good',
+                      onClick: () => setCarrierSlicers(s => ({ ...s, driverQuery: bestDriver.driver })),
+                    });
+                  }
+                  if (totalFretes === 0) {
+                    alerts.push({ icon: '🟡', label: 'Sem atividade', value: 'Nenhum frete', hint: 'Amplie o período', tone: 'neutral' });
+                  }
+
+                  return alerts.slice(0, 6).map((a, i) => (
+                    <div key={i} className={cn(
+                      BI.radius, BI.cardSoft, BI.cardHover, 'p-3',
+                      a.tone === 'bad' && BI.badBg,
+                      a.tone === 'good' && BI.goodBg,
+                      a.onClick && 'cursor-pointer',
+                    )} onClick={a.onClick}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-sm leading-none">{a.icon}</span>
+                        <p className={BI.label}>{a.label}</p>
+                      </div>
+                      <p className={cn(
+                        'text-base font-extrabold tabular-nums',
+                        a.tone === 'bad' && BI.bad,
+                        a.tone === 'good' && BI.good,
+                      )}>
+                        {a.value}
+                      </p>
+                      {a.hint && <p className={cn(BI.sub, 'mt-0.5')}>{a.hint}</p>}
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ── 3. Operacional ────────────────────────────────────────────── */}
           <div className="space-y-3">
             <SectionTitle icon={Activity} title="Operacional da frota" subtitle="Motoristas, distância e eficiência" />
             <OperationalGrid items={transportadoraOp} isLoading={isLoading} />
           </div>
 
-          <div className="space-y-3">
-            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Receita, rotas e motoristas" />
-            <ReportCharts charts={transportadoraCharts} isLoading={isLoading} columns={2} />
-          </div>
-
-          {!isLoading && tables?.resumo_por_motorista?.length > 0 && (
+          {/* ── 4. Tendência de Receita ───────────────────────────────────── */}
+          {!isLoading && carrierTrendCharts.length > 0 && (
             <div className="space-y-3">
-              <SectionTitle icon={Users} title="Desempenho por motorista" />
-              <Card className="rounded-2xl overflow-hidden">
+              <SectionTitle icon={TrendingUp} title="Tendência de receita" subtitle="Evolução e acumulado no período" />
+              <ReportCharts charts={carrierTrendCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── 5. Drivers de Receita ─────────────────────────────────────── */}
+          {!isLoading && carrierDriverCharts.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={Route} title="Drivers de receita" subtitle="Clique em uma barra para filtrar" />
+              <ReportCharts charts={carrierDriverCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── 6. Eficiência ─────────────────────────────────────────────── */}
+          {!isLoading && carrierEfficiencyCharts.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={Zap} title="Eficiência" subtitle="R$/km e outliers" />
+              <ReportCharts charts={carrierEfficiencyCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── 7. Gráficos originais (fallback) ─────────────────────────── */}
+          {transportadoraCharts.length > 0 && carrierDriverCharts.length === 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Receita, rotas e motoristas" />
+              <ReportCharts charts={transportadoraCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── 8. Scorecard por Motorista (BI) ──────────────────────────── */}
+          {!isLoading && sortedCarrierScorecard.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={Users} title="Scorecard por motorista" subtitle="Performance individual"
+                actions={
+                  <div className="flex items-center gap-1">
+                    <Button variant={carrierScorecardSort === 'revenue' ? 'secondary' : 'ghost'} size="sm" className="h-6 text-[10px]"
+                      onClick={() => setCarrierScorecardSort('revenue')}>Receita</Button>
+                    <Button variant={carrierScorecardSort === 'rs_km' ? 'secondary' : 'ghost'} size="sm" className="h-6 text-[10px]"
+                      onClick={() => setCarrierScorecardSort('rs_km')}>R$/km</Button>
+                  </div>
+                }
+              />
+              <Card className={cn(BI.radius, BI.card, 'overflow-hidden')}>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        <TableHead className="text-xs">Motorista</TableHead>
-                        <TableHead className="text-xs text-right">Viagens</TableHead>
-                        <TableHead className="text-xs text-right">Receita</TableHead>
-                        <TableHead className="text-xs text-right hidden sm:table-cell">Km</TableHead>
-                        <TableHead className="text-xs text-right hidden sm:table-cell">R$/km</TableHead>
+                      <TableRow className={BI.tableHeader}>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-left')}>Motorista</TableHead>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-right')}>Viagens</TableHead>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-right')}>Receita</TableHead>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>Km</TableHead>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>R$/km</TableHead>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>Cancel.</TableHead>
+                        <TableHead className={cn(BI.tableHeaderCell, 'text-center')}>Badge</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {tables.resumo_por_motorista.map((r: any, i: number) => (
-                        <TableRow key={i}>
-                          <TableCell className="text-xs font-medium">{r.motorista || '—'}</TableCell>
-                          <TableCell className="text-xs text-right">{fmtNum(r.viagens || 0)}</TableCell>
-                          <TableCell className="text-xs text-right font-semibold text-[#16a34a]">{formatBRL(r.receita || 0)}</TableCell>
-                          <TableCell className="text-xs text-right hidden sm:table-cell">{fmtNum(r.km || 0)}</TableCell>
-                          <TableCell className="text-xs text-right hidden sm:table-cell">{fmtNum(r.rs_km || 0, 2)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {sortedCarrierScorecard.map((r, i) => {
+                        const isTop = i === 0 && r.revenue > 0;
+                        const isRisk = r.cancel >= 3 || (r.trips > 0 && r.cancel / r.trips > 0.2);
+                        return (
+                          <TableRow key={i} className={cn(BI.tableRow, BI.tableRowHover, i % 2 === 0 && BI.tableRowEven,
+                            'cursor-pointer')}
+                            onClick={() => setCarrierSlicers(s => ({ ...s, driverQuery: r.driver }))}>
+                            <TableCell className={cn(BI.tableCell, 'font-medium')}>{r.driver || '—'}</TableCell>
+                            <TableCell className={BI.tableCellNum}>{fmtNum(r.trips)}</TableCell>
+                            <TableCell className={cn(BI.tableCellNum, 'font-semibold', BI.good)}>{formatBRL(r.revenue)}</TableCell>
+                            <TableCell className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{fmtNum(r.km)}</TableCell>
+                            <TableCell className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{r.rs_km > 0 ? fmtNum(r.rs_km, 2) : '—'}</TableCell>
+                            <TableCell className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{fmtNum(r.cancel)}</TableCell>
+                            <TableCell className={cn(BI.tableCell, 'text-center')}>
+                              {isTop && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-[hsl(142,71%,45%)]/12 text-[hsl(142,71%,45%)]">Top</span>}
+                              {isRisk && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-destructive/10 text-destructive">Risco</span>}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
               </Card>
             </div>
           )}
+
+          {/* ── 9. Extrato BI ─────────────────────────────────────────────── */}
+          <div className="space-y-3">
+            <SectionTitle icon={DollarSign} title="Extrato de fretes" subtitle="Detalhamento operacional" />
+            {carrierRows.length > 0 ? (
+              <>
+                {filteredCarrierRows.length > 0 ? (
+                  <Card className={cn(BI.radius, BI.card, 'overflow-hidden')}>
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/40 bg-muted/10">
+                      <p className={BI.sub}>
+                        <span className="font-semibold text-foreground">{filteredCarrierRows.length}</span> registros
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full caption-bottom text-sm">
+                        <thead className={BI.tableHeader}>
+                          <tr>
+                            <th className={cn(BI.tableHeaderCell, 'text-left')}>Data</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-left')}>Rota</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-left hidden sm:table-cell')}>Motorista</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-right hidden sm:table-cell')}>Km</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-right')}>Receita</th>
+                            <th className={cn(BI.tableHeaderCell, 'text-center')}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredCarrierRows.slice(0, 100).map((row: any, i: number) => (
+                            <tr key={i} className={cn(BI.tableRow, BI.tableRowHover, i % 2 === 0 && BI.tableRowEven)}>
+                              <td className={cn(BI.tableCell, 'text-muted-foreground whitespace-nowrap tabular-nums')}>
+                                {row.__date && isValid(row.__date) ? format(row.__date, 'dd/MM/yy', { locale: ptBR }) : '—'}
+                              </td>
+                              <td className={cn(BI.tableCell, 'max-w-[120px] truncate')}>{row.__rota}</td>
+                              <td className={cn(BI.tableCell, 'hidden sm:table-cell text-muted-foreground')}>{row.__driver || '—'}</td>
+                              <td className={cn(BI.tableCellNum, 'hidden sm:table-cell')}>{row.__km > 0 ? fmtNum(row.__km) : '—'}</td>
+                              <td className={cn(BI.tableCellNum, 'font-semibold', BI.good)}>{row.__revenue > 0 ? formatBRL(row.__revenue) : '—'}</td>
+                              <td className={cn(BI.tableCell, 'text-center')}><StatusBadge status={row.__status} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {filteredCarrierRows.length > 100 && (
+                        <div className="px-3 py-2 text-center">
+                          <p className={BI.sub}>Mostrando 100 de {filteredCarrierRows.length} registros. Use filtros para refinar.</p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="rounded-2xl p-6 flex flex-col items-center gap-2">
+                    <Filter className="h-8 w-8 text-muted-foreground/30" />
+                    <p className="text-sm font-medium">Nenhum registro com esses filtros</p>
+                    <p className="text-xs text-muted-foreground">Ajuste os slicers acima para ver mais resultados</p>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs mt-1" onClick={resetCarrierSlicers}>
+                      <X className="h-3 w-3" /> Limpar filtros
+                    </Button>
+                  </Card>
+                )}
+              </>
+            ) : !isLoading ? (
+              <Card className="rounded-2xl p-8 flex flex-col items-center gap-3">
+                <Package className="h-10 w-10 text-muted-foreground/30" />
+                <h3 className="text-base font-semibold">Nenhum frete no período</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-xs">
+                  Amplie o período de análise para visualizar dados da frota.
+                </p>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs"
+                  onClick={() => setDateRange({ from: new Date(new Date().setDate(new Date().getDate() - 90)), to: new Date() })}>
+                  <CalendarDays className="h-3 w-3" /> Últimos 90 dias
+                </Button>
+              </Card>
+            ) : (
+              <Skeleton className="h-40 rounded-2xl" />
+            )}
+          </div>
         </>
       )}
 

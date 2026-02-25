@@ -82,7 +82,7 @@ interface ChartDataPoint {
   [key: string]: unknown;
 }
 
-type Drilldown = { kind: 'route' | 'cargo' | 'status'; value: string };
+type Drilldown = { kind: 'route' | 'cargo' | 'status' | 'driver'; value: string };
 
 interface ChartConfig {
   title: string;
@@ -95,7 +95,7 @@ interface ChartConfig {
   valueFormatter?: (value: number) => string;
   height?: number;
   onDrilldown?: (d: Drilldown) => void;
-  drilldownKind?: 'route' | 'cargo' | 'status';
+  drilldownKind?: 'route' | 'cargo' | 'status' | 'driver';
   yAxisAllowDecimals?: boolean;
 }
 
