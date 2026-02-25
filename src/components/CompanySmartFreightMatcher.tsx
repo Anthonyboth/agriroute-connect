@@ -466,14 +466,18 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-primary/5 rounded-lg">
-                <div className="text-2xl font-bold text-primary">{matchingStats.total}</div>
-                <div className="text-sm text-muted-foreground">Fretes consultados</div>
+                <div className="text-2xl font-bold text-primary">{compatibleFreights.length}</div>
+                <div className="text-sm text-muted-foreground">Fretes rurais</div>
+              </div>
+              <div className="text-center p-4 bg-purple-500/5 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">{serviceRequests.length}</div>
+                <div className="text-sm text-muted-foreground">Serviços urbanos</div>
               </div>
               <div className="text-center p-4 bg-green-500/5 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{totalAvailableCount}</div>
-                <div className="text-sm text-muted-foreground">Disponíveis</div>
+                <div className="text-sm text-muted-foreground">Total disponível</div>
               </div>
               <div className="text-center p-4 bg-blue-500/5 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">{activeDrivers.length}</div>
