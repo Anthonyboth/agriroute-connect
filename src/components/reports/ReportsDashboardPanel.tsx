@@ -171,6 +171,59 @@ const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?
   </div>
 );
 
+// ─── Componente: Highlights rápidos do Motorista (B2) ────────────────────────
+const MotoristaHighlights: React.FC<{ charts: any; kpis: any }> = ({ charts, kpis }) => {
+  const highlights = useMemo(() => {
+    const items: { label: string; value: string; icon: React.ElementType }[] = [];
+    // Melhor mês por receita
+    const receitaMes = charts?.receita_por_mes || [];
+    if (receitaMes.length > 0) {
+      const best = receitaMes.reduce((a: any, b: any) => (Number(b.receita) > Number(a.receita) ? b : a), receitaMes[0]);
+      const worst = receitaMes.reduce((a: any, b: any) => (Number(b.receita) < Number(a.receita) ? b : a), receitaMes[0]);
+      if (best) items.push({ label: 'Melhor mês', value: `${formatMonthLabelPtBR(best.mes)} (${formatBRL(Number(best.receita) || 0)})`, icon: TrendingUp });
+      if (worst && receitaMes.length > 1) items.push({ label: 'Pior mês', value: `${formatMonthLabelPtBR(worst.mes)} (${formatBRL(Number(worst.receita) || 0)})`, icon: ArrowDownRight });
+    }
+    // R$/km
+    const rpm = Number(kpis.rpm_medio) || 0;
+    if (rpm > 0) items.push({ label: 'R$/km médio', value: `R$ ${rpm.toFixed(2)}`, icon: Route });
+    // Taxa conclusão
+    const taxa = Number(kpis.taxa_conclusao) || 0;
+    if (taxa > 0) items.push({ label: 'Taxa conclusão', value: `${taxa.toFixed(1)}%`, icon: CheckCircle });
+    // Melhor rota
+    const topRotas = charts?.top_rotas || [];
+    if (topRotas.length > 0) {
+      const top = topRotas[0];
+      const rota = formatRouteLabel(top.rota || (top.origem && top.destino ? `${top.origem} → ${top.destino}` : ''));
+      items.push({ label: 'Melhor rota', value: `${rota} (${formatBRL(Number(top.receita) || 0)})`, icon: MapPin });
+    }
+    return items.slice(0, 5);
+  }, [charts, kpis]);
+
+  if (!highlights.length) return null;
+
+  return (
+    <div className="space-y-3">
+      <SectionTitle icon={TrendingUp} title="Destaques" subtitle="Insights rápidos do período" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        {highlights.map((h, i) => {
+          const Icon = h.icon;
+          return (
+            <div key={i} className="rounded-xl border border-border/40 bg-card p-3 flex items-start gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">{h.label}</p>
+                <p className="text-xs font-bold text-foreground truncate">{h.value}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ─── Componente principal ────────────────────────────────────────────────────
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
   const {
@@ -554,6 +607,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <SectionTitle icon={Activity} title="Operacional" subtitle="Volume, eficiência e avaliação" />
             <OperationalGrid items={motoristaOp} isLoading={isLoading} />
           </div>
+
+          {/* Highlights rápidos */}
+          {!isLoading && motoristaCharts.length > 0 && (
+            <MotoristaHighlights charts={charts} kpis={kpis} />
+          )}
 
           {/* Gráficos */}
           <div className="space-y-3">
