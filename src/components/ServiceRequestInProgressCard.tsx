@@ -53,6 +53,8 @@ interface ServiceRequestInProgressCardProps {
   onOpenChat?: (request: any) => void;
   /** Optional proposals section to render */
   proposalsSection?: React.ReactNode;
+  /** Força nomenclatura visual do card */
+  uiNomenclature?: 'SERVICE' | 'FREIGHT';
 }
 
 // ✅ Source/Layer IDs para markers no canvas
@@ -516,6 +518,7 @@ const ServiceRequestInProgressCardComponent = ({
   onCancel,
   onOpenChat,
   proposalsSection,
+  uiNomenclature,
 }: ServiceRequestInProgressCardProps) => {
   
   // Parse additional_info FIRST (needed for dest coords)
@@ -558,6 +561,7 @@ const ServiceRequestInProgressCardComponent = ({
   const isUrgent = request.urgency && ['ALTA', 'URGENTE'].includes(request.urgency.toUpperCase());
   // ✅ Fretes urbanos usam terminologia de FRETE; serviços técnicos usam terminologia de SERVIÇO
   const isFreight = isFreightType(request.service_type);
+  const useFreightNomenclature = uiNomenclature === 'FREIGHT' || (uiNomenclature !== 'SERVICE' && isFreight);
 
   const openInMaps = () => {
     if (request.location_lat && request.location_lng && effectiveDestLat && effectiveDestLng) {
@@ -593,7 +597,7 @@ const ServiceRequestInProgressCardComponent = ({
       ACCEPTED: 'bg-blue-500', ON_THE_WAY: 'bg-orange-500', IN_PROGRESS: 'bg-yellow-600',
     };
     const labels: Record<string, string> = {
-      ACCEPTED: 'Aceito', ON_THE_WAY: 'A Caminho do Local', IN_PROGRESS: 'Em Atendimento',
+      ACCEPTED: 'Aceito', ON_THE_WAY: 'A Caminho do Local', IN_PROGRESS: useFreightNomenclature ? 'Em Trânsito' : 'Em Atendimento',
     };
     return (
       <Badge className={`${styles[request.status] || 'bg-muted'} text-xs px-2 py-0.5`}>
@@ -701,7 +705,7 @@ const ServiceRequestInProgressCardComponent = ({
           <div className="bg-green-50 dark:bg-green-900/20 rounded px-2 py-1.5 space-y-0.5">
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-              <span className="text-[11px] font-bold text-green-700 dark:text-green-400">LOCAL DO SERVIÇO</span>
+              <span className="text-[11px] font-bold text-green-700 dark:text-green-400">{useFreightNomenclature ? 'LOCAL DO FRETE' : 'LOCAL DO SERVIÇO'}</span>
               {request.city_name && (
                 <span className="text-xs font-semibold text-primary ml-auto">
                   {request.city_name}{request.state ? ` - ${request.state}` : ''}
@@ -744,12 +748,19 @@ const ServiceRequestInProgressCardComponent = ({
         )}
 
         {/* Descrição do problema - compacta */}
-        {request.problem_description && request.problem_description !== 'Solicitação de serviço' && (
-          <div className="text-xs bg-orange-50 dark:bg-orange-900/20 rounded px-2 py-1.5">
-            <span className="text-muted-foreground">Descrição: </span>
-            <span>{request.problem_description}</span>
-          </div>
-        )}
+        {(() => {
+          const normalizedProblemDescription = useFreightNomenclature
+            ? (request.problem_description || '').replace(/\b[Ss]erviço\b/g, 'Frete').replace(/\b[Ss]olicitação de serviço\b/g, 'Solicitação de frete')
+            : (request.problem_description || '');
+          const isGenericDescription = /solicitação de (serviço|frete)/i.test(normalizedProblemDescription.trim());
+          if (!normalizedProblemDescription || isGenericDescription) return null;
+          return (
+            <div className="text-xs bg-orange-50 dark:bg-orange-900/20 rounded px-2 py-1.5">
+              <span className="text-muted-foreground">Descrição: </span>
+              <span>{normalizedProblemDescription}</span>
+            </div>
+          );
+        })()}
 
         {/* Observações extras de additional_info (texto simples) */}
         {parsedInfo?.notes && (
@@ -762,10 +773,10 @@ const ServiceRequestInProgressCardComponent = ({
           </div>
         )}
 
-        {/* Valor do serviço */}
+        {/* Valor */}
         {request.estimated_price && (
           <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/30 rounded-lg px-3 py-2 border border-green-200 dark:border-green-800">
-            <span className="text-sm font-bold text-green-700 dark:text-green-300">💰 Valor:</span>
+            <span className="text-sm font-bold text-green-700 dark:text-green-300">{useFreightNomenclature ? '💰 Valor do Frete:' : '💰 Valor do Serviço:'}</span>
             <span className="text-lg font-black text-green-600">{formatBRL(request.estimated_price)}</span>
           </div>
         )}

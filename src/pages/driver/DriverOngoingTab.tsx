@@ -362,6 +362,7 @@ export const DriverOngoingTab: React.FC = () => {
                 {serviceRequests.map((r) => (
                   <ServiceRequestInProgressCard
                     key={r.id}
+                    uiNomenclature="FREIGHT"
                     request={{
                       id: r.id,
                       service_type: r.service_type || '',
