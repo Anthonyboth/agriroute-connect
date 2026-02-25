@@ -73,6 +73,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const [selectedCargoType, setSelectedCargoType] = useState<string>("all");
 
   const [matchingStats, setMatchingStats] = useState({ total: 0, matched: 0, assigned: 0 });
+  const [emptyFreightHint, setEmptyFreightHint] = useState("Não há fretes abertos com vagas no momento.");
+  const [emptyServiceHint, setEmptyServiceHint] = useState("Não há serviços disponíveis no momento.");
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const timeAgo = useLastUpdate(lastUpdateTime);
 
@@ -106,6 +108,37 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       const freightsData = result.freights;
       const serviceData = result.serviceRequests;
       const allowedTransportTypes = result.allowedTransportTypes;
+      const activeDriversCount = (drivers || []).filter((d: any) => d.status === "ACTIVE").length;
+
+      const excludedItems = Array.isArray(result?.debug?.excludedItems) ? result.debug.excludedItems : [];
+      const freightCandidates = Number(result?.debug?.freight?.total_candidates || 0);
+      const freightCityExcluded = excludedItems.filter((item: any) => item?.item_type === 'FREIGHT' && item?.reason === 'CITY_NOT_MATCH').length;
+      const serviceTypeExcluded = excludedItems.filter((item: any) => item?.item_type === 'SERVICE' && item?.reason === 'TYPE_NOT_COMPATIBLE').length;
+      const serviceStatusExcluded = excludedItems.filter((item: any) => item?.item_type === 'SERVICE' && item?.reason === 'STATUS_NOT_OPEN').length;
+
+      if ((freightsData?.length || 0) === 0) {
+        if (activeDriversCount === 0) {
+          setEmptyFreightHint('Não há motoristas ativos na transportadora para receber fretes no matcher.');
+        } else if (freightCandidates > 0 && freightCityExcluded > 0) {
+          setEmptyFreightHint('Existem fretes OPEN, mas todos foram filtrados por cidade dos motoristas ativos. Atualize as cidades dos motoristas para visualizar os fretes de teste.');
+        } else {
+          setEmptyFreightHint('Não há fretes abertos com vagas no momento.');
+        }
+      } else {
+        setEmptyFreightHint('Não há fretes abertos com vagas no momento.');
+      }
+
+      if ((serviceData?.length || 0) === 0) {
+        if (serviceTypeExcluded > 0) {
+          setEmptyServiceHint('Há serviços OPEN no sistema, mas os tipos não são compatíveis com os tipos de serviço dos motoristas ativos.');
+        } else if (serviceStatusExcluded > 0) {
+          setEmptyServiceHint('Existem serviços, porém já não estão mais com status OPEN.');
+        } else {
+          setEmptyServiceHint('Não há serviços disponíveis no momento.');
+        }
+      } else {
+        setEmptyServiceHint('Não há serviços disponíveis no momento.');
+      }
 
       if (import.meta.env.DEV) {
         console.log("📦 [FRETES I.A] " + (freightsData?.length || 0) + " fretes retornados");
@@ -488,7 +521,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                   <CardContent className="text-center py-8">
                     <Truck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="font-semibold mb-2">Nenhum frete disponível</h3>
-                    <p className="text-muted-foreground mb-4">Não há fretes abertos com vagas no momento.</p>
+                    <p className="text-muted-foreground mb-4">{emptyFreightHint}</p>
                     <Button variant="outline" onClick={fetchCompatibleFreights}>
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Verificar Novamente
@@ -561,7 +594,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                   <CardContent className="text-center py-8">
                     <Bike className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="font-semibold mb-2">Nenhum serviço disponível</h3>
-                    <p className="text-muted-foreground mb-4">Não há serviços urbanos disponíveis no momento.</p>
+                    <p className="text-muted-foreground mb-4">{emptyServiceHint}</p>
                     <Button variant="outline" onClick={fetchCompatibleFreights}>
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Verificar Novamente
