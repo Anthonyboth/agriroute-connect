@@ -39,6 +39,13 @@ import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { BI } from './reports-enterprise-theme';
+import {
+  CarrierSavedViewsBar, CarrierGovernanceBar,
+  CarrierSmartAlerts, CarrierInsightsPanel,
+  CarrierScorecardAdvanced, CarrierHeroBenchmark,
+  useCarrierBenchmark,
+  type ScorecardSortKey,
+} from './CarrierPhase3';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -1493,12 +1500,15 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     return rows.sort((a, b) => b.revenue - a.revenue);
   }, [tables, filteredCarrierRows, isTransportadora, carrierSlicers.driverQuery]);
 
-  const [carrierScorecardSort, setCarrierScorecardSort] = useState<'revenue' | 'rs_km'>('revenue');
+  const [carrierScorecardSort, setCarrierScorecardSort] = useState<ScorecardSortKey>('revenue');
   const sortedCarrierScorecard = useMemo(() => {
     return [...carrierScorecard].sort((a, b) =>
       carrierScorecardSort === 'revenue' ? b.revenue - a.revenue : b.rs_km - a.rs_km
     );
   }, [carrierScorecard, carrierScorecardSort]);
+
+  // ── Phase 3: Benchmark ────────────────────────────────────────────────────
+  const carrierBenchmark = useCarrierBenchmark(carrierRows, dateRange);
 
   // ── Gráficos genéricos (fallback) ──────────────────────────────────────────
   const genericCharts: ChartConfig[] = useMemo(() => {
