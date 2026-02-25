@@ -17,6 +17,9 @@ export default {
 				'2xl': '1400px'
 			}
 		},
+		screens: {
+			'xs': '360px',
+		},
 		extend: {
 			zIndex: {
 				'dropdown': '1000',

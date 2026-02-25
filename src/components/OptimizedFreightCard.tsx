@@ -447,7 +447,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(
                 Aceitar Frete por Moto
               </Button>
             ) : (
-              <div className="grid grid-cols-[0.85fr_1.15fr] gap-2">
+              <div className="grid grid-cols-1 xs:grid-cols-[0.85fr_1.15fr] gap-2">
                 <Button
                   onClick={handleAccept}
                   className="w-full min-w-0 btn-accessible gradient-primary text-sm sm:text-base font-semibold truncate"
