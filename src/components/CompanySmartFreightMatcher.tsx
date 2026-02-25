@@ -341,6 +341,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   }), [serviceRequests, searchTerm]);
 
   const activeDrivers = (drivers || []).filter((d: any) => d.status === "ACTIVE");
+  const totalAvailableCount = filteredFreights.length + filteredServiceRequests.length;
 
   const getServiceTypeTitle = (serviceType: string) => {
     switch (serviceType) {
@@ -472,7 +473,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 <div className="text-sm text-muted-foreground">Fretes consultados</div>
               </div>
               <div className="text-center p-4 bg-green-500/5 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{filteredFreights.length}</div>
+                <div className="text-2xl font-bold text-green-600">{totalAvailableCount}</div>
                 <div className="text-sm text-muted-foreground">Disponíveis</div>
               </div>
               <div className="text-center p-4 bg-blue-500/5 rounded-lg">
