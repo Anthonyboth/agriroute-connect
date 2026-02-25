@@ -81,6 +81,7 @@ export function useGuaranteedMarketplaceFeed() {
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
     const rawPanel = roleOverride || profile?.active_mode || profile?.role || 'TRANSPORTADORA';
     const panel = String(rawPanel).toUpperCase();
+    const rpcRole: FeedPanelRole = panel === 'TRANSPORTADORA' ? 'MOTORISTA' : (panel as FeedPanelRole);
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
     const emptyResult: GuaranteedMarketplaceResult = {
@@ -113,7 +114,7 @@ export function useGuaranteedMarketplaceFeed() {
 
     const { data, error } = await supabase.rpc('get_authoritative_feed', {
       p_user_id: resolvedUserId,
-      p_role: panel,
+      p_role: rpcRole,
       p_debug: debug,
     });
 
@@ -167,7 +168,7 @@ export function useGuaranteedMarketplaceFeed() {
       feed_total_eligible: Number(payload?.metrics?.feed_total_eligible || 0),
       feed_total_displayed: freights.length + serviceRequests.length,
       fallback_used: Boolean(payload?.metrics?.fallback_used),
-      role: String(payload?.metrics?.role || panel),
+      role: panel,
     };
 
     const debugPayload = payload?.debug || null;
