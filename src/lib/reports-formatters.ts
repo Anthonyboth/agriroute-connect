@@ -69,7 +69,14 @@ export function formatMonthLabelPtBR(input: string | undefined | null): string {
 export function formatRouteLabel(route: string | undefined | null): string {
   if (!route) return '—';
   // Garante espaços ao redor de →
-  return route.replace(/\s*→\s*/g, ' → ');
+  const spaced = route.replace(/\s*→\s*/g, ' → ');
+  // Corrige capitalização: "PRIMAVERA DO LESTE" → "Primavera do Leste", "PoxoréU" → "Poxoréu"
+  return spaced.replace(/([A-Za-zÀ-ú]+)/g, (word) => {
+    const lower = word.toLowerCase();
+    // Preposições e artigos permanecem minúsculos (exceto se for a primeira palavra do segmento)
+    if (['de', 'do', 'da', 'dos', 'das', 'e', 'em', 'no', 'na'].includes(lower)) return lower;
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  });
 }
 
 /**

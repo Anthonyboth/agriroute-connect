@@ -8,10 +8,16 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
-// Paleta moderna — verde AgriRoute + complementares vibrantes
+// Paleta verde AgriRoute + complementares
 const CHART_COLORS = [
-  '#16a34a', '#2563eb', '#f59e0b', '#8b5cf6',
-  '#06b6d4', '#ef4444', '#ec4899', '#84cc16',
+  'hsl(142, 76%, 36%)',   // verde principal
+  'hsl(217, 91%, 60%)',   // azul
+  'hsl(38, 92%, 50%)',    // amber
+  'hsl(263, 70%, 50%)',   // violeta
+  'hsl(189, 94%, 43%)',   // cyan
+  'hsl(0, 84%, 60%)',     // vermelho
+  'hsl(330, 81%, 60%)',   // rosa
+  'hsl(84, 81%, 44%)',    // lima
 ];
 
 const LABEL_MAP: Record<string, string> = {
@@ -43,7 +49,7 @@ const truncateLabel = (label: string, max = 18): string => {
   return formatted.length > max ? formatted.slice(0, max - 1) + '…' : formatted;
 };
 
-/** Formata números do eixo Y de forma compacta (1.200 → 1,2K) */
+/** Formata números do eixo Y de forma compacta */
 const formatAxisNumber = (value: number): string => {
   if (value === 0) return '0';
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.', ',')}M`;
@@ -75,34 +81,39 @@ interface ReportChartsProps {
   className?: string;
 }
 
-// ── Tooltip customizado ──────────────────────────────────────────────────────
+// ── Tooltip ─────────────────────────────────────────────────────────────────
 const CustomTooltip: React.FC<any> = ({ active, payload, label, valueFormatter }) => {
   if (!active || !payload?.length) return null;
   const fmt = valueFormatter || String;
   return (
-    <div className="rounded-xl border bg-card px-4 py-3 shadow-xl text-sm space-y-1.5 max-w-[240px] z-50">
+    <div className="rounded-lg border border-border/60 bg-popover px-3 py-2.5 shadow-lg text-sm min-w-[140px]">
       {label != null && label !== '' && (
-        <p className="text-xs font-semibold text-foreground border-b border-border pb-1.5 mb-1">
+        <p className="text-[11px] font-semibold text-foreground border-b border-border/40 pb-1.5 mb-1.5">
           {formatChartLabel(String(label))}
         </p>
       )}
       {payload.map((entry: any, i: number) => (
-        <div key={i} className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+        <div key={i} className="flex items-center justify-between gap-4 py-0.5">
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span
+              className="h-2 w-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: entry.color }}
+            />
             {formatChartLabel(entry.name || entry.dataKey)}
           </span>
-          <span className="text-xs font-bold text-foreground whitespace-nowrap">{fmt(entry.value)}</span>
+          <span className="text-[11px] font-bold text-foreground tabular-nums">
+            {fmt(entry.value)}
+          </span>
         </div>
       ))}
     </div>
   );
 };
 
-const ChartSkeleton: React.FC<{ height?: number }> = ({ height = 280 }) => (
-  <Card className="rounded-2xl overflow-hidden">
+const ChartSkeleton: React.FC<{ height?: number }> = ({ height = 300 }) => (
+  <Card className="rounded-2xl overflow-hidden border-border/50">
     <CardHeader className="pb-2">
-      <Skeleton className="h-4 w-28" />
+      <Skeleton className="h-4 w-32" />
     </CardHeader>
     <CardContent>
       <Skeleton className="w-full rounded-xl" style={{ height }} />
@@ -113,47 +124,61 @@ const ChartSkeleton: React.FC<{ height?: number }> = ({ height = 280 }) => (
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
 
-const axisTickStyle = { fontSize: 10, fill: 'hsl(var(--muted-foreground))' };
+const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
 
-const gridProps = {
-  strokeDasharray: '3 3',
+const gridStyle = {
+  strokeDasharray: '4 4',
   stroke: 'hsl(var(--border))',
-  opacity: 0.4,
+  opacity: 0.35,
 } as const;
 
-// Margens padrão — left suficiente para eixo Y não cortar
-const defaultMargin = { top: 10, right: 16, left: 8, bottom: 8 };
-const horizontalMargin = { top: 8, right: 20, left: 8, bottom: 4 };
+const defaultMargin = { top: 16, right: 20, left: 12, bottom: 12 };
 
-// ── Render de cada tipo ──────────────────────────────────────────────────────
+// ── Render de cada tipo ─────────────────────────────────────────────────────
 const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
-  const { type, data, dataKeys, xAxisKey = 'name', valueFormatter = String, height = 280 } = config;
+  const { type, data, dataKeys, xAxisKey = 'name', valueFormatter = String, height = 300 } = config;
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-muted-foreground gap-2" style={{ height: 200 }}>
-        <span className="text-3xl">📊</span>
+      <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-8" style={{ minHeight: 200 }}>
+        <span className="text-4xl opacity-40">📊</span>
         <span className="text-xs">Sem dados para exibir</span>
       </div>
     );
   }
+
+  const commonXAxis = {
+    dataKey: xAxisKey,
+    tick: axisStyle,
+    tickLine: false,
+    axisLine: false,
+    tickMargin: 8,
+  };
+
+  const commonYAxis = {
+    tick: axisStyle,
+    tickLine: false,
+    axisLine: false,
+    width: 52,
+    tickFormatter: formatAxisNumber,
+    tickMargin: 6,
+  };
 
   switch (type) {
     case 'line':
       return (
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={data} margin={defaultMargin}>
-            <CartesianGrid {...gridProps} />
-            <XAxis dataKey={xAxisKey} tick={axisTickStyle} tickLine={false} axisLine={false}
-              tickMargin={6} />
-            <YAxis tick={axisTickStyle} tickLine={false} axisLine={false} width={50}
-              tickFormatter={formatAxisNumber} tickMargin={4} />
+            <CartesianGrid {...gridStyle} />
+            <XAxis {...commonXAxis} />
+            <YAxis {...commonYAxis} />
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 16 }} />
             {dataKeys.map((dk, i) => (
               <Line key={dk.key} type="monotone" dataKey={dk.key} name={dk.label}
                 stroke={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
-                strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 0 }}
+                strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: '#fff' }}
+                activeDot={{ r: 6, strokeWidth: 0 }}
               />
             ))}
           </LineChart>
@@ -168,18 +193,16 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
       return (
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={formatted} margin={defaultMargin}>
-            <CartesianGrid {...gridProps} />
-            <XAxis dataKey={xAxisKey} tick={axisTickStyle} tickLine={false} axisLine={false}
-              tickMargin={6} tickFormatter={(v) => truncateLabel(v, 12)} />
-            <YAxis tick={axisTickStyle} tickLine={false} axisLine={false} width={50}
-              tickFormatter={formatAxisNumber} tickMargin={4} />
+            <CartesianGrid {...gridStyle} />
+            <XAxis {...commonXAxis} tickFormatter={(v) => truncateLabel(v, 10)} />
+            <YAxis {...commonYAxis} />
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
               formatter={(v) => formatChartLabel(String(v))} />
             {dataKeys.map((dk, i) => (
               <Bar key={dk.key} dataKey={dk.key} name={formatChartLabel(dk.label)}
                 fill={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
-                radius={[6, 6, 0, 0]} maxBarSize={48} animationDuration={600}
+                radius={[6, 6, 0, 0]} maxBarSize={44} animationDuration={500}
               />
             ))}
           </BarChart>
@@ -188,22 +211,23 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
     }
 
     case 'horizontal-bar': {
-      const maxLen = Math.max(...data.map(d => truncateLabel(String(d[xAxisKey] || ''), 22).length), 5);
-      const labelW = Math.min(Math.max(maxLen * 6, 90), 170);
+      const maxLen = Math.max(...data.map(d => truncateLabel(String(d[xAxisKey] || ''), 20).length), 4);
+      const labelW = Math.min(Math.max(maxLen * 6.5, 100), 180);
+      const barHeight = Math.max(height, data.length * 42 + 60);
       return (
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart data={data} layout="vertical" margin={horizontalMargin}>
-            <CartesianGrid {...gridProps} horizontal={false} />
-            <XAxis type="number" tick={axisTickStyle} tickLine={false} axisLine={false}
-              tickFormatter={(v) => formatAxisNumber(v)} tickMargin={4} />
+        <ResponsiveContainer width="100%" height={barHeight}>
+          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
+            <CartesianGrid {...gridStyle} horizontal={false} />
+            <XAxis type="number" tick={axisStyle} tickLine={false} axisLine={false}
+              tickFormatter={formatAxisNumber} tickMargin={6} />
             <YAxis dataKey={xAxisKey} type="category" width={labelW}
-              tick={{ ...axisTickStyle, fontSize: 9 }} tickLine={false} axisLine={false}
-              tickFormatter={(v) => truncateLabel(v, 22)} tickMargin={4} />
+              tick={{ ...axisStyle, fontSize: 10 }} tickLine={false} axisLine={false}
+              tickFormatter={(v) => truncateLabel(v, 20)} tickMargin={6} />
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
             {dataKeys.map((dk, i) => (
               <Bar key={dk.key} dataKey={dk.key} name={dk.label}
                 fill={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
-                radius={[0, 6, 6, 0]} maxBarSize={28} animationDuration={600}
+                radius={[0, 6, 6, 0]} maxBarSize={26} animationDuration={500}
               />
             ))}
           </BarChart>
@@ -218,27 +242,27 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
       }));
       const RADIAN = Math.PI / 180;
       const renderLabel = ({ cx, cy, midAngle, outerRadius, percent, name }: any) => {
-        if (percent < 0.05) return null;
-        const radius = outerRadius + 22;
+        if (percent < 0.06) return null;
+        const radius = outerRadius + 24;
         const x = cx + radius * Math.cos(-midAngle * RADIAN);
         const y = cy + radius * Math.sin(-midAngle * RADIAN);
         return (
           <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central"
-            style={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }}>
-            {truncateLabel(name, 14)} {(percent * 100).toFixed(0)}%
+            style={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 600 }}>
+            {truncateLabel(name, 12)} {(percent * 100).toFixed(0)}%
           </text>
         );
       };
       return (
         <ResponsiveContainer width="100%" height={height}>
-          <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 10 }}>
+          <PieChart margin={{ top: 24, right: 24, left: 24, bottom: 16 }}>
             <Pie data={formatted} cx="50%" cy="45%"
               labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
               label={renderLabel}
-              outerRadius={80} innerRadius={35}
+              outerRadius={85} innerRadius={40}
               dataKey={dataKeys[0]?.key || 'value'}
-              animationDuration={600} animationEasing="ease-out"
-              paddingAngle={2} strokeWidth={0}
+              animationDuration={500} animationEasing="ease-out"
+              paddingAngle={3} strokeWidth={2} stroke="hsl(var(--card))"
             >
               {formatted.map((_, i) => (
                 <Cell key={`cell-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -246,7 +270,7 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
             </Pie>
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
             <Legend iconType="circle" iconSize={8}
-              wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+              wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(v) => formatChartLabel(String(v))} />
           </PieChart>
         </ResponsiveContainer>
@@ -256,20 +280,19 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
     case 'scatter':
       return (
         <ResponsiveContainer width="100%" height={height}>
-          <ScatterChart margin={{ top: 12, right: 20, left: 12, bottom: 8 }}>
-            <CartesianGrid {...gridProps} />
+          <ScatterChart margin={{ top: 16, right: 24, left: 16, bottom: 12 }}>
+            <CartesianGrid {...gridStyle} />
             <XAxis dataKey={xAxisKey} type="number" name={dataKeys[0]?.label || ''}
-              tick={axisTickStyle} tickLine={false} axisLine={false} width={50}
-              tickFormatter={formatAxisNumber} tickMargin={6} />
+              tick={axisStyle} tickLine={false} axisLine={false}
+              tickFormatter={formatAxisNumber} tickMargin={8} />
             <YAxis dataKey={config.yAxisKey || dataKeys[0]?.key || 'value'} type="number"
-              name={dataKeys[1]?.label || ''} tick={axisTickStyle} tickLine={false} axisLine={false}
-              width={55} tickFormatter={formatAxisNumber} tickMargin={4} />
+              name={dataKeys[1]?.label || ''} tick={axisStyle} tickLine={false} axisLine={false}
+              width={56} tickFormatter={formatAxisNumber} tickMargin={6} />
             {config.zAxisKey && <ZAxis dataKey={config.zAxisKey} range={[40, 400]} name="Tamanho" />}
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />}
               cursor={{ strokeDasharray: '3 3', stroke: 'hsl(var(--muted-foreground))' }} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
             <Scatter name={dataKeys[0]?.label || 'Dados'} data={data}
-              fill={dataKeys[0]?.color || CHART_COLORS[0]} shape="circle" />
+              fill={dataKeys[0]?.color || CHART_COLORS[0]} />
           </ScatterChart>
         </ResponsiveContainer>
       );
@@ -283,28 +306,26 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
                 const color = dk.color || CHART_COLORS[i % CHART_COLORS.length];
                 return (
                   <linearGradient key={dk.key} id={`grad-${dk.key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+                    <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0.02} />
                   </linearGradient>
                 );
               })}
             </defs>
-            <CartesianGrid {...gridProps} />
-            <XAxis dataKey={xAxisKey} tick={axisTickStyle} tickLine={false} axisLine={false}
-              tickMargin={6} tickFormatter={(v) => truncateLabel(v, 12)} />
-            <YAxis tick={axisTickStyle} tickLine={false} axisLine={false} width={50}
-              tickFormatter={formatAxisNumber} tickMargin={4} />
+            <CartesianGrid {...gridStyle} />
+            <XAxis {...commonXAxis} tickFormatter={(v) => truncateLabel(v, 10)} />
+            <YAxis {...commonYAxis} />
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
             <Legend iconType="circle" iconSize={8}
-              wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+              wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
               formatter={(v) => formatChartLabel(String(v))} />
             {dataKeys.map((dk, i) => {
               const color = dk.color || CHART_COLORS[i % CHART_COLORS.length];
               return (
                 <Area key={dk.key} type="monotone" dataKey={dk.key} name={formatChartLabel(dk.label)}
                   stroke={color} fill={`url(#grad-${dk.key})`}
-                  strokeWidth={2.5} dot={{ r: 3, fill: color, strokeWidth: 0 }}
-                  activeDot={{ r: 5.5, strokeWidth: 0, fill: color }}
+                  strokeWidth={2.5} dot={{ r: 3, fill: color, strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: color }}
                 />
               );
             })}
@@ -325,7 +346,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
 
   if (isLoading) {
     return (
-      <div className={cn(`grid ${gridCols} gap-4`, className)}>
+      <div className={cn(`grid ${gridCols} gap-5`, className)}>
         {Array.from({ length: Math.min(charts.length || 4, 4) }).map((_, i) => (
           <ChartSkeleton key={i} />
         ))}
@@ -334,13 +355,15 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
   }
 
   return (
-    <div className={cn(`grid ${gridCols} gap-4`, className)}>
+    <div className={cn(`grid ${gridCols} gap-5`, className)}>
       {charts.map((chart, index) => (
-        <Card key={index} className="rounded-2xl overflow-hidden border shadow-sm">
-          <CardHeader className="pb-1 pt-4 px-5">
-            <CardTitle className="text-sm font-semibold text-foreground">{chart.title}</CardTitle>
+        <Card key={index} className="rounded-2xl overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-0 pt-4 px-5">
+            <CardTitle className="text-sm font-semibold text-foreground tracking-tight">
+              {chart.title}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="px-3 pb-4 pt-1">
+          <CardContent className="px-2 sm:px-4 pb-4 pt-2">
             <RenderChart config={chart} />
           </CardContent>
         </Card>
