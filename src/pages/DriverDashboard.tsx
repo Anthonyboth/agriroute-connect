@@ -800,36 +800,36 @@ const DriverDashboard = () => {
   }, [profile?.id, profile?.role, profile?.active_mode]);
 
   // Buscar solicitações de transporte (guincho, mudanças) disponíveis para motoristas
+  // ✅ FIX: Usar feed autoritativo com filtro por cidade (antes não filtrava por cidade)
+  // Reutiliza fetchAvailableMarketplaceItems já destructurado na linha 379
   const fetchTransportRequests = useCallback(async () => {
     const activeMode = profile?.active_mode || profile?.role;
     if (!profile?.id || (activeMode !== 'MOTORISTA' && activeMode !== 'MOTORISTA_AFILIADO')) return;
 
     try {
-      if (import.meta.env.DEV) console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
+      if (import.meta.env.DEV) console.log('🔍 Buscando solicitações de transporte via feed autoritativo:', profile.id);
       
-      // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
-      // ✅ FIX: Incluir TODOS os tipos de transporte urbano (não apenas GUINCHO/MUDANCA)
-      const { data, error } = await supabase
-        .from('service_requests_secure')
-        .select('*')
-        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'])
-        .eq('status', 'OPEN')
-        .is('provider_id', null)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('❌ Erro ao buscar solicitações de transporte:', error);
-        throw error;
-      }
+      const driverPanelRole = activeMode === 'MOTORISTA_AFILIADO' ? 'MOTORISTA_AFILIADO' : 'MOTORISTA';
       
-      if (import.meta.env.DEV) console.log('🚛 Solicitações de transporte encontradas:', data?.length || 0);
+      // ✅ FONTE ÚNICA: usar RPC autoritativa que já filtra por cidade e tipo
+      const result = await fetchAvailableMarketplaceItems({
+        profile,
+        roleOverride: driverPanelRole as any,
+        serviceLimit: 100,
+        debug: import.meta.env.DEV,
+      });
       
-      if (isMountedRef.current) setTransportRequests(data || []);
+      // Apenas serviços urbanos (o RPC já filtra por tipo e cidade)
+      const urbanServices = (result.serviceRequests || []);
+      
+      if (import.meta.env.DEV) console.log('🚛 Solicitações de transporte (autoritativo):', urbanServices.length);
+      
+      if (isMountedRef.current) setTransportRequests(urbanServices);
     } catch (error) {
-      console.error('Error fetching transport requests:', error);
+      console.error('Erro ao carregar solicitações de transporte:', error);
       toast.error('Erro ao carregar solicitações de transporte');
     }
-  }, [profile?.id, profile?.role, profile?.active_mode]);
+  }, [profile?.id, profile?.role, profile?.active_mode, fetchAvailableMarketplaceItems]);
 
   // Aceitar solicitação de transporte
   const handleAcceptTransportRequest = async (requestId: string) => {

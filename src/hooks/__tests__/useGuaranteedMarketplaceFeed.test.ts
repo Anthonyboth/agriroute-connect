@@ -262,6 +262,28 @@ describe('Feed Determinístico — 6 Cenários Obrigatórios', () => {
     expect(result.metrics.fallback_used).toBe(true);
     expect(result.metrics.feed_total_eligible).toBe(3);
   });
+
+  // ─── Cenário 7: Serviço urbano aparece para MOTORISTA com tipo urbano ───
+  it('Serviço urbano OPEN aparece para MOTORISTA que possui tipo GUINCHO', async () => {
+    mockRpc.mockResolvedValueOnce(
+      authoritativeFeedPayload(
+        [],
+        [makeService({ id: 'svc-guincho', service_type: 'GUINCHO', city_id: 'city-1' })],
+      )
+    );
+
+    const result = await callFeed({
+      id: 'profile-driver',
+      active_mode: 'MOTORISTA',
+      service_types: ['CARGA', 'GUINCHO'],
+    });
+
+    expect(result.serviceRequests).toHaveLength(1);
+    expect(result.serviceRequests[0].id).toBe('svc-guincho');
+    expect(mockRpc).toHaveBeenCalledWith('get_authoritative_feed', expect.objectContaining({
+      p_role: 'MOTORISTA',
+    }));
+  });
 });
 
 // =============================================
