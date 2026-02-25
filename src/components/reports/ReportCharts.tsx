@@ -82,6 +82,8 @@ interface ChartDataPoint {
   [key: string]: unknown;
 }
 
+type Drilldown = { kind: 'route' | 'cargo' | 'status'; value: string };
+
 interface ChartConfig {
   title: string;
   type: 'line' | 'bar' | 'pie' | 'horizontal-bar' | 'scatter' | 'area';
@@ -92,6 +94,8 @@ interface ChartConfig {
   zAxisKey?: string;
   valueFormatter?: (value: number) => string;
   height?: number;
+  onDrilldown?: (d: Drilldown) => void;
+  drilldownKind?: 'route' | 'cargo' | 'status';
 }
 
 interface ReportChartsProps {
@@ -552,6 +556,12 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
               <Bar key={dk.key} dataKey={dk.key} name={formatChartLabel(dk.label)}
                 fill={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
                 radius={barRadius} barSize={barSz} maxBarSize={maxBarSz} animationDuration={500}
+                cursor={config.onDrilldown ? 'pointer' : undefined}
+                onClick={(e: any) => {
+                  if (!config.onDrilldown) return;
+                  const name = String(e?.[xAxisKey] ?? e?.name ?? '');
+                  if (name) config.onDrilldown({ kind: config.drilldownKind || 'status', value: name });
+                }}
               />
             ))}
           </BarChart>
@@ -577,6 +587,12 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
               <Bar key={dk.key} dataKey={dk.key} name={dk.label}
                 fill={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
                 radius={[0, 8, 8, 0]} barSize={isMobile ? 12 : 14} animationDuration={500}
+                cursor={config.onDrilldown ? 'pointer' : undefined}
+                onClick={(e: any) => {
+                  if (!config.onDrilldown) return;
+                  const name = String(e?.[xAxisKey] ?? e?.name ?? '');
+                  if (name) config.onDrilldown({ kind: config.drilldownKind || 'route', value: name });
+                }}
               />
             ))}
           </BarChart>
@@ -600,6 +616,12 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
               dataKey={dataKeys[0]?.key || 'value'}
               animationDuration={500} animationEasing="ease-out"
               strokeWidth={2} stroke="hsl(var(--card))"
+              cursor={config.onDrilldown ? 'pointer' : undefined}
+              onClick={(_: any, idx: number) => {
+                if (!config.onDrilldown) return;
+                const label = String(formatted?.[idx]?.name ?? '');
+                if (label) config.onDrilldown({ kind: config.drilldownKind || 'status', value: label });
+              }}
             >
               {formatted.map((_, i) => (
                 <Cell key={`cell-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -720,4 +742,4 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
 };
 
 export { formatBRL };
-export type { ChartConfig };
+export type { ChartConfig, Drilldown };
