@@ -457,11 +457,11 @@ const OptimizedFreightCard = memo<FreightCardProps>(
                 </Button>
                 <Button
                   onClick={handleProposalModalOpen}
-                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
+                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-sm sm:text-lg font-semibold whitespace-nowrap px-2"
                   size="lg"
                   variant="outline"
                 >
-                  Contra proposta
+                  Contraproposta
                 </Button>
               </div>
             )}
