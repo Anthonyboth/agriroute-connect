@@ -751,7 +751,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 Aceitar Frete por Moto
               </Button>
             ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-              <div className="grid grid-cols-[0.85fr_1.15fr] gap-2">
+              <div className="grid grid-cols-1 xs:grid-cols-[0.85fr_1.15fr] gap-2">
                 <Button
                   onClick={() => setBulkAcceptorOpen(true)}
                   className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
@@ -767,7 +767,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-[0.85fr_1.15fr] gap-2">
+              <div className="grid grid-cols-1 xs:grid-cols-[0.85fr_1.15fr] gap-2">
                 <Button
                   onClick={() => handleAcceptFreight(1)}
                   className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
