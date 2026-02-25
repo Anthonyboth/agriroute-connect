@@ -71,8 +71,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCargoType, setSelectedCargoType] = useState<string>("all");
-  const [selectedVehicleType, setSelectedVehicleType] = useState<string>("all");
-  const [selectedServiceType, setSelectedServiceType] = useState<string>("all");
 
   const [matchingStats, setMatchingStats] = useState({ total: 0, matched: 0, assigned: 0 });
   const [emptyFreightHint, setEmptyFreightHint] = useState("Não há fretes abertos com vagas no momento.");
@@ -330,9 +328,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       (freight.destination_address || "").toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCargoType = selectedCargoType === "all" || freight.cargo_type === selectedCargoType;
-    const matchesVehicleType = selectedVehicleType === "all" || freight.service_type === selectedVehicleType;
-    return matchesSearch && matchesCargoType && matchesVehicleType;
-  }), [compatibleFreights, searchTerm, selectedCargoType, selectedVehicleType]);
+    return matchesSearch && matchesCargoType;
+  }), [compatibleFreights, searchTerm, selectedCargoType]);
 
   const filteredServiceRequests = useMemo(() => serviceRequests.filter((r: any) => {
     const matchesSearch =
@@ -340,9 +337,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       (r.location_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.destination_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.problem_description || "").toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesServiceType = selectedServiceType === "all" || r.service_type === selectedServiceType;
-    return matchesSearch && matchesServiceType;
-  }), [serviceRequests, searchTerm, selectedServiceType]);
+    return matchesSearch;
+  }), [serviceRequests, searchTerm]);
 
   const activeDrivers = (drivers || []).filter((d: any) => d.status === "ACTIVE");
   const totalAvailableCount = filteredFreights.length + filteredServiceRequests.length;
@@ -433,79 +429,43 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="w-full sm:w-80">
-                <Select value={selectedCargoType} onValueChange={setSelectedCargoType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de carga" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os tipos de carga</SelectItem>
+            <div className="w-full md:w-80">
+              <Select value={selectedCargoType} onValueChange={setSelectedCargoType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de carga" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
 
-                    <SelectGroup>
-                      <SelectLabel className="text-primary font-medium">Carga (Agrícola)</SelectLabel>
-                      {getCargoTypesByCategory("rural").map((cargo) => (
-                        <SelectItem key={cargo.value} value={cargo.value}>
-                          {cargo.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-primary font-medium">Carga (Agrícola)</SelectLabel>
+                    {getCargoTypesByCategory("rural").map((cargo) => (
+                      <SelectItem key={cargo.value} value={cargo.value}>
+                        {cargo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
 
-                    <SelectGroup>
-                      <SelectLabel className="text-blue-600 font-medium">Carga Viva</SelectLabel>
-                      {getCargoTypesByCategory("carga_viva").map((cargo) => (
-                        <SelectItem key={cargo.value} value={cargo.value}>
-                          {cargo.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-blue-600 font-medium">Carga Viva</SelectLabel>
+                    {getCargoTypesByCategory("carga_viva").map((cargo) => (
+                      <SelectItem key={cargo.value} value={cargo.value}>
+                        {cargo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
 
-                    <SelectGroup>
-                      <SelectLabel className="text-gray-600 font-medium">Outros</SelectLabel>
-                      {getCargoTypesByCategory("outros").map((cargo) => (
-                        <SelectItem key={cargo.value} value={cargo.value}>
-                          {cargo.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-full sm:w-60">
-                <Select value={selectedVehicleType} onValueChange={setSelectedVehicleType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tipo de veículo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os veículos</SelectItem>
-                    <SelectItem value="CARGA">🚛 Caminhão</SelectItem>
-                    <SelectItem value="FRETE_MOTO">🏍️ Moto</SelectItem>
-                    <SelectItem value="GUINCHO">🚗 Guincho</SelectItem>
-                    <SelectItem value="MUDANCA">📦 Mudança</SelectItem>
-                    <SelectItem value="ENTREGA_PACOTES">📬 Pacotes</SelectItem>
-                    <SelectItem value="TRANSPORTE_PET">🐾 Pet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-full sm:w-60">
-                <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tipo de serviço" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os serviços</SelectItem>
-                    <SelectItem value="GUINCHO">🚗 Guincho</SelectItem>
-                    <SelectItem value="FRETE_MOTO">🏍️ Moto</SelectItem>
-                    <SelectItem value="MUDANCA">📦 Mudança</SelectItem>
-                    <SelectItem value="ENTREGA_PACOTES">📬 Pacotes</SelectItem>
-                    <SelectItem value="TRANSPORTE_PET">🐾 Pet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SelectGroup>
+                    <SelectLabel className="text-gray-600 font-medium">Outros</SelectLabel>
+                    {getCargoTypesByCategory("outros").map((cargo) => (
+                      <SelectItem key={cargo.value} value={cargo.value}>
+                        {cargo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-primary/5 rounded-lg">
                 <div className="text-2xl font-bold text-primary">{matchingStats.total}</div>
