@@ -6,23 +6,17 @@ import { SafeListWrapper } from "@/components/SafeListWrapper";
 interface DriverAvailableTabProps {
   profileId: string | undefined;
   onFreightAction: (freightId: string, action: "propose" | "accept" | "complete" | "cancel") => void;
-  onCountsChange: (counts: { total: number }) => void;
   onFetchAvailable: () => void;
 }
 
 export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
   profileId,
   onFreightAction,
-  onCountsChange,
   onFetchAvailable,
 }) => {
   const handleAdvancedSearch = useCallback(() => {
     onFetchAvailable();
   }, [onFetchAvailable]);
-
-  const handleCountsChange = useCallback((counts: { total: number; highUrgency: number }) => {
-    onCountsChange({ total: counts.total });
-  }, [onCountsChange]);
 
   return (
     <SafeListWrapper>
@@ -38,7 +32,6 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
       <SmartFreightMatcher
         key={`freight-matcher-${profileId || "loading"}`}
         onFreightAction={onFreightAction}
-        onCountsChange={handleCountsChange}
       />
     </SafeListWrapper>
   );
