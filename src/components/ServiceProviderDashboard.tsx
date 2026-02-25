@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { GlobalLoader } from '@/components/AppLoader';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +58,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { MarketplaceFilters, ExpiryBadge, DEFAULT_FILTERS, type MarketplaceFiltersState, type SortOption } from '@/components/MarketplaceFilters';
 import { useAuth } from '@/hooks/useAuth';
 import { useProviderCardCounts } from '@/hooks/useDashboardCardCounts';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
@@ -181,6 +182,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
+  const [marketplaceFilters, setMarketplaceFilters] = useState<MarketplaceFiltersState>(DEFAULT_FILTERS);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const { visible: showEarnings, toggle: toggleEarnings } = useEarningsVisibility(false);
   const [lastAvailableRefresh, setLastAvailableRefresh] = useState<Date>(new Date());
@@ -1088,11 +1090,19 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (activeTab === 'completed') return request.provider_id && (status === 'COMPLETED' || status === 'CONCLUIDO');
     return true;
   }).sort((a, b) => {
-    // Para pendentes, ordenar pelas mais antigas primeiro
     if (activeTab === 'pending') {
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      // Aplicar sort do MarketplaceFilters
+      switch (marketplaceFilters.sort) {
+        case 'PRICE_DESC':
+          return (b.estimated_price || 0) - (a.estimated_price || 0);
+        case 'NEWEST':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'EXPIRY_ASC':
+        default:
+          // Vencimento mais próximo / mais antigo primeiro
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
     }
-    // Para outras abas, manter ordem mais recente primeiro
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
@@ -1342,6 +1352,12 @@ export const ServiceProviderDashboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">{filteredRequests.length}</Badge>
+                <MarketplaceFilters
+                  filters={marketplaceFilters}
+                  onChange={setMarketplaceFilters}
+                  showRpmSort={false}
+                  showDistSort={false}
+                />
                 <Button
                   variant="outline"
                   size="sm"
