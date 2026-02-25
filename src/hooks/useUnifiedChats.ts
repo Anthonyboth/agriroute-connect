@@ -165,6 +165,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
 
             if (!conversationMap.has(msg.freight_id)) {
               const producerProfile = profileMap.get(freight.producer_id);
+              if (!producerProfile) return; // frete guest/sem produtor cadastrado não abre chat
               const driverProfile = profileMap.get(freight.driver_id);
               const company = companyMap.get(freight.company_id);
               const isClosed = msg.chat_closed_by?.[userProfileId] === true;
