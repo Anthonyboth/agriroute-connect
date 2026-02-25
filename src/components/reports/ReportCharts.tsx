@@ -96,6 +96,7 @@ interface ChartConfig {
   height?: number;
   onDrilldown?: (d: Drilldown) => void;
   drilldownKind?: 'route' | 'cargo' | 'status';
+  yAxisAllowDecimals?: boolean;
 }
 
 interface ReportChartsProps {
@@ -498,9 +499,12 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
     tickLine: false,
     axisLine: false,
     width: isMobile ? 40 : 48,
-    tickFormatter: formatCompactNumber,
+    tickFormatter: config.yAxisAllowDecimals === false
+      ? (v: number) => Number(v).toFixed(0)
+      : formatCompactNumber,
     tickMargin: 4,
     domain,
+    allowDecimals: config.yAxisAllowDecimals ?? true,
   };
 
   const refLabel = avg != null ? {
