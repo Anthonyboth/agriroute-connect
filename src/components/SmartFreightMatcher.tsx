@@ -289,6 +289,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         const freight = compatibleFreights.find((f) => f.freight_id === freightId);
         if (!freight) return;
 
+        // ✅ Bloquear proposta em fretes sem produtor cadastrado
+        if (!(freight as any).producer_id) {
+          toast.error("Este frete foi criado por um solicitante sem cadastro. Não é possível enviar proposta.");
+          return;
+        }
+
         const driverProfileId = await (async () => {
           const {
             data: { user: u },

@@ -774,7 +774,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 >
                   Aceitar ({availableSlots})
                 </Button>
-                {freight.producer_id && (
+                {freight.producer_id ? (
                   <Button
                     onClick={() => setProposalModalOpen(true)}
                     className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
@@ -782,6 +782,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   >
                     Contraproposta
                   </Button>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
+                    Solicitante sem cadastro — contraproposta indisponível
+                  </p>
                 )}
               </div>
             ) : (
@@ -793,7 +797,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 >
                   Aceitar
                 </Button>
-                {freight.producer_id && (
+                {freight.producer_id ? (
                   <Button
                     onClick={() => setProposalModalOpen(true)}
                     className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
@@ -802,6 +806,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   >
                     Contraproposta
                   </Button>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
+                    Solicitante sem cadastro — contraproposta indisponível
+                  </p>
                 )}
               </div>
             )}
