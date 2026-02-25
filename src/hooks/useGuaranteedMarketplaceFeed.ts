@@ -81,7 +81,11 @@ export function useGuaranteedMarketplaceFeed() {
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
     const rawPanel = roleOverride || profile?.active_mode || profile?.role || 'TRANSPORTADORA';
     const panel = String(rawPanel).toUpperCase();
-    const rpcRole: FeedPanelRole = panel === 'TRANSPORTADORA' ? 'MOTORISTA' : (panel as FeedPanelRole);
+    const rpcRole: FeedPanelRole = (
+      ['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRESTADOR_SERVICOS', 'TRANSPORTADORA'].includes(panel)
+        ? panel
+        : 'MOTORISTA'
+    ) as FeedPanelRole;
     const allowedTransportTypes = resolveAllowedTransportTypes(profile);
 
     const emptyResult: GuaranteedMarketplaceResult = {
