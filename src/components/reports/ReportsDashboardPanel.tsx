@@ -186,6 +186,40 @@ type Insight = {
 
 const compactText = (s: string, max = 18) => (s.length > max ? `${s.slice(0, max)}…` : s);
 
+// ─── Phase 2: BI aggregator helpers ──────────────────────────────────────────
+function formatKeyDay(d: Date) { return d.toISOString().slice(0, 10); }
+function formatKeyMonth(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function pickGranularity(from: Date, to: Date) {
+  const diffDays = Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+  return diffDays <= 31 ? 'day' : 'month';
+}
+function buildSpendSeries(rows: any[], from: Date, to: Date) {
+  const gran = pickGranularity(from, to);
+  const keyFn = gran === 'day' ? formatKeyDay : formatKeyMonth;
+  const map = new Map<string, { key: string; spend: number; count: number; km: number }>();
+  for (const r of rows) {
+    if (!r.__date) continue;
+    const k = keyFn(r.__date);
+    const cur = map.get(k) || { key: k, spend: 0, count: 0, km: 0 };
+    cur.spend += Number(r.__valor) || 0;
+    cur.km += Number(r.__km) || 0;
+    cur.count += 1;
+    map.set(k, cur);
+  }
+  return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+}
+function groupSum(rows: any[], keyGetter: (r: any) => string, valueGetter: (r: any) => number) {
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const k = keyGetter(r) || '—';
+    map.set(k, (map.get(k) || 0) + (valueGetter(r) || 0));
+  }
+  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+}
+type Drilldown = { kind: 'route' | 'cargo' | 'status'; value: string };
+
 function pickBestWorstMonths(receitaMes: { month: string; receita: number; viagens: number }[]) {
   const rows = receitaMes.filter((r) => r.month);
   if (!rows.length) return null;
@@ -1040,6 +1074,108 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     return configs;
   }, [charts, isProdutor, producerLegacy.charts, producerLegacy.summary, hasUnifiedProducerData, producerHistoryAgg]);
 
+  // ── Phase 2: Spend Intelligence (PRODUTOR) ─────────────────────────────────
+  const applyDrilldown = (d: Drilldown) => {
+    if (d.kind === 'route') setProducerSlicers(s => ({ ...s, status: [], cargoTypes: [], routeQuery: d.value }));
+    if (d.kind === 'cargo') setProducerSlicers(s => ({ ...s, cargoTypes: [d.value.toLowerCase()], status: [], routeQuery: '' }));
+    if (d.kind === 'status') setProducerSlicers(s => ({ ...s, status: [d.value.toUpperCase()], cargoTypes: [], routeQuery: '' }));
+  };
+
+  const spendSeries = useMemo(() => {
+    if (!isProdutor) return [];
+    return buildSpendSeries(filteredProducerRows, dateRange.from, dateRange.to);
+  }, [filteredProducerRows, dateRange, isProdutor]);
+
+  const producerSpendCharts: ChartConfig[] = useMemo(() => {
+    if (!isProdutor || !spendSeries.length) return [];
+    const configs: ChartConfig[] = [];
+
+    configs.push({
+      title: 'Gasto ao longo do tempo',
+      type: 'area',
+      data: spendSeries.map(x => ({ period: x.key, gasto: x.spend, fretes: x.count })),
+      dataKeys: [{ key: 'gasto', label: 'Gasto', color: '#16a34a' }],
+      xAxisKey: 'period',
+      valueFormatter: formatBRL,
+    });
+
+    let acc = 0;
+    const accData = spendSeries.map(x => { acc += x.spend; return { period: x.key, acumulado: acc }; });
+    configs.push({
+      title: 'Gasto acumulado no período',
+      type: 'area',
+      data: accData,
+      dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: '#1976D2' }],
+      xAxisKey: 'period',
+      valueFormatter: formatBRL,
+    });
+
+    return configs;
+  }, [spendSeries, isProdutor]);
+
+  const producerDriverCharts: ChartConfig[] = useMemo(() => {
+    if (!isProdutor || !filteredProducerRows.length) return [];
+    const configs: ChartConfig[] = [];
+
+    const topRoutes = groupSum(filteredProducerRows, r => r.__rota, r => r.__valor)
+      .sort((a, b) => b.value - a.value).slice(0, 10).map(x => ({ name: x.name, gasto: x.value }));
+    if (topRoutes.length) {
+      configs.push({ title: 'Top rotas por gasto', type: 'horizontal-bar' as const, data: topRoutes, dataKeys: [{ key: 'gasto', label: 'Gasto (R$)', color: '#16a34a' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 340 });
+    }
+
+    const hasTipo = filteredProducerRows.some(r => r.__tipo);
+    if (hasTipo) {
+      const byTipo = groupSum(filteredProducerRows, r => r.__tipo, r => r.__valor)
+        .sort((a, b) => b.value - a.value).slice(0, 10).map(x => ({ name: x.name.charAt(0).toUpperCase() + x.name.slice(1), gasto: x.value }));
+      if (byTipo.length) {
+        configs.push({ title: 'Gasto por tipo de carga', type: 'horizontal-bar' as const, data: byTipo, dataKeys: [{ key: 'gasto', label: 'Gasto (R$)', color: '#2563eb' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 340 });
+      }
+    }
+
+    const byStatus = groupSum(filteredProducerRows, r => r.__status, r => 1)
+      .sort((a, b) => b.value - a.value).map(x => ({ name: STATUS_LABELS[x.name] || x.name, value: x.value }));
+    if (byStatus.length) {
+      configs.push({ title: 'Distribuição por status', type: 'pie' as const, data: byStatus, dataKeys: [{ key: 'value', label: 'Quantidade' }] });
+    }
+
+    return configs;
+  }, [filteredProducerRows, isProdutor]);
+
+  const producerEfficiencyCharts: ChartConfig[] = useMemo(() => {
+    if (!isProdutor || !spendSeries.length) return [];
+    const configs: ChartConfig[] = [];
+
+    const effSeries = spendSeries.filter(x => x.km > 0).map(x => ({
+      period: x.key, custo_km: x.spend / x.km,
+    }));
+    if (effSeries.length) {
+      configs.push({
+        title: 'Custo por km (tendência)', type: 'line',
+        data: effSeries,
+        dataKeys: [{ key: 'custo_km', label: 'R$/km', color: '#FF9800' }],
+        xAxisKey: 'period',
+        valueFormatter: (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      });
+    }
+
+    const outliers = filteredProducerRows
+      .filter(r => r.__km > 0 && r.__valor > 0)
+      .map(r => ({ name: r.__rota, rs_km: r.__valor / r.__km, gasto: r.__valor, km: r.__km }))
+      .sort((a, b) => b.rs_km - a.rs_km).slice(0, 10);
+    if (outliers.length) {
+      configs.push({
+        title: 'Outliers: maior custo/km', type: 'horizontal-bar' as const,
+        data: outliers.map(o => ({ name: o.name, rs_km: Number(o.rs_km.toFixed(2)) })),
+        dataKeys: [{ key: 'rs_km', label: 'R$/km', color: '#C62828' }],
+        xAxisKey: 'name',
+        valueFormatter: (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        height: 340,
+      });
+    }
+
+    return configs;
+  }, [spendSeries, filteredProducerRows, isProdutor]);
+
   // ── Gráficos genéricos (fallback) ──────────────────────────────────────────
   const genericCharts: ChartConfig[] = useMemo(() => {
     if (isMotorista || isTransportadora || isPrestador || isProdutor || !charts) return [];
@@ -1873,14 +2009,42 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <OperationalGrid items={produtorOp} isLoading={isLoading} />
           </div>
 
-          {/* ── 4. Gráficos ──────────────────────────────────────────────── */}
-          <div className="space-y-3">
-            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Distribuição operacional" />
-            {produtorCharts.length > 0 ? (
+          {/* ── Phase 2 Module 1: Tendência de Gasto ─────────────────────── */}
+          {!isLoading && producerSpendCharts.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={TrendingUp} title="Tendência de gasto" subtitle="Evolução e acumulado no período" />
+              <ReportCharts charts={producerSpendCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── Phase 2 Module 2: Drivers de Custo ───────────────────────── */}
+          {!isLoading && producerDriverCharts.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={Route} title="Drivers de custo" subtitle="Clique em uma barra para filtrar o extrato" />
+              <ReportCharts charts={producerDriverCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── Phase 2 Module 3: Eficiência ─────────────────────────────── */}
+          {!isLoading && producerEfficiencyCharts.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={Zap} title="Eficiência" subtitle="Custo por km e outliers" />
+              <ReportCharts charts={producerEfficiencyCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
+
+          {/* ── 4. Gráficos (originais) ──────────────────────────────────── */}
+          {produtorCharts.length > 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Distribuição operacional" />
               <ReportCharts charts={produtorCharts} isLoading={isLoading} columns={2} />
-            ) : isLoading ? (
-              <ReportCharts charts={[]} isLoading={true} columns={2} />
-            ) : (
+            </div>
+          )}
+
+          {/* Empty state for charts */}
+          {!isLoading && produtorCharts.length === 0 && producerSpendCharts.length === 0 && (
+            <div className="space-y-3">
+              <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Distribuição operacional" />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {['Gasto por mês', 'Operações por dia', 'Por status'].map((t) => (
                   <Card key={t} className="rounded-2xl">
@@ -1894,8 +2058,8 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
                   </Card>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ── 5. Extrato BI (tabela enterprise) ────────────────────────── */}
           <div className="space-y-3">
