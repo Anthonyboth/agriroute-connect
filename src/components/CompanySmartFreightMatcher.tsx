@@ -390,22 +390,16 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         </CardHeader>
 
         <CardContent>
-          <div className="bg-secondary/30 p-4 rounded-lg mb-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h4 className="font-semibold mb-1">{company?.company_name}</h4>
-                <p className="text-sm text-muted-foreground">
-                  CNPJ:{" "}
-                  {company?.company_cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") ||
-                    "Não informado"}{" "}
-                  • {activeDrivers.length} motoristas ativos
-                </p>
-              </div>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{company?.company_name}</p>
+              <p className="text-xs text-muted-foreground">
+                CNPJ:{" "}
+                {company?.company_cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") ||
+                  "N/I"}{" "}
+                • {activeDrivers.length} motoristas
+              </p>
             </div>
-          </div>
-
-          {/* Filtros de Marketplace */}
-          <div className="mb-4">
             <MarketplaceFilters
               filters={marketplaceFilters}
               onChange={(newFilters) => {

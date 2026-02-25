@@ -509,31 +509,29 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         </CardHeader>
 
         <CardContent>
-          {profile?.service_types && (
-            <div className="bg-secondary/30 p-4 rounded-lg mb-6">
-              <h4 className="font-semibold mb-2">Seus Tipos de Serviço Ativos:</h4>
-              <div className="flex flex-wrap gap-2">
+          {/* Tipos ativos + Ordenação em linha */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {profile?.service_types && (
+              <>
+                <span className="text-xs font-medium text-muted-foreground mr-1">Serviços:</span>
                 {Array.from(
                   new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
                 ).map((serviceType: string) => (
                   <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
                 ))}
-              </div>
+              </>
+            )}
+            <div className="ml-auto">
+              <MarketplaceFilters
+                filters={marketplaceFilters}
+                onChange={(newFilters) => {
+                  setMarketplaceFilters(newFilters);
+                  setTimeout(() => fetchRef.current(), 100);
+                }}
+                showRpmSort={hasRuralFreights}
+                showDistSort={hasRuralFreights}
+              />
             </div>
-          )}
-
-          {/* Filtros de Marketplace */}
-          <div className="mb-4">
-            <MarketplaceFilters
-              filters={marketplaceFilters}
-              onChange={(newFilters) => {
-                setMarketplaceFilters(newFilters);
-                // Refetch ao alterar filtros
-                setTimeout(() => fetchRef.current(), 100);
-              }}
-              showRpmSort={hasRuralFreights}
-              showDistSort={hasRuralFreights}
-            />
           </div>
 
           <div className="space-y-4 mb-6">
