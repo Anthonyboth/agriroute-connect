@@ -760,10 +760,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 </Button>
                 <Button
                   onClick={() => setProposalModalOpen(true)}
-                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 whitespace-nowrap text-xs sm:text-sm px-2"
                   variant="outline"
                 >
-                  Contra proposta
+                  Contraproposta
                 </Button>
               </div>
             ) : (
@@ -777,11 +777,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 </Button>
                 <Button
                   onClick={() => setProposalModalOpen(true)}
-                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 whitespace-nowrap text-xs sm:text-sm px-2"
                   size="sm"
                   variant="outline"
                 >
-                  Contra proposta
+                  Contraproposta
                 </Button>
               </div>
             )}
