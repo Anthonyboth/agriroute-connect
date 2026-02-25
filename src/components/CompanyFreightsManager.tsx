@@ -29,7 +29,35 @@ export const CompanyFreightsManager: React.FC = () => {
     try {
       setIsLoading(true);
 
-      const { data, error } = await supabase
+      // Step 1: Get freight IDs linked to this company via freight_assignments
+      const { data: assignments, error: assignError } = await supabase
+        .from('freight_assignments')
+        .select('freight_id')
+        .eq('company_id', company.id);
+
+      if (assignError) throw assignError;
+
+      const assignedFreightIds = (assignments || []).map(a => a.freight_id).filter(Boolean);
+
+      // Step 2: Also get freights directly owned by this company (company_id on freights table)
+      // Combine both sources
+      let allFreightIds = [...new Set(assignedFreightIds)];
+
+      // Step 3: Fetch freights from both sources
+      const freightsByAssignment = allFreightIds.length > 0
+        ? await supabase
+            .from('freights')
+            .select(`
+              *,
+              producer:profiles_secure!freights_producer_id_fkey(id, full_name, contact_phone),
+              driver:profiles_secure!freights_driver_id_fkey(id, full_name, contact_phone)
+            `)
+            .in('id', allFreightIds)
+            .order('updated_at', { ascending: false })
+            .limit(500)
+        : { data: [], error: null };
+
+      const freightsByCompany = await supabase
         .from('freights')
         .select(`
           *,
@@ -40,9 +68,24 @@ export const CompanyFreightsManager: React.FC = () => {
         .order('updated_at', { ascending: false })
         .limit(500);
 
-      if (error) throw error;
+      // Merge and deduplicate
+      const allFreights = new Map<string, any>();
+      for (const result of [freightsByAssignment, freightsByCompany]) {
+        if (result.error) {
+          console.error('Erro parcial ao buscar fretes:', result.error);
+          continue;
+        }
+        for (const freight of (result.data || [])) {
+          allFreights.set(freight.id, freight);
+        }
+      }
 
-      setFreights(data || []);
+      // Sort by updated_at desc
+      const merged = Array.from(allFreights.values()).sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+
+      setFreights(merged);
     } catch (error) {
       console.error('Erro ao buscar fretes:', error);
       toast.error('Erro ao carregar fretes');
@@ -69,6 +112,15 @@ export const CompanyFreightsManager: React.FC = () => {
           event: '*',
           schema: 'public',
           table: 'freights',
+        },
+        () => fetchFreights()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freight_assignments',
           filter: `company_id=eq.${company.id}`
         },
         () => fetchFreights()
@@ -112,27 +164,13 @@ export const CompanyFreightsManager: React.FC = () => {
 
   const filterFreights = (status: string) => {
     if (status === 'open') {
-      return freights.filter(f => ['OPEN', 'IN_NEGOTIATION', 'ACCEPTED'].includes(f.status));
+      return freights.filter(f => ['OPEN', 'IN_NEGOTIATION'].includes(f.status));
     }
     if (status === 'in_progress') {
-      return freights.filter(f => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Se não tem pickup_date, não pode estar "em andamento"
-        if (!f.pickup_date) return false;
-        
-        // pickup_date deve ser hoje ou passado
-        const pickupDate = new Date(f.pickup_date);
-        pickupDate.setHours(0, 0, 0, 0);
-        
-        const isDateValid = pickupDate <= today;
-        
-        // Status deve ser ativo (não final)
-        const hasActiveStatus = !['CANCELLED', 'DELIVERED', 'COMPLETED'].includes(f.status);
-        
-        return isDateValid && hasActiveStatus;
-      });
+      // Any freight with active operational status
+      return freights.filter(f =>
+        ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'DELIVERED'].includes(f.status)
+      );
     }
     if (status === 'cancelled') {
       return freights.filter(f => f.status === 'CANCELLED');
