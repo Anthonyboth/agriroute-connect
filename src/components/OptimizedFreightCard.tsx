@@ -447,17 +447,17 @@ const OptimizedFreightCard = memo<FreightCardProps>(
                 Aceitar Frete por Moto
               </Button>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-[0.85fr_1.15fr] gap-2">
                 <Button
                   onClick={handleAccept}
-                  className="btn-accessible gradient-primary text-sm sm:text-base font-semibold truncate"
+                  className="w-full min-w-0 btn-accessible gradient-primary text-sm sm:text-base font-semibold truncate"
                   size="lg"
                 >
                   Aceitar
                 </Button>
                 <Button
                   onClick={handleProposalModalOpen}
-                  className="btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-sm sm:text-base font-semibold truncate"
+                  className="w-full min-w-0 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-sm sm:text-base font-semibold truncate"
                   size="lg"
                   variant="outline"
                 >

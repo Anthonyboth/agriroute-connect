@@ -751,33 +751,33 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 Aceitar Frete por Moto
               </Button>
             ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-[0.85fr_1.15fr] gap-2">
                 <Button
                   onClick={() => setBulkAcceptorOpen(true)}
-                  className="gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
+                  className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
                 >
                   Aceitar ({availableSlots})
                 </Button>
                 <Button
                   onClick={() => setProposalModalOpen(true)}
-                  className="border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
+                  className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
                   variant="outline"
                 >
                   Contraproposta
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-[0.85fr_1.15fr] gap-2">
                 <Button
                   onClick={() => handleAcceptFreight(1)}
-                  className="gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
+                  className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
                   size="sm"
                 >
                   Aceitar
                 </Button>
                 <Button
                   onClick={() => setProposalModalOpen(true)}
-                  className="border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
+                  className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
                   size="sm"
                   variant="outline"
                 >
