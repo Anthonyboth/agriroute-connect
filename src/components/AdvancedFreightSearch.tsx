@@ -205,9 +205,9 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
       return;
     }
 
+    // ✅ SESSÃO: salva apenas em memória (sessionStorage), não localStorage
     try {
-      // Save to localStorage for now (could be database later)
-      const savedSearches = JSON.parse(localStorage.getItem('savedFreightSearches') || '[]');
+      const existing = JSON.parse(sessionStorage.getItem('savedFreightSearches') || '[]');
       const newSearch = {
         id: Date.now().toString(),
         name: searchName,
@@ -216,12 +216,12 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
         user_role: userRole
       };
 
-      savedSearches.push(newSearch);
-      localStorage.setItem('savedFreightSearches', JSON.stringify(savedSearches));
+      existing.push(newSearch);
+      sessionStorage.setItem('savedFreightSearches', JSON.stringify(existing));
       
-      setSavedSearches(savedSearches);
+      setSavedSearches(existing);
       setSearchName('');
-      toast.success('Busca salva com sucesso!');
+      toast.success('Busca salva para esta sessão!');
     } catch (error) {
       toast.error('Erro ao salvar busca');
     }
@@ -233,8 +233,8 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
   };
 
   useEffect(() => {
-    // Load saved searches
-    const saved = JSON.parse(localStorage.getItem('savedFreightSearches') || '[]');
+    // ✅ SESSÃO: carrega de sessionStorage (apagado ao fechar app)
+    const saved = JSON.parse(sessionStorage.getItem('savedFreightSearches') || '[]');
     setSavedSearches(saved.filter((s: any) => s.user_role === userRole));
   }, [userRole]);
 

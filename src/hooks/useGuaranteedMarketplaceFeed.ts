@@ -14,6 +14,8 @@ interface GuaranteedMarketplaceFeedParams {
   filterTypes?: string[];
   filterExpiryBucket?: ExpiryBucket;
   filterSort?: SortOption;
+  /** Quando true, pula filtragem estrita por cidade (busca avançada) */
+  skipCityFilter?: boolean;
 }
 
 interface UnifiedFeedDebugSummary {
@@ -84,6 +86,7 @@ export function useGuaranteedMarketplaceFeed() {
     filterTypes,
     filterExpiryBucket,
     filterSort,
+    skipCityFilter = false,
   }: GuaranteedMarketplaceFeedParams): Promise<GuaranteedMarketplaceResult> => {
     const rawPanel = roleOverride || profile?.active_mode || profile?.role || 'TRANSPORTADORA';
     const panel = String(rawPanel).toUpperCase();
@@ -133,7 +136,8 @@ export function useGuaranteedMarketplaceFeed() {
     let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
 
     // Blindagem estrita por cidade para perfis individuais (fail-closed)
-    const shouldEnforceStrictCity = panel === 'MOTORISTA' || panel === 'PRESTADOR_SERVICOS';
+    // ✅ Busca avançada: skipCityFilter=true pula essa blindagem
+    const shouldEnforceStrictCity = !skipCityFilter && (panel === 'MOTORISTA' || panel === 'PRESTADOR_SERVICOS');
     if (shouldEnforceStrictCity) {
       const { data: userCities, error: userCitiesError } = await supabase
         .from('user_cities')
