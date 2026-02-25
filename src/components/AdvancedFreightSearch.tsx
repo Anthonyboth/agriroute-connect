@@ -318,7 +318,7 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
                   <SelectTrigger className="h-9 text-sm bg-background">
                     <SelectValue placeholder="Selecione uma rota" />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
+                  <SelectContent className="bg-popover z-[200]" position="popper" sideOffset={4}>
                     {routeCorridors.map(corridor => (
                       <SelectItem key={corridor} value={corridor}>{corridor}</SelectItem>
                     ))}
