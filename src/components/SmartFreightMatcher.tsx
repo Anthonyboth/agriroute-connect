@@ -78,12 +78,39 @@ interface CompatibleFreight {
   price_per_km?: number;
 }
 
+interface AdvancedSearchFilters {
+  origin_city?: string;
+  origin_state?: string;
+  destination_city?: string;
+  destination_state?: string;
+  max_distance_km?: number;
+  route_corridor?: string;
+  scheduled_only?: boolean;
+  urgent_only?: boolean;
+  cargo_categories?: string[];
+  min_weight?: number;
+  max_weight?: number;
+  hazardous_cargo?: boolean;
+  live_cargo?: boolean;
+  refrigerated?: boolean;
+  min_price?: number;
+  max_price?: number;
+  advance_payment_available?: boolean;
+  vehicle_types?: string[];
+  min_axles?: number;
+  max_axles?: number;
+  trusted_producers_only?: boolean;
+  minimum_rating?: number;
+  has_insurance?: boolean;
+}
+
 interface SmartFreightMatcherProps {
   onFreightAction?: (freightId: string, action: string) => void;
   onCountsChange?: (counts: { total: number; highUrgency: number }) => void;
+  advancedFilters?: AdvancedSearchFilters | null;
 }
 
-export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFreightAction, onCountsChange }) => {
+export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFreightAction, onCountsChange, advancedFilters }) => {
   const { profile, user } = useAuth();
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights, companyId: permissionCompanyId } = useDriverPermissions();
@@ -164,6 +191,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         : 'MOTORISTA';
 
       // ✅ FONTE ÚNICA: usa hook autoritativo (get_authoritative_feed)
+      // Quando busca avançada ativa, pula filtro de cidade para ampliar resultados
+      const hasAdvancedFilters = !!advancedFilters && (
+        !!advancedFilters.origin_city || !!advancedFilters.destination_city ||
+        !!advancedFilters.route_corridor || (advancedFilters.cargo_categories?.length ?? 0) > 0 ||
+        (advancedFilters.vehicle_types?.length ?? 0) > 0 || !!advancedFilters.urgent_only ||
+        (advancedFilters.min_price ?? 0) > 0 || (advancedFilters.max_price ?? 50000) < 50000
+      );
+
       const result = await fetchAvailableMarketplaceItems({
         profile,
         roleOverride: driverPanelRole,
@@ -173,6 +208,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         filterTypes: marketplaceFilters.selectedTypes.length > 0 ? marketplaceFilters.selectedTypes : undefined,
         filterExpiryBucket: marketplaceFilters.expiryBucket !== 'ALL' ? marketplaceFilters.expiryBucket : undefined,
         filterSort: marketplaceFilters.sort,
+        skipCityFilter: hasAdvancedFilters,
       });
 
       const unifiedFreights: CompatibleFreight[] = (result.freights || []).map((f: any) => ({
@@ -240,7 +276,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       updateLockRef.current = false;
       setLoading(false);
     }
-  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, fetchAvailableMarketplaceItems, marketplaceFilters]);
+  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, canSeeFreightByType, fetchAvailableMarketplaceItems, marketplaceFilters, advancedFilters]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -333,6 +369,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     fetchRef.current();
     setLastRefreshAt(new Date());
   }, [profile?.id, user?.id]);
+
+  // ✅ Re-fetch quando busca avançada muda (skipCityFilter depende de advancedFilters)
+  const advancedFiltersRef = useRef(advancedFilters);
+  useEffect(() => {
+    if (!profile?.id || !user?.id) return;
+    // Só re-fetch se advancedFilters realmente mudou
+    if (advancedFiltersRef.current !== advancedFilters) {
+      advancedFiltersRef.current = advancedFilters;
+      fetchRef.current();
+    }
+  }, [advancedFilters, profile?.id, user?.id]);
   
   // Auto-refresh a cada 10 minutos (sem dep em fetchCompatibleFreights)
   useEffect(() => {
@@ -392,10 +439,61 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       
       // Filtro por tipo de veículo
       const matchesVehicleType = selectedVehicleType === "all" || freight.service_type === selectedVehicleType;
+
+      // ✅ BUSCA AVANÇADA: filtros adicionais quando advancedFilters está ativo
+      let matchesAdvanced = true;
+      if (advancedFilters) {
+        // Filtro por cidade de origem
+        if (advancedFilters.origin_city) {
+          matchesAdvanced = matchesAdvanced && (freight.origin_city || '').toLowerCase().includes(advancedFilters.origin_city.toLowerCase());
+        }
+        // Filtro por cidade de destino
+        if (advancedFilters.destination_city) {
+          matchesAdvanced = matchesAdvanced && (freight.destination_city || '').toLowerCase().includes(advancedFilters.destination_city.toLowerCase());
+        }
+        // Filtro por corredor rodoviário (busca no endereço)
+        if (advancedFilters.route_corridor) {
+          const corridor = advancedFilters.route_corridor.toLowerCase();
+          matchesAdvanced = matchesAdvanced && (
+            (freight.origin_address || '').toLowerCase().includes(corridor) ||
+            (freight.destination_address || '').toLowerCase().includes(corridor) ||
+            (freight.origin_state || '').toLowerCase().includes(corridor) ||
+            (freight.destination_state || '').toLowerCase().includes(corridor)
+          );
+        }
+        // Filtro por distância
+        if (advancedFilters.max_distance_km && advancedFilters.max_distance_km < 3000) {
+          matchesAdvanced = matchesAdvanced && (freight.distance_km <= advancedFilters.max_distance_km);
+        }
+        // Filtro por urgência
+        if (advancedFilters.urgent_only) {
+          matchesAdvanced = matchesAdvanced && freight.urgency === 'HIGH';
+        }
+        // Filtro por categoria de carga
+        if (advancedFilters.cargo_categories && advancedFilters.cargo_categories.length > 0) {
+          matchesAdvanced = matchesAdvanced && advancedFilters.cargo_categories.some(cat =>
+            (freight.cargo_type || '').toLowerCase().includes(cat.toLowerCase())
+          );
+        }
+        // Filtro por preço
+        if ((advancedFilters.min_price ?? 0) > 0) {
+          matchesAdvanced = matchesAdvanced && freight.price >= (advancedFilters.min_price ?? 0);
+        }
+        if ((advancedFilters.max_price ?? 50000) < 50000) {
+          matchesAdvanced = matchesAdvanced && freight.price <= (advancedFilters.max_price ?? 50000);
+        }
+        // Filtro por peso
+        if ((advancedFilters.min_weight ?? 0) > 0) {
+          matchesAdvanced = matchesAdvanced && freight.weight >= (advancedFilters.min_weight ?? 0);
+        }
+        if ((advancedFilters.max_weight ?? 100) < 100) {
+          matchesAdvanced = matchesAdvanced && freight.weight <= (advancedFilters.max_weight ?? 100);
+        }
+      }
       
-      return matchesSearch && matchesCargoType && matchesVehicleType;
+      return matchesSearch && matchesCargoType && matchesVehicleType && matchesAdvanced;
     });
-  }, [compatibleFreights, searchTerm, selectedCargoType, selectedVehicleType]);
+  }, [compatibleFreights, searchTerm, selectedCargoType, selectedVehicleType, advancedFilters]);
 
   const filteredRequests = useMemo(() => {
     return towingRequests.filter((r: any) => {
