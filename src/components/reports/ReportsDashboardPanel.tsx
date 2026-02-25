@@ -171,55 +171,157 @@ const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?
   </div>
 );
 
-// ─── Componente: Highlights rápidos do Motorista (B2) ────────────────────────
-const MotoristaHighlights: React.FC<{ charts: any; kpis: any }> = ({ charts, kpis }) => {
-  const highlights = useMemo(() => {
-    const items: { label: string; value: string; icon: React.ElementType }[] = [];
-    // Melhor mês por receita
-    const receitaMes = charts?.receita_por_mes || [];
-    if (receitaMes.length > 0) {
-      const best = receitaMes.reduce((a: any, b: any) => (Number(b.receita) > Number(a.receita) ? b : a), receitaMes[0]);
-      const worst = receitaMes.reduce((a: any, b: any) => (Number(b.receita) < Number(a.receita) ? b : a), receitaMes[0]);
-      if (best) items.push({ label: 'Melhor mês', value: `${formatMonthLabelPtBR(best.mes)} (${formatBRL(Number(best.receita) || 0)})`, icon: TrendingUp });
-      if (worst && receitaMes.length > 1) items.push({ label: 'Pior mês', value: `${formatMonthLabelPtBR(worst.mes)} (${formatBRL(Number(worst.receita) || 0)})`, icon: ArrowDownRight });
-    }
-    // R$/km
-    const rpm = Number(kpis.rpm_medio) || 0;
-    if (rpm > 0) items.push({ label: 'R$/km médio', value: `R$ ${rpm.toFixed(2)}`, icon: Route });
-    // Taxa conclusão
-    const taxa = Number(kpis.taxa_conclusao) || 0;
-    if (taxa > 0) items.push({ label: 'Taxa conclusão', value: `${taxa.toFixed(1)}%`, icon: CheckCircle });
-    // Melhor rota
-    const topRotas = charts?.top_rotas || [];
-    if (topRotas.length > 0) {
-      const top = topRotas[0];
-      const rota = formatRouteLabel(top.rota || (top.origem && top.destino ? `${top.origem} → ${top.destino}` : ''));
-      items.push({ label: 'Melhor rota', value: `${rota} (${formatBRL(Number(top.receita) || 0)})`, icon: MapPin });
-    }
-    return items.slice(0, 5);
-  }, [charts, kpis]);
+// ─── Tipos e helpers para Insights rápidos (PowerBI-like) ────────────────────
+type Insight = {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: 'good' | 'bad' | 'neutral';
+};
 
-  if (!highlights.length) return null;
+const compactText = (s: string, max = 18) => (s.length > max ? `${s.slice(0, max)}…` : s);
+
+function pickBestWorstMonths(receitaMes: { month: string; receita: number; viagens: number }[]) {
+  const rows = receitaMes.filter((r) => r.month);
+  if (!rows.length) return null;
+  const best = rows.reduce((a, b) => (b.receita > a.receita ? b : a));
+  const worst = rows.reduce((a, b) => (b.receita < a.receita ? b : a));
+  return { best, worst };
+}
+
+const HighlightsGrid: React.FC<{ items: Insight[]; isLoading: boolean }> = ({ items, isLoading }) => {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      <SectionTitle icon={TrendingUp} title="Destaques" subtitle="Insights rápidos do período" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {highlights.map((h, i) => {
-          const Icon = h.icon;
-          return (
-            <div key={i} className="rounded-xl border border-border/40 bg-card p-3 flex items-start gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">{h.label}</p>
-                <p className="text-xs font-bold text-foreground truncate">{h.value}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {items.slice(0, 6).map((it, i) => (
+        <div
+          key={i}
+          className={cn(
+            'rounded-2xl border p-3 bg-card',
+            it.tone === 'good' && 'border-[rgba(22,163,74,0.28)] bg-[rgba(22,163,74,0.06)]',
+            it.tone === 'bad' && 'border-destructive/25 bg-destructive/5'
+          )}
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {it.label}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-base font-extrabold tabular-nums',
+              it.tone === 'good' && 'text-[#16a34a]',
+              it.tone === 'bad' && 'text-destructive'
+            )}
+          >
+            {it.value}
+          </p>
+          {it.hint && <p className="text-[11px] text-muted-foreground mt-0.5">{it.hint}</p>}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─── Componente: Bloco de Insights do Motorista ─────────────────────────────
+const MotoristaInsightsBlock: React.FC<{ kpis: any; charts: any; isLoading: boolean }> = ({ kpis, charts, isLoading }) => {
+  const insights = useMemo(() => {
+    const receitaTotal = Number(kpis.receita_total) || 0;
+    const kmTotal = Number(kpis.km_total) || 0;
+    const rpmMedio = Number(kpis.rpm_medio) || 0;
+    const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
+    const taxaCancel = Number(kpis.taxa_cancelamento) || 0;
+
+    const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
+      month: formatMonthLabelPtBR(m.mes),
+      receita: Number(m.receita) || 0,
+      viagens: Math.round(Number(m.viagens) || 0),
+    }));
+
+    const bw = pickBestWorstMonths(receitaMes);
+    const items: Insight[] = [];
+
+    if (bw?.best) {
+      items.push({
+        label: 'Melhor mês',
+        value: `${bw.best.month} — ${formatBRL(bw.best.receita)}`,
+        hint: `Viagens: ${bw.best.viagens}`,
+        tone: 'good',
+      });
+    }
+
+    if (bw && receitaMes.length >= 2 && bw.worst) {
+      items.push({
+        label: 'Pior mês',
+        value: `${bw.worst.month} — ${formatBRL(bw.worst.receita)}`,
+        hint: `Viagens: ${bw.worst.viagens}`,
+        tone: 'bad',
+      });
+    }
+
+    if (rpmMedio > 0) {
+      items.push({
+        label: 'R$/km',
+        value: `R$ ${rpmMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        hint: 'Média no período',
+        tone: 'neutral',
+      });
+    }
+
+    if (taxaConclusao > 0) {
+      const tone: Insight['tone'] = taxaConclusao >= 90 ? 'good' : taxaConclusao >= 70 ? 'neutral' : 'bad';
+      items.push({
+        label: 'Conclusão',
+        value: `${taxaConclusao.toFixed(1)}%`,
+        hint: `Cancel.: ${taxaCancel.toFixed(1)}%`,
+        tone,
+      });
+    }
+
+    const topRotas = (charts?.top_rotas || [])
+      .map((r: any) => ({
+        rota: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
+        receita: Number(r.receita) || 0,
+      }))
+      .sort((a: any, b: any) => b.receita - a.receita);
+
+    if (topRotas.length) {
+      items.push({
+        label: 'Top rota',
+        value: compactText(topRotas[0].rota, 20),
+        hint: formatBRL(topRotas[0].receita),
+        tone: 'good',
+      });
+    }
+
+    if (receitaTotal > 0 && kmTotal > 0) {
+      const rpk = receitaTotal / kmTotal;
+      items.push({
+        label: 'Receita/km',
+        value: `R$ ${rpk.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        hint: 'Receita total ÷ km',
+        tone: 'neutral',
+      });
+    }
+
+    return items.slice(0, 6);
+  }, [kpis, charts]);
+
+  if (!insights.length && !isLoading) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+        Insights rápidos
+      </p>
+      <HighlightsGrid items={insights} isLoading={isLoading} />
     </div>
   );
 };
@@ -608,14 +710,13 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <OperationalGrid items={motoristaOp} isLoading={isLoading} />
           </div>
 
-          {/* Highlights rápidos */}
-          {!isLoading && motoristaCharts.length > 0 && (
-            <MotoristaHighlights charts={charts} kpis={kpis} />
-          )}
-
           {/* Gráficos */}
           <div className="space-y-3">
             <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
+
+            {/* Insights rápidos (PowerBI-like) — acima dos gráficos */}
+            <MotoristaInsightsBlock kpis={kpis} charts={charts} isLoading={isLoading} />
+
             <ReportCharts charts={motoristaCharts} isLoading={isLoading} columns={2} />
           </div>
 
