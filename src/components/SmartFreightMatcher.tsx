@@ -602,7 +602,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             )}
           </CardTitle>
           <CardDescription>
-            Fretes selecionados automaticamente com base nas suas áreas e tipos de serviço.
+            Fretes selecionados automaticamente com base nas suas áreas e tipos de frete.
           </CardDescription>
         </CardHeader>
 
@@ -611,7 +611,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {profile?.service_types && (
               <>
-                <span className="text-xs font-medium text-muted-foreground mr-1">Serviços:</span>
+                <span className="text-xs font-medium text-muted-foreground mr-1">Fretes:</span>
                 {Array.from(
                   new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
                 ).map((serviceType: string) => (
@@ -706,7 +706,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           <Card>
             <CardContent className="text-center py-8">
               <h3 className="font-semibold mb-2">Nenhum tipo de frete ativo</h3>
-              <p className="text-muted-foreground">Ative pelo menos um tipo de serviço para visualizar fretes compatíveis.</p>
+              <p className="text-muted-foreground">Ative pelo menos um tipo de frete para visualizar fretes compatíveis.</p>
             </CardContent>
           </Card>
         ) : loading ? (
@@ -786,8 +786,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
               <Card>
                 <CardContent className="text-center py-8">
                   <Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold mb-2">Nenhum serviço disponível</h3>
-                  <p className="text-muted-foreground mb-4">Não há serviços disponíveis no momento.</p>
+                  <h3 className="font-semibold mb-2">Nenhum frete urbano disponível</h3>
+                  <p className="text-muted-foreground mb-4">Não há fretes urbanos disponíveis no momento.</p>
                   <Button variant="outline" onClick={fetchCompatibleFreights}>
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Verificar Novamente
@@ -909,7 +909,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                 <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
-                                  <p className="text-sm text-foreground line-clamp-3">{r.problem_description}</p>
+                                  <p className="text-sm text-foreground line-clamp-3">{String(r.problem_description).replace(/\b[Ss]erviço\b/g, 'Frete').replace(/\b[Ss]olicitação de serviço\b/g, 'Solicitação de frete')}</p>
                                 </div>
                               </div>
                             </div>
