@@ -7,10 +7,10 @@ import {
   ScatterChart, Scatter, ZAxis, AreaChart, Area, ReferenceLine
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, TrendingDown, Activity, BarChart3 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// (3) Hook: useIsMobile — safe for SSR, cleanup on unmount
+// Hook: useIsMobile — safe for SSR
 // ═══════════════════════════════════════════════════════════════════════════════
 function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(false);
@@ -25,7 +25,7 @@ function useIsMobile(): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Paleta fixa (hex → render consistente no Recharts)
+// Paleta fixa
 // ═══════════════════════════════════════════════════════════════════════════════
 const CHART_COLORS = [
   '#16a34a', '#2563eb', '#f59e0b', '#8b5cf6',
@@ -102,140 +102,210 @@ interface ReportChartsProps {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// (1) Mini KPI helper — computa métricas locais a partir do dataset
+// A2) computeDomain — escala dinâmica para eixos
 // ═══════════════════════════════════════════════════════════════════════════════
-interface MiniKpiData {
-  primaryLabel: string;
-  primaryValue: string;
-  chips: { label: string; value: string; variant?: 'up' | 'down' | 'neutral' }[];
+function computeDomain(values: number[]): [number, number] {
+  const clean = values.filter(v => Number.isFinite(v));
+  if (!clean.length) return [0, 1];
+  const max = Math.max(...clean);
+  if (max <= 0) return [0, 1];
+  return [0, max * 1.18];
 }
 
-function computeMiniKpis(config: ChartConfig): MiniKpiData | null {
-  const { type, data, dataKeys, valueFormatter } = config;
-  if (!data.length || !dataKeys.length) return null;
-  const fmt = valueFormatter || formatCompactNumber;
-  const primaryKey = dataKeys[0].key;
+// ═══════════════════════════════════════════════════════════════════════════════
+// A3) computeMiniKpi — PowerBI-like header
+// ═══════════════════════════════════════════════════════════════════════════════
+type MiniKpi = {
+  primaryLabel: 'TOTAL' | 'ÚLTIMO';
+  primaryValue: number;
+  maxValue: number;
+  avgValue: number;
+  deltaPct: number | null;
+  points: number;
+  insight: { label: string; variant: 'up' | 'down' | 'neutral' | 'warn' };
+};
 
-  // Extract numeric values for primaryKey
-  const values = data
-    .map(d => Number(d[primaryKey]))
-    .filter(v => !isNaN(v) && isFinite(v));
+function computeMiniKpi(config: ChartConfig): MiniKpi | null {
+  const dk = config.dataKeys?.[0]?.key;
+  if (!dk) return null;
 
+  if (config.type === 'pie') {
+    const values = (config.data || []).map((d: any) => Number(d?.[dk])).filter(v => Number.isFinite(v));
+    if (!values.length) return null;
+    const total = values.reduce((a, b) => a + b, 0);
+    const maxValue = Math.max(...values);
+    return {
+      primaryLabel: 'TOTAL', primaryValue: total, maxValue, avgValue: total / values.length,
+      deltaPct: null, points: values.length,
+      insight: { label: 'Distribuição', variant: 'neutral' },
+    };
+  }
+
+  if (config.type === 'scatter') {
+    const yKey = config.yAxisKey || dk;
+    const yVals = (config.data || []).map((d: any) => Number(d?.[yKey])).filter(v => Number.isFinite(v));
+    const xKey = config.xAxisKey || 'km';
+    const xVals = (config.data || []).map((d: any) => Number(d?.[xKey])).filter(v => Number.isFinite(v));
+    const avgY = yVals.length ? yVals.reduce((a, b) => a + b, 0) / yVals.length : 0;
+    const avgX = xVals.length ? xVals.reduce((a, b) => a + b, 0) / xVals.length : 0;
+    return {
+      primaryLabel: 'TOTAL', primaryValue: config.data.length, maxValue: Math.max(...yVals, 0),
+      avgValue: avgY, deltaPct: null, points: config.data.length,
+      insight: { label: avgX > 0 ? `R$/km: ${formatBRL(avgY / avgX)}` : `${config.data.length} pontos`, variant: 'neutral' },
+    };
+  }
+
+  const values = (config.data || []).map((d: any) => Number(d?.[dk])).filter(v => Number.isFinite(v));
   if (!values.length) return null;
 
-  // ── Pie: total + maior fatia
-  if (type === 'pie') {
-    const total = values.reduce((a, b) => a + b, 0);
-    let maxIdx = 0;
-    values.forEach((v, i) => { if (v > values[maxIdx]) maxIdx = i; });
-    const maxName = formatChartLabel(String(data[maxIdx]?.name || ''));
-    return {
-      primaryLabel: 'Total',
-      primaryValue: fmt(total),
-      chips: [
-        { label: '🏆 Maior', value: `${maxName} (${fmt(values[maxIdx])})`, variant: 'neutral' },
-      ],
-    };
-  }
+  const maxValue = Math.max(...values);
+  const avgValue = values.reduce((a, b) => a + b, 0) / values.length;
+  const isAccum = dk === 'acumulado' || /acumulad/i.test(config.title);
+  const primaryLabel = isAccum ? 'ÚLTIMO' : 'TOTAL';
+  const primaryValue = isAccum ? values[values.length - 1] : values.reduce((a, b) => a + b, 0);
 
-  // ── Scatter: pontos + média Y
-  if (type === 'scatter') {
-    const yKey = config.yAxisKey || primaryKey;
-    const yVals = data.map(d => Number(d[yKey])).filter(v => !isNaN(v) && isFinite(v));
-    const avg = yVals.length ? yVals.reduce((a, b) => a + b, 0) / yVals.length : 0;
-    return {
-      primaryLabel: 'Pontos',
-      primaryValue: String(data.length),
-      chips: [
-        { label: 'Média Y', value: fmt(avg), variant: 'neutral' },
-      ],
-    };
-  }
-
-  // ── Line, Area, Bar, Horizontal-bar
-  const isAccumulated = primaryKey.toLowerCase().includes('acumulad');
-  const total = values.reduce((a, b) => a + b, 0);
-  const maxVal = Math.max(...values);
   const first = values[0];
   const last = values[values.length - 1];
+  const deltaPct = values.length >= 2 && Math.abs(first) > 0
+    ? ((last - first) / Math.abs(first)) * 100
+    : null;
 
-  // Δ%
-  let deltaChip: MiniKpiData['chips'][0] | null = null;
-  if (values.length >= 2 && first !== 0) {
-    const pct = ((last - first) / Math.abs(first)) * 100;
-    deltaChip = {
-      label: 'Δ%',
-      value: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`,
-      variant: pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral',
-    };
+  let insight: MiniKpi['insight'];
+  if (deltaPct === null) {
+    insight = { label: values.length === 1 ? '1 registro' : 'Sem base', variant: 'warn' };
+  } else if (deltaPct > 5) {
+    insight = { label: 'Alta', variant: 'up' };
+  } else if (deltaPct < -5) {
+    insight = { label: 'Queda', variant: 'down' };
+  } else {
+    insight = { label: 'Estável', variant: 'neutral' };
   }
 
-  const chips: MiniKpiData['chips'] = [
-    { label: 'Máx', value: fmt(maxVal), variant: 'neutral' },
-  ];
-  if (deltaChip) chips.push(deltaChip);
-
-  return {
-    primaryLabel: isAccumulated ? 'Último' : 'Total',
-    primaryValue: fmt(isAccumulated ? last : total),
-    chips,
-  };
+  return { primaryLabel, primaryValue, maxValue, avgValue, deltaPct, points: values.length, insight };
 }
 
 // ── Mini KPI strip component ────────────────────────────────────────────────
-const MiniKpiStrip: React.FC<{ kpi: MiniKpiData }> = ({ kpi }) => (
-  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 pb-2 pt-0.5">
+const MiniKpiStrip: React.FC<{ kpi: MiniKpi; fmt: (v: number) => string; isSparse: boolean }> = ({ kpi, fmt, isSparse }) => (
+  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 pb-2 pt-0.5">
     {/* Primary */}
     <div className="flex items-baseline gap-1.5">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
         {kpi.primaryLabel}
       </span>
-      <span className="text-sm font-bold text-foreground tabular-nums">
-        {kpi.primaryValue}
+      <span className="text-base font-extrabold text-foreground tabular-nums">
+        {fmt(kpi.primaryValue)}
       </span>
     </div>
     {/* Chips */}
-    {kpi.chips.map((chip, i) => (
-      <span
-        key={i}
-        className={cn(
-          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
-          chip.variant === 'up' && 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
-          chip.variant === 'down' && 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400',
-          (!chip.variant || chip.variant === 'neutral') && 'bg-muted/40 text-muted-foreground',
-        )}
-      >
-        {chip.variant === 'up' && <ArrowUpRight className="h-3 w-3" />}
-        {chip.variant === 'down' && <ArrowDownRight className="h-3 w-3" />}
-        {chip.variant === 'neutral' && chip.label !== '🏆 Maior' && <Minus className="h-3 w-3" />}
-        {chip.label}: {chip.value}
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums bg-muted/40 text-muted-foreground">
+      Máx: {fmt(kpi.maxValue)}
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums bg-muted/40 text-muted-foreground">
+      Média: {fmt(kpi.avgValue)}
+    </span>
+    {!isSparse && kpi.deltaPct != null && (
+      <span className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
+        kpi.deltaPct > 0 && 'bg-emerald-950/30 text-emerald-400',
+        kpi.deltaPct < 0 && 'bg-red-950/30 text-red-400',
+        kpi.deltaPct === 0 && 'bg-muted/40 text-muted-foreground',
+      )}>
+        {kpi.deltaPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : kpi.deltaPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+        Δ: {kpi.deltaPct >= 0 ? '+' : ''}{kpi.deltaPct.toFixed(1)}%
       </span>
-    ))}
+    )}
+    {/* Insight chip */}
+    <span className={cn(
+      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold',
+      kpi.insight.variant === 'up' && 'bg-emerald-950/30 text-emerald-400',
+      kpi.insight.variant === 'down' && 'bg-red-950/30 text-red-400',
+      kpi.insight.variant === 'neutral' && 'bg-blue-950/20 text-blue-400',
+      kpi.insight.variant === 'warn' && 'bg-amber-950/20 text-amber-400',
+    )}>
+      {kpi.insight.variant === 'up' && <TrendingUp className="h-3 w-3" />}
+      {kpi.insight.variant === 'down' && <TrendingDown className="h-3 w-3" />}
+      {kpi.insight.variant === 'neutral' && <Activity className="h-3 w-3" />}
+      {kpi.insight.label}
+    </span>
+    {isSparse && (
+      <span className="text-[9px] text-muted-foreground/60">Pontos: {kpi.points}</span>
+    )}
   </div>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// (2) Compute average for ReferenceLine
+// A4) Compute average for ReferenceLine (only when >= 3 points)
 // ═══════════════════════════════════════════════════════════════════════════════
 function computeAverage(config: ChartConfig): number | null {
   const { type, data, dataKeys } = config;
   if (!['line', 'area', 'bar', 'horizontal-bar'].includes(type)) return null;
-  if (!dataKeys.length || data.length < 2) return null;
+  if (!dataKeys.length || data.length < 3) return null;
 
   const key = dataKeys[0].key;
   const vals = data.map(d => Number(d[key])).filter(v => !isNaN(v) && isFinite(v));
-  if (vals.length < 2) return null;
+  if (vals.length < 3) return null;
 
   const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
   if (avg === 0) return null;
   return avg;
 }
 
-const REFLINE_STYLE = {
-  stroke: '#94a3b8',
-  strokeWidth: 1,
-  strokeDasharray: '6 4',
-} as const;
+// ═══════════════════════════════════════════════════════════════════════════════
+// A5) SinglePointAnalytic — for line/area with 1 data point
+// ═══════════════════════════════════════════════════════════════════════════════
+const SinglePointAnalytic: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
+  const dk = config.dataKeys?.[0]?.key;
+  const val = dk ? Number(config.data[0]?.[dk]) || 0 : 0;
+  const label = config.xAxisKey ? String(config.data[0]?.[config.xAxisKey] || '') : '';
+  return (
+    <div className="flex flex-col items-center justify-center py-8 gap-2" style={{ minHeight: 180 }}>
+      <span className="text-3xl font-extrabold text-foreground tabular-nums">{fmt(val)}</span>
+      {label && <span className="text-xs text-muted-foreground">{formatChartLabel(label)}</span>}
+      <span className="text-[10px] text-muted-foreground/60 bg-muted/30 rounded-full px-3 py-1">
+        Apenas 1 registro no período
+      </span>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// A5) SparseScatterAnalytic — for scatter with < 4 points
+// ═══════════════════════════════════════════════════════════════════════════════
+const SparseScatterAnalytic: React.FC<{ config: ChartConfig; fmt: (v: number) => string }> = ({ config, fmt }) => {
+  const yKey = config.yAxisKey || config.dataKeys?.[0]?.key || 'receita';
+  const xKey = config.xAxisKey || 'km';
+  const yVals = config.data.map(d => Number(d[yKey])).filter(v => Number.isFinite(v));
+  const xVals = config.data.map(d => Number(d[xKey])).filter(v => Number.isFinite(v));
+  const avgY = yVals.length ? yVals.reduce((a, b) => a + b, 0) / yVals.length : 0;
+  const avgX = xVals.length ? xVals.reduce((a, b) => a + b, 0) / xVals.length : 0;
+  const rpmAvg = avgX > 0 ? avgY / avgX : 0;
+
+  return (
+    <div className="flex flex-col items-center justify-center py-8 gap-3" style={{ minHeight: 180 }}>
+      <BarChart3 className="h-8 w-8 text-muted-foreground/30" />
+      <span className="text-xs font-semibold text-muted-foreground">Resumo da dispersão</span>
+      <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+        <div className="bg-muted/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase">Pontos</p>
+          <p className="text-lg font-bold">{config.data.length}</p>
+        </div>
+        <div className="bg-muted/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase">Média Receita</p>
+          <p className="text-lg font-bold tabular-nums">{fmt(avgY)}</p>
+        </div>
+        <div className="bg-muted/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase">Média Km</p>
+          <p className="text-lg font-bold tabular-nums">{formatCompactNumber(avgX)}</p>
+        </div>
+        <div className="bg-muted/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase">R$/km médio</p>
+          <p className="text-lg font-bold tabular-nums">{rpmAvg > 0 ? `R$ ${rpmAvg.toFixed(2)}` : '—'}</p>
+        </div>
+      </div>
+      <span className="text-[9px] text-muted-foreground/50">Mínimo 4 pontos para gráfico de dispersão</span>
+    </div>
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Premium Tooltip
@@ -316,19 +386,25 @@ const ChartSkeleton: React.FC<{ height?: number }> = ({ height = 300 }) => (
 const AXIS_TICK = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
 const MARGIN = { top: 12, right: 16, bottom: 8, left: 4 };
 const MARGIN_MOBILE = { top: 8, right: 10, bottom: 6, left: 0 };
-const GRID = { strokeDasharray: '3 3', stroke: 'hsl(var(--border))', opacity: 0.25 } as const;
+const GRID_PROPS = { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.06)' } as const;
+
+const REFLINE_STYLE = {
+  stroke: 'rgba(255,255,255,0.18)',
+  strokeWidth: 1,
+  strokeDasharray: '6 6',
+} as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RenderChart — each type with ReferenceLine average
+// RenderChart — with density heuristic, dynamic domain, ReferenceLine
 // ═══════════════════════════════════════════════════════════════════════════════
 const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ config, isMobile }) => {
   const { type, data, dataKeys, xAxisKey = 'name', valueFormatter = String } = config;
-  const height = isMobile ? Math.min(config.height || 300, 230) : (config.height || 300);
-  const avg = computeAverage(config);
-  const margin = isMobile ? MARGIN_MOBILE : MARGIN;
-  const legendMaxItems = isMobile ? 6 : 8;
+  const pointCount = data.length;
+  const isSingle = pointCount === 1;
+  const isSparse = pointCount <= 2;
 
-  if (data.length === 0) {
+  // A1) Density heuristic
+  if (pointCount === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-10" style={{ minHeight: 180 }}>
         <span className="text-4xl opacity-30">📊</span>
@@ -336,6 +412,31 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
       </div>
     );
   }
+
+  // Single point: line/area → analytic card
+  if (isSingle && (type === 'line' || type === 'area')) {
+    return <SinglePointAnalytic config={config} fmt={valueFormatter} />;
+  }
+
+  // Scatter < 4 → analytic card
+  if (type === 'scatter' && pointCount < 4) {
+    return <SparseScatterAnalytic config={config} fmt={valueFormatter} />;
+  }
+
+  // A1) Dynamic height
+  const dynamicHeight = isSingle ? 220 : isSparse ? 240 : (config.height || 300);
+  const height = isMobile ? Math.min(dynamicHeight, 230) : dynamicHeight;
+
+  const avg = computeAverage(config);
+  const margin = isMobile ? MARGIN_MOBILE : MARGIN;
+  const legendMaxItems = isMobile ? 6 : 8;
+
+  // A2) Extract values for dynamic domain
+  const primaryKey = dataKeys[0]?.key;
+  const allValues = primaryKey
+    ? data.map(d => Number(d[primaryKey])).filter(v => Number.isFinite(v))
+    : [];
+  const domain = computeDomain(allValues);
 
   const xAxisProps = {
     dataKey: xAxisKey,
@@ -355,31 +456,35 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
     width: isMobile ? 40 : 48,
     tickFormatter: formatCompactNumber,
     tickMargin: 4,
+    domain,
   };
 
-  // ReferenceLine label
+  // A4) ReferenceLine label
   const refLabel = avg != null ? {
     value: `Média: ${formatCompactNumber(avg)}`,
     position: 'insideTopRight' as const,
-    style: { fontSize: 9, fill: '#94a3b8', fontWeight: 600 },
+    style: { fontSize: 9, fill: 'rgba(255,255,255,0.35)', fontWeight: 600 },
   } : undefined;
+
+  // Sparse adjustments
+  const dotSize = isSparse ? { r: 5, strokeWidth: 2, fill: '#fff' } : (isMobile ? false : { r: 3, strokeWidth: 2, fill: '#fff' });
 
   switch (type) {
     case 'line':
       return (
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={data} margin={margin}>
-            <CartesianGrid {...GRID} />
+            <CartesianGrid {...GRID_PROPS} />
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {avg != null && <ReferenceLine y={avg} label={refLabel} {...REFLINE_STYLE} />}
             <Tooltip content={<ChartTooltipCard valueFormatter={valueFormatter} />} />
-            <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />
+            {!isSparse && <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />}
             {dataKeys.map((dk, i) => (
               <Line key={dk.key} type="monotone" dataKey={dk.key} name={dk.label}
                 stroke={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
                 strokeWidth={2.5}
-                dot={isMobile ? false : { r: 3, strokeWidth: 2, fill: '#fff' }}
+                dot={dotSize as any}
                 activeDot={{ r: 5.5, strokeWidth: 0 }}
               />
             ))}
@@ -395,12 +500,12 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
       return (
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={formatted} margin={margin}>
-            <CartesianGrid {...GRID} />
+            <CartesianGrid {...GRID_PROPS} />
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {avg != null && <ReferenceLine y={avg} label={refLabel} {...REFLINE_STYLE} />}
             <Tooltip content={<ChartTooltipCard valueFormatter={valueFormatter} />} />
-            <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />
+            {!isSparse && <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />}
             {dataKeys.map((dk, i) => (
               <Bar key={dk.key} dataKey={dk.key} name={formatChartLabel(dk.label)}
                 fill={dk.color || CHART_COLORS[i % CHART_COLORS.length]}
@@ -414,12 +519,13 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
 
     case 'horizontal-bar': {
       const barHeight = Math.max(isMobile ? 200 : height, data.length * (isMobile ? 36 : 44) + 50);
+      const hDomain = computeDomain(allValues);
       return (
         <ResponsiveContainer width="100%" height={barHeight}>
           <BarChart data={data} layout="vertical" margin={{ top: 8, right: 20, left: 4, bottom: 8 }}>
-            <CartesianGrid {...GRID} horizontal={false} />
+            <CartesianGrid {...GRID_PROPS} horizontal={false} />
             <XAxis type="number" tick={AXIS_TICK} tickLine={false} axisLine={false}
-              tickFormatter={formatCompactNumber} tickMargin={4} />
+              tickFormatter={formatCompactNumber} tickMargin={4} domain={hDomain} />
             {avg != null && <ReferenceLine x={avg} label={{ ...refLabel, position: 'insideTopRight' as const }} {...REFLINE_STYLE} />}
             <YAxis dataKey={xAxisKey} type="category" width={isMobile ? 100 : 140}
               tick={{ ...AXIS_TICK, fontSize: isMobile ? 9 : 10 }} tickLine={false} axisLine={false}
@@ -468,7 +574,7 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
       return (
         <ResponsiveContainer width="100%" height={height}>
           <ScatterChart margin={{ top: 12, right: 20, left: 4, bottom: 8 }}>
-            <CartesianGrid {...GRID} />
+            <CartesianGrid {...GRID_PROPS} />
             <XAxis dataKey={xAxisKey} type="number" name={dataKeys[0]?.label || ''}
               tick={AXIS_TICK} tickLine={false} axisLine={false}
               tickFormatter={(v) => `${formatCompactNumber(Number(v))} km`}
@@ -500,19 +606,19 @@ const RenderChart: React.FC<{ config: ChartConfig; isMobile: boolean }> = ({ con
                 );
               })}
             </defs>
-            <CartesianGrid {...GRID} />
+            <CartesianGrid {...GRID_PROPS} />
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {avg != null && <ReferenceLine y={avg} label={refLabel} {...REFLINE_STYLE} />}
             <Tooltip content={<ChartTooltipCard valueFormatter={valueFormatter} />} />
-            <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />
+            {!isSparse && <Legend content={<ChartLegendChips maxItems={legendMaxItems} />} />}
             {dataKeys.map((dk, i) => {
               const color = dk.color || CHART_COLORS[i % CHART_COLORS.length];
               return (
                 <Area key={dk.key} type="monotone" dataKey={dk.key} name={formatChartLabel(dk.label)}
                   stroke={color} fill={`url(#grad-${dk.key})`}
                   strokeWidth={2.5}
-                  dot={false}
+                  dot={isSparse ? { r: 5, fill: color, strokeWidth: 0 } as any : false}
                   activeDot={{ r: 5, strokeWidth: 0, fill: color }}
                 />
               );
@@ -533,7 +639,6 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
   charts, isLoading = false, columns = 2, className,
 }) => {
   const isMobile = useIsMobile();
-  // (3) Mobile forces single column
   const effectiveCols = isMobile ? 1 : columns;
   const gridCols = effectiveCols === 1 ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2';
 
@@ -550,7 +655,9 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
   return (
     <div className={cn(`grid ${gridCols} gap-5`, className)}>
       {charts.map((chart, index) => {
-        const kpi = computeMiniKpis(chart);
+        const kpi = computeMiniKpi(chart);
+        const isSparse = chart.data.length <= 2;
+        const fmt = chart.valueFormatter || formatCompactNumber;
         return (
           <Card key={index} className="rounded-2xl overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200">
             <CardHeader className="pb-0 pt-4 px-5">
@@ -559,8 +666,9 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="px-2 sm:px-4 pb-4 pt-1.5">
-              {/* (1) Mini KPI strip */}
-              {kpi && chart.data.length > 0 && <MiniKpiStrip kpi={kpi} />}
+              {kpi && chart.data.length > 0 && (
+                <MiniKpiStrip kpi={kpi} fmt={fmt} isSparse={isSparse} />
+              )}
               <RenderChart config={chart} isMobile={isMobile} />
             </CardContent>
           </Card>
