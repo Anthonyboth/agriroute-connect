@@ -391,7 +391,19 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const isProdutor = panel === 'PRODUTOR';
 
   const producerLegacy = useProducerReportData(isProdutor ? profileId : undefined, dateRange);
-  const hasUnifiedProducerData = isProdutor && ((Object.keys(kpis || {}).length > 0) || (Object.keys(charts || {}).length > 0));
+  const hasUnifiedProducerData = useMemo(() => {
+    if (!isProdutor) return false;
+
+    const hasKpiData = Object.values(kpis || {}).some((v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0;
+    });
+
+    const hasChartData = Object.values(charts || {}).some((v: any) => Array.isArray(v) && v.length > 0);
+    const hasTableData = Object.values(tables || {}).some((v: any) => Array.isArray(v) && v.length > 0);
+
+    return hasKpiData || hasChartData || hasTableData;
+  }, [isProdutor, kpis, charts, tables]);
 
   const producerHistoryQuery = useQuery({
     queryKey: ['producer-history-fallback', profileId, dateRange.from.toISOString(), dateRange.to.toISOString()],
@@ -775,7 +787,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (!isProdutor) return null;
 
     const legacySummary = !hasUnifiedProducerData ? producerLegacy.summary : null;
-    const useHistoryFallback = !hasUnifiedProducerData && Number(legacySummary?.freights?.total || 0) === 0 && producerHistoryAgg.total > 0;
+    const useHistoryFallback = !hasUnifiedProducerData && producerHistoryAgg.total > 0;
 
     const receitaTotal = Number(kpis.receita_total)
       || Number(legacySummary?.freights?.total_spent)
@@ -813,7 +825,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     if (!isProdutor) return [];
 
     const legacySummary = !hasUnifiedProducerData ? producerLegacy.summary : null;
-    const useHistoryFallback = !hasUnifiedProducerData && Number(legacySummary?.freights?.total || 0) === 0 && producerHistoryAgg.total > 0;
+    const useHistoryFallback = !hasUnifiedProducerData && producerHistoryAgg.total > 0;
 
     const totalFretes = Number(kpis.total_fretes) || Number(legacySummary?.freights?.total) || (useHistoryFallback ? producerHistoryAgg.total : 0);
     const fretesConcluidos = Number(kpis.fretes_concluidos || kpis.viagens_concluidas) || Number(legacySummary?.freights?.completed) || (useHistoryFallback ? producerHistoryAgg.completed : 0);
@@ -842,7 +854,6 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     const configs: ChartConfig[] = [];
     const legacyCharts = !hasUnifiedProducerData ? producerLegacy.charts : null;
     const useHistoryFallback = !hasUnifiedProducerData
-      && (Number(producerLegacy.summary?.freights?.total || 0) === 0)
       && producerHistoryAgg.total > 0;
 
     if (charts?.receita_por_mes?.length) {
