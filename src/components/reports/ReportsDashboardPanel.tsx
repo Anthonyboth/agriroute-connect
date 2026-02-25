@@ -231,13 +231,16 @@ const HighlightsGrid: React.FC<{ items: Insight[]; isLoading: boolean }> = ({ it
 };
 
 // ─── Componente: Bloco de Insights do Motorista ─────────────────────────────
-const MotoristaInsightsBlock: React.FC<{ kpis: any; charts: any; isLoading: boolean }> = ({ kpis, charts, isLoading }) => {
+const MotoristaInsightsBlock: React.FC<{ kpis: any; charts: any; tables?: any; isLoading: boolean }> = ({ kpis, charts, tables, isLoading }) => {
   const insights = useMemo(() => {
     const receitaTotal = Number(kpis.receita_total) || 0;
     const kmTotal = Number(kpis.km_total) || 0;
     const rpmMedio = Number(kpis.rpm_medio) || 0;
     const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
     const taxaCancel = Number(kpis.taxa_cancelamento) || 0;
+    const viagens = Number(kpis.viagens_concluidas) || 0;
+    const avgCycle = Number(kpis.avg_cycle_hours) || 0;
+    const lucro = Number(kpis.lucro_liquido) || 0;
 
     const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
       month: formatMonthLabelPtBR(m.mes),
@@ -246,73 +249,75 @@ const MotoristaInsightsBlock: React.FC<{ kpis: any; charts: any; isLoading: bool
     }));
 
     const bw = pickBestWorstMonths(receitaMes);
-    const items: Insight[] = [];
+    const primary: Insight[] = [];
+    const optional: Insight[] = [];
 
+    // ── Primary insights (priority order) ──
     if (bw?.best) {
-      items.push({
-        label: 'Melhor mês',
-        value: `${bw.best.month} — ${formatBRL(bw.best.receita)}`,
-        hint: `Viagens: ${bw.best.viagens}`,
-        tone: 'good',
-      });
+      primary.push({ label: 'Melhor mês', value: `${bw.best.month} — ${formatBRL(bw.best.receita)}`, hint: `Viagens: ${bw.best.viagens}`, tone: 'good' });
     }
-
     if (bw && receitaMes.length >= 2 && bw.worst) {
-      items.push({
-        label: 'Pior mês',
-        value: `${bw.worst.month} — ${formatBRL(bw.worst.receita)}`,
-        hint: `Viagens: ${bw.worst.viagens}`,
-        tone: 'bad',
-      });
+      primary.push({ label: 'Pior mês', value: `${bw.worst.month} — ${formatBRL(bw.worst.receita)}`, hint: `Viagens: ${bw.worst.viagens}`, tone: 'bad' });
     }
-
     if (rpmMedio > 0) {
-      items.push({
-        label: 'R$/km',
-        value: `R$ ${rpmMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        hint: 'Média no período',
-        tone: 'neutral',
-      });
+      primary.push({ label: 'R$/km', value: `R$ ${rpmMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, hint: 'Média no período', tone: 'neutral' });
     }
-
     if (taxaConclusao > 0) {
       const tone: Insight['tone'] = taxaConclusao >= 90 ? 'good' : taxaConclusao >= 70 ? 'neutral' : 'bad';
-      items.push({
-        label: 'Conclusão',
-        value: `${taxaConclusao.toFixed(1)}%`,
-        hint: `Cancel.: ${taxaCancel.toFixed(1)}%`,
-        tone,
-      });
+      primary.push({ label: 'Conclusão', value: `${taxaConclusao.toFixed(1)}%`, hint: `Cancel.: ${taxaCancel.toFixed(1)}%`, tone });
     }
-
-    const topRotas = (charts?.top_rotas || [])
-      .map((r: any) => ({
-        rota: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
-        receita: Number(r.receita) || 0,
-      }))
-      .sort((a: any, b: any) => b.receita - a.receita);
-
+    const topRotas = (charts?.top_rotas || []).map((r: any) => ({ rota: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')), receita: Number(r.receita) || 0 })).sort((a: any, b: any) => b.receita - a.receita);
     if (topRotas.length) {
-      items.push({
-        label: 'Top rota',
-        value: compactText(topRotas[0].rota, 20),
-        hint: formatBRL(topRotas[0].receita),
-        tone: 'good',
-      });
+      primary.push({ label: 'Top rota', value: compactText(topRotas[0].rota, 20), hint: formatBRL(topRotas[0].receita), tone: 'good' });
     }
-
     if (receitaTotal > 0 && kmTotal > 0) {
-      const rpk = receitaTotal / kmTotal;
-      items.push({
-        label: 'Receita/km',
-        value: `R$ ${rpk.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        hint: 'Receita total ÷ km',
-        tone: 'neutral',
-      });
+      primary.push({ label: 'Receita/km', value: `R$ ${(receitaTotal / kmTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, hint: 'Receita total ÷ km', tone: 'neutral' });
     }
 
-    return items.slice(0, 6);
-  }, [kpis, charts]);
+    // ── Optional insights (fill up to 6) ──
+    // 1) Maior km
+    const viagensMes = (charts?.viagens_por_mes || []).map((d: any) => ({ month: formatMonthLabelPtBR(d.mes), km: Number(d.km) || 0, viagens: Math.round(Number(d.viagens) || 0) }));
+    if (viagensMes.length) {
+      const bestKm = viagensMes.reduce((a: any, b: any) => (b.km > a.km ? b : a));
+      if (bestKm.km > 0) optional.push({ label: 'Maior km', value: `${bestKm.month} — ${bestKm.km.toLocaleString('pt-BR')} km`, hint: `Viagens: ${bestKm.viagens}`, tone: 'neutral' });
+    }
+    // 2) Ticket médio
+    if (receitaTotal > 0 && viagens > 0) {
+      optional.push({ label: 'Ticket médio', value: `R$ ${(receitaTotal / viagens).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, hint: 'Receita ÷ viagens', tone: 'neutral' });
+    }
+    // 3) R$/hora
+    if (receitaTotal > 0 && viagens > 0 && avgCycle > 0) {
+      const rph = receitaTotal / (avgCycle * viagens);
+      optional.push({ label: 'R$/hora', value: `R$ ${rph.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, hint: 'Estimado (ciclo médio)', tone: 'good' });
+    }
+    // 4) Margem
+    if (receitaTotal > 0) {
+      const margem = (lucro / receitaTotal) * 100;
+      optional.push({ label: 'Margem', value: `${margem.toFixed(1)}%`, hint: 'Lucro ÷ receita', tone: margem >= 10 ? 'good' : margem >= 0 ? 'neutral' : 'bad' });
+    }
+    // 5) Melhor R$/km (rota)
+    const topLucr = tables?.top_lucrativos?.[0];
+    if (topLucr?.rs_km) {
+      optional.push({ label: 'Melhor R$/km', value: `R$ ${Number(topLucr.rs_km).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`, hint: compactText(String(topLucr.rota || '—'), 20), tone: 'good' });
+    }
+    // 6) Data quality alert
+    const pointsTotal = (charts?.receita_por_mes || []).length + (charts?.viagens_por_mes || []).length;
+    if (pointsTotal > 0 && pointsTotal < 3) {
+      optional.push({ label: 'Qualidade dos dados', value: 'Poucos registros', hint: 'Amplie o período para ver tendências', tone: 'bad' });
+    }
+
+    // Fill primary up to 6 with optionals (no duplicates by label)
+    const usedLabels = new Set(primary.map((p) => p.label));
+    for (const opt of optional) {
+      if (primary.length >= 6) break;
+      if (!usedLabels.has(opt.label)) {
+        primary.push(opt);
+        usedLabels.add(opt.label);
+      }
+    }
+
+    return primary.slice(0, 6);
+  }, [kpis, charts, tables]);
 
   if (!insights.length && !isLoading) return null;
 
@@ -715,7 +720,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
 
             {/* Insights rápidos (PowerBI-like) — acima dos gráficos */}
-            <MotoristaInsightsBlock kpis={kpis} charts={charts} isLoading={isLoading} />
+            <MotoristaInsightsBlock kpis={kpis} charts={charts} tables={tables} isLoading={isLoading} />
 
             <ReportCharts charts={motoristaCharts} isLoading={isLoading} columns={2} />
           </div>
