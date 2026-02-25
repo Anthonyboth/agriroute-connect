@@ -121,10 +121,13 @@ serve(async (req) => {
 
     const freightById = new Map((freights ?? []).map((f: any) => [f.id, f]));
 
-    const enrichedProposals = (proposals ?? []).map((p: any) => ({
-      ...p,
-      freight: freightById.get(p.freight_id) || null,
-    }));
+    // ✅ Regra de segurança: propostas de fretes sem produtor cadastrado não entram no painel de propostas
+    const enrichedProposals = (proposals ?? [])
+      .map((p: any) => ({
+        ...p,
+        freight: freightById.get(p.freight_id) || null,
+      }))
+      .filter((p: any) => Boolean(p.freight?.producer_id || p.freight?.producer?.id));
 
     // Compute ongoing freights from accepted proposals or by driver_id
     const acceptedFreightIds = new Set(
