@@ -358,12 +358,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       setNotes('');
       await fetchStatusHistory();
       
-      // ✅ CORREÇÃO P4: Usar tradução PT-BR para o status
-      const statusLabel = getStatusLabelFallback(newStatus);
-      toast({
-        title: "✅ Status atualizado",
-        description: `Progresso atualizado para: ${statusLabel}`,
-      });
+      // Toast de sucesso já é emitido centralmente em driverUpdateFreightStatus para evitar duplicação.
 
       // Exibir popup informativo quando motorista reporta entrega
       if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {

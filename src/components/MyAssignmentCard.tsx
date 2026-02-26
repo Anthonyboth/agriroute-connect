@@ -93,10 +93,6 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
         
         onAction();
         
-        toast({
-          title: "Status atualizado",
-          description: "O frete foi marcado como 'A Caminho'",
-        });
       }
       
     } catch (error: any) {
