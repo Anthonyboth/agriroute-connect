@@ -16,9 +16,9 @@
  * - Mudar service_types do perfil
  */
 
-import { useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { useUnifiedMatchFeed, type UnifiedMatchItem } from './match/useUnifiedMatchFeed';
+import { usePanelFeedSegregation } from './match/usePanelFeedSegregation';
 import { invalidateSmartCacheByPrefix } from './useSmartQuery';
 
 export interface ServiceProviderFeedItem extends UnifiedMatchItem {
@@ -51,22 +51,13 @@ export function useServiceProviderFeed(): UseServiceProviderFeedResult {
     enabled: isProviderMode && !!profile?.id,
   });
 
-  // Filtrar apenas SERVICE — nunca deve retornar FREIGHT
-  const services = useMemo(() => {
-    const filtered = feed.items.filter((i): i is ServiceProviderFeedItem => i.kind === 'SERVICE');
+  const segregation = usePanelFeedSegregation({
+    role: 'PRESTADOR_SERVICOS',
+    items: feed.items,
+    debugLabel: 'useServiceProviderFeed',
+  });
 
-    if (import.meta.env.DEV && filtered.length !== feed.items.length) {
-      console.group('[useServiceProviderFeed] VAZAMENTO DETECTADO');
-      console.warn('Itens FREIGHT encontrados no feed do prestador — bloqueados.');
-      console.log(
-        'Itens bloqueados:',
-        feed.items.filter(i => i.kind !== 'SERVICE').map(i => ({ id: i.id, kind: i.kind }))
-      );
-      console.groupEnd();
-    }
-
-    return filtered;
-  }, [feed.items]);
+  const services = segregation.segregatedItems as ServiceProviderFeedItem[];
 
   const hasNoCities = !feed.isLoading && services.length === 0;
   const hasNoServiceTypes = !profile?.service_types || profile.service_types.length === 0;

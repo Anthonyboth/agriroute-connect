@@ -13,11 +13,11 @@
  * NÃO retorna service_requests. Apenas freights.
  */
 
-import { useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { useCompanyDriver } from './useCompanyDriver';
 import { useDriverPermissions } from './useDriverPermissions';
 import { useUnifiedMatchFeed, type UnifiedMatchItem } from './match/useUnifiedMatchFeed';
+import { usePanelFeedSegregation } from './match/usePanelFeedSegregation';
 import { invalidateSmartCacheByPrefix } from './useSmartQuery';
 
 export interface DriverFreightFeedItem extends UnifiedMatchItem {
@@ -60,18 +60,13 @@ export function useDriverFreightFeed(): UseDriverFreightFeedResult {
     enabled: isDriverMode && !!profile?.id,
   });
 
-  // Filtrar apenas FREIGHT items (nunca SERVICE)
-  const freights = useMemo(
-    () => feed.items.filter((i): i is DriverFreightFeedItem => i.kind === 'FREIGHT'),
-    [feed.items]
-  );
+  const segregation = usePanelFeedSegregation({
+    role: 'MOTORISTA',
+    items: feed.items,
+    debugLabel: 'useDriverFreightFeed',
+  });
 
-  if (import.meta.env.DEV && feed.items.length !== freights.length) {
-    console.warn(
-      '[useDriverFreightFeed] AVISO: Itens SERVICE foram filtrados do feed de motorista.',
-      { total: feed.items.length, freights: freights.length }
-    );
-  }
+  const freights = segregation.segregatedItems as DriverFreightFeedItem[];
 
   return {
     freights,

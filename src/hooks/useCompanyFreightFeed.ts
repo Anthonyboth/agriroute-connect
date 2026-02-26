@@ -10,9 +10,9 @@
  * separadamente em SmartFreightMatcher para a transportadora.
  */
 
-import { useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { useUnifiedMatchFeed, type UnifiedMatchItem } from './match/useUnifiedMatchFeed';
+import { usePanelFeedSegregation } from './match/usePanelFeedSegregation';
 import { invalidateSmartCacheByPrefix } from './useSmartQuery';
 
 export interface CompanyFreightFeedItem extends UnifiedMatchItem {
@@ -41,18 +41,13 @@ export function useCompanyFreightFeed(companyId?: string): UseCompanyFreightFeed
     enabled: isCarrierMode && !!profile?.id,
   });
 
-  // Filtrar apenas FREIGHT (nunca SERVICE — UI da transportadora decide se quer misturar)
-  const freights = useMemo(
-    () => feed.items.filter((i): i is CompanyFreightFeedItem => i.kind === 'FREIGHT'),
-    [feed.items]
-  );
+  const segregation = usePanelFeedSegregation({
+    role: 'TRANSPORTADORA',
+    items: feed.items,
+    debugLabel: 'useCompanyFreightFeed',
+  });
 
-  if (import.meta.env.DEV && feed.items.length !== freights.length) {
-    console.warn(
-      '[useCompanyFreightFeed] AVISO: Itens SERVICE encontrados no feed da transportadora.',
-      { total: feed.items.length, freights: freights.length }
-    );
-  }
+  const freights = segregation.segregatedItems as CompanyFreightFeedItem[];
 
   return {
     freights,
