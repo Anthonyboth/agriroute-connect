@@ -1343,15 +1343,15 @@ export const ServiceProviderDashboard: React.FC = () => {
 
           <TabsContent value="pending" className="space-y-4">
             {/* Cabeçalho */}
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
                 <h3 className="text-lg font-semibold">Disponíveis</h3>
                 <p className="text-xs text-muted-foreground">
                   Há {Math.floor((new Date().getTime() - lastAvailableRefresh.getTime()) / 60000)} min · tempo real
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">{filteredRequests.length}</Badge>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                <Badge variant="secondary" className="text-xs min-w-7 justify-center">{filteredRequests.length}</Badge>
                 <MarketplaceFilters
                   filters={marketplaceFilters}
                   onChange={setMarketplaceFilters}
@@ -1362,7 +1362,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => fetchServiceRequests({ scope: 'available', silent: true, skipSpatialMatching: true })}
-                  className="text-xs h-7"
+                  className="text-xs h-8 whitespace-nowrap px-3"
                   disabled={inFlightRef.current}
                 >
                   Atualizar
