@@ -79,6 +79,8 @@ interface FreightCardProps {
   driverCompanyId?: string;
   onUnavailable?: () => void;
   showAvailableSlots?: boolean;
+  /** Extra content rendered inside the card, after the main content */
+  renderExtra?: React.ReactNode;
 }
 
 export const FreightCard: React.FC<FreightCardProps> = ({
@@ -93,6 +95,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   driverCompanyId,
   onUnavailable,
   showAvailableSlots = false,
+  renderExtra,
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
@@ -832,6 +835,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             price: freight.price,
           }}
         />
+        {renderExtra && (
+          <div className="px-4 pb-4">
+            {renderExtra}
+          </div>
+        )}
       </Card>
     </TooltipProvider>
   );
