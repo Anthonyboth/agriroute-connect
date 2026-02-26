@@ -47,10 +47,12 @@ interface Proposal {
   };
   freight?: {
     id: string;
-    origin_city: string;
-    origin_state: string;
-    destination_city: string;
-    destination_state: string;
+    origin_city: string | null;
+    origin_state: string | null;
+    origin_address?: string | null;
+    destination_city: string | null;
+    destination_state: string | null;
+    destination_address?: string | null;
     cargo_type: string;
     required_trucks: number;
     accepted_trucks: number;
@@ -680,46 +682,60 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
               <Separator />
 
               {/* Route and Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    Origem
-                  </div>
-                  <p className="text-base font-semibold pl-6">
-                    {detailsDialog.proposal.freight.origin_city}/{detailsDialog.proposal.freight.origin_state}
-                  </p>
-                </div>
+              {(() => {
+                const freight = detailsDialog.proposal.freight;
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    Destino
-                  </div>
-                  <p className="text-base font-semibold pl-6">
-                    {detailsDialog.proposal.freight.destination_city}/{detailsDialog.proposal.freight.destination_state}
-                  </p>
-                </div>
+                const originFallback = [freight.origin_city, freight.origin_state]
+                  .filter(Boolean)
+                  .join('/') || freight.origin_address || 'Origem não informada';
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Truck className="h-4 w-4" />
-                    Vagas Disponíveis
-                  </div>
-                  <p className="text-base font-semibold pl-6">
-                    {detailsDialog.proposal.freight.required_trucks - detailsDialog.proposal.freight.accepted_trucks} de {detailsDialog.proposal.freight.required_trucks}
-                  </p>
-                </div>
+                const destinationFallback = [freight.destination_city, freight.destination_state]
+                  .filter(Boolean)
+                  .join('/') || freight.destination_address || 'Destino não informado';
 
-                <div className="space-y-1">
-                  <div className="text-sm font-medium text-muted-foreground">
-                    Tipo de Carga
+                return (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        Origem
+                      </div>
+                      <p className="pl-6 text-base font-semibold break-words">
+                        {originFallback}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        Destino
+                      </div>
+                      <p className="pl-6 text-base font-semibold break-words">
+                        {destinationFallback}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Truck className="h-4 w-4" />
+                        Vagas Disponíveis
+                      </div>
+                      <p className="pl-6 text-base font-semibold">
+                        {detailsDialog.proposal.freight.required_trucks - detailsDialog.proposal.freight.accepted_trucks} de {detailsDialog.proposal.freight.required_trucks}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Tipo de Carga
+                      </div>
+                      <p className="text-base font-semibold break-words">
+                        {detailsDialog.proposal.freight.cargo_type || 'Não informado'}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-base font-semibold">
-                    {detailsDialog.proposal.freight.cargo_type}
-                  </p>
-                </div>
-              </div>
+                );
+              })()}
 
               <Separator />
 

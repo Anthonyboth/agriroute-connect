@@ -101,11 +101,11 @@ const MadeProposalCard: React.FC<{ proposal: MadeProposal }> = ({ proposal }) =>
         {/* Route */}
         {freight && (
           <div className="flex items-center gap-2 text-sm">
-            <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-            <span className="truncate">{freight.origin_city}/{freight.origin_state}</span>
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{([freight.origin_city, freight.origin_state].filter(Boolean).join('/') || freight.origin_address || 'Origem não informada')}</span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <MapPin className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
-            <span className="truncate">{freight.destination_city}/{freight.destination_state}</span>
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{([freight.destination_city, freight.destination_state].filter(Boolean).join('/') || freight.destination_address || 'Destino não informado')}</span>
           </div>
         )}
 
