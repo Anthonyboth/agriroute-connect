@@ -498,62 +498,65 @@ export const FreightCard: React.FC<FreightCardProps> = ({
     <TooltipProvider>
       <Card
         data-testid="freight-card"
-        className="bg-card hover:shadow-md transition-all duration-200 border border-border/40 overflow-hidden"
+        className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.01] border border-border/60 overflow-hidden bg-card"
+        style={{ boxShadow: 'var(--shadow-card)' }}
       >
-        {/* ── HEADER: Título + Urgência dot + Prazo coleta ── */}
+        {/* ── HEADER: Título + Urgência + Prazo ── (30% zone: structure & text) */}
         <CardHeader className="pb-2 pt-4 px-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               {getServiceIcon()}
-              <h3 className="font-semibold text-foreground text-base truncate">{getCardTitle()}</h3>
+              <div className="min-w-0">
+                <h3 className="font-bold text-foreground text-base truncate">{getCardTitle()}</h3>
+                {pickupRemaining && (
+                  <p className={`text-xs mt-0.5 ${pickupIsUrgent ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                    {pickupIsUrgent && <AlertTriangle className="h-3 w-3 inline mr-1" />}
+                    {pickupRemaining}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-xs text-muted-foreground">{urgencyLabel}</span>
-              <span className={`inline-block h-2.5 w-2.5 rounded-full ${urgencyDotColor}`} />
+            {/* Urgency indicator — 10% accent zone */}
+            <div className="flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-full bg-secondary/60">
+              <span className={`inline-block h-2 w-2 rounded-full ${urgencyDotColor}`} />
+              <span className="text-[11px] font-medium text-secondary-foreground">{urgencyLabel}</span>
             </div>
           </div>
-          {/* Prazo restante inline */}
-          {pickupRemaining && (
-            <p className={`text-xs mt-1 ${pickupIsUrgent ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-              {pickupIsUrgent && <AlertTriangle className="h-3 w-3 inline mr-1" />}
-              {pickupRemaining}
-            </p>
-          )}
 
           {/* Vagas (só multi-carreta) */}
           {freight.required_trucks && freight.required_trucks > 1 && (
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs text-muted-foreground">
-                <Truck className="h-3 w-3 inline mr-1" />
+            <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-md bg-secondary/40 border border-border/30">
+              <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">
                 {freight.accepted_trucks || 0}/{freight.required_trucks} carretas
               </span>
               {availableSlots > 0 && (
-                <span className="text-xs text-primary font-medium">{availableSlots} {availableSlots === 1 ? 'vaga' : 'vagas'}</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary font-semibold ml-auto">
+                  {availableSlots} {availableSlots === 1 ? 'vaga' : 'vagas'}
+                </Badge>
               )}
               {isFullyBooked && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Completo</Badge>
+                <Badge className="text-[10px] px-1.5 py-0 bg-success text-success-foreground ml-auto">Completo</Badge>
               )}
             </div>
           )}
         </CardHeader>
 
-        <Separator className="opacity-40" />
-
-        {/* ── CONTENT: Rota + Specs + Grid 3 cols ── */}
+        {/* ── CONTENT: Rota + Specs + Grid ── (60% zone: clean bg-card) */}
         <CardContent className="px-4 py-3 space-y-3">
-          {/* Origem → Destino compacto com dot-line */}
-          <div className="flex gap-3">
+          {/* Origem → Destino com dot-line */}
+          <div className="flex gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
             {/* Dot line vertical */}
-            <div className="flex flex-col items-center pt-0.5">
-              <div className="h-2.5 w-2.5 rounded-full border-2 border-muted-foreground/60 bg-card" />
-              <div className="w-px flex-1 bg-muted-foreground/30 my-0.5 min-h-[16px]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-foreground" />
+            <div className="flex flex-col items-center pt-1">
+              <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card" />
+              <div className="w-0.5 flex-1 bg-gradient-to-b from-primary/40 to-accent/40 my-0.5 min-h-[14px]" />
+              <div className="h-3 w-3 rounded-full bg-accent" />
             </div>
             {/* Cidades */}
-            <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex-1 min-w-0 space-y-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <p className="text-sm font-medium text-foreground truncate cursor-default">
+                  <p className="text-sm font-semibold text-foreground truncate cursor-default">
                     {freight.origin_city && freight.origin_state
                       ? `${freight.origin_city}/${freight.origin_state}`
                       : freight.origin_address}
@@ -565,7 +568,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <p className="text-sm font-medium text-foreground truncate cursor-default">
+                  <p className="text-sm font-semibold text-foreground truncate cursor-default">
                     {freight.destination_city && freight.destination_state
                       ? `${freight.destination_city}/${freight.destination_state}`
                       : freight.destination_address}
@@ -579,23 +582,26 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           </div>
 
           {/* Linha de specs compacta */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-            <span>{formatKm(distKmNum)}</span>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap px-1">
+            <MapPin className="h-3 w-3 text-muted-foreground/60" />
+            <span className="font-medium">{formatKm(distKmNum)}</span>
             {estimatedHours !== null && (
               <>
-                <span className="text-muted-foreground/40">•</span>
+                <span className="text-border">•</span>
+                <Clock className="h-3 w-3 text-muted-foreground/60" />
                 <span>~{estimatedHours}h</span>
               </>
             )}
             {freight.service_type !== "GUINCHO" && freight.service_type !== "MUDANCA" && (
               <>
-                <span className="text-muted-foreground/40">•</span>
+                <span className="text-border">•</span>
                 <span>{formatTons(freight.weight)}</span>
               </>
             )}
             {freight.vehicle_type_required && (
               <>
-                <span className="text-muted-foreground/40">•</span>
+                <span className="text-border">•</span>
+                <Truck className="h-3 w-3 text-muted-foreground/60" />
                 <span>{getVehicleTypeLabel(freight.vehicle_type_required)}</span>
               </>
             )}
@@ -606,17 +612,33 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
           {/* Grid 3 colunas: Coleta | Entrega | R$/km */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="p-2 bg-muted/50 rounded-lg text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Coleta</p>
-              <p className="text-xs font-semibold text-foreground mt-0.5">{formatDate(freight.pickup_date)}</p>
+            <div className="p-2.5 bg-secondary/40 rounded-lg text-center border border-border/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Calendar className="h-3 w-3 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Coleta</p>
+              </div>
+              <p className="text-xs font-bold text-foreground">{formatDate(freight.pickup_date)}</p>
             </div>
-            <div className="p-2 bg-muted/50 rounded-lg text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entrega</p>
-              <p className="text-xs font-semibold text-foreground mt-0.5">{formatDate(freight.delivery_date)}</p>
+            <div className="p-2.5 bg-secondary/40 rounded-lg text-center border border-border/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Calendar className="h-3 w-3 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Entrega</p>
+              </div>
+              <p className="text-xs font-bold text-foreground">{formatDate(freight.delivery_date)}</p>
             </div>
-            <div className="p-2 bg-muted/50 rounded-lg text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">R$/km</p>
-              <p className={`text-xs font-bold mt-0.5 flex items-center justify-center gap-0.5 ${rpmColor}`}>
+            {/* R$/km — 10% accent: cor semântica de rentabilidade */}
+            <div className={`p-2.5 rounded-lg text-center border ${
+              pricePerKmCalc !== null && pricePerKmCalc >= 6
+                ? 'bg-primary/10 border-primary/20'
+                : pricePerKmCalc !== null && pricePerKmCalc < 4
+                  ? 'bg-destructive/10 border-destructive/20'
+                  : 'bg-warning/10 border-warning/20'
+            }`}>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <DollarSign className="h-3 w-3 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">R$/km</p>
+              </div>
+              <p className={`text-xs font-bold flex items-center justify-center gap-0.5 ${rpmColor}`}>
                 {rpmIcon}
                 {pricePerKmCalc !== null
                   ? `R$${pricePerKmCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -626,9 +648,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           </div>
         </CardContent>
 
-        {/* ── FOOTER: Preço + ANTT ── */}
+        {/* ── FOOTER: Preço + ANTT ── (10% accent: preço em primary) */}
         {!hidePrice && (
-          <CardFooter className="px-4 py-3 border-t border-border/30 bg-card">
+          <CardFooter className="px-4 py-3 border-t border-border/40 bg-gradient-to-r from-primary/5 to-transparent">
             <div className="flex items-center justify-between w-full">
               <div>
                 {(() => {
@@ -641,15 +663,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   return (
                     <>
                       {pricingType === "PER_KM" && unitRate ? (
-                        <p className="font-bold text-lg text-primary">
+                        <p className="font-bold text-xl text-primary">
                           {formatBRL(unitRate, true)}<span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
                         </p>
                       ) : pricingType === "PER_TON" && unitRate ? (
-                        <p className="font-bold text-lg text-primary">
+                        <p className="font-bold text-xl text-primary">
                           {formatBRL(unitRate, true)}<span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
                         </p>
                       ) : (
-                        <p className="font-bold text-lg text-primary">
+                        <p className="font-bold text-xl text-primary">
                           {formatBRL(hasMultipleTrucks ? getPricePerTruck(freight.price, requiredTrucks) : freight.price, true)}
                           <span className="text-xs font-normal text-muted-foreground ml-1">
                             {hasMultipleTrucks ? '/carreta' : 'fixo'}
@@ -668,14 +690,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               {/* ANTT inline */}
               <div className="text-right">
                 {freight.service_type === "FRETE_MOTO" ? (
-                  <span className="text-[10px] text-muted-foreground">Mín: R$10</span>
+                  <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-border/60">Mín: R$10</Badge>
                 ) : freight.service_type === "CARGA" || !freight.service_type ? (
                   freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
-                    <span className="text-[10px] text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-border/60">
                       ANTT: {formatBRL(freight.minimum_antt_price, true)}
-                    </span>
+                    </Badge>
                   ) : (
-                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                    <Badge variant="destructive" className="text-[10px] px-2 py-0.5">
                       ⚠ ANTT
                     </Badge>
                   )
@@ -685,29 +707,29 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           </CardFooter>
         )}
 
-        {/* ── CTAs ── */}
+        {/* ── CTAs ── (10% accent: primary CTA buttons) */}
         {showActions && onAction && freight.status === "OPEN" && !isFullyBooked && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 pt-1">
             <div className="space-y-2">
               {freight.service_type === "GUINCHO" ? (
-                <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90" size="sm">
+                <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
                   <Wrench className="mr-2 h-4 w-4" />Aceitar Chamado
                 </Button>
               ) : freight.service_type === "MUDANCA" ? (
-                <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90" size="sm">
+                <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
                   <Home className="mr-2 h-4 w-4" />Aceitar Mudança
                 </Button>
               ) : freight.service_type === "FRETE_MOTO" ? (
-                <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90" size="sm">
+                <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
                   <Truck className="mr-2 h-4 w-4" />Aceitar Frete Moto
                 </Button>
               ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full bg-primary hover:bg-primary/90 text-sm" size="sm">
+                  <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
                     Aceitar ({availableSlots})
                   </Button>
                   {freight.producer_id ? (
-                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-border text-sm" size="sm">
+                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
                       Contraproposta
                     </Button>
                   ) : (
@@ -718,11 +740,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90 text-sm" size="sm">
+                  <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
                     Aceitar
                   </Button>
                   {freight.producer_id ? (
-                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-border text-sm" size="sm">
+                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
                       Contraproposta
                     </Button>
                   ) : (
