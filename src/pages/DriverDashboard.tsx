@@ -1813,7 +1813,14 @@ const DriverDashboard = () => {
   // Calcular estatísticas - memoizado para performance
   const statistics = useMemo(() => {
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
-    const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length;
+    const isProposalActive = (p: any) => {
+      const f = p.freight;
+      if (!f) return false;
+      const fStatus = (f.status || '').toUpperCase();
+      const available = (f.required_trucks ?? 1) - (f.accepted_trucks ?? 0);
+      return fStatus === 'OPEN' && available > 0;
+    };
+    const pendingProposalsCount = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && isProposalActive(p)).length;
     
     // ✅ FIX: Filtro robusto - excluir fretes agendados (pickup_date futura) do contador
     const today = new Date();
@@ -2640,7 +2647,7 @@ const DriverDashboard = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
-                {myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length} proposta{myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length !== 1 ? 's' : ''}
+                {(() => { const active = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && p.freight && (p.freight.status || '').toUpperCase() === 'OPEN' && (((p.freight as any).required_trucks ?? 1) - ((p.freight as any).accepted_trucks ?? 0)) > 0); return `${active.length} proposta${active.length !== 1 ? 's' : ''}`; })()}
               </Badge>
             </div>
             {myProposals.some(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') ? (
