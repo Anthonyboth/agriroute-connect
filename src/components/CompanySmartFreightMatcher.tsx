@@ -324,7 +324,23 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     }
   };
 
-  const filteredFreights = useMemo(() => compatibleFreights.filter((freight) => {
+  // ✅ Separar fretes rurais (CARGA) e urbanos (MUDANCA, GUINCHO, etc.) da tabela freights
+  const URBAN_FREIGHT_TYPES = new Set(['GUINCHO', 'FRETE_MOTO', 'MUDANCA', 'ENTREGA_PACOTES', 'TRANSPORTE_PET', 'FRETE_URBANO']);
+
+  const { ruralFreights, urbanFreightsFromTable } = useMemo(() => {
+    const rural: CompatibleFreight[] = [];
+    const urban: CompatibleFreight[] = [];
+    for (const f of compatibleFreights) {
+      if (URBAN_FREIGHT_TYPES.has(f.service_type)) {
+        urban.push(f);
+      } else {
+        rural.push(f);
+      }
+    }
+    return { ruralFreights: rural, urbanFreightsFromTable: urban };
+  }, [compatibleFreights]);
+
+  const filteredFreights = useMemo(() => ruralFreights.filter((freight) => {
     const matchesSearch =
       !searchTerm ||
       (freight.cargo_type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -333,7 +349,16 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
     const matchesCargoType = selectedCargoType === "all" || freight.cargo_type === selectedCargoType;
     return matchesSearch && matchesCargoType;
-  }), [compatibleFreights, searchTerm, selectedCargoType]);
+  }), [ruralFreights, searchTerm, selectedCargoType]);
+
+  const filteredUrbanFreights = useMemo(() => urbanFreightsFromTable.filter((freight) => {
+    const matchesSearch =
+      !searchTerm ||
+      (freight.cargo_type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (freight.origin_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (freight.destination_address || "").toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  }), [urbanFreightsFromTable, searchTerm]);
 
   const filteredServiceRequests = useMemo(() => serviceRequests.filter((r: any) => {
     const matchesSearch =
@@ -345,7 +370,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   }), [serviceRequests, searchTerm]);
 
   const activeDrivers = (drivers || []).filter((d: any) => d.status === "ACTIVE");
-  const totalAvailableCount = filteredFreights.length + filteredServiceRequests.length;
+  const totalUrbanCount = filteredUrbanFreights.length + filteredServiceRequests.length;
+  const totalAvailableCount = filteredFreights.length + totalUrbanCount;
 
   const getServiceTypeTitle = (serviceType: string) => {
     switch (serviceType) {
@@ -440,11 +466,11 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-primary/5 rounded-lg">
-                <div className="text-2xl font-bold text-primary">{compatibleFreights.length}</div>
+                <div className="text-2xl font-bold text-primary">{filteredFreights.length}</div>
                 <div className="text-sm text-muted-foreground">Fretes rurais</div>
               </div>
               <div className="text-center p-4 bg-purple-500/5 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{serviceRequests.length}</div>
+                <div className="text-2xl font-bold text-purple-600">{totalUrbanCount}</div>
                 <div className="text-sm text-muted-foreground">Serviços urbanos</div>
               </div>
               <div className="text-center p-4 bg-green-500/5 rounded-lg">
@@ -475,9 +501,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           <TabsTrigger value="services" className="flex items-center gap-2">
             <Bike className="h-4 w-4" />
             Fretes Urbanos
-            {filteredServiceRequests.length > 0 && (
+            {totalUrbanCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {filteredServiceRequests.length}
+                {totalUrbanCount}
               </Badge>
             )}
           </TabsTrigger>
@@ -564,9 +590,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
               )}
             </TabsContent>
 
-            {/* ABA SERVIÇOS URBANOS (PET, Pacotes, Guincho, Mudança, Moto) */}
+            {/* ABA SERVIÇOS URBANOS (PET, Pacotes, Guincho, Mudança, Moto) + Fretes urbanos da tabela freights */}
             <TabsContent value="services" className="space-y-4">
-              {filteredServiceRequests.length === 0 ? (
+              {totalUrbanCount === 0 ? (
                 <Card>
                   <CardContent className="text-center py-8">
                     <Bike className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -580,6 +606,56 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {/* ✅ Fretes urbanos da tabela freights (MUDANCA, GUINCHO, etc.) */}
+                  {filteredUrbanFreights.map((freight) => (
+                    <div key={freight.freight_id} className="relative overflow-hidden">
+                      <FreightCard
+                        freight={{
+                          id: freight.freight_id,
+                          cargo_type: freight.cargo_type,
+                          weight: Number(freight.weight ?? 0) || 0,
+                          origin_address: freight.origin_address,
+                          destination_address: freight.destination_address,
+                          origin_city: freight.origin_city,
+                          origin_state: freight.origin_state,
+                          destination_city: freight.destination_city,
+                          destination_state: freight.destination_state,
+                          pickup_date: freight.pickup_date,
+                          delivery_date: freight.delivery_date,
+                          price: freight.price,
+                          urgency: freight.urgency as "LOW" | "MEDIUM" | "HIGH",
+                          status: "OPEN" as const,
+                          distance_km: freight.distance_km,
+                          minimum_antt_price: freight.minimum_antt_price,
+                          required_trucks: freight.required_trucks,
+                          accepted_trucks: freight.accepted_trucks,
+                          service_type: freight.service_type as any,
+                          pricing_type: freight.pricing_type as any,
+                          price_per_km: freight.price_per_km,
+                          producer_id: (freight as any).producer_id || null,
+                        }}
+                        showActions
+                        canAcceptFreights={true}
+                        isAffiliatedDriver={false}
+                        onAction={() => fetchCompatibleFreights()}
+                      />
+                      <div className="mt-2">
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            setAssignTargetId(freight.freight_id);
+                            setAssignTargetType("freight");
+                            setAssignModalOpen(true);
+                          }}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          Atribuir ao motorista
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* ✅ Service requests urbanos */}
                   {filteredServiceRequests.map((r: any) => (
                     <Card key={r.id} className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden">
                       <div className="p-4 bg-gradient-to-r from-blue-500/10 to-blue-600/5">
