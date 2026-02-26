@@ -14,18 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { debounce } from '@/lib/utils';
 
-const FREIGHT_SERVICE_TYPE_LABELS: Record<string, string> = {
-  'CARGA': 'Transporte de Carga',
-  'FRETE_MOTO': 'Frete Moto',
-  'GUINCHO': 'Guincho',
-  'MUDANCA': 'Mudança',
-  'ENTREGA_PACOTES': 'Entrega de Pacotes',
-  'TRANSPORTE_PET': 'Transporte Pet',
-  'CARGA_GERAL': 'Carga Geral',
-  'CARGA_AGRICOLA': 'Carga Agrícola',
-  'TRANSPORTE_ANIMAIS': 'Transporte de Animais',
-  'TRANSPORTE_MAQUINARIO': 'Transporte de Maquinário',
-};
 
 interface UserCity {
   id: string;
@@ -69,33 +57,13 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
     if (userRole === 'PRODUTOR') return 'PRODUTOR_LOCALIZACAO';
     return '';
   });
-  const [userServiceTypes, setUserServiceTypes] = useState<string[]>([]);
   const [radius, setRadius] = useState(50);
 
   useEffect(() => {
     if (user) {
       fetchUserCities();
-      if (userRole === 'MOTORISTA' || userRole === 'TRANSPORTADORA') {
-        fetchUserServiceTypes();
-      }
     }
   }, [user]);
-
-  const fetchUserServiceTypes = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('service_types')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (!error && data?.service_types) {
-        setUserServiceTypes(data.service_types as string[]);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar service_types:', err);
-    }
-  };
 
   const fetchUserCities = async () => {
     if (!user) return;
@@ -369,19 +337,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                       </div>
                     </div>
 
-                    {/* Tipos de frete do motorista/transportadora */}
-                    {(userRole === 'MOTORISTA' || userRole === 'TRANSPORTADORA') && userServiceTypes.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-xs text-muted-foreground mb-1.5">Tipos de frete configurados:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {userServiceTypes.map((type) => (
-                            <Badge key={type} variant="outline" className="text-xs">
-                              {FREIGHT_SERVICE_TYPE_LABELS[type] || type.replace(/_/g, ' ')}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                     
                     <div className="space-y-2">
                       <label className="text-sm text-muted-foreground">
