@@ -563,27 +563,28 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                         canAcceptFreights={true}
                         isAffiliatedDriver={false}
                         onAction={() => fetchCompatibleFreights()}
+                        renderExtra={
+                          <div className="flex gap-2 flex-wrap items-center">
+                            <Button
+                              className="flex-1"
+                              onClick={() => {
+                                setAssignTargetId(freight.freight_id);
+                                setAssignTargetType("freight");
+                                setAssignModalOpen(true);
+                              }}
+                            >
+                              <Package className="h-4 w-4 mr-2" />
+                              Atribuir ao motorista
+                            </Button>
+
+                            {freight.required_trucks > 1 && (
+                              <Badge className="bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
+                                {freight.accepted_trucks}/{freight.required_trucks} caminhões
+                              </Badge>
+                            )}
+                          </div>
+                        }
                       />
-
-                      <div className="mt-2 flex gap-2 flex-wrap items-center">
-                        <Button
-                          className="flex-1"
-                          onClick={() => {
-                            setAssignTargetId(freight.freight_id);
-                            setAssignTargetType("freight");
-                            setAssignModalOpen(true);
-                          }}
-                        >
-                          <Package className="h-4 w-4 mr-2" />
-                          Atribuir ao motorista
-                        </Button>
-
-                        {freight.required_trucks > 1 && (
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
-                            {freight.accepted_trucks}/{freight.required_trucks} caminhões
-                          </Badge>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -638,20 +639,20 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                         canAcceptFreights={true}
                         isAffiliatedDriver={false}
                         onAction={() => fetchCompatibleFreights()}
+                        renderExtra={
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              setAssignTargetId(freight.freight_id);
+                              setAssignTargetType("freight");
+                              setAssignModalOpen(true);
+                            }}
+                          >
+                            <Package className="h-4 w-4 mr-2" />
+                            Atribuir ao motorista
+                          </Button>
+                        }
                       />
-                      <div className="mt-2">
-                        <Button
-                          className="w-full"
-                          onClick={() => {
-                            setAssignTargetId(freight.freight_id);
-                            setAssignTargetType("freight");
-                            setAssignModalOpen(true);
-                          }}
-                        >
-                          <Package className="h-4 w-4 mr-2" />
-                          Atribuir ao motorista
-                        </Button>
-                      </div>
                     </div>
                   ))}
 
