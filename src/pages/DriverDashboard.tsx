@@ -453,6 +453,7 @@ const DriverDashboard = () => {
           required_trucks: Number(f.required_trucks || 1),
           pricing_type: f.pricing_type || 'FIXED',
           price_per_km: f.price_per_km || undefined,
+          producer_id: f.producer_id || null,
         }));
 
       devLog('[fetchAvailableFreights] ✅ Feed autoritativo retornou:', normalizedFreights.length, 'fretes');

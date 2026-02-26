@@ -232,6 +232,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         required_trucks: Number(f.required_trucks || 1),
         accepted_trucks: Number(f.accepted_trucks || 0),
         created_at: String(f.created_at || ''),
+        producer_id: f.producer_id || null,
       }));
 
       const unifiedServices = (result.serviceRequests || []).filter((s: any) => {

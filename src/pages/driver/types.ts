@@ -16,6 +16,7 @@ export interface Freight {
   required_trucks?: number;
   pricing_type?: 'FIXED' | 'PER_KM' | 'PER_TON';
   price_per_km?: number;
+  producer_id?: string | null;
   service_type?: CanonicalServiceType;
   is_service_request?: boolean;
   problem_description?: string;

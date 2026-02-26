@@ -533,6 +533,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                           service_type: freight.service_type as any,
                           pricing_type: freight.pricing_type as any,
                           price_per_km: freight.price_per_km,
+                          producer_id: (freight as any).producer_id || null,
                         }}
                         showActions
                         canAcceptFreights={true}
