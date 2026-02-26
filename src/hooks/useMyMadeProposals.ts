@@ -129,7 +129,15 @@ export function useMyMadeProposals({ userId, driverIds, enabled = true }: UseMyM
     };
   }, [enabled, ids.join(','), fetchProposals]);
 
-  const pendingCount = proposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').length;
+  // Só contar propostas onde o frete ainda está OPEN e com vagas
+  const isFreightActive = (p: MadeProposal) => {
+    const f = p.freight;
+    if (!f) return false;
+    const status = (f.status || '').toUpperCase();
+    const available = (f.required_trucks ?? 1) - (f.accepted_trucks ?? 0);
+    return status === 'OPEN' && available > 0;
+  };
+  const pendingCount = proposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && isFreightActive(p)).length;
   const acceptedCount = proposals.filter(p => p.status === 'ACCEPTED').length;
   const rejectedCount = proposals.filter(p => p.status === 'REJECTED').length;
 
