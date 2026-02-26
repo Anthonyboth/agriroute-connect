@@ -735,9 +735,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                       </Button>
                     </div>
                   ) : (
-                    <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                      Aceitar ({availableSlots})
-                    </Button>
+                    <div className="space-y-1.5">
+                      <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                        Aceitar ({availableSlots})
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                        Sem cadastro — contraproposta indisponível
+                      </p>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -752,9 +757,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                       </Button>
                     </div>
                   ) : (
-                    <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                      Aceitar
-                    </Button>
+                    <div className="space-y-1.5">
+                      <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                        Aceitar
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                        Sem cadastro — contraproposta indisponível
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
