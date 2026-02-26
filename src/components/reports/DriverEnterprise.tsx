@@ -265,7 +265,7 @@ const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?
 // ═══════════════════════════════════════════════════════════════════════════════
 // BI Header mini stats for chart cards
 // ═══════════════════════════════════════════════════════════════════════════════
-const BiChartHeader: React.FC<{ total: number; avg: number; max: number; delta?: number | null; formatter?: (v: number) => string }> = ({ total, avg, max, delta, formatter = fmtNum }) => (
+const BiChartHeader: React.FC<{ total: number; avg: number; max: number; delta?: number | null; formatter?: (v: number) => string; metaLine?: { label: string; value: number } }> = ({ total, avg, max, delta, formatter = fmtNum, metaLine }) => (
   <div className="flex items-center gap-3 flex-wrap px-1 pb-2">
     <span className="text-[10px] text-muted-foreground">Total: <span className="font-bold text-foreground">{formatter(total)}</span></span>
     <span className="text-[10px] text-muted-foreground">Média: <span className="font-bold text-foreground">{formatter(avg)}</span></span>
@@ -276,7 +276,49 @@ const BiChartHeader: React.FC<{ total: number; avg: number; max: number; delta?:
         Δ {Math.abs(delta).toFixed(1)}%
       </span>
     )}
+    {metaLine && (
+      <span className="text-[10px] font-semibold flex items-center gap-1 text-amber-500">
+        <Target className="h-3 w-3" /> {metaLine.label}: {formatter(metaLine.value)}
+      </span>
+    )}
   </div>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Enterprise Tooltip — unified for all charts
+// ═══════════════════════════════════════════════════════════════════════════════
+const EnterpriseTooltip: React.FC<{ label?: string; items: { color: string; name: string; value: string }[]; meta?: string }> = ({ label, items, meta }) => (
+  <div className={cn(BI.radius, 'bg-card/95 backdrop-blur-md border border-border/60 shadow-xl p-3 min-w-[140px]')}>
+    {label && <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">{label}</p>}
+    {items.map((item, i) => (
+      <div key={i} className="flex items-center justify-between gap-4 py-0.5">
+        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+          {item.name}
+        </span>
+        <span className="text-[11px] font-bold tabular-nums text-foreground">{item.value}</span>
+      </div>
+    ))}
+    {meta && <p className="text-[9px] text-muted-foreground/70 mt-1 pt-1 border-t border-border/30">{meta}</p>}
+  </div>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Premium Empty State with 90-day CTA
+// ═══════════════════════════════════════════════════════════════════════════════
+const PremiumEmptyState: React.FC<{ icon: React.ElementType; title: string; subtitle: string; onExpand90?: () => void }> = ({ icon: Icon, title, subtitle, onExpand90 }) => (
+  <Card className={cn(BI.radius, 'p-8 flex flex-col items-center gap-3 bg-gradient-to-b from-card to-muted/20')}>
+    <div className="h-14 w-14 rounded-2xl bg-muted/30 flex items-center justify-center">
+      <Icon className="h-7 w-7 text-muted-foreground/40" />
+    </div>
+    <h3 className="text-base font-semibold">{title}</h3>
+    <p className="text-sm text-muted-foreground text-center max-w-xs">{subtitle}</p>
+    {onExpand90 && (
+      <Button variant="outline" size="sm" className="gap-1.5 text-xs mt-1" onClick={onExpand90}>
+        <Activity className="h-3 w-3" /> Ver últimos 90 dias
+      </Button>
+    )}
+  </Card>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -629,8 +671,30 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
     const totalRev = rev.reduce((s: number, v: number) => s + v, 0);
     const avgRev = rev.length > 0 ? totalRev / rev.length : 0;
     const maxRev = rev.length > 0 ? Math.max(...rev) : 0;
+    const deltaRev = rev.length >= 2 && rev[rev.length - 2] > 0
+      ? ((rev[rev.length - 1] - rev[rev.length - 2]) / rev[rev.length - 2]) * 100 : null;
+    return { totalRev, avgRev, maxRev, deltaRev };
+  }, [charts]);
+
+  // ── Driver charts BI headers ────────────────────────────────────────────
+  const driverHeaders = useMemo(() => {
+    const rpcRoutes = Array.isArray(charts?.top_rotas) ? charts.top_rotas : [];
+    const revs = rpcRoutes.map((r: any) => Number(r.receita) || 0);
+    const totalRev = revs.reduce((s: number, v: number) => s + v, 0);
+    const avgRev = revs.length > 0 ? totalRev / revs.length : 0;
+    const maxRev = revs.length > 0 ? Math.max(...revs) : 0;
     return { totalRev, avgRev, maxRev };
   }, [charts]);
+
+  // ── Efficiency BI headers ──────────────────────────────────────────────
+  const effHeaders = useMemo(() => {
+    const withRpm = filteredRows.filter(r => r.__rpm > 0);
+    const rpms = withRpm.map(r => r.__rpm);
+    const totalRpm = rpms.reduce((s, v) => s + v, 0);
+    const avgRpm = rpms.length > 0 ? totalRpm / rpms.length : 0;
+    const maxRpm = rpms.length > 0 ? Math.max(...rpms) : 0;
+    return { totalRpm, avgRpm, maxRpm, count: rpms.length };
+  }, [filteredRows]);
 
   // ── 7. Driver charts (PowerBI) — use RPC charts.top_rotas directly ────────
   const driverCharts: ChartConfig[] = useMemo(() => {
@@ -746,9 +810,12 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
     }));
     if (rpmSeries.length >= 2) {
       configs.push({
-        title: 'R$/km tendência', type: 'line',
-        data: rpmSeries,
-        dataKeys: [{ key: 'rs_km', label: 'R$/km', color: '#FF9800' }],
+        title: `R$/km tendência (meta: R$ ${fmtNum(rpmTarget, 2)})`, type: 'line',
+        data: rpmSeries.map(x => ({ ...x, meta: rpmTarget })),
+        dataKeys: [
+          { key: 'rs_km', label: 'R$/km', color: '#FF9800' },
+          { key: 'meta', label: 'Meta', color: 'hsl(var(--destructive))' },
+        ],
         xAxisKey: 'period',
         valueFormatter: (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       });
@@ -972,28 +1039,36 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
       )}
 
       {/* ═══ 4. Tendências (3 charts) ════════════════════════════════════════ */}
-      {trendCharts.length > 0 && (
+      {trendCharts.length > 0 ? (
         <div className="space-y-2">
           <SectionTitle icon={TrendingUp} title="Tendências" subtitle={`Granularidade: ${pickGranularity(dateRange.from, dateRange.to) === 'day' ? 'diária' : 'mensal'}`} />
-          <BiChartHeader total={trendHeaders.totalRev} avg={trendHeaders.avgRev} max={trendHeaders.maxRev} formatter={formatBRL} />
+          <BiChartHeader total={trendHeaders.totalRev} avg={trendHeaders.avgRev} max={trendHeaders.maxRev} delta={trendHeaders.deltaRev} formatter={formatBRL} metaLine={{ label: 'Meta R$/km', value: rpmTarget }} />
           <ReportCharts charts={trendCharts} isLoading={false} columns={2} />
         </div>
+      ) : driverRows.length > 0 ? null : (
+        <PremiumEmptyState icon={TrendingUp} title="Sem tendências disponíveis" subtitle="Realize fretes para visualizar gráficos de tendência com granularidade automática." />
       )}
 
       {/* ═══ 5. Drivers (PowerBI) ════════════════════════════════════════════ */}
-      {driverCharts.length > 0 && (
+      {driverCharts.length > 0 ? (
         <div className="space-y-2">
           <SectionTitle icon={Route} title="Drivers de receita" subtitle="Clique em uma barra para filtrar" />
+          <BiChartHeader total={driverHeaders.totalRev} avg={driverHeaders.avgRev} max={driverHeaders.maxRev} formatter={formatBRL} />
           <ReportCharts charts={driverCharts} isLoading={false} columns={2} />
         </div>
+      ) : driverRows.length > 0 ? null : (
+        <PremiumEmptyState icon={Route} title="Sem drivers de receita" subtitle="Dados de rotas e cargas aparecerão aqui após suas primeiras viagens." />
       )}
 
       {/* ═══ 6. Eficiência (bins + outliers) ═════════════════════════════════ */}
-      {efficiencyCharts.length > 0 && (
+      {efficiencyCharts.length > 0 ? (
         <div className="space-y-2">
           <SectionTitle icon={Zap} title="Eficiência R$/km" subtitle="Distribuição e tendência" />
+          <BiChartHeader total={effHeaders.count} avg={effHeaders.avgRpm} max={effHeaders.maxRpm} formatter={(v) => `R$ ${fmtNum(v, 2)}`} metaLine={{ label: 'Meta', value: rpmTarget }} />
           <ReportCharts charts={efficiencyCharts} isLoading={false} columns={2} />
         </div>
+      ) : driverRows.length > 0 ? null : (
+        <PremiumEmptyState icon={Zap} title="Sem dados de eficiência" subtitle="A distribuição R$/km será exibida com pelo menos 3 viagens registradas." />
       )}
 
       {/* ═══ 7. Top/Bottom R$/km ═════════════════════════════════════════════ */}
@@ -1103,13 +1178,7 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
             </Button>
           </Card>
         ) : (
-          <Card className={cn(BI.radius, 'p-8 flex flex-col items-center gap-3')}>
-            <Package className="h-10 w-10 text-muted-foreground/30" />
-            <h3 className="text-base font-semibold">Nenhum frete no período</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-xs">
-              Amplie o período de análise para ver dados.
-            </p>
-          </Card>
+          <PremiumEmptyState icon={Package} title="Nenhum frete no período" subtitle="Amplie o período de análise ou selecione os últimos 90 dias para visualizar seu histórico completo." />
         )}
       </div>
     </div>
