@@ -157,15 +157,32 @@ const ProducerDashboard = () => {
     'FRETE_UTILITARIO',
   ]), []);
 
+  // Tipos urbanos que podem existir na tabela freights
+  const URBAN_FREIGHT_TABLE_TYPES = useMemo(() => new Set([
+    'GUINCHO', 'FRETE_MOTO', 'MUDANCA', 'MUDANCA_RESIDENCIAL', 'MUDANCA_COMERCIAL',
+    'FRETE_GUINCHO', 'FRETE_MUDANCA', 'FRETE_URBANO', 'FRETE_PICAPE', 'FRETE_UTILITARIO',
+    'ENTREGA_PACOTES', 'TRANSPORTE_PET',
+  ]), []);
+
   // Classificação central: única função para todo o dashboard
   const classifiedOpenItems = useMemo(() => {
-    // Fretes rurais: tabela freights com status OPEN
-    const freightsRuralOpen = freights.filter((f) => f.status === "OPEN");
+    const allFreightsOpen = freights.filter((f) => f.status === "OPEN");
+    
+    // Separar freights da tabela freights em rural vs urbano pelo service_type
+    const freightsRuralOpen = allFreightsOpen.filter(
+      (f) => !URBAN_FREIGHT_TABLE_TYPES.has(f.service_type || 'CARGA')
+    );
+    const freightsUrbanFromTable = allFreightsOpen.filter(
+      (f) => URBAN_FREIGHT_TABLE_TYPES.has(f.service_type || 'CARGA')
+    );
     
     // Fretes urbanos/especiais: service_requests classificados como transporte
-    const freightsUrbanOpen = serviceRequests.filter(
+    const freightsUrbanFromServices = serviceRequests.filter(
       (sr) => FREIGHT_SERVICE_TYPES.has(sr.service_type) && (sr.status === "OPEN" || sr.status === "ABERTO")
     );
+    
+    // Combinar urbanos de ambas as fontes
+    const freightsUrbanOpen = [...freightsUrbanFromTable, ...freightsUrbanFromServices];
     
     // Serviços: service_requests que NÃO são transporte
     const servicesOpen = serviceRequests.filter(
@@ -185,9 +202,10 @@ const ProducerDashboard = () => {
       });
     }
 
-    // ✅ PERF: Debug telemetry only in DEV mode
     if (import.meta.env.DEV) {
       console.debug('[COUNTS_DEBUG]', {
+        ruralCount: freightsRuralOpen.length,
+        urbanCount: freightsUrbanOpen.length,
         openFretesCount: freightsCount,
         openServicesCount: servicesCount,
         openTotal,
@@ -197,6 +215,7 @@ const ProducerDashboard = () => {
     return {
       freightsRuralOpen,
       freightsUrbanOpen,
+      freightsUrbanFromTable,
       servicesOpen,
       counts: {
         freights: freightsCount,
@@ -204,7 +223,7 @@ const ProducerDashboard = () => {
         openTotal,
       },
     };
-  }, [freights, serviceRequests, FREIGHT_SERVICE_TYPES]);
+  }, [freights, serviceRequests, FREIGHT_SERVICE_TYPES, URBAN_FREIGHT_TABLE_TYPES]);
 
   // Estado para controlar avaliações automáticas
   const [activeFreightForRating, setActiveFreightForRating] = useState<any>(null);
@@ -1712,7 +1731,41 @@ const ProducerDashboard = () => {
                     </div>
                     
                     <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                      {classifiedOpenItems.freightsUrbanOpen.map((urbanFreight) => (
+                      {/* Fretes urbanos da tabela freights → FreightCard */}
+                      {classifiedOpenItems.freightsUrbanFromTable.map((freight) => (
+                        <FreightCard
+                          key={freight.id}
+                          freight={{
+                            id: freight.id,
+                            cargo_type: freight.cargo_type,
+                            weight: freight.weight || 0,
+                            distance_km: freight.distance_km,
+                            origin_address: freight.origin_address,
+                            destination_address: freight.destination_address,
+                            origin_city: freight.origin_city,
+                            origin_state: freight.origin_state,
+                            destination_city: freight.destination_city,
+                            destination_state: freight.destination_state,
+                            price: freight.price,
+                            status: freight.status,
+                            pickup_date: freight.pickup_date,
+                            delivery_date: freight.delivery_date,
+                            urgency: freight.urgency,
+                            minimum_antt_price: freight.minimum_antt_price || 0,
+                            required_trucks: freight.required_trucks || 1,
+                            accepted_trucks: freight.accepted_trucks || 0,
+                            service_type: freight.service_type,
+                            pricing_type: freight.pricing_type,
+                            price_per_km: freight.price_per_km,
+                          }}
+                          showProducerActions
+                          onAction={(action) => handleFreightAction(action as any, freight)}
+                        />
+                      ))}
+                      {/* Fretes urbanos de service_requests → UrbanFreightCard */}
+                      {classifiedOpenItems.freightsUrbanOpen
+                        .filter((uf) => !classifiedOpenItems.freightsUrbanFromTable.some((ft) => ft.id === uf.id))
+                        .map((urbanFreight) => (
                         <UrbanFreightCard
                           key={`urban-${urbanFreight.id}`}
                           serviceRequest={{
