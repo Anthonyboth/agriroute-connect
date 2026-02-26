@@ -724,33 +724,37 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   <Truck className="mr-2 h-4 w-4" />Aceitar Frete Moto
                 </Button>
               ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                    Aceitar ({availableSlots})
-                  </Button>
+                <div className="space-y-2">
                   {freight.producer_id ? (
-                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
-                      Contraproposta
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                        Aceitar ({availableSlots})
+                      </Button>
+                      <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
+                        Contraproposta
+                      </Button>
+                    </div>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
-                      Sem cadastro — indisponível
-                    </p>
+                    <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                      Aceitar ({availableSlots})
+                    </Button>
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                    Aceitar
-                  </Button>
+                <div className="space-y-2">
                   {freight.producer_id ? (
-                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
-                      Contraproposta
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                        Aceitar
+                      </Button>
+                      <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
+                        Contraproposta
+                      </Button>
+                    </div>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
-                      Sem cadastro — indisponível
-                    </p>
+                    <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                      Aceitar
+                    </Button>
                   )}
                 </div>
               )}
