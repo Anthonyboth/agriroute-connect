@@ -12,7 +12,6 @@ import { UnifiedLocationInput, type LocationData } from './UnifiedLocationInput'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { getServiceById } from '@/lib/service-types';
 import { debounce } from '@/lib/utils';
 
 interface UserCity {
@@ -23,7 +22,7 @@ interface UserCity {
   type: 'MOTORISTA_ORIGEM' | 'MOTORISTA_DESTINO' | 'PRESTADOR_SERVICO' | 'PRODUTOR_LOCALIZACAO';
   radius_km: number;
   is_active: boolean;
-  service_types?: string[];
+  
 }
 
 interface UserCityManagerProps {
@@ -78,7 +77,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
           type,
           radius_km,
           is_active,
-          service_types,
+          is_active,
           cities (
             name,
             state
@@ -97,7 +96,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
         type: item.type as UserCity['type'],
         radius_km: item.radius_km,
         is_active: item.is_active,
-        service_types: item.service_types || []
       })) || [];
 
       setCities(formattedCities);
@@ -138,18 +136,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
         userRole
       });
 
-      // Buscar service_types atuais do perfil para prestadores
-      let profileServiceTypes: string[] = [];
-      if (userRole === 'PRESTADOR_SERVICOS') {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('service_types')
-          .eq('user_id', user.id)
-          .eq('role', 'PRESTADOR_SERVICOS')
-          .single();
-        
-        profileServiceTypes = profileData?.service_types || [];
-      }
 
       const insertData: any = {
         user_id: user.id,
@@ -159,10 +145,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
         is_active: true
       };
 
-      // Copiar service_types do perfil para prestadores
-      if (userRole === 'PRESTADOR_SERVICOS') {
-        insertData.service_types = profileServiceTypes;
-      }
 
       const { error } = await supabase
         .from('user_cities')
@@ -368,25 +350,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                       />
                     </div>
 
-                    {/* Exibir tipos de serviço para PRESTADOR_SERVICOS (read-only) */}
-                    {userRole === 'PRESTADOR_SERVICOS' && city.service_types && city.service_types.length > 0 && (
-                      <div className="mt-4 pt-4 border-t">
-                        <span className="text-sm font-medium text-muted-foreground block mb-2">
-                          Serviços oferecidos:
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {city.service_types.map((typeId) => {
-                            const service = getServiceById(typeId);
-                            // Filtrar apenas serviços visíveis para prestadores
-                            return service && service.providerVisible ? (
-                              <Badge key={typeId} variant="secondary" className="text-xs">
-                                {service.label}
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
