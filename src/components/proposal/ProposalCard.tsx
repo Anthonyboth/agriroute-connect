@@ -1,17 +1,16 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Clock, DollarSign, Truck, User, MapPin, AlertTriangle, CheckCircle, XCircle, MessageSquare, Loader2, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
-import { SafeStatusBadge, SafePrice } from '@/components/security';
+import { SafeStatusBadge } from '@/components/security';
 
 interface Proposal {
   id: string;
@@ -81,16 +80,15 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   // ✅ CRÍTICO: Cálculos por carreta
   const requiredTrucks = getRequiredTrucks(freight);
   const multipleTrucks = checkMultipleTrucks(freight);
-  const freightPricePerTruck = useMemo(() => getPricePerTruck(freight.price, requiredTrucks), [freight.price, requiredTrucks]);
+  const freightPricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
   
   // A proposta do motorista JÁ É por carreta (padrão do sistema)
   const proposalPricePerTruck = proposal.proposed_price;
   
   // ANTT mínimo POR CARRETA
-  const minAnttPerTruck = useMemo(() => 
-    freight.minimum_antt_price ? getPricePerTruck(freight.minimum_antt_price, requiredTrucks) : 0, 
-    [freight.minimum_antt_price, requiredTrucks]
-  );
+  const minAnttPerTruck = freight.minimum_antt_price
+    ? getPricePerTruck(freight.minimum_antt_price, requiredTrucks)
+    : 0;
 
   const availableSlots = freight.required_trucks - freight.accepted_trucks;
   const belowAntt = minAnttPerTruck > 0 && proposalPricePerTruck < minAnttPerTruck;
@@ -116,11 +114,11 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           onDetails(proposal);
         }
       }}
-      className="mb-4 transition-colors cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
+      className="mb-4 cursor-pointer border border-border/60 bg-card shadow-sm transition-all hover:bg-secondary/20 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary"
       data-testid="proposal-card"
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
+      <CardContent className="space-y-4 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="relative">
               <Avatar className="h-10 w-10">
@@ -139,7 +137,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-base">{proposal.driver?.full_name || 'Motorista'}</h3>
+              <h3 className="font-semibold text-base break-words">{proposal.driver?.full_name || 'Motorista'}</h3>
               {proposal.driver?.rating && (
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <span>{proposal.driver.rating.toFixed(1)}★</span>
@@ -154,37 +152,39 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               </p>
             </div>
           </div>
-          {/* ✅ SEGURANÇA: Status via SafeStatusBadge - NUNCA exibe inglês cru */}
-          <SafeStatusBadge status={proposal.status} type="proposal" />
+          <div className="w-full sm:w-auto sm:pl-2">
+            {/* ✅ SEGURANÇA: Status via SafeStatusBadge - NUNCA exibe inglês cru */}
+            <SafeStatusBadge status={proposal.status} type="proposal" />
+          </div>
         </div>
 
         <Separator className="my-3" />
 
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div>
-            <div className="flex items-center gap-2 text-sm mb-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          <div className="rounded-md border border-border/50 bg-secondary/30 p-3">
+            <div className="flex items-center gap-2 text-sm mb-1">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Rota:</span>
             </div>
-            <p className="text-sm text-muted-foreground ml-6">
+            <p className="text-sm text-muted-foreground break-words">
               {freight.origin_city}/{freight.origin_state} → {freight.destination_city}/{freight.destination_state}
             </p>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2 text-sm mb-2">
+          <div className="rounded-md border border-border/50 bg-secondary/30 p-3">
+            <div className="flex items-center gap-2 text-sm mb-1">
               <Truck className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Vagas:</span>
             </div>
-            <p className="text-sm text-muted-foreground ml-6">
+            <p className="text-sm text-muted-foreground break-words">
               {availableSlots} de {freight.required_trucks} disponíveis
             </p>
           </div>
         </div>
 
         {/* ✅ VALORES POR CARRETA */}
-        <div className="bg-muted/50 p-3 rounded-lg mb-3">
-          <div className="flex items-center justify-between mb-2">
+        <div className="rounded-lg border border-border/60 bg-secondary/40 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <span className="text-sm font-medium flex items-center gap-2">
               Valor proposto:
             </span>
@@ -284,7 +284,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
         {/* Botões de Ação */}
         {proposal.status === 'PENDING' && (
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <Button
               variant="outline"
               size="sm"
@@ -293,6 +293,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 onReject(proposal.id);
               }}
               disabled={loadingAction.proposalId === proposal.id}
+              className="h-auto min-h-9 w-full justify-center px-2 py-2 text-xs sm:text-sm"
               data-testid="reject-proposal-button"
             >
               {loadingAction.proposalId === proposal.id && loadingAction.action === 'reject' ? (
@@ -315,7 +316,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 e.stopPropagation();
                 onCounterProposal(proposal);
               }}
-              className="border-primary text-primary hover:bg-primary/10"
+              className="h-auto min-h-9 w-full justify-center border-primary px-2 py-2 text-center text-xs leading-tight text-primary hover:bg-primary/10 sm:text-sm"
               data-testid="counter-proposal-button"
             >
               <DollarSign className="h-4 w-4 mr-2" />
@@ -329,6 +330,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 onAccept(proposal);
               }}
               disabled={!canAccept || loadingAction.proposalId === proposal.id}
+              className="h-auto min-h-9 w-full justify-center px-2 py-2 text-xs sm:text-sm"
               data-testid="accept-proposal-button"
             >
               {loadingAction.proposalId === proposal.id && loadingAction.action === 'accept' ? (

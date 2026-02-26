@@ -362,13 +362,13 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
 
             {/* Filtros Avançados */}
             {activeTab === 'pending' && proposals.filter(p => p.status === 'PENDING').length > 0 && (
-              <Card className="mb-4">
+              <Card className="mb-4 border border-border/60 bg-card/95">
                 <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     {/* Filtro de Preço */}
                     <div className="space-y-2">
                       <Label className="text-sm">Faixa de Preço</Label>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <Input
                           type="number"
                           placeholder="Mín"
@@ -429,7 +429,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                     {/* Ordenação */}
                     <div className="space-y-2">
                       <Label className="text-sm">Ordenar por</Label>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                         <Select
                           value={proposalFilters.sortBy}
                           onValueChange={(value) => setProposalFilters({
@@ -437,7 +437,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                             sortBy: value as any
                           })}
                         >
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-9 min-w-0">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -450,7 +450,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9"
+                          className="h-9 w-9 shrink-0"
                           onClick={() => setProposalFilters({
                             ...proposalFilters,
                             sortOrder: proposalFilters.sortOrder === 'asc' ? 'desc' : 'asc'
@@ -462,10 +462,11 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-4">
+                  <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => setProposalFilters({
                         sortBy: 'date',
                         sortOrder: 'desc'
