@@ -15,7 +15,7 @@ interface Step1Props {
 }
 
 export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, serviceType }) => {
-  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste' || formData.subServiceType === 'GUINDASTE_LOG';
+  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste';
   
   const renderGuinchoFields = () => (
     <div className="space-y-4">

@@ -76,20 +76,19 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
 
   // Base list conforme modo
   const baseServices = useMemo(() => {
-    if (mode === "driver") return ALL_SERVICE_TYPES.filter((s: any) => s.category === "freight");
-    if (mode === "provider") return ALL_SERVICE_TYPES.filter((s: any) => s.category !== "freight" && s.providerVisible);
+    if (mode === "driver") return ALL_SERVICE_TYPES.filter((s: any) => s.categories?.includes("freight"));
+    if (mode === "provider") return ALL_SERVICE_TYPES.filter((s: any) => !s.categories?.includes("freight") && s.providerVisible);
     return ALL_SERVICE_TYPES;
   }, [mode]);
 
   // Contar serviços por categoria
   const countByCategory = useCallback((cat: ServiceCategory) => {
-    return baseServices.filter((s: any) => s.category === cat && !s.showOnlyInAllTab).length;
+    return baseServices.filter((s: any) => s.categories?.includes(cat)).length;
   }, [baseServices]);
 
   const allTabCount = useMemo(() => {
-    if (mode === "driver") return baseServices.length;
-    return baseServices.filter((s: any) => !s.hideFromAllTab).length;
-  }, [mode, baseServices]);
+    return baseServices.length;
+  }, [baseServices]);
 
   const categoryCards = useMemo(
     () => [
