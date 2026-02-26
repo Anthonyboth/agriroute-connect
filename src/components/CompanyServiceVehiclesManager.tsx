@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Wrench, Edit, Trash2, FileText } from 'lucide-react';
+import { StorageImage } from '@/components/ui/storage-image';
 
 interface CompanyServiceVehiclesManagerProps {
   companyId: string;
@@ -121,11 +122,12 @@ export const CompanyServiceVehiclesManager = ({
             {vehicle.vehicle_photos && Array.isArray(vehicle.vehicle_photos) && vehicle.vehicle_photos.length > 0 && (
               <div className="grid grid-cols-4 gap-2">
                 {vehicle.vehicle_photos.slice(0, 4).map((photo: string, i: number) => (
-                  <div key={i} className="relative aspect-square">
-                    <img
+                  <div key={i} className="relative aspect-square rounded overflow-hidden border">
+                    <StorageImage
                       src={photo}
                       alt={`Foto ${i + 1}`}
-                      className="rounded object-cover h-full w-full border"
+                      className="h-full w-full"
+                      fallbackClassName="h-full w-full"
                     />
                   </div>
                 ))}

@@ -3,9 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Truck, Edit, Trash2, FileText, Image as ImageIcon } from 'lucide-react';
+import { Truck, Edit, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVehicleTypeLabel } from '@/lib/vehicle-types';
+import { StorageImage } from '@/components/ui/storage-image';
 
 interface CompanyVehiclesListProps {
   companyId: string;
@@ -104,11 +105,12 @@ export const CompanyVehiclesList = ({ companyId, onEdit, onDelete }: CompanyVehi
             {vehicle.vehicle_photos && Array.isArray(vehicle.vehicle_photos) && vehicle.vehicle_photos.length > 0 && (
               <div className="grid grid-cols-4 gap-2">
                 {vehicle.vehicle_photos.slice(0, 4).map((photo: string, i: number) => (
-                  <div key={i} className="relative aspect-square">
-                    <img
+                  <div key={i} className="relative aspect-square rounded overflow-hidden border">
+                    <StorageImage
                       src={photo}
                       alt={`Foto ${i + 1}`}
-                      className="rounded object-cover h-full w-full border"
+                      className="h-full w-full"
+                      fallbackClassName="h-full w-full"
                     />
                   </div>
                 ))}

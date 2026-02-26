@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Truck, Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { StorageImage } from '@/components/ui/storage-image';
 
 interface CompanyFleetVehicleListProps {
   companyId: string;
@@ -146,6 +147,21 @@ export const CompanyFleetVehicleList = ({ companyId, onRefresh }: CompanyFleetVe
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
+              {vehicle.vehicle_photos && Array.isArray(vehicle.vehicle_photos) && vehicle.vehicle_photos.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {vehicle.vehicle_photos.slice(0, 4).map((photo: string, i: number) => (
+                    <div key={i} className="relative aspect-square rounded overflow-hidden border">
+                      <StorageImage
+                        src={photo}
+                        alt={`Foto ${i + 1}`}
+                        className="h-full w-full"
+                        fallbackClassName="h-full w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Eixos:</span>
