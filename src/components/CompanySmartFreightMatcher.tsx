@@ -397,94 +397,72 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            Match Inteligente de Fretes para Transportadora
-            <Badge className="bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-primary/20">
-              <Zap className="mr-1 h-3 w-3" />
-              IA
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            Fretes abertos (OPEN/IN_NEGOTIATION) e ainda não atribuídos, com vagas disponíveis.
-          </CardDescription>
-        </CardHeader>
+    <div className="space-y-4">
+      {/* Header compacto */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold">Match Inteligente</h2>
+          <Badge variant="outline" className="text-xs text-primary border-primary/30">
+            <Zap className="mr-1 h-3 w-3" />
+            IA
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="truncate max-w-[200px]">{company?.company_name}</span>
+          <span>•</span>
+          <span>{activeDrivers.length} motorista{activeDrivers.length !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
 
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{company?.company_name}</p>
-              <p className="text-xs text-muted-foreground">
-                CNPJ:{" "}
-                {company?.company_cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") ||
-                  "N/I"}{" "}
-                • {activeDrivers.length} motoristas
-              </p>
-            </div>
-            <MarketplaceFilters
-              filters={marketplaceFilters}
-              onChange={(newFilters) => {
-                setMarketplaceFilters(newFilters);
-                setTimeout(() => fetchCompatibleFreights(), 100);
-              }}
-              showRpmSort={true}
-              showDistSort={true}
-            />
-          </div>
+      {/* Barra de busca + filtros + atualizar */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar origem, destino ou carga..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-10"
+          />
+        </div>
+        <MarketplaceFilters
+          filters={marketplaceFilters}
+          onChange={(newFilters) => {
+            setMarketplaceFilters(newFilters);
+            setTimeout(() => fetchCompatibleFreights(), 100);
+          }}
+          showRpmSort={true}
+          showDistSort={true}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchCompatibleFreights}
+          disabled={loading}
+          className="h-10"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          {timeAgo && (
+            <span className="ml-1 text-xs hidden sm:inline">{timeAgo}</span>
+          )}
+        </Button>
+      </div>
 
-          <div className="space-y-4 mb-6">
-            <div className="flex gap-4 flex-wrap">
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por origem, destino ou carga..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={fetchCompatibleFreights}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                {timeAgo ? (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {timeAgo}
-                  </span>
-                ) : (
-                  "Atualizar"
-                )}
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-primary/5 rounded-lg">
-                <div className="text-2xl font-bold text-primary">{filteredFreights.length}</div>
-                <div className="text-sm text-muted-foreground">Fretes rurais</div>
-              </div>
-              <div className="text-center p-4 bg-purple-500/5 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{totalUrbanCount}</div>
-                <div className="text-sm text-muted-foreground">Serviços urbanos</div>
-              </div>
-              <div className="text-center p-4 bg-green-500/5 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{totalAvailableCount}</div>
-                <div className="text-sm text-muted-foreground">Total disponível</div>
-              </div>
-              <div className="text-center p-4 bg-blue-500/5 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{activeDrivers.length}</div>
-                <div className="text-sm text-muted-foreground">Motoristas ativos</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Stats compactos em linha */}
+      <div className="flex gap-2 flex-wrap">
+        <Badge variant="outline" className="text-xs py-1 px-3">
+          <Truck className="h-3 w-3 mr-1" />
+          {filteredFreights.length} rurais
+        </Badge>
+        <Badge variant="outline" className="text-xs py-1 px-3">
+          <Bike className="h-3 w-3 mr-1" />
+          {totalUrbanCount} urbanos
+        </Badge>
+        <Badge variant="outline" className="text-xs py-1 px-3 font-semibold">
+          {totalAvailableCount} total
+        </Badge>
+      </div>
 
       {/* ✅ TABS SEPARADAS: Fretes vs Serviços Urbanos (mesmo padrão do driver) */}
       <Tabs defaultValue="freights" className="w-full">
