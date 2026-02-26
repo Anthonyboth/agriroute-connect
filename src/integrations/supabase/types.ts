@@ -14049,6 +14049,10 @@ export type Database = {
         Returns: Json
       }
       get_own_profile_id: { Args: { p_user_id: string }; Returns: string }
+      get_participant_freight_count: {
+        Args: { p_user_id: string; p_user_type?: string }
+        Returns: number
+      }
       get_pending_ratings_with_affiliation: {
         Args: { p_profile_id: string }
         Returns: {
