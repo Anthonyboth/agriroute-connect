@@ -77,10 +77,38 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Row normalization
+// Row normalization — tries tables first, then charts (RPC may not return tables)
 // ═══════════════════════════════════════════════════════════════════════════════
-export function normalizeDriverRows(tables: any): DriverRow[] {
-  const src = (tables?.extrato_ganhos || tables?.extrato_fretes_motorista || []) as any[];
+export function normalizeDriverRows(tables: any, charts: any): DriverRow[] {
+  // Priority: tables.extrato_ganhos > tables.extrato_fretes_motorista > charts.dispersao_receita_km > charts.top_rotas (expanded)
+  let src = (tables?.extrato_ganhos || tables?.extrato_fretes_motorista || []) as any[];
+
+  // Fallback to charts data when tables are empty
+  if (!src.length && charts) {
+    // dispersao_receita_km has per-trip granularity
+    if (Array.isArray(charts.dispersao_receita_km) && charts.dispersao_receita_km.length > 0) {
+      src = charts.dispersao_receita_km;
+    }
+    // Expand top_rotas into individual "virtual" rows (1 per viagem) when no per-trip data exists
+    else if (Array.isArray(charts.top_rotas) && charts.top_rotas.length > 0) {
+      src = [];
+      for (const route of charts.top_rotas) {
+        const viagens = Number(route.viagens) || 1;
+        const receitaPerTrip = (Number(route.receita) || 0) / viagens;
+        const kmPerTrip = Number(route.km_medio) || 0;
+        for (let i = 0; i < viagens; i++) {
+          src.push({
+            rota: route.rota,
+            receita: receitaPerTrip,
+            km: kmPerTrip,
+            cargo: route.cargo || route.tipo || '',
+            status_final: 'DELIVERED',
+          });
+        }
+      }
+    }
+  }
+
   return src.map((r: any) => {
     const km = Number(r.km || r.distance_km || 0) || 0;
     const receita = Number(r.receita || r.valor || r.revenue || 0) || 0;
@@ -375,7 +403,7 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
   }, []);
 
   // ── 1. Normalize rows ──────────────────────────────────────────────────────
-  const driverRows = useMemo(() => normalizeDriverRows(tables), [tables]);
+  const driverRows = useMemo(() => normalizeDriverRows(tables, charts), [tables, charts]);
 
   // ── 2. Filter rows ────────────────────────────────────────────────────────
   const filteredRows = useMemo(() => filterDriverRows(driverRows, slicers, rpmTarget), [driverRows, slicers, rpmTarget]);
@@ -547,57 +575,76 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
     }
   }, []);
 
-  // ── 6. Trend charts (3) ───────────────────────────────────────────────────
+  // ── 6. Trend charts (3) — use RPC charts data directly when available ────
   const trendCharts: ChartConfig[] = useMemo(() => {
-    const series = buildTimeSeries(filteredRows, dateRange.from, dateRange.to);
-    if (series.length < 2) return [];
     const configs: ChartConfig[] = [];
 
-    configs.push({
-      title: 'Receita por período', type: 'area',
-      data: series.map(x => ({ period: x.key, receita: x.receita })),
-      dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }],
-      xAxisKey: 'period', valueFormatter: formatBRL,
-    });
+    // Prefer RPC pre-aggregated monthly data
+    const receitaMes = Array.isArray(charts?.receita_por_mes) ? charts.receita_por_mes : [];
+    const viagensMes = Array.isArray(charts?.viagens_por_mes) ? charts.viagens_por_mes : [];
 
-    configs.push({
-      title: 'Lucro por período', type: 'area',
-      data: series.map(x => ({ period: x.key, lucro: x.lucro })),
-      dataKeys: [{ key: 'lucro', label: 'Lucro', color: '#2563eb' }],
-      xAxisKey: 'period', valueFormatter: formatBRL,
-    });
+    if (receitaMes.length >= 1) {
+      configs.push({
+        title: 'Receita por período', type: receitaMes.length >= 2 ? 'area' : 'bar',
+        data: receitaMes.map((x: any) => ({ period: formatMonthLabelPtBR(x.mes) || x.mes, receita: Number(x.receita) || 0 })),
+        dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }],
+        xAxisKey: 'period', valueFormatter: formatBRL,
+      });
+    }
 
-    configs.push({
-      title: 'Km e viagens por período', type: 'bar',
-      data: series.map(x => ({ period: x.key, km: x.km, viagens: x.count })),
-      dataKeys: [
-        { key: 'km', label: 'Km', color: 'hsl(var(--chart-4))' },
-        { key: 'viagens', label: 'Viagens', color: 'hsl(var(--chart-2))' },
-      ],
-      xAxisKey: 'period', yAxisAllowDecimals: false,
-    });
+    // Lucro trend from row-level data (if available)
+    const series = buildTimeSeries(filteredRows, dateRange.from, dateRange.to);
+    if (series.length >= 2) {
+      configs.push({
+        title: 'Lucro por período', type: 'area',
+        data: series.map(x => ({ period: x.key, lucro: x.lucro })),
+        dataKeys: [{ key: 'lucro', label: 'Lucro', color: '#2563eb' }],
+        xAxisKey: 'period', valueFormatter: formatBRL,
+      });
+    }
+
+    if (viagensMes.length >= 1) {
+      configs.push({
+        title: 'Km e viagens por período', type: 'bar',
+        data: viagensMes.map((x: any) => ({
+          period: formatMonthLabelPtBR(x.mes) || x.mes,
+          km: Number(x.km) || 0,
+          viagens: Number(x.viagens) || 0,
+        })),
+        dataKeys: [
+          { key: 'km', label: 'Km', color: 'hsl(var(--chart-4))' },
+          { key: 'viagens', label: 'Viagens', color: 'hsl(var(--chart-2))' },
+        ],
+        xAxisKey: 'period', yAxisAllowDecimals: false,
+      });
+    }
 
     return configs;
-  }, [filteredRows, dateRange]);
+  }, [filteredRows, dateRange, charts]);
 
   // ── Trend BI headers ─────────────────────────────────────────────────────
   const trendHeaders = useMemo(() => {
-    const series = buildTimeSeries(filteredRows, dateRange.from, dateRange.to);
-    const rev = series.map(x => x.receita);
-    const totalRev = rev.reduce((s, v) => s + v, 0);
+    const receitaMes = Array.isArray(charts?.receita_por_mes) ? charts.receita_por_mes : [];
+    const rev = receitaMes.map((x: any) => Number(x.receita) || 0);
+    const totalRev = rev.reduce((s: number, v: number) => s + v, 0);
     const avgRev = rev.length > 0 ? totalRev / rev.length : 0;
     const maxRev = rev.length > 0 ? Math.max(...rev) : 0;
     return { totalRev, avgRev, maxRev };
-  }, [filteredRows, dateRange]);
+  }, [charts]);
 
-  // ── 7. Driver charts (PowerBI) ────────────────────────────────────────────
+  // ── 7. Driver charts (PowerBI) — use RPC charts.top_rotas directly ────────
   const driverCharts: ChartConfig[] = useMemo(() => {
-    if (!filteredRows.length) return [];
     const configs: ChartConfig[] = [];
 
-    // Top 10 rotas por receita
-    const topRoutes = groupSum(filteredRows, r => r.__route, r => r.__receita)
-      .sort((a, b) => b.value - a.value).slice(0, 10);
+    // Use RPC top_rotas for route-level charts
+    const rpcRoutes = Array.isArray(charts?.top_rotas) ? charts.top_rotas : [];
+
+    // Top rotas por receita (from RPC)
+    const topRoutes = rpcRoutes
+      .map((r: any) => ({ name: formatRouteLabel(r.rota) || r.rota, value: Number(r.receita) || 0 }))
+      .filter((x: any) => x.value > 0)
+      .sort((a: any, b: any) => b.value - a.value)
+      .slice(0, 10);
     if (topRoutes.length) {
       configs.push({
         title: 'Top rotas por receita', type: 'horizontal-bar',
@@ -607,10 +654,17 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
       });
     }
 
-    // Top 10 rotas por R$/km
-    const routeRpm = groupAvg(filteredRows.filter(r => r.__rpm > 0), r => r.__route, r => r.__rpm)
-      .filter(x => x.name !== '—').sort((a, b) => b.value - a.value).slice(0, 10)
-      .map(x => ({ name: x.name, value: Number(x.value.toFixed(2)) }));
+    // Top rotas por R$/km (from RPC)
+    const routeRpm = rpcRoutes
+      .filter((r: any) => Number(r.km_medio) > 0 && Number(r.receita) > 0)
+      .map((r: any) => {
+        const viagens = Number(r.viagens) || 1;
+        const receitaPerTrip = Number(r.receita) / viagens;
+        const km = Number(r.km_medio);
+        return { name: formatRouteLabel(r.rota) || r.rota, value: Number((receitaPerTrip / km).toFixed(2)) };
+      })
+      .sort((a: any, b: any) => b.value - a.value)
+      .slice(0, 10);
     if (routeRpm.length) {
       configs.push({
         title: 'Top rotas por R$/km', type: 'horizontal-bar',
@@ -621,7 +675,7 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
       });
     }
 
-    // Receita por tipo de carga
+    // Fallback: use filteredRows for cargo/status if available
     const byCargo = groupSum(filteredRows, r => r.__cargo || '—', r => r.__receita)
       .sort((a, b) => b.value - a.value).map(x => ({ name: x.name.charAt(0).toUpperCase() + x.name.slice(1), value: x.value }));
     if (byCargo.length > 1) {
@@ -656,7 +710,7 @@ export const DriverEnterprise: React.FC<DriverEnterpriseProps> = ({
     }
 
     return configs;
-  }, [filteredRows, applyDrilldown]);
+  }, [filteredRows, applyDrilldown, charts]);
 
   // ── 8. Efficiency: R$/km bins + outliers ──────────────────────────────────
   const efficiencyCharts: ChartConfig[] = useMemo(() => {
