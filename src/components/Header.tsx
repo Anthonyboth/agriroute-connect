@@ -219,7 +219,7 @@ const Header: React.FC<HeaderProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="hidden lg:flex flex-col items-start">
+                    <div className="hidden md:flex flex-col items-start">
                       <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
                         {user?.name?.split(' ')[0] || 'Usuário'}
                       </span>
