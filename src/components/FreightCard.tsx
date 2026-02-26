@@ -709,65 +709,55 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
         {/* ── CTAs ── (10% accent: primary CTA buttons) */}
         {showActions && onAction && freight.status === "OPEN" && !isFullyBooked && (
-          <div className="px-4 pb-4 pt-1">
+          <div className="px-4 pb-3 pt-1">
             <div className="space-y-2">
-              {freight.service_type === "GUINCHO" ? (
-                <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
-                  <Wrench className="mr-2 h-4 w-4" />Aceitar Chamado
-                </Button>
-              ) : freight.service_type === "MUDANCA" ? (
-                <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
-                  <Home className="mr-2 h-4 w-4" />Aceitar Mudança
-                </Button>
-              ) : freight.service_type === "FRETE_MOTO" ? (
-                <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
-                  <Truck className="mr-2 h-4 w-4" />Aceitar Frete Moto
-                </Button>
-              ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-                <div className="space-y-2">
-                  {freight.producer_id ? (
+              {(() => {
+                // Determine accept button props based on service type
+                const isMultiTruck = isTransportCompany && freight.required_trucks && freight.required_trucks > 1;
+                const acceptLabel = freight.service_type === "GUINCHO" 
+                  ? "Aceitar Chamado" 
+                  : freight.service_type === "MUDANCA" 
+                    ? "Aceitar Mudança" 
+                    : freight.service_type === "FRETE_MOTO" 
+                      ? "Aceitar Frete Moto" 
+                      : isMultiTruck 
+                        ? `Aceitar (${availableSlots})` 
+                        : "Aceitar";
+                const AcceptIcon = freight.service_type === "GUINCHO" 
+                  ? Wrench 
+                  : freight.service_type === "MUDANCA" 
+                    ? Home 
+                    : Truck;
+                const handleAccept = isMultiTruck 
+                  ? () => setBulkAcceptorOpen(true) 
+                  : () => handleAcceptFreight(1);
+                const showIcon = ["GUINCHO", "MUDANCA", "FRETE_MOTO"].includes(freight.service_type || "");
+
+                if (freight.producer_id) {
+                  return (
                     <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                        Aceitar ({availableSlots})
+                      <Button onClick={handleAccept} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                        {showIcon && <AcceptIcon className="mr-1.5 h-4 w-4 flex-shrink-0" />}
+                        <span className="truncate">{acceptLabel}</span>
                       </Button>
                       <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
-                        Contraproposta
+                        <span className="truncate">Contraproposta</span>
                       </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                        Aceitar ({availableSlots})
-                      </Button>
-                      <p className="text-[10px] text-muted-foreground text-center leading-tight">
-                        Sem cadastro — contraproposta indisponível
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {freight.producer_id ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                        Aceitar
-                      </Button>
-                      <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
-                        Contraproposta
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <Button onClick={() => handleAcceptFreight(1)} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
-                        Aceitar
-                      </Button>
-                      <p className="text-[10px] text-muted-foreground text-center leading-tight">
-                        Sem cadastro — contraproposta indisponível
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                  );
+                }
+
+                return (
+                  <div className="space-y-1">
+                    <Button onClick={handleAccept} className="w-full gradient-primary hover:shadow-lg transition-all duration-300" size="sm">
+                      {showIcon && <AcceptIcon className="mr-1.5 h-4 w-4" />}{acceptLabel}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                      Sem cadastro — contraproposta indisponível
+                    </p>
+                  </div>
+                );
+              })()}
 
               {isAffiliatedDriver && driverCompanyId && (
                 <ShareFreightToCompany freight={freight} companyId={driverCompanyId} driverProfile={profile} />
