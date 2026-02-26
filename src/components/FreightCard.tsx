@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,15 +17,17 @@ import {
   Clock,
   Eye,
   FileText,
-  ArrowRight,
+  ArrowDown,
   Wrench,
   Home,
   Edit,
   X,
   MessageCircle,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { getCargoTypeLabel } from "@/lib/cargo-types";
-import { getUrgencyLabel, getUrgencyVariant } from "@/lib/urgency-labels";
+import { getUrgencyLabel } from "@/lib/urgency-labels";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTransportCompany } from "@/hooks/useTransportCompany";
@@ -36,6 +38,8 @@ import { getPickupDateBadge } from "@/utils/freightDateHelpers";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { AlertTriangle } from "lucide-react";
 import { getVehicleTypeLabel } from "@/lib/vehicle-types";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { differenceInDays, differenceInHours } from "date-fns";
 
 interface FreightCardProps {
   freight: {
@@ -100,8 +104,46 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const isFullyBooked = (freight.required_trucks || 1) <= (freight.accepted_trucks || 0);
   const availableSlots = (freight.required_trucks || 1) - (freight.accepted_trucks || 0);
 
-  const urgencyVariant = getUrgencyVariant(freight.urgency);
+  // === Cálculos para o novo layout 60-30-10 ===
   const urgencyLabel = getUrgencyLabel(freight.urgency);
+  const urgencyDotColor = freight.urgency === 'HIGH' ? 'bg-destructive' : freight.urgency === 'MEDIUM' ? 'bg-yellow-500' : 'bg-muted-foreground/40';
+
+  // R$/km calculado
+  const pricePerKmCalc = useMemo(() => {
+    const distKm = parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0;
+    if (distKm <= 0) return null;
+    const requiredTrucks = freight.required_trucks || 1;
+    const unitPrice = requiredTrucks > 1 ? getPricePerTruck(freight.price, requiredTrucks) : freight.price;
+    return unitPrice / distKm;
+  }, [freight.price, freight.distance_km, freight.required_trucks]);
+
+  // Cor semântica de rentabilidade
+  const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
+  const rpmIcon = pricePerKmCalc === null ? null : pricePerKmCalc >= 6 ? <TrendingUp className="h-3 w-3" /> : pricePerKmCalc < 4 ? <TrendingDown className="h-3 w-3" /> : null;
+
+  // Tempo estimado (média 60km/h)
+  const distKmNum = parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0;
+  const estimatedHours = distKmNum > 0 ? Math.round(distKmNum / 60) : null;
+
+  // Prazo restante para coleta
+  const pickupRemaining = useMemo(() => {
+    if (!freight.pickup_date) return null;
+    const now = new Date();
+    const pickup = new Date(freight.pickup_date);
+    const days = differenceInDays(pickup, now);
+    if (days > 1) return `Coleta em ${days} dias`;
+    if (days === 1) return 'Coleta amanhã';
+    if (days === 0) return 'Coleta hoje';
+    const hours = differenceInHours(pickup, now);
+    if (hours > 0) return `Coleta em ${hours}h`;
+    return 'Coleta atrasada';
+  }, [freight.pickup_date]);
+
+  const pickupIsUrgent = useMemo(() => {
+    if (!freight.pickup_date) return false;
+    const days = differenceInDays(new Date(freight.pickup_date), new Date());
+    return days <= 1;
+  }, [freight.pickup_date]);
 
   const isTransportCompany = profile?.role === "TRANSPORTADORA";
 
@@ -453,461 +495,319 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   };
 
   return (
-    <Card
-      data-testid="freight-card"
-      className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-hidden"
-    >
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="min-w-fit space-y-2">
-          {/* LINHA 1: Ícone + Título */}
-          <div className="flex items-center gap-2">
-            {getServiceIcon()}
-            <h3 className="font-semibold text-foreground text-base whitespace-nowrap">{getCardTitle()}</h3>
-          </div>
-
-          {/* LINHA 2: Badges de Status (permite quebra se necessário) */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant={urgencyVariant} className="text-xs font-medium shrink-0">
-              {urgencyLabel}
-            </Badge>
-            <Badge
-              data-testid="freight-status-badge"
-              variant={getFreightStatusVariant(freight.status)}
-              className="text-xs font-medium shrink-0"
-            >
-              {getFreightStatusLabel(freight.status)}
-            </Badge>
-
-            {/* Badge de data de coleta */}
-            {(() => {
-              const badgeInfo = getPickupDateBadge(freight.pickup_date);
-              if (!badgeInfo) return null;
-
-              const iconMap = { AlertTriangle, Clock, Calendar };
-              const IconComponent = iconMap[badgeInfo.icon];
-
-              return (
-                <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs shrink-0">
-                  <IconComponent className="h-3 w-3" />
-                  {badgeInfo.text}
-                </Badge>
-              );
-            })()}
-
-            {/* Badge de vagas disponíveis */}
-            {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
-              <Badge
-                variant={isFullyBooked ? "default" : "outline"}
-                className={`text-xs font-medium shrink-0 ${
-                  isFullyBooked ? "bg-green-600 hover:bg-green-700" : "border-primary text-primary"
-                }`}
-              >
-                <Truck className="h-3 w-3 mr-1" />
-                {freight.accepted_trucks || 0}/{freight.required_trucks}
-              </Badge>
-            )}
-
-            {/* Badge de Tipo de Veículo Preferencial - PROBLEMA 6 */}
-            {freight.vehicle_type_required && (
-              <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30 shrink-0">
-                🚛 {getVehicleTypeLabel(freight.vehicle_type_required)}
-                {freight.vehicle_axles_required && freight.vehicle_axles_required > 0 && (
-                  <span className="ml-1">({freight.vehicle_axles_required} eixos)</span>
-                )}
-              </Badge>
-            )}
-          </div>
-
-          {/* LINHA 3: Tipo de Serviço + Peso/Distância (com scroll horizontal) */}
-          <div className="flex justify-between items-center gap-3 min-w-fit">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs bg-secondary/30 shrink-0">
-                {getServiceLabel()}
-              </Badge>
-              {/* Badge de capacidade máxima para moto */}
-              {freight.service_type === "FRETE_MOTO" && (
-                <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300 shrink-0">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Máx. 500kg
-                </Badge>
-              )}
+    <TooltipProvider>
+      <Card
+        data-testid="freight-card"
+        className="bg-card hover:shadow-md transition-all duration-200 border border-border/40 overflow-hidden"
+      >
+        {/* ── HEADER: Título + Urgência dot + Prazo coleta ── */}
+        <CardHeader className="pb-2 pt-4 px-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {getServiceIcon()}
+              <h3 className="font-semibold text-foreground text-base truncate">{getCardTitle()}</h3>
             </div>
-            <div className="flex items-center space-x-3 text-xs whitespace-nowrap">
-              {freight.service_type === "GUINCHO" ? (
-                <span className="text-muted-foreground">Reboque</span>
-              ) : freight.service_type === "MUDANCA" ? (
-                <span className="text-muted-foreground">Residencial</span>
-              ) : (
-                <span className="text-muted-foreground">
-                  {formatTons(freight.weight)}
-                  {freight.vehicle_type_required && (
-                    <span className="ml-1">• {getVehicleTypeLabel(freight.vehicle_type_required)}</span>
-                  )}
-                  {freight.vehicle_axles_required && freight.vehicle_axles_required > 0 && (
-                    <span className="ml-1">({freight.vehicle_axles_required} eixos)</span>
-                  )}
-                </span>
-              )}
-              <span
-                className="text-muted-foreground"
-                title={
-                  (freight as any).origin_lat &&
-                  (freight as any).origin_lng &&
-                  (freight as any).destination_lat &&
-                  (freight as any).destination_lng
-                    ? "Distância calculada com GPS preciso"
-                    : "Distância estimada por endereço"
-                }
-              >
-                {formatKm(parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0)}
-                <span className="text-[10px] ml-1">
-                  {(freight as any).origin_lat &&
-                  (freight as any).origin_lng &&
-                  (freight as any).destination_lat &&
-                  (freight as any).destination_lng
-                    ? "📍"
-                    : "📌"}
-                </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs text-muted-foreground">{urgencyLabel}</span>
+              <span className={`inline-block h-2.5 w-2.5 rounded-full ${urgencyDotColor}`} />
+            </div>
+          </div>
+          {/* Prazo restante inline */}
+          {pickupRemaining && (
+            <p className={`text-xs mt-1 ${pickupIsUrgent ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+              {pickupIsUrgent && <AlertTriangle className="h-3 w-3 inline mr-1" />}
+              {pickupRemaining}
+            </p>
+          )}
+
+          {/* Vagas (só multi-carreta) */}
+          {freight.required_trucks && freight.required_trucks > 1 && (
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-xs text-muted-foreground">
+                <Truck className="h-3 w-3 inline mr-1" />
+                {freight.accepted_trucks || 0}/{freight.required_trucks} carretas
               </span>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3 flex-1 overflow-y-auto">
-        {/* Carretas Info */}
-        {freight.required_trucks && freight.required_trucks > 1 && (
-          <div className="flex flex-col gap-2 p-2 bg-secondary/20 rounded-lg border border-border/40">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <Truck className="h-3 w-3" />
-                <span className="text-xs font-medium">Carretas:</span>
-              </div>
-              <span className={`font-semibold text-sm ${isFullyBooked ? "text-success" : "text-primary"}`}>
-                {freight.accepted_trucks || 0}/{freight.required_trucks}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
               {availableSlots > 0 && (
-                <Badge variant="outline" className="text-green-600 border-green-600 animate-pulse text-xs">
-                  {availableSlots} {availableSlots === 1 ? "vaga disponível" : "vagas disponíveis"}!
-                </Badge>
+                <span className="text-xs text-primary font-medium">{availableSlots} {availableSlots === 1 ? 'vaga' : 'vagas'}</span>
+              )}
+              {isFullyBooked && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Completo</Badge>
+              )}
+            </div>
+          )}
+        </CardHeader>
+
+        <Separator className="opacity-40" />
+
+        {/* ── CONTENT: Rota + Specs + Grid 3 cols ── */}
+        <CardContent className="px-4 py-3 space-y-3">
+          {/* Origem → Destino compacto com dot-line */}
+          <div className="flex gap-3">
+            {/* Dot line vertical */}
+            <div className="flex flex-col items-center pt-0.5">
+              <div className="h-2.5 w-2.5 rounded-full border-2 border-muted-foreground/60 bg-card" />
+              <div className="w-px flex-1 bg-muted-foreground/30 my-0.5 min-h-[16px]" />
+              <div className="h-2.5 w-2.5 rounded-full bg-foreground" />
+            </div>
+            {/* Cidades */}
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-sm font-medium text-foreground truncate cursor-default">
+                    {freight.origin_city && freight.origin_state
+                      ? `${freight.origin_city}/${freight.origin_state}`
+                      : freight.origin_address}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-xs">{freight.origin_address}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-sm font-medium text-foreground truncate cursor-default">
+                    {freight.destination_city && freight.destination_state
+                      ? `${freight.destination_city}/${freight.destination_state}`
+                      : freight.destination_address}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-xs">{freight.destination_address}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Linha de specs compacta */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+            <span>{formatKm(distKmNum)}</span>
+            {estimatedHours !== null && (
+              <>
+                <span className="text-muted-foreground/40">•</span>
+                <span>~{estimatedHours}h</span>
+              </>
+            )}
+            {freight.service_type !== "GUINCHO" && freight.service_type !== "MUDANCA" && (
+              <>
+                <span className="text-muted-foreground/40">•</span>
+                <span>{formatTons(freight.weight)}</span>
+              </>
+            )}
+            {freight.vehicle_type_required && (
+              <>
+                <span className="text-muted-foreground/40">•</span>
+                <span>{getVehicleTypeLabel(freight.vehicle_type_required)}</span>
+              </>
+            )}
+            {freight.vehicle_axles_required && freight.vehicle_axles_required > 0 && (
+              <span className="text-muted-foreground/60">({freight.vehicle_axles_required}e)</span>
+            )}
+          </div>
+
+          {/* Grid 3 colunas: Coleta | Entrega | R$/km */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-2 bg-muted/50 rounded-lg text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Coleta</p>
+              <p className="text-xs font-semibold text-foreground mt-0.5">{formatDate(freight.pickup_date)}</p>
+            </div>
+            <div className="p-2 bg-muted/50 rounded-lg text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entrega</p>
+              <p className="text-xs font-semibold text-foreground mt-0.5">{formatDate(freight.delivery_date)}</p>
+            </div>
+            <div className="p-2 bg-muted/50 rounded-lg text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">R$/km</p>
+              <p className={`text-xs font-bold mt-0.5 flex items-center justify-center gap-0.5 ${rpmColor}`}>
+                {rpmIcon}
+                {pricePerKmCalc !== null
+                  ? `R$${pricePerKmCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : '—'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+
+        {/* ── FOOTER: Preço + ANTT ── */}
+        {!hidePrice && (
+          <CardFooter className="px-4 py-3 border-t border-border/30 bg-card">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                {(() => {
+                  const requiredTrucks = freight.required_trucks || 1;
+                  const hasMultipleTrucks = requiredTrucks > 1;
+                  const isProducer = profile?.role === "PRODUTOR";
+                  const pricingType = freight.pricing_type || (freight as any).payment_type;
+                  const unitRate = freight.price_per_km || (freight as any).value_per_km;
+
+                  return (
+                    <>
+                      {pricingType === "PER_KM" && unitRate ? (
+                        <p className="font-bold text-lg text-primary">
+                          {formatBRL(unitRate, true)}<span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
+                        </p>
+                      ) : pricingType === "PER_TON" && unitRate ? (
+                        <p className="font-bold text-lg text-primary">
+                          {formatBRL(unitRate, true)}<span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
+                        </p>
+                      ) : (
+                        <p className="font-bold text-lg text-primary">
+                          {formatBRL(hasMultipleTrucks ? getPricePerTruck(freight.price, requiredTrucks) : freight.price, true)}
+                          <span className="text-xs font-normal text-muted-foreground ml-1">
+                            {hasMultipleTrucks ? '/carreta' : 'fixo'}
+                          </span>
+                        </p>
+                      )}
+                      {hasMultipleTrucks && isProducer && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Total ({requiredTrucks} carretas): {formatBRL(freight.price, true)}
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+              {/* ANTT inline */}
+              <div className="text-right">
+                {freight.service_type === "FRETE_MOTO" ? (
+                  <span className="text-[10px] text-muted-foreground">Mín: R$10</span>
+                ) : freight.service_type === "CARGA" || !freight.service_type ? (
+                  freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
+                    <span className="text-[10px] text-muted-foreground">
+                      ANTT: {formatBRL(freight.minimum_antt_price, true)}
+                    </span>
+                  ) : (
+                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                      ⚠ ANTT
+                    </Badge>
+                  )
+                ) : null}
+              </div>
+            </div>
+          </CardFooter>
+        )}
+
+        {/* ── CTAs ── */}
+        {showActions && onAction && freight.status === "OPEN" && !isFullyBooked && (
+          <div className="px-4 pb-4">
+            <div className="space-y-2">
+              {freight.service_type === "GUINCHO" ? (
+                <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90" size="sm">
+                  <Wrench className="mr-2 h-4 w-4" />Aceitar Chamado
+                </Button>
+              ) : freight.service_type === "MUDANCA" ? (
+                <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90" size="sm">
+                  <Home className="mr-2 h-4 w-4" />Aceitar Mudança
+                </Button>
+              ) : freight.service_type === "FRETE_MOTO" ? (
+                <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90" size="sm">
+                  <Truck className="mr-2 h-4 w-4" />Aceitar Frete Moto
+                </Button>
+              ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={() => setBulkAcceptorOpen(true)} className="w-full bg-primary hover:bg-primary/90 text-sm" size="sm">
+                    Aceitar ({availableSlots})
+                  </Button>
+                  {freight.producer_id ? (
+                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-border text-sm" size="sm">
+                      Contraproposta
+                    </Button>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
+                      Sem cadastro — indisponível
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={() => handleAcceptFreight(1)} className="w-full bg-primary hover:bg-primary/90 text-sm" size="sm">
+                    Aceitar
+                  </Button>
+                  {freight.producer_id ? (
+                    <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-border text-sm" size="sm">
+                      Contraproposta
+                    </Button>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
+                      Sem cadastro — indisponível
+                    </p>
+                  )}
+                </div>
               )}
 
-              {isFullyBooked && (
-                <Badge variant="default" className="text-xs bg-success text-success-foreground">
-                  Completo
-                </Badge>
+              {isAffiliatedDriver && driverCompanyId && (
+                <ShareFreightToCompany freight={freight} companyId={driverCompanyId} driverProfile={profile} />
               )}
             </div>
           </div>
         )}
 
-        {/* Origem e Destino */}
-        <div className="space-y-2">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3 text-primary" />
-              Origem
-            </p>
-            {freight.origin_city && freight.origin_state && (
-              <p className="text-sm font-bold text-primary pl-4">
-                {freight.origin_city.toUpperCase()} - {freight.origin_state.toUpperCase()}
-                {(freight as any).origin_zip_code && (
-                  <span className="text-xs text-muted-foreground font-normal ml-2">
-                    (CEP: {(freight as any).origin_zip_code.replace(/^(\d{5})(\d{3})$/, "$1-$2")})
-                  </span>
-                )}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.origin_address}</p>
+        {showActions && isFullyBooked && (
+          <div className="px-4 pb-4">
+            <Button disabled className="w-full" size="sm" variant="secondary">
+              Frete Completo - Sem Vagas
+            </Button>
           </div>
+        )}
 
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-              <ArrowRight className="h-3 w-3 text-accent" />
-              Destino
-            </p>
-            {freight.destination_city && freight.destination_state && (
-              <p className="text-sm font-bold text-primary pl-4">
-                {freight.destination_city.toUpperCase()} - {freight.destination_state.toUpperCase()}
-                {(freight as any).destination_zip_code && (
-                  <span className="text-xs text-muted-foreground font-normal ml-2">
-                    (CEP: {(freight as any).destination_zip_code.replace(/^(\d{5})(\d{3})$/, "$1-$2")})
-                  </span>
-                )}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.destination_address}</p>
-          </div>
-        </div>
-
-        {/* Datas */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1 p-2 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-lg border border-border/40">
-            <div className="flex items-center space-x-1 text-muted-foreground">
-              <Calendar className="h-3 w-3 text-primary" />
-              <span className="text-xs font-medium">Coleta</span>
-            </div>
-            <p className="font-semibold text-foreground text-xs">{formatDate(freight.pickup_date)}</p>
-          </div>
-          <div className="space-y-1 p-2 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
-            <div className="flex items-center space-x-1 text-muted-foreground">
-              <Calendar className="h-3 w-3 text-accent" />
-              <span className="text-xs font-medium">Entrega</span>
-            </div>
-            <p className="font-semibold text-foreground text-xs">{formatDate(freight.delivery_date)}</p>
-          </div>
-        </div>
-      </CardContent>
-
-      {!hidePrice && (
-        <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto sticky bottom-0 bg-card/95 backdrop-blur-sm border-t">
-          <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50 min-w-fit">
-            <div className="text-left">
-              {/* P2 CORRIGIDO: Mostrar apenas valor unitário para motoristas/transportadoras */}
-              {(() => {
-                const requiredTrucks = freight.required_trucks || 1;
-                const hasMultipleTrucks = requiredTrucks > 1;
-                const isProducer = profile?.role === "PRODUTOR";
-
-                // Determinar tipo de pagamento
-                const pricingType = freight.pricing_type || (freight as any).payment_type;
-                const unitRate = freight.price_per_km || (freight as any).value_per_km;
-
-                return (
-                  <>
-                    {/* Exibir valor EXATO informado pelo produtor */}
-                    {pricingType === "PER_KM" && unitRate ? (
-                      <p className="font-bold text-xl text-primary whitespace-nowrap">
-                        {formatBRL(unitRate, true)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
-                      </p>
-                    ) : pricingType === "PER_TON" && unitRate ? (
-                      <p className="font-bold text-xl text-primary whitespace-nowrap">
-                        {formatBRL(unitRate, true)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
-                      </p>
-                    ) : (
-                      <p className="font-bold text-xl text-primary whitespace-nowrap">
-                        {formatBRL(hasMultipleTrucks ? getPricePerTruck(freight.price, requiredTrucks) : freight.price, true)}
-                        {hasMultipleTrucks && (
-                          <span className="text-xs font-normal text-muted-foreground ml-1">/carreta</span>
-                        )}
-                        {!hasMultipleTrucks && (
-                          <span className="text-xs font-normal text-muted-foreground ml-1">fixo</span>
-                        )}
-                      </p>
-                    )}
-                    {/* Total só aparece para PRODUTOR em multi-carreta */}
-                    {hasMultipleTrucks && isProducer && (
-                      <p className="text-xs text-muted-foreground">
-                        Total ({requiredTrucks} carretas): {formatBRL(freight.price, true)}
-                      </p>
-                    )}
-                  </>
-                );
-              })()}
-              {freight.service_type === "FRETE_MOTO" ? (
-                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Mínimo: R$ 10,00</p>
-              ) : (
-                freight.service_type === "CARGA" && (
-                  <>
-                    {freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
-                      <Badge variant="outline" className="text-xs">
-                        Mín. ANTT: {formatBRL(freight.minimum_antt_price, true)}
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive" className="text-xs">
-                        ⚠️ ANTT não calculado
-                      </Badge>
-                    )}
-                  </>
-                )
+        {/* Producer Actions */}
+        {showProducerActions && onAction && freight.status !== "CANCELLED" && (
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={() => onAction("edit")} size="sm" variant="outline">
+                <Edit className="h-4 w-4 mr-1" />Editar
+              </Button>
+              {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"].includes(freight.status) && (
+                <Button onClick={() => onAction("cancel")} size="sm" variant="destructive">
+                  <X className="h-4 w-4 mr-1" />Cancelar
+                </Button>
               )}
             </div>
-            <div className="text-right">
-              <DollarSign className="h-6 w-6 text-accent ml-auto" />
+          </div>
+        )}
+
+        {showProducerActions && freight.status === "CANCELLED" && (
+          <div className="px-4 pb-4">
+            <div className="text-center p-3 bg-destructive/10 rounded-lg">
+              <p className="text-sm text-destructive">Fretes cancelados não podem ser editados</p>
             </div>
           </div>
-        </CardFooter>
-      )}
+        )}
 
-      {showActions && onAction && freight.status === "OPEN" && !isFullyBooked && (
-        <div className="px-6 pb-6">
-          {/* ✅ REGRA SIMPLIFICADA: TODOS os motoristas podem aceitar/propor */}
-          <div className="space-y-3">
-            {/* Botões de aceitar e contraproposta (para TODOS os motoristas) */}
-            {freight.service_type === "GUINCHO" ? (
-              <Button
-                onClick={() => handleAcceptFreight(1)}
-                className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                <Wrench className="mr-2 h-4 w-4" />
-                Aceitar Chamado
-              </Button>
-            ) : freight.service_type === "MUDANCA" ? (
-              <Button
-                onClick={() => handleAcceptFreight(1)}
-                className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Aceitar Mudança
-              </Button>
-            ) : freight.service_type === "FRETE_MOTO" ? (
-              <Button
-                onClick={() => handleAcceptFreight(1)}
-                className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                <Truck className="mr-2 h-4 w-4" />
-                Aceitar Frete por Moto
-              </Button>
-            ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-              <div className="grid grid-cols-1 xs:grid-cols-[0.85fr_1.15fr] gap-2">
-                <Button
-                  onClick={() => setBulkAcceptorOpen(true)}
-                  className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
-                >
-                  Aceitar ({availableSlots})
-                </Button>
-                {freight.producer_id ? (
-                  <Button
-                    onClick={() => setProposalModalOpen(true)}
-                    className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
-                    variant="outline"
-                  >
-                    Contraproposta
-                  </Button>
-                ) : (
-                  <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
-                    Solicitante sem cadastro — contraproposta indisponível
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 xs:grid-cols-[0.85fr_1.15fr] gap-2">
-                <Button
-                  onClick={() => handleAcceptFreight(1)}
-                  className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-xs sm:text-sm truncate"
-                  size="sm"
-                >
-                  Aceitar
-                </Button>
-                {freight.producer_id ? (
-                  <Button
-                    onClick={() => setProposalModalOpen(true)}
-                    className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-xs sm:text-sm truncate"
-                    size="sm"
-                    variant="outline"
-                  >
-                    Contraproposta
-                  </Button>
-                ) : (
-                  <p className="text-[10px] text-muted-foreground text-center leading-tight py-1">
-                    Solicitante sem cadastro — contraproposta indisponível
-                  </p>
-                )}
-              </div>
-            )}
+        {/* Modals */}
+        <ServiceProposalModal
+          isOpen={proposalModalOpen}
+          onClose={() => setProposalModalOpen(false)}
+          freight={freight}
+          originalProposal={
+            freight.service_type === "CARGA" || !freight.service_type
+              ? { id: freight.id, proposed_price: freight.price, message: "Proposta do produtor", driver_name: "Produtor" }
+              : undefined
+          }
+          onSuccess={() => { setProposalModalOpen(false); if (onAction) onAction("proposal_sent"); }}
+        />
 
-            {/* Botão de compartilhar - sempre aparece para motoristas afiliados */}
-            {isAffiliatedDriver && driverCompanyId && (
-              <ShareFreightToCompany freight={freight} companyId={driverCompanyId} driverProfile={profile} />
-            )}
-          </div>
-        </div>
-      )}
+        <CompanyBulkFreightAcceptor
+          open={bulkAcceptorOpen}
+          onOpenChange={setBulkAcceptorOpen}
+          freight={freight}
+          onAccept={handleAcceptFreight}
+        />
 
-      {showActions && isFullyBooked && (
-        <div className="px-6 pb-6">
-          <Button disabled className="w-full" size="sm" variant="secondary">
-            Frete Completo - Sem Vagas
-          </Button>
-        </div>
-      )}
-
-      {/* Producer Actions */}
-      {showProducerActions && onAction && freight.status !== "CANCELLED" && (
-        <div className="px-6 pb-6">
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={() => onAction("edit")} size="sm" variant="outline">
-              <Edit className="h-4 w-4 mr-1" />
-              Editar
-            </Button>
-
-            {/* Cancelamento direto para OPEN, ACCEPTED, LOADING, IN_NEGOTIATION, LOADED, IN_TRANSIT, DELIVERED_PENDING_CONFIRMATION */}
-            {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"].includes(freight.status) && (
-              <Button onClick={() => onAction("cancel")} size="sm" variant="destructive">
-                <X className="h-4 w-4 mr-1" />
-                Cancelar
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Mensagem para fretes cancelados */}
-      {showProducerActions && freight.status === "CANCELLED" && (
-        <div className="px-6 pb-6">
-          <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">Fretes cancelados não podem ser editados</p>
-          </div>
-        </div>
-      )}
-
-      {/* Service Proposal Modal */}
-      <ServiceProposalModal
-        isOpen={proposalModalOpen}
-        onClose={() => setProposalModalOpen(false)}
-        freight={freight}
-        originalProposal={
-          freight.service_type === "CARGA" || !freight.service_type
-            ? {
-                id: freight.id,
-                proposed_price: freight.price,
-                message: "Proposta do produtor",
-                driver_name: "Produtor",
-              }
-            : undefined
-        }
-        onSuccess={() => {
-          setProposalModalOpen(false);
-          if (onAction) onAction("proposal_sent");
-        }}
-      />
-
-      {/* Company Bulk Freight Acceptor Modal */}
-      <CompanyBulkFreightAcceptor
-        open={bulkAcceptorOpen}
-        onOpenChange={setBulkAcceptorOpen}
-        freight={freight}
-        onAccept={handleAcceptFreight}
-      />
-
-      {/* Driver Selection Modal for Transport Companies */}
-      <CompanyDriverSelectModal
-        isOpen={driverSelectModalOpen}
-        onClose={() => setDriverSelectModalOpen(false)}
-        drivers={(drivers || [])
-          .filter((d) => d.status === "ACTIVE" || d.status === "APPROVED")
-          .map((d) => ({
-            id: d.driver.id,
-            full_name: d.driver.full_name,
-            status: d.status,
-          }))}
-        onSelectDriver={handleCompanyAcceptWithDriver}
-        freight={{
-          cargo_type: getCargoTypeLabel(freight.cargo_type),
-          origin_address: freight.origin_address,
-          destination_address: freight.destination_address,
-          price: freight.price,
-        }}
-      />
-    </Card>
+        <CompanyDriverSelectModal
+          isOpen={driverSelectModalOpen}
+          onClose={() => setDriverSelectModalOpen(false)}
+          drivers={(drivers || [])
+            .filter((d) => d.status === "ACTIVE" || d.status === "APPROVED")
+            .map((d) => ({ id: d.driver.id, full_name: d.driver.full_name, status: d.status }))}
+          onSelectDriver={handleCompanyAcceptWithDriver}
+          freight={{
+            cargo_type: getCargoTypeLabel(freight.cargo_type),
+            origin_address: freight.origin_address,
+            destination_address: freight.destination_address,
+            price: freight.price,
+          }}
+        />
+      </Card>
+    </TooltipProvider>
   );
 };
 
