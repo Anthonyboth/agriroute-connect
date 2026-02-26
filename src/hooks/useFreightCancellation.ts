@@ -16,19 +16,19 @@ import { toast } from 'sonner';
 import { sendNotification } from '@/utils/notify';
 
 // Status onde motorista pode cancelar diretamente
-const DRIVER_DIRECT_CANCEL_STATUSES = ['ACCEPTED', 'LOADING'] as const;
+const DRIVER_DIRECT_CANCEL_STATUSES = ['ACCEPTED'] as const;
 
 // Status onde motorista só pode solicitar cancelamento (produtor aprova)
-const DRIVER_REQUEST_CANCEL_STATUSES = ['LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'] as const;
+const DRIVER_REQUEST_CANCEL_STATUSES = ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'] as const;
 
 // Status terminais — ninguém cancela
 const TERMINAL_STATUSES = ['DELIVERED', 'COMPLETED', 'CANCELLED'] as const;
 
-// Status ativos para produtor (tudo exceto terminais)
+// CRITICAL: Produtor só pode cancelar diretamente ANTES do carregamento.
+// Após LOADING, deve entrar em contato com o suporte.
 const PRODUCER_ACTIVE_STATUSES = [
   'NEW', 'APPROVED', 'OPEN', 'IN_NEGOTIATION',
-  'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION',
+  'ACCEPTED',
 ] as const;
 
 export type CancellationRole = 'MOTORISTA' | 'PRODUTOR' | 'TRANSPORTADORA' | 'ADMIN';
@@ -54,6 +54,9 @@ export interface CancelButtonConfig {
 export function canCancelDirectly(status: string, role: CancellationRole): boolean {
   const s = status?.toUpperCase().trim() || '';
 
+  // Terminal statuses - nobody cancels
+  if (TERMINAL_STATUSES.includes(s as any)) return false;
+
   if (role === 'PRODUTOR' || role === 'ADMIN') {
     return PRODUCER_ACTIVE_STATUSES.includes(s as any);
   }
@@ -62,6 +65,19 @@ export function canCancelDirectly(status: string, role: CancellationRole): boole
     return DRIVER_DIRECT_CANCEL_STATUSES.includes(s as any);
   }
 
+  return false;
+}
+
+/**
+ * Verifica se o frete está em status que exige contato com suporte para cancelar.
+ */
+export function requiresSupportForCancellation(status: string, role: CancellationRole): boolean {
+  const s = status?.toUpperCase().trim() || '';
+  const SUPPORT_REQUIRED_STATUSES = ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'];
+  
+  if (role === 'PRODUTOR' || role === 'ADMIN') {
+    return SUPPORT_REQUIRED_STATUSES.includes(s);
+  }
   return false;
 }
 
@@ -103,6 +119,17 @@ export function getCancelButtonConfig(status: string, role: CancellationRole): C
     };
   }
 
+  // For producer/admin in LOADING+ status: show contact support info
+  if (requiresSupportForCancellation(status, role)) {
+    return {
+      label: 'Contatar Suporte',
+      visible: true,
+      action: 'NONE',
+      variant: 'outline',
+      requiresApproval: false,
+    };
+  }
+
   return {
     label: '',
     visible: false,
@@ -132,6 +159,12 @@ export function useFreightCancellation() {
       if (error) {
         console.error('[useFreightCancellation] Erro ao cancelar:', error);
         toast.error('Erro ao cancelar o frete. Tente novamente.');
+        return false;
+      }
+
+      // Check for 409 response (status not allowed)
+      if (data && data.success === false) {
+        toast.error(data.error || 'Não é possível cancelar este frete.');
         return false;
       }
 
@@ -178,6 +211,7 @@ export function useFreightCancellation() {
   return {
     canCancelDirectly,
     canRequestCancellation,
+    requiresSupportForCancellation,
     getCancelButtonConfig,
     handleDirectCancel,
     handleRequestCancel,
