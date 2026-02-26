@@ -173,8 +173,11 @@ serve(async (req) => {
       });
     }
 
+    // ✅ Usar tabela profiles diretamente (service_role bypassa RLS).
+    // Não usar profiles_secure porque a view depende de auth.uid() que é NULL com service_role.
+    // Selecionar APENAS colunas não-sensíveis (a validação de participação já foi feita acima).
     const { data: profile, error: profileErr } = await supabase
-      .from("profiles_secure")
+      .from("profiles")
       .select("id, full_name, profile_photo_url, created_at, rating, total_ratings, status")
       .eq("id", participant_profile_id)
       .maybeSingle();
