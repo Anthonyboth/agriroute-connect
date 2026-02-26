@@ -369,6 +369,8 @@ const ProducerDashboard = () => {
         .select(`
           id, cargo_type, weight, origin_address, destination_address,
           origin_city, origin_state, destination_city, destination_state,
+          origin_neighborhood, origin_street, origin_number, origin_complement, origin_zip_code,
+          destination_neighborhood, destination_street, destination_number, destination_complement, destination_zip_code,
           pickup_date, delivery_date, price, urgency, status, distance_km,
           minimum_antt_price, service_type, required_trucks, accepted_trucks,
           driver_id, drivers_assigned, producer_id, company_id,

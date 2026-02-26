@@ -82,9 +82,19 @@ interface FreightInProgressCardProps {
     origin_city?: string;
     origin_state?: string;
     origin_address?: string;
+    origin_neighborhood?: string;
+    origin_street?: string;
+    origin_number?: string;
+    origin_complement?: string;
+    origin_zip_code?: string;
     destination_city?: string;
     destination_state?: string;
     destination_address?: string;
+    destination_neighborhood?: string;
+    destination_street?: string;
+    destination_number?: string;
+    destination_complement?: string;
+    destination_zip_code?: string;
     origin_lat?: number;
     origin_lng?: number;
     destination_lat?: number;
@@ -367,54 +377,81 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 
         {/* ── CONTENT: Route + Specs + Grid + Tabs ── */}
         <CardContent className="px-4 py-3 space-y-3 flex-1 flex flex-col">
-          {/* Origem → Destino with dot-line (from FreightCard) */}
-          <div className="flex gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
-            {/* Dot line vertical */}
-            <div className="flex flex-col items-center pt-1">
-              <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card" />
-              <div className="w-0.5 flex-1 bg-gradient-to-b from-primary/40 to-accent/40 my-0.5 min-h-[14px]" />
-              <div className="h-3 w-3 rounded-full bg-accent" />
+          {/* Origem → Destino with detailed address */}
+          <div className="space-y-0">
+            {/* COLETA */}
+            <div className="p-3 rounded-t-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card shrink-0" />
+                <p className="text-xs font-bold text-primary uppercase tracking-wider">📍 Coleta</p>
+              </div>
+              <p className="text-sm font-semibold text-foreground ml-5">
+                {freight.origin_city && freight.origin_state
+                  ? formatCityState(freight.origin_city, freight.origin_state)
+                  : 'Carregando origem...'}
+              </p>
+              {(freight.origin_neighborhood || freight.origin_street || freight.origin_number || freight.origin_complement || freight.origin_zip_code || freight.origin_address) && (
+                <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                  {freight.origin_neighborhood && (
+                    <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {freight.origin_neighborhood}</p>
+                  )}
+                  {(freight.origin_street || freight.origin_number) && (
+                    <p>
+                      <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                      {[freight.origin_street, freight.origin_number && `nº ${freight.origin_number}`].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {freight.origin_complement && (
+                    <p><span className="font-medium text-foreground/70">Complemento:</span> {freight.origin_complement}</p>
+                  )}
+                  {freight.origin_zip_code && (
+                    <p><span className="font-medium text-foreground/70">CEP:</span> {freight.origin_zip_code}</p>
+                  )}
+                  {!freight.origin_neighborhood && !freight.origin_street && freight.origin_address && (
+                    <p>{freight.origin_address}</p>
+                  )}
+                </div>
+              )}
             </div>
-            {/* Cities */}
-            <div className="flex-1 min-w-0 space-y-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground truncate cursor-default">
-                      {freight.origin_city && freight.origin_state
-                        ? formatCityState(freight.origin_city, freight.origin_state)
-                        : 'Carregando origem...'}
+
+            {/* Divider line */}
+            <div className="flex justify-center -my-px">
+              <div className="w-0.5 h-3 bg-gradient-to-b from-primary/40 to-accent/40" />
+            </div>
+
+            {/* ENTREGA */}
+            <div className="p-3 rounded-b-lg bg-accent/5 border border-accent/20">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="h-3 w-3 rounded-full bg-accent shrink-0" />
+                <p className="text-xs font-bold text-accent uppercase tracking-wider">🏁 Entrega</p>
+              </div>
+              <p className="text-sm font-semibold text-foreground ml-5">
+                {freight.destination_city && freight.destination_state
+                  ? formatCityState(freight.destination_city, freight.destination_state)
+                  : 'Carregando destino...'}
+              </p>
+              {(freight.destination_neighborhood || freight.destination_street || freight.destination_number || freight.destination_complement || freight.destination_zip_code || freight.destination_address) && (
+                <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                  {freight.destination_neighborhood && (
+                    <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {freight.destination_neighborhood}</p>
+                  )}
+                  {(freight.destination_street || freight.destination_number) && (
+                    <p>
+                      <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                      {[freight.destination_street, freight.destination_number && `nº ${freight.destination_number}`].filter(Boolean).join(', ')}
                     </p>
-                    {freight.origin_address && (
-                      <p className="text-[11px] text-muted-foreground truncate">📍 {freight.origin_address}</p>
-                    )}
-                  </div>
-                </TooltipTrigger>
-                {freight.origin_address && (
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="text-xs">{freight.origin_address}</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground truncate cursor-default">
-                      {freight.destination_city && freight.destination_state
-                        ? formatCityState(freight.destination_city, freight.destination_state)
-                        : 'Carregando destino...'}
-                    </p>
-                    {freight.destination_address && (
-                      <p className="text-[11px] text-muted-foreground truncate">🏁 {freight.destination_address}</p>
-                    )}
-                  </div>
-                </TooltipTrigger>
-                {freight.destination_address && (
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="text-xs">{freight.destination_address}</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
+                  )}
+                  {freight.destination_complement && (
+                    <p><span className="font-medium text-foreground/70">Complemento:</span> {freight.destination_complement}</p>
+                  )}
+                  {freight.destination_zip_code && (
+                    <p><span className="font-medium text-foreground/70">CEP:</span> {freight.destination_zip_code}</p>
+                  )}
+                  {!freight.destination_neighborhood && !freight.destination_street && freight.destination_address && (
+                    <p>{freight.destination_address}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

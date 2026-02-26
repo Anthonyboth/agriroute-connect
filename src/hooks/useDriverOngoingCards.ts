@@ -50,7 +50,17 @@ export type OngoingFreightRow = {
   weight: number | null;
   distance_km: number | null;
   origin_address: string | null;
+  origin_neighborhood: string | null;
+  origin_street: string | null;
+  origin_number: string | null;
+  origin_complement: string | null;
+  origin_zip_code: string | null;
   destination_address: string | null;
+  destination_neighborhood: string | null;
+  destination_street: string | null;
+  destination_number: string | null;
+  destination_complement: string | null;
+  destination_zip_code: string | null;
   origin_city: string | null;
   origin_state: string | null;
   destination_city: string | null;
@@ -161,7 +171,9 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
           weight,
           distance_km,
           origin_address,
+          origin_neighborhood, origin_street, origin_number, origin_complement, origin_zip_code,
           destination_address,
+          destination_neighborhood, destination_street, destination_number, destination_complement, destination_zip_code,
           origin_city,
           origin_state,
           destination_city,
@@ -287,7 +299,9 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
             weight,
             distance_km,
             origin_address,
+            origin_neighborhood, origin_street, origin_number, origin_complement, origin_zip_code,
             destination_address,
+            destination_neighborhood, destination_street, destination_number, destination_complement, destination_zip_code,
             origin_city,
             origin_state,
             destination_city,
