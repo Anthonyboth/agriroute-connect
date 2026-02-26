@@ -564,3 +564,12 @@
     @apply inline-flex items-center w-fit whitespace-nowrap;
   }
 }
+
+/* iOS WebView scroll fix - Capacitor */
+@layer utilities {
+  [data-radix-scroll-area-viewport],
+  .overflow-y-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
