@@ -47,6 +47,7 @@ import {
   type ScorecardSortKey,
 } from './CarrierPhase3';
 import { ProviderEnterprise } from './ProviderEnterprise';
+import { DriverEnterprise } from './DriverEnterprise';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -334,125 +335,7 @@ const HighlightsGrid: React.FC<{ items: Insight[]; isLoading: boolean }> = ({ it
   );
 };
 
-// ─── Componente: Bloco de Insights do Motorista ─────────────────────────────
-const MotoristaInsightsBlock: React.FC<{ kpis: any; charts: any; tables?: any; isLoading: boolean }> = ({ kpis, charts, tables, isLoading }) => {
-  const insights = useMemo(() => {
-    const receitaTotal = Number(kpis.receita_total) || 0;
-    const kmTotal = Number(kpis.km_total) || 0;
-    const rpmMedio = Number(kpis.rpm_medio) || 0;
-    const taxaConclusao = Number(kpis.taxa_conclusao) || 0;
-    const taxaCancel = Number(kpis.taxa_cancelamento) || 0;
-    const viagens = Number(kpis.viagens_concluidas) || 0;
-    const avgCycle = Number(kpis.avg_cycle_hours) || 0;
-    const lucro = Number(kpis.lucro_liquido) || 0;
-
-    const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
-      month: formatMonthLabelPtBR(m.mes),
-      receita: Number(m.receita) || 0,
-      viagens: Math.round(Number(m.viagens) || 0),
-    }));
-
-    const bw = pickBestWorstMonths(receitaMes);
-    const primary: Insight[] = [];
-    const optional: Insight[] = [];
-
-    // ── Primary insights (priority order) ──
-    if (bw?.best) {
-      primary.push({ label: 'Melhor mês', value: `${bw.best.month} — ${formatBRL(bw.best.receita)}`, hint: `Viagens: ${bw.best.viagens}`, tone: 'good' });
-    }
-    if (bw && receitaMes.length >= 2 && bw.worst) {
-      primary.push({ label: 'Pior mês', value: `${bw.worst.month} — ${formatBRL(bw.worst.receita)}`, hint: `Viagens: ${bw.worst.viagens}`, tone: 'bad' });
-    }
-    if (rpmMedio > 0) {
-      primary.push({ label: 'R$/km', value: `R$ ${rpmMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, hint: 'Média no período', tone: 'neutral' });
-    }
-    if (taxaConclusao > 0) {
-      const tone: Insight['tone'] = taxaConclusao >= 90 ? 'good' : taxaConclusao >= 70 ? 'neutral' : 'bad';
-      primary.push({ label: 'Conclusão', value: `${taxaConclusao.toFixed(1)}%`, hint: `Cancel.: ${taxaCancel.toFixed(1)}%`, tone });
-    }
-    const topRotas = (charts?.top_rotas || []).map((r: any) => ({ rota: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')), receita: Number(r.receita) || 0 })).sort((a: any, b: any) => b.receita - a.receita);
-    if (topRotas.length) {
-      primary.push({ label: 'Top rota', value: compactText(topRotas[0].rota, 20), hint: formatBRL(topRotas[0].receita), tone: 'good' });
-    }
-    if (receitaTotal > 0 && kmTotal > 0) {
-      primary.push({ label: 'Receita/km', value: `R$ ${(receitaTotal / kmTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, hint: 'Receita total ÷ km', tone: 'neutral' });
-    }
-
-    // ── Optional insights (fill up to 6) ──
-    // 1) Maior km
-    const viagensMes = (charts?.viagens_por_mes || []).map((d: any) => ({ month: formatMonthLabelPtBR(d.mes), km: Number(d.km) || 0, viagens: Math.round(Number(d.viagens) || 0) }));
-    if (viagensMes.length) {
-      const bestKm = viagensMes.reduce((a: any, b: any) => (b.km > a.km ? b : a));
-      if (bestKm.km > 0) optional.push({ label: 'Maior km', value: `${bestKm.month} — ${bestKm.km.toLocaleString('pt-BR')} km`, hint: `Viagens: ${bestKm.viagens}`, tone: 'neutral' });
-    }
-    // 2) Ticket médio
-    if (receitaTotal > 0 && viagens > 0) {
-      optional.push({ label: 'Ticket médio', value: `R$ ${(receitaTotal / viagens).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, hint: 'Receita ÷ viagens', tone: 'neutral' });
-    }
-    // 3) R$/hora
-    if (receitaTotal > 0 && viagens > 0 && avgCycle > 0) {
-      const rph = receitaTotal / (avgCycle * viagens);
-      optional.push({ label: 'R$/hora', value: `R$ ${rph.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, hint: 'Estimado (ciclo médio)', tone: 'good' });
-    }
-    // 4) Margem
-    if (receitaTotal > 0) {
-      const margem = (lucro / receitaTotal) * 100;
-      optional.push({ label: 'Margem', value: `${margem.toFixed(1)}%`, hint: 'Lucro ÷ receita', tone: margem >= 10 ? 'good' : margem >= 0 ? 'neutral' : 'bad' });
-    }
-    // 5) Melhor R$/km (rota)
-    const topLucr = tables?.top_lucrativos?.[0];
-    if (topLucr?.rs_km) {
-      optional.push({ label: 'Melhor R$/km', value: `R$ ${Number(topLucr.rs_km).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`, hint: compactText(String(topLucr.rota || '—'), 20), tone: 'good' });
-    }
-    // 6) Data quality alert
-    const pointsTotal = (charts?.receita_por_mes || []).length + (charts?.viagens_por_mes || []).length;
-    if (pointsTotal > 0 && pointsTotal < 3) {
-      optional.push({ label: 'Qualidade dos dados', value: 'Poucos registros', hint: 'Amplie o período para ver tendências', tone: 'bad' });
-    }
-
-    // Fill primary up to 6 with optionals (no duplicates by label)
-    const usedLabels = new Set(primary.map((p) => p.label));
-    for (const opt of optional) {
-      if (primary.length >= 6) break;
-      if (!usedLabels.has(opt.label)) {
-        primary.push(opt);
-        usedLabels.add(opt.label);
-      }
-    }
-
-    return primary.slice(0, 6);
-  }, [kpis, charts, tables]);
-
-  if (!insights.length && !isLoading) return null;
-
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-        Insights rápidos
-      </p>
-      <HighlightsGrid items={insights} isLoading={isLoading} />
-    </div>
-  );
-};
-
-// ─── Tipos: Slicers MOTORISTA ────────────────────────────────────────────────
-type MotoristaSlicers = {
-  status: string[];
-  cargoTypes: string[];
-  routes: string[];
-  minKm?: number;
-  maxKm?: number;
-  minRevenue?: number;
-  maxRevenue?: number;
-  searchRoute?: string;
-};
-
-const EMPTY_SLICERS: MotoristaSlicers = {
-  status: [], cargoTypes: [], routes: [],
-  minKm: undefined, maxKm: undefined,
-  minRevenue: undefined, maxRevenue: undefined,
-  searchRoute: '',
-};
+// (MotoristaInsightsBlock removed — now in DriverEnterprise.tsx)
 
 // ─── Toggle chip ─────────────────────────────────────────────────────────────
 const ToggleChip: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
@@ -469,6 +352,7 @@ const ToggleChip: React.FC<{ active: boolean; onClick: () => void; children: Rea
     {children}
   </button>
 );
+// (MotoristaSlicers type removed — now in DriverEnterprise.tsx)
 
 // ─── Status label map ────────────────────────────────────────────────────────
 const STATUS_LABELS: Record<string, string> = {
@@ -589,16 +473,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     };
   }, [producerHistoryRows]);
 
-  // ── Slicers state (MOTORISTA only) ────────────────────────────────────────
-  const [slicers, setSlicers] = useState<MotoristaSlicers>(EMPTY_SLICERS);
-  const resetSlicers = () => setSlicers(EMPTY_SLICERS);
-
-  const toggleSlicer = (field: 'status' | 'cargoTypes' | 'routes', value: string) => {
-    setSlicers((prev) => {
-      const arr = prev[field];
-      return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] };
-    });
-  };
+  // (Motorista slicers removed — now in DriverEnterprise.tsx)
 
   // ── Producer Slicers state ────────────────────────────────────────────────
   type ProducerSlicers = {
@@ -743,119 +618,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     return c;
   }, [producerSlicers]);
 
-  // ── Normalize extrato rows ────────────────────────────────────────────────
-  const extratoRows = useMemo(() => {
-    if (!isMotorista) return [];
-    return (tables?.extrato_ganhos || []).map((r: any) => {
-      const rota = r.rota || (r.origin_city && r.destination_city ? `${r.origin_city} → ${r.destination_city}` : '—');
-      return {
-        ...r,
-        __rota: formatRouteLabel(rota),
-        __status: String(r.status_final || r.status || '').toUpperCase(),
-        __tipo: String(r.tipo || '').toLowerCase(),
-        __km: Number(r.km) || 0,
-        __receita: Number(r.receita) || 0,
-      };
-    });
-  }, [tables?.extrato_ganhos, isMotorista]);
+  // (Motorista extratoRows, slicerOptions, filteredExtratoRows, computedTopBottom removed — now in DriverEnterprise.tsx)
 
-  // ── Slicer options ────────────────────────────────────────────────────────
-  const slicerOptions = useMemo(() => {
-    const statusSet = new Set<string>();
-    const cargoSet = new Set<string>();
-    const routeSet = new Set<string>();
-    for (const r of extratoRows) {
-      if (r.__status) statusSet.add(r.__status);
-      if (r.__tipo) cargoSet.add(r.__tipo);
-      if (r.__rota && r.__rota !== '—') routeSet.add(r.__rota);
-    }
-    const kmVals = extratoRows.map((r: any) => r.__km).filter(Number.isFinite);
-    const revVals = extratoRows.map((r: any) => r.__receita).filter(Number.isFinite);
-    return {
-      statuses: Array.from(statusSet).sort(),
-      cargoTypes: Array.from(cargoSet).sort(),
-      routes: Array.from(routeSet).sort(),
-      kmMin: kmVals.length ? Math.min(...kmVals) : 0,
-      kmMax: kmVals.length ? Math.max(...kmVals) : 0,
-      revMin: revVals.length ? Math.min(...revVals) : 0,
-      revMax: revVals.length ? Math.max(...revVals) : 0,
-    };
-  }, [extratoRows]);
-
-  // ── Filter extrato rows ───────────────────────────────────────────────────
-  const filteredExtratoRows = useMemo(() => {
-    const { status, cargoTypes, routes, minKm, maxKm, minRevenue, maxRevenue, searchRoute } = slicers;
-    const q = (searchRoute || '').trim().toLowerCase();
-    return extratoRows.filter((r: any) => {
-      if (status.length && !status.includes(r.__status)) return false;
-      if (cargoTypes.length && !cargoTypes.includes(r.__tipo)) return false;
-      if (routes.length && !routes.includes(r.__rota)) return false;
-      if (q && !r.__rota.toLowerCase().includes(q)) return false;
-      if (minKm != null && r.__km < minKm) return false;
-      if (maxKm != null && r.__km > maxKm) return false;
-      if (minRevenue != null && r.__receita < minRevenue) return false;
-      if (maxRevenue != null && r.__receita > maxRevenue) return false;
-      return true;
-    });
-  }, [extratoRows, slicers]);
-
-  // ── Computed top/bottom from filtered rows ────────────────────────────────
-  const computedTopBottom = useMemo(() => {
-    const rows = filteredExtratoRows
-      .filter((r: any) => r.__km > 0 && r.__receita > 0)
-      .map((r: any) => ({ rota: r.__rota, km: r.__km, receita: r.__receita, rs_km: r.__receita / r.__km }));
-    rows.sort((a, b) => b.rs_km - a.rs_km);
-    return { top: rows.slice(0, 10), bottom: rows.slice(-10).reverse() };
-  }, [filteredExtratoRows]);
-
-  const activeFiltersCount =
-    (slicers.status.length ? 1 : 0) + (slicers.cargoTypes.length ? 1 : 0) +
-    (slicers.routes.length ? 1 : 0) + (slicers.minKm != null || slicers.maxKm != null ? 1 : 0) +
-    (slicers.minRevenue != null || slicers.maxRevenue != null ? 1 : 0) +
-    (slicers.searchRoute?.trim() ? 1 : 0);
-
-  const hasSlicerFilters = activeFiltersCount > 0;
-
-  // ── KPIs MOTORISTA ────────────────────────────────────────────────────────
-  const motoristaHero = useMemo(() => {
-    if (!isMotorista) return null;
-    const receitaTotal   = Number(kpis.receita_total)   || 0;
-    const lucroLiquido   = Number(kpis.lucro_liquido)   || 0;
-    const despesasTotal  = Number(kpis.despesas_total)  || 0;
-    const ticketMedio    = Number(kpis.ticket_medio)    || 0;
-    const rpmMedio       = Number(kpis.rpm_medio)       || 0;
-    const trend = receitaTotal > 0
-      ? { value: (lucroLiquido / receitaTotal) * 100, isPositive: lucroLiquido >= 0 }
-      : undefined;
-    return {
-      value: receitaTotal,
-      trend,
-      secondary: [
-        { label: 'Lucro líquido',   value: formatBRL(lucroLiquido) },
-        { label: 'Despesas',        value: formatBRL(despesasTotal) },
-        { label: 'Ticket médio',    value: formatBRL(ticketMedio) },
-        { label: 'R$/km médio',     value: rpmMedio > 0 ? `R$ ${fmtNum(rpmMedio, 2)}` : '—' },
-      ],
-    };
-  }, [kpis, isMotorista]);
-
-  const motoristaOp = useMemo(() => {
-    if (!isMotorista) return [];
-    const kmTotal         = Number(kpis.km_total)          || 0;
-    const viagens         = Number(kpis.viagens_concluidas) || 0;
-    const avgCycle        = Number(kpis.avg_cycle_hours)    || 0;
-    const taxaConclusao   = Number(kpis.taxa_conclusao)     || 0;
-    const taxaCancel      = Number(kpis.taxa_cancelamento)  || 0;
-    const avaliacao       = Number(kpis.avaliacao_media)    || 0;
-    return [
-      { label: 'Viagens',        value: fmtNum(viagens),                          icon: Truck,       highlight: true },
-      { label: 'Km rodados',     value: `${fmtNum(kmTotal)} km`,                  icon: MapPin },
-      { label: 'Tempo médio',    value: avgCycle > 0 ? fmtHours(avgCycle) : '—',  icon: Timer },
-      { label: 'Conclusão',      value: `${taxaConclusao.toFixed(1)}%`,            icon: CheckCircle, highlight: true },
-      { label: 'Cancelamento',   value: `${taxaCancel.toFixed(1)}%`,              icon: XCircle },
-      { label: 'Avaliação',      value: avaliacao > 0 ? fmtNum(avaliacao, 1) : '—', icon: Star },
-    ] satisfies OpKPI[];
-  }, [kpis, isMotorista]);
+  // (motoristaHero + motoristaOp removed — now in DriverEnterprise.tsx)
 
   // ── KPIs TRANSPORTADORA ───────────────────────────────────────────────────
   const transportadoraHero = useMemo(() => {
@@ -895,41 +660,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     ] satisfies OpKPI[];
   }, [kpis, isTransportadora]);
 
-  // ── Gráficos MOTORISTA ────────────────────────────────────────────────────
-  const motoristaCharts: ChartConfig[] = useMemo(() => {
-    if (!isMotorista) return [];
-    const receitaMes = (charts?.receita_por_mes || []).map((m: any) => ({
-      month: formatMonthLabelPtBR(m.mes),
-      receita: Number(m.receita) || 0,
-      viagens: Math.round(Number(m.viagens) || 0),
-    }));
-    const viagensMes = (charts?.viagens_por_mes || []).map((d: any) => ({
-      month: formatMonthLabelPtBR(d.mes),
-      viagens: Math.round(Number(d.viagens) || 0),
-      km: Number(d.km) || 0,
-    }));
-    const topRotas = (charts?.top_rotas || []).map((r: any) => ({
-      name: formatRouteLabel(r.rota || (r.origem && r.destino ? `${r.origem} → ${r.destino}` : '')),
-      receita: Number(r.receita) || 0,
-    }));
-    const dispersao = (charts?.dispersao_receita_km || []).map((d: any) => ({
-      km: Number(d.km) || 0,
-      receita: Number(d.receita) || 0,
-      name: formatRouteLabel(d.rota) || d.cargo || '',
-    }));
-    const acc = (() => {
-      let a = 0;
-      return receitaMes.map((m: any) => { a += m.receita; return { month: m.month, acumulado: a }; });
-    })();
-
-    return [
-      { title: 'Receita por mês', type: 'area', data: receitaMes, dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }], xAxisKey: 'month', valueFormatter: formatBRL },
-      { title: 'Receita acumulada no período', type: 'area', data: acc, dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: 'hsl(var(--chart-3))' }], xAxisKey: 'month', valueFormatter: formatBRL },
-      { title: 'Km rodados por mês', type: 'bar', data: viagensMes, dataKeys: [{ key: 'km', label: 'Km', color: 'hsl(var(--chart-4))' }], xAxisKey: 'month' },
-      { title: 'Top rotas por receita', type: 'horizontal-bar', data: topRotas, dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: '#16a34a' }], xAxisKey: 'name', valueFormatter: formatBRL, height: 320 },
-      ...(dispersao.length > 0 ? [{ title: 'Receita vs distância', type: 'scatter' as const, data: dispersao, dataKeys: [{ key: 'receita', label: 'Receita (R$)', color: 'hsl(var(--chart-5))' }], xAxisKey: 'km', yAxisKey: 'receita', valueFormatter: formatBRL }] : []),
-    ];
-  }, [charts, isMotorista]);
+  // (motoristaCharts removed — now in DriverEnterprise.tsx)
 
   // ── Gráficos TRANSPORTADORA ───────────────────────────────────────────────
   const transportadoraCharts: ChartConfig[] = useMemo(() => {
@@ -1620,9 +1351,9 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
           <div>
             <h1 className="text-xl font-extrabold tracking-tight">Relatórios</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isProdutor ? 'Control Tower · Produtor' : isTransportadora ? 'Control Tower · Transportadora' : 'Resumo financeiro e operacional'}
+              {isProdutor ? 'Control Tower · Produtor' : isTransportadora ? 'Control Tower · Transportadora' : isMotorista ? 'Control Tower · Motorista' : 'Resumo financeiro e operacional'}
             </p>
-            {(isProdutor || isTransportadora) && lastRefreshLabel && (
+            {(isProdutor || isTransportadora || isMotorista) && lastRefreshLabel && (
               <p className="text-[11px] text-muted-foreground mt-1">Atualizado {lastRefreshLabel}</p>
             )}
           </div>
@@ -1635,6 +1366,11 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             {isTransportadora && (
               <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[hsl(142,71%,45%)]/10 text-[hsl(142,71%,45%)] border border-[hsl(142,71%,45%)]/20">
                 Transportadora
+              </span>
+            )}
+            {isMotorista && (
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[hsl(142,71%,45%)]/10 text-[hsl(142,71%,45%)] border border-[hsl(142,71%,45%)]/20">
+                Motorista
               </span>
             )}
             <ReportExportButton reportTitle={title} dateRange={dateRange} sections={exportSections} disabled={isLoading} />
@@ -1670,7 +1406,7 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         )}
 
         {/* Data exibida */}
-        {!isProdutor && !isTransportadora && (
+        {!isProdutor && !isTransportadora && !isMotorista && (
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <CalendarDays className="h-3 w-3" />
             <span>
@@ -1926,245 +1662,15 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
         )}
       </div>
 
-      {/* ── MOTORISTA ─────────────────────────────────────────────────── */}
-      {isMotorista && motoristaHero && (
-        <>
-          {/* Bloco financeiro destaque */}
-          <HeroFinanceBlock
-            label="Faturamento Bruto"
-            value={motoristaHero.value}
-            trend={motoristaHero.trend}
-            subtitle="Fretes no período"
-            secondary={motoristaHero.secondary}
-            isLoading={isLoading}
-          />
-
-          {/* Bloco operacional */}
-          <div className="space-y-3">
-            <SectionTitle icon={Activity} title="Operacional" subtitle="Volume, eficiência e avaliação" />
-            <OperationalGrid items={motoristaOp} isLoading={isLoading} />
-          </div>
-
-          {/* Gráficos */}
-          <div className="space-y-3">
-            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
-
-            {/* Insights rápidos (PowerBI-like) — acima dos gráficos */}
-            <MotoristaInsightsBlock kpis={kpis} charts={charts} tables={tables} isLoading={isLoading} />
-
-            <ReportCharts charts={motoristaCharts} isLoading={isLoading} columns={2} />
-          </div>
-
-          {/* ── PowerBI Slicers ──────────────────────────────────────── */}
-          {!isLoading && extratoRows.length > 0 && (
-            <div className="space-y-3">
-              <SectionTitle icon={Filter} title="Filtros analíticos" subtitle="Slicers PowerBI — filtre extrato e lucratividade" />
-              <div className="rounded-2xl border bg-card p-4 space-y-4">
-                {/* Header: count + clear */}
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <p className="text-[11px] text-muted-foreground">
-                    <span className="font-semibold text-foreground">{filteredExtratoRows.length}</span>
-                    {' de '}
-                    <span className="font-semibold text-foreground">{extratoRows.length}</span>
-                    {' registros'}
-                    {hasSlicerFilters && (
-                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(22,163,74,0.1)] text-[#16a34a] text-[10px] font-semibold">
-                        <Filter className="h-2.5 w-2.5" /> {activeFiltersCount} filtro{activeFiltersCount > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="ghost" size="sm"
-                      className="h-7 text-[11px] gap-1"
-                      onClick={() => setSlicers((p) => ({ ...p, status: ['COMPLETED', 'DELIVERED'] }))}
-                    >
-                      <CheckCircle className="h-3 w-3" /> Concluídos
-                    </Button>
-                    <Button
-                      variant="ghost" size="sm"
-                      className="h-7 text-[11px] gap-1"
-                      onClick={() => setSlicers((p) => ({ ...p, status: ['CANCELLED'] }))}
-                    >
-                      <XCircle className="h-3 w-3" /> Cancelados
-                    </Button>
-                    {hasSlicerFilters && (
-                      <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1 text-destructive" onClick={resetSlicers}>
-                        <X className="h-3 w-3" /> Limpar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Status chips */}
-                  {slicerOptions.statuses.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Status</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {slicerOptions.statuses.map((s) => (
-                          <ToggleChip key={s} active={slicers.status.includes(s)} onClick={() => toggleSlicer('status', s)}>
-                            {STATUS_LABELS[s] || s}
-                          </ToggleChip>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cargo type chips */}
-                  {slicerOptions.cargoTypes.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Tipo de carga</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {slicerOptions.cargoTypes.slice(0, 8).map((t) => (
-                          <ToggleChip key={t} active={slicers.cargoTypes.includes(t)} onClick={() => toggleSlicer('cargoTypes', t)}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                          </ToggleChip>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Route search + chips */}
-                  {slicerOptions.routes.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rota</p>
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                        <Input
-                          className="h-7 text-[11px] pl-7"
-                          placeholder="Buscar rota..."
-                          value={slicers.searchRoute || ''}
-                          onChange={(e) => setSlicers((p) => ({ ...p, searchRoute: e.target.value }))}
-                        />
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
-                        {slicerOptions.routes
-                          .filter((r) => !slicers.searchRoute?.trim() || r.toLowerCase().includes(slicers.searchRoute.trim().toLowerCase()))
-                          .slice(0, 10)
-                          .map((r) => (
-                            <ToggleChip key={r} active={slicers.routes.includes(r)} onClick={() => toggleSlicer('routes', r)}>
-                              {compactText(r, 25)}
-                            </ToggleChip>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Range: km + receita */}
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        Faixa de Km <span className="font-normal">({fmtNum(slicerOptions.kmMin)}–{fmtNum(slicerOptions.kmMax)})</span>
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
-                          value={slicers.minKm ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, minKm: e.target.value ? Number(e.target.value) : undefined }))}
-                        />
-                        <span className="text-muted-foreground text-[10px]">—</span>
-                        <Input
-                          type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
-                          value={slicers.maxKm ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, maxKm: e.target.value ? Number(e.target.value) : undefined }))}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        Faixa de Receita <span className="font-normal">({formatBRL(slicerOptions.revMin)}–{formatBRL(slicerOptions.revMax)})</span>
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
-                          value={slicers.minRevenue ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, minRevenue: e.target.value ? Number(e.target.value) : undefined }))}
-                        />
-                        <span className="text-muted-foreground text-[10px]">—</span>
-                        <Input
-                          type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
-                          value={slicers.maxRevenue ?? ''} onChange={(e) => setSlicers((p) => ({ ...p, maxRevenue: e.target.value ? Number(e.target.value) : undefined }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Extrato */}
-          {!isLoading && extratoRows.length > 0 && (
-            <div className="space-y-3">
-              <SectionTitle icon={DollarSign} title="Extrato de ganhos" subtitle="Histórico detalhado por viagem" />
-              {filteredExtratoRows.length > 0 ? (
-                <ExtratoTable data={filteredExtratoRows} />
-              ) : (
-                <Card className="rounded-2xl p-6 flex flex-col items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Nenhum registro com esses filtros</p>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={resetSlicers}>
-                    <X className="h-3 w-3" /> Limpar filtros
-                  </Button>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {/* Top/Bottom lucrativos (computed from filtered rows when slicers active) */}
-          {!isLoading && (hasSlicerFilters ? (computedTopBottom.top.length > 0 || computedTopBottom.bottom.length > 0) : (tables?.top_lucrativos?.length > 0 || tables?.bottom_lucrativos?.length > 0)) && (
-            <div className="space-y-3">
-              <SectionTitle icon={TrendingUp} title="Fretes por lucratividade" subtitle="R$/km — melhores e piores" />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {(hasSlicerFilters ? computedTopBottom.top : tables?.top_lucrativos || []).length > 0 && (
-                  <Card className="rounded-2xl overflow-hidden">
-                    <div className="px-4 py-3 border-b bg-[rgba(22,163,74,0.05)]">
-                      <p className="text-xs font-semibold text-[#16a34a]">🏆 Top 10 mais lucrativos</p>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow><TableHead className="text-xs">Rota</TableHead><TableHead className="text-xs text-right">Km</TableHead><TableHead className="text-xs text-right">Valor</TableHead><TableHead className="text-xs text-right">R$/km</TableHead></TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(hasSlicerFilters ? computedTopBottom.top : tables?.top_lucrativos || []).map((r: any, i: number) => (
-                            <TableRow key={i}>
-                              <TableCell className="text-xs max-w-[100px] truncate">{r.rota || '—'}</TableCell>
-                              <TableCell className="text-xs text-right">{fmtNum(r.km || 0)}</TableCell>
-                              <TableCell className="text-xs text-right font-medium">{formatBRL(r.receita || 0)}</TableCell>
-                              <TableCell className="text-xs text-right text-[#16a34a] font-bold">{fmtNum(r.rs_km || 0, 2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </Card>
-                )}
-                {(hasSlicerFilters ? computedTopBottom.bottom : tables?.bottom_lucrativos || []).length > 0 && (
-                  <Card className="rounded-2xl overflow-hidden">
-                    <div className="px-4 py-3 border-b bg-destructive/5">
-                      <p className="text-xs font-semibold text-destructive">⚠️ Top 10 menos lucrativos</p>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow><TableHead className="text-xs">Rota</TableHead><TableHead className="text-xs text-right">Km</TableHead><TableHead className="text-xs text-right">Valor</TableHead><TableHead className="text-xs text-right">R$/km</TableHead></TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(hasSlicerFilters ? computedTopBottom.bottom : tables?.bottom_lucrativos || []).map((r: any, i: number) => (
-                            <TableRow key={i}>
-                              <TableCell className="text-xs max-w-[100px] truncate">{r.rota || '—'}</TableCell>
-                              <TableCell className="text-xs text-right">{fmtNum(r.km || 0)}</TableCell>
-                              <TableCell className="text-xs text-right font-medium">{formatBRL(r.receita || 0)}</TableCell>
-                              <TableCell className="text-xs text-right text-destructive font-bold">{fmtNum(r.rs_km || 0, 2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </Card>
-                )}
-              </div>
-            </div>
-          )}
-        </>
+      {/* ── MOTORISTA — Control Tower Enterprise ─────────────────────── */}
+      {isMotorista && (
+        <DriverEnterprise
+          kpis={kpis}
+          charts={charts}
+          tables={tables}
+          dateRange={dateRange}
+          isLoading={isLoading}
+        />
       )}
 
       {/* ── TRANSPORTADORA — Control Tower Enterprise ─────────────────── */}
