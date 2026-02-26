@@ -1642,7 +1642,7 @@ const ProducerDashboard = () => {
 
           <SubscriptionExpiryNotification />
 
-          {/* ✅ ABA FRETES ABERTOS - Rural + Urbanos/Especiais */}
+          {/* ✅ ABA FRETES ABERTOS - Rural + Urbanos/Especiais com sub-abas */}
           <TabsContent value="freights-open" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
@@ -1662,135 +1662,146 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-6">
-                {/* FRETES RURAIS */}
-                {classifiedOpenItems.freightsRuralOpen.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                        <Truck className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-lg">Fretes Rurais</h4>
-                        <p className="text-xs text-muted-foreground">Transporte de cargas agrícolas</p>
-                      </div>
-                      <Badge variant="secondary" className="ml-auto">
-                        {classifiedOpenItems.freightsRuralOpen.length}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                      {classifiedOpenItems.freightsRuralOpen.map((freight) => (
-                        <FreightCard
-                          key={freight.id}
-                          freight={{
-                            id: freight.id,
-                            cargo_type: freight.cargo_type,
-                            weight: freight.weight || 0,
-                            distance_km: freight.distance_km,
-                            origin_address: freight.origin_address,
-                            destination_address: freight.destination_address,
-                            origin_city: freight.origin_city,
-                            origin_state: freight.origin_state,
-                            destination_city: freight.destination_city,
-                            destination_state: freight.destination_state,
-                            price: freight.price,
-                            status: freight.status,
-                            pickup_date: freight.pickup_date,
-                            delivery_date: freight.delivery_date,
-                            urgency: freight.urgency,
-                            minimum_antt_price: freight.minimum_antt_price || 0,
-                            required_trucks: freight.required_trucks || 1,
-                            accepted_trucks: freight.accepted_trucks || 0,
-                            service_type: freight.service_type || "CARGA",
-                            pricing_type: freight.pricing_type,
-                            price_per_km: freight.price_per_km,
-                          }}
-                          showProducerActions
-                          onAction={(action) => handleFreightAction(action as any, freight)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <Tabs defaultValue="rural" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="rural" className="flex items-center gap-2">
+                    <Truck className="h-4 w-4" />
+                    Fretes Rurais
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      {classifiedOpenItems.freightsRuralOpen.length}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="urban" className="flex items-center gap-2">
+                    <Bike className="h-4 w-4" />
+                    Fretes Urbanos
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      {classifiedOpenItems.freightsUrbanOpen.length}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
 
-                {/* FRETES URBANOS/ESPECIAIS (Moto, Guincho, Mudança) */}
-                {classifiedOpenItems.freightsUrbanOpen.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                        <Bike className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-lg">Fretes Urbanos / Especiais</h4>
-                        <p className="text-xs text-muted-foreground">Moto, Guincho, Mudança</p>
-                      </div>
-                      <Badge variant="secondary" className="ml-auto">
-                        {classifiedOpenItems.freightsUrbanOpen.length}
-                      </Badge>
+                {/* SUB-ABA: FRETES RURAIS */}
+                <TabsContent value="rural">
+                  {classifiedOpenItems.freightsRuralOpen.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-semibold mb-2">Nenhum frete rural aberto</p>
+                      <p className="text-sm text-muted-foreground">
+                        Seus fretes de carga agrícola aparecerão aqui.
+                      </p>
                     </div>
-                    
-                    <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                      {/* Fretes urbanos da tabela freights → FreightCard */}
-                      {classifiedOpenItems.freightsUrbanFromTable.map((freight) => (
-                        <FreightCard
-                          key={freight.id}
-                          freight={{
-                            id: freight.id,
-                            cargo_type: freight.cargo_type,
-                            weight: freight.weight || 0,
-                            distance_km: freight.distance_km,
-                            origin_address: freight.origin_address,
-                            destination_address: freight.destination_address,
-                            origin_city: freight.origin_city,
-                            origin_state: freight.origin_state,
-                            destination_city: freight.destination_city,
-                            destination_state: freight.destination_state,
-                            price: freight.price,
-                            status: freight.status,
-                            pickup_date: freight.pickup_date,
-                            delivery_date: freight.delivery_date,
-                            urgency: freight.urgency,
-                            minimum_antt_price: freight.minimum_antt_price || 0,
-                            required_trucks: freight.required_trucks || 1,
-                            accepted_trucks: freight.accepted_trucks || 0,
-                            service_type: freight.service_type,
-                            pricing_type: freight.pricing_type,
-                            price_per_km: freight.price_per_km,
-                          }}
-                          showProducerActions
-                          onAction={(action) => handleFreightAction(action as any, freight)}
-                        />
-                      ))}
-                      {/* Fretes urbanos de service_requests → UrbanFreightCard */}
-                      {classifiedOpenItems.freightsUrbanOpen
-                        .filter((uf) => !classifiedOpenItems.freightsUrbanFromTable.some((ft) => ft.id === uf.id))
-                        .map((urbanFreight) => (
-                        <UrbanFreightCard
-                          key={`urban-${urbanFreight.id}`}
-                          serviceRequest={{
-                            id: urbanFreight.id,
-                            service_type: urbanFreight.service_type,
-                            status: urbanFreight.status,
-                            problem_description: urbanFreight.problem_description,
-                            location_address: urbanFreight.location_address,
-                            city_name: urbanFreight.city_name,
-                            state: urbanFreight.state,
-                            additional_info: urbanFreight.additional_info,
-                            estimated_price: urbanFreight.estimated_price,
-                            final_price: urbanFreight.final_price,
-                            preferred_datetime: urbanFreight.preferred_datetime,
-                            created_at: urbanFreight.created_at,
-                            urgency: urbanFreight.urgency,
-                          }}
-                          onEdit={() => handleMotoFreightAction("edit", urbanFreight)}
-                          onCancel={() => handleMotoFreightAction("cancel", urbanFreight)}
-                        />
-                      ))}
+                  ) : (
+                    <div className="max-h-[70vh] overflow-y-auto pr-2">
+                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                        {classifiedOpenItems.freightsRuralOpen.map((freight) => (
+                          <FreightCard
+                            key={freight.id}
+                            freight={{
+                              id: freight.id,
+                              cargo_type: freight.cargo_type,
+                              weight: freight.weight || 0,
+                              distance_km: freight.distance_km,
+                              origin_address: freight.origin_address,
+                              destination_address: freight.destination_address,
+                              origin_city: freight.origin_city,
+                              origin_state: freight.origin_state,
+                              destination_city: freight.destination_city,
+                              destination_state: freight.destination_state,
+                              price: freight.price,
+                              status: freight.status,
+                              pickup_date: freight.pickup_date,
+                              delivery_date: freight.delivery_date,
+                              urgency: freight.urgency,
+                              minimum_antt_price: freight.minimum_antt_price || 0,
+                              required_trucks: freight.required_trucks || 1,
+                              accepted_trucks: freight.accepted_trucks || 0,
+                              service_type: freight.service_type || "CARGA",
+                              pricing_type: freight.pricing_type,
+                              price_per_km: freight.price_per_km,
+                            }}
+                            showProducerActions
+                            onAction={(action) => handleFreightAction(action as any, freight)}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </TabsContent>
+
+                {/* SUB-ABA: FRETES URBANOS */}
+                <TabsContent value="urban">
+                  {classifiedOpenItems.freightsUrbanOpen.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Bike className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-semibold mb-2">Nenhum frete urbano aberto</p>
+                      <p className="text-sm text-muted-foreground">
+                        Fretes de Moto, Guincho e Mudança aparecerão aqui.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-[70vh] overflow-y-auto pr-2">
+                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                        {/* Fretes urbanos da tabela freights → FreightCard */}
+                        {classifiedOpenItems.freightsUrbanFromTable.map((freight) => (
+                          <FreightCard
+                            key={freight.id}
+                            freight={{
+                              id: freight.id,
+                              cargo_type: freight.cargo_type,
+                              weight: freight.weight || 0,
+                              distance_km: freight.distance_km,
+                              origin_address: freight.origin_address,
+                              destination_address: freight.destination_address,
+                              origin_city: freight.origin_city,
+                              origin_state: freight.origin_state,
+                              destination_city: freight.destination_city,
+                              destination_state: freight.destination_state,
+                              price: freight.price,
+                              status: freight.status,
+                              pickup_date: freight.pickup_date,
+                              delivery_date: freight.delivery_date,
+                              urgency: freight.urgency,
+                              minimum_antt_price: freight.minimum_antt_price || 0,
+                              required_trucks: freight.required_trucks || 1,
+                              accepted_trucks: freight.accepted_trucks || 0,
+                              service_type: freight.service_type,
+                              pricing_type: freight.pricing_type,
+                              price_per_km: freight.price_per_km,
+                            }}
+                            showProducerActions
+                            onAction={(action) => handleFreightAction(action as any, freight)}
+                          />
+                        ))}
+                        {/* Fretes urbanos de service_requests → UrbanFreightCard */}
+                        {classifiedOpenItems.freightsUrbanOpen
+                          .filter((uf) => !classifiedOpenItems.freightsUrbanFromTable.some((ft) => ft.id === uf.id))
+                          .map((urbanFreight) => (
+                          <UrbanFreightCard
+                            key={`urban-${urbanFreight.id}`}
+                            serviceRequest={{
+                              id: urbanFreight.id,
+                              service_type: urbanFreight.service_type,
+                              status: urbanFreight.status,
+                              problem_description: urbanFreight.problem_description,
+                              location_address: urbanFreight.location_address,
+                              city_name: urbanFreight.city_name,
+                              state: urbanFreight.state,
+                              additional_info: urbanFreight.additional_info,
+                              estimated_price: urbanFreight.estimated_price,
+                              final_price: urbanFreight.final_price,
+                              preferred_datetime: urbanFreight.preferred_datetime,
+                              created_at: urbanFreight.created_at,
+                              urgency: urbanFreight.urgency,
+                            }}
+                            onEdit={() => handleMotoFreightAction("edit", urbanFreight)}
+                            onCancel={() => handleMotoFreightAction("cancel", urbanFreight)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </TabsContent>
 
