@@ -13721,10 +13721,10 @@ export type Database = {
         Args: {
           p_debug?: boolean
           p_expiry_bucket?: string
-          p_role: string
+          p_role?: string
           p_sort?: string
           p_types?: string[]
-          p_user_id: string
+          p_user_id?: string
         }
         Returns: Json
       }
