@@ -735,13 +735,13 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
                 if (freight.producer_id) {
                   return (
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={handleAccept} className="w-full gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Button onClick={handleAccept} className="w-full min-w-0 gradient-primary hover:shadow-lg transition-all duration-300 text-sm" size="sm">
                         {showIcon && <AcceptIcon className="mr-1.5 h-4 w-4 flex-shrink-0" />}
-                        <span className="truncate">{acceptLabel}</span>
+                        <span className="min-w-0 truncate">{acceptLabel}</span>
                       </Button>
-                      <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
-                        <span className="truncate">Contraproposta</span>
+                      <Button onClick={() => setProposalModalOpen(true)} variant="outline" className="w-full min-w-0 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-sm" size="sm">
+                        <span className="min-w-0 truncate">Contraproposta</span>
                       </Button>
                     </div>
                   );
