@@ -194,36 +194,15 @@ export const useParticipantProfile = (
             .order('created_at', { ascending: false })
             .limit(6);
 
-          // ✅ Gerar signed URLs para fotos em buckets privados (driver-documents)
-          const photosWithSignedUrls: VehiclePhoto[] = await Promise.all(
-            (photosData || []).map(async (photo: any) => {
-              let finalUrl = photo.photo_url;
-              
-              // Se a URL é de um bucket privado, gerar signed URL
-              if (photo.photo_url?.includes('/storage/v1/object/public/driver-documents/')) {
-                // Extrair o path do arquivo
-                const pathMatch = photo.photo_url.match(/\/storage\/v1\/object\/public\/driver-documents\/(.+)/);
-                if (pathMatch && pathMatch[1]) {
-                  const { data: signedData } = await supabase.storage
-                    .from('driver-documents')
-                    .createSignedUrl(pathMatch[1], 3600); // 1 hora de validade
-                  
-                  if (signedData?.signedUrl) {
-                    finalUrl = signedData.signedUrl;
-                  }
-                }
-              }
-              
-              return {
-                id: photo.id,
-                photo_url: finalUrl,
-                photo_type: photo.photo_type,
-                created_at: photo.created_at
-              };
-            })
-          );
+          // ✅ Persistir paths/URLs estáveis e deixar o hook de imagem assinar sob demanda
+          const normalizedPhotos: VehiclePhoto[] = (photosData || []).map((photo: any) => ({
+            id: photo.id,
+            photo_url: photo.photo_url,
+            photo_type: photo.photo_type,
+            created_at: photo.created_at,
+          }));
 
-          setVehiclePhotos(photosWithSignedUrls);
+          setVehiclePhotos(normalizedPhotos);
         } else {
           setVehicle(null);
           setVehiclePhotos([]);

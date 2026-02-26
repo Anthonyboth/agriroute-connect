@@ -37,6 +37,7 @@ import { useParticipantProfile } from '@/hooks/useParticipantProfile';
 import { useVehiclePhotoViewer } from '@/hooks/useVehiclePhotoViewer';
 import { VehiclePhotoZoomModal } from './VehiclePhotoZoomModal';
 import { cn } from '@/lib/utils';
+import { StorageImage } from '@/components/ui/storage-image';
 
 interface ParticipantProfileModalProps {
   isOpen: boolean;
@@ -273,13 +274,11 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
                                 className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all group"
                                 onClick={() => photoViewer.openPhoto(vehiclePhotos, index)}
                               >
-                                <img 
-                                  src={photo.photo_url} 
+                                <StorageImage
+                                  src={photo.photo_url}
                                   alt={`${vehicle.type} - ${photo.photo_type}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.src = '/placeholder.svg';
-                                  }}
+                                  className="w-full h-full"
+                                  showLoader
                                 />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ExternalLink className="h-4 w-4 text-white" />
