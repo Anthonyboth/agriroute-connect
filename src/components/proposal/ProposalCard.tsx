@@ -32,10 +32,12 @@ interface Proposal {
   };
   freight?: {
     id: string;
-    origin_city: string;
-    origin_state: string;
-    destination_city: string;
-    destination_state: string;
+    origin_city: string | null;
+    origin_state: string | null;
+    origin_address?: string | null;
+    destination_city: string | null;
+    destination_state: string | null;
+    destination_address?: string | null;
     cargo_type: string;
     required_trucks: number;
     accepted_trucks: number;
@@ -167,7 +169,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               <span className="font-medium">Rota:</span>
             </div>
             <p className="text-sm text-muted-foreground break-words">
-              {freight.origin_city}/{freight.origin_state} → {freight.destination_city}/{freight.destination_state}
+              {([freight.origin_city, freight.origin_state].filter(Boolean).join('/') || freight.origin_address || 'Origem não informada')} → {([freight.destination_city, freight.destination_state].filter(Boolean).join('/') || freight.destination_address || 'Destino não informado')}
             </p>
           </div>
 

@@ -21,10 +21,12 @@ export interface MadeProposal {
   freight?: {
     id: string;
     cargo_type: string;
-    origin_city: string;
-    origin_state: string;
-    destination_city: string;
-    destination_state: string;
+    origin_city: string | null;
+    origin_state: string | null;
+    origin_address?: string | null;
+    destination_city: string | null;
+    destination_state: string | null;
+    destination_address?: string | null;
     price: number;
     distance_km: number;
     weight: number;
@@ -70,8 +72,8 @@ export function useMyMadeProposals({ userId, driverIds, enabled = true }: UseMyM
         .select(`
           *,
           freight:freights(
-            id, cargo_type, origin_city, origin_state,
-            destination_city, destination_state, price,
+            id, cargo_type, origin_city, origin_state, origin_address,
+            destination_city, destination_state, destination_address, price,
             distance_km, weight, status, pricing_type,
             required_trucks, accepted_trucks, service_type, producer_id
           ),
