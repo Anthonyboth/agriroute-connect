@@ -20,6 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
 
 interface VehiclePhotoZoomModalProps {
   isOpen: boolean;
@@ -49,15 +50,19 @@ export const VehiclePhotoZoomModal: React.FC<VehiclePhotoZoomModalProps> = ({
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasError, setHasError] = React.useState(false);
   const [zoom, setZoom] = React.useState(1);
+  const [hasRetried, setHasRetried] = React.useState(false);
+
+  const { url: resolvedPhotoUrl, isLoading: isSigningUrl, refresh } = useSignedImageUrl(photoUrl);
 
   // Reset states when photo changes
   useEffect(() => {
-    if (photoUrl) {
+    if (resolvedPhotoUrl) {
       setIsLoading(true);
       setHasError(false);
+      setHasRetried(false);
       setZoom(1);
     }
-  }, [photoUrl]);
+  }, [resolvedPhotoUrl]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -101,10 +106,10 @@ export const VehiclePhotoZoomModal: React.FC<VehiclePhotoZoomModalProps> = ({
   }, [isOpen]);
 
   const handleDownload = () => {
-    if (!photoUrl) return;
+    if (!resolvedPhotoUrl) return;
     
     const link = document.createElement('a');
-    link.href = photoUrl;
+    link.href = resolvedPhotoUrl;
     link.download = `veiculo-${currentIndex + 1}.jpg`;
     link.target = '_blank';
     document.body.appendChild(link);
@@ -208,7 +213,7 @@ export const VehiclePhotoZoomModal: React.FC<VehiclePhotoZoomModalProps> = ({
             transition: 'transform 0.2s ease-out'
           }}
         >
-          {isLoading && (
+          {(isLoading || isSigningUrl) && (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="h-8 w-8 text-white animate-spin" />
             </div>
@@ -230,14 +235,19 @@ export const VehiclePhotoZoomModal: React.FC<VehiclePhotoZoomModalProps> = ({
             </div>
           ) : (
             <img
-              src={photoUrl || ''}
+              src={resolvedPhotoUrl || ''}
               alt={photoTitle}
               className={cn(
                 "max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl",
-                isLoading && "opacity-0"
+                (isLoading || isSigningUrl) && "opacity-0"
               )}
               onLoad={() => setIsLoading(false)}
               onError={() => {
+                if (!hasRetried && resolvedPhotoUrl) {
+                  setHasRetried(true);
+                  void refresh();
+                  return;
+                }
                 setIsLoading(false);
                 setHasError(true);
               }}

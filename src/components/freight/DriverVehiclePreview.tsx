@@ -9,6 +9,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Camera, Truck } from 'lucide-react';
 import { useParticipantProfile } from '@/hooks/useParticipantProfile';
+import { StorageImage } from '@/components/ui/storage-image';
 
 interface DriverVehiclePreviewProps {
   driverId: string;
@@ -49,13 +50,11 @@ export const DriverVehiclePreview: React.FC<DriverVehiclePreviewProps> = ({ driv
             <div className="flex gap-2 overflow-x-auto">
               {photos.map((p) => (
                 <div key={p.id} className="h-14 w-14 rounded-md overflow-hidden border flex-shrink-0">
-                  <img
+                  <StorageImage
                     src={p.photo_url}
                     alt="Foto do veículo"
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
+                    className="h-full w-full"
+                    showLoader
                   />
                 </div>
               ))}
