@@ -674,8 +674,20 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                     })}
                   </p>
                 </div>
-                <Badge variant={detailsDialog.proposal.status === 'PENDING' ? 'default' : detailsDialog.proposal.status === 'ACCEPTED' ? 'default' : 'destructive'}>
-                  {detailsDialog.proposal.status === 'PENDING' ? 'Pendente' : detailsDialog.proposal.status === 'ACCEPTED' ? 'Aceita' : 'Rejeitada'}
+                <Badge variant={
+                  detailsDialog.proposal.status === 'PENDING' || detailsDialog.proposal.status === 'COUNTER_PROPOSED'
+                    ? 'default'
+                    : detailsDialog.proposal.status === 'ACCEPTED'
+                      ? 'default'
+                      : 'destructive'
+                }>
+                  {detailsDialog.proposal.status === 'PENDING'
+                    ? 'Pendente'
+                    : detailsDialog.proposal.status === 'COUNTER_PROPOSED'
+                      ? 'Contraproposta'
+                      : detailsDialog.proposal.status === 'ACCEPTED'
+                        ? 'Aceita'
+                        : 'Rejeitada'}
                 </Badge>
               </div>
 
