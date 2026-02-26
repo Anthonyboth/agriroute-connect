@@ -47,6 +47,7 @@ import {
   type ScorecardSortKey,
 } from './CarrierPhase3';
 import { ProviderEnterprise } from './ProviderEnterprise';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -478,6 +479,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
+  const isMobileViewport = useIsMobile();
   const {
     kpis, charts, tables,
     isLoading, isError, error: dashboardError,
@@ -2378,13 +2380,20 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             <OperationalGrid items={prestadorOp} isLoading={isLoading} />
           </div>
 
-          <ProviderEnterprise
-            kpis={kpis}
-            charts={charts}
-            tables={tables}
-            isLoading={isLoading}
-            dateRange={dateRange}
-          />
+          {isMobileViewport ? (
+            <ProviderEnterprise
+              kpis={kpis}
+              charts={charts}
+              tables={tables}
+              isLoading={isLoading}
+              dateRange={dateRange}
+            />
+          ) : (
+            <div className="space-y-3">
+              <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Visão executiva no desktop" />
+              <ReportCharts charts={prestadorCharts} isLoading={isLoading} columns={2} />
+            </div>
+          )}
         </>
       )}
 
