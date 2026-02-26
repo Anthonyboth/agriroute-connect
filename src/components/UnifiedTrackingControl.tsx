@@ -17,6 +17,7 @@ export const UnifiedTrackingControl = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [hasUserGesture, setHasUserGesture] = useState(false);
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
 
@@ -39,6 +40,14 @@ export const UnifiedTrackingControl = () => {
       document.removeEventListener('touchstart', handleUserGesture);
     };
   }, []);
+
+  // Auto-abrir modal para motorista ao montar
+  useEffect(() => {
+    if (profile && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role) && !hasAutoOpened) {
+      setIsModalOpen(true);
+      setHasAutoOpened(true);
+    }
+  }, [profile, hasAutoOpened]);
 
   // Auto-tracking quando houver frete ativo
   useEffect(() => {
@@ -346,6 +355,14 @@ export const UnifiedTrackingControl = () => {
                   Iniciar Rastreamento
                 </>
               )}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Fechar
             </Button>
           </div>
         </DialogContent>
