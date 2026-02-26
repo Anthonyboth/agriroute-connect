@@ -269,6 +269,7 @@ if (typeof window !== 'undefined') {
 // Componente para setup de monitoramento de erros
 import { useErrorMonitoring } from '@/hooks/useErrorMonitoring';
 import { useSecurityAntiError } from '@/hooks/useSecurityAntiError';
+import { usePanelErrorTelegramReporter } from '@/hooks/usePanelErrorTelegramReporter';
 
 const ErrorMonitoringSetup = () => {
   useErrorMonitoring();
@@ -277,6 +278,11 @@ const ErrorMonitoringSetup = () => {
 
 const SecurityAntiErrorSetup = () => {
   useSecurityAntiError();
+  return null;
+};
+
+const PanelErrorTelegramSetup = () => {
+  usePanelErrorTelegramReporter();
   return null;
 };
 
@@ -935,6 +941,7 @@ const App = () => {
                       <NativeSplashHandler />
                       <ErrorMonitoringSetup />
                       <SecurityAntiErrorSetup />
+                      <PanelErrorTelegramSetup />
                       <ZipCodeSyncOnReconnect />
                       <FloatingSupportButton />
                       <SilentCityBootstrap />
