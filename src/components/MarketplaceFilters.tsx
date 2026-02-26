@@ -97,14 +97,14 @@ export const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
   }, [showRpmSort, showDistSort]);
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      <div className="ml-auto">
+    <div className="flex w-full md:w-auto items-center">
+      <div className="w-full">
         <Select
           value={filters.sort}
           onValueChange={(v) => onChange({ ...filters, sort: v as SortOption })}
         >
-          <SelectTrigger className="h-8 w-[200px] text-xs">
-            <ArrowUpDown className="h-3 w-3 mr-1" />
+          <SelectTrigger className="h-8 w-full md:w-[220px] lg:w-[240px] text-xs">
+            <ArrowUpDown className="h-3 w-3 mr-1 flex-shrink-0" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
