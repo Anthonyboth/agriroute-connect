@@ -25,7 +25,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, ClipboardList } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, ClipboardList, Inbox, Send } from 'lucide-react';
+import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
@@ -2617,6 +2618,25 @@ const DriverDashboard = () => {
 
           <TabsContent value="my-trips" className="space-y-6">
             {activeTab === 'my-trips' && (<>
+            <Tabs defaultValue="made" className="w-full">
+              <div className="overflow-x-auto -mx-1 px-1 mb-4">
+                <TabsList className="inline-flex w-max min-w-full gap-1">
+                  <TabsTrigger value="received" className="whitespace-nowrap text-xs sm:text-sm px-3 py-2">
+                    <Inbox className="h-3.5 w-3.5 mr-1.5" />
+                    <span>Propostas Recebidas</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="made" className="whitespace-nowrap text-xs sm:text-sm px-3 py-2">
+                    <Send className="h-3.5 w-3.5 mr-1.5" />
+                    <span>Propostas Feitas</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="received">
+                <FreightProposalsManager
+                  producerId={profile?.id || ""}
+                />
+              </TabsContent>
+              <TabsContent value="made" className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
@@ -2859,6 +2879,8 @@ const DriverDashboard = () => {
                 </div>
               </div>
             )}
+              </TabsContent>
+            </Tabs>
             </>)}
           </TabsContent>
 

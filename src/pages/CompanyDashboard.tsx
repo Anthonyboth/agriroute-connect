@@ -61,7 +61,7 @@ import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
 import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
-import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
+import { UnifiedProposalsWrapper } from '@/components/proposal/UnifiedProposalsWrapper';
 import { UserCityManager } from '@/components/UserCityManager';
 import { CompanyHistoryTab } from '@/pages/company/CompanyHistoryTab';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
@@ -1047,7 +1047,10 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="proposals" className="mt-6">
-            <CompanyProposalsManager />
+            <UnifiedProposalsWrapper
+              userId={profile?.id || ""}
+              companyDriverIds={drivers?.filter(d => d.status === 'ACTIVE').map(d => d.driver_profile_id) || []}
+            />
           </TabsContent>
 
 

@@ -64,7 +64,7 @@ import { ProducerHistoryTab } from "@/pages/producer/ProducerHistoryTab";
 import { showErrorToast } from "@/lib/error-handler";
 import { SystemAnnouncementsBoard } from "@/components/SystemAnnouncementsBoard";
 import { AutoRatingModal } from "@/components/AutoRatingModal";
-import { FreightProposalsManager } from "@/components/FreightProposalsManager";
+import { UnifiedProposalsWrapper } from "@/components/proposal/UnifiedProposalsWrapper";
 import { UnifiedChatHub } from "@/components/UnifiedChatHub";
 import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
 import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
@@ -2051,8 +2051,8 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="proposals" className="space-y-4">
-            <FreightProposalsManager
-              producerId={profile?.id || ""}
+            <UnifiedProposalsWrapper
+              userId={profile?.id || ""}
               onProposalAccepted={() => {
                 fetchFreights();
                 fetchProposals();
