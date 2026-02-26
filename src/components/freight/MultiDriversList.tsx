@@ -160,7 +160,7 @@ const DriverCard: React.FC<DriverCardProps> = ({ driver, index, freightId, onOpe
           </Button>
 
           {/* Preview do veículo com fotos */}
-          <DriverVehiclePreview driverId={driver.driverId} />
+          <DriverVehiclePreview driverId={driver.driverId} freightId={freightId} />
         </div>
       </AccordionContent>
     </AccordionItem>

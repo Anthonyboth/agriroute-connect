@@ -783,7 +783,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             />
 
             {/* ✅ Exibir fotos do veículo para o produtor */}
-            {isFreightProducer && <DriverVehiclePreview driverId={freight.driver.id} />}
+            {isFreightProducer && <DriverVehiclePreview driverId={freight.driver.id} freightId={freightId} />}
           </div>
         ) : participants.drivers.length > 0 && (isFreightProducer || (isTransportadora && hasActiveCompanyAssignment)) ? (
           // ✅ Regra: Lista de motoristas atribuídos visível para:
@@ -848,7 +848,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                     )}
 
                     {/* Evitar exposição desnecessária: fotos do veículo apenas para o produtor */}
-                    {isFreightProducer && <DriverVehiclePreview driverId={d.profileId} />}
+                    {isFreightProducer && <DriverVehiclePreview driverId={d.profileId} freightId={freightId} />}
                   </div>
                 );
               })}
