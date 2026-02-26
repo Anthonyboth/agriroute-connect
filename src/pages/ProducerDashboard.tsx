@@ -1747,14 +1747,6 @@ const ProducerDashboard = () => {
               <h3 className="text-lg font-semibold">
                 Serviços Abertos ({classifiedOpenItems.counts.services})
               </h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setServicesModalOpen(true)}
-              >
-                <Wrench className="h-4 w-4 mr-2" />
-                Solicitar Serviço
-              </Button>
             </div>
 
             {classifiedOpenItems.servicesOpen.length === 0 ? (
