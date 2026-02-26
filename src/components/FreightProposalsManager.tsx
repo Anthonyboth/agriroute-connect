@@ -297,32 +297,28 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
   const canAcceptProposal = (proposal: Proposal) => {
     const freight = proposal.freight;
     if (!freight) return false;
-    const available = freight.required_trucks - freight.accepted_trucks;
-    return available > 0 && freight.status !== 'CANCELLED';
-  };
 
-  // ✅ Propostas para fretes lotados (accepted_trucks >= required_trucks) são filtradas
-  // das abas ativas (PENDING/COUNTER_PROPOSED) pois não podem mais ser aceitas
-  const isFreightFull = (proposal: Proposal) => {
-    const freight = proposal.freight;
-    if (!freight) return true;
-    return freight.accepted_trucks >= freight.required_trucks;
+    const required = Number(freight.required_trucks ?? 0);
+    const accepted = Number(freight.accepted_trucks ?? 0);
+    const available = required - accepted;
+    const freightStatus = (freight.status || '').toUpperCase();
+
+    // Só propostas de fretes OPEN e com vagas podem ser aceitas/ficar nas abas ativas
+    return freightStatus === 'OPEN' && available > 0;
   };
 
   const filterProposalsByStatus = (status: string) => {
     const filtered = filteredProposals;
-    if (status === 'pending') return filtered.filter(p => p.status === 'PENDING' && !isFreightFull(p));
-    if (status === 'counter_proposed') return filtered.filter(p => p.status === 'COUNTER_PROPOSED' && !isFreightFull(p));
+    if (status === 'pending') return filtered.filter(p => p.status === 'PENDING' && canAcceptProposal(p));
+    if (status === 'counter_proposed') return filtered.filter(p => p.status === 'COUNTER_PROPOSED' && canAcceptProposal(p));
     if (status === 'accepted') return filtered.filter(p => p.status === 'ACCEPTED');
     if (status === 'rejected') return filtered.filter(p => p.status === 'REJECTED');
     return filtered;
   };
 
-  // Removed renderProposalCard function - now using ProposalCard component
-
-  // ✅ Contadores excluem propostas de fretes lotados nas abas ativas
-  const pendingCount = proposals.filter(p => p.status === 'PENDING' && !isFreightFull(p)).length;
-  const counterProposedCount = proposals.filter(p => p.status === 'COUNTER_PROPOSED' && !isFreightFull(p)).length;
+  // Contadores seguem exatamente a mesma regra dos cards ativos
+  const pendingCount = proposals.filter(p => p.status === 'PENDING' && canAcceptProposal(p)).length;
+  const counterProposedCount = proposals.filter(p => p.status === 'COUNTER_PROPOSED' && canAcceptProposal(p)).length;
   const acceptedCount = proposals.filter(p => p.status === 'ACCEPTED').length;
   const rejectedCount = proposals.filter(p => p.status === 'REJECTED').length;
 
@@ -372,7 +368,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
             </div>
 
             {/* Filtros Avançados */}
-            {activeTab === 'pending' && proposals.filter(p => p.status === 'PENDING').length > 0 && (
+            {activeTab === 'pending' && pendingCount > 0 && (
               <Card className="mb-4 border border-border/60 bg-card/95">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
