@@ -274,7 +274,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
           {/* Header invisível para acessibilidade */}
           <DialogHeader className="sr-only">
             <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
@@ -299,7 +299,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Conteúdo principal com scroll - ScrollArea para compatibilidade iOS */}
           <ScrollArea className="flex-1 min-h-0">
-            <div className="px-4 sm:px-6 pb-6">
+            <div className="px-4 sm:px-6 pb-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
               {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                 {/* Coluna da Esquerda - 70% (lg:col-span-2) */}

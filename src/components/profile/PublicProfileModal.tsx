@@ -176,7 +176,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -187,7 +187,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6">
+          <ScrollArea className="flex-1 min-h-0 px-6">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
