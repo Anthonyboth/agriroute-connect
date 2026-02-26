@@ -186,20 +186,80 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
           />
         )}
 
-        {/* Informações da rota */}
-        <div className="space-y-1 text-sm">
-          <p className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-green-600" />
-            <span className="font-medium">Origem:</span> {originLabel}
-          </p>
-          <p className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-red-600" />
-            <span className="font-medium">Destino:</span> {destinationLabel}
-          </p>
-          <p className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            <span>{formatKm(distanceKm)}</span>
-          </p>
+        {/* Informações da rota — endereço completo */}
+        <div className="space-y-0">
+          {/* 📍 COLETA */}
+          <div className="p-2.5 rounded-t-lg bg-primary/5 border border-primary/20">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card shrink-0" />
+              <p className="text-[11px] font-bold text-primary uppercase tracking-wider">📍 Coleta</p>
+            </div>
+            <p className="text-sm font-semibold text-foreground ml-5">{originLabel}</p>
+            {(freight?.origin_neighborhood || freight?.origin_street || freight?.origin_number || freight?.origin_complement || freight?.origin_zip_code || freight?.origin_address) && (
+              <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                {freight.origin_neighborhood && (
+                  <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {freight.origin_neighborhood}</p>
+                )}
+                {(freight.origin_street || freight.origin_number) && (
+                  <p>
+                    <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                    {[freight.origin_street, freight.origin_number && `nº ${freight.origin_number}`].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {freight.origin_complement && (
+                  <p><span className="font-medium text-foreground/70">Complemento:</span> {freight.origin_complement}</p>
+                )}
+                {freight.origin_zip_code && (
+                  <p><span className="font-medium text-foreground/70">CEP:</span> {freight.origin_zip_code}</p>
+                )}
+                {!freight.origin_neighborhood && !freight.origin_street && freight.origin_address && (
+                  <p>{freight.origin_address}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="flex justify-center -my-px">
+            <div className="w-0.5 h-3 bg-gradient-to-b from-primary/40 to-accent/40" />
+          </div>
+
+          {/* 🏁 ENTREGA */}
+          <div className="p-2.5 rounded-b-lg bg-accent/5 border border-accent/20">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-3 w-3 rounded-full bg-accent shrink-0" />
+              <p className="text-[11px] font-bold text-accent uppercase tracking-wider">🏁 Entrega</p>
+            </div>
+            <p className="text-sm font-semibold text-foreground ml-5">{destinationLabel}</p>
+            {(freight?.destination_neighborhood || freight?.destination_street || freight?.destination_number || freight?.destination_complement || freight?.destination_zip_code || freight?.destination_address) && (
+              <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                {freight.destination_neighborhood && (
+                  <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {freight.destination_neighborhood}</p>
+                )}
+                {(freight.destination_street || freight.destination_number) && (
+                  <p>
+                    <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                    {[freight.destination_street, freight.destination_number && `nº ${freight.destination_number}`].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {freight.destination_complement && (
+                  <p><span className="font-medium text-foreground/70">Complemento:</span> {freight.destination_complement}</p>
+                )}
+                {freight.destination_zip_code && (
+                  <p><span className="font-medium text-foreground/70">CEP:</span> {freight.destination_zip_code}</p>
+                )}
+                {!freight.destination_neighborhood && !freight.destination_street && freight.destination_address && (
+                  <p>{freight.destination_address}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Distância */}
+        <div className="flex items-center gap-2 text-sm px-1">
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <span>{formatKm(distanceKm)}</span>
         </div>
 
         {/* Informação de múltiplas carretas */}
