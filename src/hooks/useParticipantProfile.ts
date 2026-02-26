@@ -106,47 +106,22 @@ export const useParticipantProfile = (
         return;
       }
 
-      // Buscar contagem de fretes completados e rating real
+      // Buscar contagem de fretes via RPC server-side (bypassa RLS e limites de 1000 rows)
       let completedFreights = 0;
       let realRating = resolvedProfile.rating || 0;
       let realTotalRatings = resolvedProfile.total_ratings || 0;
 
-      if (userType === 'driver') {
-        if (typeof participantSnapshot?.completed_freights === 'number') {
-          completedFreights = participantSnapshot.completed_freights;
-        } else {
-          // Fallback sem contexto de frete: incluir concluídos em fretes e serviços
-          const [directResult, assignmentResult, serviceResult] = await Promise.all([
-            supabase
-              .from('freights')
-              .select('*', { count: 'exact', head: true })
-              .eq('driver_id', userId)
-              .in('status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']),
-            supabase
-              .from('freight_assignments')
-              .select('*', { count: 'exact', head: true })
-              .eq('driver_id', userId)
-              .in('status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']),
-            supabase
-              .from('service_requests')
-              .select('*', { count: 'exact', head: true })
-              .eq('provider_id', userId)
-              .in('status', ['COMPLETED', 'completed']),
-          ]);
-
-          completedFreights =
-            (directResult.count || 0) +
-            (assignmentResult.count || 0) +
-            (serviceResult.count || 0);
-        }
+      if (typeof participantSnapshot?.completed_freights === 'number') {
+        completedFreights = participantSnapshot.completed_freights;
       } else {
-        // Para produtores, "Fretes Contratados" = todos os fretes que tiveram motorista aceito
-        const { count } = await supabase
-          .from('freights')
-          .select('*', { count: 'exact', head: true })
-          .eq('producer_id', userId)
-          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']);
-        completedFreights = count || 0;
+        const { data: countData, error: countError } = await supabase.rpc(
+          'get_participant_freight_count',
+          { p_user_id: userId, p_user_type: userType }
+        );
+        if (!countError && typeof countData === 'number') {
+          completedFreights = countData;
+        }
+        console.log('[useParticipantProfile] Freight count via RPC:', { userId, userType, count: completedFreights, error: countError?.message });
       }
 
       // Calcular rating real a partir de freight_ratings (fonte de verdade)
