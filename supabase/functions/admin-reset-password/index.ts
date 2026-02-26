@@ -17,17 +17,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+    // Service role client for admin operations (password reset, audit logs)
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
     // Verificar se o requisitante é admin
     const authHeader = req.headers.get('Authorization');
@@ -42,16 +39,15 @@ serve(async (req) => {
       throw new Error('Não autorizado');
     }
 
-    // 🔒 SEGURANÇA: Verificar se usuário tem role de ADMIN (não moderador!)
-    // Correção: Apenas admins podem resetar senhas para evitar escalação de privilégios
-    const { data: adminRole, error: roleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin') // ✅ CORRIGIDO: Apenas 'admin', não 'moderator'
-      .maybeSingle();
+    // 🔒 SEGURANÇA: Verificar se usuário está na whitelist de admins (admin_users)
+    // Usa cliente com token do usuário para que auth.uid() funcione no RPC
+    const supabaseUserClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: isAdmin, error: adminCheckError } = await supabaseUserClient
+      .rpc('is_allowlisted_admin');
 
-    if (!adminRole) {
+    if (adminCheckError || !isAdmin) {
       console.error('[admin-reset-password] Unauthorized access attempt by user:', user.id);
       
       // Send Telegram alert about unauthorized attempt
