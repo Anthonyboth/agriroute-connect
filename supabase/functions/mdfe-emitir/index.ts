@@ -49,99 +49,11 @@ serve(async (req) => {
     console.log(`[MDFe Emitir] Iniciando emissão para frete ${freight_id}, modo: ${modo}`);
 
     // ==========================================
-    // VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO)
-    // MDF-e: sempre R$ 10,00
+    // COBRANÇA PIX DESATIVADA TEMPORARIAMENTE
+    // Feature flag: enable_emission_billing = false
+    // Reativar quando Pagar.me estiver pronto para produção
     // ==========================================
-    const taxaCentavos = 1000;
-    const documentRef = `MDFE-${freight_id.substring(0, 8)}-${Date.now()}`;
-
-    console.log(`[MDFe Emitir] Verificando pagamento - Taxa: ${taxaCentavos} centavos`);
-
-    // Verificar pagamento na tabela fiscal_wallet_transactions
-    const { data: paidTransactions, error: txError } = await serviceClient
-      .from('fiscal_wallet_transactions')
-      .select('id, metadata')
-      .eq('reference_type', 'pix_payment')
-      .eq('transaction_type', 'pix_paid')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (txError) {
-      console.error('[MDFe Emitir] Erro ao buscar transações:', txError);
-    }
-
-    let pagamentoValido = false;
-    let transacaoUsada: string | null = null;
-    let issuerId: string | null = null;
-
-    // Buscar o issuer_id associado ao frete para validação
-    const { data: freight } = await supabaseClient
-      .from('freights')
-      .select('company_id, producer_id')
-      .eq('id', freight_id)
-      .single();
-
-    if (paidTransactions?.length) {
-      for (const tx of paidTransactions) {
-        const meta = tx.metadata as Record<string, unknown>;
-        if (
-          meta?.document_type === 'mdfe' &&
-          !meta?.used_for_emission
-        ) {
-          pagamentoValido = true;
-          transacaoUsada = tx.id;
-          issuerId = meta?.issuer_id as string;
-          break;
-        }
-      }
-    }
-
-    if (!pagamentoValido) {
-      console.log(`[MDFe Emitir] Pagamento não encontrado - retornando 402`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          code: 'PAYMENT_REQUIRED',
-          message: 'Pagamento via PIX obrigatório antes de emitir.',
-          amount_centavos: taxaCentavos,
-          document_type: 'mdfe',
-          issuer_id: freight?.company_id || freight_id,
-          document_ref: documentRef,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 402,
-        }
-      );
-    }
-
-    console.log(`[MDFe Emitir] Pagamento válido encontrado: ${transacaoUsada}`);
-
-    // Marcar transação como usada
-    if (transacaoUsada) {
-      const { data: currentTx } = await serviceClient
-        .from('fiscal_wallet_transactions')
-        .select('metadata')
-        .eq('id', transacaoUsada)
-        .single();
-
-      if (currentTx) {
-        await serviceClient
-          .from('fiscal_wallet_transactions')
-          .update({
-            metadata: {
-              ...((currentTx.metadata as Record<string, unknown>) || {}),
-              used_for_emission: true,
-              used_at: new Date().toISOString(),
-              freight_id: freight_id,
-            },
-          })
-          .eq('id', transacaoUsada);
-      }
-    }
-    // ==========================================
-    // FIM DA VERIFICAÇÃO DE PAGAMENTO
-    // ==========================================
+    console.log(`[MDFe Emitir] Cobrança PIX desativada - emissão gratuita para testes`);
 
     // Get user profile
     const { data: profile, error: profileError } = await supabaseClient
@@ -154,14 +66,12 @@ serve(async (req) => {
       throw new Error('Perfil não encontrado');
     }
 
-    // Get freight data
+    // Get freight data - use drivers_assigned instead of driver_id
     const { data: freight, error: freightError } = await supabaseClient
       .from('freights')
       .select(`
         *,
-        producer:producer_id(id, full_name, document),
-        driver:driver_id(id, full_name, document),
-        company:company_id(id)
+        producer:producer_id(id, full_name, document)
       `)
       .eq('id', freight_id)
       .single();
@@ -170,9 +80,24 @@ serve(async (req) => {
       throw new Error('Frete não encontrado');
     }
 
+    // Resolve driver from drivers_assigned array or driver_id fallback
+    const assignedDriverId = freight.drivers_assigned?.length
+      ? freight.drivers_assigned[0]
+      : freight.driver_id || null;
+
+    let driverData: { id: string; full_name: string; document: string } | null = null;
+    if (assignedDriverId) {
+      const { data: driverProfile } = await supabaseClient
+        .from('profiles')
+        .select('id, full_name, document')
+        .eq('id', assignedDriverId)
+        .single();
+      driverData = driverProfile;
+    }
+
     // Verify user permission
     const isProducer = freight.producer_id === profile.id;
-    const isDriver = freight.driver_id === profile.id;
+    const isDriver = assignedDriverId === profile.id;
     const isCompany = freight.company_id && await checkCompanyOwnership(supabaseClient, profile.id, freight.company_id);
 
     if (!isProducer && !isDriver && !isCompany) {
@@ -212,11 +137,12 @@ serve(async (req) => {
       throw new Error('Configuração de emissão incompleta. Configure CNPJ, IE e RNTRC antes de emitir.');
     }
 
-    // Get vehicle data
+    // Get vehicle data - try assigned driver first, then current user
+    const driverForVehicle = assignedDriverId || profile.id;
     const { data: vehicle } = await supabaseClient
       .from('vehicles')
       .select('*')
-      .eq('driver_id', freight.driver_id || profile.id)
+      .eq('driver_id', driverForVehicle)
       .limit(1)
       .single();
 
@@ -272,8 +198,8 @@ serve(async (req) => {
         tipoCarroceria: 'FECHADA',
       },
       condutor: {
-        cpf: freight.driver?.document || profile.document || '',
-        nome: freight.driver?.full_name || profile.full_name || '',
+        cpf: driverData?.document || profile.document || '',
+        nome: driverData?.full_name || profile.full_name || '',
       },
       documentos: documentos,
       carga: {
@@ -326,7 +252,7 @@ serve(async (req) => {
     // Insert condutor
     await supabaseClient.from('mdfe_condutores').insert({
       mdfe_id: mdfe.id,
-      driver_id: freight.driver_id || profile.id,
+      driver_id: assignedDriverId || profile.id,
       cpf: mdfeData.condutor.cpf,
       nome: mdfeData.condutor.nome,
     });

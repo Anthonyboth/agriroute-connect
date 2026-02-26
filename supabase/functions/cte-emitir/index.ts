@@ -54,91 +54,11 @@ serve(async (req) => {
     console.log(`[CT-e Emitir] Iniciando emissão para frete ${frete_id}`);
 
     // ==========================================
-    // VERIFICAÇÃO DE PAGAMENTO PIX (OBRIGATÓRIO)
-    // CT-e: sempre R$ 10,00
+    // COBRANÇA PIX DESATIVADA TEMPORARIAMENTE
+    // Feature flag: enable_emission_billing = false
+    // Reativar quando Pagar.me estiver pronto para produção
     // ==========================================
-    const taxaCentavos = 1000;
-    const documentRef = `CTE-${frete_id.substring(0, 8)}-${Date.now()}`;
-
-    console.log(`[CT-e Emitir] Verificando pagamento - Taxa: ${taxaCentavos} centavos`);
-
-    // Verificar pagamento na tabela fiscal_wallet_transactions
-    const { data: paidTransactions, error: txError } = await supabaseClient
-      .from('fiscal_wallet_transactions')
-      .select('id, metadata')
-      .eq('reference_type', 'pix_payment')
-      .eq('transaction_type', 'pix_paid')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (txError) {
-      console.error('[CT-e Emitir] Erro ao buscar transações:', txError);
-    }
-
-    let pagamentoValido = false;
-    let transacaoUsada: string | null = null;
-
-    if (paidTransactions?.length) {
-      for (const tx of paidTransactions) {
-        const meta = tx.metadata as Record<string, unknown>;
-        if (
-          meta?.issuer_id === empresa_id &&
-          meta?.document_type === 'cte' &&
-          !meta?.used_for_emission
-        ) {
-          pagamentoValido = true;
-          transacaoUsada = tx.id;
-          break;
-        }
-      }
-    }
-
-    if (!pagamentoValido) {
-      console.log(`[CT-e Emitir] Pagamento não encontrado - retornando 402`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          code: 'PAYMENT_REQUIRED',
-          message: 'Pagamento via PIX obrigatório antes de emitir.',
-          amount_centavos: taxaCentavos,
-          document_type: 'cte',
-          issuer_id: empresa_id,
-          document_ref: documentRef,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 402,
-        }
-      );
-    }
-
-    console.log(`[CT-e Emitir] Pagamento válido encontrado: ${transacaoUsada}`);
-
-    // Marcar transação como usada
-    if (transacaoUsada) {
-      const { data: currentTx } = await supabaseClient
-        .from('fiscal_wallet_transactions')
-        .select('metadata')
-        .eq('id', transacaoUsada)
-        .single();
-
-      if (currentTx) {
-        await supabaseClient
-          .from('fiscal_wallet_transactions')
-          .update({
-            metadata: {
-              ...((currentTx.metadata as Record<string, unknown>) || {}),
-              used_for_emission: true,
-              used_at: new Date().toISOString(),
-              freight_id: frete_id,
-            },
-          })
-          .eq('id', transacaoUsada);
-      }
-    }
-    // ==========================================
-    // FIM DA VERIFICAÇÃO DE PAGAMENTO
-    // ==========================================
+    console.log(`[CT-e Emitir] Cobrança PIX desativada - emissão gratuita para testes`);
 
     // Verificar permissão do usuário
     const { data: profile } = await userClient
