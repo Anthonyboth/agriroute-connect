@@ -121,7 +121,7 @@ const HeroFinanceBlock: React.FC<HeroFinanceProps> = ({ label, value, subtitle, 
 interface OpKPI { label: string; value: string; icon: React.ElementType; highlight?: boolean }
 
 const OperationalGrid: React.FC<{ items: OpKPI[]; isLoading: boolean }> = ({ items, isLoading }) => (
-  <div className={cn('grid grid-cols-2 sm:grid-cols-3', BI.gridGap)}>
+  <div className={cn('grid grid-cols-2 sm:grid-cols-4', BI.gridGap)}>
     {isLoading
       ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[68px] rounded-2xl" />)
       : items.map((item, i) => {
@@ -969,6 +969,13 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
     const avgTempo           = Number(kpis.avg_service_time_hours) || 0;
     const avaliacao          = Number(kpis.avaliacao_media)        || 0;
     const pendentes          = Number(kpis.servicos_pendentes)     || 0;
+    // Derive unique cities from extrato
+    const cidadesSet = new Set<string>();
+    const extrato = tables?.extrato_servicos || [];
+    for (const r of extrato) {
+      const c = r.cidade || r.city;
+      if (c && c !== '—') cidadesSet.add(c);
+    }
     return [
       { label: 'Concluídos',   value: fmtNum(servicosConcluidos),                    icon: CheckCircle, highlight: true },
       { label: 'Pendentes',    value: fmtNum(pendentes),                              icon: Clock },
@@ -976,8 +983,10 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       { label: 'Conclusão',    value: `${taxaConclusao.toFixed(1)}%`,                 icon: Percent,     highlight: true },
       { label: 'Cancelamento', value: `${taxaCancel.toFixed(1)}%`,                   icon: XCircle },
       { label: 'Avaliação',    value: avaliacao > 0 ? fmtNum(avaliacao, 1) : '—',    icon: Star },
+      { label: 'Cidades',      value: fmtNum(cidadesSet.size),                        icon: MapPin },
+      { label: 'Ticket médio', value: formatBRL(Number(kpis.ticket_medio) || 0),      icon: DollarSign },
     ] satisfies OpKPI[];
-  }, [kpis, isPrestador]);
+  }, [kpis, isPrestador, tables]);
 
   // ── Gráficos PRESTADOR ────────────────────────────────────────────────────
   const prestadorCharts: ChartConfig[] = useMemo(() => {

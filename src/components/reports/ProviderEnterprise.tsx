@@ -13,9 +13,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   DollarSign, BarChart3, Activity, Star, Timer, Search, X,
   Filter, AlertTriangle, TrendingUp, CheckCircle, Layers, PieChart,
-  MapPin, Percent, Eye,
+  MapPin, Percent, Eye, Zap, XCircle, Clock, ArrowUpRight,
 } from 'lucide-react';
-import { format, isValid } from 'date-fns';
+import { format, isValid, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { BI } from './reports-enterprise-theme';
@@ -55,6 +55,11 @@ export type ProviderSlicers = {
   status: string[];
   includeOutros: boolean;
   serviceSearch: string;
+  cityQuery: string;
+  minValue?: number;
+  maxValue?: number;
+  minRating?: number;
+  maxRating?: number;
 };
 
 export const EMPTY_PROVIDER_SLICERS: ProviderSlicers = {
@@ -63,6 +68,7 @@ export const EMPTY_PROVIDER_SLICERS: ProviderSlicers = {
   status: [],
   includeOutros: false,
   serviceSearch: '',
+  cityQuery: '',
 };
 
 interface ProviderRow {
@@ -82,6 +88,11 @@ interface ProviderRow {
 // ═══════════════════════════════════════════════════════════════════════════════
 // StatusBadge
 // ═══════════════════════════════════════════════════════════════════════════════
+const STATUS_LABELS: Record<string, string> = {
+  DELIVERED: 'Concluído', COMPLETED: 'Concluído', CANCELLED: 'Cancelado',
+  IN_PROGRESS: 'Em Andamento', ACCEPTED: 'Aceito', OPEN: 'Aberto', PENDING: 'Pendente',
+};
+
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const s = String(status).toUpperCase();
   const map: Record<string, { label: string; cls: string }> = {
@@ -156,6 +167,41 @@ const SectionTitle: React.FC<{ icon: React.ElementType; title: string; subtitle?
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// AlertCard
+// ═══════════════════════════════════════════════════════════════════════════════
+type AlertSeverity = 'good' | 'warn' | 'bad';
+interface AlertCardData {
+  title: string;
+  value: string;
+  hint?: string;
+  severity: AlertSeverity;
+  action?: () => void;
+}
+
+const AlertCard: React.FC<AlertCardData> = ({ title, value, hint, severity, action }) => (
+  <button
+    onClick={action}
+    type="button"
+    className={cn(
+      BI.radius, 'p-3 text-left border transition w-full',
+      severity === 'good' && 'bg-[hsl(142,71%,45%)]/5 border-[hsl(142,71%,45%)]/20 hover:bg-[hsl(142,71%,45%)]/10',
+      severity === 'warn' && 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10',
+      severity === 'bad' && 'bg-destructive/5 border-destructive/20 hover:bg-destructive/10',
+      action ? 'cursor-pointer' : 'cursor-default',
+    )}
+  >
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{title}</p>
+    <p className={cn(
+      'text-sm font-extrabold tabular-nums',
+      severity === 'good' && BI.good,
+      severity === 'warn' && BI.warn,
+      severity === 'bad' && BI.bad,
+    )}>{value}</p>
+    {hint && <p className={cn(BI.sub, 'mt-0.5')}>{hint}</p>}
+  </button>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Main export
 // ═══════════════════════════════════════════════════════════════════════════════
 interface ProviderEnterpriseProps {
@@ -190,7 +236,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
     } else if (d.kind === 'status') {
       setSlicers(p => ({ ...p, status: [d.value] }));
     } else if (d.kind === 'city') {
-      // city drilldown — not a slicer, but we can use serviceSearch as a proxy
+      setSlicers(p => ({ ...p, cityQuery: d.value }));
     }
   };
 
@@ -227,6 +273,9 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
     const serviceMap = new Map<string, { id: string; label: string; count: number; order: number }>();
     const statusSet = new Set<string>();
     const channelSet = new Set<ServiceChannel>();
+    const citySet = new Set<string>();
+    let valMin = Infinity, valMax = -Infinity;
+    let ratMin = Infinity, ratMax = -Infinity;
 
     for (const r of providerRows) {
       if (r.__baseServiceId) {
@@ -239,6 +288,9 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       }
       if (r.__status) statusSet.add(r.__status);
       for (const ch of r.__channels) channelSet.add(ch);
+      if (r.__cidade && r.__cidade !== '—') citySet.add(r.__cidade);
+      if (r.__valor > 0) { valMin = Math.min(valMin, r.__valor); valMax = Math.max(valMax, r.__valor); }
+      if (r.__avaliacao != null) { ratMin = Math.min(ratMin, r.__avaliacao); ratMax = Math.max(ratMax, r.__avaliacao); }
     }
 
     const services = Array.from(serviceMap.values()).sort((a, b) => b.count - a.count);
@@ -246,6 +298,11 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       services,
       statuses: Array.from(statusSet).sort(),
       channels: Array.from(channelSet).sort(),
+      cities: Array.from(citySet).sort(),
+      valMin: valMin === Infinity ? 0 : valMin,
+      valMax: valMax === -Infinity ? 0 : valMax,
+      ratMin: ratMin === Infinity ? 0 : ratMin,
+      ratMax: ratMax === -Infinity ? 0 : ratMax,
     };
   }, [providerRows]);
 
@@ -266,6 +323,22 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
     if (s.status.length) {
       rows = rows.filter(r => s.status.includes(r.__status));
     }
+    if (s.cityQuery.trim()) {
+      const q = s.cityQuery.toLowerCase();
+      rows = rows.filter(r => r.__cidade.toLowerCase().includes(q));
+    }
+    if (s.minValue != null) {
+      rows = rows.filter(r => r.__valor >= s.minValue!);
+    }
+    if (s.maxValue != null) {
+      rows = rows.filter(r => r.__valor <= s.maxValue!);
+    }
+    if (s.minRating != null) {
+      rows = rows.filter(r => r.__avaliacao != null && r.__avaliacao >= s.minRating!);
+    }
+    if (s.maxRating != null) {
+      rows = rows.filter(r => r.__avaliacao != null && r.__avaliacao <= s.maxRating!);
+    }
     return rows;
   }, [providerRows, slicers]);
 
@@ -275,6 +348,9 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
     if (slicers.services.length) c++;
     if (slicers.status.length) c++;
     if (slicers.includeOutros) c++;
+    if (slicers.cityQuery.trim()) c++;
+    if (slicers.minValue != null || slicers.maxValue != null) c++;
+    if (slicers.minRating != null || slicers.maxRating != null) c++;
     return c;
   }, [slicers]);
 
@@ -324,16 +400,14 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
 
   // ── Chart data: Status ────────────────────────────────────────────────────
   const byStatus = useMemo(() => {
-    const STATUS_LABELS: Record<string, string> = {
-      DELIVERED: 'Concluído', COMPLETED: 'Concluído', CANCELLED: 'Cancelado',
-      IN_PROGRESS: 'Em Andamento', ACCEPTED: 'Aceito', OPEN: 'Aberto', PENDING: 'Pendente',
-    };
-    const map = new Map<string, number>();
+    const map = new Map<string, { count: number; rawStatus: string }>();
     for (const r of filteredRows) {
       const label = STATUS_LABELS[r.__status] || r.__status || 'Outros';
-      map.set(label, (map.get(label) || 0) + 1);
+      const cur = map.get(label) || { count: 0, rawStatus: r.__status };
+      cur.count++;
+      map.set(label, cur);
     }
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+    return Array.from(map.entries()).map(([name, v]) => ({ name, value: v.count, __rawStatus: v.rawStatus }));
   }, [filteredRows]);
 
   // ── Chart data: Top Cities ────────────────────────────────────────────────
@@ -352,49 +426,113 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       .map(([name, v]) => ({ name, servicos: v.count }));
   }, [filteredRows]);
 
-  // ── Revenue by Month ──────────────────────────────────────────────────────
+  // ── Trend data with auto-granularity ──────────────────────────────────────
+  const trendData = useMemo(() => {
+    const diffDays = differenceInDays(dateRange.to, dateRange.from);
+    const granularity: 'day' | 'month' = diffDays <= 31 ? 'day' : 'month';
+
+    const keyFn = (d: Date) => granularity === 'day'
+      ? d.toISOString().slice(0, 10)
+      : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+    const labelFn = (k: string) => granularity === 'day'
+      ? format(new Date(k + 'T12:00:00'), 'dd/MM', { locale: ptBR })
+      : formatMonthLabelPtBR(k);
+
+    const map = new Map<string, { receita: number; count: number }>();
+    for (const r of filteredRows) {
+      if (!r.__date) continue;
+      const k = keyFn(r.__date);
+      const cur = map.get(k) || { receita: 0, count: 0 };
+      cur.receita += r.__valor;
+      cur.count++;
+      map.set(k, cur);
+    }
+
+    const sorted = Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]));
+
+    const revenueTimeSeries = sorted.map(([k, v]) => ({
+      periodo: labelFn(k),
+      receita: v.receita,
+      servicos: v.count,
+      _sortKey: k,
+    }));
+
+    // Cumulative
+    let acc = 0;
+    const cumulativeRevenue = revenueTimeSeries.map(d => {
+      acc += d.receita;
+      return { periodo: d.periodo, acumulado: acc, _sortKey: d._sortKey };
+    });
+
+    // Services by period
+    const servicesByPeriod = revenueTimeSeries.map(d => ({
+      periodo: d.periodo,
+      servicos: d.servicos,
+      _sortKey: d._sortKey,
+    }));
+
+    return { revenueTimeSeries, cumulativeRevenue, servicesByPeriod, granularity };
+  }, [filteredRows, dateRange]);
+
+  // Fallback: use backend data if local derivation is empty
   const revenueByMonth = useMemo(() => {
-    // prefer charts.receita_por_mes from backend
+    if (trendData.revenueTimeSeries.length > 0) return trendData.revenueTimeSeries;
     if (charts?.receita_por_mes?.length) {
       return charts.receita_por_mes
         .map((m: any) => ({
-          month: formatMonthLabelPtBR(m.mes),
+          periodo: formatMonthLabelPtBR(m.mes),
           receita: Number(m.receita) || 0,
           servicos: Math.round(Number(m.servicos) || 0),
           _sortKey: m.mes,
         }))
         .sort((a: any, b: any) => String(a._sortKey).localeCompare(String(b._sortKey)));
     }
-    // fallback: derive from filteredRows
-    const map = new Map<string, { receita: number; count: number }>();
-    for (const r of filteredRows) {
-      if (!r.__date) continue;
-      const k = `${r.__date.getFullYear()}-${String(r.__date.getMonth() + 1).padStart(2, '0')}`;
-      const cur = map.get(k) || { receita: 0, count: 0 };
-      cur.receita += r.__valor;
-      cur.count++;
-      map.set(k, cur);
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([k, v]) => ({ month: formatMonthLabelPtBR(k), receita: v.receita, servicos: v.count }));
-  }, [charts, filteredRows]);
+    return [];
+  }, [trendData, charts]);
 
   // ── ChartConfigs ──────────────────────────────────────────────────────────
   const chartConfigs: ChartConfig[] = useMemo(() => {
     const configs: ChartConfig[] = [];
 
+    // Trend: Revenue over time
     if (revenueByMonth.length > 0) {
       configs.push({
-        title: 'Receita por mês',
+        title: `Receita ao longo do tempo (por ${trendData.granularity === 'day' ? 'dia' : 'mês'})`,
         type: 'area',
         data: revenueByMonth,
         dataKeys: [{ key: 'receita', label: 'Receita', color: '#16a34a' }],
-        xAxisKey: 'month',
+        xAxisKey: 'periodo',
         valueFormatter: formatBRL,
       });
     }
 
+    // Trend: Cumulative revenue
+    if (trendData.cumulativeRevenue.length >= 2) {
+      configs.push({
+        title: 'Receita acumulada',
+        type: 'area',
+        data: trendData.cumulativeRevenue,
+        dataKeys: [{ key: 'acumulado', label: 'Acumulado', color: 'hsl(221,83%,53%)' }],
+        xAxisKey: 'periodo',
+        valueFormatter: formatBRL,
+      });
+    }
+
+    // Trend: Services by period
+    if (trendData.servicesByPeriod.length >= 2) {
+      configs.push({
+        title: `Serviços por ${trendData.granularity === 'day' ? 'dia' : 'mês'}`,
+        type: 'bar',
+        data: trendData.servicesByPeriod,
+        dataKeys: [{ key: 'servicos', label: 'Serviços', color: 'hsl(262,83%,58%)' }],
+        xAxisKey: 'periodo',
+        yAxisAllowDecimals: false,
+      });
+    }
+
+    // Driver: Revenue by Service (Top 10)
     if (revenueByService.length > 0) {
       configs.push({
         title: 'Receita por Serviço (Top 10)',
@@ -404,7 +542,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
         xAxisKey: 'name',
         valueFormatter: formatBRL,
         height: 320,
-        drilldownKind: 'cargo' as any,
+        drilldownKind: 'service',
         onDrilldown: (d: Drilldown) => {
           const match = revenueByService.find(s => s.name === d.value);
           if (match) applyDrilldown({ kind: 'service', value: (match as any).__id });
@@ -412,6 +550,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       });
     }
 
+    // Driver: Services by Type (Top 10)
     if (countByService.length > 0) {
       configs.push({
         title: 'Serviços por Tipo (Top 10)',
@@ -421,7 +560,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
         xAxisKey: 'name',
         height: 320,
         yAxisAllowDecimals: false,
-        drilldownKind: 'cargo' as any,
+        drilldownKind: 'service',
         onDrilldown: (d: Drilldown) => {
           const match = countByService.find(s => s.name === d.value);
           if (match) applyDrilldown({ kind: 'service', value: (match as any).__id });
@@ -429,6 +568,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       });
     }
 
+    // Driver: Revenue by Channel (pie)
     if (revenueByChannel.length > 0) {
       configs.push({
         title: 'Receita por Canal',
@@ -436,9 +576,15 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
         data: revenueByChannel,
         dataKeys: [{ key: 'value', label: 'Receita (R$)' }],
         valueFormatter: formatBRL,
+        drilldownKind: 'channel',
+        onDrilldown: (d: Drilldown) => {
+          const match = revenueByChannel.find(s => s.name === d.value);
+          if (match) applyDrilldown({ kind: 'channel', value: (match as any).__id });
+        },
       });
     }
 
+    // Driver: Status (pie)
     if (byStatus.length > 0) {
       configs.push({
         title: 'Status dos Serviços',
@@ -446,9 +592,15 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
         data: byStatus,
         dataKeys: [{ key: 'value', label: 'Quantidade' }],
         yAxisAllowDecimals: false,
+        drilldownKind: 'status',
+        onDrilldown: (d: Drilldown) => {
+          const match = byStatus.find(s => s.name === d.value);
+          if (match) applyDrilldown({ kind: 'status', value: (match as any).__rawStatus });
+        },
       });
     }
 
+    // Driver: Top Cities
     if (topCities.length > 0) {
       configs.push({
         title: 'Top Cidades',
@@ -458,11 +610,15 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
         xAxisKey: 'name',
         height: 320,
         yAxisAllowDecimals: false,
+        drilldownKind: 'city',
+        onDrilldown: (d: Drilldown) => {
+          applyDrilldown({ kind: 'city', value: d.value });
+        },
       });
     }
 
     return configs;
-  }, [revenueByMonth, revenueByService, countByService, revenueByChannel, byStatus, topCities]);
+  }, [revenueByMonth, trendData, revenueByService, countByService, revenueByChannel, byStatus, topCities]);
 
   // ── Concentration (Mix) ───────────────────────────────────────────────────
   const concentration = useMemo(() => {
@@ -483,6 +639,98 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       isRisky: top1Share > 60,
     };
   }, [revenueByService]);
+
+  // ── Exception Alerts (Management by Exception) ────────────────────────────
+  const exceptionAlerts = useMemo((): AlertCardData[] => {
+    const alerts: AlertCardData[] = [];
+    const total = filteredRows.length;
+    if (total === 0) return alerts;
+
+    const completed = filteredRows.filter(r => r.__status === 'DELIVERED' || r.__status === 'COMPLETED').length;
+    const cancelled = filteredRows.filter(r => r.__status === 'CANCELLED').length;
+    const pending = filteredRows.filter(r => r.__status === 'PENDING' || r.__status === 'OPEN' || r.__status === 'ACCEPTED').length;
+    const cancelRate = total > 0 ? (cancelled / total) * 100 : 0;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+
+    const withRating = filteredRows.filter(r => r.__avaliacao != null && r.__avaliacao > 0);
+    const avgRating = withRating.length > 0 ? withRating.reduce((a, r) => a + (r.__avaliacao || 0), 0) / withRating.length : 0;
+
+    // 1. High cancellation
+    if (cancelRate > 15) {
+      alerts.push({
+        title: 'Cancelamento alto',
+        value: `${cancelRate.toFixed(1)}%`,
+        hint: `${cancelled} de ${total} serviços cancelados`,
+        severity: cancelRate > 30 ? 'bad' : 'warn',
+        action: () => setSlicers(p => ({ ...p, status: ['CANCELLED'] })),
+      });
+    }
+
+    // 2. High pending
+    if (pending > 5 || (total > 10 && pending / total > 0.3)) {
+      alerts.push({
+        title: 'Pendentes acumulados',
+        value: fmtNum(pending),
+        hint: `${((pending / total) * 100).toFixed(0)}% do total`,
+        severity: pending > 10 ? 'bad' : 'warn',
+        action: () => setSlicers(p => ({ ...p, status: ['PENDING', 'OPEN', 'ACCEPTED'] })),
+      });
+    }
+
+    // 3. Low rating
+    if (avgRating > 0 && avgRating < 3.5) {
+      alerts.push({
+        title: 'Avaliação baixa',
+        value: `${avgRating.toFixed(1)} ★`,
+        hint: `Baseado em ${withRating.length} avaliações`,
+        severity: avgRating < 2.5 ? 'bad' : 'warn',
+      });
+    }
+
+    // 4. High concentration
+    if (concentration && concentration.isRisky) {
+      alerts.push({
+        title: 'Concentração alta',
+        value: `${concentration.top1Share.toFixed(0)}%`,
+        hint: `${concentration.top1Name} domina receita`,
+        severity: concentration.top1Share > 80 ? 'bad' : 'warn',
+        action: () => applyDrilldown({ kind: 'service', value: concentration.top1Id }),
+      });
+    }
+
+    // 5. Best service / best channel
+    if (revenueByService.length > 0) {
+      alerts.push({
+        title: 'Melhor serviço',
+        value: revenueByService[0].name,
+        hint: formatBRL(revenueByService[0].receita),
+        severity: 'good',
+        action: () => applyDrilldown({ kind: 'service', value: (revenueByService[0] as any).__id }),
+      });
+    }
+
+    if (revenueByChannel.length > 0) {
+      alerts.push({
+        title: 'Melhor canal',
+        value: revenueByChannel[0].name,
+        hint: formatBRL(revenueByChannel[0].value),
+        severity: 'good',
+        action: () => applyDrilldown({ kind: 'channel', value: (revenueByChannel[0] as any).__id }),
+      });
+    }
+
+    // 6. Good completion rate
+    if (completionRate >= 85) {
+      alerts.push({
+        title: 'Taxa de conclusão',
+        value: `${completionRate.toFixed(1)}%`,
+        hint: `${completed} de ${total} concluídos`,
+        severity: 'good',
+      });
+    }
+
+    return alerts;
+  }, [filteredRows, concentration, revenueByService, revenueByChannel]);
 
   // ── Quality / Efficiency ──────────────────────────────────────────────────
   const qualityMetrics = useMemo(() => {
@@ -539,7 +787,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
         <SectionTitle
           icon={Filter}
           title="Filtros analíticos"
-          subtitle="Canais, serviços e status"
+          subtitle="Canais, serviços, status, cidade e faixas"
           actions={
             activeFiltersCount > 0 ? (
               <Button variant="ghost" size="sm" onClick={resetSlicers} className="h-7 text-xs gap-1">
@@ -597,20 +845,68 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
             <div>
               <p className={cn(BI.label, 'mb-1.5')}>Status</p>
               <div className="flex flex-wrap gap-1.5">
-                {slicerOptions.statuses.map(st => {
-                  const labels: Record<string, string> = {
-                    DELIVERED: 'Concluído', COMPLETED: 'Concluído', CANCELLED: 'Cancelado',
-                    IN_PROGRESS: 'Em Andamento', ACCEPTED: 'Aceito', OPEN: 'Aberto', PENDING: 'Pendente',
-                  };
-                  return (
-                    <ToggleChip key={st} active={slicers.status.includes(st)} onClick={() => toggleStatus(st)}>
-                      {labels[st] || st}
-                    </ToggleChip>
-                  );
-                })}
+                {slicerOptions.statuses.map(st => (
+                  <ToggleChip key={st} active={slicers.status.includes(st)} onClick={() => toggleStatus(st)}>
+                    {STATUS_LABELS[st] || st}
+                  </ToggleChip>
+                ))}
               </div>
             </div>
           )}
+
+          {/* City search */}
+          <div>
+            <p className={cn(BI.label, 'mb-1.5')}>Cidade</p>
+            <div className="relative max-w-[250px]">
+              <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <Input
+                value={slicers.cityQuery}
+                onChange={e => setSlicers(p => ({ ...p, cityQuery: e.target.value }))}
+                placeholder="Filtrar por cidade..."
+                className="h-7 pl-7 text-[11px]"
+              />
+              {slicers.cityQuery && (
+                <button
+                  onClick={() => setSlicers(p => ({ ...p, cityQuery: '' }))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                >
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Value & Rating ranges */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {slicerOptions.valMax > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Faixa Valor <span className="font-normal">({formatBRL(slicerOptions.valMin)}–{formatBRL(slicerOptions.valMax)})</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input type="number" className="h-7 text-[11px] w-24" placeholder="Mín"
+                    value={slicers.minValue ?? ''} onChange={e => setSlicers(p => ({ ...p, minValue: e.target.value ? Number(e.target.value) : undefined }))} />
+                  <span className="text-muted-foreground text-[10px]">—</span>
+                  <Input type="number" className="h-7 text-[11px] w-24" placeholder="Máx"
+                    value={slicers.maxValue ?? ''} onChange={e => setSlicers(p => ({ ...p, maxValue: e.target.value ? Number(e.target.value) : undefined }))} />
+                </div>
+              </div>
+            )}
+            {slicerOptions.ratMax > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Faixa Avaliação <span className="font-normal">({fmtNum(slicerOptions.ratMin, 1)}–{fmtNum(slicerOptions.ratMax, 1)})</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input type="number" step="0.1" className="h-7 text-[11px] w-24" placeholder="Mín"
+                    value={slicers.minRating ?? ''} onChange={e => setSlicers(p => ({ ...p, minRating: e.target.value ? Number(e.target.value) : undefined }))} />
+                  <span className="text-muted-foreground text-[10px]">—</span>
+                  <Input type="number" step="0.1" className="h-7 text-[11px] w-24" placeholder="Máx"
+                    value={slicers.maxRating ?? ''} onChange={e => setSlicers(p => ({ ...p, maxRating: e.target.value ? Number(e.target.value) : undefined }))} />
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Toggles */}
           <div className="flex items-center gap-3 pt-1">
@@ -620,6 +916,18 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
           </div>
         </Card>
       </div>
+
+      {/* ── Exception Alerts (Management by Exception) ───────────────────── */}
+      {exceptionAlerts.length > 0 && (
+        <div className="space-y-2">
+          <SectionTitle icon={AlertTriangle} title="Alertas e destaques" subtitle="Clique para filtrar" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {exceptionAlerts.slice(0, 7).map((alert, i) => (
+              <AlertCard key={i} {...alert} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Concentration (Mix) Card ─────────────────────────────────────── */}
       {concentration && (
@@ -662,7 +970,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       {/* ── Charts ───────────────────────────────────────────────────────── */}
       {chartConfigs.length > 0 && (
         <div className="space-y-3">
-          <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Clique nas barras para filtrar" />
+          <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Clique nas barras/fatias para filtrar" />
           <ReportCharts charts={chartConfigs} isLoading={false} columns={2} />
         </div>
       )}
@@ -746,7 +1054,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
 
       {/* ── Extrato Enterprise ───────────────────────────────────────────── */}
       <div className="space-y-3">
-        <SectionTitle icon={DollarSign} title="Extrato de serviços" subtitle={`${filteredRows.length} registros`} />
+        <SectionTitle icon={DollarSign} title="Extrato de serviços" subtitle={`Mostrando ${filteredRows.length} de ${providerRows.length} registros`} />
         {filteredRows.length > 0 ? (
           <Card className={cn(BI.radius, BI.card, 'overflow-hidden')}>
             <VirtualizedProviderTable rows={filteredRows} />
