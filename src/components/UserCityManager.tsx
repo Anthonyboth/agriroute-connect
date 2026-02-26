@@ -153,7 +153,9 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
 
       if (error) {
         if (error.code === '23505') {
-          toast.error('Esta cidade e tipo já foram adicionados');
+          // Usar toast() em vez de toast.error() para não disparar alerta Telegram
+          // Este é um erro de validação esperado, não um erro de sistema
+          toast('Esta cidade e tipo já foram adicionados', { description: 'Escolha outra cidade ou tipo diferente.' });
         } else {
           throw error;
         }
