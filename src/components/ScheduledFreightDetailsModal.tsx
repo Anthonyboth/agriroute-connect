@@ -204,7 +204,7 @@ export const ScheduledFreightDetailsModal = ({
 
                   {/* Preview do veículo do primeiro motorista */}
                   {assignedDrivers[0]?.driver_id && (
-                    <DriverVehiclePreview driverId={assignedDrivers[0].driver_id} />
+                    <DriverVehiclePreview driverId={assignedDrivers[0].driver_id} freightId={freight.id} />
                   )}
                 </div>
               ) : (

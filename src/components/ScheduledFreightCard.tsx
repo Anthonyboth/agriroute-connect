@@ -203,7 +203,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
 
           {/* ✅ Preview do veículo do motorista (para produtor) */}
           {userRole === 'PRODUTOR' && primaryDriverId && (
-            <DriverVehiclePreview driverId={primaryDriverId} />
+            <DriverVehiclePreview driverId={primaryDriverId} freightId={freight.id} />
           )}
 
           {/* ✅ Valor do Frete - Exibe valor unitário conforme tipo de precificação */}

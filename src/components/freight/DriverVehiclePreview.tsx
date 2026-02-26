@@ -13,10 +13,11 @@ import { StorageImage } from '@/components/ui/storage-image';
 
 interface DriverVehiclePreviewProps {
   driverId: string;
+  freightId?: string;
 }
 
-export const DriverVehiclePreview: React.FC<DriverVehiclePreviewProps> = ({ driverId }) => {
-  const { vehicle, vehiclePhotos, isLoading } = useParticipantProfile(driverId, 'driver');
+export const DriverVehiclePreview: React.FC<DriverVehiclePreviewProps> = ({ driverId, freightId }) => {
+  const { vehicle, vehiclePhotos, isLoading } = useParticipantProfile(driverId, 'driver', freightId);
 
   // Evitar “flicker”/poluição visual: só mostra algo quando tiver dado útil
   if (isLoading) return null;

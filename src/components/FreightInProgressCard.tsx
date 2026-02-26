@@ -558,7 +558,8 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                 {/* Preview do veículo do motorista */}
                 {(freight.driver_id || (freight.drivers_assigned && freight.drivers_assigned.length > 0)) && (
                   <DriverVehiclePreview 
-                    driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')} 
+                    driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')}
+                    freightId={freight.id}
                   />
                 )}
               </>
