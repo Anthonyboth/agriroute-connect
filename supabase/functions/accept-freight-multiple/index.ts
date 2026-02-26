@@ -687,38 +687,11 @@ serve(async (req) => {
       }
     }
 
-    // 11. Notificar produtor (com mensagem especial para re-aceitações)
+    // 11. Notificação do produtor é gerada automaticamente pelo trigger
+    // notify_freight_status_change ao mudar status para ACCEPTED.
+    // NÃO inserir manualmente aqui para evitar duplicação.
     const remainingSlots = availableSlots - num_trucks;
-    
-    // Buscar user_id do produtor
-    const { data: producerProfile } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('id', freight.producer_id)
-      .single();
-
-    if (producerProfile?.user_id) {
-      await supabase.from("notifications").insert({
-        user_id: producerProfile.user_id,
-        title: isReAcceptance 
-          ? `🌟 Motorista retornou para mais ${num_trucks} carreta(s)!`
-          : (isTransportCompany 
-              ? `Transportadora aceitou ${num_trucks} carretas! 🚚`
-              : "Motorista aceitou seu frete! 🎉"),
-        message: isReAcceptance
-          ? `Um motorista que já completou com sucesso uma entrega aceitou mais ${num_trucks} carreta(s). ${remainingSlots} vaga(s) restante(s).`
-          : (remainingSlots > 0
-              ? `${num_trucks} carreta(s) aceita(s). ${remainingSlots} vaga(s) restante(s).`
-              : "Todas as carretas foram preenchidas!"),
-        type: "freight_accepted",
-        data: { 
-          freight_id, 
-          num_trucks, 
-          is_company: isTransportCompany,
-          is_re_acceptance: isReAcceptance 
-        }
-      });
-    }
+    console.log(`[NOTIFICATION] Skipping manual insert - trigger notify_freight_status_change handles it. Remaining slots: ${remainingSlots}`);
 
     return new Response(
       JSON.stringify({ 
