@@ -844,19 +844,21 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
               Fechar
             </Button>
             
-            {detailsDialog.proposal && detailsDialog.proposal.status === 'PENDING' && (
+            {detailsDialog.proposal && (detailsDialog.proposal.status === 'PENDING' || detailsDialog.proposal.status === 'COUNTER_PROPOSED') && (
               <>
-                <Button 
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary/10"
-                  onClick={() => {
-                    setCounterProposalOpen({ open: true, proposal: detailsDialog.proposal });
-                    setDetailsDialog({ open: false, proposal: null });
-                  }}
-                >
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Fazer Contraproposta
-                </Button>
+                {detailsDialog.proposal.status === 'PENDING' && (
+                  <Button 
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary/10"
+                    onClick={() => {
+                      setCounterProposalOpen({ open: true, proposal: detailsDialog.proposal });
+                      setDetailsDialog({ open: false, proposal: null });
+                    }}
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Fazer Contraproposta
+                  </Button>
+                )}
                 
                 <Button 
                   variant="outline"
@@ -876,7 +878,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                   ) : (
                     <>
                       <XCircle className="h-4 w-4 mr-2" />
-                      Rejeitar
+                      {detailsDialog.proposal.status === 'COUNTER_PROPOSED' ? 'Rejeitar contraproposta' : 'Rejeitar'}
                     </>
                   )}
                 </Button>
@@ -898,7 +900,11 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                   ) : (
                     <>
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      {!canAcceptProposal(detailsDialog.proposal) ? 'Sem vagas' : 'Aceitar'}
+                      {!canAcceptProposal(detailsDialog.proposal) 
+                        ? 'Sem vagas' 
+                        : detailsDialog.proposal.status === 'COUNTER_PROPOSED' 
+                          ? 'Aceitar contraproposta' 
+                          : 'Aceitar'}
                     </>
                   )}
                 </Button>
