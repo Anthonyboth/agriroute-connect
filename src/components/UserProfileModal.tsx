@@ -274,102 +274,106 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        {/* Header invisível para acessibilidade */}
-        <DialogHeader className="sr-only">
-          <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
-          <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>
-        </DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col">
+          {/* Header invisível para acessibilidade */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
+            <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>
+          </DialogHeader>
 
-        {/* Profile Header com foto e info básica */}
-        <ProfileHeader
-          fullName={user?.full_name || ''}
-          email={user?.email}
-          role={user?.role || ''}
-          status={user?.status || ''}
-          photoUrl={currentPhotoUrl}
-          isEditing={editMode}
-          isSaving={loading}
-          onEditToggle={() => setEditMode(!editMode)}
-          onSave={handleSave}
-          onPhotoChange={handlePhotoChange}
-        />
-
-        {/* Conteúdo principal com scroll */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 scrollbar-thin">
-          {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-            {/* Coluna da Esquerda - 70% (lg:col-span-2) */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* Informações Pessoais */}
-              <ProfileInfoCard
-                title="Informações Pessoais"
-                icon={<User className="h-4 w-4 text-primary" />}
-                fields={personalInfoFields}
-                data={profileData}
-                isEditing={editMode}
-                onChange={handleFieldChange}
-              />
-
-              {/* Campos específicos por role */}
-              {roleSpecificFields.length > 0 && (
-                <ProfileInfoCard
-                  title={user?.role === 'PRODUTOR' ? 'Dados da Fazenda' : 'Dados Profissionais'}
-                  icon={<Shield className="h-4 w-4 text-primary" />}
-                  fields={roleSpecificFields}
-                  data={profileData}
-                  isEditing={editMode}
-                  onChange={handleFieldChange}
-                />
-              )}
-
-              {/* Contato de Emergência */}
-              <ProfileInfoCard
-                title="Contato de Emergência"
-                icon={<Phone className="h-4 w-4 text-primary" />}
-                fields={emergencyFields}
-                data={profileData}
-                isEditing={editMode}
-                onChange={handleFieldChange}
-              />
-
-              {/* Endereço */}
-              <ProfileAddressCard
-                address={addressData}
-                isEditing={editMode}
-                onChange={handleAddressChange}
-              />
-
-              {/* Zona de Perigo - apenas no mobile (aparece no final) */}
-              <div className="lg:hidden">
-                <ProfileDangerZone
-                  onDeleteAccount={handleDeleteAccount}
-                  isDeleting={isDeleting}
-                />
-              </div>
-            </div>
-
-            {/* Coluna da Direita - 30% (lg:col-span-1) */}
-            <div className="space-y-4">
-              {/* Stats e Avaliações */}
-              <ProfileStatsCard
-                rating={user?.rating || 0}
-                totalRatings={user?.total_ratings || 0}
-                memberSince={user?.created_at}
-                totalServices={0}
-                ratingDistribution={ratingDistribution}
-              />
-
-              {/* Zona de Perigo - apenas no desktop */}
-              <div className="hidden lg:block">
-                <ProfileDangerZone
-                  onDeleteAccount={handleDeleteAccount}
-                  isDeleting={isDeleting}
-                />
-              </div>
-            </div>
+          {/* Profile Header com foto e info básica */}
+          <div className="flex-shrink-0">
+            <ProfileHeader
+              fullName={user?.full_name || ''}
+              email={user?.email}
+              role={user?.role || ''}
+              status={user?.status || ''}
+              photoUrl={currentPhotoUrl}
+              isEditing={editMode}
+              isSaving={loading}
+              onEditToggle={() => setEditMode(!editMode)}
+              onSave={handleSave}
+              onPhotoChange={handlePhotoChange}
+            />
           </div>
-        </div>
+
+          {/* Conteúdo principal com scroll - ScrollArea para compatibilidade iOS */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-4 sm:px-6 pb-6">
+              {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                {/* Coluna da Esquerda - 70% (lg:col-span-2) */}
+                <div className="lg:col-span-2 space-y-4">
+                  {/* Informações Pessoais */}
+                  <ProfileInfoCard
+                    title="Informações Pessoais"
+                    icon={<User className="h-4 w-4 text-primary" />}
+                    fields={personalInfoFields}
+                    data={profileData}
+                    isEditing={editMode}
+                    onChange={handleFieldChange}
+                  />
+
+                  {/* Campos específicos por role */}
+                  {roleSpecificFields.length > 0 && (
+                    <ProfileInfoCard
+                      title={user?.role === 'PRODUTOR' ? 'Dados da Fazenda' : 'Dados Profissionais'}
+                      icon={<Shield className="h-4 w-4 text-primary" />}
+                      fields={roleSpecificFields}
+                      data={profileData}
+                      isEditing={editMode}
+                      onChange={handleFieldChange}
+                    />
+                  )}
+
+                  {/* Contato de Emergência */}
+                  <ProfileInfoCard
+                    title="Contato de Emergência"
+                    icon={<Phone className="h-4 w-4 text-primary" />}
+                    fields={emergencyFields}
+                    data={profileData}
+                    isEditing={editMode}
+                    onChange={handleFieldChange}
+                  />
+
+                  {/* Endereço */}
+                  <ProfileAddressCard
+                    address={addressData}
+                    isEditing={editMode}
+                    onChange={handleAddressChange}
+                  />
+
+                  {/* Zona de Perigo - apenas no mobile (aparece no final) */}
+                  <div className="lg:hidden">
+                    <ProfileDangerZone
+                      onDeleteAccount={handleDeleteAccount}
+                      isDeleting={isDeleting}
+                    />
+                  </div>
+                </div>
+
+                {/* Coluna da Direita - 30% (lg:col-span-1) */}
+                <div className="space-y-4">
+                  {/* Stats e Avaliações */}
+                  <ProfileStatsCard
+                    rating={user?.rating || 0}
+                    totalRatings={user?.total_ratings || 0}
+                    memberSince={user?.created_at}
+                    totalServices={0}
+                    ratingDistribution={ratingDistribution}
+                  />
+
+                  {/* Zona de Perigo - apenas no desktop */}
+                  <div className="hidden lg:block">
+                    <ProfileDangerZone
+                      onDeleteAccount={handleDeleteAccount}
+                      isDeleting={isDeleting}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
       </DialogContent>
     </Dialog>
   );
