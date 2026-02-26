@@ -1462,16 +1462,18 @@ export const ServiceProviderDashboard: React.FC = () => {
                             </span>
                           </div>
 
-                          {/* Proposta compacta */}
-                          <ServiceProposalSection
-                            proposals={getProposalsForRequest(request.id)}
-                            currentUserProfileId={profile?.id || ''}
-                            viewerRole="PROVIDER"
-                            onSubmitProposal={() => {}}
-                            onAcceptProposal={() => {}}
-                            onRejectProposal={() => {}}
-                            compact
-                          />
+                          {/* Proposta compacta - somente para clientes cadastrados */}
+                          {request.client_id && (
+                            <ServiceProposalSection
+                              proposals={getProposalsForRequest(request.id)}
+                              currentUserProfileId={profile?.id || ''}
+                              viewerRole="PROVIDER"
+                              onSubmitProposal={() => {}}
+                              onAcceptProposal={() => {}}
+                              onRejectProposal={() => {}}
+                              compact
+                            />
+                          )}
                         </CardContent>
                       </Card>
                     </button>
@@ -1551,15 +1553,17 @@ export const ServiceProviderDashboard: React.FC = () => {
                       onCancel={() => { setServiceToCancel(request); setCancelDialogOpen(true); }}
                       onOpenChat={(req) => { setSelectedChatRequest(req); setChatDialogOpen(true); }}
                       proposalsSection={
-                        <ServiceProposalSection
-                          proposals={getProposalsForRequest(request.id)}
-                          currentUserProfileId={profile?.id || ''}
-                          viewerRole="PROVIDER"
-                          onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
-                          onAcceptProposal={acceptProposal}
-                          onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
-                          submitting={proposalSubmitting}
-                        />
+                        request.client_id ? (
+                          <ServiceProposalSection
+                            proposals={getProposalsForRequest(request.id)}
+                            currentUserProfileId={profile?.id || ''}
+                            viewerRole="PROVIDER"
+                            onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
+                            onAcceptProposal={acceptProposal}
+                            onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                            submitting={proposalSubmitting}
+                          />
+                        ) : undefined
                       }
                     />
                   ))}
@@ -1839,16 +1843,18 @@ export const ServiceProviderDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {/* Propostas de Valor */}
-                <ServiceProposalSection
-                  proposals={getProposalsForRequest(selectedRequest.id)}
-                  currentUserProfileId={profile?.id || ''}
-                  viewerRole="PROVIDER"
-                  onSubmitProposal={(price, msg) => submitProposal(selectedRequest.id, profile?.id || '', 'PROVIDER', price, msg)}
-                  onAcceptProposal={acceptProposal}
-                  onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
-                  submitting={proposalSubmitting}
-                />
+                {/* Propostas de Valor - somente para clientes cadastrados */}
+                {selectedRequest.client_id && (
+                  <ServiceProposalSection
+                    proposals={getProposalsForRequest(selectedRequest.id)}
+                    currentUserProfileId={profile?.id || ''}
+                    viewerRole="PROVIDER"
+                    onSubmitProposal={(price, msg) => submitProposal(selectedRequest.id, profile?.id || '', 'PROVIDER', price, msg)}
+                    onAcceptProposal={acceptProposal}
+                    onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                    submitting={proposalSubmitting}
+                  />
+                )}
 
                 <div className="h-px bg-border" />
 
