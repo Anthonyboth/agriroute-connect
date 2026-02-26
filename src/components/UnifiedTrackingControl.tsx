@@ -41,13 +41,20 @@ export const UnifiedTrackingControl = () => {
     };
   }, []);
 
-  // Auto-abrir modal para motorista ao montar
+  // Auto-abrir modal APENAS com frete ativo + 1x por sessão
   useEffect(() => {
-    if (profile && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role) && !hasAutoOpened) {
+    if (
+      profile &&
+      ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role) &&
+      hasActiveFreight &&
+      !hasAutoOpened &&
+      !sessionStorage.getItem('tracking_modal_shown')
+    ) {
       setIsModalOpen(true);
       setHasAutoOpened(true);
+      sessionStorage.setItem('tracking_modal_shown', '1');
     }
-  }, [profile, hasAutoOpened]);
+  }, [profile, hasAutoOpened, hasActiveFreight]);
 
   // Auto-tracking quando houver frete ativo
   useEffect(() => {
