@@ -698,68 +698,72 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
       {/* Participants */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Card do Produtor */}
-        {freight.producer?.id ? (
-          <FreightParticipantCard
-            participantId={freight.producer.id}
-            participantType="producer"
-            name={freight.producer.full_name || 'Produtor'}
-            avatarUrl={freight.producer.profile_photo_url || freight.producer.selfie_url}
-            rating={freight.producer.rating || 0}
-            totalRatings={freight.producer.total_ratings || 0}
-            onClick={() => {
-              setProfileModalOpen({ 
-                open: true, 
-                userId: freight.producer.id, 
-                userType: 'producer', 
-                userName: freight.producer.full_name || '' 
-              });
-            }}
-          />
-        ) : requesterStatus.hasRegistration && (freight.producer_id || requesterStatus.producerId) ? (
-          <FreightParticipantCard
-            participantId={(freight.producer_id || requesterStatus.producerId) as string}
-            participantType="producer"
-            name={requesterStatus.producerName || 'Produtor'}
-            avatarUrl={requesterStatus.producerPhotoUrl || undefined}
-            rating={0}
-            totalRatings={0}
-            onClick={() => {
-              const id = (freight.producer_id || requesterStatus.producerId) as string;
-              setProfileModalOpen({
-                open: true,
-                userId: id,
-                userType: 'producer',
-                userName: requesterStatus.producerName || '',
-              });
-            }}
-          />
-        ) : (freight.is_guest_freight || requesterStatus.type === 'GUEST') ? (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <User className="h-4 w-4" />
-                Produtor
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm text-muted-foreground">Solicitante sem cadastro</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <User className="h-4 w-4" />
-                Produtor
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm text-muted-foreground">
-                {requesterStatus.isLoading ? 'Carregando...' : 'Produtor não identificado'}
-              </p>
-            </CardContent>
-          </Card>
+        {/* Card do Produtor - oculto quando o próprio produtor está visualizando */}
+        {!isFreightProducer && (
+          <>
+            {freight.producer?.id ? (
+              <FreightParticipantCard
+                participantId={freight.producer.id}
+                participantType="producer"
+                name={freight.producer.full_name || 'Produtor'}
+                avatarUrl={freight.producer.profile_photo_url || freight.producer.selfie_url}
+                rating={freight.producer.rating || 0}
+                totalRatings={freight.producer.total_ratings || 0}
+                onClick={() => {
+                  setProfileModalOpen({ 
+                    open: true, 
+                    userId: freight.producer.id, 
+                    userType: 'producer', 
+                    userName: freight.producer.full_name || '' 
+                  });
+                }}
+              />
+            ) : requesterStatus.hasRegistration && (freight.producer_id || requesterStatus.producerId) ? (
+              <FreightParticipantCard
+                participantId={(freight.producer_id || requesterStatus.producerId) as string}
+                participantType="producer"
+                name={requesterStatus.producerName || 'Produtor'}
+                avatarUrl={requesterStatus.producerPhotoUrl || undefined}
+                rating={0}
+                totalRatings={0}
+                onClick={() => {
+                  const id = (freight.producer_id || requesterStatus.producerId) as string;
+                  setProfileModalOpen({
+                    open: true,
+                    userId: id,
+                    userType: 'producer',
+                    userName: requesterStatus.producerName || '',
+                  });
+                }}
+              />
+            ) : (freight.is_guest_freight || requesterStatus.type === 'GUEST') ? (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <User className="h-4 w-4" />
+                    Produtor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground">Solicitante sem cadastro</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <User className="h-4 w-4" />
+                    Produtor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground">
+                    {requesterStatus.isLoading ? 'Carregando...' : 'Produtor não identificado'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
         {/* Card do Motorista */}
