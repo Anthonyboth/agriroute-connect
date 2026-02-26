@@ -54,6 +54,8 @@ export type ProviderSlicers = {
   services: string[];
   status: string[];
   includeOutros: boolean;
+  groupDuplicates: boolean;
+  onlyPending: boolean;
   serviceSearch: string;
   cityQuery: string;
   minValue?: number;
@@ -67,13 +69,17 @@ export const EMPTY_PROVIDER_SLICERS: ProviderSlicers = {
   services: [],
   status: [],
   includeOutros: false,
+  groupDuplicates: true,
+  onlyPending: false,
   serviceSearch: '',
   cityQuery: '',
 };
 
 interface ProviderRow {
   __baseServiceId: string;
+  __serviceId: string;
   __serviceLabel: string;
+  __rawServiceLabel: string;
   __channels: ServiceChannel[];
   __date: Date | null;
   __status: string;
@@ -247,6 +253,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       const rawServiceId = r.service_type || r.tipo || r.categoria || '';
       const baseServiceId = canonicalizeServiceId(rawServiceId);
       const serviceLabel = getServiceLabel(baseServiceId);
+      const rawLabel = rawServiceId.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
       const channels = getServiceChannels(baseServiceId);
       const order = getServiceOrder(baseServiceId);
       const dtRaw = r.data || r.created_at || r.completed_at;
@@ -255,7 +262,9 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       return {
         ...r,
         __baseServiceId: baseServiceId,
+        __serviceId: rawServiceId,
         __serviceLabel: serviceLabel,
+        __rawServiceLabel: rawLabel || serviceLabel,
         __channels: channels,
         __date: dt && isValid(dt) ? dt : null,
         __status: String(r.status || '').toUpperCase(),
@@ -307,13 +316,10 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
   }, [providerRows]);
 
   // ── Filtered rows ─────────────────────────────────────────────────────────
-  const filteredRows = useMemo(() => {
+  const filteredRowsForTable = useMemo(() => {
     let rows = providerRows;
     const s = slicers;
 
-    if (!s.includeOutros) {
-      rows = rows.filter(r => r.__baseServiceId !== 'OUTROS');
-    }
     if (s.channels.length) {
       rows = rows.filter(r => r.__channels.some(ch => s.channels.includes(ch)));
     }
@@ -322,6 +328,9 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
     }
     if (s.status.length) {
       rows = rows.filter(r => s.status.includes(r.__status));
+    }
+    if (s.onlyPending) {
+      rows = rows.filter(r => r.__status === 'PENDING' || r.__status === 'OPEN' || r.__status === 'ACCEPTED');
     }
     if (s.cityQuery.trim()) {
       const q = s.cityQuery.toLowerCase();
@@ -342,24 +351,40 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
     return rows;
   }, [providerRows, slicers]);
 
+  // Charts: same as table but excludes OUTROS unless toggled or explicitly selected
+  const filteredRowsForCharts = useMemo(() => {
+    if (slicers.includeOutros || slicers.services.includes('OUTROS')) return filteredRowsForTable;
+    return filteredRowsForTable.filter(r => r.__baseServiceId !== 'OUTROS');
+  }, [filteredRowsForTable, slicers.includeOutros, slicers.services]);
+
+  // Alias for backward compat inside component
+  const filteredRows = filteredRowsForCharts;
+
   const activeFiltersCount = useMemo(() => {
     let c = 0;
     if (slicers.channels.length) c++;
     if (slicers.services.length) c++;
     if (slicers.status.length) c++;
     if (slicers.includeOutros) c++;
+    if (slicers.onlyPending) c++;
+    if (!slicers.groupDuplicates) c++;
     if (slicers.cityQuery.trim()) c++;
     if (slicers.minValue != null || slicers.maxValue != null) c++;
     if (slicers.minRating != null || slicers.maxRating != null) c++;
     return c;
   }, [slicers]);
 
+  // ── Grouping key (dedup toggle) ───────────────────────────────────────────
+  const serviceKey = slicers.groupDuplicates ? '__baseServiceId' : '__serviceId';
+  const serviceLabelKey = slicers.groupDuplicates ? '__serviceLabel' : '__rawServiceLabel';
+
   // ── Chart data: Revenue by Service (Top 10) ──────────────────────────────
   const revenueByService = useMemo(() => {
     const map = new Map<string, { label: string; revenue: number; count: number; order: number }>();
     for (const r of filteredRows) {
-      const k = r.__baseServiceId;
-      const cur = map.get(k) || { label: r.__serviceLabel, revenue: 0, count: 0, order: r.__order };
+      const k = (r as any)[serviceKey] as string;
+      const lbl = (r as any)[serviceLabelKey] as string;
+      const cur = map.get(k) || { label: lbl, revenue: 0, count: 0, order: r.__order };
       cur.revenue += r.__valor;
       cur.count++;
       map.set(k, cur);
@@ -368,14 +393,15 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       .sort((a, b) => b[1].revenue - a[1].revenue || a[1].order - b[1].order)
       .slice(0, 10)
       .map(([id, v]) => ({ name: v.label, receita: v.revenue, __id: id }));
-  }, [filteredRows]);
+  }, [filteredRows, serviceKey, serviceLabelKey]);
 
   // ── Chart data: Services by Service (Top 10) ─────────────────────────────
   const countByService = useMemo(() => {
     const map = new Map<string, { label: string; count: number; order: number }>();
     for (const r of filteredRows) {
-      const k = r.__baseServiceId;
-      const cur = map.get(k) || { label: r.__serviceLabel, count: 0, order: r.__order };
+      const k = (r as any)[serviceKey] as string;
+      const lbl = (r as any)[serviceLabelKey] as string;
+      const cur = map.get(k) || { label: lbl, count: 0, order: r.__order };
       cur.count++;
       map.set(k, cur);
     }
@@ -383,7 +409,7 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
       .sort((a, b) => b[1].count - a[1].count || a[1].order - b[1].order)
       .slice(0, 10)
       .map(([id, v]) => ({ name: v.label, servicos: v.count, __id: id }));
-  }, [filteredRows]);
+  }, [filteredRows, serviceKey, serviceLabelKey]);
 
   // ── Chart data: Revenue by Channel ────────────────────────────────────────
   const revenueByChannel = useMemo(() => {
@@ -909,9 +935,15 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
           </div>
 
           {/* Toggles */}
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <ToggleChip active={slicers.groupDuplicates} onClick={() => setSlicers(p => ({ ...p, groupDuplicates: !p.groupDuplicates }))}>
+              Agrupar duplicatas
+            </ToggleChip>
             <ToggleChip active={slicers.includeOutros} onClick={() => setSlicers(p => ({ ...p, includeOutros: !p.includeOutros }))}>
               Incluir "Outros"
+            </ToggleChip>
+            <ToggleChip active={slicers.onlyPending} onClick={() => setSlicers(p => ({ ...p, onlyPending: !p.onlyPending }))}>
+              Somente pendentes
             </ToggleChip>
           </div>
         </Card>
@@ -1054,10 +1086,10 @@ export const ProviderEnterprise: React.FC<ProviderEnterpriseProps> = ({
 
       {/* ── Extrato Enterprise ───────────────────────────────────────────── */}
       <div className="space-y-3">
-        <SectionTitle icon={DollarSign} title="Extrato de serviços" subtitle={`Mostrando ${filteredRows.length} de ${providerRows.length} registros`} />
-        {filteredRows.length > 0 ? (
+        <SectionTitle icon={DollarSign} title="Extrato de serviços" subtitle={`Mostrando ${filteredRowsForTable.length} de ${providerRows.length} registros`} />
+        {filteredRowsForTable.length > 0 ? (
           <Card className={cn(BI.radius, BI.card, 'overflow-hidden')}>
-            <VirtualizedProviderTable rows={filteredRows} />
+            <VirtualizedProviderTable rows={filteredRowsForTable} />
           </Card>
         ) : (
           <Card className={cn(BI.radius, 'p-6 flex flex-col items-center gap-2')}>
