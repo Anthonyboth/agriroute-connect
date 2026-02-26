@@ -76,10 +76,12 @@ export const useParticipantProfile = (
 
       if (profileError) throw profileError;
 
-      // Se a view segura não retornar (RLS/visibilidade), tentar fallback via Edge Function
-      // (o Edge Function valida que o usuário logado é participante do frete antes de retornar dados públicos)
+      // Buscar snapshot seguro via Edge Function quando houver contexto de frete
+      // (garante acesso consistente a dados públicos, fotos assinadas e métricas agregadas)
       let resolvedProfile: any = profileData;
-      if (!resolvedProfile && freightId) {
+      let participantSnapshot: any = null;
+
+      if (freightId) {
         const { data: fnData, error: fnError } = await supabase.functions.invoke(
           'get-participant-public-profile',
           {
@@ -91,9 +93,11 @@ export const useParticipantProfile = (
           }
         );
 
-        if (fnError) throw fnError;
-        if (fnData?.success && fnData?.profile) {
-          resolvedProfile = fnData.profile;
+        if (!fnError && fnData?.success) {
+          participantSnapshot = fnData;
+          if (fnData?.profile) {
+            resolvedProfile = fnData.profile;
+          }
         }
       }
 
@@ -108,23 +112,35 @@ export const useParticipantProfile = (
       let realTotalRatings = resolvedProfile.total_ratings || 0;
 
       if (userType === 'driver') {
-        // Contar fretes diretos (driver_id) + atribuições via freight_assignments
-        const [directResult, assignmentResult] = await Promise.all([
-          supabase
-            .from('freights')
-            .select('*', { count: 'exact', head: true })
-            .eq('driver_id', userId)
-            .in('status', ['DELIVERED', 'COMPLETED']),
-          supabase
-            .from('freight_assignments')
-            .select('*', { count: 'exact', head: true })
-            .eq('driver_id', userId)
-            .in('status', ['DELIVERED', 'COMPLETED'])
-        ]);
-        completedFreights = (directResult.count || 0) + (assignmentResult.count || 0);
+        if (typeof participantSnapshot?.completed_freights === 'number') {
+          completedFreights = participantSnapshot.completed_freights;
+        } else {
+          // Fallback sem contexto de frete: incluir concluídos em fretes e serviços
+          const [directResult, assignmentResult, serviceResult] = await Promise.all([
+            supabase
+              .from('freights')
+              .select('*', { count: 'exact', head: true })
+              .eq('driver_id', userId)
+              .in('status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']),
+            supabase
+              .from('freight_assignments')
+              .select('*', { count: 'exact', head: true })
+              .eq('driver_id', userId)
+              .in('status', ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED']),
+            supabase
+              .from('service_requests')
+              .select('*', { count: 'exact', head: true })
+              .eq('provider_id', userId)
+              .in('status', ['COMPLETED', 'completed']),
+          ]);
+
+          completedFreights =
+            (directResult.count || 0) +
+            (assignmentResult.count || 0) +
+            (serviceResult.count || 0);
+        }
       } else {
         // Para produtores, "Fretes Contratados" = todos os fretes que tiveram motorista aceito
-        // (não apenas DELIVERED/COMPLETED, mas qualquer status pós-aceitação)
         const { count } = await supabase
           .from('freights')
           .select('*', { count: 'exact', head: true })
@@ -161,7 +177,14 @@ export const useParticipantProfile = (
 
       // Para motoristas, buscar veículo e fotos
       if (userType === 'driver') {
-        // Buscar veículo principal
+        // Priorizar snapshot vindo da Edge Function (URLs já assinadas com validação de participação)
+        if (participantSnapshot?.vehicle) {
+          setVehicle(participantSnapshot.vehicle);
+          setVehiclePhotos(Array.isArray(participantSnapshot.vehicle_photos) ? participantSnapshot.vehicle_photos : []);
+          return;
+        }
+
+        // Fallback sem freightId: buscar veículo e fotos via cliente
         const { data: vehicleData } = await supabase
           .from('vehicles')
           .select('id, vehicle_type, license_plate, max_capacity_tons')
@@ -171,9 +194,8 @@ export const useParticipantProfile = (
           .maybeSingle();
 
         if (vehicleData) {
-          // Mascarar placa (ex: ABC-1234 -> ABC-****)
           const plate = vehicleData.license_plate || '';
-          const plateMasked = plate.length > 4 
+          const plateMasked = plate.length > 4
             ? plate.substring(0, 4) + '****'
             : plate.substring(0, Math.max(0, plate.length - 2)) + '**';
 
@@ -186,7 +208,6 @@ export const useParticipantProfile = (
             year: undefined
           });
 
-          // Buscar fotos do veículo
           const { data: photosData } = await supabase
             .from('vehicle_photo_history')
             .select('id, photo_url, photo_type, created_at')
@@ -194,7 +215,6 @@ export const useParticipantProfile = (
             .order('created_at', { ascending: false })
             .limit(6);
 
-          // ✅ Persistir paths/URLs estáveis e deixar o hook de imagem assinar sob demanda
           const normalizedPhotos: VehiclePhoto[] = (photosData || []).map((photo: any) => ({
             id: photo.id,
             photo_url: photo.photo_url,
