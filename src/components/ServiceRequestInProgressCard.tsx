@@ -536,6 +536,18 @@ const ServiceRequestInProgressCardComponent = ({
   const destCity = parsedInfo?.destination?.city || null;
   const destState = parsedInfo?.destination?.state || null;
 
+  // ✅ Extrair campos granulares de endereço para coleta e entrega
+  const originNeighborhood = parsedInfo?.origin?.neighborhood || parsedInfo?.origin_neighborhood || null;
+  const originStreet = parsedInfo?.origin?.street || parsedInfo?.origin_street || null;
+  const originNumber = parsedInfo?.origin?.number || parsedInfo?.origin_number || null;
+  const originComplement = parsedInfo?.origin?.complement || parsedInfo?.origin_complement || null;
+  const originZipCode = parsedInfo?.origin?.zip_code || parsedInfo?.origin_zip_code || null;
+  const destNeighborhood = parsedInfo?.destination?.neighborhood || parsedInfo?.destination_neighborhood || null;
+  const destStreet = parsedInfo?.destination?.street || parsedInfo?.destination_street || null;
+  const destNumber = parsedInfo?.destination?.number || parsedInfo?.destination_number || null;
+  const destComplement = parsedInfo?.destination?.complement || parsedInfo?.destination_complement || null;
+  const destZipCode = parsedInfo?.destination?.zip_code || parsedInfo?.destination_zip_code || null;
+
   // ✅ Extrair coordenadas de destino: props > additional_info
   const effectiveDestLat = request.destination_lat || parsedInfo?.destination?.lat || null;
   const effectiveDestLng = request.destination_lng || parsedInfo?.destination?.lng || null;
@@ -699,44 +711,86 @@ const ServiceRequestInProgressCardComponent = ({
           />
         )}
 
-        {/* Local do Serviço e Destino */}
-        <div className="space-y-1.5">
-          {/* LOCAL DO SERVIÇO */}
-          <div className="bg-green-50 dark:bg-green-900/20 rounded px-2 py-1.5 space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-              <span className="text-[11px] font-bold text-green-700 dark:text-green-400">{useFreightNomenclature ? 'LOCAL DO FRETE' : 'LOCAL DO SERVIÇO'}</span>
-              {request.city_name && (
-                <span className="text-xs font-semibold text-primary ml-auto">
-                  {request.city_name}{request.state ? ` - ${request.state}` : ''}
-                </span>
-              )}
-            </div>
-            {(originAddress || request.location_address) && (
-              <p className="text-xs text-muted-foreground pl-5 line-clamp-2">
-                {originAddress || request.location_address}
+        {/* Local do Serviço e Destino — endereço completo */}
+        <div className="space-y-0">
+          {/* 📍 COLETA / LOCAL DO SERVIÇO */}
+          <div className="p-3 rounded-t-lg bg-primary/5 border border-primary/20">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card shrink-0" />
+              <p className="text-xs font-bold text-primary uppercase tracking-wider">
+                {useFreightNomenclature ? '📍 Coleta' : '📍 Local do Serviço'}
               </p>
+            </div>
+            {request.city_name && (
+              <p className="text-sm font-semibold text-foreground ml-5">
+                {request.city_name}{request.state ? ` — ${request.state}` : ''}
+              </p>
+            )}
+            {(originNeighborhood || originStreet || originNumber || originComplement || originZipCode || originAddress || request.location_address) && (
+              <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                {originNeighborhood && (
+                  <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {originNeighborhood}</p>
+                )}
+                {(originStreet || originNumber) && (
+                  <p>
+                    <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                    {[originStreet, originNumber && `nº ${originNumber}`].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {originComplement && (
+                  <p><span className="font-medium text-foreground/70">Complemento:</span> {originComplement}</p>
+                )}
+                {originZipCode && (
+                  <p><span className="font-medium text-foreground/70">CEP:</span> {originZipCode}</p>
+                )}
+                {!originNeighborhood && !originStreet && (originAddress || request.location_address) && (
+                  <p>{originAddress || request.location_address}</p>
+                )}
+              </div>
             )}
           </div>
 
-          {/* DESTINO (quando houver) */}
+          {/* Divider */}
+          <div className="flex justify-center -my-px">
+            <div className="w-0.5 h-3 bg-gradient-to-b from-primary/40 to-accent/40" />
+          </div>
+
+          {/* 🏁 DESTINO */}
           {(destAddress || destCity) && (
-            <div className="bg-red-50 dark:bg-red-900/20 rounded px-2 py-1.5 space-y-0.5">
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
-                <span className="text-[11px] font-bold text-red-700 dark:text-red-400">DESTINO</span>
-                {destCity && (
-                  <span className="text-xs font-semibold text-primary ml-auto">
-                    {destCity}{destState ? ` - ${destState}` : ''}
-                  </span>
-                )}
+            <div className="p-3 rounded-b-lg bg-accent/5 border border-accent/20">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="h-3 w-3 rounded-full bg-accent shrink-0" />
+                <p className="text-xs font-bold text-accent uppercase tracking-wider">🏁 Destino</p>
               </div>
-              {destAddress && (
-                <p className="text-xs text-muted-foreground pl-5 line-clamp-2">{destAddress}</p>
+              {destCity && (
+                <p className="text-sm font-semibold text-foreground ml-5">
+                  {destCity}{destState ? ` — ${destState}` : ''}
+                </p>
+              )}
+              {(destNeighborhood || destStreet || destNumber || destComplement || destZipCode || destAddress) && (
+                <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                  {destNeighborhood && (
+                    <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {destNeighborhood}</p>
+                  )}
+                  {(destStreet || destNumber) && (
+                    <p>
+                      <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                      {[destStreet, destNumber && `nº ${destNumber}`].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {destComplement && (
+                    <p><span className="font-medium text-foreground/70">Complemento:</span> {destComplement}</p>
+                  )}
+                  {destZipCode && (
+                    <p><span className="font-medium text-foreground/70">CEP:</span> {destZipCode}</p>
+                  )}
+                  {!destNeighborhood && !destStreet && destAddress && (
+                    <p>{destAddress}</p>
+                  )}
+                </div>
               )}
             </div>
           )}
-
         </div>
 
         {/* Data preferida */}

@@ -138,25 +138,73 @@
            </div>
          )}
  
-         {/* Location */}
-         <div className="space-y-2 text-sm">
-           <div className="flex items-start gap-2">
-             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-             <div className="flex-1 min-w-0">
-               <p className="text-muted-foreground text-xs">Origem</p>
-               <p className="font-medium line-clamp-2">{origin}</p>
-             </div>
-           </div>
-           {destination && destination !== "Não informado" && (
-             <div className="flex items-start gap-2">
-               <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-               <div className="flex-1 min-w-0">
-                 <p className="text-muted-foreground text-xs">Destino</p>
-                 <p className="font-medium line-clamp-2">{destination}</p>
-               </div>
-             </div>
-           )}
-         </div>
+          {/* Location — endereço completo */}
+          <div className="space-y-0">
+            {/* 📍 ORIGEM */}
+            <div className="p-2.5 rounded-t-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card shrink-0" />
+                <p className="text-[11px] font-bold text-primary uppercase tracking-wider">📍 Origem</p>
+              </div>
+              <p className="text-sm font-semibold text-foreground ml-5">{origin}</p>
+              {(sr.origin_neighborhood || sr.origin_street || sr.origin_number || sr.origin_complement || sr.origin_zip_code) && (
+                <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                  {sr.origin_neighborhood && (
+                    <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {sr.origin_neighborhood}</p>
+                  )}
+                  {(sr.origin_street || sr.origin_number) && (
+                    <p>
+                      <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                      {[sr.origin_street, sr.origin_number && `nº ${sr.origin_number}`].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {sr.origin_complement && (
+                    <p><span className="font-medium text-foreground/70">Complemento:</span> {sr.origin_complement}</p>
+                  )}
+                  {sr.origin_zip_code && (
+                    <p><span className="font-medium text-foreground/70">CEP:</span> {sr.origin_zip_code}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            {destination && destination !== "Não informado" && (
+              <>
+                <div className="flex justify-center -my-px">
+                  <div className="w-0.5 h-3 bg-gradient-to-b from-primary/40 to-accent/40" />
+                </div>
+
+                {/* 🏁 DESTINO */}
+                <div className="p-2.5 rounded-b-lg bg-accent/5 border border-accent/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-3 w-3 rounded-full bg-accent shrink-0" />
+                    <p className="text-[11px] font-bold text-accent uppercase tracking-wider">🏁 Destino</p>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground ml-5">{destination}</p>
+                  {(sr.destination_neighborhood || sr.destination_street || sr.destination_number || sr.destination_complement || sr.destination_zip_code) && (
+                    <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                      {sr.destination_neighborhood && (
+                        <p><span className="font-medium text-foreground/70">Bairro/Local:</span> {sr.destination_neighborhood}</p>
+                      )}
+                      {(sr.destination_street || sr.destination_number) && (
+                        <p>
+                          <span className="font-medium text-foreground/70">Endereço:</span>{' '}
+                          {[sr.destination_street, sr.destination_number && `nº ${sr.destination_number}`].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                      {sr.destination_complement && (
+                        <p><span className="font-medium text-foreground/70">Complemento:</span> {sr.destination_complement}</p>
+                      )}
+                      {sr.destination_zip_code && (
+                        <p><span className="font-medium text-foreground/70">CEP:</span> {sr.destination_zip_code}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
  
          {/* Date */}
          {sr.preferred_date && (
