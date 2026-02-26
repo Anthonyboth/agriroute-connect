@@ -33,6 +33,7 @@ import {
 } from '@/components/reports';
 import { ReportPeriodFilter } from '@/components/reports/ReportPeriodFilter';
 import { useReportsDashboardUnified } from '@/hooks/useReportsDashboardUnified';
+import { useReportsDataGuarantee } from '@/hooks/useReportsDataGuarantee';
 import { useProducerReportData } from '@/hooks/useProducerReportData';
 import type { PanelType } from '@/hooks/useReportsDashboard';
 import { toTons, formatTonsPtBR, formatMonthLabelPtBR, formatRouteLabel } from '@/lib/reports-formatters';
@@ -363,7 +364,7 @@ const STATUS_LABELS: Record<string, string> = {
 // ─── Componente principal ────────────────────────────────────────────────────
 export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ panel, profileId, title }) => {
   const {
-    kpis, charts, tables,
+    kpis: _rawKpis, charts: _rawCharts, tables: _rawTables,
     isLoading, isError, error: dashboardError,
     filters, setFilters, dateRange, setDateRange,
     refreshNow, isRefreshing, lastRefreshLabel, refetch,
@@ -373,6 +374,17 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
   const isTransportadora = panel === 'TRANSPORTADORA';
   const isPrestador = panel === 'PRESTADOR';
   const isProdutor = panel === 'PRODUTOR';
+
+  // ── Data guarantee fallback ─────────────────────────────────────────────
+  const {
+    kpis, charts, tables,
+    usedFallback, fallbackReason,
+  } = useReportsDataGuarantee({
+    panel,
+    profileId,
+    dateRange,
+    official: { kpis: _rawKpis, charts: _rawCharts, tables: _rawTables, isLoading, isError },
+  });
 
   const producerLegacy = useProducerReportData(isProdutor ? profileId : undefined, dateRange);
   const hasUnifiedProducerData = useMemo(() => {
@@ -1355,6 +1367,15 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
             </p>
             {(isProdutor || isTransportadora || isMotorista) && lastRefreshLabel && (
               <p className="text-[11px] text-muted-foreground mt-1">Atualizado {lastRefreshLabel}</p>
+            )}
+            {usedFallback && (
+              <span
+                className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent text-accent-foreground border border-border"
+                title={`Relatórios reconstruídos via histórico${fallbackReason ? ` (${fallbackReason})` : ''}`}
+              >
+                <AlertTriangle className="h-3 w-3" />
+                Dados do histórico
+              </span>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
