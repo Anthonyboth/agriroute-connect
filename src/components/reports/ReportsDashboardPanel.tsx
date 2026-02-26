@@ -46,6 +46,7 @@ import {
   useCarrierBenchmark,
   type ScorecardSortKey,
 } from './CarrierPhase3';
+import { ProviderEnterprise } from './ProviderEnterprise';
 
 interface ReportsDashboardPanelProps {
   panel: PanelType;
@@ -2351,95 +2352,30 @@ export const ReportsDashboardPanel: React.FC<ReportsDashboardPanelProps> = ({ pa
       )}
 
       {/* ── PRESTADOR DE SERVIÇOS ─────────────────────────────────────── */}
-      {isPrestador && prestadorHero && (
+      {isPrestador && (
         <>
-          <HeroFinanceBlock
-            label="Faturamento Bruto"
-            value={prestadorHero.value}
-            subtitle={prestadorHero.subtitle}
-            secondary={prestadorHero.secondary}
-            isLoading={isLoading}
-          />
+          {prestadorHero && (
+            <HeroFinanceBlock
+              label="Faturamento Bruto"
+              value={prestadorHero.value}
+              subtitle={prestadorHero.subtitle}
+              secondary={prestadorHero.secondary}
+              isLoading={isLoading}
+            />
+          )}
 
           <div className="space-y-3">
             <SectionTitle icon={Activity} title="Operacional" subtitle="Volume, eficiência e avaliação" />
             <OperationalGrid items={prestadorOp} isLoading={isLoading} />
           </div>
 
-          <div className="space-y-3">
-            <SectionTitle icon={BarChart3} title="Análise gráfica" subtitle="Evolução e comparativos" />
-            {prestadorCharts.length > 0 ? (
-              <ReportCharts charts={prestadorCharts} isLoading={isLoading} columns={2} />
-            ) : isLoading ? (
-              <ReportCharts charts={[]} isLoading={true} columns={2} />
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {[
-                  'Receita por mês',
-                  'Serviços por categoria',
-                  'Status dos serviços',
-                  'Top cidades',
-                ].map((title) => (
-                  <Card key={title}>
-                    <CardHeader>
-                      <CardTitle className="text-base">{title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                        Sem dados para exibir
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {!isLoading && tables?.extrato_servicos?.length > 0 && (
-            <div className="space-y-3">
-              <SectionTitle icon={DollarSign} title="Extrato de serviços" subtitle="Histórico detalhado por serviço" />
-              <Card className="rounded-2xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        <TableHead className="text-xs font-semibold">Data</TableHead>
-                        <TableHead className="text-xs font-semibold">Serviço</TableHead>
-                        <TableHead className="text-xs font-semibold hidden sm:table-cell">Categoria</TableHead>
-                        <TableHead className="text-xs font-semibold hidden sm:table-cell">Avaliação</TableHead>
-                        <TableHead className="text-xs font-semibold text-right">Valor</TableHead>
-                        <TableHead className="text-xs font-semibold text-center">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tables.extrato_servicos.map((row: any, i: number) => (
-                        <TableRow key={i} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {row.data ? format(new Date(row.data), 'dd/MM/yy', { locale: ptBR }) : '—'}
-                          </TableCell>
-                          <TableCell className="text-xs max-w-[120px] sm:max-w-none truncate">
-                            {row.titulo || row.service_type || '—'}
-                          </TableCell>
-                          <TableCell className="text-xs hidden sm:table-cell text-muted-foreground">
-                            {row.categoria || row.category || '—'}
-                          </TableCell>
-                          <TableCell className="text-xs hidden sm:table-cell text-center">
-                            {row.avaliacao ? `${Number(row.avaliacao).toFixed(1)} ★` : '—'}
-                          </TableCell>
-                          <TableCell className="text-xs text-right font-semibold text-[#16a34a] whitespace-nowrap">
-                            {row.receita ? formatBRL(Number(row.receita)) : '—'}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <StatusBadge status={row.status || ''} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </Card>
-            </div>
-          )}
+          <ProviderEnterprise
+            kpis={kpis}
+            charts={charts}
+            tables={tables}
+            isLoading={isLoading}
+            dateRange={dateRange}
+          />
         </>
       )}
 
