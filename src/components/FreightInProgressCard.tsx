@@ -5,26 +5,30 @@
  * Usado em múltiplos dashboards (Produtor, Motorista, Transportadora).
  * Inclui abas para Detalhes e Mapa em tempo real.
  * 
- * CORRIGIDO: Usa useRequesterStatus para determinar corretamente
- * se o solicitante é cadastrado ou convidado.
+ * ✅ REDESIGN: Alinhado com o visual do FreightCard (dot-line, 3-col grid, service icon header).
  */
 
-import React, { useState, lazy, Suspense, useEffect, useRef } from 'react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import React, { useState, lazy, Suspense, useMemo, useRef } from 'react';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2, User, Users } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import {
+  MapPin, Truck, Clock, Calendar, Package, Wrench, Home,
+  Map, FileText, Loader2, User, Users, Bike, DollarSign,
+  TrendingUp, TrendingDown, AlertTriangle,
+} from 'lucide-react';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
 import { MultiDriversList } from '@/components/freight/MultiDriversList';
-import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus } from '@/lib/freight-status';
-import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState } from '@/lib/formatters';
+import { normalizeFreightStatus } from '@/lib/freight-status';
+import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState, getPricePerTruck } from '@/lib/formatters';
 import { SafeStatusBadge } from '@/components/security';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
-import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { useRequesterStatus } from '@/hooks/useRequesterStatus';
 import { useAuth } from '@/hooks/useAuth';
+import { differenceInDays, differenceInHours } from 'date-fns';
 
 // Lazy load do mapa MapLibre para performance (100% gratuito, sem Google Maps)
 const FreightRealtimeMap = lazy(() => 
@@ -136,20 +140,15 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   serviceWorkflowActions,
 }) => {
   const { profile } = useAuth();
-  // ✅ Regra de exibição de valores:
-  // - Motorista: NUNCA pode ver o total (somente /carreta)
-  // - Produtor: pode ver total (linha secundária)
-  // - Transportadora: frequentemente precisa ver o total do contrato; mostramos total como valor principal
   const viewerRole = profile?.role;
   const canShowTotalFreightValue = viewerRole === 'PRODUTOR' || viewerRole === 'TRANSPORTADORA';
   const preferTotalAsPrimary = viewerRole === 'TRANSPORTADORA';
 
   const [activeTab, setActiveTab] = useState<string>('details');
   const [mapMounted, setMapMounted] = useState(false);
-  const [mapKey, setMapKey] = useState(0); // ✅ Key para forçar re-render do mapa
+  const [mapKey, setMapKey] = useState(0);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
-  // ✅ NOVO: Hook para verificar status do solicitante
   const requesterStatus = useRequesterStatus(freight.id, {
     producer: freight.producer,
     isGuestFreight: freight.is_guest_freight,
@@ -157,513 +156,528 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
     autoFetch: true,
   });
 
-  // GPS precision indicator
-  const precisionInfo = React.useMemo(() => {
-    const originReal = freight.origin_lat !== null && freight.origin_lat !== undefined && 
-                       freight.origin_lng !== null && freight.origin_lng !== undefined;
-    const destReal = freight.destination_lat !== null && freight.destination_lat !== undefined && 
-                     freight.destination_lng !== null && freight.destination_lng !== undefined;
-    
-    if (originReal && destReal) {
-      return {
-        isAccurate: true,
-        icon: '📍',
-        tooltip: 'Distância calculada com GPS preciso'
-      };
-    }
-    
-    return {
-      isAccurate: false,
-      icon: '📌',
-      tooltip: 'Distância estimada por endereço'
-    };
-  }, [freight.origin_lat, freight.origin_lng, freight.destination_lat, freight.destination_lng]);
-
   const isHighlighted = highlightFreightId === freight.id;
 
-  // Verificar se o frete está em andamento (permite mapa)
-  // Inclui LOADED/CARREGADO para que o mapa funcione nesse status também
-  // ✅ CORREÇÃO: Para fretes multi-carreta (OPEN mas com drivers_assigned), 
-  // o produtor deve poder ver a localização dos motoristas já atribuídos
+  // === Status & Map Logic ===
   const normalizedStatus = normalizeFreightStatus(freight.status ?? '');
   const hasAssignedDrivers = Array.isArray(freight.drivers_assigned) && freight.drivers_assigned.length > 0;
   const hasMainDriver = !!freight.driver_id;
   const hasAcceptedTrucks = (freight.accepted_trucks ?? 0) > 0;
-  
-  // ✅ NOVO: Detectar se é frete multi-carreta (múltiplos motoristas)
   const isMultiTruckFreight = (freight.required_trucks ?? 1) > 1;
   const hasMultipleDrivers = hasAssignedDrivers && (freight.drivers_assigned?.length ?? 0) > 1;
-  // Usar mapa multi-motorista se é produtor vendo frete multi-carreta com motoristas
   const shouldUseMultiDriverMap = canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks);
   
   const canShowMap = [
-    'ACCEPTED', 
-    'LOADING', 
-    'LOADED', 
-    'IN_TRANSIT', 
-    'DELIVERED_PENDING_CONFIRMATION'
+    'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'
   ].includes(normalizedStatus) || (normalizedStatus === 'OPEN' && (hasAssignedDrivers || hasMainDriver || hasAcceptedTrucks));
 
   const priceDisplayMode = freight.price_display_mode;
   const originalRequiredTrucks = Math.max((freight.original_required_trucks ?? freight.required_trucks) || 1, 1);
+  const requiredTrucks = freight.required_trucks || 1;
+  const hasMultipleTrucks = requiredTrucks > 1;
 
-  // ✅ Handler para quando a aba mapa é selecionada
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (value === 'map') {
-      if (!mapMounted) {
-        setMapMounted(true);
-      }
-      // ✅ Forçar re-render do mapa para garantir que ele carregue corretamente
-      // quando a aba é selecionada (resolve problema de tela em branco)
-      // Delay maior para garantir que o container esteja visível
-      setTimeout(() => {
-        setMapKey(prev => prev + 1);
-      }, 150);
+  // === Service Icon & Title (from FreightCard) ===
+  const getServiceIcon = () => {
+    switch (freight.service_type) {
+      case 'GUINCHO': return <Wrench className="h-5 w-5 text-warning" />;
+      case 'MUDANCA': return <Home className="h-5 w-5 text-accent" />;
+      case 'FRETE_MOTO': return <Bike className="h-5 w-5 text-blue-500" />;
+      default: return <Package className="h-5 w-5 text-primary" />;
     }
   };
 
-  // ✅ Resolver nome e foto do produtor usando o hook
-  const producerInfo = React.useMemo(() => {
-    // Prioridade 1: Dados locais do freight.producer
+  const getServiceLabel = () => {
+    switch (freight.service_type) {
+      case 'GUINCHO': return 'Guincho';
+      case 'MUDANCA': return 'Mudança';
+      case 'FRETE_MOTO': return 'Frete Moto';
+      default: return 'Carga';
+    }
+  };
+
+  // === Pickup countdown (from FreightCard) ===
+  const pickupRemaining = useMemo(() => {
+    if (!freight.pickup_date) return null;
+    const now = new Date();
+    const pickup = new Date(freight.pickup_date);
+    const days = differenceInDays(pickup, now);
+    if (days > 1) return `Coleta em ${days} dias`;
+    if (days === 1) return 'Coleta amanhã';
+    if (days === 0) return 'Coleta hoje';
+    const hours = differenceInHours(pickup, now);
+    if (hours > 0) return `Coleta em ${hours}h`;
+    return 'Coleta atrasada';
+  }, [freight.pickup_date]);
+
+  const pickupIsUrgent = useMemo(() => {
+    if (!freight.pickup_date) return false;
+    return differenceInDays(new Date(freight.pickup_date), new Date()) <= 1;
+  }, [freight.pickup_date]);
+
+  // === R$/km (from FreightCard) ===
+  const distKmNum = parseFloat(String(freight.distance_km ?? 0).replace(/[^\d.]/g, "")) || 0;
+  const estimatedHours = distKmNum > 0 ? Math.round(distKmNum / 60) : null;
+
+  const pricePerKmCalc = useMemo(() => {
+    if (distKmNum <= 0) return null;
+    const unitPrice = hasMultipleTrucks ? getPricePerTruck(freight.price || 0, requiredTrucks) : (freight.price || 0);
+    return unitPrice / distKmNum;
+  }, [freight.price, distKmNum, requiredTrucks, hasMultipleTrucks]);
+
+  const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
+  const rpmIcon = pricePerKmCalc === null ? null : pricePerKmCalc >= 6 ? <TrendingUp className="h-3 w-3" /> : pricePerKmCalc < 4 ? <TrendingDown className="h-3 w-3" /> : null;
+
+  // === Producer Info ===
+  const producerInfo = useMemo(() => {
     if (freight.producer?.full_name) {
-      return {
-        name: freight.producer.full_name,
-        photoUrl: freight.producer.profile_photo_url || null,
-        hasRegistration: true,
-      };
+      return { name: freight.producer.full_name, photoUrl: freight.producer.profile_photo_url || null, hasRegistration: true };
     }
-    
-    // Prioridade 2: Dados do hook useRequesterStatus
     if (requesterStatus.hasRegistration && requesterStatus.producerName) {
-      return {
-        name: requesterStatus.producerName,
-        photoUrl: requesterStatus.producerPhotoUrl,
-        hasRegistration: true,
-      };
+      return { name: requesterStatus.producerName, photoUrl: requesterStatus.producerPhotoUrl, hasRegistration: true };
     }
-    
-    // Prioridade 3: É um frete de convidado
     if (requesterStatus.type === 'GUEST' || freight.is_guest_freight) {
-      return {
-        name: 'Solicitante não cadastrado',
-        photoUrl: null,
-        hasRegistration: false,
-      };
+      return { name: 'Solicitante não cadastrado', photoUrl: null, hasRegistration: false };
     }
-    
-    // Loading ou desconhecido
     if (requesterStatus.isLoading) {
-      return {
-        name: 'Carregando...',
-        photoUrl: null,
-        hasRegistration: false,
-      };
+      return { name: 'Carregando...', photoUrl: null, hasRegistration: false };
     }
-    
-    // Fallback: Produtor não identificado (mas não é guest)
-    return {
-      name: 'Produtor não identificado',
-      photoUrl: null,
-      hasRegistration: requesterStatus.hasRegistration,
-    };
+    return { name: 'Produtor não identificado', photoUrl: null, hasRegistration: requesterStatus.hasRegistration };
   }, [freight.producer, freight.is_guest_freight, requesterStatus]);
 
-  return (
-    <Card className={cn(
-      "h-full flex flex-col border-l-4 hover:shadow-lg transition-all overflow-hidden",
-      isHighlighted ? "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl ring-2 ring-yellow-400" : "border-l-primary"
-    )}>
-      <CardHeader className="pb-2 min-h-[100px] overflow-x-auto">
-        <div className="min-w-fit">
-          {/* Origem → Destino */}
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-semibold text-sm whitespace-nowrap">
-              {freight.origin_city && freight.origin_state
-                ? formatCityState(freight.origin_city, freight.origin_state)
-                : 'Carregando origem...'}
-            </p>
-            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <p className="font-semibold text-sm whitespace-nowrap">
-              {freight.destination_city && freight.destination_state
-                ? formatCityState(freight.destination_city, freight.destination_state)
-                : 'Carregando destino...'}
+  // === Tab handler ===
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'map') {
+      if (!mapMounted) setMapMounted(true);
+      setTimeout(() => setMapKey(prev => prev + 1), 150);
+    }
+  };
+
+  // === Price display logic ===
+  const renderPrice = () => {
+    if (priceDisplayMode === 'PER_TRUCK') {
+      const unitPrice = typeof freight.price === 'number' && Number.isFinite(freight.price) ? freight.price : 0;
+      const totalFromUnit = unitPrice * Math.max(originalRequiredTrucks || 1, 1);
+
+      if (preferTotalAsPrimary && originalRequiredTrucks > 1) {
+        return (
+          <div>
+            <p className="font-bold text-xl text-primary">{formatBRL(totalFromUnit, true)}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {formatBRL(unitPrice, true)}<span className="font-semibold">/carreta</span>
+              <span className="ml-1">({originalRequiredTrucks} carretas)</span>
             </p>
           </div>
+        );
+      }
+      return (
+        <p className="font-bold text-xl text-primary">
+          {formatBRL(unitPrice, true)}
+          {originalRequiredTrucks > 1 && <span className="text-xs font-semibold text-muted-foreground">/carreta</span>}
+        </p>
+      );
+    }
 
-          {/* Endereços detalhados (coleta e entrega) */}
-          {(freight.origin_address || freight.destination_address) && (
-            <div className="text-xs text-muted-foreground space-y-0.5 mb-1">
-              {freight.origin_address && (
-                <p className="truncate" title={freight.origin_address}>📍 Coleta: {freight.origin_address}</p>
-              )}
-              {freight.destination_address && (
-                <p className="truncate" title={freight.destination_address}>🏁 Entrega: {freight.destination_address}</p>
-              )}
+    const priceInfo = formatPricePerTruck(freight.price, freight.required_trucks, true);
+    if (priceInfo.hasMultipleTrucks) {
+      if (preferTotalAsPrimary) {
+        return (
+          <div>
+            <p className="font-bold text-xl text-primary">{priceInfo.totalPrice}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {priceInfo.pricePerTruck}<span className="font-semibold">/carreta</span>
+              <span className="ml-1">({priceInfo.trucksCount} carretas)</span>
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div>
+          <p className="font-bold text-xl text-primary">
+            {priceInfo.pricePerTruck}<span className="text-xs font-semibold text-muted-foreground">/carreta</span>
+          </p>
+          {canShowTotalFreightValue && (
+            <p className="text-[10px] text-muted-foreground">
+              Total ({priceInfo.trucksCount} carretas): {priceInfo.totalPrice}
+            </p>
+          )}
+        </div>
+      );
+    }
+    return <p className="font-bold text-xl text-primary">{formatBRL(freight.price, true)}</p>;
+  };
+
+  return (
+    <TooltipProvider>
+      <Card
+        className={cn(
+          "h-full flex flex-col hover:shadow-lg transition-all duration-300 border-2 rounded-xl overflow-hidden bg-card",
+          isHighlighted
+            ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl ring-2 ring-yellow-400"
+            : "border-border"
+        )}
+        style={{ boxShadow: '0 2px 8px hsl(var(--foreground) / 0.06)' }}
+      >
+        {/* ── HEADER: Service Icon + Title + Status ── */}
+        <CardHeader className="pb-2 pt-4 px-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {getServiceIcon()}
+              <div className="min-w-0">
+                <h3 className="font-bold text-foreground text-base truncate">{getServiceLabel()}</h3>
+                {pickupRemaining && (
+                  <p className={`text-xs mt-0.5 ${pickupIsUrgent ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                    {pickupIsUrgent && <AlertTriangle className="h-3 w-3 inline mr-1" />}
+                    {pickupRemaining}
+                  </p>
+                )}
+              </div>
+            </div>
+            {/* Status badge — accent zone */}
+            <SafeStatusBadge
+              status={freight.status}
+              type="freight"
+              className="whitespace-nowrap shrink-0"
+            />
+          </div>
+
+          {/* Vagas (multi-carreta) */}
+          {hasMultipleTrucks && (
+            <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-md bg-secondary/40 border border-border/30">
+              <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">
+                {freight.accepted_trucks || 0}/{freight.required_trucks} carretas
+              </span>
             </div>
           )}
 
-          {/* Container para badges e informações */}
-          <div className="flex items-start justify-between gap-3 mt-3">
-            {/* Pílulas: peso, distância (com precisão GPS), data */}
-            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0">
-                <Truck className="h-3.5 w-3.5 text-primary" />
-                <span>{formatTons(freight.weight)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0" title={precisionInfo.tooltip}>
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                <span>{formatKm(typeof freight.distance_km === 'number' ? freight.distance_km : 0)}</span>
-                <span className="text-[10px]">{precisionInfo.icon}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0">
-                <Clock className="h-3.5 w-3.5 text-warning" />
-                <span>{formatDate(freight.pickup_date)}</span>
-              </div>
-              {/* Badge de capacidade máxima para moto */}
-              {freight.service_type === 'FRETE_MOTO' && (
-                <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300 shrink-0">
-                  <Bike className="h-3 w-3 mr-1" />
-                  Máx. 500kg
-                </Badge>
-              )}
-            </div>
-
-            {/* Status e Preço no lado direito */}
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              {/* ✅ SEGURANÇA: SafeStatusBadge - NUNCA renderiza string crua */}
-              <SafeStatusBadge
-                status={freight.status}
-                type="freight"
-                className="whitespace-nowrap"
-              />
-              
-              {/* Badge de dias até coleta */}
-              {(() => {
-                const badgeInfo = getPickupDateBadge(freight.pickup_date);
-                
-                if (!badgeInfo) return null;
-                
-                const iconMap = {
-                  AlertTriangle,
-                  Clock,
-                  Calendar
-                };
-                const IconComponent = iconMap[badgeInfo.icon];
-                
-                return (
-                  <Badge variant={badgeInfo.variant} className="text-xs whitespace-nowrap flex items-center gap-1 justify-end">
-                    <IconComponent className="h-3 w-3" />
-                    {badgeInfo.text}
-                  </Badge>
-                );
-              })()}
-            
-              {(() => {
-                // ✅ Segurança (Motorista): quando o preço já é unitário, nunca exibir total.
-                if (priceDisplayMode === 'PER_TRUCK') {
-                  const unitPrice = typeof freight.price === 'number' && Number.isFinite(freight.price) ? freight.price : 0;
-                  const totalFromUnit = unitPrice * Math.max(originalRequiredTrucks || 1, 1);
-
-                  // ✅ Transportadora: exibir TOTAL como primário e /carreta como secundário
-                  if (preferTotalAsPrimary && originalRequiredTrucks > 1) {
-                    return (
-                      <div className="flex flex-col items-end">
-                        <p className="font-bold text-lg text-primary whitespace-nowrap">
-                          {formatBRL(totalFromUnit, true)}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {formatBRL(unitPrice, true)}
-                          <span className="font-semibold">/carreta</span>
-                          <span className="ml-1">({originalRequiredTrucks} carretas)</span>
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <p className="font-bold text-lg text-primary whitespace-nowrap">
-                      {formatBRL(unitPrice, true)}
-                      {originalRequiredTrucks > 1 && (
-                        <span className="text-xs font-semibold text-muted-foreground">/carreta</span>
-                      )}
-                    </p>
-                  );
-                }
-
-                const priceInfo = formatPricePerTruck(freight.price, freight.required_trucks, true);
-
-                if (priceInfo.hasMultipleTrucks) {
-                  // ✅ Transportadora: exibir TOTAL como primário e /carreta como secundário
-                  if (preferTotalAsPrimary) {
-                    return (
-                      <div className="flex flex-col items-end">
-                        <p className="font-bold text-lg text-primary whitespace-nowrap">
-                          {priceInfo.totalPrice}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {priceInfo.pricePerTruck}
-                          <span className="font-semibold">/carreta</span>
-                          <span className="ml-1">({priceInfo.trucksCount} carretas)</span>
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="flex flex-col items-end">
-                      <p className="font-bold text-lg text-primary whitespace-nowrap">
-                        {priceInfo.pricePerTruck}
-                        <span className="text-xs font-semibold text-muted-foreground">/carreta</span>
-                      </p>
-                      {canShowTotalFreightValue && (
-                        <p className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          Total ({priceInfo.trucksCount} carretas): {priceInfo.totalPrice}
-                        </p>
-                      )}
-                    </div>
-                  );
-                }
-
-                return (
-                  <p className="font-bold text-lg text-primary whitespace-nowrap">
-                    {formatBRL(freight.price, true)}
-                  </p>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Deadline indicator */}
+          {/* Delivery deadline indicator */}
           {freight.deliveryDeadline && (
             <div className={cn(
               "flex items-center gap-1 px-2 py-1 rounded text-xs font-bold mt-2",
-              freight.deliveryDeadline.isCritical && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-              freight.deliveryDeadline.isUrgent && !freight.deliveryDeadline.isCritical && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+              freight.deliveryDeadline.isCritical && "bg-destructive/10 text-destructive",
+              freight.deliveryDeadline.isUrgent && !freight.deliveryDeadline.isCritical && "bg-warning/10 text-warning",
               !freight.deliveryDeadline.isUrgent && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
             )}>
               <Clock className="h-3 w-3" />
               {freight.deliveryDeadline.displayText}
             </div>
           )}
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="flex flex-col gap-2 flex-1 pt-0 overflow-hidden">
-        {/* Abas: Detalhes e Mapa */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 h-9">
-            <TabsTrigger value="details" className="text-xs flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Detalhes
-            </TabsTrigger>
-            <TabsTrigger 
-              value="map" 
-              className="text-xs flex items-center gap-1.5"
-              disabled={!canShowMap}
-            >
-              <Map className="h-3.5 w-3.5" />
-              Mapa
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="details" className="flex-1 flex flex-col mt-2 space-y-3 overflow-y-auto max-h-[300px]">
-            {/* ✅ PRODUTOR vendo MOTORISTAS: Mostrar lista completa de todos os motoristas */}
-            {canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks) ? (
-              <>
-                {/* Indicador de capacidade */}
-                <div className="flex items-center justify-between text-sm bg-muted/50 rounded-lg p-2">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Motoristas</span>
+        {/* ── CONTENT: Route + Specs + Grid + Tabs ── */}
+        <CardContent className="px-4 py-3 space-y-3 flex-1 flex flex-col">
+          {/* Origem → Destino with dot-line (from FreightCard) */}
+          <div className="flex gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+            {/* Dot line vertical */}
+            <div className="flex flex-col items-center pt-1">
+              <div className="h-3 w-3 rounded-full border-2 border-primary/60 bg-card" />
+              <div className="w-0.5 flex-1 bg-gradient-to-b from-primary/40 to-accent/40 my-0.5 min-h-[14px]" />
+              <div className="h-3 w-3 rounded-full bg-accent" />
+            </div>
+            {/* Cities */}
+            <div className="flex-1 min-w-0 space-y-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground truncate cursor-default">
+                      {freight.origin_city && freight.origin_state
+                        ? formatCityState(freight.origin_city, freight.origin_state)
+                        : 'Carregando origem...'}
+                    </p>
+                    {freight.origin_address && (
+                      <p className="text-[11px] text-muted-foreground truncate">📍 {freight.origin_address}</p>
+                    )}
                   </div>
-                  <Badge variant="secondary">
-                    {freight.accepted_trucks ?? freight.drivers_assigned?.length ?? 0} / {freight.required_trucks ?? 1} carretas
-                  </Badge>
-                </div>
-                
-                {/* Lista completa de motoristas com status individual e veículos */}
-                <MultiDriversList freightId={freight.id} />
-              </>
-            ) : (
-              /* Layout original para frete de 1 carreta ou motorista vendo produtor */
+                </TooltipTrigger>
+                {freight.origin_address && (
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-xs">{freight.origin_address}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground truncate cursor-default">
+                      {freight.destination_city && freight.destination_state
+                        ? formatCityState(freight.destination_city, freight.destination_state)
+                        : 'Carregando destino...'}
+                    </p>
+                    {freight.destination_address && (
+                      <p className="text-[11px] text-muted-foreground truncate">🏁 {freight.destination_address}</p>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                {freight.destination_address && (
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="text-xs">{freight.destination_address}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Specs line (from FreightCard) */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap px-1">
+            <MapPin className="h-3 w-3 text-muted-foreground/60" />
+            <span className="font-medium">{formatKm(distKmNum)}</span>
+            {estimatedHours !== null && (
               <>
-                {/* Grid de informações */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {/* Coluna 1: Motorista OU Produtor (depende de quem está vendo) */}
-                  <div className="min-w-0">
-                    {/* ✅ CORRIGIDO: Usa producerInfo do hook para exibição correta */}
-                    {/* Se temos producer_id ou producer object, é contexto de motorista vendo produtor */}
+                <span className="text-border">•</span>
+                <Clock className="h-3 w-3 text-muted-foreground/60" />
+                <span>~{estimatedHours}h</span>
+              </>
+            )}
+            {freight.service_type !== 'GUINCHO' && freight.service_type !== 'MUDANCA' && (
+              <>
+                <span className="text-border">•</span>
+                <span>{formatTons(freight.weight)}</span>
+              </>
+            )}
+          </div>
+
+          {/* 3-column grid: Coleta | Peso | R$/km (from FreightCard) */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-2.5 bg-secondary/40 rounded-lg text-center border border-border/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Calendar className="h-3 w-3 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Coleta</p>
+              </div>
+              <p className="text-xs font-bold text-foreground">{formatDate(freight.pickup_date)}</p>
+            </div>
+            <div className="p-2.5 bg-secondary/40 rounded-lg text-center border border-border/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Peso</p>
+              </div>
+              <p className="text-xs font-bold text-foreground">{formatTons(freight.weight)}</p>
+            </div>
+            {/* R$/km — semantic color */}
+            <div className={`p-2.5 rounded-lg text-center border ${
+              pricePerKmCalc !== null && pricePerKmCalc >= 6
+                ? 'bg-primary/10 border-primary/20'
+                : pricePerKmCalc !== null && pricePerKmCalc < 4
+                  ? 'bg-destructive/10 border-destructive/20'
+                  : 'bg-warning/10 border-warning/20'
+            }`}>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <DollarSign className="h-3 w-3 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">R$/km</p>
+              </div>
+              <p className={`text-xs font-bold flex items-center justify-center gap-0.5 ${rpmColor}`}>
+                {rpmIcon}
+                {pricePerKmCalc !== null
+                  ? `R$${pricePerKmCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : '—'}
+              </p>
+            </div>
+          </div>
+
+          {/* Abas: Detalhes e Mapa */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-2 h-9">
+              <TabsTrigger value="details" className="text-xs flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Detalhes
+              </TabsTrigger>
+              <TabsTrigger 
+                value="map" 
+                className="text-xs flex items-center gap-1.5"
+                disabled={!canShowMap}
+              >
+                <Map className="h-3.5 w-3.5" />
+                Mapa
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details" className="flex-1 flex flex-col mt-2 space-y-3 overflow-y-auto max-h-[300px]">
+              {/* Multi-driver list for producer */}
+              {canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks) ? (
+                <>
+                  <div className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg p-2 border border-border/20">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span className="font-medium">Motoristas</span>
+                    </div>
+                    <Badge variant="secondary">
+                      {freight.accepted_trucks ?? freight.drivers_assigned?.length ?? 0} / {freight.required_trucks ?? 1} carretas
+                    </Badge>
+                  </div>
+                  <MultiDriversList freightId={freight.id} />
+                </>
+              ) : (
+                <>
+                  {/* Driver / Producer info */}
+                  <div className="p-3 rounded-lg bg-secondary/20 border border-border/20">
                     {(freight.producer_id || freight.producer) ? (
-                      <>
-                        <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                          Produtor
-                        </p>
-                        <div className="flex items-center gap-2">
-                          {producerInfo.photoUrl ? (
-                            <img 
-                              src={producerInfo.photoUrl} 
-                              alt="Foto do produtor"
-                              className="h-6 w-6 rounded-full object-cover border"
-                              onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                            />
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                              <User className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                          )}
+                      <div className="flex items-center gap-3">
+                        {producerInfo.photoUrl ? (
+                          <img 
+                            src={producerInfo.photoUrl} 
+                            alt="Foto do produtor"
+                            className="h-8 w-8 rounded-full object-cover border-2 border-primary/20"
+                            onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Produtor</p>
                           <p className={cn(
-                            "truncate whitespace-nowrap",
+                            "text-sm font-semibold truncate",
                             producerInfo.hasRegistration ? "text-foreground" : "text-muted-foreground italic"
                           )}>
                             {producerInfo.name}
                           </p>
                         </div>
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                          {LABELS.MOTORISTA_LABEL}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          {freight.driver_profiles?.profile_photo_url ? (
-                            <img 
-                              src={freight.driver_profiles.profile_photo_url} 
-                              alt="Foto do motorista"
-                              className="h-6 w-6 rounded-full object-cover border"
-                              onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                            />
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                              <User className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="text-foreground truncate whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        {freight.driver_profiles?.profile_photo_url ? (
+                          <img 
+                            src={freight.driver_profiles.profile_photo_url} 
+                            alt="Foto do motorista"
+                            className="h-8 w-8 rounded-full object-cover border-2 border-primary/20"
+                            onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{LABELS.MOTORISTA_LABEL}</p>
+                          <p className="text-sm font-semibold text-foreground truncate">
                             {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
                           </p>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-                      {LABELS.PESO_LABEL}
-                    </p>
-                    <p className="text-foreground truncate whitespace-nowrap">
-                      {formatTons(freight.weight)}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Preview do veículo do motorista */}
-                {(freight.driver_id || (freight.drivers_assigned && freight.drivers_assigned.length > 0)) && (
-                  <DriverVehiclePreview 
-                    driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')}
-                    freightId={freight.id}
-                  />
-                )}
-              </>
-            )}
-
-            {/* Botões de ação - padrão ou customizado para serviços */}
-            {serviceWorkflowActions ? (
-              <div className="mt-auto pt-3 space-y-2">
-                {serviceWorkflowActions}
-              </div>
-            ) : showActions && (
-              <div className="mt-auto grid grid-cols-2 gap-3 pt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onViewDetails}
-                  className="w-full"
-                >
-                  {LABELS.VER_DETALHES}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={onRequestCancel}
-                  className="w-full"
-                >
-                  {LABELS.CANCELAR}
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent 
-            value="map" 
-            className="mt-2" 
-            style={{ minHeight: '280px' }}
-            ref={tabsContainerRef}
-          >
-            {mapMounted && activeTab === 'map' && (
-              <MapErrorBoundary>
-                <Suspense fallback={
-                  <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                      <span className="text-sm">Carregando mapa...</span>
-                    </div>
-                  </div>
-                }>
-                  {/* ✅ NOVO: Usar mapa multi-motorista para fretes multi-carreta do produtor */}
-                  {shouldUseMultiDriverMap ? (
-                    <MultiDriverMap
-                      key={`multi-map-${freight.id}-${mapKey}`}
+                  {/* Vehicle preview */}
+                  {(freight.driver_id || (freight.drivers_assigned && freight.drivers_assigned.length > 0)) && (
+                    <DriverVehiclePreview 
+                      driverId={freight.driver_id || (freight.drivers_assigned?.[0] ?? '')}
                       freightId={freight.id}
-                      originLat={freight.origin_lat}
-                      originLng={freight.origin_lng}
-                      destinationLat={freight.destination_lat}
-                      destinationLng={freight.destination_lng}
-                      originCity={freight.origin_city}
-                      originState={freight.origin_state}
-                      destinationCity={freight.destination_city}
-                      destinationState={freight.destination_state}
-                    />
-                  ) : (
-                    <FreightRealtimeMap
-                      key={`map-${freight.id}-${mapKey}`}
-                      freightId={freight.id}
-                      originLat={freight.origin_lat}
-                      originLng={freight.origin_lng}
-                      destinationLat={freight.destination_lat}
-                      destinationLng={freight.destination_lng}
-                      originCity={freight.origin_city}
-                      originState={freight.origin_state}
-                      destinationCity={freight.destination_city}
-                      destinationState={freight.destination_state}
-                      initialDriverLat={freight.current_lat}
-                      initialDriverLng={freight.current_lng}
-                      lastLocationUpdate={freight.last_location_update}
                     />
                   )}
-                </Suspense>
-              </MapErrorBoundary>
-            )}
-            {!mapMounted && (
-              <Button
-                variant="outline"
-                className="w-full h-[280px] flex flex-col items-center justify-center gap-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                onClick={() => {
-                  setMapMounted(true);
-                  setMapKey(prev => prev + 1);
-                }}
-              >
-                <Map className="h-10 w-10 text-primary opacity-70" />
-                <span className="text-sm font-medium">Clique para abrir o mapa</span>
-              </Button>
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+                </>
+              )}
+
+              {/* Service workflow actions or standard buttons */}
+              {serviceWorkflowActions ? (
+                <div className="mt-auto pt-3 space-y-2">
+                  {serviceWorkflowActions}
+                </div>
+              ) : showActions && (
+                <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onViewDetails}
+                    className="w-full border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    {LABELS.VER_DETALHES}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={onRequestCancel}
+                    className="w-full"
+                  >
+                    {LABELS.CANCELAR}
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent 
+              value="map" 
+              className="mt-2" 
+              style={{ minHeight: '280px' }}
+              ref={tabsContainerRef}
+            >
+              {mapMounted && activeTab === 'map' && (
+                <MapErrorBoundary>
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span className="text-sm">Carregando mapa...</span>
+                      </div>
+                    </div>
+                  }>
+                    {shouldUseMultiDriverMap ? (
+                      <MultiDriverMap
+                        key={`multi-map-${freight.id}-${mapKey}`}
+                        freightId={freight.id}
+                        originLat={freight.origin_lat}
+                        originLng={freight.origin_lng}
+                        destinationLat={freight.destination_lat}
+                        destinationLng={freight.destination_lng}
+                        originCity={freight.origin_city}
+                        originState={freight.origin_state}
+                        destinationCity={freight.destination_city}
+                        destinationState={freight.destination_state}
+                      />
+                    ) : (
+                      <FreightRealtimeMap
+                        key={`map-${freight.id}-${mapKey}`}
+                        freightId={freight.id}
+                        originLat={freight.origin_lat}
+                        originLng={freight.origin_lng}
+                        destinationLat={freight.destination_lat}
+                        destinationLng={freight.destination_lng}
+                        originCity={freight.origin_city}
+                        originState={freight.origin_state}
+                        destinationCity={freight.destination_city}
+                        destinationState={freight.destination_state}
+                        initialDriverLat={freight.current_lat}
+                        initialDriverLng={freight.current_lng}
+                        lastLocationUpdate={freight.last_location_update}
+                      />
+                    )}
+                  </Suspense>
+                </MapErrorBoundary>
+              )}
+              {!mapMounted && (
+                <Button
+                  variant="outline"
+                  className="w-full h-[280px] flex flex-col items-center justify-center gap-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                  onClick={() => {
+                    setMapMounted(true);
+                    setMapKey(prev => prev + 1);
+                  }}
+                >
+                  <Map className="h-10 w-10 text-primary opacity-70" />
+                  <span className="text-sm font-medium">Clique para abrir o mapa</span>
+                </Button>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        {/* ── FOOTER: Price (from FreightCard style) ── */}
+        <CardFooter className="px-4 py-3 border-t border-border/40 bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="flex items-center justify-between w-full">
+            {renderPrice()}
+            <SafeStatusBadge
+              status={freight.status}
+              type="freight"
+              className="text-[10px]"
+            />
+          </div>
+        </CardFooter>
+      </Card>
+    </TooltipProvider>
   );
 };
 
 // ✅ Memoização para evitar re-renders desnecessários em listas
-// Não comparar callbacks (onViewDetails, onRequestCancel) pois são instáveis quando inline
 export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.freight.id === nextProps.freight.id &&
@@ -673,7 +687,6 @@ export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, 
     prevProps.freight.current_lng === nextProps.freight.current_lng &&
     prevProps.showActions === nextProps.showActions &&
     prevProps.highlightFreightId === nextProps.highlightFreightId &&
-    // ✅ Incluir producer para evitar "Solicitante sem cadastro"
     prevProps.freight.producer?.full_name === nextProps.freight.producer?.full_name &&
     prevProps.freight.producer_id === nextProps.freight.producer_id &&
     prevProps.freight.is_guest_freight === nextProps.freight.is_guest_freight &&
