@@ -236,6 +236,10 @@ export const AntifraudPanel: React.FC<AntifraudPanelProps> = ({
               <span className="text-muted-foreground">Alertas:</span>{' '}
               <strong>{data.auditEvents.length}</strong>
             </div>
+            <div>
+              <span className="text-muted-foreground">Pontos GPS:</span>{' '}
+              <strong>{data.trackingPoints}</strong>
+            </div>
           </div>
         </CardContent>
       </Card>

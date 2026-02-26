@@ -92,6 +92,7 @@ export interface AntifraudData {
   timeline: TimelineEvent[];
   indicators: AntifraudIndicators;
   analyzedAt?: string;
+  trackingPoints: number;
 }
 
 interface UseAntifraudDataResult {
@@ -124,6 +125,7 @@ export function useAntifraudData(freightId: string): UseAntifraudDataResult {
         { data: offlineData, error: offlineError },
         { data: deviationsData, error: deviationsError },
         { data: auditData, error: auditError },
+        { count: trackingPointsCount, error: trackingCountError },
       ] = await Promise.all([
         supabase
           .from('freights')
@@ -150,6 +152,10 @@ export function useAntifraudData(freightId: string): UseAntifraudDataResult {
           .select('*')
           .eq('frete_id', freightId)
           .order('created_at', { ascending: false }),
+        supabase
+          .from('driver_location_history')
+          .select('id', { count: 'exact', head: true })
+          .eq('freight_id', freightId),
       ]);
 
       if (freightError) throw freightError;
@@ -245,6 +251,7 @@ export function useAntifraudData(freightId: string): UseAntifraudDataResult {
         timeline,
         indicators,
         analyzedAt: freightData?.antifraud_analyzed_at,
+        trackingPoints: trackingCountError ? 0 : (trackingPointsCount || 0),
       });
     } catch (err: any) {
       console.error('Error fetching antifraud data:', err);
@@ -259,11 +266,18 @@ export function useAntifraudData(freightId: string): UseAntifraudDataResult {
 
     try {
       setLoading(true);
-      const { error } = await supabase.rpc('calculate_freight_antifraud_score', {
+
+      // 1) Executa regras antifraude para gerar eventos reais
+      const { error: rulesError } = await supabase.rpc('run_antifraud_rules', {
         p_freight_id: freightId,
       });
+      if (rulesError) throw rulesError;
 
-      if (error) throw error;
+      // 2) Recalcula score consolidado
+      const { error: scoreError } = await supabase.rpc('calculate_freight_antifraud_score', {
+        p_freight_id: freightId,
+      });
+      if (scoreError) throw scoreError;
 
       // Refetch data after recalculation
       await fetchData();
