@@ -141,6 +141,11 @@ export function useGuaranteedMarketplaceFeed() {
     let freights = Array.isArray(payload?.freights) ? payload.freights : [];
     let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests : [];
 
+    if (import.meta.env.DEV && debug) {
+      console.log('[GuaranteedFeed] RPC freights (antes do filtro):', freights.length);
+      console.log('[GuaranteedFeed] RPC services (antes do filtro):', serviceRequests.length);
+    }
+
     // Blindagem estrita por cidade para perfis individuais (fail-closed)
     // ✅ Busca avançada: skipCityFilter=true pula essa blindagem
     const shouldEnforceStrictCity = !skipCityFilter && (panel === 'MOTORISTA' || panel === 'PRESTADOR_SERVICOS');
