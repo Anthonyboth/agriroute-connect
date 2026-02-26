@@ -944,7 +944,13 @@ const ProducerDashboard = () => {
       // ✅ P0 FIX: Usar contagem do hook de atribuições individuais (suporte multi-carreta)
       pendingConfirmation: pendingDeliveryCount,
       totalValue: freights.reduce((sum, f) => sum + (f.price || 0), 0),
-      pendingProposals: proposals.length,
+      pendingProposals: proposals.filter((p: any) => {
+        const f = p.freight;
+        if (!f) return false;
+        const status = (f.status || '').toUpperCase();
+        const available = (f.required_trucks ?? 1) - (f.accepted_trucks ?? 0);
+        return status === 'OPEN' && available > 0;
+      }).length,
       pendingPayments: totalPendingPayments,
       totalPendingAmount,
     };
