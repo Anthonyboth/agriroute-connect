@@ -202,8 +202,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       const result = await fetchAvailableMarketplaceItems({
         profile,
         roleOverride: driverPanelRole,
-        freightLimit: 80,
-        serviceLimit: 50,
         debug: import.meta.env.DEV,
         filterTypes: marketplaceFilters.selectedTypes.length > 0 ? marketplaceFilters.selectedTypes : undefined,
         filterExpiryBucket: marketplaceFilters.expiryBucket !== 'ALL' ? marketplaceFilters.expiryBucket : undefined,

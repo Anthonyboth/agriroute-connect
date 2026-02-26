@@ -81,6 +81,7 @@ import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
+import { normalizeCity, normalizeCityState } from '@/utils/city-normalization';
 // canProviderHandleService removido - confiar na RPC
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
@@ -614,13 +615,31 @@ export const ServiceProviderDashboard: React.FC = () => {
           cityBasedRequests = [];
         } else {
           const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
-          if (activeCityIds.size === 0) {
+          const activeCityStatePairs = new Set(
+            (userCities || [])
+              .map((uc: any) => {
+                const cityName = uc?.cities?.name || uc?.city_name;
+                const state = uc?.cities?.state || uc?.state;
+                return cityName ? normalizeCityState(normalizeCity(cityName), String(state || '').trim().toUpperCase()) : '';
+              })
+              .filter(Boolean)
+          );
+
+          if (activeCityIds.size === 0 && activeCityStatePairs.size === 0) {
             cityBasedRequests = [];
           } else {
             const beforeCount = cityBasedRequests.length;
             cityBasedRequests = cityBasedRequests.filter((r: any) => {
               const cityId = r?.city_id ? String(r.city_id) : '';
-              return !!cityId && activeCityIds.has(cityId);
+              if (cityId && activeCityIds.has(cityId)) return true;
+
+              const requestCity = r?.city_name || r?.location_city;
+              const requestState = r?.state || r?.location_state;
+              const cityStatePair = requestCity
+                ? normalizeCityState(normalizeCity(String(requestCity)), String(requestState || '').trim().toUpperCase())
+                : '';
+
+              return !!cityStatePair && activeCityStatePairs.has(cityStatePair);
             });
 
             if (import.meta.env.DEV && beforeCount !== cityBasedRequests.length) {

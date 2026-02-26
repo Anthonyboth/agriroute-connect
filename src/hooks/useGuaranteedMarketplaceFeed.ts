@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { ExpiryBucket, SortOption } from '@/components/MarketplaceFilters';
+import { normalizeCity, normalizeCityState } from '@/utils/city-normalization';
 
 type FeedPanelRole = 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
 
@@ -61,6 +62,11 @@ const TRANSPORT_SERVICE_TYPES = [
   'FRETE_MOTO',
 ] as const;
 
+const toComparableCityState = (city?: string | null, state?: string | null): string => {
+  if (!city) return '';
+  return normalizeCityState(normalizeCity(city), String(state || '').trim().toUpperCase());
+};
+
 export function useGuaranteedMarketplaceFeed() {
   const resolveAllowedTransportTypes = useCallback((profile: any): string[] => {
     const profileTypes = new Set<string>((profile?.service_types || []).map((t: string) => String(t).toUpperCase()));
@@ -79,8 +85,8 @@ export function useGuaranteedMarketplaceFeed() {
 
   const fetchAvailableMarketplaceItems = useCallback(async ({
     profile,
-    freightLimit = 80,
-    serviceLimit = 50,
+    freightLimit,
+    serviceLimit,
     debug = false,
     roleOverride,
     filterTypes,
@@ -132,8 +138,8 @@ export function useGuaranteedMarketplaceFeed() {
 
     const payload = (data || {}) as any;
 
-    let freights = Array.isArray(payload?.freights) ? payload.freights.slice(0, freightLimit) : [];
-    let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests.slice(0, serviceLimit) : [];
+    let freights = Array.isArray(payload?.freights) ? payload.freights : [];
+    let serviceRequests = Array.isArray(payload?.service_requests) ? payload.service_requests : [];
 
     // Blindagem estrita por cidade para perfis individuais (fail-closed)
     // ✅ Busca avançada: skipCityFilter=true pula essa blindagem
@@ -141,7 +147,7 @@ export function useGuaranteedMarketplaceFeed() {
     if (shouldEnforceStrictCity) {
       const { data: userCities, error: userCitiesError } = await supabase
         .from('user_cities')
-        .select('city_id')
+        .select('city_id, cities(name, state)')
         .eq('user_id', resolvedUserId)
         .eq('is_active', true);
 
@@ -151,20 +157,39 @@ export function useGuaranteedMarketplaceFeed() {
         serviceRequests = [];
       } else {
         const activeCityIds = new Set((userCities || []).map((uc: any) => String(uc.city_id)).filter(Boolean));
-        if (activeCityIds.size === 0) {
+        const activeCityStatePairs = new Set(
+          (userCities || [])
+            .map((uc: any) => toComparableCityState(uc?.cities?.name, uc?.cities?.state))
+            .filter(Boolean)
+        );
+
+        if (activeCityIds.size === 0 && activeCityStatePairs.size === 0) {
           freights = [];
           serviceRequests = [];
         } else {
           freights = freights.filter((f: any) => {
             const originCityId = f?.origin_city_id ? String(f.origin_city_id) : '';
-            return !!originCityId && activeCityIds.has(originCityId);
+            if (originCityId && activeCityIds.has(originCityId)) return true;
+            const originCityState = toComparableCityState(f?.origin_city, f?.origin_state);
+            return !!originCityState && activeCityStatePairs.has(originCityState);
           });
+
           serviceRequests = serviceRequests.filter((s: any) => {
             const cityId = s?.city_id ? String(s.city_id) : '';
-            return !!cityId && activeCityIds.has(cityId);
+            if (cityId && activeCityIds.has(cityId)) return true;
+            const requestCityState = toComparableCityState(s?.city_name || s?.location_city, s?.state || s?.location_state);
+            return !!requestCityState && activeCityStatePairs.has(requestCityState);
           });
         }
       }
+    }
+
+    if (typeof freightLimit === 'number' && freightLimit > 0) {
+      freights = freights.slice(0, freightLimit);
+    }
+
+    if (typeof serviceLimit === 'number' && serviceLimit > 0) {
+      serviceRequests = serviceRequests.slice(0, serviceLimit);
     }
 
     const metrics = {

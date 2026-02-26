@@ -426,8 +426,6 @@ const DriverDashboard = () => {
       const result = await fetchAvailableMarketplaceItems({
         profile,
         roleOverride: driverPanelRole,
-        freightLimit: 80,
-        serviceLimit: 50,
         debug: import.meta.env.DEV,
       });
 
@@ -853,7 +851,6 @@ const DriverDashboard = () => {
       const result = await fetchAvailableMarketplaceItems({
         profile,
         roleOverride: driverPanelRole as any,
-        serviceLimit: 100,
         debug: import.meta.env.DEV,
       });
       
