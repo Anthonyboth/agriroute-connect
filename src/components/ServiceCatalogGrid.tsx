@@ -12,22 +12,7 @@ import {
   CheckCircle,
   MoreHorizontal
 } from 'lucide-react';
-import { ALL_SERVICE_TYPES, CATEGORY_LABELS, getServiceById } from '@/lib/service-types';
-
-// Mapa de equivalências entre IDs canônicos e duplicatas
-const EQUIVALENTS: Record<string, string[]> = {
-  CARGA: ['CARGA_FREIGHT'],
-  CARGA_FREIGHT: ['CARGA'],
-  GUINCHO: ['GUINCHO_FREIGHT'],
-  GUINCHO_FREIGHT: ['GUINCHO'],
-};
-
-// Normaliza IDs para canônicos
-const toCanonical = (id: string): string => {
-  if (id === 'CARGA_FREIGHT') return 'CARGA';
-  if (id === 'GUINCHO_FREIGHT') return 'GUINCHO';
-  return id;
-};
+import { ALL_SERVICE_TYPES, CATEGORY_LABELS, getServiceById, canonicalizeServiceId, type ServiceCategory } from '@/lib/service-types';
 
 interface ServiceCatalogGridProps {
   mode: 'provider' | 'driver' | 'client';
@@ -56,22 +41,16 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'all');
 
   // Filter services based on mode
-  // For drivers: only show freight services (category 'freight')
-  // For providers: show all service types EXCEPT freight AND only providerVisible
-  // For clients: show all services
   const allServices = mode === 'driver' 
-    ? ALL_SERVICE_TYPES.filter(s => s.category === 'freight')
+    ? ALL_SERVICE_TYPES.filter(s => s.categories.includes('freight'))
     : mode === 'provider'
-      ? ALL_SERVICE_TYPES.filter(s => s.category !== 'freight' && s.providerVisible)
+      ? ALL_SERVICE_TYPES.filter(s => !s.categories.includes('freight') && s.providerVisible)
       : ALL_SERVICE_TYPES;
   
-  // Para motoristas na aba "Todos", mostrar todos os serviços de frete (ignorar hideFromAllTab)
-  const allTabCount = mode === 'driver' 
-    ? allServices.length 
-    : allServices.filter(s => !s.hideFromAllTab).length;
+  const allTabCount = allServices.length;
     
-  const countByCategory = (cat: 'agricultural' | 'logistics' | 'technical' | 'urban' | 'freight') =>
-    allServices.filter(s => s.category === cat && !s.showOnlyInAllTab).length;
+  const countByCategory = (cat: ServiceCategory) =>
+    allServices.filter(s => s.categories.includes(cat)).length;
 
   const categories = [
     { id: 'all', label: 'Todos os Serviços', count: allTabCount },
@@ -86,16 +65,9 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
     .filter(service => {
       const matchesSearch = service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            service.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'all' || service.categories.includes(selectedCategory as ServiceCategory);
       
-      // Para motoristas, mostrar todos os serviços na aba "Todos"
-      const showInCurrentTab = mode === 'driver' && selectedCategory === 'all'
-        ? true  // Motoristas veem todos os 4 cards na aba "Todos"
-        : selectedCategory === 'all' 
-          ? !service.hideFromAllTab  // Outros modos mantêm a lógica original
-          : (!service.showOnlyInAllTab || selectedCategory === 'all');
-      
-      return matchesSearch && matchesCategory && showInCurrentTab;
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       if (a.id === 'OUTROS') return 1;
@@ -163,17 +135,16 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredServices.map((service) => {
-          // Proteção contra service undefined
-          if (!service) {
-            console.warn('Service not found in catalog');
-            return null;
-          }
+          if (!service) return null;
           
           const IconComponent = service.icon;
-          // Verificar se está selecionado considerando equivalentes
-          const equivalents = EQUIVALENTS[service.id] || [];
-          const isSelected = selectedServices.includes(service.id) || 
-                            equivalents.some(eq => selectedServices.includes(eq));
+          const canonicalSelected = selectedServices.map(canonicalizeServiceId);
+          const isSelected = canonicalSelected.includes(service.id);
+          
+          // Determine which category label to show based on current filter
+          const displayCategory = selectedCategory !== 'all' && service.categories.includes(selectedCategory as ServiceCategory)
+            ? selectedCategory as ServiceCategory
+            : service.categories[0];
           
           return (
             <Card 
@@ -206,7 +177,7 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
                       </CardTitle>
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-xs font-medium text-muted-foreground">
-                          {getServiceIcon(service.category)} {CATEGORY_LABELS[service.category as keyof typeof CATEGORY_LABELS]}
+                          {getServiceIcon(displayCategory)} {CATEGORY_LABELS[displayCategory]}
                         </span>
                       </div>
                     </div>
@@ -215,7 +186,6 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
               </CardHeader>
               
               <CardContent className="pt-0 flex flex-col flex-1">
-                {/* Área de conteúdo que pode crescer */}
                 <div className="flex-1">
                   <CardDescription className="mb-4 leading-relaxed">
                     {service.description}
@@ -233,7 +203,6 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
                   </div>
                 </div>
                 
-                {/* Botão fixado no fundo */}
                 <div className="mt-auto">
                   {!showCheckboxes && onServiceRequest && (
                     <Button 
@@ -276,8 +245,7 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
 
       {/* Selection Summary */}
       {showCheckboxes && selectedServices.length > 0 && (() => {
-        // Normalizar para IDs canônicos e contar únicos
-        const canonicalIds = new Set(selectedServices.map(toCanonical));
+        const canonicalIds = new Set(selectedServices.map(canonicalizeServiceId));
         const count = canonicalIds.size;
         
         return (
@@ -290,18 +258,7 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedServices.map(serviceId => {
-                // Procurar primeiro no allServices
-                let service = allServices.find(s => s.id === serviceId);
-                
-                // Se não encontrar, procurar pelo equivalente
-                if (!service) {
-                  const equivalents = EQUIVALENTS[serviceId] || [];
-                  for (const eq of equivalents) {
-                    service = allServices.find(s => s.id === eq);
-                    if (service) break;
-                  }
-                }
-                
+                const service = getServiceById(serviceId);
                 return service ? (
                   <Badge key={serviceId} variant="secondary" className="text-xs">
                     {service.label}

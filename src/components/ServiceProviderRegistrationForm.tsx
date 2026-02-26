@@ -24,7 +24,6 @@ interface ServiceProviderRegistrationFormProps {
 }
 
 const serviceTypes = getProviderVisibleServices()
-  .filter(s => !s.hideFromAllTab)
   .map(s => ({
     value: s.id,
     label: s.label,

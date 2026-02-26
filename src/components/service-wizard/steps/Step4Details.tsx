@@ -113,7 +113,7 @@ export const Step4Details: React.FC<Step4Props> = ({ formData, onUpdate, service
     </div>
   );
 
-  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste' || formData.subServiceType === 'GUINDASTE_LOG';
+  const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste';
   
   const renderCargoDetails = () => {
     const maxWeight = serviceType === 'FRETE_MOTO' ? 150 : undefined;
