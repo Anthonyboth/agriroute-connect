@@ -545,9 +545,30 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                 </>
               ) : (
                 <>
-                  {/* Driver / Producer info */}
+                  {/* Driver / Producer info - show the OTHER participant */}
                   <div className="p-3 rounded-lg bg-secondary/20 border border-border/20">
-                    {(freight.producer_id || freight.producer) ? (
+                    {viewerRole === 'PRODUTOR' || !(freight.producer_id || freight.producer) ? (
+                      <div className="flex items-center gap-3">
+                        {freight.driver_profiles?.profile_photo_url ? (
+                          <img 
+                            src={freight.driver_profiles.profile_photo_url} 
+                            alt="Foto do motorista"
+                            className="h-8 w-8 rounded-full object-cover border-2 border-primary/20"
+                            onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{LABELS.MOTORISTA_LABEL}</p>
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
                       <div className="flex items-center gap-3">
                         {producerInfo.photoUrl ? (
                           <img 
@@ -568,27 +589,6 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                             producerInfo.hasRegistration ? "text-foreground" : "text-muted-foreground italic"
                           )}>
                             {producerInfo.name}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        {freight.driver_profiles?.profile_photo_url ? (
-                          <img 
-                            src={freight.driver_profiles.profile_photo_url} 
-                            alt="Foto do motorista"
-                            className="h-8 w-8 rounded-full object-cover border-2 border-primary/20"
-                            onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border-2 border-border">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{LABELS.MOTORISTA_LABEL}</p>
-                          <p className="text-sm font-semibold text-foreground truncate">
-                            {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
                           </p>
                         </div>
                       </div>
