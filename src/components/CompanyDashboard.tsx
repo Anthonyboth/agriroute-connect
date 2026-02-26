@@ -199,32 +199,6 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                {company.company_name}
-              </CardTitle>
-              <CardDescription>
-                CNPJ: {company.company_cnpj}
-                {company.status === 'PENDING' && (
-                  <Badge variant="outline" className="ml-2">Aguardando Aprovação</Badge>
-                )}
-                {company.status === 'APPROVED' && (
-                  <Badge variant="default" className="ml-2">Aprovado</Badge>
-                )}
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={fetchDashboardData}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
 
       {/* Stats */}
       <CompanyFreightStats
