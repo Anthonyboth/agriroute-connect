@@ -106,15 +106,15 @@
     --shadow-card: 0 4px 20px -4px hsl(var(--primary) / 0.08);
     --shadow-glow: 0 0 40px hsl(var(--primary) / 0.15);
 
-    /* Typography scale - Optimized for elderly accessibility */
-    --font-size-xs: 0.875rem;  /* Increased from 0.75rem */
-    --font-size-sm: 1rem;      /* Increased from 0.875rem */
-    --font-size-base: 1.125rem; /* Increased from 1rem */
-    --font-size-lg: 1.25rem;   /* Increased from 1.125rem */
-    --font-size-xl: 1.5rem;    /* Increased from 1.25rem */
-    --font-size-2xl: 1.75rem;  /* Increased from 1.5rem */
-    --font-size-3xl: 2.25rem;  /* Increased from 1.875rem */
-    --font-size-4xl: 2.75rem;  /* Increased from 2.25rem */
+    /* Typography scale */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
 
     /* Accessibility improvements */
     --touch-target-min: 44px;  /* Minimum touch target size */
@@ -207,7 +207,7 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-size: var(--font-size-base);
-    line-height: 1.6; /* Better readability */
+    line-height: 1.5;
     overflow-x: hidden;
     overflow-y: auto;
   }
@@ -219,10 +219,12 @@
     border-radius: 4px;
   }
 
-  /* Improved button accessibility */
-  button, [role="button"] {
-    min-height: var(--touch-target-min);
-    min-width: var(--touch-target-min);
+  /* Keep larger touch targets only on touch devices */
+  @media (pointer: coarse) {
+    button, [role="button"] {
+      min-height: var(--touch-target-min);
+      min-width: var(--touch-target-min);
+    }
   }
 
   /* Better text contrast */
