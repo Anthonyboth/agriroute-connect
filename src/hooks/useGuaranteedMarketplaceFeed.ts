@@ -181,6 +181,13 @@ export function useGuaranteedMarketplaceFeed() {
             return !!requestCityState && activeCityStatePairs.has(requestCityState);
           });
         }
+
+        if (import.meta.env.DEV && debug) {
+          console.log('[GuaranteedFeed] activeCityIds:', activeCityIds.size);
+          console.log('[GuaranteedFeed] activeCityStatePairs:', [...activeCityStatePairs]);
+          console.log('[GuaranteedFeed] freights_after_city_filter:', freights.length);
+          console.log('[GuaranteedFeed] services_after_city_filter:', serviceRequests.length);
+        }
       }
     }
 
