@@ -98,12 +98,9 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
     addSuffix: true, 
     locale: ptBR 
   });
-  // ✅ SEGURANÇA: Verificar status do frete antes de permitir aceitar proposta
+  // Só pode aceitar quando o frete estiver OPEN e houver vagas
   const freightStatusUpper = freight.status?.toUpperCase?.() || '';
-  const canAccept = availableSlots > 0 && 
-    freightStatusUpper !== 'CANCELLED' && 
-    freightStatusUpper !== 'COMPLETED' && 
-    freightStatusUpper !== 'DELIVERED';
+  const canAccept = freightStatusUpper === 'OPEN' && availableSlots > 0;
 
   return (
     <Card 
