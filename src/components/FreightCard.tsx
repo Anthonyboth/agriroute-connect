@@ -498,8 +498,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
     <TooltipProvider>
       <Card
         data-testid="freight-card"
-        className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.01] border border-border/60 overflow-hidden bg-card"
-        style={{ boxShadow: 'var(--shadow-card)' }}
+        className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.01] border-2 border-border rounded-xl overflow-hidden bg-card"
+        style={{ boxShadow: '0 2px 8px hsl(var(--foreground) / 0.06)' }}
       >
         {/* ── HEADER: Título + Urgência + Prazo ── (30% zone: structure & text) */}
         <CardHeader className="pb-2 pt-4 px-4">
