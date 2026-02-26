@@ -78,14 +78,14 @@ const USER_TYPE_CONFIG = {
   },
   PRESTADOR_SERVICOS: {
     title: 'Áreas de Atendimento - Serviços',
-    description: 'Configure as regiões e tipos de serviços que você oferece',
+    description: 'Configure apenas as regiões de atendimento. Os tipos de serviço são gerenciados na aba Serviços.',
     emptyMessage: 'Configure suas áreas para receber solicitações de serviços da sua região',
     defaultRadius: 30,
     maxRadius: 200,
     endpoint: 'service-provider-areas',
     spatialFunction: 'service-provider-spatial-matching',
-    showServiceTypes: true,
-    infoText: 'Sistema avançado com matching espacial por GPS. Configure múltiplas bases operacionais com raios específicos para receber apenas solicitações de serviços relevantes da sua região.'
+    showServiceTypes: false,
+    infoText: 'As cidades e raios são gerenciados aqui. Os tipos de serviço são configurados separadamente na aba "Serviços".'
   },
   PRODUTOR: {
     title: 'Áreas de Operação - Produção',

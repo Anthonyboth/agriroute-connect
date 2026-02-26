@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { MapPin, Plus, Edit, Trash2, Navigation, Settings } from 'lucide-react';
@@ -33,30 +32,6 @@ interface ServiceAreaFormData {
   service_types: string[];
   is_active: boolean;
 }
-
-const SERVICE_TYPES = [
-  'GUINCHO',
-  'BORRACHARIA',
-  'MECANICA',
-  'ELETRICA',
-  'REBOQUE',
-  'COMBUSTIVEL',
-  'CHAVEIRO',
-  'LIMPEZA',
-  'OUTROS'
-];
-
-const SERVICE_TYPE_LABELS: Record<string, string> = {
-  GUINCHO: 'Guincho',
-  BORRACHARIA: 'Borracharia',
-  MECANICA: 'Mecânica',
-  ELETRICA: 'Elétrica',
-  REBOQUE: 'Reboque',
-  COMBUSTIVEL: 'Combustível',
-  CHAVEIRO: 'Chaveiro',
-  LIMPEZA: 'Limpeza',
-  OUTROS: 'Outros'
-};
 
 const ServiceProviderAreasManager = () => {
   const [serviceAreas, setServiceAreas] = useState<ServiceProviderArea[]>([]);
@@ -285,14 +260,6 @@ const ServiceProviderAreasManager = () => {
     }
   };
 
-  const handleServiceTypeChange = (serviceType: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      service_types: checked 
-        ? [...prev.service_types, serviceType]
-        : prev.service_types.filter(type => type !== serviceType)
-    }));
-  };
 
   if (loading && serviceAreas.length === 0) {
     return (
@@ -377,26 +344,9 @@ const ServiceProviderAreasManager = () => {
                   </p>
                 </div>
 
-                <div>
-                  <Label>Tipos de Serviços Oferecidos</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {SERVICE_TYPES.map((serviceType) => (
-                      <div key={serviceType} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={serviceType}
-                          checked={formData.service_types.includes(serviceType)}
-                          onCheckedChange={(checked) => 
-                            handleServiceTypeChange(serviceType, checked as boolean)
-                          }
-                        />
-                        <Label htmlFor={serviceType} className="text-sm">
-                          {SERVICE_TYPE_LABELS[serviceType]}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Deixe vazio para aceitar todos os tipos de serviço
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Os tipos de serviço são configurados na aba <strong>"Serviços"</strong> e aplicados automaticamente a todas as cidades de atendimento.
                   </p>
                 </div>
 
@@ -443,15 +393,6 @@ const ServiceProviderAreasManager = () => {
                     <p className="text-sm text-muted-foreground mb-2">
                       Raio: {area.radius_km}km | Coord: {area.lat.toFixed(4)}, {area.lng.toFixed(4)}
                     </p>
-                    {area.service_types.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {area.service_types.map((type) => (
-                          <Badge key={type} variant="outline" className="text-xs">
-                            {SERVICE_TYPE_LABELS[type] || type}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
