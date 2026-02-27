@@ -128,7 +128,11 @@ export function usePanelErrorTelegramReporter() {
     const handleWindowErrorEvent = (event: ErrorEvent) => {
       // ✅ Ignorar AbortError no nível do evento também
       if (event.error?.name === 'AbortError') return;
+      // ✅ Ignorar cross-origin script errors (Android/iOS reportam "Script error." ou msg vazia)
+      if (!event.error && (!event.message || event.message === 'Script error.' || event.message === 'Script error')) return;
       const msg = event.error?.message || stringifyToastMessage(event.message);
+      // ✅ Ignorar "Erro desconhecido" genérico (cross-origin sem info útil)
+      if (msg === 'Erro desconhecido') return;
       reportError(msg, 'window_error_event', {
         file: event.filename,
         line: event.lineno,
