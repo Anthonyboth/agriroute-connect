@@ -155,33 +155,51 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
             </Avatar>
             
-            {/* Camera button — always visible, opens file selector directly */}
+            {/* Camera label — opens file selector via native htmlFor, z-50 to avoid overlay blocks */}
             {onPhotoChange && !pendingFile && (
               <>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                {/* Hidden file input — OUTSIDE any overlay/modal layer */}
+                <input
+                  id="avatar-file-input"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+
+                {/* Camera trigger — native <label> for maximum cross-browser compatibility */}
+                <label
+                  htmlFor="avatar-file-input"
                   className={cn(
-                    "absolute bottom-0 right-0",
-                    "h-8 w-8 rounded-full",
+                    "absolute bottom-0 right-0 z-50",
+                    "h-8 w-8 rounded-full cursor-pointer",
                     "bg-primary text-primary-foreground",
                     "flex items-center justify-center",
                     "hover:bg-primary/90 transition-all",
                     "shadow-md border-2 border-background",
-                    "active:scale-95"
+                    "active:scale-95",
+                    isPhotoUploading && "pointer-events-none opacity-50"
                   )}
                   title="Alterar foto"
-                  disabled={isPhotoUploading}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
                 >
                   <Camera className="h-3.5 w-3.5" />
-                </button>
+                </label>
 
                 {photoUrl && onRemovePhoto && (
                   <button
                     type="button"
                     onClick={onRemovePhoto}
                     className={cn(
-                      "absolute bottom-0 -left-2",
+                      "absolute bottom-0 -left-2 z-50",
                       "h-7 w-7 rounded-full",
                       "bg-destructive text-destructive-foreground",
                       "flex items-center justify-center",
@@ -195,15 +213,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
-
-                <input
-                  id={fileInputId}
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
               </>
             )}
           </div>
