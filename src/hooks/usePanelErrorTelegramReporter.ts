@@ -44,6 +44,9 @@ export function usePanelErrorTelegramReporter() {
       'Load failed',          // Safari fetch cancel
       'Failed to fetch',      // offline/unmount
       'NetworkError',
+      'Refresh Token Not Found',  // Sessão expirada - ciclo normal de auth
+      'refresh_token_not_found',  // Mesmo erro via código
+      'Invalid Refresh Token',    // Token revogado/expirado
     ];
 
     const shouldIgnore = (msg: string): boolean => {
