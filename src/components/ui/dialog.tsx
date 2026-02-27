@@ -46,6 +46,14 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+const hasDialogTitleInTree = (node: React.ReactNode): boolean => {
+  return React.Children.toArray(node).some((child) => {
+    if (!React.isValidElement(child)) return false;
+    if (child.type === DialogTitle) return true;
+    return hasDialogTitleInTree(child.props?.children);
+  });
+};
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
@@ -53,9 +61,7 @@ const DialogContent = React.forwardRef<
     'aria-label'?: string;
   }
 >(({ className, children, hideCloseButton = false, ...props }, ref) => {
-  const hasTitle = React.Children.toArray(children).some(
-    (child) => React.isValidElement(child) && child.type === DialogTitle
-  );
+  const hasTitle = hasDialogTitleInTree(children);
 
   return (
     <DialogPortal>
