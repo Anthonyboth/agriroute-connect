@@ -10,40 +10,15 @@ export class ErrorMonitoringService {
   private autoCorrector: ErrorAutoCorrector;
   private errorQueue: ErrorReport[] = [];
   private isOnline = navigator.onLine;
-  
-  // ✅ Correção 3: Throttling global para evitar spam
-  private errorThrottle: Map<string, number> = new Map();
-  private readonly THROTTLE_MS = 60000; // 1 minuto entre erros do mesmo tipo
-
-  // ✅ Erros que devem ser IGNORADOS (comportamento esperado, não são bugs)
-  private readonly IGNORED_ERRORS: Array<string | RegExp> = [
-    // AbortError: ocorre quando usuário navega enquanto fetch está em andamento
-    'signal is aborted without reason',
-    'The operation was aborted',
-    'AbortError',
-    /aborted/i,
-    // Erros de rede transientes em tiles de mapa
-    'Failed to fetch',
-    /maplibre.*abort/i,
-    // Erros de chunk loading (já tratados pelo lazyWithRetry)
-    'Failed to fetch dynamically imported module',
-    'Loading chunk',
-    // Extensões de navegador
-    'ResizeObserver loop',
-    // Erros de cancelamento React Query
-    'Query was cancelled',
-    'CancelledError',
-  ];
 
   private constructor() {
     this.autoCorrector = ErrorAutoCorrector.getInstance();
-    
-    // Monitorar status da rede
+
     window.addEventListener('online', () => {
       this.isOnline = true;
       this.processOfflineQueue();
     });
-    
+
     window.addEventListener('offline', () => {
       this.isOnline = false;
     });
@@ -56,58 +31,11 @@ export class ErrorMonitoringService {
     return ErrorMonitoringService.instance;
   }
 
-  // ✅ Correção 3: Verificar se deve aplicar throttle
-  private shouldThrottle(errorKey: string): boolean {
-    const lastTime = this.errorThrottle.get(errorKey);
-    const now = Date.now();
-    
-    if (lastTime && now - lastTime < this.THROTTLE_MS) {
-      if (import.meta.env.DEV) {
-        console.log(`[ErrorMonitoringService] Throttle aplicado para: ${errorKey}`);
-      }
-      return true;
-    }
-    
-    this.errorThrottle.set(errorKey, now);
-    return false;
-  }
-
-  // ✅ Gerar chave única para throttle baseada no tipo de erro
-  private getThrottleKey(report: ErrorReport): string {
-    return `${report.errorType}_${report.errorMessage?.substring(0, 50) || 'unknown'}`;
-  }
-
-  // ✅ Verificar se erro deve ser ignorado (comportamento esperado)
-  private shouldIgnoreError(errorMessage: string | undefined): boolean {
-    if (!errorMessage) return false;
-    
-    return this.IGNORED_ERRORS.some(pattern => {
-      if (typeof pattern === 'string') {
-        return errorMessage.includes(pattern);
-      }
-      return pattern.test(errorMessage);
-    });
-  }
-
   /**
    * Notificar TODOS os erros diretamente no Telegram
    * SEM deduplicação, SEM verificação de role
    */
   private async notifyTelegram(report: ErrorReport): Promise<boolean> {
-    // ✅ Ignorar erros esperados (AbortError, chunk loading, etc.)
-    if (this.shouldIgnoreError(report.errorMessage)) {
-      if (import.meta.env.DEV) {
-        console.log(`[ErrorMonitoringService] Erro ignorado (esperado): ${report.errorMessage?.substring(0, 50)}`);
-      }
-      return false;
-    }
-
-    // ✅ Correção 3: Aplicar throttling
-    const throttleKey = this.getThrottleKey(report);
-    if (this.shouldThrottle(throttleKey)) {
-      return false;
-    }
-
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
         method: 'POST',
@@ -179,14 +107,6 @@ export class ErrorMonitoringService {
   }
 
   async captureError(error: Error, context?: any): Promise<{ notified: boolean; errorLogId?: string }> {
-    // ✅ Early bail-out: não processar erros que serão ignorados (AbortError, etc.)
-    if (this.shouldIgnoreError(error.message) || this.shouldIgnoreError(error.name)) {
-      if (import.meta.env.DEV) {
-        console.log(`[ErrorMonitoringService] Erro ignorado (early bail-out): ${error.message?.substring(0, 50)}`);
-      }
-      return { notified: false };
-    }
-
     if (import.meta.env.DEV) {
       console.log('[ErrorMonitoringService] Erro capturado:', error.message);
     }

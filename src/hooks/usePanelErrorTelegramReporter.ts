@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
-const TOAST_THROTTLE_MS = 45_000;
 
 const stringifyToastMessage = (message: unknown): string => {
   if (typeof message === 'string') return message;
@@ -33,22 +32,8 @@ export function usePanelErrorTelegramReporter() {
     (window as any).__panelToastTelegramPatched = true;
 
     const errorMonitoring = ErrorMonitoringService.getInstance();
-    const throttleMap = new Map<string, number>();
-
-    const shouldReport = (key: string): boolean => {
-      const now = Date.now();
-      const lastSentAt = throttleMap.get(key) ?? 0;
-      if (now - lastSentAt >= TOAST_THROTTLE_MS) {
-        throttleMap.set(key, now);
-        return true;
-      }
-      return false;
-    };
 
     const reportError = (message: string, source: string, extra?: Record<string, unknown>) => {
-      const key = `${source}:${message.slice(0, 200)}`;
-      if (!shouldReport(key)) return;
-
       errorMonitoring.captureError(new Error(message.slice(0, 500)), {
         source,
         functionName: source,
@@ -113,7 +98,18 @@ export function usePanelErrorTelegramReporter() {
       return false;
     };
 
-    // ===== 4. unhandledrejection — promises rejeitadas =====
+    // ===== 4. window error event listener (captura adicional global) =====
+    const handleWindowErrorEvent = (event: ErrorEvent) => {
+      const msg = event.error?.message || stringifyToastMessage(event.message);
+      reportError(msg, 'window_error_event', {
+        file: event.filename,
+        line: event.lineno,
+        col: event.colno,
+      });
+    };
+    window.addEventListener('error', handleWindowErrorEvent, true);
+
+    // ===== 5. unhandledrejection — promises rejeitadas =====
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const msg = event.reason instanceof Error
         ? event.reason.message
@@ -152,6 +148,7 @@ export function usePanelErrorTelegramReporter() {
 
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleWindowErrorEvent, true);
       window.removeEventListener('app-toast', handleAppToast as EventListener);
       observer.disconnect();
       toast.error = originalToastError;
