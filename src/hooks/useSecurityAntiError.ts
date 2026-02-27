@@ -114,6 +114,14 @@ export function useSecurityAntiError() {
     // 2. Promise rejections não tratadas
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
+      // ✅ Silenciar AbortError completamente (cleanup normal de useEffect/MapLibre)
+      if (
+        reason instanceof DOMException && reason.name === 'AbortError' ||
+        (reason instanceof Error && (reason.name === 'AbortError' || reason.message?.includes('aborted')))
+      ) {
+        event.preventDefault();
+        return;
+      }
       const error = reason instanceof Error
         ? reason
         : new Error(typeof reason === 'string' ? reason : JSON.stringify(reason || 'Unhandled rejection'));
