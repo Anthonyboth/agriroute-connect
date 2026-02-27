@@ -67,43 +67,62 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-  VariantProps<typeof sheetVariants> { }
+  VariantProps<typeof sheetVariants> {
+  'aria-label'?: string;
+}
+
+const hasSheetTitleInTree = (node: React.ReactNode): boolean => {
+  return React.Children.toArray(node).some((child) => {
+    if (!React.isValidElement(child)) return false;
+    if (child.type === SheetTitle) return true;
+    return hasSheetTitleInTree(child.props?.children);
+  });
+};
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content
-      ref={ref}
-      className={cn(
-        sheetVariants({ side }), 
-        // Ultra-high z-index to ensure content is always on top of overlay
-        "z-[9999]",
-        // Ensure solid background - no transparency
-        "bg-background",
-        className
-      )}
-      style={{
-        // Fallback styles for fixed positioning
-        position: 'fixed',
-      }}
-      {...props}
-    >
-      {children}
-      <SheetPrimitive.Close 
+>(({ side = "right", className, children, ...props }, ref) => {
+  const hasTitle = hasSheetTitleInTree(children);
+
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        ref={ref}
         className={cn(
-          "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary",
-          "z-[10000]"
+          sheetVariants({ side }),
+          // Ultra-high z-index to ensure content is always on top of overlay
+          "z-[9999]",
+          // Ensure solid background - no transparency
+          "bg-background",
+          className
         )}
+        style={{
+          // Fallback styles for fixed positioning
+          position: 'fixed',
+        }}
+        {...props}
       >
-        <X className="h-4 w-4" />
-        <span className="sr-only">Fechar</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-))
+        {!hasTitle && (
+          <span className="absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0">
+            <SheetTitle>{props['aria-label'] || 'Painel'}</SheetTitle>
+          </span>
+        )}
+        {children}
+        <SheetPrimitive.Close
+          className={cn(
+            "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary",
+            "z-[10000]"
+          )}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Fechar</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  );
+})
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({
