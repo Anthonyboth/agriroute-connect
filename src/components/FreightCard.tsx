@@ -781,7 +781,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         {showProducerActions && onAction && freight.status !== "CANCELLED" && (
           <div className="px-4 pb-4">
             <div className="grid grid-cols-2 gap-2">
-              <Button onClick={() => onAction("edit")} size="sm" variant="outline">
+              <Button onClick={() => onAction("edit")} size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50">
                 <Edit className="h-4 w-4 mr-1" />Editar
               </Button>
               {["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"].includes(freight.status) && (

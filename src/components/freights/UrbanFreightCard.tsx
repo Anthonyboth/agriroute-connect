@@ -336,7 +336,7 @@ export const UrbanFreightCard: React.FC<UrbanFreightCardProps> = ({
         <Button
           variant="outline"
           size="sm"
-          className="flex-1"
+          className="flex-1 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
           onClick={onEdit}
         >
           <Edit className="h-4 w-4 mr-1" />
