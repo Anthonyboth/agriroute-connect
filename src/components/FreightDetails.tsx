@@ -541,7 +541,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 size="sm"
                 variant="ghost"
                 onClick={onClose}
-                className="h-9 w-9 p-0 rounded-full border border-border/50 bg-muted/40 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all duration-200 shadow-sm"
+                className="h-9 w-9 p-0 rounded-full border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-200 shadow-sm"
                 title="Fechar"
               >
                 <X className="h-4.5 w-4.5" />
