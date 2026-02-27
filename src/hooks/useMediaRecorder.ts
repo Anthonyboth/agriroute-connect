@@ -70,7 +70,28 @@ export function useMediaRecorder({ onRecordingComplete }: UseMediaRecorderOption
     }
   };
 
+  const checkPermission = useCallback(async (type: RecordingType): Promise<boolean> => {
+    try {
+      const name = type === 'audio' ? 'microphone' : 'camera';
+      const result = await navigator.permissions.query({ name: name as PermissionName });
+      if (result.state === 'denied') {
+        return false;
+      }
+      return true;
+    } catch {
+      // permissions.query not supported, proceed with getUserMedia
+      return true;
+    }
+  }, []);
+
   const startRecording = useCallback(async (type: RecordingType) => {
+    // Check permission first to avoid noisy errors
+    const hasPermission = await checkPermission(type);
+    if (!hasPermission) {
+      const device = type === 'audio' ? 'microfone' : 'câmera';
+      throw new Error(`Permissão de ${device} negada. Verifique as configurações do navegador.`);
+    }
+
     try {
       const constraints: MediaStreamConstraints = type === 'audio'
         ? { audio: { echoCancellation: true, noiseSuppression: true } }
@@ -122,7 +143,7 @@ export function useMediaRecorder({ onRecordingComplete }: UseMediaRecorderOption
       setRecordingType(type);
       startTimer();
     } catch (err: any) {
-      console.error(`[MediaRecorder] Erro ao iniciar gravação ${type}:`, err);
+      console.warn(`[MediaRecorder] Permissão ${type} negada ou indisponível:`, err.name);
       cleanup();
       
       if (err.name === 'NotAllowedError') {
@@ -133,7 +154,7 @@ export function useMediaRecorder({ onRecordingComplete }: UseMediaRecorderOption
         throw new Error(`Erro ao acessar ${type === 'audio' ? 'microfone' : 'câmera'}.`);
       }
     }
-  }, [cleanup, startTimer, onRecordingComplete]);
+  }, [cleanup, startTimer, onRecordingComplete, checkPermission]);
 
   const startAudioRecording = useCallback(async () => {
     await startRecording('audio');
