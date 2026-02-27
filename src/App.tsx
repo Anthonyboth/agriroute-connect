@@ -191,6 +191,17 @@ if (typeof window !== 'undefined') {
     // Capturar erros não tratados
     window.addEventListener('error', (event) => {
       const message = event.message || '';
+      const errName = event.error?.name || '';
+
+      // ✅ Ignorar AbortError - comportamento esperado quando componentes desmontam
+      if (
+        errName === 'AbortError' ||
+        message.includes('signal is aborted without reason') ||
+        message.includes('The operation was aborted') ||
+        /aborted/i.test(message)
+      ) {
+        return;
+      }
 
       // ✅ Não reportar conflitos esperados (regra de negócio) como "blank screen"
       const isExpectedFiscalIssuerConflict =
@@ -199,7 +210,6 @@ if (typeof window !== 'undefined') {
           message.includes('Este CPF/CNPJ já está cadastrado'));
 
       // ✅ Não reportar erro esperado de saldo insuficiente (regra de negócio)
-      // Ex.: "Edge function returned 402 ... INSUFFICIENT_BALANCE"
       const isExpectedNfeInsufficientBalance =
         message.includes('Edge function returned 402') &&
         (message.includes('INSUFFICIENT_BALANCE') || message.includes('Saldo insuficiente'));

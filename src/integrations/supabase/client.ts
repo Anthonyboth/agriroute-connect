@@ -315,12 +315,31 @@ if (typeof window !== 'undefined' && !isPublicPage) {
     }
   };
 
+  // Erros que são comportamento esperado do browser/React e NÃO devem ir pro Telegram
+  const isExpectedBrowserError = (msg: string, errName?: string): boolean => {
+    if (errName === 'AbortError') return true;
+    const lower = msg.toLowerCase();
+    return [
+      'signal is aborted without reason',
+      'the operation was aborted',
+      'aborterror',
+      'aborted',
+      'resizeobserver loop',
+      'load failed',
+      'failed to fetch',
+      'networkerror',
+    ].some(p => lower.includes(p));
+  };
+
   // Capturar erros não tratados no window
   window.addEventListener('error', (event) => {
     const message = event.message || '';
+    const errName = event.error?.name || '';
+
+    // ✅ Ignorar erros esperados do browser (AbortError, ResizeObserver, etc.)
+    if (isExpectedBrowserError(message, errName)) return;
 
     // ✅ Não notificar conflitos esperados de regra de negócio (ex.: CPF/CNPJ já cadastrado)
-    // Isso evita alertas de "blank screen" quando o backend retorna 409 intencionalmente.
     const isExpectedFiscalIssuerConflict =
       message.includes('Edge function returned 409') &&
       (message.includes('fiscal-issuer-register') ||
@@ -333,16 +352,13 @@ if (typeof window !== 'undefined' && !isPublicPage) {
     const errorKey = `window_error_${message.substring(0, 50)}`;
 
     if (shouldNotify(errorKey)) {
-      // SECURITY: Only send minimal, non-sensitive error info
       notifyErrorToTelegram({
         errorType: 'FRONTEND',
         errorCategory: 'CRITICAL',
         errorMessage: message.substring(0, 200),
-        // SECURITY: Never send stack traces - they expose internal structure
         module: 'window-error-handler',
         route: window.location.pathname,
         metadata: {
-          // SECURITY: Omit filename, lineno, colno, userAgent - they reveal internal info
           url: window.location.href,
           timestamp: new Date().toISOString()
         }
@@ -353,6 +369,13 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   // Capturar promise rejections não tratadas
   window.addEventListener('unhandledrejection', (event) => {
     const message = event.reason?.message || String(event.reason);
+    const errName = event.reason?.name || '';
+
+    // ✅ Ignorar AbortError e erros esperados do browser
+    if (isExpectedBrowserError(message, errName)) {
+      event.preventDefault?.();
+      return;
+    }
 
     // ✅ Não notificar conflitos esperados de regra de negócio (ex.: CPF/CNPJ já cadastrado)
     const isExpectedFiscalIssuerConflict =
@@ -361,7 +384,6 @@ if (typeof window !== 'undefined' && !isPublicPage) {
         message.includes('Este CPF/CNPJ já está cadastrado'));
 
     if (isExpectedFiscalIssuerConflict) {
-      // Evita "CRITICAL" e "blank screen" nos alertas
       event.preventDefault?.();
       return;
     }
