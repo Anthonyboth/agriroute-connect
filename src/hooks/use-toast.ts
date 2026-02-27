@@ -162,6 +162,19 @@ function toast({ ...props }: Toast) {
     },
   })
 
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("app-toast", {
+        detail: {
+          id,
+          variant: props.variant ?? "default",
+          title: typeof props.title === "string" ? props.title : undefined,
+          description: typeof props.description === "string" ? props.description : undefined,
+        },
+      })
+    )
+  }
+
   // Auto-dismiss after 5 seconds
   setTimeout(() => {
     dismiss()

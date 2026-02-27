@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Phone, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
 // Novos componentes modulares
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -187,49 +188,82 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   };
 
   const handlePhotoChange = async (file: File) => {
+    const errorMonitoring = ErrorMonitoringService.getInstance();
+
     try {
-      // Obter user_id da auth para usar como pasta no storage (RLS exige isso)
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Selecione um arquivo de imagem válido.');
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Imagem muito grande. O limite é 5MB.');
+      }
+
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      if (authError || !authUser) throw new Error('Usuário não autenticado');
+      if (authError || !authUser) throw new Error('Sessão inválida. Faça login novamente.');
 
       const fileExt = file.name.split('.').pop() || 'jpg';
-      // Caminho correto: {userId}/{filename} — necessário para RLS do bucket
       const filePath = `${authUser.id}/profile_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('profile-photos')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, {
+          upsert: false,
+          contentType: file.type,
+          cacheControl: '3600',
+        });
 
       if (uploadError) throw uploadError;
 
-      // Generate signed URL (bucket is private)
       const { data: signedData, error: signError } = await supabase.storage
         .from('profile-photos')
-        .createSignedUrl(filePath, 86400); // 24h
+        .createSignedUrl(filePath, 86400);
 
-      const photoUrl = signedData?.signedUrl;
-      if (signError || !photoUrl) throw signError || new Error('Erro ao gerar URL da foto');
+      if (signError || !signedData?.signedUrl) {
+        throw signError || new Error('Erro ao gerar URL assinada da foto.');
+      }
 
-      // Atualizar perfil com nova URL
-      const { error: updateError } = await supabase
+      const photoUrl = signedData.signedUrl;
+
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({ profile_photo_url: photoUrl })
-        .eq('user_id', authUser.id);
+        .eq('id', user.id)
+        .eq('user_id', authUser.id)
+        .select('id')
+        .maybeSingle();
 
       if (updateError) throw updateError;
+      if (!updatedProfile) {
+        throw new Error('Atualização não aplicada (0 linhas). Verifique permissões de perfil.');
+      }
       
       setCurrentPhotoUrl(photoUrl);
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
       
       toast({
-        title: "Foto atualizada",
-        description: "Sua foto de perfil foi atualizada com sucesso!",
+        title: 'Foto atualizada',
+        description: 'Sua foto de perfil foi atualizada com sucesso!',
       });
     } catch (error: any) {
+      const message = error?.message || 'Não foi possível atualizar a foto.';
       console.error('Error updating photo:', error);
+
+      await errorMonitoring.captureError(
+        new Error(message),
+        {
+          source: 'profile_photo_upload',
+          functionName: 'handlePhotoChange',
+          module: 'UserProfileModal',
+          userFacing: true,
+        }
+      );
+
       toast({
-        title: "Erro ao atualizar foto",
-        description: error?.message || "Não foi possível atualizar a foto.",
-        variant: "destructive",
+        title: 'Erro ao atualizar foto',
+        description: message,
+        variant: 'destructive',
       });
     }
   };

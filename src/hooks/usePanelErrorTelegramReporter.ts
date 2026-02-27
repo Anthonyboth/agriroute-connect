@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
-import { toast as shadcnToast } from '@/hooks/use-toast';
 
 const TOAST_THROTTLE_MS = 45_000;
 
@@ -72,35 +71,32 @@ export function usePanelErrorTelegramReporter() {
       return originalToastError(message as any, ...(args as any[]));
     }) as typeof toast.error;
 
-    // ===== 2. Patch shadcn toast (destructive variant) via ESM import =====
-    // O import estático no topo do arquivo garante que funcione em Vite/ESM
-    if (shadcnToast) {
-      const originalShadcnToast = shadcnToast;
-      // Substituir a referência exportada não funciona diretamente com ESM,
-      // então usamos um proxy global para interceptar chamadas destructive
-      const originalCall = shadcnToast;
-      (window as any).__originalShadcnToast = originalCall;
-      
-      // Interceptar via monkey-patch do módulo toast
-      // Como ESM exports são read-only, usamos um observer pattern
-      const observer = new MutationObserver(() => {
-        // Buscar toasts destructive no DOM e reportar
-        const destructiveToasts = document.querySelectorAll('[data-type="error"], [data-destructive]');
-        destructiveToasts.forEach((el) => {
-          const key = el.getAttribute('data-telegram-reported');
-          if (!key) {
-            el.setAttribute('data-telegram-reported', 'true');
-            const title = el.querySelector('[class*="title"]')?.textContent || '';
-            const desc = el.querySelector('[class*="description"]')?.textContent || '';
-            const msg = (title + ' ' + desc).trim().slice(0, 300);
-            if (msg.length > 3) {
-              reportError(msg, 'user_panel_shadcn_toast', { variant: 'destructive' });
-            }
-          }
-        });
+    // ===== 2. Intercept shadcn toasts via custom event + DOM fallback =====
+    const handleAppToast = (event: Event) => {
+      const customEvent = event as CustomEvent<{ variant?: string; title?: string; description?: string }>;
+      const detail = customEvent.detail;
+      if (!detail || detail.variant !== 'destructive') return;
+
+      const msg = `${detail.title || ''} ${detail.description || ''}`.trim().slice(0, 300);
+      if (msg.length > 3) {
+        reportError(msg, 'user_panel_shadcn_toast', { variant: 'destructive', source: 'custom_event' });
+      }
+    };
+    window.addEventListener('app-toast', handleAppToast as EventListener);
+
+    const observer = new MutationObserver(() => {
+      const destructiveToasts = document.querySelectorAll('.destructive');
+      destructiveToasts.forEach((el) => {
+        if (el.getAttribute('data-telegram-reported') === 'true') return;
+
+        el.setAttribute('data-telegram-reported', 'true');
+        const msg = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+        if (msg.length > 3) {
+          reportError(msg, 'user_panel_shadcn_toast', { variant: 'destructive', source: 'mutation_observer' });
+        }
       });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     // ===== 3. window.onerror — erros JS globais =====
     const previousOnError = window.onerror;
@@ -156,6 +152,12 @@ export function usePanelErrorTelegramReporter() {
 
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('app-toast', handleAppToast as EventListener);
+      observer.disconnect();
+      toast.error = originalToastError;
+      console.error = originalConsoleError;
+      window.onerror = previousOnError;
+      delete (window as any).__panelToastTelegramPatched;
     };
   }, []);
 }
