@@ -149,7 +149,7 @@ export const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
           <div className="p-3 bg-card">
             <div className="flex items-center gap-2 mb-1">
               <div className="h-2.5 w-2.5 rounded-full bg-primary/60 ring-2 ring-primary/20 flex-shrink-0" />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Origem</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Local</span>
             </div>
             <p className="text-sm font-medium text-foreground ml-[18px] line-clamp-2">{origin}</p>
             {(sr.origin_neighborhood || sr.origin_street || sr.origin_number) && (
