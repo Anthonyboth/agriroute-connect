@@ -737,11 +737,11 @@ const CompanyDashboard = () => {
           <div className="max-w-5xl mx-auto space-y-4">
             {/* Hero layout: Info da empresa centralizada */}
             <div className="flex justify-center">
-              <div className="text-center bg-background/80 backdrop-blur-md rounded-xl px-8 py-5 border border-border shadow-lg">
-                <h2 className="text-xl font-bold text-foreground">
+              <div className="text-center bg-black/20 backdrop-blur-sm rounded-xl px-8 py-5 border border-white/10">
+                <h2 className="text-2xl font-bold text-white drop-shadow-md">
                   {company?.company_name || 'Transportadora'}
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1 font-mono">
+                <p className="text-base text-white/80 mt-1.5 font-mono tracking-wide drop-shadow-sm">
                   CNPJ: {company?.company_cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || 'Não informado'}
                 </p>
               </div>
