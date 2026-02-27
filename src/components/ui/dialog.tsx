@@ -72,9 +72,9 @@ const DialogContent = React.forwardRef<
         aria-describedby={props['aria-describedby'] || undefined}
         {...props}
       >
-        {!hasTitle && props['aria-label'] && (
+        {!hasTitle && (
           <VisuallyHidden>
-            <DialogTitle>{props['aria-label']}</DialogTitle>
+            <DialogTitle>{props['aria-label'] || 'Dialog'}</DialogTitle>
           </VisuallyHidden>
         )}
         {children}
