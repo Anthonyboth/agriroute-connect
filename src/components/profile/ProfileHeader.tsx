@@ -185,7 +185,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
                     <DropdownMenuItem
                       onSelect={() => {
-                        setTimeout(() => fileInputRef.current?.click(), 0);
+                        fileInputRef.current?.click();
                       }}
                     >
                       <Camera className="h-4 w-4 mr-2" />
