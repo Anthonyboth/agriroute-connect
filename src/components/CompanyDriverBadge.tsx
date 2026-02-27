@@ -49,11 +49,11 @@ export const CompanyDriverBadge = ({ companyName, isAffiliated = false, driverPr
       <Users className="h-4 w-4 text-primary" />
       <button
         type="button"
-        className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full h-7 w-7 bg-foreground/80 text-background transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-sm"
+        className="absolute top-3 right-3 inline-flex items-center justify-center rounded-md h-7 w-7 border border-destructive/40 bg-destructive/10 text-destructive transition-colors duration-200 hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={handleDismiss}
         aria-label="Fechar informação"
       >
-        <X className="h-4 w-4 stroke-[3]" />
+        <X className="h-4 w-4" />
       </button>
       <AlertTitle className="text-primary font-semibold">
         {isAffiliated ? 'Motorista Afiliado' : 'Motorista de Empresa'}
