@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { AppSpinner, CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -591,16 +591,22 @@ const CompanyDashboard = () => {
     return () => window.removeEventListener('navigate-to-tab', handleNavigate as EventListener);
   }, []);
 
+  // Stable refs to avoid infinite loop (profiles/switchProfile change refs on every render)
+  const profilesRef = useRef(profiles);
+  profilesRef.current = profiles;
+  const switchProfileRef = useRef(switchProfile);
+  switchProfileRef.current = switchProfile;
+
   useEffect(() => {
     if (companyLoading) return;
 
     const handleProfileSwitch = async () => {
       if (!company) {
-        const transportProfile = profiles.find(p => p.role === 'TRANSPORTADORA');
+        const transportProfile = profilesRef.current.find(p => p.role === 'TRANSPORTADORA');
         
         if (transportProfile && profile?.id !== transportProfile.id) {
           setIsSwitchingProfile(true);
-          await switchProfile(transportProfile.id);
+          await switchProfileRef.current(transportProfile.id);
           return;
         }
       }
@@ -608,7 +614,9 @@ const CompanyDashboard = () => {
     };
 
     handleProfileSwitch();
-  }, [company, companyLoading, profile?.id, profiles, switchProfile]);
+    // Only re-run when company loading state or identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company, companyLoading, profile?.id]);
 
   // Loading state
   if (companyLoading) {
