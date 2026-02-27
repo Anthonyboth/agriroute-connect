@@ -192,15 +192,17 @@ export const DriverLocationModal: React.FC<DriverLocationModalProps> = ({
               )}
               <div>
                 <DialogTitle className="text-lg">{driverName}</DialogTitle>
-                <DialogDescription className="flex items-center gap-2 mt-0.5">
-                  {currentStatus && (
-                    <Badge variant={getFreightStatusVariant(currentStatus)} className="text-[10px]">
-                      {getFreightStatusLabel(currentStatus)}
+                <DialogDescription asChild>
+                  <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground">
+                    {currentStatus && (
+                      <Badge variant={getFreightStatusVariant(currentStatus)} className="text-[10px]">
+                        {getFreightStatusLabel(currentStatus)}
+                      </Badge>
+                    )}
+                    <Badge variant={isOnline ? "default" : "secondary"} className="text-[10px]">
+                      {isOnline ? '🟢 Online' : <><WifiOff className="h-3 w-3 mr-1" /> Offline</>}
                     </Badge>
-                  )}
-                  <Badge variant={isOnline ? "default" : "secondary"} className="text-[10px]">
-                    {isOnline ? '🟢 Online' : <><WifiOff className="h-3 w-3 mr-1" /> Offline</>}
-                  </Badge>
+                  </div>
                 </DialogDescription>
               </div>
             </div>

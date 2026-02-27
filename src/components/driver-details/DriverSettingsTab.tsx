@@ -226,15 +226,17 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirmar Desligamento</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja desligar este motorista da transportadora? 
-                  <br /><br />
-                  <strong>O que acontece:</strong>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>O motorista perderá acesso aos fretes da empresa</li>
-                    <li>Todos os dados históricos serão mantidos</li>
-                    <li>O motorista pode solicitar re-afiliação no futuro</li>
-                  </ul>
+                <AlertDialogDescription asChild>
+                  <div className="text-sm text-muted-foreground">
+                    Tem certeza que deseja desligar este motorista da transportadora?
+                    <br /><br />
+                    <strong>O que acontece:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>O motorista perderá acesso aos fretes da empresa</li>
+                      <li>Todos os dados históricos serão mantidos</li>
+                      <li>O motorista pode solicitar re-afiliação no futuro</li>
+                    </ul>
+                  </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
