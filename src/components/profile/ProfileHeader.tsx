@@ -134,15 +134,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="relative">
-      {/* Subtle gradient banner — 60% dark base, 10% green accent */}
-      <div className="h-20 sm:h-24 bg-gradient-to-br from-card via-card to-primary/15 rounded-t-lg border-b border-border/50" />
+      {/* Subtle gradient banner — compact */}
+      <div className="h-12 sm:h-14 bg-gradient-to-br from-card via-card to-primary/15 rounded-t-lg border-b border-border/50" />
       
-      <div className="px-4 sm:px-6 pb-4">
-        <div className="flex flex-col items-center -mt-12 sm:-mt-14">
+      <div className="px-4 sm:px-6 pb-3">
+        <div className="flex flex-col items-center -mt-10 sm:-mt-11">
           {/* Avatar with camera button */}
           <div className="relative group">
             <Avatar className={cn(
-              "h-24 w-24 sm:h-28 sm:w-28",
+              "h-20 w-20 sm:h-24 sm:w-24",
               "border-4 border-background shadow-lg bg-background",
               "transition-transform duration-200"
             )}>
@@ -182,7 +182,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
-                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <DropdownMenuItem onSelect={() => setTimeout(() => fileInputRef.current?.click(), 100)}>
                       <Camera className="h-4 w-4 mr-2" />
                       Alterar foto
                     </DropdownMenuItem>
@@ -223,7 +223,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
 
           {/* Name — 24px/700 */}
-          <h1 className="mt-3 text-2xl font-bold leading-[30px] text-foreground text-center truncate max-w-full px-2">
+          <h1 className="mt-2 text-xl font-bold leading-[26px] text-foreground text-center truncate max-w-full px-2">
             {fullName}
           </h1>
 
@@ -245,7 +245,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
 
           {/* Edit/Save buttons */}
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-2">
             {isEditing ? (
               <>
                 <Button variant="outline" size="sm" onClick={onEditToggle} disabled={isSaving} className="gap-1.5">
