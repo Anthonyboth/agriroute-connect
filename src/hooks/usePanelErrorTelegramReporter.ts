@@ -33,7 +33,27 @@ export function usePanelErrorTelegramReporter() {
 
     const errorMonitoring = ErrorMonitoringService.getInstance();
 
+    // Mensagens que são comportamento esperado do React/browser e NÃO devem ir pro Telegram
+    const IGNORED_PATTERNS = [
+      'signal is aborted without reason',
+      'The operation was aborted',
+      'AbortError',
+      'aborted',
+      'ResizeObserver loop',
+      'ResizeObserver loop completed with undelivered notifications',
+      'Load failed',          // Safari fetch cancel
+      'Failed to fetch',      // offline/unmount
+      'NetworkError',
+    ];
+
+    const shouldIgnore = (msg: string): boolean => {
+      const lower = msg.toLowerCase();
+      return IGNORED_PATTERNS.some(p => lower.includes(p.toLowerCase()));
+    };
+
     const reportError = (message: string, source: string, extra?: Record<string, unknown>) => {
+      if (shouldIgnore(message)) return;
+
       errorMonitoring.captureError(new Error(message.slice(0, 500)), {
         source,
         functionName: source,
