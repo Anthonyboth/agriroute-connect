@@ -1,28 +1,42 @@
 /**
  * ProfileHeader.tsx
  * 
- * Header estilo Facebook com foto de capa, avatar, nome e badges.
- * Mobile-first com suporte a edição de foto.
+ * Header premium com avatar, camera button sempre visível,
+ * chips de role/status, localização e membro desde.
+ * 
+ * Usa useSignedImageUrl para resolver paths privados em tempo real.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Camera, Edit2, X, Check, Loader2 } from 'lucide-react';
+import { Camera, Edit2, X, Check, Loader2, MapPin, Calendar, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ProfileHeaderProps {
   fullName: string;
-  email?: string;
   role: string;
   status: string;
   photoUrl?: string;
   isEditing: boolean;
   isSaving?: boolean;
+  isPhotoUploading?: boolean;
   onEditToggle: () => void;
   onSave?: () => void;
   onPhotoChange?: (file: File) => void;
+  onRemovePhoto?: () => void;
+  location?: string;
+  memberSince?: string;
 }
 
 const getRoleLabel = (role: string) => {
@@ -39,156 +53,212 @@ const getRoleLabel = (role: string) => {
 
 const getStatusInfo = (status: string) => {
   const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    'APPROVED': { label: 'Aprovado', variant: 'default' },
-    'approved': { label: 'Aprovado', variant: 'default' },
+    'APPROVED': { label: '✓ Aprovado', variant: 'default' },
+    'approved': { label: '✓ Aprovado', variant: 'default' },
     'PENDING': { label: 'Pendente', variant: 'secondary' },
     'pending': { label: 'Pendente', variant: 'secondary' },
     'REJECTED': { label: 'Rejeitado', variant: 'destructive' },
     'rejected': { label: 'Rejeitado', variant: 'destructive' },
-    'ACTIVE': { label: 'Ativo', variant: 'default' },
-    'active': { label: 'Ativo', variant: 'default' }
+    'ACTIVE': { label: '✓ Ativo', variant: 'default' },
+    'active': { label: '✓ Ativo', variant: 'default' }
   };
   return statusMap[status] || { label: status || 'Ativo', variant: 'outline' as const };
 };
 
 const getInitials = (name: string) => {
   if (!name) return '?';
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 };
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   fullName,
-  email,
   role,
   status,
   photoUrl,
   isEditing,
   isSaving,
+  isPhotoUploading,
   onEditToggle,
   onSave,
-  onPhotoChange
+  onPhotoChange,
+  onRemovePhoto,
+  location,
+  memberSince
 }) => {
   const statusInfo = getStatusInfo(status);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ Resolve relative path → signed URL in real time
+  const { url: resolvedPhotoUrl } = useSignedImageUrl(photoUrl);
+
+  const displayUrl = previewUrl || resolvedPhotoUrl || undefined;
+
+  const memberDateStr = memberSince
+    ? format(new Date(memberSince), "MMM/yyyy", { locale: ptBR })
+    : null;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && onPhotoChange) {
-      onPhotoChange(file);
+    if (!file) return;
+    
+    // Show preview immediately
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    setPendingFile(file);
+    
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleConfirmPhoto = async () => {
+    if (pendingFile && onPhotoChange) {
+      await onPhotoChange(pendingFile);
+      setPendingFile(null);
+      setPreviewUrl(null);
     }
   };
 
+  const handleCancelPhoto = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPendingFile(null);
+  };
+
+  // Context line: "📍 City/UF • Membro desde fev/2026"
+  const contextParts: string[] = [];
+  if (location) contextParts.push(`📍 ${location}`);
+  if (memberDateStr) contextParts.push(`Membro desde ${memberDateStr}`);
+  const contextLine = contextParts.join(' • ');
+
   return (
     <div className="relative">
-      {/* Cover/Banner - Gradiente estilo Facebook */}
-      <div className="h-28 sm:h-36 md:h-44 bg-gradient-to-r from-primary via-primary/80 to-accent rounded-t-lg" />
+      {/* Subtle gradient banner — 60% dark base, 10% green accent */}
+      <div className="h-20 sm:h-24 bg-gradient-to-br from-card via-card to-primary/15 rounded-t-lg border-b border-border/50" />
       
-      {/* Conteúdo do Header */}
       <div className="px-4 sm:px-6 pb-4">
-        {/* Avatar + Info */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 sm:-mt-14">
-          {/* Avatar */}
-          <div className="relative flex-shrink-0">
+        <div className="flex flex-col items-center -mt-12 sm:-mt-14">
+          {/* Avatar with camera button */}
+          <div className="relative group">
             <Avatar className={cn(
-              "h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32",
-              "border-4 border-background shadow-lg bg-background"
+              "h-24 w-24 sm:h-28 sm:w-28",
+              "border-4 border-background shadow-lg bg-background",
+              "transition-transform duration-200"
             )}>
-              <AvatarImage src={photoUrl} alt={fullName} className="object-cover" />
-              <AvatarFallback className="text-xl sm:text-2xl font-bold bg-primary/10 text-primary">
-                {getInitials(fullName)}
-              </AvatarFallback>
+              {isPhotoUploading ? (
+                <div className="flex items-center justify-center h-full w-full bg-muted">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  <AvatarImage src={displayUrl} alt={fullName} className="object-cover" />
+                  <AvatarFallback className="text-xl sm:text-2xl font-bold bg-primary/10 text-primary">
+                    {getInitials(fullName)}
+                  </AvatarFallback>
+                </>
+              )}
             </Avatar>
             
-            {/* Botão de foto - só mostra em modo edição */}
-            {isEditing && onPhotoChange && (
+            {/* Camera button — always visible, opens dropdown menu */}
+            {onPhotoChange && !pendingFile && (
               <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className={cn(
-                    "absolute bottom-1 right-1",
-                    "h-8 w-8 rounded-full",
-                    "bg-primary text-primary-foreground",
-                    "flex items-center justify-center",
-                    "hover:bg-primary/90 transition-colors",
-                    "shadow-md border-2 border-background"
-                  )}
-                  title="Alterar foto"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={cn(
+                        "absolute bottom-0 right-0",
+                        "h-8 w-8 rounded-full",
+                        "bg-primary text-primary-foreground",
+                        "flex items-center justify-center",
+                        "hover:bg-primary/90 transition-all",
+                        "shadow-md border-2 border-background",
+                        "active:scale-95"
+                      )}
+                      title="Alterar foto"
+                      disabled={isPhotoUploading}
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
+                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Alterar foto
+                    </DropdownMenuItem>
+                    {photoUrl && onRemovePhoto && (
+                      <DropdownMenuItem onClick={onRemovePhoto} className="text-destructive focus:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remover foto
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handleFileChange}
+                  onChange={handleFileSelect}
                 />
               </>
             )}
           </div>
 
-          {/* Nome e Info */}
-          <div className="flex-1 min-w-0 pt-2 sm:pt-0 sm:pb-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-              {fullName}
-            </h1>
-            {email && (
-              <p className="text-sm text-muted-foreground truncate mt-0.5">
-                {email}
-              </p>
-            )}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <Badge variant="secondary" className="text-xs">
-                {getRoleLabel(role)}
-              </Badge>
-              <Badge variant={statusInfo.variant} className="text-xs">
-                {statusInfo.label}
-              </Badge>
+          {/* Photo preview confirm/cancel */}
+          {pendingFile && (
+            <div className="flex gap-2 mt-2">
+              <Button size="sm" variant="outline" onClick={handleCancelPhoto} disabled={isPhotoUploading}>
+                <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+              </Button>
+              <Button size="sm" onClick={handleConfirmPhoto} disabled={isPhotoUploading}>
+                {isPhotoUploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 mr-1" />
+                )}
+                Salvar
+              </Button>
             </div>
+          )}
+
+          {/* Name — 24px/700 */}
+          <h1 className="mt-3 text-2xl font-bold leading-[30px] text-foreground text-center truncate max-w-full px-2">
+            {fullName}
+          </h1>
+
+          {/* Chips */}
+          <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
+            <Badge variant="secondary" className="text-xs">
+              {getRoleLabel(role)}
+            </Badge>
+            <Badge variant={statusInfo.variant} className="text-xs">
+              {statusInfo.label}
+            </Badge>
           </div>
 
-          {/* Botão Editar/Salvar */}
-          <div className="flex gap-2 sm:pb-2">
+          {/* Context line — 13px/500 */}
+          {contextLine && (
+            <p className="mt-2 text-[13px] leading-[18px] font-medium text-muted-foreground text-center">
+              {contextLine}
+            </p>
+          )}
+
+          {/* Edit/Save buttons */}
+          <div className="flex gap-2 mt-3">
             {isEditing ? (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onEditToggle}
-                  disabled={isSaving}
-                  className="gap-1.5"
-                >
+                <Button variant="outline" size="sm" onClick={onEditToggle} disabled={isSaving} className="gap-1.5">
                   <X className="h-4 w-4" />
                   <span className="hidden sm:inline">Cancelar</span>
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={onSave}
-                  disabled={isSaving}
-                  className="gap-1.5"
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline">
-                    {isSaving ? 'Salvando...' : 'Salvar'}
-                  </span>
+                <Button size="sm" onClick={onSave} disabled={isSaving} className="gap-1.5">
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{isSaving ? 'Salvando...' : 'Salvar'}</span>
                 </Button>
               </>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onEditToggle}
-                className="gap-1.5"
-              >
+              <Button variant="outline" size="sm" onClick={onEditToggle} className="gap-1.5">
                 <Edit2 className="h-4 w-4" />
                 <span>Editar Perfil</span>
               </Button>
