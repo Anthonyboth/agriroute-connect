@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
 import { User, Phone, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -274,7 +274,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col !overflow-hidden">
           {/* Header invisível para acessibilidade */}
           <DialogHeader className="sr-only">
             <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
@@ -297,8 +297,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             />
           </div>
 
-          {/* Conteúdo principal com scroll - ScrollArea para compatibilidade iOS */}
-          <ScrollArea className="flex-1 min-h-0">
+          {/* Conteúdo principal com scroll nativo - compatível com iOS WebView/Capacitor */}
+          <div 
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <div className="px-4 sm:px-6 pb-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
               {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
@@ -373,7 +376,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
       </DialogContent>
     </Dialog>
   );
