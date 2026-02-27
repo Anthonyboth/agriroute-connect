@@ -95,7 +95,8 @@ export function subscriptionWithErrorHandler(
       
       if (status === 'SUBSCRIPTION_ERROR' || status === 'CHANNEL_ERROR') {
         const error = new Error(`Erro na subscription: ${status}`);
-        console.error('[Subscription] Erro:', error);
+        // Use warn instead of error to avoid triggering monitor bot as CRITICAL
+        console.warn('[Subscription] Fallback to polling:', status);
         onError?.(error);
       }
       

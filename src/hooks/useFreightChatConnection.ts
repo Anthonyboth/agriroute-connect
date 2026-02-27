@@ -541,7 +541,7 @@ export function useFreightChatConnection({
             }
           }),
         (err) => {
-          console.error('[FreightChat] Subscription error:', err);
+          console.warn('[FreightChat] Subscription falhou, usando polling:', err.message);
           startPolling();
         }
       ).subscribe((status: string) => {
