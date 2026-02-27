@@ -284,7 +284,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
         {/* Botões de Ação */}
         {proposal.status === 'PENDING' && (
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             <Button
               variant="outline"
               size="sm"
@@ -293,7 +293,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 onReject(proposal.id);
               }}
               disabled={loadingAction.proposalId === proposal.id}
-              className="h-auto min-h-9 w-full justify-center px-2 py-2 text-xs sm:text-sm"
+              className="h-10 w-full justify-center rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm"
               data-testid="reject-proposal-button"
             >
               {loadingAction.proposalId === proposal.id && loadingAction.action === 'reject' ? (
@@ -316,11 +316,11 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 e.stopPropagation();
                 onCounterProposal(proposal);
               }}
-              className="h-auto min-h-9 w-full justify-center border-primary px-2 py-2 text-center text-xs leading-tight text-primary hover:bg-primary/10 sm:text-sm"
+              className="h-10 w-full justify-center rounded-xl border-primary/30 text-primary hover:bg-primary/10 hover:border-primary shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm"
               data-testid="counter-proposal-button"
             >
               <DollarSign className="h-4 w-4 mr-2" />
-              Fazer Contraproposta
+              Contraproposta
             </Button>
             
             <Button
@@ -330,7 +330,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 onAccept(proposal);
               }}
               disabled={!canAccept || loadingAction.proposalId === proposal.id}
-              className="h-auto min-h-9 w-full justify-center px-2 py-2 text-xs sm:text-sm"
+              className="h-10 w-full justify-center rounded-xl shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm sm:col-span-2 lg:col-span-1"
               data-testid="accept-proposal-button"
             >
               {loadingAction.proposalId === proposal.id && loadingAction.action === 'accept' ? (
@@ -341,7 +341,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {!canAccept ? 'Sem vagas' : 'Aceitar'}
+                  {!canAccept ? 'Sem vagas' : 'Aceitar Proposta'}
                 </>
               )}
             </Button>
@@ -358,7 +358,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -367,7 +367,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   onReject(proposal.id);
                 }}
                 disabled={loadingAction.proposalId === proposal.id}
-                className="h-auto min-h-9 w-full justify-center px-2 py-2 text-xs sm:text-sm"
+                className="h-10 w-full justify-center rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm"
                 data-testid="reject-counter-proposal-button"
               >
                 {loadingAction.proposalId === proposal.id && loadingAction.action === 'reject' ? (
@@ -390,7 +390,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   onAccept(proposal);
                 }}
                 disabled={!canAccept || loadingAction.proposalId === proposal.id}
-                className="h-auto min-h-9 w-full justify-center px-2 py-2 text-xs sm:text-sm"
+                className="h-10 w-full justify-center rounded-xl shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm"
                 data-testid="accept-counter-proposal-button"
               >
                 {loadingAction.proposalId === proposal.id && loadingAction.action === 'accept' ? (
