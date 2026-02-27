@@ -243,29 +243,29 @@
  
        {/* Actions */}
        {(canEdit || canCancel) && (
-         <CardFooter className="pt-0 pb-4 flex gap-2">
-           {canEdit && (
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={onEdit}
-               className="flex-1"
-             >
-               <Edit className="h-4 w-4 mr-2" />
-               Editar
-             </Button>
-           )}
-           {canCancel && (
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={onCancel}
-               className="flex-1 text-destructive hover:text-destructive"
-             >
-               <X className="h-4 w-4 mr-2" />
-               Cancelar
-             </Button>
-           )}
+      <CardFooter className="pt-2 pb-4 flex gap-3">
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                className="flex-1 h-10 rounded-xl border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-sm transition-all duration-200 font-medium"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                className="flex-1 h-10 rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm transition-all duration-200 font-medium"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+            )}
          </CardFooter>
        )}
      </Card>
