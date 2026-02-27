@@ -55,6 +55,7 @@ interface CompatibleFreight {
   pricing_type?: string;
   price_per_km?: number;
   created_at: string;
+  producer_id?: string | null;
 }
 
 interface CompanySmartFreightMatcherProps {
@@ -194,6 +195,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           required_trucks: requiredTrucks,
           accepted_trucks: acceptedTrucks,
           created_at: String((freight as any).created_at || ""),
+          producer_id: (freight as any).producer_id || null,
         });
       }
 
