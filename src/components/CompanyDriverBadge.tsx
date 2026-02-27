@@ -47,15 +47,14 @@ export const CompanyDriverBadge = ({ companyName, isAffiliated = false, driverPr
   return (
     <Alert className="border-primary/30 bg-primary/5 relative">
       <Users className="h-4 w-4 text-primary" />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
+      <button
+        type="button"
+        className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full h-7 w-7 bg-muted/60 text-muted-foreground transition-all duration-200 hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={handleDismiss}
         aria-label="Fechar informação"
       >
-        <X className="h-3.5 w-3.5" />
-      </Button>
+        <X className="h-4 w-4" />
+      </button>
       <AlertTitle className="text-primary font-semibold">
         {isAffiliated ? 'Motorista Afiliado' : 'Motorista de Empresa'}
       </AlertTitle>
