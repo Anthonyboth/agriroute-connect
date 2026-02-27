@@ -126,6 +126,11 @@ export function useErrorMonitoring() {
           console.debug('[useErrorMonitoring] Erro de rede em chamada de monitoramento - suprimido para evitar loop');
           throw error;
         }
+
+        // ✅ Correção 2: NÃO reportar AbortError (cancelamento normal de fetch por cleanup de useEffect)
+        if (error instanceof DOMException && (error as DOMException).name === 'AbortError') {
+          throw error;
+        }
         
         console.error('💥 [useErrorMonitoring] Erro de fetch:', error);
         // Capturar erros de rede (fetch falhou)
