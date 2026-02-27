@@ -76,6 +76,7 @@ interface CompatibleFreight {
   vehicle_axles_required?: number;
   pricing_type?: string;
   price_per_km?: number;
+  producer_id?: string | null;
 }
 
 interface AdvancedSearchFilters {
