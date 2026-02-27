@@ -88,33 +88,75 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     zip: '',
   });
 
+  const applyProfileSource = (source: any) => {
+    setProfileData({
+      full_name: source?.full_name || '',
+      phone: source?.phone || '',
+      contact_phone: source?.contact_phone || '',
+      cpf_cnpj: source?.cpf_cnpj || '',
+      farm_name: source?.farm_name || '',
+      farm_address: source?.farm_address || '',
+      cooperative: source?.cooperative || '',
+      rntrc: source?.rntrc || '',
+      emergency_contact_name: source?.emergency_contact_name || '',
+      emergency_contact_phone: source?.emergency_contact_phone || '',
+    });
+    setAddressData({
+      street: source?.address_street || '',
+      number: source?.address_number || '',
+      complement: source?.address_complement || '',
+      neighborhood: source?.address_neighborhood || '',
+      city: source?.address_city || '',
+      state: source?.address_state || '',
+      zip: source?.address_zip || '',
+    });
+    setCurrentPhotoPath(source?.profile_photo_url || '');
+  };
+
   useEffect(() => {
-    if (user) {
-      setProfileData({
-        full_name: user.full_name || '',
-        phone: user.phone || '',
-        contact_phone: user.contact_phone || '',
-        cpf_cnpj: user.cpf_cnpj || '',
-        farm_name: user.farm_name || '',
-        farm_address: user.farm_address || '',
-        cooperative: user.cooperative || '',
-        rntrc: user.rntrc || '',
-        emergency_contact_name: user.emergency_contact_name || '',
-        emergency_contact_phone: user.emergency_contact_phone || '',
-      });
-      setAddressData({
-        street: user.address_street || '',
-        number: user.address_number || '',
-        complement: user.address_complement || '',
-        neighborhood: user.address_neighborhood || '',
-        city: user.address_city || '',
-        state: user.address_state || '',
-        zip: user.address_zip || '',
-      });
-      // Store the raw path/url from DB — will be resolved by useSignedImageUrl in ProfileHeader
-      setCurrentPhotoPath(user.profile_photo_url || '');
-    }
-  }, [user?.id]);
+    if (user) applyProfileSource(user);
+  }, [user]);
+
+  useEffect(() => {
+    if (!isOpen || !user?.id) return;
+
+    let isMounted = true;
+
+    const hydrateProfileFromDatabase = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) return;
+
+        const { data: freshProfile, error } = await supabase
+          .from('profiles')
+          .select(`
+            id, user_id, full_name, phone, contact_phone, cpf_cnpj,
+            farm_name, farm_address, cooperative, rntrc,
+            emergency_contact_name, emergency_contact_phone,
+            address_street, address_number, address_complement,
+            address_neighborhood, address_city, address_state, address_zip,
+            profile_photo_url
+          `)
+          .eq('id', user.id)
+          .eq('user_id', authUser.id)
+          .maybeSingle();
+
+        if (!error && freshProfile && isMounted) {
+          applyProfileSource(freshProfile);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('Falha ao hidratar perfil completo no modal:', error);
+        }
+      }
+    };
+
+    void hydrateProfileFromDatabase();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, user?.id]);
 
   useEffect(() => {
     if (!isOpen || !user?.id) return;
@@ -221,12 +263,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       if (authError || !authUser) throw new Error('Sessão inválida. Faça login novamente.');
 
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const filePath = `${authUser.id}/profile_${Date.now()}.${fileExt}`;
+      const randomSuffix = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID().slice(0, 8) : `${Math.random().toString(36).slice(2, 10)}`;
+      const filePath = `${authUser.id}/profile_${Date.now()}_${randomSuffix}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('profile-photos')
         .upload(filePath, file, {
-          upsert: true, // Allow overwrite
+          upsert: false,
           contentType: file.type,
           cacheControl: '3600',
         });
@@ -237,12 +280,37 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       // Format: profile-photos/{userId}/profile_{timestamp}.ext
       const stablePath = `profile-photos/${filePath}`;
 
+      let targetProfileId = user?.id as string | undefined;
+
+      const { data: ownedProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', targetProfileId || '')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      if (!ownedProfile) {
+        const { data: fallbackProfiles, error: fallbackError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', authUser.id)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (fallbackError) throw fallbackError;
+        targetProfileId = fallbackProfiles?.[0]?.id;
+      }
+
+      if (!targetProfileId) {
+        throw new Error('Perfil não encontrado para atualizar a foto.');
+      }
+
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({ profile_photo_url: stablePath })
-        .eq('id', user.id)
+        .eq('id', targetProfileId)
         .eq('user_id', authUser.id)
-        .select('id')
+        .select('id, profile_photo_url')
         .maybeSingle();
 
       if (updateError) throw updateError;
@@ -354,7 +422,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   // Completeness CTA
   const missingFields: string[] = [];
   if (!profileData.cpf_cnpj) missingFields.push('CPF/CNPJ');
-  if (!profileData.phone) missingFields.push('Telefone WhatsApp');
+  if (!profileData.phone && !profileData.contact_phone) missingFields.push('Telefone WhatsApp');
   if (!currentPhotoPath) missingFields.push('Foto de perfil');
 
   // Display data with masked CPF/CNPJ
