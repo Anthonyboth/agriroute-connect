@@ -310,6 +310,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
   const [driverAssignment, setDriverAssignment] = useState<any>(null);
   const [hasActiveCompanyAssignment, setHasActiveCompanyAssignment] = useState(false);
+  const [companyDriverAssignment, setCompanyDriverAssignment] = useState<any>(null);
   
   useEffect(() => {
     const checkAssignment = async () => {
@@ -353,7 +354,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
         const { data: assignmentRows, error: asgErr } = await supabase
           .from('freight_assignments')
-          .select('id')
+          .select('id, status, driver_id')
           .eq('freight_id', freightId)
           .eq('company_id', companyRow.id)
           .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
@@ -361,10 +362,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
         if (asgErr) {
           setHasActiveCompanyAssignment(false);
+          setCompanyDriverAssignment(null);
           return;
         }
 
         setHasActiveCompanyAssignment(!!assignmentRows && assignmentRows.length > 0);
+        setCompanyDriverAssignment(assignmentRows && assignmentRows.length > 0 ? assignmentRows[0] : null);
       } catch {
         setHasActiveCompanyAssignment(false);
       }
@@ -378,11 +381,15 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
     if (FINAL_STATUSES.includes(freight?.status as any)) {
       return freight.status;
     }
-    return statusRank(freight?.status) >= statusRank(driverAssignment?.status) 
-      ? freight?.status 
-      : driverAssignment?.status;
-  }, [freight?.status, driverAssignment?.status]);
-  
+    // ✅ Carrier: use their affiliated driver's assignment status
+    const relevantAssignment = driverAssignment || companyDriverAssignment;
+    if (relevantAssignment?.status) {
+      return statusRank(freight?.status) >= statusRank(relevantAssignment.status) 
+        ? freight?.status 
+        : relevantAssignment.status;
+    }
+    return freight?.status;
+  }, [freight?.status, driverAssignment?.status, companyDriverAssignment?.status]);
   // ✅ Multi-carreta (status OPEN): o motorista pode estar em drivers_assigned sem existir row em freight_assignments.
   const isAssignedDriver = Array.isArray(freight?.drivers_assigned)
     ? (freight.drivers_assigned as string[]).includes(currentUserProfile?.id)
@@ -1327,7 +1334,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 fetchFreightDetails();
               }}
               companyId={currentUserProfile?.transport_company_id || undefined}
-              assignmentId={driverAssignment?.id || undefined}
+              assignmentId={driverAssignment?.id || companyDriverAssignment?.id || undefined}
             />
           </TabsContent>
           
