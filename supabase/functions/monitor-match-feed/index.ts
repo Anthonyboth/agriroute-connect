@@ -248,6 +248,19 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: require X-Monitor-Token or valid service_role Bearer token
+  const monitorToken = Deno.env.get("MONITOR_CRON_TOKEN");
+  const reqToken = req.headers.get("x-monitor-token");
+  const authHeader = req.headers.get("authorization") || "";
+  const isServiceRole = authHeader === `Bearer ${SERVICE_KEY}`;
+
+  if (!isServiceRole && (!monitorToken || reqToken !== monitorToken)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "content-type": "application/json" } }
+    );
+  }
+
   try {
     const env = Deno.env.get("APP_ENV") || "prod";
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
