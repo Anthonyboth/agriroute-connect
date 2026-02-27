@@ -7,6 +7,18 @@ import { isLovablePreviewHost } from './utils/isLovablePreviewHost'
 // Instalar handlers de auto-recuperação para erros de chunk/PWA ANTES de qualquer coisa
 installAutoRecoveryHandlers();
 
+// ✅ GLOBAL: Silenciar AbortError de MapLibre/fetch cleanup ANTES de qualquer React montar
+// Estes são cancelamentos normais de tiles/requests e NÃO são bugs reais
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  if (
+    (reason instanceof DOMException && reason.name === 'AbortError') ||
+    (reason instanceof Error && (reason.name === 'AbortError' || reason.message === 'signal is aborted without reason'))
+  ) {
+    event.preventDefault();
+  }
+});
+
 /**
  * ✅ Preview Fresh Build System v2
  * 
