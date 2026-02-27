@@ -188,10 +188,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   const handlePhotoChange = async (file: File) => {
     try {
-      // Upload da foto
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Obter user_id da auth para usar como pasta no storage (RLS exige isso)
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser) throw new Error('Usuário não autenticado');
+
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      // Caminho correto: {userId}/{filename} — necessário para RLS do bucket
+      const filePath = `${authUser.id}/profile_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('profile-photos')
@@ -211,7 +214,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ profile_photo_url: photoUrl })
-        .eq('user_id', user.user_id);
+        .eq('user_id', authUser.id);
 
       if (updateError) throw updateError;
       
@@ -225,7 +228,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       console.error('Error updating photo:', error);
       toast({
         title: "Erro ao atualizar foto",
-        description: "Não foi possível atualizar a foto.",
+        description: error?.message || "Não foi possível atualizar a foto.",
         variant: "destructive",
       });
     }
