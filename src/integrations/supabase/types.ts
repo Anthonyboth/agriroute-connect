@@ -7109,6 +7109,36 @@ export type Database = {
         }
         Relationships: []
       }
+      match_alert_state: {
+        Row: {
+          fail_streak: number
+          is_open: boolean
+          key: string
+          last_fail_at: string | null
+          last_ok_at: string | null
+          last_sent_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          fail_streak?: number
+          is_open?: boolean
+          key: string
+          last_fail_at?: string | null
+          last_ok_at?: string | null
+          last_sent_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          fail_streak?: number
+          is_open?: boolean
+          key?: string
+          last_fail_at?: string | null
+          last_ok_at?: string | null
+          last_sent_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       match_debug_logs: {
         Row: {
           error: string | null
@@ -7232,6 +7262,72 @@ export type Database = {
           metadata?: Json
           role?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      match_telemetry: {
+        Row: {
+          check_name: string
+          city_ids_count: number
+          city_pairs_count: number
+          created_at: string
+          displayed_freights_count: number
+          displayed_services_count: number
+          duration_ms: number | null
+          env: string
+          failure_code: string | null
+          failure_detail: Json | null
+          feed_total_displayed: number | null
+          feed_total_eligible: number | null
+          id: number
+          ok: boolean
+          role: string | null
+          rpc_freights_count: number
+          rpc_services_count: number
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          check_name?: string
+          city_ids_count?: number
+          city_pairs_count?: number
+          created_at?: string
+          displayed_freights_count?: number
+          displayed_services_count?: number
+          duration_ms?: number | null
+          env?: string
+          failure_code?: string | null
+          failure_detail?: Json | null
+          feed_total_displayed?: number | null
+          feed_total_eligible?: number | null
+          id?: number
+          ok?: boolean
+          role?: string | null
+          rpc_freights_count?: number
+          rpc_services_count?: number
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          check_name?: string
+          city_ids_count?: number
+          city_pairs_count?: number
+          created_at?: string
+          displayed_freights_count?: number
+          displayed_services_count?: number
+          duration_ms?: number | null
+          env?: string
+          failure_code?: string | null
+          failure_detail?: Json | null
+          feed_total_displayed?: number | null
+          feed_total_eligible?: number | null
+          id?: number
+          ok?: boolean
+          role?: string | null
+          rpc_freights_count?: number
+          rpc_services_count?: number
+          source?: string
+          user_id?: string | null
         }
         Relationships: []
       }
