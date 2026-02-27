@@ -202,8 +202,8 @@ export function guardStatusDisplay(rawStatus: string): string {
   // Se o input é um código puro (todo maiúsculo com underscore)
   if (/^[A-Z_]+$/.test(rawStatus) && rawStatus.length > 2) {
     if (import.meta.env.DEV) {
-      console.error(
-        `[i18nGuard] 🚨 Status cru renderizado: "${rawStatus}" → Traduzido para: "${translated}". Corrija o componente para usar getStatusLabelPtBR().`
+      console.warn(
+        `[i18nGuard] ⚠️ Status cru renderizado: "${rawStatus}" → Traduzido para: "${translated}". Corrija o componente para usar getStatusLabelPtBR().`
       );
     }
   }
