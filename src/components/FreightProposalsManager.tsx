@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { supabase } from '@/integrations/supabase/client';
 import { CenteredSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { toast } from 'sonner';
-import { Clock, DollarSign, Truck, User, MapPin, AlertTriangle, CheckCircle, XCircle, MessageSquare, Loader2, ArrowUpDown, ExternalLink } from 'lucide-react';
+import { Clock, DollarSign, Truck, User, MapPin, AlertTriangle, CheckCircle, XCircle, MessageSquare, Loader2, ArrowUpDown, ExternalLink, SlidersHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { showErrorToast } from '@/lib/error-handler';
@@ -368,123 +368,140 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
               </TabsList>
             </div>
 
-            {/* Filtros Avançados */}
+            {/* Filtros Avançados - Collapsible */}
             {activeTab === 'pending' && pendingCount > 0 && (
-              <Card className="mb-4 border border-border/60 bg-card/95">
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {/* Filtro de Preço */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">Faixa de Preço</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Mín"
-                          value={proposalFilters.priceRange?.min || ''}
-                          onChange={(e) => setProposalFilters({
-                            ...proposalFilters,
-                            priceRange: {
-                              min: parseFloat(e.target.value) || 0,
-                              max: proposalFilters.priceRange?.max || 999999
-                            }
-                          })}
-                          className="h-9"
-                        />
-                        <Input
-                          type="number"
-                          placeholder="Máx"
-                          value={proposalFilters.priceRange?.max || ''}
-                          onChange={(e) => setProposalFilters({
-                            ...proposalFilters,
-                            priceRange: {
-                              min: proposalFilters.priceRange?.min || 0,
-                              max: parseFloat(e.target.value) || 999999
-                            }
-                          })}
-                          className="h-9"
-                        />
+              <div className="mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setProposalFilters(prev => ({ ...prev, _open: !(prev as any)._open } as any))}
+                  className="mb-3 h-9 gap-2 rounded-xl border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filtros
+                  {(proposalFilters.priceRange || proposalFilters.driverId || proposalFilters.route) && (
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] ml-1">Ativo</Badge>
+                  )}
+                </Button>
+
+                {(proposalFilters as any)._open && (
+                  <Card className="border border-border/40 bg-secondary/20 shadow-sm">
+                    <CardContent className="pt-4 pb-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        {/* Filtro de Preço */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Faixa de Preço</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              type="number"
+                              placeholder="Mín"
+                              value={proposalFilters.priceRange?.min || ''}
+                              onChange={(e) => setProposalFilters({
+                                ...proposalFilters,
+                                priceRange: {
+                                  min: parseFloat(e.target.value) || 0,
+                                  max: proposalFilters.priceRange?.max || 999999
+                                }
+                              })}
+                              className="h-8 text-sm"
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Máx"
+                              value={proposalFilters.priceRange?.max || ''}
+                              onChange={(e) => setProposalFilters({
+                                ...proposalFilters,
+                                priceRange: {
+                                  min: proposalFilters.priceRange?.min || 0,
+                                  max: parseFloat(e.target.value) || 999999
+                                }
+                              })}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Filtro de Motorista */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Motorista</Label>
+                          <Input
+                            placeholder="Nome do motorista"
+                            value={proposalFilters.driverId || ''}
+                            onChange={(e) => setProposalFilters({
+                              ...proposalFilters,
+                              driverId: e.target.value
+                            })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        {/* Filtro de Rota */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Rota</Label>
+                          <Input
+                            placeholder="Cidade origem ou destino"
+                            value={proposalFilters.route || ''}
+                            onChange={(e) => setProposalFilters({
+                              ...proposalFilters,
+                              route: e.target.value
+                            })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        {/* Ordenação */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Ordenar por</Label>
+                          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                            <Select
+                              value={proposalFilters.sortBy}
+                              onValueChange={(value) => setProposalFilters({
+                                ...proposalFilters,
+                                sortBy: value as any
+                              })}
+                            >
+                              <SelectTrigger className="h-8 min-w-0 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="date">Data</SelectItem>
+                                <SelectItem value="price">Preço</SelectItem>
+                                <SelectItem value="driver">Motorista</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => setProposalFilters({
+                                ...proposalFilters,
+                                sortOrder: proposalFilters.sortOrder === 'asc' ? 'desc' : 'asc'
+                              })}
+                            >
+                              <ArrowUpDown className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Filtro de Motorista */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">Motorista</Label>
-                      <Input
-                        placeholder="Nome do motorista"
-                        value={proposalFilters.driverId || ''}
-                        onChange={(e) => setProposalFilters({
-                          ...proposalFilters,
-                          driverId: e.target.value
-                        })}
-                        className="h-9"
-                      />
-                    </div>
-
-                    {/* Filtro de Rota */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">Rota</Label>
-                      <Input
-                        placeholder="Cidade origem ou destino"
-                        value={proposalFilters.route || ''}
-                        onChange={(e) => setProposalFilters({
-                          ...proposalFilters,
-                          route: e.target.value
-                        })}
-                        className="h-9"
-                      />
-                    </div>
-
-                    {/* Ordenação */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">Ordenar por</Label>
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                        <Select
-                          value={proposalFilters.sortBy}
-                          onValueChange={(value) => setProposalFilters({
-                            ...proposalFilters,
-                            sortBy: value as any
-                          })}
-                        >
-                          <SelectTrigger className="h-9 min-w-0">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="date">Data</SelectItem>
-                            <SelectItem value="price">Preço</SelectItem>
-                            <SelectItem value="driver">Motorista</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
+                      <div className="mt-3 flex justify-end">
                         <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9 shrink-0"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
                           onClick={() => setProposalFilters({
-                            ...proposalFilters,
-                            sortOrder: proposalFilters.sortOrder === 'asc' ? 'desc' : 'asc'
+                            sortBy: 'date',
+                            sortOrder: 'desc'
                           })}
                         >
-                          <ArrowUpDown className="h-4 w-4" />
+                          Limpar Filtros
                         </Button>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                      onClick={() => setProposalFilters({
-                        sortBy: 'date',
-                        sortOrder: 'desc'
-                      })}
-                    >
-                      Limpar Filtros
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
 
             <TabsContent value="pending">
