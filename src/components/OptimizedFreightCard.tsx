@@ -482,7 +482,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(
             <div className="flex gap-4">
               <Button
                 onClick={handleEdit}
-                className="flex-1 btn-accessible text-lg font-semibold"
+                className="flex-1 btn-accessible text-lg font-semibold border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
                 size="lg"
                 variant="outline"
               >
