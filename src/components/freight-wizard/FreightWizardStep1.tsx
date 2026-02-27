@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { GPSOriginButton } from './GPSOriginButton';
 import { UnifiedLocationInput, type LocationData } from '@/components/UnifiedLocationInput';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText } from 'lucide-react';
+import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText, Copy } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface FreightWizardStep1Props {
@@ -143,11 +143,29 @@ export function FreightWizardStep1({
 
       {/* Destino */}
       <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">B</span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Label className="text-base font-semibold flex items-center gap-2 flex-1">
+            <span className="w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">B</span>
             Destino
           </Label>
+          {formData.origin_city && formData.origin_state && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5 border-dashed border-primary/50 text-primary hover:bg-primary/5"
+              onClick={() => {
+                onInputChange('destination_city', formData.origin_city);
+                onInputChange('destination_state', formData.origin_state);
+                onInputChange('destination_city_id', formData.origin_city_id);
+                onInputChange('destination_lat', formData.origin_lat);
+                onInputChange('destination_lng', formData.origin_lng);
+              }}
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Mesma cidade
+            </Button>
+          )}
         </div>
         
         <UnifiedLocationInput
