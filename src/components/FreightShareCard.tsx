@@ -313,6 +313,12 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
           isOpen={acceptModalOpen}
           onClose={() => {
             setAcceptModalOpen(false);
+            recheckAvailability();
+            onAccept?.();
+          }}
+          onUnavailable={() => {
+            setAcceptModalOpen(false);
+            recheckAvailability();
           }}
           freight={{
             id: freightData.freight_id,
