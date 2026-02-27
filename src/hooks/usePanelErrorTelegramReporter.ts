@@ -126,6 +126,8 @@ export function usePanelErrorTelegramReporter() {
 
     // ===== 4. window error event listener (captura adicional global) =====
     const handleWindowErrorEvent = (event: ErrorEvent) => {
+      // ✅ Ignorar AbortError no nível do evento também
+      if (event.error?.name === 'AbortError') return;
       const msg = event.error?.message || stringifyToastMessage(event.message);
       reportError(msg, 'window_error_event', {
         file: event.filename,
@@ -137,9 +139,18 @@ export function usePanelErrorTelegramReporter() {
 
     // ===== 5. unhandledrejection — promises rejeitadas =====
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const msg = event.reason instanceof Error
-        ? event.reason.message
-        : stringifyToastMessage(event.reason);
+      const reason = event.reason;
+      // ✅ Silenciar AbortError completamente (cleanup normal de useEffect/MapLibre)
+      if (
+        reason instanceof DOMException && reason.name === 'AbortError' ||
+        (reason instanceof Error && (reason.name === 'AbortError' || reason.message?.includes('aborted')))
+      ) {
+        event.preventDefault(); // Impedir que escape para outros handlers
+        return;
+      }
+      const msg = reason instanceof Error
+        ? reason.message
+        : stringifyToastMessage(reason);
       reportError(msg, 'unhandled_promise_rejection');
     };
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
