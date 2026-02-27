@@ -156,12 +156,21 @@ export function useOSRMRoute({
 
       console.log('[useOSRMRoute] Fetching route:', url);
 
+      // Capturar AbortError inline para evitar que escape como unhandled rejection
       const response = await fetch(url, {
         signal: abortControllerRef.current.signal,
         headers: {
           'Accept': 'application/json',
         },
+      }).catch((fetchErr: Error) => {
+        if (fetchErr.name === 'AbortError') {
+          return null; // Silenciar AbortError antes que vire unhandled rejection
+        }
+        throw fetchErr;
       });
+
+      // Se foi abortado, sair silenciosamente
+      if (!response) return;
 
       if (!response.ok) {
         throw new Error(`OSRM error: ${response.status}`);
