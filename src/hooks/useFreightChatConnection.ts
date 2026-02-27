@@ -144,7 +144,7 @@ export function useFreightChatConnection({
       // Check if user is producer, driver, or company owner via assignment
       const { data: freight, error: freightError } = await supabase
         .from('freights')
-        .select('producer_id, driver_id, status')
+        .select('producer_id, driver_id, status, company_id')
         .eq('id', freightId)
         .single();
 
@@ -157,12 +157,23 @@ export function useFreightChatConnection({
         return true;
       }
 
+      // Check if user is a transport company owner via freights.company_id
+      if (freight.company_id) {
+        const { data: company } = await supabase
+          .from('transport_companies')
+          .select('profile_id')
+          .eq('id', freight.company_id)
+          .single();
+
+        if (company?.profile_id === currentUserProfileId) return true;
+      }
+
       // Check if user is a company owner of an assigned driver
       const { data: assignments } = await supabase
         .from('freight_assignments')
         .select('driver_id, company_id')
         .eq('freight_id', freightId)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT']);
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED']);
 
       if (assignments && assignments.length > 0) {
         for (const assignment of assignments) {
