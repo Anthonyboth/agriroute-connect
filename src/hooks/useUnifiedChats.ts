@@ -98,7 +98,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           if (allProfileIdsForFreights.length > 0) {
             const { data } = await (supabase as any)
               .from('profiles_secure')
-              .select('id, full_name, role, phone')
+              .select('id, full_name, role, phone, profile_photo_url')
               .in('id', allProfileIdsForFreights);
             profiles = data;
           }
@@ -158,7 +158,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           });
 
           // Criar mapa de perfis para lookup rápido (tipagem explícita para profiles_secure)
-          interface SecureProfile { id: string; full_name?: string; role?: string; phone?: string; active_mode?: string; }
+          interface SecureProfile { id: string; full_name?: string; role?: string; phone?: string; active_mode?: string; profile_photo_url?: string; }
           const profileMap = new Map<string, SecureProfile>((profiles as SecureProfile[] || []).map((p) => [p.id, p]));
           const freightMap = new Map((eligibleFreights || []).map((f: any) => [f.id, f]) || []);
 
@@ -197,6 +197,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                   id: freight.producer_id,
                   name: producerProfile.full_name || 'Produtor',
                   role: 'PRODUTOR',
+                  avatar: producerProfile.profile_photo_url || undefined,
                 });
               }
               if (driverProfile) {
@@ -204,6 +205,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                   id: freight.driver_id,
                   name: driverProfile.full_name || 'Motorista',
                   role: (driverProfile.active_mode as ChatParticipant['role']) || 'MOTORISTA',
+                  avatar: driverProfile.profile_photo_url || undefined,
                 });
               }
               if (company) {
@@ -217,15 +219,19 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
               // Determinar "outro participante" principal para exibição
               let otherParticipantName = 'Participante';
               let otherParticipantPhone: string | undefined;
+              let otherParticipantAvatar: string | undefined;
               if (userRole === 'PRODUTOR') {
                 otherParticipantName = driverProfile?.full_name || 'Motorista';
                 otherParticipantPhone = driverProfile?.phone;
+                otherParticipantAvatar = driverProfile?.profile_photo_url || undefined;
               } else if (userRole === 'TRANSPORTADORA') {
                 otherParticipantName = producerProfile?.full_name || 'Produtor';
                 otherParticipantPhone = producerProfile?.phone;
+                otherParticipantAvatar = producerProfile?.profile_photo_url || undefined;
               } else {
                 otherParticipantName = producerProfile?.full_name || 'Produtor';
                 otherParticipantPhone = producerProfile?.phone;
+                otherParticipantAvatar = producerProfile?.profile_photo_url || undefined;
               }
 
               // Verificar se GPS está ativo (frete em andamento)
@@ -245,6 +251,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 otherParticipant: {
                   name: otherParticipantName,
                   phone: otherParticipantPhone,
+                  avatar: otherParticipantAvatar,
                 },
                 participants,
                 metadata: { freightId: freight.id, companyId: freight.company_id },
@@ -314,7 +321,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           if (allProfileIds.length > 0) {
             const { data: profiles } = await (supabase as any)
               .from('profiles_secure')
-              .select('id, full_name')
+              .select('id, full_name, profile_photo_url')
               .in('id', allProfileIds);
             profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
           }
@@ -351,11 +358,13 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                   name: isCurrentUserProvider
                     ? clientProfile?.full_name || 'Cliente'
                     : providerProfile?.full_name || 'Prestador',
+                  avatar: isCurrentUserProvider
+                    ? clientProfile?.profile_photo_url || undefined
+                    : providerProfile?.profile_photo_url || undefined,
                 },
                 participants: [
-                  // Sempre incluir participantes mesmo sem perfil carregado
-                  { id: service.client_id, name: clientProfile?.full_name || 'Cliente', role: 'PRODUTOR' as const },
-                  ...(service.provider_id ? [{ id: service.provider_id, name: providerProfile?.full_name || 'Prestador', role: 'PRESTADOR_SERVICO' as const }] : []),
+                  { id: service.client_id, name: clientProfile?.full_name || 'Cliente', role: 'PRODUTOR' as const, avatar: clientProfile?.profile_photo_url || undefined },
+                  ...(service.provider_id ? [{ id: service.provider_id, name: providerProfile?.full_name || 'Prestador', role: 'PRESTADOR_SERVICO' as const, avatar: providerProfile?.profile_photo_url || undefined }] : []),
                 ],
                 metadata: { serviceRequestId: service.id },
                 isClosed,
