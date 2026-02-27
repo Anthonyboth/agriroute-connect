@@ -93,24 +93,88 @@ export const ChatConversationCard = ({
       }`}
       onClick={onClick}
     >
-      <div className="flex items-start gap-3">
-        {/* Avatares empilhados para múltiplos participantes */}
+      {/* Header: Icon + Title + Unread badge */}
+      <div className="flex items-center gap-2 mb-2">
+        {getIcon()}
+        <h4 className="font-semibold text-sm truncate flex-1 min-w-0">
+          {conversation.title}
+        </h4>
+        {conversation.unreadCount > 0 && (
+          <Badge variant="destructive" className="text-xs px-1.5 py-0 shrink-0">
+            {conversation.unreadCount}
+          </Badge>
+        )}
+        {onClose && !conversation.isClosed && !conversation.isAutoClosedByRatings && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+
+      {/* Status badges row */}
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        {getStatusBadge()}
+        
+        {conversation.hasGpsTracking && !conversation.isClosed && (
+          <Badge variant="outline" className="text-xs gap-1 px-1.5 py-0 bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300">
+            <Navigation className="h-3 w-3" />
+            GPS
+            {conversation.gpsLastUpdate && (
+              <span className="text-green-600/70 dark:text-green-400/70">
+                • {formatDistanceToNow(new Date(conversation.gpsLastUpdate), { locale: ptBR })}
+              </span>
+            )}
+          </Badge>
+        )}
+        
+        {hasMultipleParticipants && (
+          <Badge variant="outline" className="text-xs gap-1 px-1.5 py-0">
+            <Users className="h-3 w-3" />
+            {participants.length}
+          </Badge>
+        )}
+
+        {conversation.isClosed && (
+          conversation.isAutoClosedByRatings ? (
+            <Badge variant="secondary" className="text-xs gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Concluído
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Fechada
+            </Badge>
+          )
+        )}
+      </div>
+
+      {/* Body: Avatars + Content */}
+      <div className="flex items-center gap-3">
+        {/* Avatares */}
         <div className="relative shrink-0">
           {participants.length > 0 ? (
             <div className="flex -space-x-2">
               {participants.slice(0, 3).map((p, idx) => (
                 <Avatar 
                   key={p.id} 
-                  className={`h-10 w-10 border-2 border-background ${idx > 0 ? '-ml-3' : ''}`}
+                  className="h-9 w-9 border-2 border-background"
                   style={{ zIndex: 3 - idx }}
                 >
-                  <AvatarFallback className={getRoleBadgeColor(p.role)}>
+                  <AvatarFallback className={`text-xs ${getRoleBadgeColor(p.role)}`}>
                     {getInitials(p.name)}
                   </AvatarFallback>
                 </Avatar>
               ))}
               {participants.length > 3 && (
-                <Avatar className="h-10 w-10 border-2 border-background -ml-3">
+                <Avatar className="h-9 w-9 border-2 border-background">
                   <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                     +{participants.length - 3}
                   </AvatarFallback>
@@ -118,126 +182,60 @@ export const ChatConversationCard = ({
               )}
             </div>
           ) : (
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-primary/10 text-primary">
                 {getInitials(conversation.otherParticipant.name)}
               </AvatarFallback>
             </Avatar>
           )}
           
-          {/* Indicador GPS pulsando com tempo */}
           {conversation.hasGpsTracking && !conversation.isClosed && (
             <div 
-              className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 animate-pulse"
+              className="absolute -bottom-0.5 -right-0.5 bg-green-500 rounded-full p-0.5 animate-pulse"
               title={conversation.gpsLastUpdate 
                 ? `Última atualização: ${formatDistanceToNow(new Date(conversation.gpsLastUpdate), { addSuffix: true, locale: ptBR })}`
                 : 'GPS ativo'
               }
             >
-              <Navigation className="h-3 w-3 text-white" />
+              <Navigation className="h-2.5 w-2.5 text-white" />
             </div>
           )}
         </div>
 
+        {/* Text content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {getIcon()}
-            <h4 className="font-semibold text-sm truncate flex-1">
-              {conversation.title}
-            </h4>
-            {conversation.unreadCount > 0 && (
-              <Badge variant="destructive" className="text-xs px-1.5 py-0">
-                {conversation.unreadCount}
-              </Badge>
-            )}
-          </div>
-
-          {/* Status do frete, GPS info e contagem de participantes */}
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {getStatusBadge()}
-            
-            {/* Indicador GPS detalhado com última atualização */}
-            {conversation.hasGpsTracking && !conversation.isClosed && (
-              <Badge variant="outline" className="text-xs gap-1 px-1.5 py-0 bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300">
-                <Navigation className="h-3 w-3" />
-                GPS
-                {conversation.gpsLastUpdate && (
-                  <span className="text-green-600/70 dark:text-green-400/70">
-                    • {formatDistanceToNow(new Date(conversation.gpsLastUpdate), { locale: ptBR })}
-                  </span>
-                )}
-              </Badge>
-            )}
-            
-            {hasMultipleParticipants && (
-              <Badge variant="outline" className="text-xs gap-1 px-1.5 py-0">
-                <Users className="h-3 w-3" />
-                {participants.length} participantes
-              </Badge>
-            )}
-            
-            {/* Botão de ligação rápida */}
-            {conversation.otherParticipant?.phone && !conversation.isClosed && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePhoneCall}
-                className="h-5 px-1.5 py-0 text-xs gap-1 text-green-700 dark:text-green-300 hover:bg-green-500/10"
-              >
-                <Phone className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-
-          {/* Nomes dos participantes */}
-          <p className="text-xs text-muted-foreground mb-1 truncate">
+          <p className="text-xs text-muted-foreground truncate">
             {participants.length > 0 
               ? participants.map(p => p.name).join(', ')
               : conversation.otherParticipant.name
             }
           </p>
 
-          <p className="text-sm text-foreground/80 truncate mb-2">
+          <p className="text-sm text-foreground/80 truncate mt-0.5">
             {conversation.lastMessage}
           </p>
+        </div>
 
-          <p className="text-xs text-muted-foreground">
+        {/* Right side: time + phone */}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <p className="text-xs text-muted-foreground whitespace-nowrap">
             {formatDistanceToNow(new Date(conversation.lastMessageTime), {
               addSuffix: true,
               locale: ptBR,
             })}
           </p>
-        </div>
-
-        {onClose && !conversation.isClosed && !conversation.isAutoClosedByRatings && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      {conversation.isClosed && (
-        <div className="mt-2 flex gap-2">
-          {conversation.isAutoClosedByRatings ? (
-            <Badge variant="secondary" className="text-xs gap-1">
-              <CheckCircle2 className="h-3 w-3" />
-              Concluído com avaliações
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs">
-              Fechada
-            </Badge>
+          {conversation.otherParticipant?.phone && !conversation.isClosed && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePhoneCall}
+              className="h-6 w-6 p-0 text-green-700 dark:text-green-300 hover:bg-green-500/10"
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </Button>
           )}
         </div>
-      )}
+      </div>
     </Card>
   );
 };
