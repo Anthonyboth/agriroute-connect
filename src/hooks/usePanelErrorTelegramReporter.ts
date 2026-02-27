@@ -130,7 +130,10 @@ export function usePanelErrorTelegramReporter() {
         firstArg.includes('[ErrorMonitoring]') ||
         firstArg.includes('telegram') ||
         firstArg.includes('report-error') ||
-        firstArg.includes('[useErrorMonitoring]')
+        firstArg.includes('[useErrorMonitoring]') ||
+        firstArg.includes('[hmr]') ||
+        firstArg.includes('[vite]') ||
+        firstArg.includes('hot update')
       ) {
         return;
       }
