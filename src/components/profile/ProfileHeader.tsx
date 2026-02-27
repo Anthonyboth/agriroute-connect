@@ -16,12 +16,6 @@ import { cn } from '@/lib/utils';
 import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface ProfileHeaderProps {
   fullName: string;
@@ -161,42 +155,47 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
             </Avatar>
             
-            {/* Camera button — always visible, opens dropdown menu */}
+            {/* Camera button — always visible, opens file selector directly */}
             {onPhotoChange && !pendingFile && (
               <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className={cn(
-                        "absolute bottom-0 right-0",
-                        "h-8 w-8 rounded-full",
-                        "bg-primary text-primary-foreground",
-                        "flex items-center justify-center",
-                        "hover:bg-primary/90 transition-all",
-                        "shadow-md border-2 border-background",
-                        "active:scale-95"
-                      )}
-                      title="Alterar foto"
-                      disabled={isPhotoUploading}
-                    >
-                      <Camera className="h-3.5 w-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
-                    <DropdownMenuItem asChild>
-                      <label htmlFor={fileInputId} className="flex w-full cursor-pointer items-center">
-                        <Camera className="h-4 w-4 mr-2" />
-                        Alterar foto
-                      </label>
-                    </DropdownMenuItem>
-                    {photoUrl && onRemovePhoto && (
-                      <DropdownMenuItem onSelect={onRemovePhoto} className="text-destructive focus:text-destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Remover foto
-                      </DropdownMenuItem>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "absolute bottom-0 right-0",
+                    "h-8 w-8 rounded-full",
+                    "bg-primary text-primary-foreground",
+                    "flex items-center justify-center",
+                    "hover:bg-primary/90 transition-all",
+                    "shadow-md border-2 border-background",
+                    "active:scale-95"
+                  )}
+                  title="Alterar foto"
+                  disabled={isPhotoUploading}
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                </button>
+
+                {photoUrl && onRemovePhoto && (
+                  <button
+                    type="button"
+                    onClick={onRemovePhoto}
+                    className={cn(
+                      "absolute bottom-0 -left-2",
+                      "h-7 w-7 rounded-full",
+                      "bg-destructive text-destructive-foreground",
+                      "flex items-center justify-center",
+                      "hover:opacity-90 transition-all",
+                      "shadow-md border-2 border-background",
+                      "active:scale-95"
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    title="Remover foto"
+                    disabled={isPhotoUploading}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
                 <input
                   id={fileInputId}
                   ref={fileInputRef}
