@@ -102,11 +102,6 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
                       key={conversation.id}
                       conversation={conversation}
                       onClick={() => setSelectedConversation(conversation)}
-                      onClose={
-                        conversation.isClosed
-                          ? () => handleReopenConversation(conversation)
-                          : () => handleCloseConversation(conversation)
-                      }
                     />
                   ))}
                 </div>

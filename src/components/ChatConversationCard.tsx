@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Truck, Wrench, MessageSquare, FileText, X, Share2, Navigation, Users, CheckCircle2, Clock, Package, Phone } from 'lucide-react';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
+import { Truck, Wrench, MessageSquare, FileText, Share2, Navigation, Users, CheckCircle2, Clock, Package, Phone } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChatConversation, ChatParticipant } from '@/hooks/useUnifiedChats';
@@ -8,13 +9,11 @@ import { cn } from '@/lib/utils';
 interface ChatConversationCardProps {
   conversation: ChatConversation;
   onClick: () => void;
-  onClose?: () => void;
 }
 
 export const ChatConversationCard = ({
   conversation,
   onClick,
-  onClose,
 }: ChatConversationCardProps) => {
   const getIcon = () => {
     switch (conversation.type) {
@@ -103,6 +102,7 @@ export const ChatConversationCard = ({
                 className="h-10 w-10 border-2 border-card"
                 style={{ zIndex: 3 - idx }}
               >
+                <SignedAvatarImage src={p.avatar} alt={p.name} />
                 <AvatarFallback className={cn('text-xs font-medium', getRoleBadgeColor(p.role))}>
                   {getInitials(p.name)}
                 </AvatarFallback>
@@ -118,6 +118,7 @@ export const ChatConversationCard = ({
           </div>
         ) : (
           <Avatar className="h-10 w-10">
+            <SignedAvatarImage src={conversation.otherParticipant.avatar} alt={conversation.otherParticipant.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {getInitials(conversation.otherParticipant.name)}
             </AvatarFallback>
@@ -213,19 +214,6 @@ export const ChatConversationCard = ({
           })}
         </span>
 
-        {/* Close button — only on hover, red only on hover */}
-        {onClose && !conversation.isClosed && !conversation.isAutoClosedByRatings && (
-          <button
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            aria-label="Fechar conversa"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
 
         {/* Phone call shortcut */}
         {conversation.otherParticipant?.phone && !conversation.isClosed && (
