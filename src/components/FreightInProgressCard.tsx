@@ -229,10 +229,16 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const estimatedHours = distKmNum > 0 ? Math.round(distKmNum / 60) : null;
 
   const pricePerKmCalc = useMemo(() => {
+    // Se o frete é PER_KM e tem price_per_km, usar diretamente
+    const pricingType = (freight as any).pricing_type;
+    const pricePerKm = (freight as any).price_per_km;
+    if (pricingType === 'PER_KM' && pricePerKm && pricePerKm > 0) {
+      return pricePerKm;
+    }
     if (distKmNum <= 0) return null;
     const unitPrice = hasMultipleTrucks ? getPricePerTruck(freight.price || 0, requiredTrucks) : (freight.price || 0);
     return unitPrice / distKmNum;
-  }, [freight.price, distKmNum, requiredTrucks, hasMultipleTrucks]);
+  }, [freight.price, distKmNum, requiredTrucks, hasMultipleTrucks, freight]);
 
   const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
   const rpmIcon = pricePerKmCalc === null ? null : pricePerKmCalc >= 6 ? <TrendingUp className="h-3 w-3" /> : pricePerKmCalc < 4 ? <TrendingDown className="h-3 w-3" /> : null;
