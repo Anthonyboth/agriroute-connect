@@ -183,13 +183,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        fileInputRef.current?.click();
-                      }}
-                    >
-                      <Camera className="h-4 w-4 mr-2" />
-                      Alterar foto
+                    <DropdownMenuItem asChild>
+                      <label htmlFor={fileInputId} className="flex w-full cursor-pointer items-center">
+                        <Camera className="h-4 w-4 mr-2" />
+                        Alterar foto
+                      </label>
                     </DropdownMenuItem>
                     {photoUrl && onRemovePhoto && (
                       <DropdownMenuItem onSelect={onRemovePhoto} className="text-destructive focus:text-destructive">
