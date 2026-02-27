@@ -30,12 +30,15 @@ export function runFeedIntegrityGuard(input: FeedIntegrityGuardInput): void {
     });
   }
 
-  if (backendDisplayed > 0 && renderedDisplayed < backendDisplayed && !frontendFiltersActive) {
-    console.error('[FeedIntegrityGuard] renderedDisplayed < backendDisplayed sem filtro explícito do usuário', {
+  // ✅ Tolerância de 1 item: race conditions normais (item expira entre fetch e render)
+  const discrepancy = backendDisplayed - renderedDisplayed;
+  if (backendDisplayed > 0 && discrepancy > 1 && !frontendFiltersActive) {
+    console.warn('[FeedIntegrityGuard] renderedDisplayed < backendDisplayed sem filtro explícito do usuário', {
       scope,
       role,
       backendDisplayed,
       renderedDisplayed,
+      discrepancy,
     });
   }
 
