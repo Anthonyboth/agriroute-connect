@@ -93,10 +93,15 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           const companyIds = [...new Set(eligibleFreights.map((f: any) => f.company_id).filter(Boolean))];
           
           // Usar profiles_secure para mascarar PII de outros usuários
-          const { data: profiles } = await (supabase as any)
-            .from('profiles_secure')
-            .select('id, full_name, role, phone')
-            .in('id', [...producerIds, ...driverIds]);
+          const allProfileIdsForFreights = [...new Set([...producerIds, ...driverIds])];
+          let profiles: any[] | null = null;
+          if (allProfileIdsForFreights.length > 0) {
+            const { data } = await (supabase as any)
+              .from('profiles_secure')
+              .select('id, full_name, role, phone')
+              .in('id', allProfileIdsForFreights);
+            profiles = data;
+          }
 
           // Buscar últimas localizações GPS dos motoristas
           let gpsLocationMap = new Map();
