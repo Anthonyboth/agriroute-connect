@@ -67,7 +67,7 @@ import { CompanyHistoryTab } from '@/pages/company/CompanyHistoryTab';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
 import { FreightDetails } from '@/components/FreightDetails';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
@@ -1109,6 +1109,7 @@ const CompanyDashboard = () => {
       {/* Modal de Detalhes do Frete */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="sr-only">Detalhes do Frete</DialogTitle>
           {selectedFreightId && (
             <FreightDetails
               freightId={selectedFreightId}

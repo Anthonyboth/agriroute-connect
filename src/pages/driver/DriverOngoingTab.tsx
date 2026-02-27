@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { 
   Truck, Wrench, Bike, RefreshCw, 
   Play, CheckCircle, PawPrint, Package,
@@ -479,6 +479,7 @@ export const DriverOngoingTab: React.FC = () => {
         }}
       >
         <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
+          <DialogTitle className="sr-only">Detalhes do Frete</DialogTitle>
           <DialogDescription className="sr-only">Detalhes completos do frete</DialogDescription>
           {selectedFreightId && profile && (
             <FreightDetails
