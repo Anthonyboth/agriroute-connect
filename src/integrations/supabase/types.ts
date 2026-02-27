@@ -12448,6 +12448,45 @@ export type Database = {
           },
         ]
       }
+      driver_stripe_accounts_secure: {
+        Row: {
+          account_status: string | null
+          charges_enabled: boolean | null
+          created_at: string | null
+          driver_id: string | null
+          id: string | null
+          payouts_enabled: boolean | null
+          pix_key_masked: string | null
+          requirements_due: Json | null
+          stripe_account_id_masked: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_status?: string | null
+          charges_enabled?: boolean | null
+          created_at?: string | null
+          driver_id?: string | null
+          id?: string | null
+          payouts_enabled?: boolean | null
+          pix_key_masked?: never
+          requirements_due?: Json | null
+          stripe_account_id_masked?: never
+          updated_at?: string | null
+        }
+        Update: {
+          account_status?: string | null
+          charges_enabled?: boolean | null
+          created_at?: string | null
+          driver_id?: string | null
+          id?: string | null
+          payouts_enabled?: boolean | null
+          pix_key_masked?: never
+          requirements_due?: Json | null
+          stripe_account_id_masked?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fiscal_certificates_secure: {
         Row: {
           certificate_type: string | null
