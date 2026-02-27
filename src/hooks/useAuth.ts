@@ -783,13 +783,13 @@ const useAuthInternal = () => {
     // ✅ NÃO resetar isSigningOutRef - o redirect vai recarregar a página
   };
 
-  const switchProfile = (profileId: string) => {
+  const switchProfile = useCallback((profileId: string) => {
     const selectedProfile = profiles.find(p => p.id === profileId);
     if (selectedProfile) {
       setProfile(selectedProfile);
       localStorage.setItem('current_profile_id', profileId);
     }
-  };
+  }, [profiles]);
 
   // Força revalidação no banco (ignora cache/throttles quando necessário)
   const refreshProfile = useCallback(async () => {
