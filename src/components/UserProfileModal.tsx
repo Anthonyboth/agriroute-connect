@@ -446,7 +446,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col !overflow-hidden">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-4xl h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] p-0 flex flex-col !overflow-hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
             <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>
@@ -471,10 +471,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
 
           <div 
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-pb-40"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            <div className="px-4 sm:px-6 pb-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
+            <div className="px-4 sm:px-6 pb-6" style={{ paddingBottom: 'max(7rem, env(safe-area-inset-bottom, 1.5rem))' }}>
               
               {/* Completeness CTA */}
               {!editMode && missingFields.length > 0 && (

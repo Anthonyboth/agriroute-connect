@@ -87,6 +87,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
   const statusInfo = getStatusInfo(status);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputId = React.useId();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
@@ -134,15 +135,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="relative">
-      {/* Subtle gradient banner — compact */}
-      <div className="h-12 sm:h-14 bg-gradient-to-br from-card via-card to-primary/15 rounded-t-lg border-b border-border/50" />
+      {/* Subtle gradient banner — extra compacto */}
+      <div className="h-8 sm:h-10 bg-gradient-to-br from-card via-card to-primary/15 rounded-t-lg border-b border-border/50" />
       
-      <div className="px-4 sm:px-6 pb-3">
-        <div className="flex flex-col items-center -mt-10 sm:-mt-11">
+      <div className="px-4 sm:px-6 pb-2">
+        <div className="flex flex-col items-center -mt-8 sm:-mt-9">
           {/* Avatar with camera button */}
           <div className="relative group">
             <Avatar className={cn(
-              "h-20 w-20 sm:h-24 sm:w-24",
+              "h-16 w-16 sm:h-20 sm:w-20",
               "border-4 border-background shadow-lg bg-background",
               "transition-transform duration-200"
             )}>
@@ -182,12 +183,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
-                    <DropdownMenuItem onSelect={() => setTimeout(() => fileInputRef.current?.click(), 100)}>
-                      <Camera className="h-4 w-4 mr-2" />
-                      Alterar foto
+                    <DropdownMenuItem asChild>
+                      <label htmlFor={fileInputId} className="flex w-full cursor-pointer items-center">
+                        <Camera className="h-4 w-4 mr-2" />
+                        Alterar foto
+                      </label>
                     </DropdownMenuItem>
                     {photoUrl && onRemovePhoto && (
-                      <DropdownMenuItem onClick={onRemovePhoto} className="text-destructive focus:text-destructive">
+                      <DropdownMenuItem onSelect={onRemovePhoto} className="text-destructive focus:text-destructive">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Remover foto
                       </DropdownMenuItem>
@@ -195,6 +198,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <input
+                  id={fileInputId}
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
@@ -222,13 +226,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
           )}
 
-          {/* Name — 24px/700 */}
-          <h1 className="mt-2 text-xl font-bold leading-[26px] text-foreground text-center truncate max-w-full px-2">
+          {/* Name */}
+          <h1 className="mt-1.5 text-lg font-bold leading-6 text-foreground text-center truncate max-w-full px-2">
             {fullName}
           </h1>
 
           {/* Chips */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap justify-center">
             <Badge variant="secondary" className="text-xs">
               {getRoleLabel(role)}
             </Badge>
@@ -239,13 +243,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
           {/* Context line — 13px/500 */}
           {contextLine && (
-            <p className="mt-2 text-[13px] leading-[18px] font-medium text-muted-foreground text-center">
+            <p className="mt-1.5 text-[12px] leading-4 font-medium text-muted-foreground text-center">
               {contextLine}
             </p>
           )}
 
           {/* Edit/Save buttons */}
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-1.5">
             {isEditing ? (
               <>
                 <Button variant="outline" size="sm" onClick={onEditToggle} disabled={isSaving} className="gap-1.5">
