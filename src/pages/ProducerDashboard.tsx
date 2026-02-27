@@ -20,7 +20,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FreightDetails } from "@/components/FreightDetails";
 import { DeliveryConfirmationModal } from "@/components/DeliveryConfirmationModal";
 
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -2201,6 +2201,7 @@ const ProducerDashboard = () => {
       <Dialog open={!!selectedFreightDetails} onOpenChange={(open) => !open && setSelectedFreightDetails(null)}>
         {/* ✅ Padrão do FreightDetails: botão de fechar único (X interno) e esconder o close padrão do Radix */}
         <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
+          <DialogTitle className="sr-only">Detalhes do Frete</DialogTitle>
           <DialogDescription className="sr-only">Detalhes completos do frete</DialogDescription>
           {selectedFreightDetails && (
             <FreightDetails
