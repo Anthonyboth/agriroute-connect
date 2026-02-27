@@ -111,14 +111,18 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const urgencyLabel = getUrgencyLabel(freight.urgency);
   const urgencyDotColor = freight.urgency === 'HIGH' ? 'bg-destructive' : freight.urgency === 'MEDIUM' ? 'bg-yellow-500' : 'bg-muted-foreground/40';
 
-  // R$/km calculado
+  // R$/km calculado — usa price_per_km diretamente para fretes PER_KM
   const pricePerKmCalc = useMemo(() => {
+    // Se o frete é PER_KM e tem price_per_km definido, usar diretamente
+    if (freight.pricing_type === 'PER_KM' && freight.price_per_km && freight.price_per_km > 0) {
+      return freight.price_per_km;
+    }
     const distKm = parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0;
     if (distKm <= 0) return null;
     const requiredTrucks = freight.required_trucks || 1;
     const unitPrice = requiredTrucks > 1 ? getPricePerTruck(freight.price, requiredTrucks) : freight.price;
     return unitPrice / distKm;
-  }, [freight.price, freight.distance_km, freight.required_trucks]);
+  }, [freight.price, freight.distance_km, freight.required_trucks, freight.pricing_type, freight.price_per_km]);
 
   // Cor semântica de rentabilidade
   const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
