@@ -28,7 +28,7 @@ const UpdateFreightSchema = z.object({
     destination_lng: z.number().optional(),
     urgency: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
     required_trucks: z.number().int().min(1).max(100).optional(),
-    minimum_antt_price: z.number().min(0).optional(),
+    minimum_antt_price: z.number().min(0).nullable().optional(),
     description: z.string().max(2000).optional(),
   }).refine(obj => Object.keys(obj).length > 0, {
     message: 'Pelo menos um campo de atualização é obrigatório'
