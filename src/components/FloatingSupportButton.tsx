@@ -21,7 +21,13 @@ const STORAGE_KEY = 'agriroute-support-button-position';
  */
 export const FloatingSupportButton: React.FC = () => {
   const location = useLocation();
-  const [position, setPosition] = useState<Position>({ x: 24, y: 24 });
+  const [position, setPosition] = useState<Position>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { x: 24, y: 24 };
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const buttonRef = useRef<HTMLAnchorElement>(null);
@@ -32,19 +38,6 @@ export const FloatingSupportButton: React.FC = () => {
   // Esconder no painel administrativo
   const isAdminPanel = location.pathname.startsWith('/admin');
 
-  // Carregar posição salva do localStorage
-  useEffect(() => {
-    const savedPosition = localStorage.getItem(STORAGE_KEY);
-    if (savedPosition) {
-      try {
-        const parsed = JSON.parse(savedPosition);
-        setPosition(parsed);
-      } catch (e) {
-        console.debug('Failed to parse saved position');
-      }
-    }
-  }, []);
-
   // Salvar posição no localStorage quando mudar
   const savePosition = (newPosition: Position) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newPosition));
@@ -52,7 +45,7 @@ export const FloatingSupportButton: React.FC = () => {
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // apenas botão esquerdo
+    if (e.button !== 0) return;
     hasMoved.current = false;
     startPosition.current = { x: e.clientX, y: e.clientY };
     setIsDragging(true);
@@ -77,8 +70,6 @@ export const FloatingSupportButton: React.FC = () => {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      
-      // Detectar se houve movimento significativo (>5px)
       const distance = Math.sqrt(
         Math.pow(e.clientX - startPosition.current.x, 2) +
         Math.pow(e.clientY - startPosition.current.y, 2)
@@ -86,14 +77,10 @@ export const FloatingSupportButton: React.FC = () => {
       if (distance > 5) {
         hasMoved.current = true;
       }
-      
       const newX = e.clientX - dragStartPos.current.x;
       const newY = e.clientY - dragStartPos.current.y;
-      
-      // Limitar dentro da viewport
       const maxX = window.innerWidth - 48;
       const maxY = window.innerHeight - 48;
-      
       setPosition({
         x: Math.max(0, Math.min(newX, maxX)),
         y: Math.max(0, Math.min(newY, maxY)),
@@ -102,10 +89,7 @@ export const FloatingSupportButton: React.FC = () => {
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!isDragging) return;
-      
       const touch = e.touches[0];
-      
-      // Detectar se houve movimento significativo (>5px)
       const distance = Math.sqrt(
         Math.pow(touch.clientX - startPosition.current.x, 2) +
         Math.pow(touch.clientY - startPosition.current.y, 2)
@@ -113,13 +97,10 @@ export const FloatingSupportButton: React.FC = () => {
       if (distance > 5) {
         hasMoved.current = true;
       }
-      
       const newX = touch.clientX - dragStartPos.current.x;
       const newY = touch.clientY - dragStartPos.current.y;
-      
       const maxX = window.innerWidth - 48;
       const maxY = window.innerHeight - 48;
-      
       setPosition({
         x: Math.max(0, Math.min(newX, maxX)),
         y: Math.max(0, Math.min(newY, maxY)),
@@ -151,15 +132,12 @@ export const FloatingSupportButton: React.FC = () => {
   if (isAdminPanel) return null;
 
   const handleClick = (e: React.MouseEvent) => {
-    // Só prevenir navegação se realmente arrastou
     if (hasMoved.current) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-    // Tocar som antes de abrir WhatsApp
     playSoundSupport();
-    // Deixa o link <a> funcionar naturalmente
   };
 
   return (
