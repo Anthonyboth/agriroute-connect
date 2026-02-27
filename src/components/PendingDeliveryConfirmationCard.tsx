@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Clock, CheckCircle, XCircle, Truck, Star, Building2 } from 'lucide-react';
 import { formatBRL } from '@/lib/formatters';
 import type { PendingDeliveryItem } from '@/hooks/usePendingDeliveryConfirmations';
@@ -96,7 +97,7 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
         <div className="bg-secondary/30 rounded-lg p-3">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border-2 border-primary/20">
-              <AvatarImage src={item.driver.profile_photo_url} alt={item.driver.full_name} />
+              <SignedAvatarImage src={item.driver.profile_photo_url} alt={item.driver.full_name} />
               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {item.driver.full_name?.charAt(0) || 'M'}
               </AvatarFallback>

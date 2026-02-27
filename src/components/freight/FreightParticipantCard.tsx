@@ -7,7 +7,8 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Badge } from '@/components/ui/badge';
 import { Star, ChevronRight, User, Truck, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -80,10 +81,9 @@ export const FreightParticipantCard: React.FC<FreightParticipantCardProps> = ({
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <Avatar className="h-14 w-14 border-2 border-background shadow-md">
-            <AvatarImage 
-              src={avatarUrl || undefined} 
+            <SignedAvatarImage 
+              src={avatarUrl} 
               alt={name}
-              className="object-cover"
             />
             <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
               {getInitials(name)}

@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText, ChevronDown, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -206,9 +207,7 @@ const Header: React.FC<HeaderProps> = ({
                   <Button variant="ghost" className="h-9 px-2 gap-2 hover:bg-muted/50">
                     <div className="relative">
                       <Avatar className="h-8 w-8 border-2 border-primary/20">
-                        {userProfile?.profile_photo_url && (
-                          <AvatarImage src={userProfile.profile_photo_url} alt={user?.name} />
-                        )}
+                        <SignedAvatarImage src={userProfile?.profile_photo_url} alt={user?.name} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                           {getUserInitials(user?.name)}
                         </AvatarFallback>
@@ -230,9 +229,7 @@ const Header: React.FC<HeaderProps> = ({
                 <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
                   <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-t-md">
                     <Avatar className="h-10 w-10 border-2 border-primary/20">
-                      {userProfile?.profile_photo_url && (
-                        <AvatarImage src={userProfile.profile_photo_url} alt={user?.name} />
-                      )}
+                      <SignedAvatarImage src={userProfile?.profile_photo_url} alt={user?.name} />
                       <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                         {getUserInitials(user?.name)}
                       </AvatarFallback>
@@ -326,9 +323,7 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="p-4 bg-muted/30 border-b">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border-2 border-primary/20">
-                          {userProfile?.profile_photo_url && (
-                            <AvatarImage src={userProfile.profile_photo_url} alt={user?.name} />
-                          )}
+                          <SignedAvatarImage src={userProfile?.profile_photo_url} alt={user?.name} />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                             {getUserInitials(user?.name)}
                           </AvatarFallback>

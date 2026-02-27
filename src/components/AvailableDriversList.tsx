@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Badge } from '@/components/ui/badge';
 import { useAvailableDrivers } from '@/hooks/useAvailableDrivers';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
@@ -74,10 +75,7 @@ export const AvailableDriversList = ({ companyId }: AvailableDriversListProps) =
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-16 w-16 ring-2 ring-primary/10">
-                      <AvatarImage 
-                        src={driver.profile_photo_url} 
-                        alt={driver.full_name} 
-                      />
+                      <SignedAvatarImage src={driver.profile_photo_url} alt={driver.full_name} />
                       <AvatarFallback className="text-lg bg-primary/10">
                         {driver.full_name?.charAt(0) || '?'}
                       </AvatarFallback>
