@@ -28,9 +28,9 @@ export const useNotifications = () => {
           return count;
         },
         { 
-          timeoutMs: 10000, 
+          timeoutMs: 20000, 
           operationName: 'fetchUnreadCount',
-          retries: 0
+          retries: 1
         }
       );
       
@@ -38,7 +38,13 @@ export const useNotifications = () => {
       devLog(`[useNotifications] ${newCount} notificações não lidas`);
       setUnreadCount(newCount);
     } catch (error: any) {
-      console.error('[useNotifications] Erro ao buscar contador:', error);
+      // Usar warn para timeouts (não dispara monitor Telegram)
+      const isTimeout = error?.message?.includes('Timeout');
+      if (isTimeout) {
+        console.warn('[useNotifications] Timeout ao buscar contador - será tentado novamente no próximo ciclo');
+      } else {
+        console.error('[useNotifications] Erro ao buscar contador:', error);
+      }
     } finally {
       setLoading(false);
     }
