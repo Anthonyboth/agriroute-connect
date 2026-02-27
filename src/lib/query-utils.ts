@@ -49,15 +49,15 @@ export async function queryWithTimeout<T>(
       const isTimeout = (error as any)?.isTimeout === true || error.message?.includes('Timeout');
       const isInfiniteRecursion = error.code === '42P17' || error.message?.includes('infinite recursion detected in policy');
       
-      // Log detalhado do erro
-      console.error(`[QueryUtils] ${operationName} - Erro:`, {
+      // Log detalhado do erro - usar warn para timeouts (não dispara monitor)
+      const logFn = isTimeout ? console.warn : console.error;
+      logFn(`[QueryUtils] ${operationName} - Erro:`, JSON.stringify({
         message: error.message,
-        code: error.code,
         isTimeout,
         isInfiniteRecursion,
         attempt: attemptNumber + 1,
         retriesLeft: retries - attemptNumber
-      });
+      }));
 
       // CRÍTICO: Não retry em casos de recursão infinita de RLS
       if (isInfiniteRecursion) {
