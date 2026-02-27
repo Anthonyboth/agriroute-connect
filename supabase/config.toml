@@ -344,3 +344,6 @@ verify_jwt = false
 
 [functions.delete-user-account]
 verify_jwt = false
+
+[functions.monitor-match-feed]
+verify_jwt = false
