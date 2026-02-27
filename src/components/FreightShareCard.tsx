@@ -11,13 +11,18 @@ import {
   ArrowRight,
   CheckCircle2,
   Eye,
-  MessageSquare
+  MessageSquare,
+  XCircle,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { ServiceProposalModal } from './ServiceProposalModal';
 import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useFreightShareActions } from '@/hooks/useFreightShareActions';
 import { toast } from 'sonner';
 import { formatKm } from '@/lib/formatters';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 
 interface FreightShareCardProps {
   freightData: {
@@ -49,13 +54,70 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [acceptModalOpen, setAcceptModalOpen] = useState(false);
   const { company } = useTransportCompany();
+  
+  const {
+    status: shareStatus,
+    canAccept,
+    canCounterPropose,
+    statusLabel,
+    isAcceptedByOther,
+    isCancelled,
+    isLoading: isCheckingAvailability,
+    refetch: recheckAvailability,
+  } = useFreightShareActions(freightData.freight_id);
 
   const handleAcceptSuccess = () => {
     setAcceptModalOpen(false);
     toast.success('Frete aceito com sucesso!', {
       description: 'O frete foi atribuído à sua transportadora.'
     });
+    recheckAvailability();
     onAccept?.();
+  };
+
+  const renderStatusBanner = () => {
+    if (isCheckingAvailability) {
+      return (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Verificando disponibilidade...</span>
+        </div>
+      );
+    }
+
+    if (shareStatus === 'UNAVAILABLE') {
+      return (
+        <div className={`flex items-center gap-2 p-3 rounded-lg ${
+          isCancelled 
+            ? 'bg-destructive/10 text-destructive' 
+            : 'bg-warning/10 text-warning-foreground'
+        }`}>
+          {isCancelled ? (
+            <XCircle className="h-5 w-5 flex-shrink-0" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          )}
+          <div>
+            <p className="text-sm font-semibold">Frete Indisponível</p>
+            <p className="text-xs opacity-80">{statusLabel}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (shareStatus === 'ERROR') {
+      return (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
+          <XCircle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">Erro ao verificar</p>
+            <p className="text-xs opacity-80">{statusLabel}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -66,10 +128,22 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
             <Share2 className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">Frete Compartilhado</CardTitle>
           </div>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-            {freightData.service_type === 'GUINCHO' ? 'Guincho' : 
-             freightData.service_type === 'MUDANCA' ? 'Mudança' : 'Carga'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {shareStatus === 'AVAILABLE' && (
+              <Badge className="bg-success/20 text-success border-success/30">
+                Disponível
+              </Badge>
+            )}
+            {shareStatus === 'UNAVAILABLE' && (
+              <Badge variant="destructive" className="opacity-80">
+                Indisponível
+              </Badge>
+            )}
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+              {freightData.service_type === 'GUINCHO' ? 'Guincho' : 
+               freightData.service_type === 'MUDANCA' ? 'Mudança' : 'Carga'}
+            </Badge>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Compartilhado por <strong>{freightData.shared_by}</strong> • {
@@ -84,6 +158,9 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-3">
+        {/* Status Banner */}
+        {renderStatusBanner()}
+
         {/* Resumo do Frete */}
         <div className="space-y-2">
           <div className="flex items-start gap-2 text-sm">
@@ -169,26 +246,43 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
             <Eye className="h-4 w-4 mr-2" />
             {showDetails ? 'Menos' : 'Mais'} Detalhes
           </Button>
-          <Button
-            variant="default"
-            size="sm"
-            className="flex-1 gradient-primary"
-            onClick={() => setAcceptModalOpen(true)}
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Aceitar Frete
-          </Button>
+          
+          {canAccept && (
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 gradient-primary"
+              onClick={() => setAcceptModalOpen(true)}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Aceitar Frete
+            </Button>
+          )}
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full border-primary/30 hover:bg-primary/5"
-          onClick={() => setProposalModalOpen(true)}
-        >
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Fazer Contraproposta
-        </Button>
+        {canCounterPropose && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-primary/30 hover:bg-primary/5"
+            onClick={() => setProposalModalOpen(true)}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Fazer Contraproposta
+          </Button>
+        )}
+
+        {shareStatus === 'UNAVAILABLE' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={() => recheckAvailability()}
+          >
+            <Loader2 className="h-4 w-4 mr-2" />
+            Verificar novamente
+          </Button>
+        )}
       </CardContent>
 
       {/* Modal de Proposta */}
@@ -209,6 +303,7 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
         }}
         onSuccess={() => {
           setProposalModalOpen(false);
+          recheckAvailability();
         }}
       />
 
@@ -218,7 +313,6 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
           isOpen={acceptModalOpen}
           onClose={() => {
             setAcceptModalOpen(false);
-            handleAcceptSuccess();
           }}
           freight={{
             id: freightData.freight_id,
