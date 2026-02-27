@@ -27,7 +27,8 @@ import {
   Clock,
   BarChart,
   Brain,
-  ClipboardList
+  ClipboardList,
+  Plus
 } from 'lucide-react';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useNavigate } from 'react-router-dom';
@@ -67,7 +68,7 @@ import { CompanyHistoryTab } from '@/pages/company/CompanyHistoryTab';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
 import { FreightDetails } from '@/components/FreightDetails';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
@@ -878,22 +879,42 @@ const CompanyDashboard = () => {
 
           <TabsContent value="fleet" className="mt-6">
             <div className="space-y-6">
-              <AdvancedVehicleManager 
-                onVehicleAdd={handleAddVehicle}
-                editingVehicle={editingVehicle}
-                onEditComplete={() => setEditingVehicle(null)}
-              />
-              
-              <div className="pt-6 border-t">
-                <CompanyVehiclesList
-                  companyId={company.id}
-                  onEdit={(vehicle) => {
-                    setEditingVehicle(vehicle);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  onDelete={handleDeleteVehicle}
-                />
+              {/* Add Vehicle button + Dialog */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Frota da Empresa</h3>
+                <Button onClick={() => setEditingVehicle(undefined)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Veículo
+                </Button>
               </div>
+
+              {/* Vehicle Form Dialog */}
+              <Dialog open={editingVehicle !== null} onOpenChange={(open) => { if (!open) setEditingVehicle(null); }}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[10000]">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingVehicle ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Preencha as informações do veículo para transporte de cargas.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AdvancedVehicleManager 
+                    onVehicleAdd={(data) => {
+                      handleAddVehicle(data);
+                      setEditingVehicle(null);
+                    }}
+                    editingVehicle={editingVehicle || undefined}
+                    onEditComplete={() => setEditingVehicle(null)}
+                  />
+                </DialogContent>
+              </Dialog>
+              
+              <CompanyVehiclesList
+                companyId={company.id}
+                onEdit={(vehicle) => setEditingVehicle(vehicle)}
+                onDelete={handleDeleteVehicle}
+              />
             </div>
           </TabsContent>
 
