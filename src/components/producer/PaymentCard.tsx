@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   ChevronDown, 
@@ -159,7 +160,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                 {/* Avatar e Info Principal */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarImage src={payment.driver?.profile_photo_url} />
+                    <SignedAvatarImage src={payment.driver?.profile_photo_url} />
                     <AvatarFallback className="bg-primary/10 text-primary">
                       <User className="h-5 w-5" />
                     </AvatarFallback>

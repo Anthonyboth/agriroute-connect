@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Separator } from '@/components/ui/separator';
 import { FileText, CheckCircle, XCircle, Clock, DollarSign, User, Package, MapPin, MessageSquare, Phone, TrendingUp, TrendingDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -374,7 +375,7 @@ export const CompanyProposalsManager: React.FC = () => {
               {/* Informações do Motorista Afiliado */}
               <div className="flex items-start gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={detailsDialog.proposal.driver.profile_photo_url} />
+                  <SignedAvatarImage src={detailsDialog.proposal.driver.profile_photo_url} />
                   <AvatarFallback>
                     <User className="h-8 w-8" />
                   </AvatarFallback>

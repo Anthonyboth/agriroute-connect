@@ -11,7 +11,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -267,7 +268,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
                       <div className={`flex gap-2 max-w-[75%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                         {!isCurrentUser && (
                           <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
-                            <AvatarImage src={message.sender?.profile_photo_url} />
+                            <SignedAvatarImage src={message.sender?.profile_photo_url} />
                             <AvatarFallback>
                               {isSenderProducer ? <User className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
                             </AvatarFallback>

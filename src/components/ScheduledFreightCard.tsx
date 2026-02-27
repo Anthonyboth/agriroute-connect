@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle, User, Truck as TruckIcon } from 'lucide-react';
+import { SignedStorageImage } from '@/components/ui/signed-storage-image';
 import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
@@ -116,11 +117,10 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
                 onClick={() => setProfileModal({ userId: freight.producer_id, userType: 'producer', userName: producer.full_name })}
               >
                 {producer.profile_photo_url ? (
-                  <img 
+                  <SignedStorageImage 
                     src={producer.profile_photo_url} 
                     alt="Foto do produtor"
                     className="h-8 w-8 rounded-full object-cover border"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
                   />
                 ) : (
                   <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
@@ -157,11 +157,10 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
                       onClick={() => setProfileModal({ userId: assignment.driver_id, userType: 'driver', userName: driver.full_name })}
                     >
                       {driver.profile_photo_url ? (
-                        <img 
+                        <SignedStorageImage 
                           src={driver.profile_photo_url} 
                           alt="Foto do motorista"
                           className="h-8 w-8 rounded-full object-cover border"
-                          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
                         />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">

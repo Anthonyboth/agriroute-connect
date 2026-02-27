@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -185,7 +186,7 @@ export const AdminServiceProviderValidation: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={provider.profiles.profile_photo_url} />
+                    <SignedAvatarImage src={provider.profiles.profile_photo_url} />
                     <AvatarFallback>
                       <User className="h-6 w-6" />
                     </AvatarFallback>
@@ -267,7 +268,7 @@ export const AdminServiceProviderValidation: React.FC = () => {
                   <CardContent className="space-y-4">
                     <div className="flex items-center space-x-4">
                       <Avatar className="h-16 w-16">
-                        <AvatarImage src={selectedProvider.profiles.profile_photo_url} />
+                        <SignedAvatarImage src={selectedProvider.profiles.profile_photo_url} />
                         <AvatarFallback>
                           <User className="h-8 w-8" />
                         </AvatarFallback>

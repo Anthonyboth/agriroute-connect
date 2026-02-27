@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Badge } from '@/components/ui/badge';
 import { Send, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -301,7 +302,7 @@ export const DocumentRequestChat = ({
                   className={`flex gap-2 ${isSender ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={message.sender?.profile_photo_url} />
+                    <SignedAvatarImage src={message.sender?.profile_photo_url} />
                     <AvatarFallback>
                       {message.sender?.full_name?.charAt(0) || '?'}
                     </AvatarFallback>

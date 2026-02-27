@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 
 import { 
@@ -143,7 +144,7 @@ export function CompanyExternalPaymentsPanel() {
                           <div className="flex-1 min-w-0 space-y-2">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={payment.driver?.profile_photo_url} />
+                                <SignedAvatarImage src={payment.driver?.profile_photo_url} />
                                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                                   {payment.driver?.full_name?.charAt(0) || 'M'}
                                 </AvatarFallback>

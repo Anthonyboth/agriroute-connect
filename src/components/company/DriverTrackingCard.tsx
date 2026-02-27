@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Truck, Clock, Navigation } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -95,7 +96,7 @@ export const DriverTrackingCard = ({ driver, onClick }: DriverTrackingCardProps)
           {/* Avatar com indicador de status */}
           <div className="relative">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={driver.driver.profile_photo_url || undefined} />
+              <SignedAvatarImage src={driver.driver.profile_photo_url} />
               <AvatarFallback className="bg-primary/10 text-primary">
                 {getInitials(driver.driver.full_name)}
               </AvatarFallback>

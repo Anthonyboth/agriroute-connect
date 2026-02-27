@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -186,7 +187,7 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                   >
                     {!isCurrentUser && (
                       <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
-                        <AvatarImage src={msg.sender?.profile_photo_url} />
+                        <SignedAvatarImage src={msg.sender?.profile_photo_url} />
                         <AvatarFallback>
                           {isProducer ? <User className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
                         </AvatarFallback>
