@@ -1,27 +1,24 @@
 /**
  * UserProfileModal.tsx
  * 
- * Modal de perfil do usuário redesenhado estilo Facebook.
+ * Modal de perfil do usuário redesenhado com UX premium.
  * Layout responsivo com 2 colunas (desktop) e 1 coluna (mobile).
  * 
- * Características:
- * - Header com foto de capa e avatar
- * - Cards com sombras sutis e bordas arredondadas
- * - Modo visualização/edição com transição suave
- * - Totalmente responsivo
+ * Correções críticas:
+ * - Foto salva como relative path (não signed URL)
+ * - Ratings não exibem dados falsos quando 0
+ * - Campos vazios ocultados em modo visualização
+ * - Camera button sempre visível no avatar
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
-import { Separator } from '@/components/ui/separator';
-import { User, Phone, Shield } from 'lucide-react';
+import { User, Phone, Shield, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
-// Novos componentes modulares
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileInfoCard, personalInfoFields, producerFields, driverFields, emergencyFields } from '@/components/profile/ProfileInfoCard';
 import { ProfileStatsCard } from '@/components/profile/ProfileStatsCard';
@@ -34,6 +31,21 @@ interface UserProfileModalProps {
   user: any;
 }
 
+// Mask CPF/CNPJ for display: ***123***-45 or **123**-0001-**
+const maskCpfCnpj = (value: string): string => {
+  if (!value) return '';
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 11) {
+    // CPF: ***.XXX.***-XX (show middle 3 digits only)
+    return `***.${digits.slice(3, 6)}.***-${digits.slice(9)}`;
+  }
+  if (digits.length === 14) {
+    // CNPJ: **XXX***/0001-**
+    return `**.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-**`;
+  }
+  return value;
+};
+
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   isOpen,
   onClose,
@@ -45,15 +57,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [ratingDistribution, setRatingDistribution] = useState<{ star_rating: number; count: number }[]>([]);
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>('');
+  const [currentPhotoPath, setCurrentPhotoPath] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   
-  // Refs para controle de fetch
   const lastFetchedUserId = useRef<string | null>(null);
   const lastFetchedAt = useRef<number>(0);
   const lastErrorLogAt = useRef<number>(0);
 
-  // Estado do formulário
   const [profileData, setProfileData] = useState<Record<string, string>>({
     full_name: '',
     phone: '',
@@ -67,7 +78,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     emergency_contact_phone: '',
   });
 
-  // Estado do endereço
   const [addressData, setAddressData] = useState({
     street: '',
     number: '',
@@ -78,7 +88,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     zip: '',
   });
 
-  // Inicializar dados quando user muda
   useEffect(() => {
     if (user) {
       setProfileData({
@@ -102,11 +111,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         state: user.address_state || '',
         zip: user.address_zip || '',
       });
-      setCurrentPhotoUrl(user.profile_photo_url || '');
+      // Store the raw path/url from DB — will be resolved by useSignedImageUrl in ProfileHeader
+      setCurrentPhotoPath(user.profile_photo_url || '');
     }
   }, [user?.id]);
 
-  // Carregar rating distribution com throttle
   useEffect(() => {
     if (!isOpen || !user?.id) return;
     
@@ -143,7 +152,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from('profiles')
         .update({
           full_name: profileData.full_name,
@@ -162,9 +171,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           address_state: addressData.state,
           address_zip: addressData.zip,
         })
-        .eq('user_id', user.user_id);
+        .eq('user_id', user.user_id)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!updated) throw new Error('Atualização não aplicada (0 linhas). Verifique permissões RLS.');
 
       toast({
         title: "Perfil atualizado",
@@ -187,8 +199,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   };
 
+  /**
+   * CRITICAL FIX: Save RELATIVE PATH to DB, not signed URL.
+   * The signed URL expires in 24h; the relative path is permanent.
+   * Display uses useSignedImageUrl hook to resolve at render time.
+   */
   const handlePhotoChange = async (file: File) => {
     const errorMonitoring = ErrorMonitoringService.getInstance();
+    setPhotoUploading(true);
 
     try {
       if (!file.type.startsWith('image/')) {
@@ -202,32 +220,26 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       if (authError || !authUser) throw new Error('Sessão inválida. Faça login novamente.');
 
-      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const filePath = `${authUser.id}/profile_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('profile-photos')
         .upload(filePath, file, {
-          upsert: false,
+          upsert: true, // Allow overwrite
           contentType: file.type,
           cacheControl: '3600',
         });
 
       if (uploadError) throw uploadError;
 
-      const { data: signedData, error: signError } = await supabase.storage
-        .from('profile-photos')
-        .createSignedUrl(filePath, 86400);
-
-      if (signError || !signedData?.signedUrl) {
-        throw signError || new Error('Erro ao gerar URL assinada da foto.');
-      }
-
-      const photoUrl = signedData.signedUrl;
+      // ✅ Save RELATIVE PATH (stable) — NOT signed URL (expires)
+      // Format: profile-photos/{userId}/profile_{timestamp}.ext
+      const stablePath = `profile-photos/${filePath}`;
 
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
-        .update({ profile_photo_url: photoUrl })
+        .update({ profile_photo_url: stablePath })
         .eq('id', user.id)
         .eq('user_id', authUser.id)
         .select('id')
@@ -238,7 +250,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         throw new Error('Atualização não aplicada (0 linhas). Verifique permissões de perfil.');
       }
       
-      setCurrentPhotoUrl(photoUrl);
+      setCurrentPhotoPath(stablePath);
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       await queryClient.invalidateQueries({ queryKey: ['user'] });
       
@@ -265,6 +277,40 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         description: message,
         variant: 'destructive',
       });
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('Sessão inválida');
+
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('profiles')
+        .update({ profile_photo_url: null })
+        .eq('id', user.id)
+        .eq('user_id', authUser.id)
+        .select('id')
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+
+      setCurrentPhotoPath('');
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
+
+      toast({
+        title: 'Foto removida',
+        description: 'Sua foto de perfil foi removida.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao remover foto',
+        description: error?.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -279,7 +325,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      // ✅ Apple App Store 5.1.1(v): Exclusão completa via edge function (deleta dados + auth.users)
       const { data, error } = await supabase.functions.invoke('delete-user-account');
       
       if (error) throw error;
@@ -306,56 +351,89 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   };
 
-  // Determinar campos baseado no role
+  // Completeness CTA
+  const missingFields: string[] = [];
+  if (!profileData.cpf_cnpj) missingFields.push('CPF/CNPJ');
+  if (!profileData.phone) missingFields.push('Telefone WhatsApp');
+  if (!currentPhotoPath) missingFields.push('Foto de perfil');
+
+  // Display data with masked CPF/CNPJ
+  const displayData = {
+    ...profileData,
+    cpf_cnpj: editMode ? profileData.cpf_cnpj : maskCpfCnpj(profileData.cpf_cnpj),
+  };
+
   const roleSpecificFields = user?.role === 'PRODUTOR' ? producerFields : driverFields;
+
+  // Check if role-specific fields have any data
+  const hasRoleData = roleSpecificFields.some(f => !!profileData[f.name]);
+  // Check if emergency fields have any data
+  const hasEmergencyData = emergencyFields.some(f => !!profileData[f.name]);
+  // Check if address has any data
+  const hasAddressData = Object.values(addressData).some(v => !!v);
+
+  // Location string for header
+  const locationParts = [addressData.city, addressData.state].filter(Boolean);
+  const locationString = locationParts.length > 0 ? locationParts.join('/') : undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col !overflow-hidden">
-          {/* Header invisível para acessibilidade */}
           <DialogHeader className="sr-only">
             <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
             <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>
           </DialogHeader>
 
-          {/* Profile Header com foto e info básica */}
           <div className="flex-shrink-0">
             <ProfileHeader
               fullName={user?.full_name || ''}
-              email={user?.email}
               role={user?.role || ''}
               status={user?.status || ''}
-              photoUrl={currentPhotoUrl}
+              photoUrl={currentPhotoPath}
               isEditing={editMode}
               isSaving={loading}
+              isPhotoUploading={photoUploading}
               onEditToggle={() => setEditMode(!editMode)}
               onSave={handleSave}
               onPhotoChange={handlePhotoChange}
+              onRemovePhoto={handleRemovePhoto}
+              location={locationString}
+              memberSince={user?.created_at}
             />
           </div>
 
-          {/* Conteúdo principal com scroll nativo - compatível com iOS WebView/Capacitor */}
           <div 
             className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <div className="px-4 sm:px-6 pb-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
-              {/* Layout de 2 colunas (desktop) / 1 coluna (mobile) */}
+              
+              {/* Completeness CTA */}
+              {!editMode && missingFields.length > 0 && (
+                <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Complete seu perfil</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Faltam: {missingFields.join(', ')}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-                {/* Coluna da Esquerda - 70% (lg:col-span-2) */}
                 <div className="lg:col-span-2 space-y-4">
-                  {/* Informações Pessoais */}
                   <ProfileInfoCard
                     title="Informações Pessoais"
                     icon={<User className="h-4 w-4 text-primary" />}
                     fields={personalInfoFields}
-                    data={profileData}
+                    data={editMode ? profileData : displayData}
                     isEditing={editMode}
                     onChange={handleFieldChange}
+                    hideEmpty={!editMode}
                   />
 
-                  {/* Campos específicos por role */}
-                  {roleSpecificFields.length > 0 && (
+                  {(editMode || hasRoleData) && roleSpecificFields.length > 0 && (
                     <ProfileInfoCard
                       title={user?.role === 'PRODUTOR' ? 'Dados da Fazenda' : 'Dados Profissionais'}
                       icon={<Shield className="h-4 w-4 text-primary" />}
@@ -363,27 +441,30 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       data={profileData}
                       isEditing={editMode}
                       onChange={handleFieldChange}
+                      hideEmpty={!editMode}
                     />
                   )}
 
-                  {/* Contato de Emergência */}
-                  <ProfileInfoCard
-                    title="Contato de Emergência"
-                    icon={<Phone className="h-4 w-4 text-primary" />}
-                    fields={emergencyFields}
-                    data={profileData}
-                    isEditing={editMode}
-                    onChange={handleFieldChange}
-                  />
+                  {(editMode || hasEmergencyData) && (
+                    <ProfileInfoCard
+                      title="Contato de Emergência"
+                      icon={<Phone className="h-4 w-4 text-primary" />}
+                      fields={emergencyFields}
+                      data={profileData}
+                      isEditing={editMode}
+                      onChange={handleFieldChange}
+                      hideEmpty={!editMode}
+                    />
+                  )}
 
-                  {/* Endereço */}
-                  <ProfileAddressCard
-                    address={addressData}
-                    isEditing={editMode}
-                    onChange={handleAddressChange}
-                  />
+                  {(editMode || hasAddressData) && (
+                    <ProfileAddressCard
+                      address={addressData}
+                      isEditing={editMode}
+                      onChange={handleAddressChange}
+                    />
+                  )}
 
-                  {/* Zona de Perigo - apenas no mobile (aparece no final) */}
                   <div className="lg:hidden">
                     <ProfileDangerZone
                       onDeleteAccount={handleDeleteAccount}
@@ -392,9 +473,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </div>
                 </div>
 
-                {/* Coluna da Direita - 30% (lg:col-span-1) */}
                 <div className="space-y-4">
-                  {/* Stats e Avaliações */}
                   <ProfileStatsCard
                     rating={user?.rating || 0}
                     totalRatings={user?.total_ratings || 0}
@@ -403,7 +482,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     ratingDistribution={ratingDistribution}
                   />
 
-                  {/* Zona de Perigo - apenas no desktop */}
                   <div className="hidden lg:block">
                     <ProfileDangerZone
                       onDeleteAccount={handleDeleteAccount}
