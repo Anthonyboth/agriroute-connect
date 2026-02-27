@@ -542,19 +542,21 @@ export const FreightChat: React.FC<FreightChatProps> = ({
               <Navigation className="h-5 w-5" />
               Compartilhar Localização / Botão de Pânico
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>Sua localização atual será compartilhada com o produtor deste frete.</p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-                <p className="font-semibold text-red-800 mb-1">🚨 Função de Emergência (SOS)</p>
-                <p className="text-red-700">
-                  Em situação de perigo, este botão também pode ativar o modo de emergência,
-                  onde sua localização é monitorada continuamente e o áudio ambiente pode ser
-                  gravado por até 30 minutos para sua segurança.
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>Sua localização atual será compartilhada com o produtor deste frete.</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                  <p className="font-semibold text-red-800 mb-1">🚨 Função de Emergência (SOS)</p>
+                  <p className="text-red-700">
+                    Em situação de perigo, este botão também pode ativar o modo de emergência,
+                    onde sua localização é monitorada continuamente e o áudio ambiente pode ser
+                    gravado por até 30 minutos para sua segurança.
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O envio automático de localização a cada 30 minutos continua funcionando normalmente.
                 </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                O envio automático de localização a cada 30 minutos continua funcionando normalmente.
-              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">

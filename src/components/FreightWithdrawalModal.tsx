@@ -42,8 +42,8 @@ export const FreightWithdrawalModal: React.FC<FreightWithdrawalModalProps> = ({
           </div>
         </AlertDialogHeader>
         
-        <AlertDialogDescription>
-          <div className="space-y-4">
+        <AlertDialogDescription asChild>
+          <div className="space-y-4 text-sm text-muted-foreground">
             <p className="text-sm">
               Ao desistir do frete, ele ficará novamente disponível para outros motoristas aceitarem.
             </p>

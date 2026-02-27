@@ -146,18 +146,20 @@ export const ShareFreightToCompany: React.FC<ShareFreightToCompanyProps> = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Compartilhar Frete com Transportadora</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                Deseja compartilhar este frete com sua transportadora?
-              </p>
-              <div className="mt-4 p-3 bg-muted rounded-lg space-y-1 text-sm">
-                <p><strong>Origem:</strong> {freight.origin_address}</p>
-                <p><strong>Destino:</strong> {freight.destination_address}</p>
-                <p><strong>Valor:</strong> R$ {freight.price.toLocaleString('pt-BR')}</p>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Deseja compartilhar este frete com sua transportadora?
+                </p>
+                <div className="mt-4 p-3 bg-muted rounded-lg space-y-1 text-sm">
+                  <p><strong>Origem:</strong> {freight.origin_address}</p>
+                  <p><strong>Destino:</strong> {freight.destination_address}</p>
+                  <p><strong>Valor:</strong> R$ {freight.price.toLocaleString('pt-BR')}</p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  A transportadora receberá esta informação no chat interno e decidirá se aceita o frete ou faz uma contraproposta ao produtor.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                A transportadora receberá esta informação no chat interno e decidirá se aceita o frete ou faz uma contraproposta ao produtor.
-              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

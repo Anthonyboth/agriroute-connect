@@ -47,6 +47,9 @@ export function usePanelErrorTelegramReporter() {
       'Refresh Token Not Found',  // Sessão expirada - ciclo normal de auth
       'refresh_token_not_found',  // Mesmo erro via código
       'Invalid Refresh Token',    // Token revogado/expirado
+      'cannot be a descendant of',  // React HTML nesting warnings
+      'cannot contain a nested',    // React HTML nesting warnings
+      'hydration error',            // React hydration warnings
     ];
 
     const shouldIgnore = (msg: string): boolean => {
