@@ -87,7 +87,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
   const statusInfo = getStatusInfo(status);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const fileInputId = React.useId();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
@@ -183,11 +182,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" side="bottom" className="min-w-[160px]">
-                    <DropdownMenuItem asChild>
-                      <label htmlFor={fileInputId} className="flex w-full cursor-pointer items-center">
-                        <Camera className="h-4 w-4 mr-2" />
-                        Alterar foto
-                      </label>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setTimeout(() => fileInputRef.current?.click(), 0);
+                      }}
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Alterar foto
                     </DropdownMenuItem>
                     {photoUrl && onRemovePhoto && (
                       <DropdownMenuItem onSelect={onRemovePhoto} className="text-destructive focus:text-destructive">
@@ -198,7 +199,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <input
-                  id={fileInputId}
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
