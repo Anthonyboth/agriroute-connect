@@ -87,6 +87,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
   const statusInfo = getStatusInfo(status);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputId = React.useId();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
@@ -199,6 +200,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <input
+                  id={fileInputId}
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
