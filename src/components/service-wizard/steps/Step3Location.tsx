@@ -220,26 +220,14 @@ export const Step3Location: React.FC<Step3Props> = ({
             size="sm"
             className="w-full flex items-center gap-2 text-sm border-dashed border-primary/50 text-primary hover:bg-primary/5"
             onClick={() => {
-              // Copia todos os campos do endereço de origem para o destino
+              // Copia apenas cidade/estado da origem para o destino
               onUpdate('destination.city_id', formData.origin.city_id);
               onUpdate('destination.city', formData.origin.city);
               onUpdate('destination.state', formData.origin.state);
-              onUpdate('destination.lat', formData.origin.lat);
-              onUpdate('destination.lng', formData.origin.lng);
-              onUpdate('destination.cep', formData.origin.cep);
-              onUpdate('destination.street', formData.origin.street);
-              onUpdate('destination.number', formData.origin.number);
-              onUpdate('destination.neighborhood', formData.origin.neighborhood);
-              onUpdate('destination.complement', formData.origin.complement);
-              onUpdate('destination.reference', formData.origin.reference || '');
-              if (isMudanca) {
-                onUpdate('destination.floor', formData.origin.floor || '');
-                onUpdate('destination.hasElevator', formData.origin.hasElevator || false);
-              }
             }}
           >
             <Copy className="h-4 w-4" />
-            Mesmo endereço de {isMudanca ? 'origem' : 'coleta'}
+            Mesma cidade de {isMudanca ? 'origem' : 'coleta'}
           </Button>
 
           <AddressForm
