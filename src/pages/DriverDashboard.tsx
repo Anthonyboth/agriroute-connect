@@ -1999,7 +1999,7 @@ const DriverDashboard = () => {
             throw checkError;
           }
 
-          if (!checkData?.has_registration) {
+          if (!checkData?.requester?.has_registration) {
             toast.error('O solicitante não possui cadastro. Este frete foi movido para o histórico.');
             return;
           }

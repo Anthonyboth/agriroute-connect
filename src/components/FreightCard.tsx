@@ -172,7 +172,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       }
 
       // Se solicitante não tem cadastro, mostrar mensagem e não aceitar
-      if (checkData?.has_registration === false) {
+      if (checkData?.requester?.has_registration === false) {
         toast.error("O solicitante não possui cadastro. Este frete foi movido para o histórico.");
         // Aguardar um pouco e recarregar para refletir mudança
         setTimeout(() => {
