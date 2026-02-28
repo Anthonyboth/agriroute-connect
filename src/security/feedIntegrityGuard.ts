@@ -9,6 +9,7 @@ export interface FeedIntegrityGuardInput {
 }
 
 export function runFeedIntegrityGuard(input: FeedIntegrityGuardInput): void {
+  // Only run in development — never in preview/production to avoid false Telegram alerts
   if (!import.meta.env.DEV) return;
 
   const {
@@ -21,8 +22,9 @@ export function runFeedIntegrityGuard(input: FeedIntegrityGuardInput): void {
     role,
   } = input;
 
+  // Use console.warn instead of console.error to avoid triggering Telegram error reporter
   if (backendEligible > backendDisplayed) {
-    console.error('[FeedIntegrityGuard] backendEligible > backendDisplayed', {
+    console.warn('[FeedIntegrityGuard] backendEligible > backendDisplayed', {
       scope,
       role,
       backendEligible,
@@ -43,7 +45,7 @@ export function runFeedIntegrityGuard(input: FeedIntegrityGuardInput): void {
   }
 
   if (fallbackUsed) {
-    console.error('[FeedIntegrityGuard] fail-safe fallback acionado para preservar visibilidade', {
+    console.warn('[FeedIntegrityGuard] fail-safe fallback acionado para preservar visibilidade', {
       scope,
       role,
       backendEligible,
