@@ -82,19 +82,21 @@ serve(async (req) => {
 
       const { freight_id, notify_drivers } = validation.data;
 
-      // Get user's profile
-      const { data: profile } = await supabaseClient
+      // Get user's profiles (may have multiple: MOTORISTA + PRODUTOR)
+      const { data: profiles } = await supabaseClient
         .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+        .select('id, role')
+        .eq('user_id', user.id);
 
-      if (!profile) {
+      if (!profiles || profiles.length === 0) {
         return new Response(
           JSON.stringify({ error: 'Profile not found' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      // Prefer PRODUTOR profile for freight ownership, fallback to first
+      const profile = profiles.find(p => p.role === 'PRODUTOR') || profiles[0];
 
       // Verify user is the freight owner (producer)
       const { data: freight, error: freightError } = await supabaseClient
@@ -280,11 +282,12 @@ serve(async (req) => {
       }
 
       // Verify user owns the freight
-      const { data: profile } = await supabaseClient
+      const { data: getProfiles } = await supabaseClient
         .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+        .select('id, role')
+        .eq('user_id', user.id);
+
+      const profile2 = getProfiles?.find(p => p.role === 'PRODUTOR') || getProfiles?.[0];
 
       const { data: freight } = await supabaseClient
         .from('freights')
@@ -292,7 +295,7 @@ serve(async (req) => {
         .eq('id', validation.data.freight_id)
         .single();
 
-      if (!freight || freight.producer_id !== profile?.id) {
+      if (!freight || freight.producer_id !== profile2?.id) {
         return new Response(
           JSON.stringify({ error: 'Unauthorized' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
