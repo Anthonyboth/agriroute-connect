@@ -661,7 +661,7 @@ const Auth = () => {
                       </Card>
                       
                       <Card 
-                        className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 border-2 border-green-500/50 bg-green-50/30 dark:bg-green-950/20 h-full flex flex-col"
+                        className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 h-full flex flex-col"
                         onClick={() => {
                           // Redirecionar para página específica de cadastro de afiliado
                           window.location.href = '/cadastro-motorista-afiliado';
@@ -674,7 +674,7 @@ const Auth = () => {
                             Vinculado a uma transportadora
                           </CardDescription>
                           <div className="mt-auto pt-4">
-                            <Badge variant="outline" className="text-xs flex items-center gap-1 bg-green-100 dark:bg-green-900 border-green-500/50">
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
                               <Briefcase className="h-3 w-3" />
                               Requer CNPJ
                             </Badge>
