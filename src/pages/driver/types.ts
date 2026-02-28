@@ -14,7 +14,7 @@ export interface Freight {
   distance_km: number;
   minimum_antt_price: number;
   required_trucks?: number;
-  pricing_type?: 'FIXED' | 'PER_KM' | 'PER_TON';
+  pricing_type: 'FIXED' | 'PER_KM' | 'PER_TON';
   price_per_km?: number;
   producer_id?: string | null;
   service_type?: CanonicalServiceType;

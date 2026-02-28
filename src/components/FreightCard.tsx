@@ -65,7 +65,7 @@ interface FreightCardProps {
     accepted_trucks?: number;
     vehicle_type_required?: string;
     vehicle_axles_required?: number;
-    pricing_type?: "FIXED" | "PER_KM" | "PER_TON";
+    pricing_type: "FIXED" | "PER_KM" | "PER_TON";
     price_per_km?: number;
     /** ID do produtor - se ausente, contraproposta é desabilitada */
     producer_id?: string | null;

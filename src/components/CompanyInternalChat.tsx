@@ -593,7 +593,7 @@ export function CompanyInternalChat() {
                         service_type: freightData.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO',
                         required_trucks: freightData.required_trucks || 1,
                         accepted_trucks: freightData.accepted_trucks || 0,
-                        pricing_type: freightData.pricing_type ?? undefined,
+                        pricing_type: (freightData.pricing_type as 'FIXED' | 'PER_KM' | 'PER_TON') || 'FIXED',
                         price_per_km: freightData.price_per_km != null ? Number(freightData.price_per_km) : undefined,
                       };
 

@@ -75,7 +75,7 @@ interface CompatibleFreight {
   created_at: string;
   vehicle_type_required?: string;
   vehicle_axles_required?: number;
-  pricing_type?: string;
+  pricing_type: 'FIXED' | 'PER_KM' | 'PER_TON';
   price_per_km?: number;
   producer_id?: string | null;
 }
@@ -234,7 +234,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         accepted_trucks: Number(f.accepted_trucks || 0),
         created_at: String(f.created_at || ''),
         producer_id: f.producer_id || null,
-        pricing_type: f.pricing_type ?? undefined,
+        pricing_type: (f.pricing_type as 'FIXED' | 'PER_KM' | 'PER_TON') || 'FIXED',
         price_per_km: f.price_per_km != null ? Number(f.price_per_km) : undefined,
       }));
 
