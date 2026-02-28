@@ -234,7 +234,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         accepted_trucks: Number(f.accepted_trucks || 0),
         created_at: String(f.created_at || ''),
         producer_id: f.producer_id || null,
-        pricing_type: f.pricing_type || undefined,
+        pricing_type: f.pricing_type ?? undefined,
         price_per_km: f.price_per_km != null ? Number(f.price_per_km) : undefined,
       }));
 
