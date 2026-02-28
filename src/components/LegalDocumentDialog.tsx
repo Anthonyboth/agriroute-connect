@@ -85,6 +85,53 @@ const termsContent = [
       'Vigência: Estes termos permanecem em vigor enquanto você utilizar a plataforma AgriRoute.',
     ],
   },
+  {
+    title: '1. Formalização e Vinculação Contratual',
+    items: [
+      'Todo frete ou serviço iniciado, negociado, aceito ou ajustado por meio da plataforma AgriRoute será considerado formalmente contratado dentro do ambiente digital da plataforma, independentemente de eventual ajuste complementar realizado entre as partes por meios externos.',
+      'A origem da contratação na plataforma caracteriza a vinculação integral do negócio jurídico aos presentes Termos de Uso, ainda que o valor, forma de pagamento ou condições específicas venham a ser alterados posteriormente entre as partes.',
+      'A realização de acordos paralelos, negociações "por fora" ou pagamentos realizados fora do sistema não descaracteriza a intermediação da AgriRoute nem afasta a aplicação destes Termos.',
+      'A AgriRoute atua como intermediadora tecnológica da contratação, mantendo registros eletrônicos de propostas, aceitações, comunicações, dados de acesso, geolocalização, dispositivos utilizados, datas e horários, os quais possuem validade jurídica como meio de prova, nos termos do Marco Civil da Internet (Lei nº 12.965/2014) e demais legislações aplicáveis.',
+    ],
+  },
+  {
+    title: '2. Responsabilidade por Condutas Ilícitas e Inadimplemento',
+    items: [
+      'Qualquer tentativa de fraude, golpe, inadimplemento doloso, simulação contratual, omissão de pagamento, má-fé objetiva ou subjetiva, ou qualquer conduta que viole estes Termos ou a legislação vigente sujeitará a parte infratora às medidas administrativas e judiciais cabíveis.',
+      'Considera-se conduta ilícita, dentre outras: não pagamento do valor ajustado após execução do serviço; cancelamento indevido após execução parcial ou total; utilização da plataforma para obtenção de vantagem indevida; manipulação de informações com intuito de lesar a outra parte; tentativa de afastar a plataforma da intermediação para evitar taxas ou responsabilidades.',
+      'Verificada conduta irregular, a AgriRoute poderá, independentemente de aviso prévio: suspender temporariamente o acesso do usuário; bloquear preventivamente valores; cancelar definitivamente a conta; restringir novos cadastros vinculados ao mesmo CPF, CNPJ, IP ou dispositivo; preservar e armazenar provas digitais; comunicar autoridades competentes; propor medidas judiciais cabíveis.',
+    ],
+  },
+  {
+    title: '3. Responsabilização Civil e Indenizatória',
+    items: [
+      'A parte que agir de forma ilícita responderá civilmente pelos danos causados à parte prejudicada e à AgriRoute.',
+      'A responsabilização poderá incluir, sem limitação: pagamento integral da obrigação inadimplida; indenização por danos materiais; indenização por danos morais à vítima; indenização por danos morais e prejuízos institucionais à AgriRoute; multas contratuais aplicáveis; custas judiciais; honorários advocatícios; perdas e danos adicionais comprovadamente decorrentes da conduta.',
+      'A responsabilidade será apurada independentemente da exclusão ou desativação da conta do usuário infrator.',
+    ],
+  },
+  {
+    title: '4. Validade e Preservação de Provas Digitais',
+    items: [
+      'O usuário reconhece e concorda que os registros eletrônicos armazenados pela AgriRoute, incluindo histórico de negociações, mensagens, logs de acesso, endereços IP, geolocalização, registros de dispositivo e demais metadados, constituem meio de prova válido e admissível em processos judiciais ou administrativos.',
+      'Havendo indícios de fraude ou inadimplemento, a plataforma poderá preservar dados pelo prazo legal aplicável e fornecê-los mediante ordem judicial ou às autoridades competentes.',
+      'Provas armazenadas nos dispositivos da parte prejudicada, tais como conversas, comprovantes de pagamento, registros de ligação e demais evidências digitais, poderão ser utilizadas para fins de responsabilização civil e penal.',
+    ],
+  },
+  {
+    title: '5. Responsabilidade Penal',
+    items: [
+      'O usuário declara ciência de que fraudes eletrônicas, estelionato, apropriação indébita, falsidade ideológica, crimes contra a honra, dentre outros, constituem infrações penais previstas na legislação brasileira.',
+      'A AgriRoute poderá colaborar integralmente com autoridades policiais e judiciais na apuração de eventual ilícito penal.',
+    ],
+  },
+  {
+    title: '6. Independência das Obrigações',
+    items: [
+      'A tentativa de afastar a incidência destes Termos por meio de acordo externo entre as partes não produz efeitos jurídicos perante a AgriRoute.',
+      'A contratação originada na plataforma permanecerá sujeita às obrigações aqui previstas, ainda que o pagamento ocorra por meio distinto do sistema disponibilizado.',
+    ],
+  },
 ];
 
 const privacyContent = [
