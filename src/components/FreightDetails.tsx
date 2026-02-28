@@ -31,6 +31,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatKm, getPricePerTruck, formatBRL } from '@/lib/formatters';
+import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 import { CTeEmitirDialog } from './fiscal/CTeEmitirDialog';
 import { isFeatureEnabled } from '@/config/featureFlags';
 import { AntifraudPanel } from './antifraude';
@@ -620,28 +621,27 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               </div>
             </div>
             {(() => {
-              const requiredTrucks = freight.required_trucks || 1;
-              const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
-              const hasMultipleTrucks = requiredTrucks > 1;
-              const isProducer = isFreightProducer;
+              // ✅ ALWAYS use centralized pipeline for price display
+              const pd = getFreightPriceDisplay({
+                price: freight.price || 0,
+                pricing_type: freight.pricing_type,
+                price_per_km: freight.price_per_km,
+                required_trucks: freight.required_trucks,
+                distance_km: freight.distance_km,
+                weight: freight.weight,
+              });
               return (
                 <>
                   <div>
                     <span className="text-muted-foreground text-xs">
-                      {isProducer ? 'Valor total:' : hasMultipleTrucks ? 'Valor por carreta:' : 'Valor do frete:'}
+                      {pd.isUnitPricing ? 'Valor unitário:' : isFreightProducer ? 'Valor total:' : 'Valor do frete:'}
                     </span>
-                    <p className="font-medium">{formatBRL(isProducer ? freight.price : pricePerTruck)}</p>
+                    <p className="font-medium">{pd.primaryLabel}</p>
                   </div>
-                  {hasMultipleTrucks && isProducer && (
+                  {pd.secondaryLabel && (
                     <div>
-                      <span className="text-muted-foreground text-xs">Valor por carreta:</span>
-                      <p className="font-medium">{formatBRL(pricePerTruck)}</p>
-                    </div>
-                  )}
-                  {hasMultipleTrucks && !isProducer && (
-                    <div>
-                      <span className="text-muted-foreground text-xs">Total ({requiredTrucks} carretas):</span>
-                      <p className="font-medium text-muted-foreground">{formatBRL(freight.price)}</p>
+                      <span className="text-muted-foreground text-xs">Detalhes:</span>
+                      <p className="font-medium text-muted-foreground text-sm">{pd.secondaryLabel}</p>
                     </div>
                   )}
                 </>

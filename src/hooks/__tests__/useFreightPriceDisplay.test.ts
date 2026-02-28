@@ -99,6 +99,27 @@ describe('getFreightPriceDisplay', () => {
       expect(result.primaryValue).toBe(3);
       expect(result.isPricingTypeInvalid).toBe(false);
     });
+
+    /**
+     * CONTRACT TEST: PER_KM R$2/km, 100km
+     * Primary: R$ 2,00/km
+     * Secondary: Total: R$ 200,00 (100 km)
+     * NEVER show R$200,00/km
+     */
+    it('PER_KM R$2/km 100km: shows R$2/km primary, total R$200 secondary', () => {
+      const result = getFreightPriceDisplay({
+        price: 200,
+        pricing_type: 'PER_KM',
+        price_per_km: 2,
+        distance_km: 100,
+      });
+      expect(result.primaryValue).toBe(2);
+      expect(result.primarySuffix).toBe('/km');
+      expect(result.secondaryLabel).toContain('Total:');
+      expect(result.secondaryLabel).toContain('100');
+      // NEVER show total as primary
+      expect(result.primaryValue).not.toBe(200);
+    });
   });
 
   describe('FIXED', () => {
@@ -122,6 +143,30 @@ describe('getFreightPriceDisplay', () => {
       });
       expect(result.primarySuffix).toBe('/carreta');
       expect(result.primaryValue).toBe(4000);
+    });
+
+    /**
+     * CONTRACT TEST: FIXED R$40.000, 12 carretas
+     * Primary: R$ 3.333,33/carreta
+     * Secondary: Total (12 carretas): R$ 40.000,00
+     * NEVER show R$40.000,00/carreta as primary
+     */
+    it('FIXED R$40.000 12 trucks: shows per-carreta primary, total secondary, NEVER R$40.000/carreta', () => {
+      const result = getFreightPriceDisplay({
+        price: 40000,
+        pricing_type: 'FIXED',
+        required_trucks: 12,
+        distance_km: 130,
+      });
+      // Primary should be per-carreta
+      expect(result.primarySuffix).toBe('/carreta');
+      const perCarreta = 40000 / 12;
+      expect(result.primaryValue).toBeCloseTo(perCarreta, 0);
+      // Secondary should show total
+      expect(result.secondaryLabel).toContain('Total');
+      expect(result.secondaryLabel).toContain('12');
+      // NEVER show total as primary with /carreta suffix
+      expect(result.primaryValue).not.toBe(40000);
     });
   });
 
