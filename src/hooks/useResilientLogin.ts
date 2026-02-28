@@ -14,6 +14,7 @@ import { clearCachedProfile } from '@/lib/profile-cache';
 import { saveProfileToAutofill } from '@/lib/autofill-storage';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { getDefaultRouteForProfile } from '@/security/panelAccessGuard';
+import { resolvePostAuthRoute } from '@/lib/route-after-auth';
 
 const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
@@ -358,7 +359,39 @@ export function useResilientLogin() {
         }
       }
 
-      const targetRoute = getDashboardRoute(targetRole);
+      // ✅ CRITICAL FIX: Buscar dados completos do perfil para os gates de segurança
+      // (selfie_url, document_photo_url, status atualizado pós-auto-aprovação)
+      addStep('Verificando gates de segurança', 'pending');
+      
+      const { data: fullProfile } = await supabase
+        .from('profiles')
+        .select('id, role, status, selfie_url, document_photo_url')
+        .eq('id', targetProfile.id)
+        .single();
+
+      // ✅ GATE UNIVERSAL: Usar resolvePostAuthRoute para aplicar os mesmos gates
+      // que routeAfterAuth (documentos obrigatórios, aprovação admin para MOTORISTA)
+      let targetRoute: string;
+      
+      if (fullProfile) {
+        targetRoute = await resolvePostAuthRoute({
+          id: fullProfile.id,
+          role: fullProfile.role || 'PRODUTOR',
+          status: fullProfile.status || 'PENDING',
+          selfie_url: fullProfile.selfie_url,
+          document_photo_url: fullProfile.document_photo_url,
+        });
+      } else {
+        // Fallback se não conseguir buscar perfil completo
+        targetRoute = getDashboardRoute(targetRole);
+      }
+
+      // ✅ HOSTNAME GATE: Se no subdomínio admin, override para /admin-v2
+      if (ADMIN_HOSTNAMES.includes(window.location.hostname)) {
+        targetRoute = '/admin-v2';
+      }
+      
+      addStep('Verificando gates de segurança', 'success');
       
       // Salvar profile ativo
       localStorage.setItem('current_profile_id', targetProfile.id);
@@ -402,16 +435,36 @@ export function useResilientLogin() {
   /**
    * Selecionar perfil específico após login com múltiplos perfis
    */
-  const selectProfile = useCallback((profile: any) => {
+  const selectProfile = useCallback(async (profile: any) => {
     localStorage.setItem('current_profile_id', profile.id);
     
     const targetRole = profile.role || profile.active_mode || 'PRODUTOR';
-    const targetRoute = getDashboardRoute(targetRole);
     
-    console.log(`🟢 [ResilientLogin] Perfil selecionado: ${targetRole} -> ${targetRoute}`);
+    // ✅ CRITICAL FIX: Buscar perfil completo e aplicar gates de segurança
+    const { data: fullProfile } = await supabase
+      .from('profiles')
+      .select('id, role, status, selfie_url, document_photo_url')
+      .eq('id', profile.id)
+      .single();
 
+    let targetRoute: string;
+    
+    if (fullProfile) {
+      targetRoute = await resolvePostAuthRoute({
+        id: fullProfile.id,
+        role: fullProfile.role || 'PRODUTOR',
+        status: fullProfile.status || 'PENDING',
+        selfie_url: fullProfile.selfie_url,
+        document_photo_url: fullProfile.document_photo_url,
+      });
+    } else {
+      targetRoute = getDashboardRoute(targetRole);
+    }
+    
     // ✅ HOSTNAME GATE: Se no subdomínio admin, ir para /admin-v2
     const finalRoute = ADMIN_HOSTNAMES.includes(window.location.hostname) ? '/admin-v2' : targetRoute;
+    
+    console.log(`🟢 [ResilientLogin] Perfil selecionado: ${targetRole} -> ${finalRoute}`);
 
     try {
       navigate(finalRoute, { replace: true });
