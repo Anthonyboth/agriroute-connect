@@ -160,25 +160,20 @@ export const FreightCard: React.FC<FreightCardProps> = ({
     }
 
     try {
-      // Primeiro: verificar se o solicitante tem cadastro
-      const { data: checkData, error: checkError } = await supabase.functions.invoke("check-freight-requester", {
-        body: { freight_id: freight.id },
-      });
+      // Verificar se o solicitante tem cadastro (helper centralizado)
+      const { checkFreightRequesterHasRegistration } = await import("@/lib/checkFreightRequester");
+      const hasRegistration = await checkFreightRequesterHasRegistration(freight.id);
 
-      if (checkError) {
-        console.error("Error checking requester:", checkError);
-        toast.error("Erro ao verificar solicitante");
+      if (hasRegistration === false) {
+        toast.error("O solicitante não possui cadastro. Este frete foi movido para o histórico.");
+        setTimeout(() => {
+          onAction?.("accept");
+        }, 1500);
         return;
       }
 
-      // Se solicitante não tem cadastro, mostrar mensagem e não aceitar
-      if (checkData?.requester?.has_registration === false) {
-        toast.error("O solicitante não possui cadastro. Este frete foi movido para o histórico.");
-        // Aguardar um pouco e recarregar para refletir mudança
-        setTimeout(() => {
-          onAction?.("accept"); // Trigger refresh/tab change
-        }, 1500);
-        return;
+      if (hasRegistration === null) {
+        console.warn("[FreightCard] Não foi possível validar solicitante, prosseguindo...");
       }
 
       // Se tem cadastro, proceder com aceite normal
