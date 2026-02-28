@@ -140,7 +140,7 @@ export function FreightWizardStep3Cargo({
           id="description"
           value={formData.description}
           onChange={(e) => onInputChange('description', e.target.value)}
-          placeholder="Informações adicionais sobre a carga..."
+          placeholder="Ex: Soja ensacada, precisa de lona. Carregar às 7h da manhã. Contato na fazenda: José (66) 99999-0000"
           rows={3}
         />
       </div>

@@ -121,7 +121,7 @@ export function FreightWizardStep4Price({
               onInputChange(field, e.target.value);
             }}
             className="pl-10"
-            placeholder={formData.pricing_type === 'FIXED' ? '0,00' : '0,00'}
+            placeholder={formData.pricing_type === 'FIXED' ? 'Ex: 5000,00' : 'Ex: 3,50'}
           />
         </div>
       </div>
