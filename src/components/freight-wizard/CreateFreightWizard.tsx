@@ -78,7 +78,7 @@ const formDataInitial = {
   guest_email: '',
   guest_phone: '',
   guest_document: '',
-  visibility_type: 'ALL' as 'ALL' | 'TRANSPORTADORAS_ONLY' | 'RATING_MINIMUM',
+  visibility_type: 'ALL' as 'ALL' | 'TRANSPORTADORAS_ONLY' | 'RATING_MINIMUM' | 'RATING_AND_TRANSPORTADORAS',
   min_driver_rating: '' as string
 };
 
@@ -554,6 +554,7 @@ export function CreateFreightWizard({
         visibility_type: formData.visibility_type || 'ALL',
         min_driver_rating: formData.visibility_type === 'RATING_MINIMUM' && formData.min_driver_rating 
           ? parseFloat(formData.min_driver_rating) 
+          : formData.visibility_type === 'RATING_AND_TRANSPORTADORAS' ? 4.0
           : null,
         // Guest freight contact info - só inclui se for effectiveGuestMode
         ...(effectiveGuestMode && {

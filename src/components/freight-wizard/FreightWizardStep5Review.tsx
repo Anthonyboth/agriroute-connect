@@ -323,9 +323,21 @@ export function FreightWizardStep5Review({
                 </p>
               </div>
             </div>
+
+            <div className="flex items-start space-x-3">
+              <RadioGroupItem value="RATING_AND_TRANSPORTADORAS" id="visibility_rating_transport" className="mt-1" />
+              <div>
+                <Label htmlFor="visibility_rating_transport" className="font-medium cursor-pointer">
+                  Motoristas avaliação 4+ e Transportadoras
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Apenas motoristas com avaliação 4 ou mais e transportadoras verificadas
+                </p>
+              </div>
+            </div>
           </RadioGroup>
 
-          {formData.visibility_type === 'RATING_MINIMUM' && (
+          {(formData.visibility_type === 'RATING_MINIMUM') && (
             <div className="pl-6 space-y-2">
               <Label>Avaliação Mínima</Label>
               <Select
