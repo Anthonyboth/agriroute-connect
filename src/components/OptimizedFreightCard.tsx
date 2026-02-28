@@ -10,6 +10,7 @@ import { MapPin, Package, Truck, Calendar, DollarSign, ArrowRight, Wrench, Home,
 import { getCargoTypeLabel } from "@/lib/cargo-types";
 // ✅ PERF: Removed per-card supabase query and useAuth (N+1 elimination)
 import { formatTons, formatKm, formatBRL, formatDate, formatSolicitadoHa, getPricePerTruck } from "@/lib/formatters";
+import { getFreightPriceDisplay } from "@/hooks/useFreightPriceDisplay";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FreightCardProps {
@@ -361,34 +362,15 @@ const OptimizedFreightCard = memo<FreightCardProps>(
           <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
             <div className="text-left">
               {(() => {
-                const requiredTrucks = freight.required_trucks || 1;
-                const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
-                const hasMultipleTrucks = requiredTrucks > 1;
-                const pricingType = freight.pricing_type;
-                const unitRate = freight.price_per_km;
-
+                const pd = getFreightPriceDisplay(freight);
                 return (
                   <>
-                    {pricingType === "PER_KM" && unitRate ? (
-                      <p className="font-bold text-3xl text-primary">
-                        {formatBRL(unitRate, true)}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">/km</span>
-                      </p>
-                    ) : pricingType === "PER_TON" && unitRate ? (
-                      <p className="font-bold text-3xl text-primary">
-                        {formatBRL(unitRate, true)}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">/ton</span>
-                      </p>
-                    ) : (
-                      <p className="font-bold text-3xl text-primary">
-                        {formatBRL(hasMultipleTrucks ? pricePerTruck : freight.price, true)}
-                        {hasMultipleTrucks && (
-                          <span className="text-sm font-normal text-muted-foreground ml-1">/carreta</span>
-                        )}
-                        {!hasMultipleTrucks && (
-                          <span className="text-sm font-normal text-muted-foreground ml-1">fixo</span>
-                        )}
-                      </p>
+                    <p className="font-bold text-3xl text-primary">
+                      {pd.primaryFormatted}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">{pd.primarySuffix}</span>
+                    </p>
+                    {pd.secondaryLabel && (
+                      <p className="text-xs text-muted-foreground mt-1">{pd.secondaryLabel}</p>
                     )}
                   </>
                 );

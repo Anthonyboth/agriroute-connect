@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTransportCompany } from "@/hooks/useTransportCompany";
 import { toast } from "sonner";
 import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from "@/lib/formatters";
+import { getFreightPriceDisplay } from "@/hooks/useFreightPriceDisplay";
 import { LABELS } from "@/lib/labels";
 import { getPickupDateBadge } from "@/utils/freightDateHelpers";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
@@ -111,22 +112,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const urgencyLabel = getUrgencyLabel(freight.urgency);
   const urgencyDotColor = freight.urgency === 'HIGH' ? 'bg-destructive' : freight.urgency === 'MEDIUM' ? 'bg-yellow-500' : 'bg-muted-foreground/40';
 
-  // R$/km calculado — usa price_per_km diretamente para fretes PER_KM
-  const pricePerKmCalc = useMemo(() => {
-    // Se o frete é PER_KM e tem price_per_km definido, usar diretamente
-    if (freight.pricing_type === 'PER_KM' && freight.price_per_km && freight.price_per_km > 0) {
-      return freight.price_per_km;
-    }
-    const distKm = parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0;
-    if (distKm <= 0) return null;
-    const requiredTrucks = freight.required_trucks || 1;
-    const unitPrice = requiredTrucks > 1 ? getPricePerTruck(freight.price, requiredTrucks) : freight.price;
-    return unitPrice / distKm;
-  }, [freight.price, freight.distance_km, freight.required_trucks, freight.pricing_type, freight.price_per_km]);
+  // ✅ Hook centralizado de exibição de preço — exibe EXATAMENTE o que o produtor preencheu
+  const priceDisplay = useMemo(() => getFreightPriceDisplay(freight), [
+    freight.price, freight.pricing_type, freight.price_per_km, freight.required_trucks, freight.distance_km, freight.weight
+  ]);
 
-  // Cor semântica de rentabilidade
-  const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
-  const rpmIcon = pricePerKmCalc === null ? null : pricePerKmCalc >= 6 ? <TrendingUp className="h-3 w-3" /> : pricePerKmCalc < 4 ? <TrendingDown className="h-3 w-3" /> : null;
+  // Cor semântica de rentabilidade (usa hook centralizado)
+  const rpmColor = priceDisplay.unitRateColorClass;
+  const rpmIcon = priceDisplay.unitRateValue === null ? null : priceDisplay.unitRateValue >= 6 && priceDisplay.pricingType === 'FIXED' ? <TrendingUp className="h-3 w-3" /> : priceDisplay.unitRateValue < 4 && priceDisplay.pricingType === 'FIXED' ? <TrendingDown className="h-3 w-3" /> : null;
 
   // Tempo estimado (média 60km/h)
   const distKmNum = parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0;
@@ -633,23 +626,21 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               </div>
               <p className="text-xs font-bold text-foreground">{formatDate(freight.delivery_date)}</p>
             </div>
-            {/* R$/km — 10% accent: cor semântica de rentabilidade */}
+            {/* Valor unitário — usa hook centralizado (R$/km, R$/ton, ou derivado) */}
             <div className={`p-2.5 rounded-lg text-center border ${
-              pricePerKmCalc !== null && pricePerKmCalc >= 6
+              priceDisplay.unitRateValue !== null && priceDisplay.unitRateColorClass.includes('primary')
                 ? 'bg-primary/10 border-primary/20'
-                : pricePerKmCalc !== null && pricePerKmCalc < 4
+                : priceDisplay.unitRateValue !== null && priceDisplay.unitRateColorClass.includes('destructive')
                   ? 'bg-destructive/10 border-destructive/20'
                   : 'bg-warning/10 border-warning/20'
             }`}>
               <div className="flex items-center justify-center gap-1 mb-1">
                 <DollarSign className="h-3 w-3 text-muted-foreground" />
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">R$/km</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{priceDisplay.unitRateLabel}</p>
               </div>
               <p className={`text-xs font-bold flex items-center justify-center gap-0.5 ${rpmColor}`}>
                 {rpmIcon}
-                {pricePerKmCalc !== null
-                  ? `R$${pricePerKmCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : '—'}
+                {priceDisplay.unitRateFormatted}
               </p>
             </div>
           </div>
@@ -660,39 +651,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           <CardFooter className="px-4 py-3 border-t border-border/40 bg-gradient-to-r from-primary/5 to-transparent">
             <div className="flex items-center justify-between w-full">
               <div>
-                {(() => {
-                  const requiredTrucks = freight.required_trucks || 1;
-                  const hasMultipleTrucks = requiredTrucks > 1;
-                  const isProducer = profile?.role === "PRODUTOR";
-                  const pricingType = freight.pricing_type || (freight as any).payment_type;
-                  const unitRate = freight.price_per_km || (freight as any).value_per_km;
-
-                  return (
-                    <>
-                      {pricingType === "PER_KM" && unitRate ? (
-                        <p className="font-bold text-xl text-primary">
-                          {formatBRL(unitRate, true)}<span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
-                        </p>
-                      ) : pricingType === "PER_TON" && unitRate ? (
-                        <p className="font-bold text-xl text-primary">
-                          {formatBRL(unitRate, true)}<span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
-                        </p>
-                      ) : (
-                        <p className="font-bold text-xl text-primary">
-                          {formatBRL(hasMultipleTrucks ? getPricePerTruck(freight.price, requiredTrucks) : freight.price, true)}
-                          <span className="text-xs font-normal text-muted-foreground ml-1">
-                            {hasMultipleTrucks ? '/carreta' : 'fixo'}
-                          </span>
-                        </p>
-                      )}
-                      {hasMultipleTrucks && isProducer && (
-                        <p className="text-[10px] text-muted-foreground">
-                          Total ({requiredTrucks} carretas): {formatBRL(freight.price, true)}
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
+                <p className="font-bold text-xl text-primary">
+                  {priceDisplay.primaryFormatted}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">{priceDisplay.primarySuffix}</span>
+                </p>
+                {priceDisplay.secondaryLabel && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {priceDisplay.secondaryLabel}
+                  </p>
+                )}
               </div>
               {/* ANTT inline */}
               <div className="text-right">

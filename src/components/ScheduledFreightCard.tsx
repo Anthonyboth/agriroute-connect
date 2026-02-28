@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle, User, Truck as TruckIcon } from 'lucide-react';
 import { SignedStorageImage } from '@/components/ui/signed-storage-image';
 import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
+import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
 import { ChatModal } from '@/components/ChatModal';
@@ -210,50 +211,28 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
             {(() => {
               const isDriver = userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO';
               const driverAgreedPrice = assignedDrivers.find(a => a.driver_id === userProfileId)?.agreed_price;
-              const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
-              const pricingType = freight.pricing_type;
-              const unitRate = freight.price_per_km;
+              const pd = getFreightPriceDisplay(freight);
 
-              // Se tem pricing_type PER_KM ou PER_TON, exibir valor unitário
-              if (pricingType === 'PER_KM' && unitRate) {
+              // If driver has an agreed price, show that
+              if (isDriver && driverAgreedPrice && driverAgreedPrice > 0) {
                 return (
                   <div className="text-2xl font-bold text-primary">
-                    {formatBRL(unitRate)}
-                    <span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
+                    {formatBRL(driverAgreedPrice)}
+                    {isMultiTruck && (
+                      <span className="text-xs font-normal text-muted-foreground ml-1">/carreta</span>
+                    )}
                   </div>
                 );
               }
-              if (pricingType === 'PER_TON' && unitRate) {
-                return (
-                  <div className="text-2xl font-bold text-primary">
-                    {formatBRL(unitRate)}
-                    <span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
-                  </div>
-                );
-              }
-
-              // FIXED ou fallback
-              const displayPrice = isDriver
-                ? (driverAgreedPrice ?? pricePerTruck)
-                : freight.price;
 
               return (
                 <>
                   <div className="text-2xl font-bold text-primary">
-                    {formatBRL(displayPrice)}
-                    {!isMultiTruck && (
-                      <span className="text-xs font-normal text-muted-foreground ml-1">fixo</span>
-                    )}
+                    {pd.primaryFormatted}
+                    <span className="text-xs font-normal text-muted-foreground ml-1">{pd.primarySuffix}</span>
                   </div>
-                  {isMultiTruck && isDriver && (
-                    <p className="text-xs text-muted-foreground">
-                      Valor por carreta
-                    </p>
-                  )}
-                  {isMultiTruck && !isDriver && (
-                    <p className="text-xs text-muted-foreground">
-                      {requiredTrucks} carretas × {formatBRL(pricePerTruck)} por carreta
-                    </p>
+                  {pd.secondaryLabel && (
+                    <p className="text-xs text-muted-foreground">{pd.secondaryLabel}</p>
                   )}
                 </>
               );
