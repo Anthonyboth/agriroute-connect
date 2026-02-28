@@ -52,7 +52,7 @@ interface CompatibleFreight {
   minimum_antt_price: number;
   required_trucks: number;
   accepted_trucks: number;
-  pricing_type?: string;
+  pricing_type: 'FIXED' | 'PER_KM' | 'PER_TON';
   price_per_km?: number;
   created_at: string;
   producer_id?: string | null;
@@ -196,7 +196,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           accepted_trucks: acceptedTrucks,
           created_at: String((freight as any).created_at || ""),
           producer_id: (freight as any).producer_id || null,
-          pricing_type: (freight as any).pricing_type ?? undefined,
+          pricing_type: ((freight as any).pricing_type as 'FIXED' | 'PER_KM' | 'PER_TON') || 'FIXED',
           price_per_km: (freight as any).price_per_km != null ? Number((freight as any).price_per_km) : undefined,
         });
       }

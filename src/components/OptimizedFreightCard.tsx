@@ -34,7 +34,7 @@ interface FreightCardProps {
     service_type?: "CARGA" | "GUINCHO" | "MUDANCA" | "FRETE_MOTO" | "ENTREGA_PACOTES" | "TRANSPORTE_PET";
     required_trucks?: number;
     accepted_trucks?: number;
-    pricing_type?: "FIXED" | "PER_KM" | "PER_TON";
+    pricing_type: "FIXED" | "PER_KM" | "PER_TON";
     price_per_km?: number;
 
     // ✅ necessário para "Solicitado há X dias"
