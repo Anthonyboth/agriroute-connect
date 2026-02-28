@@ -26,23 +26,34 @@ export interface ProfileForRouting {
  * Aguarda o profile ser criado pelo trigger handle_new_user com retry progressivo.
  * Delays: 250, 400, 650, 900, 1200, 1600ms (total ~5s)
  */
-export async function waitForProfile(userId: string): Promise<ProfileForRouting | null> {
+export async function waitForProfile(userId: string, targetProfileId?: string): Promise<ProfileForRouting | null> {
   const delays = [250, 400, 650, 900, 1200, 1600];
 
   for (let i = 0; i < delays.length; i++) {
-    const { data, error } = await supabase
+    let query = supabase
       .from('profiles')
       .select('id, role, status, selfie_url, document_photo_url')
-      .eq('user_id', userId)
-      .maybeSingle();
+      .eq('user_id', userId);
 
-    if (data && !error) {
+    // Se temos um profileId específico, buscar exatamente esse
+    if (targetProfileId) {
+      query = query.eq('id', targetProfileId);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data && data.length > 0) {
+      // Se targetProfileId foi fornecido, usar esse; senão, usar o primeiro
+      const profile = targetProfileId 
+        ? data.find(p => p.id === targetProfileId) || data[0]
+        : data[0];
+      
       return {
-        id: data.id,
-        role: data.role || 'PRODUTOR',
-        status: data.status || 'PENDING',
-        selfie_url: data.selfie_url,
-        document_photo_url: data.document_photo_url,
+        id: profile.id,
+        role: profile.role || 'PRODUTOR',
+        status: profile.status || 'PENDING',
+        selfie_url: profile.selfie_url,
+        document_photo_url: profile.document_photo_url,
       };
     }
 
@@ -101,8 +112,8 @@ export async function resolvePostAuthRoute(profile: ProfileForRouting): Promise<
  * Fluxo completo: aguarda profile + resolve rota.
  * Retorna a rota de destino ou '/complete-profile' como fallback seguro.
  */
-export async function routeAfterAuth(userId: string): Promise<string> {
-  const profile = await waitForProfile(userId);
+export async function routeAfterAuth(userId: string, targetProfileId?: string): Promise<string> {
+  const profile = await waitForProfile(userId, targetProfileId);
 
   if (!profile) {
     // Fallback seguro: se profile não foi encontrado, ir para complete-profile

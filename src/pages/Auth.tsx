@@ -273,7 +273,7 @@ const Auth = () => {
                   localStorage.setItem('current_profile_id', profileToActivate.id);
                   toast.success('Perfil já existe! Redirecionando...');
                   // ✅ GATE UNIVERSAL: routeAfterAuth decide destino
-                  const dest = await routeAfterAuth(loginData.user.id);
+                  const dest = await routeAfterAuth(loginData.user.id, profileToActivate.id);
                   navigate(dest);
                 }
               } else {
@@ -339,7 +339,7 @@ const Auth = () => {
                   }
                   
                   // ✅ GATE UNIVERSAL: routeAfterAuth decide destino
-                  const dest2 = await routeAfterAuth(loginData.user.id);
+                  const dest2 = await routeAfterAuth(loginData.user.id, newProfileId);
                   navigate(dest2);
                 } catch (createError) {
                   console.error('[Auth] Erro inesperado ao criar perfil:', createError);
