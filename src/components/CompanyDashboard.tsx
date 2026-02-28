@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,6 +143,10 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // ✅ FIX: Use ref for fetchDashboardData to prevent realtime re-subscription loops
+  const fetchDashboardDataRef = useRef(fetchDashboardData);
+  fetchDashboardDataRef.current = fetchDashboardData;
+
   // Realtime: atualizar quando houver mudanças
   useEffect(() => {
     if (!company?.id) return;
@@ -157,7 +161,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
           table: 'freights',
           filter: `company_id=eq.${company.id}`
         },
-        () => fetchDashboardData()
+        () => fetchDashboardDataRef.current()
       )
       .on(
         'postgres_changes',
@@ -167,14 +171,14 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
           table: 'freight_assignments',
           filter: `company_id=eq.${company.id}`
         },
-        () => fetchDashboardData()
+        () => fetchDashboardDataRef.current()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [company?.id, fetchDashboardData]);
+  }, [company?.id]);
 
   // ✅ Agrupar assignments por freight_id para evitar cards duplicados
   // e calcular o número de carretas da TRANSPORTADORA (não o total do frete)

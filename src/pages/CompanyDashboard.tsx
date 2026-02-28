@@ -604,18 +604,30 @@ const CompanyDashboard = () => {
   const switchProfileRef = useRef(switchProfile);
   switchProfileRef.current = switchProfile;
 
+  // ✅ FIX: Guard against infinite profile-switch loops
+  const switchAttemptedRef = useRef(false);
+
   useEffect(() => {
     if (companyLoading) return;
 
     const handleProfileSwitch = async () => {
       if (!company) {
+        // Only attempt switch ONCE to prevent infinite loops
+        if (switchAttemptedRef.current) {
+          setIsSwitchingProfile(false);
+          return;
+        }
         const transportProfile = profilesRef.current.find(p => p.role === 'TRANSPORTADORA');
         
         if (transportProfile && profile?.id !== transportProfile.id) {
+          switchAttemptedRef.current = true;
           setIsSwitchingProfile(true);
           await switchProfileRef.current(transportProfile.id);
           return;
         }
+      } else {
+        // Company found — reset the guard for future use
+        switchAttemptedRef.current = false;
       }
       setIsSwitchingProfile(false);
     };
