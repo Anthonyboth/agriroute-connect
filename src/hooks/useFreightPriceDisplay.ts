@@ -51,6 +51,10 @@ export interface FreightPriceDisplay {
 }
 
 export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): FreightPriceDisplay {
+  // ✅ ANTI-REGRESSÃO: se pricing_type estiver ausente, logar warning (nunca assumir PER_KM)
+  if (!freight.pricing_type) {
+    console.warn(`[PriceDisplay] pricing_type ausente para frete com price=${freight.price}. Fallback: FIXED.`);
+  }
   const pricingType = (freight.pricing_type || 'FIXED') as PricingType;
   const unitRate = freight.price_per_km; // Stores unit value for both PER_KM and PER_TON
   const requiredTrucks = Math.max(freight.required_trucks || 1, 1);

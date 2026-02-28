@@ -113,6 +113,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const urgencyDotColor = freight.urgency === 'HIGH' ? 'bg-destructive' : freight.urgency === 'MEDIUM' ? 'bg-yellow-500' : 'bg-muted-foreground/40';
 
   // ✅ Hook centralizado de exibição de preço — exibe EXATAMENTE o que o produtor preencheu
+  // 🔍 DEBUG: logar pricing_type para detectar campo ausente
+  if (import.meta.env.DEV || !freight.pricing_type) {
+    console.log(`[FreightCard] id=${freight.id} pricing_type=${freight.pricing_type} price_per_km=${freight.price_per_km} price=${freight.price}`);
+  }
   const priceDisplay = useMemo(() => getFreightPriceDisplay(freight), [
     freight.price, freight.pricing_type, freight.price_per_km, freight.required_trucks, freight.distance_km, freight.weight
   ]);
