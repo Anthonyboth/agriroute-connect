@@ -307,6 +307,8 @@ export function useUnifiedMatchFeed({
       distance_to_origin_km: f.distance_to_origin_km,
       vehicle_type_required: f.vehicle_type_required || undefined,
       vehicle_axles_required: f.vehicle_axles_required || undefined,
+      pricing_type: f.pricing_type || undefined,
+      price_per_km: f.price_per_km || undefined,
     },
   });
 

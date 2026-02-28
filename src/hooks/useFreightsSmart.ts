@@ -38,6 +38,8 @@ export interface SmartFreight {
   service_type: string;
   created_at: string;
   distance_to_origin_km?: number | null;
+  pricing_type?: string | null;
+  price_per_km?: number | null;
 }
 
 export interface UserCityConfig {
@@ -131,6 +133,8 @@ export function useFreightsSmart(options: UseFreightsSmartOptions = {}) {
         service_type: f.service_type,
         created_at: f.created_at,
         distance_to_origin_km: null,
+        pricing_type: f.pricing_type,
+        price_per_km: f.price_per_km,
       }));
     } else {
       // RPC para motoristas independentes
@@ -180,6 +184,8 @@ export function useFreightsSmart(options: UseFreightsSmartOptions = {}) {
           service_type: normalizeServiceType(f.service_type),
           created_at: f.created_at,
           distance_to_origin_km: f.distance_to_origin_km ?? null,
+          pricing_type: f.pricing_type,
+          price_per_km: f.price_per_km,
         }))
         .filter((f) =>
           f.service_type && CANONICAL_SERVICE_TYPES.includes(f.service_type)
