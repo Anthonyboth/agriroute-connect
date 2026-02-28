@@ -4,9 +4,10 @@ import { Input } from '@/components/ui/input';
 import { GPSOriginButton } from './GPSOriginButton';
 import { UnifiedLocationInput, type LocationData } from '@/components/UnifiedLocationInput';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText } from 'lucide-react';
+import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText, Route } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouteCorridors } from '@/hooks/useRouteCorridors';
 interface FreightWizardStep1Props {
   formData: any;
   onInputChange: (field: string, value: any) => void;
@@ -44,7 +45,8 @@ export function FreightWizardStep1({
   guestMode 
 }: FreightWizardStep1Props) {
   const [gpsError, setGpsError] = useState<string | null>(null);
-  
+  const [selectedCorridor, setSelectedCorridor] = useState<string>('');
+  const { corridors, findById } = useRouteCorridors();
   // Validação básica: cidades obrigatórias + campos guest se aplicável
   const baseCanProceed = formData.origin_city && formData.origin_state && 
                      formData.destination_city && formData.destination_state;
@@ -98,6 +100,26 @@ export function FreightWizardStep1({
     setGpsError(message);
   };
 
+  const handleCorridorSelect = (corridorId: string) => {
+    setSelectedCorridor(corridorId);
+    const corridor = findById(corridorId);
+    if (!corridor) return;
+    
+    // Auto-fill origin
+    onInputChange('origin_city', corridor.origin.name);
+    onInputChange('origin_state', corridor.origin.state);
+    onInputChange('origin_city_id', corridor.origin.cityId);
+    onInputChange('origin_lat', corridor.origin.lat);
+    onInputChange('origin_lng', corridor.origin.lng);
+    
+    // Auto-fill destination
+    onInputChange('destination_city', corridor.destination.name);
+    onInputChange('destination_state', corridor.destination.state);
+    onInputChange('destination_city_id', corridor.destination.cityId);
+    onInputChange('destination_lat', corridor.destination.lat);
+    onInputChange('destination_lng', corridor.destination.lng);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -108,6 +130,29 @@ export function FreightWizardStep1({
         <p className="text-sm text-muted-foreground">
           Informe de onde sairá e para onde irá a carga
         </p>
+      </div>
+
+      {/* Corredor Rodoviário */}
+      <div className="p-4 border rounded-lg bg-primary/5 border-primary/20">
+        <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
+          <Route className="h-4 w-4 text-primary" />
+          Corredor Rodoviário
+        </Label>
+        <p className="text-xs text-muted-foreground mb-3">
+          Selecione uma rota popular para preencher origem e destino automaticamente
+        </p>
+        <Select value={selectedCorridor} onValueChange={handleCorridorSelect}>
+          <SelectTrigger className="h-10 text-sm bg-background">
+            <SelectValue placeholder="Selecione uma rota" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover max-h-[300px]" position="popper" sideOffset={4}>
+            {corridors.map(corridor => (
+              <SelectItem key={corridor.id} value={corridor.id} className="text-sm">
+                {corridor.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* GPS Error Alert */}
