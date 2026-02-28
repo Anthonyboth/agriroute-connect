@@ -326,11 +326,14 @@ const CompanyDashboard = () => {
   const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<any | null>(null);
 
   // ✅ NOVO: Hook centralizado para gerenciar fretes e motoristas
-  const affiliatedDriverIds = React.useMemo(() => 
-    (drivers || [])
-      .map(d => d?.driver_profile_id)
-      .filter((id): id is string => Boolean(id)),
+  // ✅ FIX: Stabilize driver IDs as a string to prevent infinite re-render loops
+  const affiliatedDriverIdsKey = React.useMemo(
+    () => (drivers || []).map(d => d?.driver_profile_id).filter(Boolean).sort().join(','),
     [drivers]
+  );
+  const affiliatedDriverIds = React.useMemo(
+    () => affiliatedDriverIdsKey ? affiliatedDriverIdsKey.split(',') : [],
+    [affiliatedDriverIdsKey]
   );
 
   const { 
@@ -427,7 +430,8 @@ const CompanyDashboard = () => {
   const [isLoadingServices, setIsLoadingServices] = useState(false);
 
   const fetchActiveServices = useCallback(async () => {
-    if (!affiliatedDriverIds.length) {
+    const driverIds = affiliatedDriverIdsKey ? affiliatedDriverIdsKey.split(',') : [];
+    if (!driverIds.length) {
       setActiveServices([]);
       return;
     }
@@ -436,7 +440,7 @@ const CompanyDashboard = () => {
       const { data, error } = await supabase
         .from('service_requests_secure')
         .select('*')
-        .in('provider_id', affiliatedDriverIds)
+        .in('provider_id', driverIds)
         .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO', 'ENTREGA_PACOTES', 'TRANSPORTE_PET'])
         .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
         .order('accepted_at', { ascending: false })
@@ -451,7 +455,7 @@ const CompanyDashboard = () => {
     } finally {
       setIsLoadingServices(false);
     }
-  }, [affiliatedDriverIds]);
+  }, [affiliatedDriverIdsKey]);
 
   useEffect(() => {
     fetchActiveServices();
@@ -525,12 +529,6 @@ const CompanyDashboard = () => {
   refetchActiveFreightsRef.current = refetchActiveFreights;
   const fetchActiveServicesRef = useRef(fetchActiveServices);
   fetchActiveServicesRef.current = fetchActiveServices;
-  
-  // Stabilize driver IDs as a string to avoid ref changes triggering re-subscriptions
-  const affiliatedDriverIdsKey = React.useMemo(
-    () => (drivers || []).map(d => d?.driver_profile_id).filter(Boolean).sort().join(','),
-    [drivers]
-  );
 
   React.useEffect(() => {
     if (!company?.id) return;
