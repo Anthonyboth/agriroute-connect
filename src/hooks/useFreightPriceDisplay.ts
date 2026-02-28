@@ -58,48 +58,62 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
   const distKm = freight.distance_km || 0;
 
   // === PER_KM: show exactly the R$/km the producer entered ===
-  if (pricingType === 'PER_KM' && unitRate && unitRate > 0) {
-    const totalCalc = distKm > 0 ? unitRate * distKm : freight.price;
-    return {
-      primaryValue: unitRate,
-      primaryFormatted: formatBRL(unitRate, true),
-      primarySuffix: '/km',
-      primaryLabel: `${formatBRL(unitRate, true)}/km`,
-      secondaryLabel: distKm > 0
-        ? `Total: ${formatBRL(totalCalc, true)} (${Math.round(distKm)} km)`
-        : hasMultipleTrucks
-          ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta`
-          : null,
-      unitRateLabel: 'R$/km',
-      unitRateValue: unitRate,
-      unitRateFormatted: `R$${unitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      unitRateColorClass: getUnitRateColor(unitRate, 'PER_KM'),
-      isUnitPricing: true,
-      pricingType: 'PER_KM',
-    };
+  // Fallback: if price_per_km is null, derive from price / distance
+  if (pricingType === 'PER_KM') {
+    const effectiveUnitRate = (unitRate && unitRate > 0)
+      ? unitRate
+      : (distKm > 0 ? freight.price / distKm : null);
+
+    if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
+      const totalCalc = distKm > 0 ? effectiveUnitRate * distKm : freight.price;
+      return {
+        primaryValue: effectiveUnitRate,
+        primaryFormatted: formatBRL(effectiveUnitRate, true),
+        primarySuffix: '/km',
+        primaryLabel: `${formatBRL(effectiveUnitRate, true)}/km`,
+        secondaryLabel: distKm > 0
+          ? `Total: ${formatBRL(totalCalc, true)} (${Math.round(distKm)} km)`
+          : hasMultipleTrucks
+            ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta`
+            : null,
+        unitRateLabel: 'R$/km',
+        unitRateValue: effectiveUnitRate,
+        unitRateFormatted: `R$${effectiveUnitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        unitRateColorClass: getUnitRateColor(effectiveUnitRate, 'PER_KM'),
+        isUnitPricing: true,
+        pricingType: 'PER_KM',
+      };
+    }
   }
 
   // === PER_TON: show exactly the R$/ton the producer entered ===
-  if (pricingType === 'PER_TON' && unitRate && unitRate > 0) {
+  // Fallback: if price_per_km is null, derive from price / weight_tons
+  if (pricingType === 'PER_TON') {
     const weightTons = (freight.weight || 0) / 1000;
-    const totalCalc = weightTons > 0 ? unitRate * weightTons : freight.price;
-    return {
-      primaryValue: unitRate,
-      primaryFormatted: formatBRL(unitRate, true),
-      primarySuffix: '/ton',
-      primaryLabel: `${formatBRL(unitRate, true)}/ton`,
-      secondaryLabel: weightTons > 0
-        ? `Total: ${formatBRL(totalCalc, true)} (${weightTons.toFixed(1)} ton)`
-        : hasMultipleTrucks
+    const effectiveUnitRate = (unitRate && unitRate > 0) 
+      ? unitRate 
+      : (weightTons > 0 ? freight.price / weightTons : null);
+    
+    if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
+      const totalCalc = weightTons > 0 ? effectiveUnitRate * weightTons : freight.price;
+      return {
+        primaryValue: effectiveUnitRate,
+        primaryFormatted: formatBRL(effectiveUnitRate, true),
+        primarySuffix: '/ton',
+        primaryLabel: `${formatBRL(effectiveUnitRate, true)}/ton`,
+        secondaryLabel: hasMultipleTrucks
           ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta`
-          : null,
-      unitRateLabel: 'R$/ton',
-      unitRateValue: unitRate,
-      unitRateFormatted: `R$${unitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      unitRateColorClass: getUnitRateColor(unitRate, 'PER_TON'),
-      isUnitPricing: true,
-      pricingType: 'PER_TON',
-    };
+          : weightTons > 0
+            ? `Total: ${formatBRL(totalCalc, true)} (${weightTons.toFixed(1)} ton)`
+            : null,
+        unitRateLabel: 'R$/ton',
+        unitRateValue: effectiveUnitRate,
+        unitRateFormatted: `R$${effectiveUnitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        unitRateColorClass: getUnitRateColor(effectiveUnitRate, 'PER_TON'),
+        isUnitPricing: true,
+        pricingType: 'PER_TON',
+      };
+    }
   }
 
   // === FIXED: show total or per-truck ===
