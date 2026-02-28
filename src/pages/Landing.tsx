@@ -127,8 +127,7 @@ const Landing: React.FC = () => {
   const handleProceedToDashboard = () => {
     const userType = howItWorksModal.userType;
     if (userType) {
-      const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
-      navigate(route);
+      navigate(`/auth?mode=signup&role=${userType}`);
     }
     closeHowItWorksModal();
   };

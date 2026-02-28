@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ interface HowItWorksModalProps {
 }
 
 const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, userType, onProceed }) => {
+  const navigate = useNavigate();
   const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA'>(userType);
 
   // Sincronizar viewType quando userType muda (ex: reabrir modal com tipo diferente)
@@ -440,12 +442,8 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             size="lg" 
             className="px-12 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent text-primary-foreground rounded-full shadow-glow hover:shadow-xl hover:scale-105 transition-all duration-300"
             onClick={() => {
-              if (viewType === 'TRANSPORTADORA') {
-                setShowRegisterModal(true);
-              } else {
-                if (onProceed) onProceed();
-                else onClose();
-              }
+              onClose();
+              navigate(`/auth?mode=signup&role=${viewType}`);
             }}
           >
             <span className="mr-3">
