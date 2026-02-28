@@ -232,7 +232,7 @@ export function FreightWizardStep1({
       </div>
 
       {/* Modelos Salvos */}
-      {!guestMode && templates.length > 0 && (
+      {!guestMode && userProfileId && (
         <div className="p-4 border rounded-lg bg-accent/30 border-accent/50">
           <button
             type="button"
@@ -241,7 +241,7 @@ export function FreightWizardStep1({
           >
             <Label className="text-sm font-semibold flex items-center gap-2 cursor-pointer">
               <FileArchive className="h-4 w-4 text-primary" />
-              Modelos Salvos ({templates.length})
+              Modelos Salvos {templates.length > 0 ? `(${templates.length})` : ''}
             </Label>
             <span className="text-xs text-muted-foreground">
               {showTemplates ? '▲ Fechar' : '▼ Abrir'}
@@ -253,6 +253,10 @@ export function FreightWizardStep1({
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
+              ) : templates.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">
+                  Nenhum modelo salvo ainda. Ao criar um frete, você poderá salvá-lo como modelo para reutilizar.
+                </p>
               ) : (
                 templates.map(template => (
                   <div
