@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Car, Truck, Building2, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { StorageImage } from "@/components/ui/storage-image";
 
 interface DriverVehiclesTabProps {
   driverProfileId: string;
@@ -183,11 +184,10 @@ export const DriverVehiclesTab = ({ driverProfileId, companyId }: DriverVehicles
 
         {vehicle.vehicle_photo_url && (
           <div className="pt-2">
-            <img 
+            <StorageImage 
               src={vehicle.vehicle_photo_url} 
               alt="Foto do veículo" 
               className="h-24 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => window.open(vehicle.vehicle_photo_url, '_blank')}
             />
           </div>
         )}

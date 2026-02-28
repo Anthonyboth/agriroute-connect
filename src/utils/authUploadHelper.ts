@@ -79,21 +79,11 @@ export async function uploadWithAuthRetry({
         throw uploadError;
       }
       
-      devLog('[Upload] Upload concluído com sucesso');
-      const { data: signedData, error: signError } = await supabase.storage
-        .from(bucketName)
-        .createSignedUrl(fileName, 86400); // 24h
-      
-      if (signError || !signedData?.signedUrl) {
-        console.error('[Upload] Erro ao gerar signed URL:', signError?.message);
-        // Fallback para publicUrl caso signed falhe (buckets públicos)
-        const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(fileName);
-        devLog('[Upload] Fallback para URL pública:', publicUrl);
-        return { publicUrl };
-      }
-      
-      devLog('[Upload] Signed URL obtida com sucesso');
-      return { publicUrl: signedData.signedUrl };
+      // ✅ CRITICAL: Retornar PATH RELATIVO para salvar no banco, NUNCA signed URL
+      // O componente StorageImage/useSignedImageUrl gera signed URLs em tempo de renderização
+      const relativePath = `${bucketName}/${fileName}`;
+      devLog('[Upload] Path relativo salvo:', relativePath);
+      return { publicUrl: relativePath };
       
     } catch (error: any) {
       console.error(`[Upload] Tentativa ${attempt + 1} falhou:`, error.message);
