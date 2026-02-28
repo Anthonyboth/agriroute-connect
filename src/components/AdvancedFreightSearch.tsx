@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouteCorridors } from '@/hooks/useRouteCorridors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +74,7 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
   onSearch,
   userRole
 }) => {
+  const { corridorLabels: routeCorridors } = useRouteCorridors();
   const [isOpen, setIsOpen] = useState(false);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [searchName, setSearchName] = useState('');
@@ -139,17 +141,7 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
     'Prancha'
   ];
 
-  const routeCorridors = [
-    'BR-163 (Cuiabá-Santarém)',
-    'BR-364 (Cuiabá-Porto Velho)',
-    'BR-158 (Barra do Garças-Redenção)',
-    'BR-070 (Brasília-Cuiabá)',
-    'BR-242 (Brasília-Barreiras)',
-    'BR-135 (Brasília-Balsas)',
-    'Ferronorte',
-    'Ferrovia Norte-Sul'
-  ];
-
+  // routeCorridors now comes from useRouteCorridors hook
   const handleFilterChange = (key: keyof AdvancedSearchFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
