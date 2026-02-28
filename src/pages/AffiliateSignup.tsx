@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { routeAfterAuth } from '@/lib/route-after-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,7 +153,9 @@ export default function AffiliateSignup() {
       if (companyDriverError) throw companyDriverError;
 
       toast.success('Cadastro realizado com sucesso! Bem-vindo à ' + companyName);
-      navigate('/dashboard/driver');
+      // ✅ GATE UNIVERSAL: routeAfterAuth força /complete-profile se necessário
+      const destination = await routeAfterAuth(authData.user.id);
+      navigate(destination);
 
     } catch (error) {
       if (error instanceof z.ZodError) {

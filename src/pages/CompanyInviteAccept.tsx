@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BackButton } from '@/components/BackButton';
 import { supabase } from '@/integrations/supabase/client';
+import { routeAfterAuth } from '@/lib/route-after-auth';
 import { toast } from 'sonner';
 import { Truck, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -171,7 +172,9 @@ const CompanyInviteAccept: React.FC = () => {
       if (inviteError) throw inviteError;
 
       toast.success('Cadastro realizado com sucesso! Bem-vindo à transportadora!');
-      navigate('/dashboard/driver');
+      // ✅ GATE UNIVERSAL: routeAfterAuth força /complete-profile se documentos ausentes
+      const destination = await routeAfterAuth(authData.user.id);
+      navigate(destination);
     } catch (error: any) {
       console.error('Erro ao processar cadastro:', error);
       toast.error(error.message || 'Erro ao processar cadastro');

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { routeAfterAuth } from '@/lib/route-after-auth';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle2, XCircle, Building2, User, Mail, Phone, Lock, FileText, MapPin, Truck, Eye, EyeOff } from 'lucide-react';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -178,7 +179,14 @@ export default function DriverInviteSignup() {
         console.error('Erro ao fazer login:', signInError);
         navigate('/auth');
       } else {
-        navigate('/dashboard/driver');
+        // ✅ GATE UNIVERSAL: routeAfterAuth decide destino (complete-profile ou dashboard)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const dest = await routeAfterAuth(user.id);
+          navigate(dest);
+        } else {
+          navigate('/complete-profile');
+        }
       }
     } catch (error: any) {
       console.error('Erro no cadastro:', error);

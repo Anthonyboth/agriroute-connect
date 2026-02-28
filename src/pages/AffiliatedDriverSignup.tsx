@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { routeAfterAuth } from '@/lib/route-after-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -534,10 +535,10 @@ const AffiliatedDriverSignup = () => {
       }
 
       toast.success(`Cadastro enviado! Aguarde aprovação de ${companyData?.company_name || 'sua transportadora'}.`);
-      
-      setTimeout(() => {
-        navigate('/auth');
-      }, 2000);
+
+      // ✅ GATE UNIVERSAL: routeAfterAuth decide destino (complete-profile se docs faltando)
+      const destination = await routeAfterAuth(authData.user!.id);
+      navigate(destination);
 
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
