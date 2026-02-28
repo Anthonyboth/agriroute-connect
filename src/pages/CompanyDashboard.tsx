@@ -520,12 +520,22 @@ const CompanyDashboard = () => {
     }
   };
 
+  // ✅ FIX: Use refs for callbacks to prevent infinite re-subscription loop (React #185)
+  const refetchActiveFreightsRef = useRef(refetchActiveFreights);
+  refetchActiveFreightsRef.current = refetchActiveFreights;
+  const fetchActiveServicesRef = useRef(fetchActiveServices);
+  fetchActiveServicesRef.current = fetchActiveServices;
+  
+  // Stabilize driver IDs as a string to avoid ref changes triggering re-subscriptions
+  const affiliatedDriverIdsKey = React.useMemo(
+    () => (drivers || []).map(d => d?.driver_profile_id).filter(Boolean).sort().join(','),
+    [drivers]
+  );
+
   React.useEffect(() => {
     if (!company?.id) return;
 
-    const affiliatedDriverIds = (drivers || [])
-      .map(d => d?.driver_profile_id)
-      .filter((id): id is string => Boolean(id));
+    const driverIds = affiliatedDriverIdsKey ? affiliatedDriverIdsKey.split(',') : [];
     
     const channel = supabase
       .channel('company-active-freights')
@@ -537,7 +547,7 @@ const CompanyDashboard = () => {
           table: 'freight_assignments',
           filter: `company_id=eq.${company.id}`
         },
-        () => refetchActiveFreights()
+        () => refetchActiveFreightsRef.current()
       )
       .on(
         'postgres_changes',
@@ -547,12 +557,12 @@ const CompanyDashboard = () => {
           table: 'freights',
           filter: `company_id=eq.${company.id}`
         },
-        () => refetchActiveFreights()
+        () => refetchActiveFreightsRef.current()
       )
       .subscribe();
 
-    if (affiliatedDriverIds.length > 0) {
-      affiliatedDriverIds.forEach(driverId => {
+    if (driverIds.length > 0) {
+      driverIds.forEach(driverId => {
         channel.on(
           'postgres_changes',
           {
@@ -561,9 +571,8 @@ const CompanyDashboard = () => {
             table: 'freight_assignments',
             filter: `driver_id=eq.${driverId}`
           },
-          () => refetchActiveFreights()
+          () => refetchActiveFreightsRef.current()
         );
-        // ✅ NOVO: Realtime para serviços urbanos dos motoristas afiliados
         channel.on(
           'postgres_changes',
           {
@@ -572,7 +581,7 @@ const CompanyDashboard = () => {
             table: 'service_requests',
             filter: `provider_id=eq.${driverId}`
           },
-          () => fetchActiveServices()
+          () => fetchActiveServicesRef.current()
         );
       });
     }
@@ -580,7 +589,7 @@ const CompanyDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [company?.id, affiliatedDriverIds, refetchActiveFreights, fetchActiveServices]);
+  }, [company?.id, affiliatedDriverIdsKey]);
 
   useEffect(() => {
     const handleNavigate = (e: CustomEvent) => {
