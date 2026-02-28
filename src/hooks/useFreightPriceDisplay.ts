@@ -118,9 +118,11 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
         primarySuffix: '/km',
         primaryLabel: `${formatBRL(effectiveUnitRate, true)}/km`,
         secondaryLabel: distKm > 0
-          ? `Total: ${formatBRL(totalCalc, true)} (${Math.round(distKm)} km)`
+          ? hasMultipleTrucks
+            ? `Total: ${formatBRL(totalCalc, true)} · ${formatBRL(freight.price / requiredTrucks, true)}/carreta (${requiredTrucks})`
+            : `Total: ${formatBRL(totalCalc, true)} (${Math.round(distKm)} km)`
           : hasMultipleTrucks
-            ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta`
+            ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta (${requiredTrucks})`
             : null,
         unitRateLabel: 'R$/km',
         unitRateValue: effectiveUnitRate,
@@ -148,7 +150,7 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
         primarySuffix: '/ton',
         primaryLabel: `${formatBRL(effectiveUnitRate, true)}/ton`,
         secondaryLabel: hasMultipleTrucks
-          ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta`
+          ? `Total: ${formatBRL(totalCalc, true)} · ${formatBRL(freight.price / requiredTrucks, true)}/carreta (${requiredTrucks})`
           : weightTons > 0
             ? `Total: ${formatBRL(totalCalc, true)} (${weightTons.toFixed(1)} ton)`
             : null,

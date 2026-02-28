@@ -206,24 +206,11 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
             <DriverVehiclePreview driverId={primaryDriverId} freightId={freight.id} />
           )}
 
-          {/* ✅ Valor do Frete - Exibe valor unitário conforme tipo de precificação */}
+          {/* ✅ Valor do Frete - SEMPRE usa pipeline centralizado de preço */}
           <div className="pt-2 border-t">
             {(() => {
-              const isDriver = userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO';
-              const driverAgreedPrice = assignedDrivers.find(a => a.driver_id === userProfileId)?.agreed_price;
+              // ✅ SEMPRE usar o pipeline centralizado — NUNCA exibir agreed_price bruto como /carreta
               const pd = getFreightPriceDisplay(freight);
-
-              // If driver has an agreed price, show that
-              if (isDriver && driverAgreedPrice && driverAgreedPrice > 0) {
-                return (
-                  <div className="text-2xl font-bold text-primary">
-                    {formatBRL(driverAgreedPrice)}
-                    {isMultiTruck && (
-                      <span className="text-xs font-normal text-muted-foreground ml-1">/carreta</span>
-                    )}
-                  </div>
-                );
-              }
 
               return (
                 <>

@@ -56,6 +56,34 @@ describe('getFreightPriceDisplay', () => {
       expect(result.primaryValue).toBe(80);
       expect(result.unitRateLabel).toBe('R$/ton');
     });
+
+    /**
+     * CONTRACT TEST: PER_TON multi-truck
+     * Frete: 500t, R$80/ton, 12 carretas
+     * Primary: R$ 80,00/ton (NUNCA R$ 40.000,00/carreta)
+     * Secondary: Total + per-carreta breakdown
+     */
+    it('PER_TON 500t R$80/ton 12 trucks: shows R$80/ton primary, NEVER R$40.000/carreta', () => {
+      const result = getFreightPriceDisplay({
+        price: 40000,
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
+        weight: 500000, // 500 tons
+        required_trucks: 12,
+        distance_km: 130,
+      });
+      // Primary MUST be unit rate
+      expect(result.primarySuffix).toBe('/ton');
+      expect(result.primaryValue).toBe(80);
+      expect(result.pricingType).toBe('PER_TON');
+      // Secondary MUST include total AND per-carreta
+      expect(result.secondaryLabel).toContain('Total:');
+      expect(result.secondaryLabel).toContain('/carreta');
+      // NEVER show total as primary with /carreta suffix
+      expect(result.primarySuffix).not.toBe('/carreta');
+      expect(result.primaryValue).not.toBe(40000);
+      expect(result.primaryValue).not.toBe(40000 / 12);
+    });
   });
 
   describe('PER_KM', () => {
