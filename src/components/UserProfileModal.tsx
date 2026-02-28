@@ -255,8 +255,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         throw new Error('Selecione um arquivo de imagem válido.');
       }
 
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Imagem muito grande. O limite é 5MB.');
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Imagem muito grande. O limite é 10MB.');
       }
 
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
