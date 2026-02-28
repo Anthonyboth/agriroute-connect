@@ -15,6 +15,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
+import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useFreightHistory, FreightHistoryItem, FreightAssignmentHistoryItem } from '@/hooks/useFreightHistory';
 import { getFreightStatusLabel } from '@/lib/freight-status';
@@ -224,14 +225,25 @@ const FreightHistoryCard: React.FC<{
             </CardDescription>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-primary">
-              {formatBRL(isProducer ? item.price_total : item.price_per_truck)}
-            </p>
-            {isProducer && item.required_trucks > 1 && (
-              <p className="text-xs text-muted-foreground">
-                {formatBRL(item.price_per_truck)}/carreta
-              </p>
-            )}
+            {(() => {
+              const snapshot = item.trip_snapshot || {};
+              const pd = getFreightPriceDisplay({
+                price: item.price_total || 0,
+                pricing_type: snapshot.pricing_type,
+                price_per_km: snapshot.price_per_km,
+                required_trucks: item.required_trucks,
+                distance_km: item.distance_km,
+                weight: item.weight,
+              });
+              return (
+                <>
+                  <p className="text-lg font-bold text-primary">{pd.primaryLabel}</p>
+                  {pd.secondaryLabel && (
+                    <p className="text-xs text-muted-foreground">{pd.secondaryLabel}</p>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </CardHeader>

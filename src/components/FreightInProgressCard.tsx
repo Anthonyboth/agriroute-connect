@@ -269,58 +269,25 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
     }
   };
 
-  // === Price display logic ===
+  // === Price display logic — ALWAYS uses centralized pipeline ===
   const renderPrice = () => {
-    if (priceDisplayMode === 'PER_TRUCK') {
-      const unitPrice = typeof freight.price === 'number' && Number.isFinite(freight.price) ? freight.price : 0;
-      const totalFromUnit = unitPrice * Math.max(originalRequiredTrucks || 1, 1);
+    if (!priceDisplay) {
+      return <p className="font-bold text-xl text-primary">—</p>;
+    }
 
-      if (preferTotalAsPrimary && originalRequiredTrucks > 1) {
-        return (
-          <div>
-            <p className="font-bold text-xl text-primary">{formatBRL(totalFromUnit, true)}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {formatBRL(unitPrice, true)}<span className="font-semibold">/carreta</span>
-              <span className="ml-1">({originalRequiredTrucks} carretas)</span>
-            </p>
-          </div>
-        );
-      }
-      return (
+    // ✅ ALWAYS use priceDisplay from useFreightPriceDisplay — NEVER manual suffix
+    return (
+      <div>
         <p className="font-bold text-xl text-primary">
-          {formatBRL(unitPrice, true)}
-          {originalRequiredTrucks > 1 && <span className="text-xs font-semibold text-muted-foreground">/carreta</span>}
+          {priceDisplay.primaryLabel}
         </p>
-      );
-    }
-
-    const priceInfo = formatPricePerTruck(freight.price, freight.required_trucks, true);
-    if (priceInfo.hasMultipleTrucks) {
-      if (preferTotalAsPrimary) {
-        return (
-          <div>
-            <p className="font-bold text-xl text-primary">{priceInfo.totalPrice}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {priceInfo.pricePerTruck}<span className="font-semibold">/carreta</span>
-              <span className="ml-1">({priceInfo.trucksCount} carretas)</span>
-            </p>
-          </div>
-        );
-      }
-      return (
-        <div>
-          <p className="font-bold text-xl text-primary">
-            {priceInfo.pricePerTruck}<span className="text-xs font-semibold text-muted-foreground">/carreta</span>
+        {priceDisplay.secondaryLabel && (
+          <p className="text-[10px] text-muted-foreground">
+            {priceDisplay.secondaryLabel}
           </p>
-          {canShowTotalFreightValue && (
-            <p className="text-[10px] text-muted-foreground">
-              Total ({priceInfo.trucksCount} carretas): {priceInfo.totalPrice}
-            </p>
-          )}
-        </div>
-      );
-    }
-    return <p className="font-bold text-xl text-primary">{formatBRL(freight.price, true)}</p>;
+        )}
+      </div>
+    );
   };
 
   return (

@@ -14,6 +14,7 @@ import { formatTons, formatKm, formatBRL, formatDate, formatCityState } from '@/
 import { LABELS } from '@/lib/labels';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
+import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -170,11 +171,20 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
               <span className="text-xs font-semibold text-muted-foreground ml-1">{visiblePrice.suffix}</span>
             )}
           </p>
-          {assignment?.pricing_type === 'PER_KM' && pricePerKm !== null && (
-            <p className="text-xs text-muted-foreground">
-              {formatBRL(pricePerKm)}/km
-            </p>
-          )}
+          {/* ✅ Show unit rate from centralized pipeline */}
+          {(() => {
+            const pd = getFreightPriceDisplay({
+              price: freight?.price || 0,
+              pricing_type: freight?.pricing_type || assignment?.pricing_type,
+              price_per_km: freight?.price_per_km || assignment?.price_per_km,
+              required_trucks: requiredTrucks,
+              distance_km: distanceKm ?? undefined,
+              weight: freight?.weight,
+            });
+            return pd.isUnitPricing && pd.secondaryLabel ? (
+              <p className="text-xs text-muted-foreground">{pd.secondaryLabel}</p>
+            ) : null;
+          })()}
         </div>
 
         {/* Validação ANTT */}

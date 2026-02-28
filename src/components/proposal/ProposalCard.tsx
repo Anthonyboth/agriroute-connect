@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
+import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 import { SafeStatusBadge } from '@/components/security';
 
 interface Proposal {
@@ -201,19 +202,21 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             </Badge>
           </div>
           
-          {/* Valor original do frete - exibe valor unitário preenchido pelo usuário */}
+          {/* Valor original do frete — usa pipeline centralizado */}
           <div className="flex items-center justify-between text-sm mb-1">
             <span className="text-muted-foreground">Valor original:</span>
             <span className="text-muted-foreground">
-              {freight.pricing_type === 'PER_KM' && freight.price_per_km
-                ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
-                : freight.pricing_type === 'PER_TON' && freight.price_per_km
-                  ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
-                  : <>
-                      {formatBRL(freightPricePerTruck, true)}
-                      {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
-                    </>
-              }
+              {(() => {
+                const pd = getFreightPriceDisplay({
+                  price: freight.price || 0,
+                  pricing_type: freight.pricing_type,
+                  price_per_km: freight.price_per_km,
+                  required_trucks: freight.required_trucks,
+                  distance_km: freight.distance_km,
+                  weight: freight.weight,
+                });
+                return pd.primaryLabel;
+              })()}
             </span>
           </div>
           
