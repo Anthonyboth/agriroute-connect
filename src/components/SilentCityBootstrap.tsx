@@ -24,7 +24,7 @@ export const SilentCityBootstrap = () => {
           .select('id', { count: 'exact', head: true });
 
         if (error) {
-          console.error('[SilentCityBootstrap] Erro ao verificar cities:', error);
+          console.warn('[SilentCityBootstrap] Erro ao verificar cities:', error);
           return;
         }
 
@@ -39,7 +39,7 @@ export const SilentCityBootstrap = () => {
             body: { state: 'ALL' }
           }).then(({ data, error }) => {
             if (error) {
-              console.error('[SilentCityBootstrap] Erro na importação:', error);
+              console.warn('[SilentCityBootstrap] Erro na importação:', error);
             } else {
               console.log('[SilentCityBootstrap] Importação concluída:', data);
             }
@@ -49,7 +49,7 @@ export const SilentCityBootstrap = () => {
         // Marcar verificação
         localStorage.setItem('cities_bootstrap_check', now.toString());
       } catch (error) {
-        console.error('[SilentCityBootstrap] Erro fatal:', error);
+        console.warn('[SilentCityBootstrap] Erro fatal:', error);
       }
     };
 
