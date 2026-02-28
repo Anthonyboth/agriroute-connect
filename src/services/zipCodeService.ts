@@ -243,7 +243,7 @@ export class ZipCodeService {
         .from('cities')
         .select('id')
         .ilike('name', cityName)
-        .ilike('state', state)
+        .eq('state', state.toUpperCase().trim())
         .limit(1)
         .maybeSingle();
       

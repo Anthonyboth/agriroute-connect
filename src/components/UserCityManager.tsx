@@ -380,13 +380,41 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
               <UnifiedLocationInput
                 label="Cidade"
                 value={selectedCity ? `${selectedCity.city}, ${selectedCity.state}` : ''}
-                onChange={(value, locationData) => {
+                onChange={async (value, locationData) => {
                   if (locationData && locationData.city && locationData.state) {
-                    setSelectedCity({
-                      id: locationData.cityId,
-                      city: locationData.city,
-                      state: locationData.state
-                    });
+                    let cityId = locationData.cityId;
+                    
+                    // Se cityId não veio (ex: busca por CEP), resolver da tabela cities
+                    if (!cityId) {
+                      try {
+                        const { data } = await supabase
+                          .from('cities')
+                          .select('id')
+                          .ilike('name', locationData.city)
+                          .eq('state', locationData.state.toUpperCase())
+                          .limit(1)
+                          .maybeSingle();
+                        cityId = data?.id;
+                      } catch (err) {
+                        console.error('[UserCityManager] Erro ao resolver cityId:', err);
+                      }
+                    }
+                    
+                    if (cityId) {
+                      setSelectedCity({
+                        id: cityId,
+                        city: locationData.city,
+                        state: locationData.state
+                      });
+                    } else {
+                      // Cidade não existe no banco — informar usuário
+                      setSelectedCity({
+                        id: undefined,
+                        city: locationData.city,
+                        state: locationData.state
+                      });
+                      toast.error(`Cidade "${locationData.city}, ${locationData.state}" não encontrada no cadastro. Tente digitar o nome da cidade.`);
+                    }
                   } else {
                     setSelectedCity(null);
                   }
