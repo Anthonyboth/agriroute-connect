@@ -196,6 +196,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           accepted_trucks: acceptedTrucks,
           created_at: String((freight as any).created_at || ""),
           producer_id: (freight as any).producer_id || null,
+          pricing_type: (freight as any).pricing_type || undefined,
+          price_per_km: (freight as any).price_per_km != null ? Number((freight as any).price_per_km) : undefined,
         });
       }
 
