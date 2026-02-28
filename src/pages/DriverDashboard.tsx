@@ -2609,7 +2609,6 @@ const DriverDashboard = () => {
               <DriverCitiesTab
                 onCitiesUpdate={() => {
                   fetchAvailableFreights();
-                  toast.success('Configuração de cidades atualizada!');
                 }}
               />
             )}
