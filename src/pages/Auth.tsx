@@ -112,19 +112,15 @@ const Auth = () => {
       }
       setRole(effectiveRole);
       
-      // If role is provided and we're in signup mode, skip to appropriate step
+      // If role is provided and we're in signup mode, show role-selection with card pre-selected
       if (mode === 'signup') {
-        if (effectiveRole === 'MOTORISTA' || effectiveRole === 'TRANSPORTADORA') {
-          setDriverType(effectiveRole);
-          setSignupStep('form');
-        } else if (effectiveRole === 'MOTORISTA_AFILIADO') {
+        if (effectiveRole === 'MOTORISTA_AFILIADO') {
           // Redirect to affiliate signup page
           window.location.href = '/cadastro-motorista-afiliado';
           return;
-        } else {
-          // PRODUTOR, PRESTADOR_SERVICOS - go directly to form
-          setSignupStep('form');
         }
+        // Stay on role-selection step with the card pre-highlighted
+        setSignupStep('role-selection');
       }
     }
   }, [searchParams]);
