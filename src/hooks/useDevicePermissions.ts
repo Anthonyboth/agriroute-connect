@@ -3,6 +3,10 @@ import { toast } from 'sonner';
 import { getDeviceId } from '@/utils/deviceDetection';
 import { syncDevicePermissions } from '@/services/deviceService';
 
+// ✅ Global debounce para evitar múltiplos syncs simultâneos de instâncias diferentes
+let globalSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let globalLastSyncKey = '';
+
 export type PermissionType = 'location' | 'camera' | 'microphone' | 'notifications' | 'storage';
 
 export type PermissionStatus = 'granted' | 'denied' | 'prompt' | 'unsupported';
@@ -146,19 +150,25 @@ export const useDevicePermissions = () => {
 
       setPermissions(newPermissions);
       
-      // ✅ CRITICAL FIX: Comparação rasa para evitar sync redundante
+      // ✅ CRITICAL FIX: Comparação rasa + global debounce para evitar sync redundante
       const syncKey = `${location}:${notifications}:${storage}`;
-      if (syncKey === lastSyncedRef.current) {
+      if (syncKey === lastSyncedRef.current && syncKey === globalLastSyncKey) {
         return; // Nada mudou, não sincronizar
       }
       lastSyncedRef.current = syncKey;
 
-      const deviceId = getDeviceId();
-      await syncDevicePermissions(deviceId, {
-        location: location === 'granted',
-        push: notifications === 'granted',
-        storage: storage === 'granted'
-      });
+      // ✅ Global debounce: múltiplas instâncias do hook coalescem em 1 sync
+      if (globalSyncTimer) clearTimeout(globalSyncTimer);
+      globalSyncTimer = setTimeout(async () => {
+        if (syncKey === globalLastSyncKey) return; // Já sincronizado
+        globalLastSyncKey = syncKey;
+        const deviceId = getDeviceId();
+        await syncDevicePermissions(deviceId, {
+          location: location === 'granted',
+          push: notifications === 'granted',
+          storage: storage === 'granted'
+        });
+      }, 500);
     } catch (error) {
       console.error('Erro ao verificar permissões:', error);
     } finally {
