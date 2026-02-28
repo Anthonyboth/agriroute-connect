@@ -517,8 +517,8 @@ export function CreateFreightWizard({
         service_type: serviceType,
         weight: totalWeightKg,
         origin_address: buildAddressString(formData.origin_city, formData.origin_state, formData.origin_neighborhood, formData.origin_street, formData.origin_number, formData.origin_complement),
-        origin_city: formData.origin_city,
-        origin_state: formData.origin_state,
+        origin_city: (formData.origin_city || '').trim(),
+        origin_state: (formData.origin_state || '').trim().toUpperCase().substring(0, 2),
         origin_city_id: originCityId,
         origin_lat: formData.origin_lat,
         origin_lng: formData.origin_lng,
@@ -527,8 +527,8 @@ export function CreateFreightWizard({
         origin_number: formData.origin_number || null,
         origin_complement: formData.origin_complement || null,
         destination_address: buildAddressString(formData.destination_city, formData.destination_state, formData.destination_neighborhood, formData.destination_street, formData.destination_number, formData.destination_complement),
-        destination_city: formData.destination_city,
-        destination_state: formData.destination_state,
+        destination_city: (formData.destination_city || '').trim(),
+        destination_state: (formData.destination_state || '').trim().toUpperCase().substring(0, 2),
         destination_city_id: destinationCityId,
         destination_lat: formData.destination_lat,
         destination_lng: formData.destination_lng,
@@ -759,7 +759,16 @@ export function CreateFreightWizard({
       } else if (errorCode === '23514' || errorMessage.includes('violates check constraint')) {
         // CHECK constraint violations - mapear para campo específico
         const constraintMsg = errorMessage + ' ' + errorDetails;
-        if (constraintMsg.includes('weight')) {
+        if (constraintMsg.includes('cities_state_uf_check') || constraintMsg.includes('state')) {
+          // Auto-fix: normalizar estado e tentar novamente
+          console.warn('[FreightWizard] State UF check falhou - normalizando e avisando usuário');
+          showFormError({
+            field: "Estado (UF)",
+            problem: "O estado da cidade de origem ou destino está em formato inválido.",
+            solution: "Volte à etapa 1, apague a cidade e selecione novamente da lista.",
+          });
+          setCurrentStep(1);
+        } else if (constraintMsg.includes('weight')) {
           showFormError({
             field: "Peso da Carga",
             problem: "Peso inválido (mínimo 0.1 tonelada / 100kg).",
