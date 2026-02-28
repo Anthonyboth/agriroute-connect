@@ -5906,7 +5906,7 @@ export type Database = {
           pickup_observations: string | null
           price: number
           price_per_km: number | null
-          pricing_type: string | null
+          pricing_type: string
           problem_description: string | null
           producer_id: string | null
           prospect_user_id: string | null
@@ -6027,7 +6027,7 @@ export type Database = {
           pickup_observations?: string | null
           price: number
           price_per_km?: number | null
-          pricing_type?: string | null
+          pricing_type?: string
           problem_description?: string | null
           producer_id?: string | null
           prospect_user_id?: string | null
@@ -6148,7 +6148,7 @@ export type Database = {
           pickup_observations?: string | null
           price?: number
           price_per_km?: number | null
-          pricing_type?: string | null
+          pricing_type?: string
           problem_description?: string | null
           producer_id?: string | null
           prospect_user_id?: string | null
@@ -15006,7 +15006,7 @@ export type Database = {
           pickup_observations: string | null
           price: number
           price_per_km: number | null
-          pricing_type: string | null
+          pricing_type: string
           problem_description: string | null
           producer_id: string | null
           prospect_user_id: string | null
@@ -15136,7 +15136,7 @@ export type Database = {
           pickup_observations: string | null
           price: number
           price_per_km: number | null
-          pricing_type: string | null
+          pricing_type: string
           problem_description: string | null
           producer_id: string | null
           prospect_user_id: string | null
