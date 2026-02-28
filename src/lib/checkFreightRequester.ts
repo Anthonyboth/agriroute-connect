@@ -10,15 +10,21 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+/** Allowed requester types from the edge function */
+export type RequesterTypeEN = "REGISTERED" | "GUEST";
+
+/** Allowed producer statuses */
+export type ProducerStatusEN = "APPROVED" | "PENDING" | "REJECTED" | null;
+
 /** Canonical response shape from check-freight-requester edge function */
 export interface CheckRequesterResponse {
-  success: boolean;
+  success: true;
   requester: {
-    type: string;
+    type: RequesterTypeEN;
     has_registration: boolean;
     producer_id: string | null;
     producer_name: string | null;
-    producer_status: string | null;
+    producer_status: ProducerStatusEN;
   };
 }
 
