@@ -3,6 +3,7 @@ import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useNavigate } from 'react-router-dom';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useAuth } from '@/hooks/useAuth';
+import { resolvePostAuthRoute } from '@/lib/route-after-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,18 +60,17 @@ const TransportCompanyRegistration: React.FC = () => {
       
       if (data) {
         setHasExistingCompany(true);
-        // Já existe transportadora - atualizar active_mode e redirecionar
-        await supabase
-          .from('profiles')
-          .update({ 
-            role: 'TRANSPORTADORA',
-            active_mode: 'TRANSPORTADORA' 
-          })
-          .eq('id', profile.id);
-        
+        // Já existe transportadora — usar gate universal
         localStorage.setItem('active_mode', 'TRANSPORTADORA');
         toast.info('Redirecionando para o painel da transportadora...');
-        navigate('/dashboard/company', { replace: true });
+        const dest = await resolvePostAuthRoute({
+          id: profile.id,
+          role: 'TRANSPORTADORA',
+          status: profile.status || 'PENDING',
+          selfie_url: profile.selfie_url || null,
+          document_photo_url: profile.document_photo_url || null,
+        });
+        navigate(dest, { replace: true });
       }
     };
     
@@ -129,9 +129,18 @@ const TransportCompanyRegistration: React.FC = () => {
 
   useEffect(() => {
     if (isTransportCompany || hasExistingCompany) {
-      navigate('/dashboard/company', { replace: true });
+      // ✅ GATE: usa resolvePostAuthRoute em vez de hardcode
+      if (profile) {
+        resolvePostAuthRoute({
+          id: profile.id,
+          role: 'TRANSPORTADORA',
+          status: profile.status || 'PENDING',
+          selfie_url: profile.selfie_url || null,
+          document_photo_url: profile.document_photo_url || null,
+        }).then(dest => navigate(dest, { replace: true }));
+      }
     }
-  }, [isTransportCompany, hasExistingCompany, navigate]);
+  }, [isTransportCompany, hasExistingCompany, navigate, profile]);
 
   const handleDocumentsComplete = (docs: typeof documents) => {
     setDocuments(docs);
@@ -181,7 +190,15 @@ const TransportCompanyRegistration: React.FC = () => {
 
       localStorage.setItem('active_mode', 'TRANSPORTADORA');
       toast.success('🎉 Transportadora criada e aprovada! Redirecionando...');
-      navigate('/dashboard/company', { replace: true });
+      // ✅ GATE UNIVERSAL
+      const dest = await resolvePostAuthRoute({
+        id: profile.id,
+        role: 'TRANSPORTADORA',
+        status: profile.status || 'PENDING',
+        selfie_url: profile.selfie_url || null,
+        document_photo_url: profile.document_photo_url || null,
+      });
+      navigate(dest, { replace: true });
     } catch (err: any) {
       console.error('Erro ao cadastrar transportadora', err);
       toast.error('Não foi possível concluir o cadastro');
