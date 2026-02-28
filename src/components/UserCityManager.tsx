@@ -46,7 +46,7 @@ const TYPE_OPTIONS = {
 };
 
 export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerProps) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [cities, setCities] = useState<UserCity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -60,13 +60,13 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   const [radius, setRadius] = useState(50);
 
   useEffect(() => {
-    if (profile?.id) {
+    if (user?.id) {
       fetchUserCities();
     }
-  }, [profile?.id]);
+  }, [user?.id]);
 
   const fetchUserCities = async () => {
-    if (!profile?.id) return;
+    if (!user?.id) return;
 
     try {
       setLoading(true);
@@ -84,7 +84,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
             state
           )
         `)
-        .eq('user_id', profile.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -122,14 +122,14 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
       return;
     }
 
-    if (!profile?.id) {
-      toast.error('Perfil não encontrado');
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
       return;
     }
 
     try {
       console.log('[UserCityManager] Adicionando cidade:', {
-        userId: profile.id,
+        userId: user.id,
         cityId: selectedCity.id,
         cityName: selectedCity.city,
         type: selectedType,
@@ -139,7 +139,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
 
 
       const insertData: any = {
-        user_id: profile.id,
+        user_id: user.id,
         city_id: selectedCity.id,
         type: selectedType as UserCity['type'],
         radius_km: radius,
