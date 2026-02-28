@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { resolvePostAuthRoute } from '@/lib/route-after-auth';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { supabase } from '@/integrations/supabase/client';
 import DocumentUpload from '@/components/DocumentUpload';
@@ -473,18 +474,16 @@ const CompleteProfile = () => {
         toast.success('Perfil completado! Você já pode acessar a plataforma.');
       }
       
-      // Redirect to appropriate dashboard based on role
-      if (isDriver) {
-        navigate('/dashboard/driver');
-      } else if (profile.role === 'PRODUTOR') {
-        navigate('/dashboard/producer');
-      } else if ((profile.role as any) === 'PRESTADOR_SERVICOS') {
-        navigate('/dashboard/service-provider');
-      } else if (profile.role === 'TRANSPORTADORA' || isTransportCompany) {
-        navigate('/dashboard/company');
-      } else {
-        navigate('/');
-      }
+      // ✅ GATE UNIVERSAL: resolvePostAuthRoute decide destino
+      // Garante que MOTORISTA não-aprovado vai para /awaiting-approval
+      const destination = await resolvePostAuthRoute({
+        id: profile.id,
+        role: profile.role || 'PRODUTOR',
+        status: profile.status || 'PENDING',
+        selfie_url: documentUrls.selfie || profile.selfie_url || null,
+        document_photo_url: documentUrls.document_photo || profile.document_photo_url || null,
+      });
+      navigate(destination);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Erro ao salvar perfil');
