@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { routeAfterAuth, waitForProfile } from '@/lib/route-after-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -275,9 +276,9 @@ const Auth = () => {
                 if (profileToActivate) {
                   localStorage.setItem('current_profile_id', profileToActivate.id);
                   toast.success('Perfil já existe! Redirecionando...');
-                  
-                  // Redirecionar para complete-profile (TODOS os tipos usam o mesmo fluxo limpo)
-                  navigate('/complete-profile');
+                  // ✅ GATE UNIVERSAL: routeAfterAuth decide destino
+                  const dest = await routeAfterAuth(loginData.user.id);
+                  navigate(dest);
                 }
               } else {
                 // ✅ P0 HOTFIX: Criar novo perfil via RPC (idempotente)
@@ -341,8 +342,9 @@ const Auth = () => {
                     }
                   }
                   
-                  // Redirecionar para complete-profile (TODOS os tipos usam o mesmo fluxo limpo)
-                  navigate('/complete-profile');
+                  // ✅ GATE UNIVERSAL: routeAfterAuth decide destino
+                  const dest2 = await routeAfterAuth(loginData.user.id);
+                  navigate(dest2);
                 } catch (createError) {
                   console.error('[Auth] Erro inesperado ao criar perfil:', createError);
                   toast.error('Erro ao criar novo perfil. Tente novamente.');
@@ -368,15 +370,8 @@ const Auth = () => {
 
       // Se for transportadora, criar registro na tabela transport_companies
       if (driverType === 'TRANSPORTADORA' && data?.user) {
-        // Aguardar criação do perfil (trigger handle_new_user)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Buscar o profile_id
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', data.user.id)
-          .single();
+        // ✅ CORRIGIDO: polling/retry em vez de setTimeout(2000)
+        const profileData = await waitForProfile(data.user.id);
 
         if (profileData) {
           const { error: companyError } = await supabase
@@ -411,11 +406,10 @@ const Auth = () => {
 
       // Verificar se a confirmação por email está desativada
       if (data.session) {
-        // ✅ TODOS os perfis devem completar cadastro (selfie, documentos) antes de acessar o painel.
-        // A aprovação automática (PRODUTOR/TRANSPORTADORA) acontece APÓS o envio dos documentos
-        // no CompleteProfile.tsx, NÃO aqui no signup.
-        toast.info('Conta criada! Complete seu perfil para continuar.');
-        navigate('/complete-profile');
+        // ✅ GATE UNIVERSAL: routeAfterAuth decide se vai para /complete-profile ou dashboard
+        toast.info('Conta criada! Redirecionando...');
+        const destination = await routeAfterAuth(data.user!.id);
+        navigate(destination);
       } else {
         // Email confirmation está ON - precisa confirmar email
         toast.success('Conta criada. Você já pode fazer login.');
@@ -600,15 +594,14 @@ const Auth = () => {
                       setDriverType(null);
                     }}
                     onContinue={() => {
-                      // MOTORISTA vai para driver-type (escolher entre autônomo, afiliado, transportadora)
+                      // ✅ Step 1: Apenas MOTORISTA vai para step 2 (Autônomo vs Afiliado)
+                      // Transportadora, Produtor e Prestador vão direto para o form
                       if (role === 'MOTORISTA') {
                         setSignupStep('driver-type');
                       } else if (role === 'TRANSPORTADORA') {
-                        // Transportadora vai direto para form com driverType setado
                         setDriverType('TRANSPORTADORA');
                         setSignupStep('form');
                       } else {
-                        // PRODUTOR e PRESTADOR_SERVICOS vão direto para form
                         setSignupStep('form');
                       }
                     }}
@@ -618,7 +611,7 @@ const Auth = () => {
                   />
                 )}
 
-                {/* Step 2: Escolha entre Motorista, Motorista Afiliado ou Transportadora */}
+                {/* Step 2: Apenas para MOTORISTA — Autônomo ou Afiliado */}
                 {signupStep === 'driver-type' && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-4">
@@ -635,9 +628,10 @@ const Auth = () => {
                       </Button>
                     </div>
                     
-                    <h3 className="font-semibold text-lg mb-2">Escolha o tipo de cadastro:</h3>
+                    <h3 className="font-semibold text-lg mb-2">Qual tipo de motorista?</h3>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {/* Motorista Autônomo */}
                       <Card 
                         className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 h-full flex flex-col"
                         onClick={() => {
@@ -647,7 +641,7 @@ const Auth = () => {
                       >
                         <CardHeader className="flex-1 flex flex-col items-center text-center">
                           <Truck className="h-12 w-12 text-primary mb-3" />
-                          <CardTitle className="text-xl">Sou Motorista</CardTitle>
+                          <CardTitle className="text-xl">Autônomo</CardTitle>
                           <CardDescription className="text-sm mt-2">
                             Motorista individual com CPF ou CNPJ
                           </CardDescription>
@@ -660,45 +654,23 @@ const Auth = () => {
                         </CardHeader>
                       </Card>
                       
+                      {/* Motorista Afiliado — redireciona para fluxo específico */}
                       <Card 
                         className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 h-full flex flex-col"
                         onClick={() => {
-                          // Redirecionar para página específica de cadastro de afiliado
                           window.location.href = '/cadastro-motorista-afiliado';
                         }}
                       >
                         <CardHeader className="flex-1 flex flex-col items-center text-center">
                           <Users className="h-12 w-12 text-primary mb-3" />
-                          <CardTitle className="text-xl">Sou Motorista Afiliado</CardTitle>
+                          <CardTitle className="text-xl">Afiliado</CardTitle>
                           <CardDescription className="text-sm mt-2">
                             Vinculado a uma transportadora
                           </CardDescription>
                           <div className="mt-auto pt-4">
                             <Badge variant="outline" className="text-xs flex items-center gap-1">
                               <Briefcase className="h-3 w-3" />
-                              Requer CNPJ
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                      
-                      <Card 
-                        className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 h-full flex flex-col"
-                        onClick={() => {
-                          setDriverType('TRANSPORTADORA');
-                          setSignupStep('form');
-                        }}
-                      >
-                        <CardHeader className="flex-1 flex flex-col items-center text-center">
-                          <Building2 className="h-12 w-12 text-primary mb-3" />
-                          <CardTitle className="text-xl">Sou Transportadora</CardTitle>
-                          <CardDescription className="text-sm mt-2">
-                            Empresa com 2 ou mais carretas
-                          </CardDescription>
-                          <div className="mt-auto pt-4">
-                            <Badge variant="outline" className="text-xs flex items-center gap-1">
-                              <Building className="h-3 w-3" />
-                              2+ carretas
+                              Requer CNPJ da empresa
                             </Badge>
                           </div>
                         </CardHeader>
