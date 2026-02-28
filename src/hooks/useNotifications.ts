@@ -9,8 +9,12 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
   const { profile } = useAuth();
 
+  // ✅ FIX: Use profile?.id instead of profile object to prevent
+  // unnecessary re-creations when profile reference changes (React #185)
+  const profileId = profile?.id;
+
   const fetchUnreadCount = useCallback(async () => {
-    if (!profile) return;
+    if (!profileId) return;
 
     setLoading(true);
     try {
@@ -21,7 +25,7 @@ export const useNotifications = () => {
           const { count, error } = await supabase
             .from('notifications')
             .select('*', { count: 'exact', head: true })
-            .eq('user_id', profile.id)
+            .eq('user_id', profileId)
             .eq('read', false);
           
           if (error) throw error;
@@ -48,10 +52,10 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [profile]);
+  }, [profileId]);
 
   useEffect(() => {
-    if (profile) {
+    if (profileId) {
       fetchUnreadCount();
       
       const { cleanup } = subscriptionWithRetry(
@@ -63,7 +67,7 @@ export const useNotifications = () => {
               event: '*',
               schema: 'public',
               table: 'notifications',
-              filter: `user_id=eq.${profile.id}`
+              filter: `user_id=eq.${profileId}`
             },
             () => fetchUnreadCount()
           );
@@ -86,7 +90,7 @@ export const useNotifications = () => {
         clearInterval(pollInterval);
       };
     }
-  }, [profile, fetchUnreadCount]);
+  }, [profileId, fetchUnreadCount]);
 
   const decrementCount = useCallback((amount: number = 1) => {
     setUnreadCount(prev => Math.max(0, prev - amount));
@@ -97,12 +101,12 @@ export const useNotifications = () => {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    if (!profile) return;
+    if (!profileId) return;
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', profile.id)
+        .eq('user_id', profileId)
         .eq('read', false);
       if (error) throw error;
       setUnreadCount(0);
@@ -111,16 +115,16 @@ export const useNotifications = () => {
       console.error('[useNotifications] Erro ao marcar como lidas:', error);
       fetchUnreadCount();
     }
-  }, [profile, fetchUnreadCount]);
+  }, [profileId, fetchUnreadCount]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
-    if (!profile) return;
+    if (!profileId) return;
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
-        .eq('user_id', profile.id);
+        .eq('user_id', profileId);
       if (error) throw error;
       decrementCount(1);
       devLog('[useNotifications] Notificação marcada como lida:', notificationId);
@@ -128,7 +132,7 @@ export const useNotifications = () => {
       console.error('[useNotifications] Erro ao marcar notificação:', error);
       fetchUnreadCount();
     }
-  }, [profile, decrementCount, fetchUnreadCount]);
+  }, [profileId, decrementCount, fetchUnreadCount]);
 
   return {
     unreadCount,
