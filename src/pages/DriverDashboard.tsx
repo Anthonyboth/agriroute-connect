@@ -1990,18 +1990,17 @@ const DriverDashboard = () => {
             return;
           }
 
-          // Verificar se o solicitante tem cadastro completo
-          const { data: checkData, error: checkError } = await (supabase as any).functions.invoke('check-freight-requester', {
-            body: { freight_id: freightId },
-          });
+          // Verificar se o solicitante tem cadastro completo (helper centralizado)
+          const { checkFreightRequesterHasRegistration } = await import('@/lib/checkFreightRequester');
+          const hasRegistration = await checkFreightRequesterHasRegistration(freightId);
 
-          if (checkError) {
-            throw checkError;
-          }
-
-          if (!checkData?.requester?.has_registration) {
+          if (hasRegistration === false) {
             toast.error('O solicitante não possui cadastro. Este frete foi movido para o histórico.');
             return;
+          }
+
+          if (hasRegistration === null) {
+            console.warn('[handleFreightAction] Não foi possível validar solicitante, prosseguindo...');
           }
 
           // ✅ CORREÇÃO: Verificar TODOS os status de assignment (incluindo DELIVERED_PENDING_CONFIRMATION)
