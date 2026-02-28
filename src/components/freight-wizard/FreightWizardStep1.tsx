@@ -1,18 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { GPSOriginButton } from './GPSOriginButton';
 import { UnifiedLocationInput, type LocationData } from '@/components/UnifiedLocationInput';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText, Route, RefreshCw } from 'lucide-react';
+import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText, Route, RefreshCw, FileArchive, Loader2, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouteCorridors } from '@/hooks/useRouteCorridors';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface FreightTemplate {
+  id: string;
+  title: string;
+  payload: any;
+  created_at: string;
+}
+
 interface FreightWizardStep1Props {
   formData: any;
   onInputChange: (field: string, value: any) => void;
   onNext: () => void;
   guestMode?: boolean;
+  userProfileId?: string;
+  onLoadTemplate?: (payload: any) => void;
 }
 
 const formatPhone = (value: string) => {
@@ -42,11 +54,62 @@ export function FreightWizardStep1({
   formData, 
   onInputChange, 
   onNext,
-  guestMode 
+  guestMode,
+  userProfileId,
+  onLoadTemplate
 }: FreightWizardStep1Props) {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [selectedCorridor, setSelectedCorridor] = useState<string>('');
+  const [templates, setTemplates] = useState<FreightTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const { corridors, findById } = useRouteCorridors();
+
+  useEffect(() => {
+    if (userProfileId && !guestMode) {
+      fetchTemplates();
+    }
+  }, [userProfileId, guestMode]);
+
+  const fetchTemplates = async () => {
+    if (!userProfileId) return;
+    setLoadingTemplates(true);
+    try {
+      const { data, error } = await supabase
+        .from('freight_templates')
+        .select('id, title, payload, created_at')
+        .eq('producer_id', userProfileId)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      setTemplates((data as FreightTemplate[]) || []);
+    } catch (err) {
+      console.warn('[FreightWizard] Erro ao buscar modelos:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (e: React.MouseEvent, templateId: string) => {
+    e.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from('freight_templates')
+        .delete()
+        .eq('id', templateId);
+      if (error) throw error;
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      toast.success('Modelo excluído');
+    } catch {
+      toast.error('Erro ao excluir modelo');
+    }
+  };
+
+  const handleSelectTemplate = (template: FreightTemplate) => {
+    if (onLoadTemplate && template.payload) {
+      onLoadTemplate(template.payload);
+      toast.success(`Modelo "${template.title}" carregado! Revise e confirme.`, { icon: '📋' });
+    }
+  };
   // Validação básica: cidades obrigatórias + campos guest se aplicável
   const baseCanProceed = formData.origin_city && formData.origin_state && 
                      formData.destination_city && formData.destination_state;
@@ -168,7 +231,59 @@ export function FreightWizardStep1({
         </Select>
       </div>
 
-      {/* GPS Error Alert */}
+      {/* Modelos Salvos */}
+      {!guestMode && templates.length > 0 && (
+        <div className="p-4 border rounded-lg bg-accent/30 border-accent/50">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between text-left"
+            onClick={() => setShowTemplates(!showTemplates)}
+          >
+            <Label className="text-sm font-semibold flex items-center gap-2 cursor-pointer">
+              <FileArchive className="h-4 w-4 text-primary" />
+              Modelos Salvos ({templates.length})
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {showTemplates ? '▲ Fechar' : '▼ Abrir'}
+            </span>
+          </button>
+          {showTemplates && (
+            <div className="mt-3 space-y-2 max-h-[200px] overflow-y-auto">
+              {loadingTemplates ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                templates.map(template => (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between p-3 rounded-md bg-background border cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => handleSelectTemplate(template)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{template.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {template.payload?.origin_city && template.payload?.destination_city
+                          ? `${template.payload.origin_city} → ${template.payload.destination_city}`
+                          : 'Clique para carregar'}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => handleDeleteTemplate(e, template.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {gpsError && (
         <Alert variant="destructive" className="animate-in fade-in">
           <AlertCircle className="h-4 w-4" />
