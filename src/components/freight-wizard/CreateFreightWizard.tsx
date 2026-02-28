@@ -181,6 +181,31 @@ export function CreateFreightWizard({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleLoadTemplate = async (payload: any) => {
+    logWizardDebug('TEMPLATE_LOADED', { keys: Object.keys(payload) });
+    setFormData({ ...formDataInitial, ...payload });
+    // Calculate distance and ANTT price, then jump to step 5
+    try {
+      const origin = `${payload.origin_city}, ${payload.origin_state}`;
+      const destination = `${payload.destination_city}, ${payload.destination_state}`;
+      const { data } = await supabase.functions.invoke('calculate-route', {
+        body: { 
+          origin, destination,
+          origin_coords: payload.origin_lat && payload.origin_lng ? { lat: payload.origin_lat, lng: payload.origin_lng } : undefined,
+          destination_coords: payload.destination_lat && payload.destination_lng ? { lat: payload.destination_lat, lng: payload.destination_lng } : undefined,
+        }
+      });
+      if (data?.distance_km) {
+        setCalculatedDistance(data.distance_km);
+        await calculateAnttPrice(data.distance_km);
+      }
+    } catch (err) {
+      console.warn('[FreightWizard] Erro ao calcular rota do modelo:', err);
+    }
+    setCurrentStep(5);
+    setMaxStepReached(5);
+  };
+
   const handleModalClose = () => {
     logWizardDebug('MODAL_CLOSE_TRIGGERED', { currentStep, hasExternalOnClose: !!externalOnClose });
     if (externalOnClose) {
@@ -892,6 +917,8 @@ export function CreateFreightWizard({
             onInputChange={handleInputChange}
             onNext={handleStep1Next}
             guestMode={guestMode}
+            userProfileId={userProfile?.id}
+            onLoadTemplate={handleLoadTemplate}
           />
         )}
         {currentStep === 2 && (
