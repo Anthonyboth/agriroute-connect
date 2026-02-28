@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { GPSOriginButton } from './GPSOriginButton';
 import { UnifiedLocationInput, type LocationData } from '@/components/UnifiedLocationInput';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText, Route } from 'lucide-react';
+import { ArrowRight, MapPin, AlertCircle, User, Phone, FileText, Route, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouteCorridors } from '@/hooks/useRouteCorridors';
@@ -101,7 +101,20 @@ export function FreightWizardStep1({
   };
 
   const handleCorridorSelect = (corridorId: string) => {
+    // Se o mesmo corredor foi selecionado, forçar re-preenchimento limpando antes
+    if (corridorId === selectedCorridor) {
+      setSelectedCorridor('');
+      setTimeout(() => {
+        setSelectedCorridor(corridorId);
+        applyCorridorData(corridorId);
+      }, 0);
+      return;
+    }
     setSelectedCorridor(corridorId);
+    applyCorridorData(corridorId);
+  };
+
+  const applyCorridorData = (corridorId: string) => {
     const corridor = findById(corridorId);
     if (!corridor) return;
     
@@ -208,7 +221,7 @@ export function FreightWizardStep1({
               }
             }}
           >
-            <MapPin className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Mesma cidade</span>
           </Button>
         </div>

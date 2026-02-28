@@ -50,6 +50,7 @@ import { formatSolicitadoHa } from "@/lib/formatters";
 import { runFeedIntegrityGuard } from '@/security/feedIntegrityGuard';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
 import { MarketplaceFilters, ExpiryBadge, DEFAULT_FILTERS, type MarketplaceFiltersState } from '@/components/MarketplaceFilters';
+import { useRouteCorridors } from '@/hooks/useRouteCorridors';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -113,6 +114,7 @@ interface SmartFreightMatcherProps {
 
 export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFreightAction, onCountsChange, advancedFilters }) => {
   const { profile, user } = useAuth();
+  const { findById: findCorridorById } = useRouteCorridors();
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights, companyId: permissionCompanyId } = useDriverPermissions();
   const { fetchAvailableMarketplaceItems } = useGuaranteedMarketplaceFeed();
@@ -457,15 +459,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         if (advancedFilters.destination_city) {
           matchesAdvanced = matchesAdvanced && (freight.destination_city || '').toLowerCase().includes(advancedFilters.destination_city.toLowerCase());
         }
-        // Filtro por corredor rodoviário (busca no endereço)
+        // Filtro por corredor rodoviário (match por cidades de origem/destino)
         if (advancedFilters.route_corridor) {
-          const corridor = advancedFilters.route_corridor.toLowerCase();
-          matchesAdvanced = matchesAdvanced && (
-            (freight.origin_address || '').toLowerCase().includes(corridor) ||
-            (freight.destination_address || '').toLowerCase().includes(corridor) ||
-            (freight.origin_state || '').toLowerCase().includes(corridor) ||
-            (freight.destination_state || '').toLowerCase().includes(corridor)
-          );
+          const corridor = findCorridorById(advancedFilters.route_corridor);
+          if (corridor) {
+            const originCity = (freight.origin_city || '').toLowerCase();
+            const destCity = (freight.destination_city || '').toLowerCase();
+            matchesAdvanced = matchesAdvanced && (
+              (originCity === corridor.origin.name.toLowerCase() && destCity === corridor.destination.name.toLowerCase()) ||
+              (originCity === corridor.destination.name.toLowerCase() && destCity === corridor.origin.name.toLowerCase())
+            );
+          }
         }
         // Filtro por distância
         if (advancedFilters.max_distance_km && advancedFilters.max_distance_km < 3000) {

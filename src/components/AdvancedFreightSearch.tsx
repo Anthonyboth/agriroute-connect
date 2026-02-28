@@ -74,7 +74,7 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
   onSearch,
   userRole
 }) => {
-  const { corridorLabels: routeCorridors } = useRouteCorridors();
+  const { corridors, findById: findCorridorById } = useRouteCorridors();
   const [isOpen, setIsOpen] = useState(false);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [searchName, setSearchName] = useState('');
@@ -306,13 +306,25 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Corredor Rodoviário</Label>
-                <Select value={filters.route_corridor} onValueChange={(value) => handleFilterChange('route_corridor', value)}>
+                <Select value={filters.route_corridor} onValueChange={(value) => {
+                  handleFilterChange('route_corridor', value);
+                  // Auto-fill origin/destination from corridor
+                  const corridor = findCorridorById(value);
+                  if (corridor) {
+                    handleFilterChange('origin_city', corridor.origin.name);
+                    handleFilterChange('origin_state', corridor.origin.state);
+                    handleFilterChange('origin_city_id', corridor.origin.cityId);
+                    handleFilterChange('destination_city', corridor.destination.name);
+                    handleFilterChange('destination_state', corridor.destination.state);
+                    handleFilterChange('destination_city_id', corridor.destination.cityId);
+                  }
+                }}>
                   <SelectTrigger className="h-9 text-sm bg-background">
                     <SelectValue placeholder="Selecione uma rota" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover" position="popper" sideOffset={4}>
-                    {routeCorridors.map(corridor => (
-                      <SelectItem key={corridor} value={corridor}>{corridor}</SelectItem>
+                    {corridors.map(corridor => (
+                      <SelectItem key={corridor.id} value={corridor.id}>{corridor.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
