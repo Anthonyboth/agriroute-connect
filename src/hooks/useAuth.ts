@@ -345,10 +345,19 @@ const useAuthInternal = () => {
         setLoading(false);
       }
     } catch (error) {
+      // ✅ Detectar se é timeout (auto-recovery cuida) → warn em vez de error
+      const errMsg = String((error as any)?.message ?? '');
+      const isTimeoutErr = (error as any)?.isTimeout === true || errMsg.includes('Timeout') || errMsg.includes('excedeu');
+      
       // ✅ Throttling de logs: apenas log completo 1x por minuto
       const now = Date.now();
       if (now - lastErrorLogAt.current > ERROR_LOG_THROTTLE_MS) {
-        console.error('[useAuth] Erro ao buscar perfil (completo):', error);
+        if (isTimeoutErr) {
+          // ✅ Timeout → warn (auto-recovery trata, não deve gerar alerta Telegram)
+          console.warn('[useAuth] Timeout ao buscar perfil - auto-recovery ativo:', errMsg);
+        } else {
+          console.error('[useAuth] Erro ao buscar perfil (completo):', error);
+        }
         lastErrorLogAt.current = now;
       } else {
         if (import.meta.env.DEV) {
@@ -359,8 +368,8 @@ const useAuthInternal = () => {
       if (!mountedRef.current) return;
       
       // ✅ Detectar timeout e ativar cooldown PERSISTENTE
-      const errorMessage = String((error as any)?.message ?? '');
-      const isTimeout = (error as any)?.isTimeout === true || errorMessage.includes('Timeout') || errorMessage.includes('excedeu') || errorMessage.includes('demorou');
+      const errorMessage = errMsg;
+      const isTimeout = isTimeoutErr || errorMessage.includes('demorou');
       
       if (isTimeout) {
         lastTimeoutAt.current = Date.now();

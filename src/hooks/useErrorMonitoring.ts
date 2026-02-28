@@ -10,8 +10,21 @@ const MONITORING_ENDPOINTS = [
   'process-telegram-queue'
 ];
 
+// ✅ URLs de desenvolvimento que não devem gerar alertas
+const DEV_SKIP_URLS = [
+  '@vite/client',
+  '__vite_ping',
+  '/__vite',
+  'hot-update',
+  '.hot-update.',
+  'lovable.js'
+];
+
 const isMonitoringUrl = (url: string): boolean => 
   MONITORING_ENDPOINTS.some(endpoint => url.includes(endpoint));
+
+const isDevSkipUrl = (url: string): boolean =>
+  DEV_SKIP_URLS.some(pattern => url.includes(pattern));
 
 /**
  * Hook global para interceptar erros de API do Supabase
@@ -42,6 +55,7 @@ export function useErrorMonitoring() {
             ? args[0].url
             : ((args[0] as any)?.url as string | undefined) || '';
       const isMonitoringRequest = isMonitoringUrl(urlString);
+      const isDevRequest = isDevSkipUrl(urlString);
       
       if (import.meta.env.DEV && !isMonitoringRequest) {
         console.log('🌐 [useErrorMonitoring] Fetch interceptado:', args[0]);
@@ -54,8 +68,8 @@ export function useErrorMonitoring() {
         
         const response = await originalFetch(...args);
         
-        // ✅ Não reportar se flag X-Skip-Error-Monitoring ou se é URL de monitoramento
-        if (skipMonitoring || isMonitoringRequest) {
+        // ✅ Não reportar se flag X-Skip-Error-Monitoring, URL de monitoramento ou dev
+        if (skipMonitoring || isMonitoringRequest || isDevRequest) {
           return response;
         }
         
@@ -121,9 +135,9 @@ export function useErrorMonitoring() {
         
         return response;
       } catch (error) {
-        // ✅ Correção 1: NÃO reportar erros de rede das próprias chamadas de monitoramento
-        if (isMonitoringRequest) {
-          console.debug('[useErrorMonitoring] Erro de rede em chamada de monitoramento - suprimido para evitar loop');
+        // ✅ Correção 1: NÃO reportar erros de rede das próprias chamadas de monitoramento ou dev
+        if (isMonitoringRequest || isDevRequest) {
+          console.debug('[useErrorMonitoring] Erro de rede em chamada interna - suprimido');
           throw error;
         }
 
