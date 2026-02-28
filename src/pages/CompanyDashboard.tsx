@@ -605,9 +605,25 @@ const CompanyDashboard = () => {
   switchProfileRef.current = switchProfile;
 
   // ✅ FIX: Guard against infinite profile-switch loops
+  // NEVER auto-reset this ref — only reset on unmount
   const switchAttemptedRef = useRef(false);
+  // ✅ FIX: Track rapid effect cycles to detect loops
+  const effectCycleCountRef = useRef(0);
+  const effectCycleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Reset cycle counter after 2s of quiet
+    if (effectCycleTimerRef.current) clearTimeout(effectCycleTimerRef.current);
+    effectCycleTimerRef.current = setTimeout(() => { effectCycleCountRef.current = 0; }, 2000);
+    
+    // ✅ CRITICAL: Detect rapid cycling (>5 runs in 2s = probable loop)
+    effectCycleCountRef.current++;
+    if (effectCycleCountRef.current > 5) {
+      console.warn('[CompanyDashboard] ⚠️ Profile switch effect cycling too fast, breaking loop');
+      setIsSwitchingProfile(false);
+      return;
+    }
+
     if (companyLoading) return;
 
     const handleProfileSwitch = async () => {
@@ -625,10 +641,9 @@ const CompanyDashboard = () => {
           await switchProfileRef.current(transportProfile.id);
           return;
         }
-      } else {
-        // Company found — reset the guard for future use
-        switchAttemptedRef.current = false;
       }
+      // ✅ FIX: NEVER reset switchAttemptedRef here — it was causing loops
+      // when company flickered between states. The ref is only reset on unmount.
       setIsSwitchingProfile(false);
     };
 
@@ -636,6 +651,14 @@ const CompanyDashboard = () => {
     // Only re-run when company loading state or identity changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company, companyLoading, profile?.id]);
+
+  // ✅ Reset guard on unmount only
+  useEffect(() => {
+    return () => {
+      switchAttemptedRef.current = false;
+      if (effectCycleTimerRef.current) clearTimeout(effectCycleTimerRef.current);
+    };
+  }, []);
 
   // Loading state
   if (companyLoading) {
