@@ -546,6 +546,7 @@ const Auth = () => {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Digite sua senha"
                     required
                   />
                 </div>
@@ -714,6 +715,7 @@ const Auth = () => {
                         autoComplete="name"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Ex: João da Silva Santos"
                         required
                       />
                     </div>
@@ -728,6 +730,7 @@ const Auth = () => {
                             autoComplete="organization"
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
+                            placeholder="Ex: Transportadora São Paulo Ltda"
                             required
                           />
                         </div>
@@ -738,6 +741,7 @@ const Auth = () => {
                             id="companyFantasyName"
                             value={companyFantasyName}
                             onChange={(e) => setCompanyFantasyName(e.target.value)}
+                            placeholder="Ex: Trans São Paulo"
                           />
                         </div>
                       </>
@@ -752,6 +756,7 @@ const Auth = () => {
                         autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Ex: joao@email.com"
                         required
                       />
                     </div>
@@ -764,6 +769,7 @@ const Auth = () => {
                         autoComplete="new-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
                         required
                         minLength={8}
                       />

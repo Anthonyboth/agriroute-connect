@@ -787,6 +787,7 @@ const CompleteProfile = () => {
                         id="full_name"
                         value={profileData.full_name}
                         onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
+                        placeholder="Ex: João da Silva Santos"
                         required
                       />
                     </div>
@@ -811,6 +812,7 @@ const CompleteProfile = () => {
                         id="cpf_cnpj"
                         value={profileData.cpf_cnpj}
                         onChange={(e) => setProfileData(prev => ({ ...prev, cpf_cnpj: e.target.value }))}
+                        placeholder="Ex: 000.000.000-00 ou 00.000.000/0001-00"
                         required
                       />
                     </div>
@@ -837,6 +839,7 @@ const CompleteProfile = () => {
                         type="tel"
                         value={profileData.phone}
                         onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="Ex: (66) 99999-9999"
                         required
                       />
                     </div>
@@ -844,11 +847,12 @@ const CompleteProfile = () => {
 
                       <div className="space-y-2">
                         <Label htmlFor="contact_phone">Telefone de Contato</Label>
-                        <Input
+                      <Input
                           id="contact_phone"
                           type="tel"
                           value={profileData.contact_phone}
                           onChange={(e) => setProfileData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                          placeholder="Ex: (66) 3531-0000"
                         />
                       </div>
                     </div>
@@ -956,6 +960,7 @@ const CompleteProfile = () => {
                           id="farm_name"
                           value={profileData.farm_name}
                           onChange={(e) => setProfileData(prev => ({ ...prev, farm_name: e.target.value }))}
+                          placeholder="Ex: Fazenda Boa Esperança"
                         />
                       </div>
 
@@ -965,6 +970,7 @@ const CompleteProfile = () => {
                           id="farm_address"
                           value={profileData.farm_address}
                           onChange={(e) => setProfileData(prev => ({ ...prev, farm_address: e.target.value }))}
+                          placeholder="Ex: Rod. MT-130, KM 25, Zona Rural"
                         />
                       </div>
                     </div>
@@ -986,6 +992,7 @@ const CompleteProfile = () => {
                           id="rntrc"
                           value={profileData.rntrc}
                           onChange={(e) => setProfileData(prev => ({ ...prev, rntrc: e.target.value }))}
+                          placeholder="Ex: 00000000"
                           required
                         />
                       </div>
@@ -996,6 +1003,7 @@ const CompleteProfile = () => {
                           id="antt_number"
                           value={profileData.antt_number}
                           onChange={(e) => setProfileData(prev => ({ ...prev, antt_number: e.target.value }))}
+                          placeholder="Ex: MT0012345"
                         />
                       </div>
 
@@ -1005,6 +1013,7 @@ const CompleteProfile = () => {
                           id="cooperative"
                           value={profileData.cooperative}
                           onChange={(e) => setProfileData(prev => ({ ...prev, cooperative: e.target.value }))}
+                          placeholder="Ex: Cooperativa Agrícola do Vale"
                         />
                       </div>
                     </div>

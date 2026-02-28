@@ -222,7 +222,7 @@ export const DriverExpenseManager: React.FC<DriverExpenseManagerProps> = ({ driv
               type="number"
               step="0.01"
               min="0.01"
-              placeholder="0.00"
+              placeholder="Ex: 295.50"
               value={formData.amount || ''}
               onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
               required
