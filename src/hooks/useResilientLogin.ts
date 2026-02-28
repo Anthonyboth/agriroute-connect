@@ -283,7 +283,8 @@ export function useResilientLogin() {
         
         const userMeta = user.user_metadata;
         const fallbackRole = userMeta?.role || userMeta?.active_mode || 'PRODUTOR';
-        const fallbackRoute = getDashboardRoute(fallbackRole);
+        // ⛔ NEVER route to dashboard without security gates — safe fallback only
+        const fallbackRoute = '/complete-profile';
         
         // Notificar erro mas permitir navegação via fallback
         await notifyLoginErrorToTelegram(loginField, `Profile fetch failed: ${profilesError.message}`, steps, {
@@ -382,8 +383,8 @@ export function useResilientLogin() {
           document_photo_url: fullProfile.document_photo_url,
         });
       } else {
-        // Fallback se não conseguir buscar perfil completo
-        targetRoute = getDashboardRoute(targetRole);
+        // ⛔ NEVER route to dashboard without security gates — safe fallback only
+        targetRoute = '/complete-profile';
       }
 
       // ✅ HOSTNAME GATE: Se no subdomínio admin, override para /admin-v2
@@ -458,7 +459,8 @@ export function useResilientLogin() {
         document_photo_url: fullProfile.document_photo_url,
       });
     } else {
-      targetRoute = getDashboardRoute(targetRole);
+      // ⛔ NEVER route to dashboard without security gates — safe fallback only
+      targetRoute = '/complete-profile';
     }
     
     // ✅ HOSTNAME GATE: Se no subdomínio admin, ir para /admin-v2
