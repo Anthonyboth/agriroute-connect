@@ -28,6 +28,24 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
       "react/jsx-key": ["error", { "checkFragmentShorthand": true }],
       "react/no-array-index-key": "error",
+      // 🔒 Anti-regression: block direct access to has_registration outside the helper
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[property.name='has_registration']",
+          message: "Direct access to 'has_registration' is prohibited. Use checkFreightRequesterHasRegistration() from '@/lib/checkFreightRequester' instead.",
+        },
+      ],
+    },
+  },
+  // Allow has_registration access ONLY in the helper and its tests
+  {
+    files: [
+      "src/lib/checkFreightRequester.ts",
+      "src/lib/__tests__/checkFreightRequester.test.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   }
 );
