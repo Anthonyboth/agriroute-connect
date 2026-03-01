@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
-import { formatBRL } from '@/lib/formatters';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import type { ProducerFreight } from './types';
 
 interface ProducerConfirmDeliveryTabProps {
@@ -141,7 +141,7 @@ export const ProducerConfirmDeliveryTab: React.FC<ProducerConfirmDeliveryTabProp
                         Aguardando Confirmação
                       </Badge>
                       <p className="text-lg font-bold text-green-600 whitespace-nowrap">
-                        R$ {formatBRL(freight.price)}
+                        {precoPreenchidoDoFrete(freight.id, freight).primaryText}
                       </p>
                     </div>
                   </div>

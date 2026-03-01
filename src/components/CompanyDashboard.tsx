@@ -350,31 +350,22 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                     driver_id: a.driver_id || '',
                     agreed_price: a.agreed_price || 0,
                     company_id: company?.id || '',
-                    pricing_type: 'FIXED' as const,
-                    price_per_km: 0,
+                    pricing_type: firstAssignment.freight?.pricing_type || 'FIXED',
+                    price_per_km: firstAssignment.freight?.price_per_km || 0,
                     status: a.status || 'ACCEPTED',
                   }));
 
-                  const visiblePrice = calculateVisiblePrice(
-                    'TRANSPORTADORA',
-                    { id: freightId, price: freightPrice, required_trucks: totalRequiredTrucks },
-                    null,
-                    companyAssignments,
-                  );
-
-                  // ✅ Calcular preço unitário para exibição por carreta
-                  const unitPrice = companyTruckCount > 0 ? visiblePrice.displayPrice / companyTruckCount : visiblePrice.displayPrice;
-
-                  // ✅ Mapear: price = unitário, original_required_trucks = carretas DA TRANSPORTADORA
+                  // ✅ PREÇO PREENCHIDO: usar pipeline canônico, NUNCA dividir manualmente
                   const mappedFreight = {
                     ...firstAssignment.freight,
                     producer: firstAssignment.freight?.producer,
                     driver_profiles: firstAssignment.driver,
                     profiles: firstAssignment.driver,
-                    price: unitPrice,
-                    price_display_mode: 'PER_TRUCK' as const,
-                    original_required_trucks: companyTruckCount,
-                    required_trucks: 1,
+                    // Preservar campos originais para o pipeline canônico
+                    price: firstAssignment.freight?.price,
+                    pricing_type: firstAssignment.freight?.pricing_type,
+                    price_per_km: firstAssignment.freight?.price_per_km,
+                    required_trucks: firstAssignment.freight?.required_trucks,
                     assignment_status: firstAssignment.status,
                   };
                   
