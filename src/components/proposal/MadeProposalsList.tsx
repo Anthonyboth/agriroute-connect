@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useMyMadeProposals, type MadeProposal } from '@/hooks/useMyMadeProposals';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface MadeProposalsListProps {
   userId?: string;
@@ -122,9 +123,9 @@ const MadeProposalCard: React.FC<{ proposal: MadeProposal }> = ({ proposal }) =>
                 R$ {formatBRL(proposal.proposed_price)}
               </span>
             </div>
-            {freight?.price && freight.price !== proposal.proposed_price && (
+            {freight?.id && (
               <span className="text-xs text-muted-foreground line-through">
-                R$ {formatBRL(freight.price)}
+                {precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}
               </span>
             )}
           </div>

@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -529,10 +530,12 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
                     <span>Criado em {new Date(freight.created_at).toLocaleDateString("pt-BR")}</span>
                   </div>
 
-                  {freight.price != null && (
+                  {freight.id && (
                     <div className="text-sm">
                       <span className="text-muted-foreground">Valor: </span>
-                      <span className="font-semibold text-primary">R$ {Number(freight.price).toFixed(2)}</span>
+                      <span className="font-semibold text-primary">
+                        {precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}
+                      </span>
                     </div>
                   )}
 

@@ -232,4 +232,59 @@ describe('precoPreenchidoDoFrete — PADRÃO GLOBAL', () => {
       expect(r.secondaryText).not.toContain('R$');
     });
   });
+
+  // ─── unitOnly GATING ───────────────────────────────────────
+
+  describe('unitOnly gating', () => {
+    it('unitOnly=true strips secondaryText for PER_TON', () => {
+      const r = precoPreenchidoDoFrete('uo-ton', {
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
+        weight: 500000,
+        required_trucks: 12,
+      }, { unitOnly: true });
+      expect(r.primaryText).toBe('R$ 80,00/ton');
+      expect(r.secondaryText).toBeNull();
+    });
+
+    it('unitOnly=true strips secondaryText for PER_KM', () => {
+      const r = precoPreenchidoDoFrete('uo-km', {
+        pricing_type: 'PER_KM',
+        price_per_km: 12,
+        distance_km: 300,
+        required_trucks: 2,
+      }, { unitOnly: true });
+      expect(r.primaryText).toBe('R$ 12,00/km');
+      expect(r.secondaryText).toBeNull();
+    });
+
+    it('unitOnly does NOT affect primaryText', () => {
+      limparCachePrecoPreenchido();
+      const full = precoPreenchidoDoFrete('uo-compare-full', {
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
+        weight: 500000,
+      });
+      limparCachePrecoPreenchido();
+      const unit = precoPreenchidoDoFrete('uo-compare-unit', {
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
+        weight: 500000,
+      }, { unitOnly: true });
+      expect(full.primaryText).toBe(unit.primaryText);
+    });
+
+    it('PER_TON with price=40000 and trucks=12: unitOnly NEVER shows 3333 or 40000', () => {
+      const r = precoPreenchidoDoFrete('uo-never-total', {
+        pricing_type: 'PER_TON',
+        price: 40000,
+        price_per_km: 80,
+        required_trucks: 12,
+        weight: 500000,
+      }, { unitOnly: true });
+      expect(r.primaryText).toBe('R$ 80,00/ton');
+      expect(r.primaryText).not.toContain('40.000');
+      expect(r.primaryText).not.toContain('3.333');
+    });
+  });
 });
