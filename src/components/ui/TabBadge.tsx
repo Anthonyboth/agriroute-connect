@@ -13,9 +13,11 @@ interface TabBadgeProps {
 export const TabBadge: React.FC<TabBadgeProps> = ({ count }) => {
   if (count <= 0) return null;
 
+  const displayValue = count > 99 ? '99+' : count;
+
   return (
     <Badge variant="destructive" className="ml-1 h-5 min-w-[20px] px-1 text-xs">
-      {count}
+      {displayValue}
     </Badge>
   );
 };
