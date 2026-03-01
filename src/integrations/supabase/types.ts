@@ -1223,7 +1223,11 @@ export type Database = {
           id: string
           image_url: string | null
           is_read: boolean | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
           message: string
+          message_type: string | null
           reactions: Json | null
           read_at: string | null
           reply_to_message_id: string | null
@@ -1244,7 +1248,11 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_read?: boolean | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           message: string
+          message_type?: string | null
           reactions?: Json | null
           read_at?: string | null
           reply_to_message_id?: string | null
@@ -1265,7 +1273,11 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_read?: boolean | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           message?: string
+          message_type?: string | null
           reactions?: Json | null
           read_at?: string | null
           reply_to_message_id?: string | null

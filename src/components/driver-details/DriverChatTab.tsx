@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, Clock, MessageCircle, Image as ImageIcon, Paperclip, Download, FileText } from 'lucide-react';
+import { Send, Clock, MessageCircle, Image as ImageIcon, Paperclip, Download, FileText, MapPin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,9 @@ import { useChatAttachments } from '@/hooks/useChatAttachments';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { ChatLocationBubble } from '@/components/chat/ChatLocationBubble';
+import { ChatLocationRouteModal } from '@/components/chat/ChatLocationRouteModal';
+import { getCurrentPositionSafe } from '@/utils/location';
 
 interface DriverChatTabProps {
   companyId: string;
@@ -29,10 +32,11 @@ export const DriverChatTab = ({
   currentUserId: propCurrentUserId
 }: DriverChatTabProps) => {
   const { profile } = useAuth();
-  // Usa prop se disponível, senão resolve via useAuth
   const currentUserId = propCurrentUserId || profile?.id || null;
   
   const [newMessage, setNewMessage] = useState('');
+  const [sendingLocation, setSendingLocation] = useState(false);
+  const [routeModalLocation, setRouteModalLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,32 +46,63 @@ export const DriverChatTab = ({
     driverProfileId
   );
   
-  // Hook para upload de anexos - usa currentUserId resolvido
   const { uploadImage: uploadImageAttachment, uploadFile: uploadFileAttachment, isUploading } = useChatAttachments(currentUserId || driverProfileId);
 
-  // Auto-scroll para última mensagem
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Marcar mensagens como lidas ao abrir
   useEffect(() => {
     markAsRead.mutate();
   }, []);
 
   const isChatEnabled = () => {
-    if (!chatEnabledAt) return true; // Se não tem restrição, está habilitado
+    if (!chatEnabledAt) return true;
     const enabledDate = new Date(chatEnabledAt);
     return enabledDate <= new Date();
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || sendMessage.isPending) return;
-    
     await sendMessage.mutateAsync(newMessage);
     setNewMessage('');
+  };
+
+  const handleSendLocation = async () => {
+    if (!currentUserId || sendingLocation) return;
+    setSendingLocation(true);
+    try {
+      const position = await getCurrentPositionSafe();
+      if (!position) {
+        toast.error('Não foi possível obter sua localização. Verifique as permissões de GPS.');
+        return;
+      }
+
+      const address = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+      
+      const { error } = await supabase
+        .from('company_driver_chats')
+        .insert({
+          company_id: companyId,
+          driver_profile_id: driverProfileId,
+          sender_type: 'COMPANY',
+          message: `📍 Localização compartilhada: ${address}`,
+          message_type: 'LOCATION',
+          location_lat: position.coords.latitude,
+          location_lng: position.coords.longitude,
+          location_address: address,
+        });
+
+      if (error) throw error;
+      toast.success('Localização compartilhada!');
+    } catch (error: any) {
+      console.error('Error sending location:', error);
+      toast.error(error?.message || 'Erro ao compartilhar localização');
+    } finally {
+      setSendingLocation(false);
+    }
   };
   
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +177,10 @@ export const DriverChatTab = ({
     }
   };
 
+  const isLocationMessage = (msg: any) => {
+    return msg.message_type === 'LOCATION' || (msg.location_lat && msg.location_lng);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -170,133 +209,174 @@ export const DriverChatTab = ({
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        {/* Lista de mensagens */}
-        <ScrollArea className="h-[400px] p-4" ref={scrollRef}>
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
-              <p className="text-sm">Nenhuma mensagem ainda</p>
-              <p className="text-xs mt-1">Envie a primeira mensagem para iniciar a conversa</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    'flex',
-                    msg.sender_type === 'COMPANY' ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'max-w-[70%] rounded-lg p-3',
-                      msg.sender_type === 'COMPANY'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    )}
-                  >
-                    {(msg as any).image_url && (
-                      <img 
-                        src={(msg as any).image_url} 
-                        alt="Imagem enviada" 
-                        className="rounded max-w-full h-auto mb-2 cursor-pointer hover:opacity-90 transition-opacity"
-                        style={{ maxHeight: '300px' }}
-                        onClick={() => window.open((msg as any).image_url, '_blank')}
-                      />
-                    )}
-                    
-                    {(msg as any).file_url && (
-                      <a
-                        href={(msg as any).file_url}
-                        download={(msg as any).file_name}
-                        className="flex items-center gap-2 p-2 bg-background/10 rounded hover:bg-background/20 transition-colors mb-2"
-                      >
-                        <FileText className="h-5 w-5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" translate="no">
-                            {(msg as any).file_name}
-                          </p>
-                          <p className="text-xs opacity-70">
-                            {formatFileSize((msg as any).file_size)}
-                          </p>
-                        </div>
-                        <Download className="h-4 w-4 flex-shrink-0" />
-                      </a>
-                    )}
-                    
-                    <p className="text-sm whitespace-pre-wrap break-words" translate="no">{msg.message}</p>
-                    <span className="text-xs opacity-70 mt-1 block">
-                      {formatDistanceToNow(new Date(msg.created_at), {
-                        addSuffix: true,
-                        locale: ptBR,
-                      })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[400px] p-4" ref={scrollRef}>
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
+                <p className="text-sm">Nenhuma mensagem ainda</p>
+                <p className="text-xs mt-1">Envie a primeira mensagem para iniciar a conversa</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((msg) => {
+                  const isCompany = msg.sender_type === 'COMPANY';
 
-        {/* Input de nova mensagem */}
-        <div className="p-4 border-t flex gap-2">
-          <input
-            type="file"
-            ref={imageInputRef}
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => imageInputRef.current?.click()}
-            disabled={sendMessage.isPending || isUploading}
-            title="Enviar imagem"
-          >
-            <ImageIcon className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={sendMessage.isPending || isUploading}
-            title="Enviar arquivo"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          
-          <Input
-            placeholder="Digite sua mensagem..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={sendMessage.isPending || isUploading}
-            translate="no"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || sendMessage.isPending || isUploading}
-            size="icon"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+                  return (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        'flex',
+                        isCompany ? 'justify-end' : 'justify-start'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'max-w-[70%] rounded-lg p-3',
+                          isCompany
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        )}
+                      >
+                        {/* Location message */}
+                        {isLocationMessage(msg) && (msg as any).location_lat && (msg as any).location_lng ? (
+                          <ChatLocationBubble
+                            lat={(msg as any).location_lat}
+                            lng={(msg as any).location_lng}
+                            address={(msg as any).location_address}
+                            timestamp={msg.created_at}
+                            isCurrentUser={isCompany}
+                            onOpenRouteModal={(lat, lng, addr) => setRouteModalLocation({ lat, lng, address: addr })}
+                          />
+                        ) : (
+                          <>
+                            {(msg as any).image_url && (
+                              <img 
+                                src={(msg as any).image_url} 
+                                alt="Imagem enviada" 
+                                className="rounded max-w-full h-auto mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                                style={{ maxHeight: '300px' }}
+                                onClick={() => window.open((msg as any).image_url, '_blank')}
+                              />
+                            )}
+                            
+                            {(msg as any).file_url && (
+                              <a
+                                href={(msg as any).file_url}
+                                download={(msg as any).file_name}
+                                className="flex items-center gap-2 p-2 bg-background/10 rounded hover:bg-background/20 transition-colors mb-2"
+                              >
+                                <FileText className="h-5 w-5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate" translate="no">
+                                    {(msg as any).file_name}
+                                  </p>
+                                  <p className="text-xs opacity-70">
+                                    {formatFileSize((msg as any).file_size)}
+                                  </p>
+                                </div>
+                                <Download className="h-4 w-4 flex-shrink-0" />
+                              </a>
+                            )}
+                            
+                            <p className="text-sm whitespace-pre-wrap break-words" translate="no">{msg.message}</p>
+                          </>
+                        )}
+                        <span className="text-xs opacity-70 mt-1 block">
+                          {formatDistanceToNow(new Date(msg.created_at), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Input */}
+          <div className="p-4 border-t flex gap-2">
+            <input
+              type="file"
+              ref={imageInputRef}
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={sendMessage.isPending || isUploading}
+              title="Enviar imagem"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sendMessage.isPending || isUploading}
+              title="Enviar arquivo"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleSendLocation}
+              disabled={sendMessage.isPending || isUploading || sendingLocation}
+              title="Compartilhar localização"
+            >
+              <MapPin className="h-4 w-4" />
+            </Button>
+            
+            <Input
+              placeholder="Digite sua mensagem..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={sendMessage.isPending || isUploading}
+              translate="no"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sendMessage.isPending || isUploading}
+              size="icon"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Route modal */}
+      {routeModalLocation && (
+        <ChatLocationRouteModal
+          open={!!routeModalLocation}
+          onOpenChange={(open) => { if (!open) setRouteModalLocation(null); }}
+          destinationLat={routeModalLocation.lat}
+          destinationLng={routeModalLocation.lng}
+          destinationAddress={routeModalLocation.address}
+        />
+      )}
+    </>
   );
 };

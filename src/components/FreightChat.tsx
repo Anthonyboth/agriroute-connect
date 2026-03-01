@@ -28,6 +28,8 @@ import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
 import { ChatInputBar } from '@/components/chat/ChatInputBar';
+import { ChatLocationBubble } from '@/components/chat/ChatLocationBubble';
+import { ChatLocationRouteModal } from '@/components/chat/ChatLocationRouteModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +53,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   const [showLocationConfirm, setShowLocationConfirm] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [selectedSharedFreight, setSelectedSharedFreight] = useState<any>(null);
+  const [routeModalLocation, setRouteModalLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -380,40 +383,16 @@ export const FreightChat: React.FC<FreightChatProps> = ({
                               </div>
                             )}
 
-                            {/* Resposta de localização */}
-                            {message.message_type === 'LOCATION_RESPONSE' && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Navigation className="h-4 w-4" />
-                                  <p className="text-sm font-medium">Localização compartilhada</p>
-                                  {isLocationRecent(message.created_at) && (
-                                    <Badge variant="default" className="text-xs">
-                                      Recente
-                                    </Badge>
-                                  )}
-                                </div>
-                                {message.location_address && (
-                                  <p className="text-xs opacity-90">{message.location_address}</p>
-                                )}
-                                {message.location_lat && message.location_lng && (
-                                  <Button
-                                    size="sm"
-                                    variant={isCurrentUser ? "secondary" : "outline"}
-                                    asChild
-                                    className="w-fit"
-                                  >
-                                    <a
-                                      href={`https://www.google.com/maps?q=${message.location_lat},${message.location_lng}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1"
-                                    >
-                                      <MapPin className="h-3 w-3" />
-                                      Ver no Mapa
-                                    </a>
-                                  </Button>
-                                )}
-                              </div>
+                            {/* Resposta de localização — ChatLocationBubble */}
+                            {(message.message_type === 'LOCATION_RESPONSE' || message.message_type === 'LOCATION') && message.location_lat && message.location_lng && (
+                              <ChatLocationBubble
+                                lat={message.location_lat}
+                                lng={message.location_lng}
+                                address={message.location_address}
+                                timestamp={message.created_at}
+                                isCurrentUser={isCurrentUser}
+                                onOpenRouteModal={(lat, lng, addr) => setRouteModalLocation({ lat, lng, address: addr })}
+                              />
                             )}
 
                             {/* Compartilhamento de frete */}
@@ -525,6 +504,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
             <ChatInputBar
               onSendText={sendTextMessage}
               onSendMedia={sendMediaMessage}
+              onSendLocation={sendLocationMessage}
               isSending={isSending}
               isUploading={isUploading}
               placeholder="Digite sua mensagem..."
@@ -584,6 +564,17 @@ export const FreightChat: React.FC<FreightChatProps> = ({
           driverName={selectedSharedFreight.driverName}
           companyOwnerId={currentUserProfile?.id || ''}
           companyId={company.id}
+        />
+      )}
+
+      {/* Modal de rota MapLibre */}
+      {routeModalLocation && (
+        <ChatLocationRouteModal
+          open={!!routeModalLocation}
+          onOpenChange={(open) => { if (!open) setRouteModalLocation(null); }}
+          destinationLat={routeModalLocation.lat}
+          destinationLng={routeModalLocation.lng}
+          destinationAddress={routeModalLocation.address}
         />
       )}
     </>

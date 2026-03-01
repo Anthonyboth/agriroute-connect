@@ -12,16 +12,20 @@ import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { MessageDateSeparator } from '@/components/chat/MessageDateSeparator';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import { ChatLocationBubble } from '@/components/chat/ChatLocationBubble';
+import { ChatLocationRouteModal } from '@/components/chat/ChatLocationRouteModal';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { 
   MessageSquare, 
   Users,
+  MapPin,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getCurrentPositionSafe } from '@/utils/location';
 
 interface Driver {
   id: string;
@@ -60,6 +64,8 @@ export function CompanyInternalChat() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [sendingLocation, setSendingLocation] = useState(false);
+  const [routeModalLocation, setRouteModalLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const chatChannelRef = useRef<any>(null);
@@ -441,6 +447,39 @@ export function CompanyInternalChat() {
     }
   };
 
+  const handleSendLocation = async () => {
+    if (!companyId || !selectedDriver || sendingLocation) return;
+    setSendingLocation(true);
+    try {
+      const position = await getCurrentPositionSafe();
+      if (!position) {
+        toast.error('Não foi possível obter sua localização.');
+        return;
+      }
+      const address = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+      const { error } = await supabase
+        .from('company_driver_chats')
+        .insert({
+          company_id: companyId,
+          driver_profile_id: selectedDriver.id,
+          sender_type: 'COMPANY',
+          message: `📍 Localização compartilhada: ${address}`,
+          message_type: 'LOCATION',
+          location_lat: position.coords.latitude,
+          location_lng: position.coords.longitude,
+          location_address: address,
+          is_read: false,
+        });
+      if (error) throw error;
+      toast.success('Localização compartilhada!');
+      loadMessages();
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao compartilhar localização');
+    } finally {
+      setSendingLocation(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Lista de Motoristas */}
@@ -629,6 +668,28 @@ export function CompanyInternalChat() {
                                 loadMessages();
                               }}
                             />
+                          </div>
+                        </React.Fragment>
+                      );
+                    }
+
+                    // Location message
+                    if ((message as any).message_type === 'LOCATION' && (message as any).location_lat && (message as any).location_lng) {
+                      const isFromCompany = (message as any).sender_type === 'COMPANY';
+                      return (
+                        <React.Fragment key={message.id}>
+                          {showDateSeparator && <MessageDateSeparator date={new Date(message.created_at)} />}
+                          <div className={`flex ${isFromCompany ? 'justify-end' : 'justify-start'} mb-4`}>
+                            <div className={`max-w-[70%] rounded-lg p-3 ${isFromCompany ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                              <ChatLocationBubble
+                                lat={(message as any).location_lat}
+                                lng={(message as any).location_lng}
+                                address={(message as any).location_address}
+                                timestamp={message.created_at}
+                                isCurrentUser={isFromCompany}
+                                onOpenRouteModal={(lat, lng, addr) => setRouteModalLocation({ lat, lng, address: addr })}
+                              />
+                            </div>
                           </div>
                         </React.Fragment>
                       );
