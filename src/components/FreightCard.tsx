@@ -133,7 +133,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
   // Cor semântica de rentabilidade (usa hook centralizado)
   const rpmColor = priceDisplay.unitRateColorClass;
-  const rpmIcon = priceDisplay.unitRateValue === null ? null : priceDisplay.unitRateValue >= 6 && priceDisplay.pricingType === 'FIXED' ? <TrendingUp className="h-3 w-3" /> : priceDisplay.unitRateValue < 4 && priceDisplay.pricingType === 'FIXED' ? <TrendingDown className="h-3 w-3" /> : null;
+  const rpmIcon = priceDisplay.unitRateValue === null ? null : priceDisplay.unitRateValue >= 6 && priceDisplay.pricingType === 'PER_VEHICLE' ? <TrendingUp className="h-3 w-3" /> : priceDisplay.unitRateValue < 4 && priceDisplay.pricingType === 'PER_VEHICLE' ? <TrendingDown className="h-3 w-3" /> : null;
 
   // Tempo estimado (média 60km/h)
   const distKmNum = parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0;

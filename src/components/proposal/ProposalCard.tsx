@@ -215,8 +215,8 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                         });
                         return proposalDisplay.primaryLabel;
                       }
-                      return pd.pricingType === 'FIXED' && multipleTrucks
-                        ? `${formatBRL(proposalPricePerTruck, true)}/veículo`
+                      return pd.pricingType === 'PER_VEHICLE' && multipleTrucks
+                        ? `${formatBRL(proposalPricePerTruck, true)}/veíc`
                         : formatBRL(proposalPricePerTruck, true);
                     })()
               }
