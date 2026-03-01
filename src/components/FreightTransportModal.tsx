@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import GuestServiceModal from './GuestServiceModal';
 import { CreateFreightWizardModal } from './freight-wizard';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AgriChip } from '@/components/ui/AgriChip';
 import { 
   BottomSheet, 
   BottomSheetContent, 
@@ -16,8 +16,7 @@ import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser';
 import { cn } from '@/lib/utils';
 
 // ============================================
-// FreightTransportModal - Estilo Sheet Meta Premium
-// Mesmo design do ServicesModal
+// FreightTransportModal — Estilo Enterprise 60/30/10
 // ============================================
 
 interface FreightTransportModalProps {
@@ -26,14 +25,12 @@ interface FreightTransportModalProps {
   onBack?: () => void;
 }
 
-// Card de serviço estilo Meta
 interface FreightServiceCardProps {
   id: string;
   icon: React.ElementType;
   title: string;
   description: string;
   badge: string;
-  colorClass: string;
   onClick: (id: string) => void;
   ctaText?: string;
   ctaHighlight?: boolean;
@@ -45,7 +42,6 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
   title,
   description,
   badge,
-  colorClass,
   onClick,
   ctaText,
   ctaHighlight,
@@ -72,62 +68,52 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
       role="button"
       aria-label={`${title} - ${description}`}
       className={cn(
-        // Layout
-        "group w-full flex items-center gap-4 p-4",
-        // Card base
-        "rounded-2xl border border-border/60",
+        // Layout row alinhado
+        "group w-full flex items-center gap-3.5 p-4",
+        // 60% base: fundo neutro card
+        "rounded-2xl bg-card border border-border",
         "transition-all duration-150 ease-out",
-        // Fundo claro
-        "bg-background/80",
-        // Hover premium
+        // Hover enterprise
         "hover:-translate-y-0.5",
-        "hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]",
-        "hover:border-primary/30",
-        // Focus acessibilidade
+        "hover:shadow-sm",
+        "hover:border-primary/25",
+        // Focus
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         // Touch
         "active:scale-[0.99]",
         "cursor-pointer pointer-events-auto",
-        // Highlight especial para Pet
-        ctaHighlight && "ring-2 ring-gray-400 dark:ring-gray-500 border-gray-400 dark:border-gray-500"
+        // Highlight especial
+        ctaHighlight && "ring-1 ring-primary/30 border-primary/25"
       )}
     >
-      {/* Ícone */}
+      {/* Ícone — 10% acento primary */}
       <div
         className={cn(
           "flex-shrink-0 flex items-center justify-center",
-          "w-12 h-12 rounded-xl",
-          colorClass,
+          "w-11 h-11 rounded-xl",
+          "bg-primary/10 text-primary border border-primary/15",
           "transition-all duration-150",
-          "group-hover:scale-105"
+          "group-hover:scale-105 group-hover:bg-primary/15"
         )}
       >
-        <IconComponent className="h-6 w-6" strokeWidth={1.75} />
+        <IconComponent className="h-5 w-5" strokeWidth={1.75} />
       </div>
 
       {/* Conteúdo */}
       <div className="flex-1 min-w-0 text-left">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-150">
             {title}
           </h3>
-          <Badge variant="secondary" className="text-xs">
-            {badge}
-          </Badge>
+          <AgriChip tone="neutral">{badge}</AgriChip>
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-2">
+        <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
           {description}
         </p>
-        {/* CTA visível para Transporte de Pet */}
         {ctaText && (
-          <span className={cn(
-            "inline-flex items-center gap-1 mt-2 text-xs font-semibold px-3 py-1 rounded-full",
-            ctaHighlight
-              ? "bg-gray-900 text-white dark:bg-gray-700"
-              : "bg-primary/10 text-primary"
-          )}>
+          <AgriChip tone="verified" className="mt-2">
             🐾 {ctaText}
-          </span>
+          </AgriChip>
         )}
       </div>
     </button>
@@ -158,7 +144,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: Truck,
       title: 'Guincho e Socorro 24h',
       description: 'Reboque, socorro e assistência emergencial para veículos',
-      colorClass: 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 dark:border-orange-700/50',
       badge: 'Disponível 24h'
     },
     {
@@ -166,7 +151,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: Package,
       title: 'Frete Urbano',
       description: 'Transporte rápido de cargas dentro da cidade',
-      colorClass: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-700/50',
       badge: 'Entrega Rápida'
     },
     {
@@ -174,7 +158,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: Box,
       title: 'Entrega de Pacotes',
       description: 'Entrega rápida de encomendas, documentos e pequenas cargas',
-      colorClass: 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200/60 dark:border-violet-700/50',
       badge: 'Rápido'
     },
     {
@@ -182,7 +165,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: PawPrint,
       title: 'Transporte de Pet',
       description: 'Viagem segura e confortável para seu pet',
-      colorClass: 'bg-gray-100 dark:bg-gray-800/60 text-gray-900 dark:text-gray-200 border border-gray-300/60 dark:border-gray-600/50',
       badge: 'Pet',
     },
     {
@@ -190,7 +172,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: Home,
       title: 'Mudança',
       description: 'Mudanças residenciais e comerciais completas',
-      colorClass: 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200/60 dark:border-green-700/50',
       badge: 'Profissional'
     },
     {
@@ -198,7 +179,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       icon: Wheat,
       title: 'Frete Rural',
       description: 'Transporte de cargas agrícolas e produtos do campo',
-      colorClass: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-700/50',
       badge: 'Agronegócio'
     }
   ];
@@ -251,7 +231,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
 
   return (
     <>
-      {/* Modal Principal - Bottom Sheet estilo Meta */}
       <BottomSheet open={isOpen} onOpenChange={handleOpenChange}>
         <BottomSheetContent>
           <BottomSheetHeader 
@@ -260,7 +239,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
           />
 
           <BottomSheetBody>
-            {/* Botão Voltar */}
             {onBack && (
               <Button 
                 variant="ghost" 
@@ -273,7 +251,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
               </Button>
             )}
 
-            {/* Cards de serviços estilo Meta */}
             <div className="flex flex-col gap-3">
               {freightServices.map((service) => (
                 <FreightServiceCard
@@ -283,7 +260,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
                   title={service.title}
                   description={service.description}
                   badge={service.badge}
-                  colorClass={service.colorClass}
                   onClick={handleServiceSelect}
                   ctaText={'ctaText' in service ? (service as any).ctaText : undefined}
                   ctaHighlight={'ctaHighlight' in service ? (service as any).ctaHighlight : undefined}
@@ -296,7 +272,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         </BottomSheetContent>
       </BottomSheet>
 
-      {/* Guest Service Modal para GUINCHO, FRETE_URBANO, MUDANCA, ENTREGA_PACOTES, TRANSPORTE_PET */}
       {guestServiceModal.isOpen && guestServiceModal.serviceType && (
         <GuestServiceModal
           isOpen={true}
@@ -310,7 +285,6 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         />
       )}
 
-      {/* CreateFreightWizardModal para FRETE_RURAL */}
       <CreateFreightWizardModal
         open={guestFreightModal}
         onOpenChange={(open) => {
