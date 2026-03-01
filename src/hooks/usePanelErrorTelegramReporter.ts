@@ -50,6 +50,8 @@ export function usePanelErrorTelegramReporter() {
       'cannot be a descendant of',  // React HTML nesting warnings
       'cannot contain a nested',    // React HTML nesting warnings
       'hydration error',            // React hydration warnings
+      'Encountered two children with the same key',  // React duplicate key warnings (non-fatal)
+      'Non-unique keys may cause children',           // React duplicate key warnings
     ];
 
     const shouldIgnore = (msg: string): boolean => {

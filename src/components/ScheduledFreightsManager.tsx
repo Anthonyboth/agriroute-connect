@@ -273,8 +273,12 @@ export const ScheduledFreightsManager: React.FC = () => {
           dates: freightsData.map((f: any) => ({ id: f.id, pickup_date: f.pickup_date, status: f.status }))
         });
 
+        // ✅ Deduplicate by ID before enriching
+        const dedupedFreights = Array.from(
+          new Map(freightsData.map((f: any) => [f.id, f])).values()
+        );
         // ✅ Enriquecer com dados dos participantes (produtor/motorista)
-        const enrichedFreights = await enrichFreightsWithParticipants(freightsData, profile);
+        const enrichedFreights = await enrichFreightsWithParticipants(dedupedFreights, profile);
         setScheduledFreights(enrichedFreights);
       } catch (queryError) {
         console.error('Erro na query de agendados:', queryError);
