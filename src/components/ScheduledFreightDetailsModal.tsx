@@ -6,6 +6,7 @@ import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
+import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 
 interface ScheduledFreightDetailsModalProps {
   isOpen: boolean;
@@ -222,16 +223,23 @@ export const ScheduledFreightDetailsModal = ({
         {/* SEÇÃO 4: VALOR */}
         <div className="bg-primary/5 p-4 rounded-lg">
           {(() => {
-            const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+            const pd = getFreightPriceDisplay({
+              price: freight.price || 0,
+              pricing_type: freight.pricing_type,
+              price_per_km: freight.price_per_km,
+              required_trucks: requiredTrucks,
+              distance_km: freight.distance_km,
+              weight: freight.weight,
+            });
             return (
               <>
-                <p className="text-sm text-muted-foreground">Valor do Frete{isMultiTruck && !isProducerView ? ' (por carreta)' : ''}</p>
+                <p className="text-sm text-muted-foreground">Valor do Frete</p>
                 <p className="text-3xl font-bold text-primary">
-                  {formatBRL(isProducerView ? freight.price : pricePerTruck)}
+                  {pd.primaryLabel}
                 </p>
-                {isMultiTruck && isProducerView && (
+                {pd.secondaryLabel && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {requiredTrucks} carretas × {formatBRL(pricePerTruck)} por carreta
+                    {pd.secondaryLabel}
                   </p>
                 )}
               </>
