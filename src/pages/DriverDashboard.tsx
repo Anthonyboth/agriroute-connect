@@ -1263,7 +1263,6 @@ const DriverDashboard = () => {
             price,
             pricing_type,
             price_per_km,
-            price_per_ton,
             required_trucks,
             weight,
             distance_km,
