@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';
 import { ServiceWizard } from './service-wizard/ServiceWizard';
 import { ServiceType } from './service-wizard/types';
+import { ERP } from '@/styles/agri-erp';
 
 interface SubService {
   id: ServiceType;
@@ -201,15 +201,15 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             {info.subServices.map((service) => (
               <Card 
                 key={service.id} 
-                className="cursor-pointer transition-all duration-200 bg-primary/[0.04] border-primary/[0.18] hover:bg-primary/[0.08] hover:border-primary/[0.30] hover:shadow-md shadow-sm"
+                className={`cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md ${ERP.cardSoftGreen}`}
                 onClick={() => handleSelectService(service)}
               >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">{service.name}</CardTitle>
+                  <CardTitle className={ERP.title}>{service.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{service.description}</p>
-                  <Badge variant="secondary" className="bg-primary/[0.15] text-primary border-primary/[0.25]">{service.price}</Badge>
+                  <p className={`${ERP.subtitle} mb-3`}>{service.description}</p>
+                  <span className={ERP.chipVerified}>{service.price}</span>
                 </CardContent>
               </Card>
             ))}
@@ -218,9 +218,9 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
           {info.features && (
             <div className="flex flex-wrap gap-2 mt-4">
               {info.features.map((feature, idx) => (
-                <Badge key={idx} variant="outline" className="text-xs">
+                <span key={idx} className={ERP.chipNeutral}>
                   ✓ {feature}
-                </Badge>
+                </span>
               ))}
             </div>
           )}

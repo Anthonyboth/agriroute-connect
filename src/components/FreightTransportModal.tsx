@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import GuestServiceModal from './GuestServiceModal';
 import { CreateFreightWizardModal } from './freight-wizard';
 import { Button } from '@/components/ui/button';
-import { AgriChip } from '@/components/ui/AgriChip';
+import { ERP } from '@/styles/agri-erp';
 import { 
   BottomSheet, 
   BottomSheetContent, 
@@ -120,9 +120,9 @@ const FreightServiceCard: React.FC<FreightServiceCardProps> = ({
           {description}
         </p>
         {ctaText && (
-          <AgriChip tone="verified" className="mt-2">
+          <span className={`${ERP.chipVerified} mt-2`}>
             🐾 {ctaText}
-          </AgriChip>
+          </span>
         )}
       </div>
     </button>
