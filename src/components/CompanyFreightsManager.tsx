@@ -185,13 +185,13 @@ export const CompanyFreightsManager: React.FC = () => {
     const isExpired = hoursSincePickup > 48 && ['OPEN', 'IN_NEGOTIATION', 'ACCEPTED'].includes(freight.status);
 
     return (
-      <Card key={freight.id} className="border-l-4 border-l-primary">
+      <Card key={freight.id} className="border-l-4 border-l-primary bg-card hover:shadow-lg transition-shadow duration-200">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row justify-between gap-4">
             <div className="space-y-3 flex-1">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h4 className="font-semibold text-lg">{getCargoTypeLabel(freight.cargo_type)}</h4>
+                  <h4 className="font-semibold text-lg text-foreground">{getCargoTypeLabel(freight.cargo_type)}</h4>
                   <Badge variant={getFreightStatusVariant(freight.status)} className="mt-1">
                     {getFreightStatusLabel(freight.status)}
                   </Badge>
@@ -202,41 +202,41 @@ export const CompanyFreightsManager: React.FC = () => {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-xl text-primary">{formatBRL(freight.price)}</p>
+                  <p className="font-bold text-xl text-accent">{formatBRL(freight.price)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Origem</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-green-600" />
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide">Origem</p>
+                  <p className="font-medium text-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-primary" />
                     {freight.origin_city}, {freight.origin_state}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Destino</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-red-600" />
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide">Destino</p>
+                  <p className="font-medium text-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-destructive" />
                     {freight.destination_city}, {freight.destination_state}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Distância</p>
-                  <p className="font-medium">{formatKm(freight.distance_km)}</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide">Distância</p>
+                  <p className="font-medium text-foreground">{formatKm(freight.distance_km)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Peso</p>
-                  <p className="font-medium">{formatTons(freight.weight)}</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide">Peso</p>
+                  <p className="font-medium text-foreground">{formatTons(freight.weight)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Data de Coleta</p>
-                  <p className="font-medium">{formatDate(freight.pickup_date)}</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide">Data de Coleta</p>
+                  <p className="font-medium text-foreground">{formatDate(freight.pickup_date)}</p>
                 </div>
                 {freight.vehicle_type_required && (
                   <div>
-                    <p className="text-muted-foreground">Veículo Preferencial</p>
-                    <p className="font-medium flex items-center gap-1">
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Veículo Preferencial</p>
+                    <p className="font-medium text-foreground flex items-center gap-1">
                       <Truck className="h-3 w-3 text-primary" />
                       {getVehicleTypeLabel(freight.vehicle_type_required)}
                       {freight.vehicle_axles_required > 0 && (
@@ -246,17 +246,18 @@ export const CompanyFreightsManager: React.FC = () => {
                   </div>
                 )}
                 <div>
-                  <p className="text-muted-foreground">Motorista</p>
-                  <p className="font-medium">{freight.driver?.full_name || 'Aguardando'}</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide">Motorista</p>
+                  <p className="font-medium text-foreground">{freight.driver?.full_name || 'Aguardando'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex md:flex-col gap-2">
+            <div className="flex md:flex-col gap-2 md:justify-start">
               {!freight.driver_id && (
                 <Button
                   variant="default"
                   size="sm"
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm"
                   onClick={() => {
                     setSelectedFreightForShare(freight);
                     setShareModalOpen(true);
@@ -294,23 +295,23 @@ export const CompanyFreightsManager: React.FC = () => {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+      <Card className="border-none shadow-lg bg-card">
+        <CardHeader className="bg-primary/5 border-b border-border rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Package className="h-5 w-5 text-primary" />
             Gerenciamento de Fretes
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="open">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-lg h-12">
+              <TabsTrigger value="open" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all">
                 Abertos ({openFreights.length})
               </TabsTrigger>
-              <TabsTrigger value="in_progress">
+              <TabsTrigger value="in_progress" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all">
                 Em Andamento ({inProgressFreights.length})
               </TabsTrigger>
-              <TabsTrigger value="cancelled">
+              <TabsTrigger value="cancelled" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all">
                 Cancelados ({cancelledFreights.length})
               </TabsTrigger>
             </TabsList>
