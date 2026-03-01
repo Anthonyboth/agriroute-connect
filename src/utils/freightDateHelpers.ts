@@ -4,6 +4,19 @@
 
 import { normalizeFreightStatus } from '@/lib/freight-status';
 
+/**
+ * Parse YYYY-MM-DD como data LOCAL (evita bug UTC timezone)
+ * new Date("2026-03-01") → UTC 00:00 → dia anterior em UTC-3
+ * parseLocalDate("2026-03-01") → local 00:00 → correto
+ */
+const parseLocalDate = (dateStr: string): Date => {
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length === 3) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  }
+  return new Date(dateStr);
+};
+
 export interface FreightDateClassification {
   status: 'scheduled' | 'today' | 'overdue' | 'current';
   daysUntilPickup: number;
@@ -26,7 +39,9 @@ export const classifyFreightByPickupDate = (pickupDate: string | null): FreightD
     };
   }
 
-  const pickup = new Date(pickupDate);
+  // Parse como data LOCAL para evitar bug de timezone UTC
+  // "2026-03-01" com new Date() vira UTC meia-noite = dia anterior em UTC-3
+  const pickup = parseLocalDate(pickupDate);
   const today = new Date();
   
   // Zerar horas para comparação de datas
@@ -137,7 +152,7 @@ export const isInProgressFreight = (pickupDate: string | null, status: string): 
 export const formatPickupDate = (pickupDate: string | null): string => {
   if (!pickupDate) return 'Não definida';
   
-  const date = new Date(pickupDate);
+  const date = parseLocalDate(pickupDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
@@ -164,7 +179,7 @@ export const getDaysUntilPickup = (pickupDate: string | null): number | null => 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const pickup = new Date(pickupDate);
+  const pickup = parseLocalDate(pickupDate);
   pickup.setHours(0, 0, 0, 0);
   
   const diffTime = pickup.getTime() - today.getTime();
