@@ -2,28 +2,27 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, CheckCircle, DollarSign, AlertCircle } from 'lucide-react';
 import type { PaymentCardData } from './PaymentCard';
-import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface PaymentsSummaryProps {
   payments: PaymentCardData[];
 }
 
 /**
- * Resolve o unitValue canônico de um pagamento via pipeline.
- * NUNCA usa p.amount (que pode ser total ou total/trucks errado).
+ * Resolve o TOTAL canônico de um pagamento para o resumo do PRODUTOR.
+ * 
+ * REGRA v9: O resumo do produtor (solicitante) soma TOTAIS, não unit rates.
+ * - PER_VEHICLE: freight.price (total = unit_rate × trucks, mas unit_rate JÁ É o valor cheio)
+ * - PER_TON / PER_KM: freight.price (total armazenado no banco)
+ * - Fallback: 0 (nunca inventa divisão)
+ * 
+ * NUNCA usar payment.amount (pode estar errado: price/trucks).
  */
-function getUnitValue(p: PaymentCardData): number {
+function getFreightTotal(p: PaymentCardData): number {
   if (!p.freight) return 0;
-  const preco = precoPreenchidoDoFrete(p.freight.id, {
-    price: p.freight.price,
-    pricing_type: p.freight.pricing_type,
-    price_per_km: p.freight.price_per_km,
-    price_per_ton: p.freight.price_per_ton,
-    required_trucks: p.freight.required_trucks,
-    weight: p.freight.weight,
-    distance_km: p.freight.distance_km,
-  }, { unitOnly: true });
-  return preco.unitValue;
+  // freight.price é o total do frete no banco — seguro para o produtor
+  const total = p.freight.price;
+  if (typeof total === 'number' && Number.isFinite(total) && total > 0) return total;
+  return 0;
 }
 
 export const PaymentsSummary: React.FC<PaymentsSummaryProps> = ({ payments }) => {
@@ -35,10 +34,12 @@ export const PaymentsSummary: React.FC<PaymentsSummaryProps> = ({ payments }) =>
   const pending = payments.filter(p => normalizeStatus(p.status) === 'paid_by_producer');
   const completed = payments.filter(p => normalizeStatus(p.status) === 'completed');
 
-  // ✅ HARDENING v8: Somar unitValue canônico, NUNCA p.amount
-  const totalPending = proposed.reduce((sum, p) => sum + getUnitValue(p), 0);
-  const totalWaiting = pending.reduce((sum, p) => sum + getUnitValue(p), 0);
-  const totalCompleted = completed.reduce((sum, p) => sum + getUnitValue(p), 0);
+  // ✅ HARDENING v9: Somar TOTAL do frete (freight.price) para o resumo do produtor
+  // NUNCA usar payment.amount (pode ser price/trucks errado)
+  // NUNCA usar unitValue (unit rate não faz sentido somar em resumo financeiro)
+  const totalPending = proposed.reduce((sum, p) => sum + getFreightTotal(p), 0);
+  const totalWaiting = pending.reduce((sum, p) => sum + getFreightTotal(p), 0);
+  const totalCompleted = completed.reduce((sum, p) => sum + getFreightTotal(p), 0);
 
   const stats = [
     {

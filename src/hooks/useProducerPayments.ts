@@ -198,7 +198,11 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
   const pendingCount = payments.filter(p => p.status === 'proposed').length;
   const awaitingConfirmationCount = payments.filter(p => p.status === 'paid_by_producer').length;
   const completedCount = payments.filter(p => p.status === 'confirmed').length;
-  const totalPending = payments.filter(p => p.status === 'proposed').reduce((sum, p) => sum + (p.freight?.price_per_km || p.freight?.price_per_ton || 0), 0);
+  // ✅ HARDENING v9: Usar freight.price (total) para resumo do produtor, NUNCA payment.amount nem unit rate
+  const totalPending = payments.filter(p => p.status === 'proposed').reduce((sum, p) => {
+    const total = p.freight?.price;
+    return sum + (typeof total === 'number' && Number.isFinite(total) && total > 0 ? total : 0);
+  }, 0);
 
   useEffect(() => {
     if (profile?.id && profile.role === 'PRODUTOR') fetchPayments();
