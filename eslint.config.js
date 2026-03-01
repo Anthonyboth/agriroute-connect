@@ -36,6 +36,19 @@ export default tseslint.config(
           message: "Direct access to 'has_registration' is prohibited. Use checkFreightRequesterHasRegistration() from '@/lib/checkFreightRequester' instead.",
         },
       ],
+      // 🔒 Anti-regression: block manual price formatting with unit strings outside canonical helper
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@/lib/formatters",
+              importNames: ["getPricePerTruck"],
+              message: "Use getCanonicalFreightPrice() from '@/lib/freightPriceContract' instead of getPricePerTruck().",
+            },
+          ],
+        },
+      ],
     },
   },
   // Allow has_registration access ONLY in the helper and its tests
@@ -46,6 +59,20 @@ export default tseslint.config(
     ],
     rules: {
       "no-restricted-syntax": "off",
+    },
+  },
+  // Allow getPricePerTruck in legacy files being migrated and the formatters module itself
+  {
+    files: [
+      "src/lib/formatters.ts",
+      "src/lib/proposal-utils.ts",
+      "src/lib/freightPriceContract.ts",
+      "src/lib/__tests__/freightPriceContract.test.ts",
+      "src/hooks/useFreightPriceDisplay.ts",
+      "src/hooks/__tests__/useFreightPriceDisplay.test.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
     },
   }
 );

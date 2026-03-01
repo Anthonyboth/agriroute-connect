@@ -1,24 +1,31 @@
 /**
- * Hook centralizado para exibição de preços nos cards de frete.
+ * Hook/helper centralizado para exibição de preços nos cards de frete.
+ * 
+ * DELEGA ao contrato canônico em src/lib/freightPriceContract.ts
+ * Mantém a interface existente para compatibilidade com componentes que já usam.
  * 
  * REGRA CRÍTICA — PREÇO POR VEÍCULO:
  * O motorista/transportadora sempre vê o preço UNITÁRIO por veículo.
  * - PER_KM → "R$ X,XX/km" (taxa unitária do produtor)
  * - PER_TON → "R$ X,XX/ton" (taxa unitária do produtor)
- * - FIXED → "R$ X.XXX,XX/carreta" (price / required_trucks)
+ * - FIXED → "R$ X.XXX,XX/veículo" (price / required_trucks)
  * 
  * PROIBIÇÕES:
  * - NUNCA exibir total agregado ("Total (N carretas): R$ X") em cards
- * - NUNCA exibir "R$ total /carreta" — sempre derivar unitário
- * - NUNCA assumir PER_KM quando pricing_type ausente
- * 
- * O campo price_per_km armazena o valor unitário para PER_KM e PER_TON.
+ * - NUNCA inventar unidade quando pricing_type ausente
  */
 
 import { useMemo } from 'react';
+import {
+  getCanonicalFreightPrice,
+  normalizePricingType,
+  type FreightPricingInput,
+  type PricingType,
+} from '@/lib/freightPriceContract';
 import { formatBRL } from '@/lib/formatters';
 
-export type PricingType = 'FIXED' | 'PER_KM' | 'PER_TON';
+export type { PricingType } from '@/lib/freightPriceContract';
+export { normalizePricingType };
 
 const VALID_PRICING_TYPES: readonly string[] = ['FIXED', 'PER_KM', 'PER_TON'] as const;
 
@@ -33,174 +40,98 @@ export function validatePricingType(value: unknown): PricingType | null {
 export interface FreightPriceDisplayInput {
   price: number;
   pricing_type?: PricingType | string | null;
-  price_per_km?: number | null;  // Stores unit rate for PER_KM; also reused for PER_TON in DB
-  price_per_ton?: number | null; // Optional explicit field; takes priority over price_per_km for PER_TON
+  price_per_km?: number | null;
+  price_per_ton?: number | null;
   required_trucks?: number;
   accepted_trucks?: number;
   distance_km?: number;
-  weight?: number;  // in kg
+  weight?: number;
 }
 
 export interface FreightPriceDisplay {
-  /** Primary display: the exact value the producer entered */
   primaryValue: number;
-  /** Formatted primary value */
   primaryFormatted: string;
-  /** Unit suffix: "/km", "/ton", "/carreta", "" */
   primarySuffix: string;
-  /** Full primary label: "R$ 80,00/ton" */
   primaryLabel: string;
-  /** Secondary info: total calculated or per-truck breakdown */
   secondaryLabel: string | null;
-  /** The unit rate label for the grid cell */
   unitRateLabel: string;
-  /** The unit rate value */
   unitRateValue: number | null;
-  /** The unit rate formatted */
   unitRateFormatted: string;
-  /** Profitability color class */
   unitRateColorClass: string;
-  /** Whether the pricing is unit-based (PER_KM or PER_TON) */
   isUnitPricing: boolean;
-  /** Pricing type resolved */
   pricingType: PricingType;
-  /** Whether pricing_type was missing/invalid (data quality issue) */
   isPricingTypeInvalid: boolean;
 }
 
 /**
- * Sentinel result for when pricing_type is missing/invalid.
- * Shows "Preço indisponível" instead of guessing wrong unit.
+ * Bridge: converts canonical contract result to legacy FreightPriceDisplay shape.
+ * This ensures ALL components get the same canonical output.
  */
-function createInvalidPricingResult(freight: FreightPriceDisplayInput): FreightPriceDisplay {
-  return {
-    primaryValue: freight.price,
-    primaryFormatted: freight.price > 0 ? formatBRL(freight.price, true) : '—',
-    primarySuffix: '',
-    primaryLabel: freight.price > 0 ? formatBRL(freight.price, true) : 'Preço indisponível',
-    secondaryLabel: '⚠️ Tipo de precificação não informado',
-    unitRateLabel: '—',
-    unitRateValue: null,
-    unitRateFormatted: '—',
-    unitRateColorClass: 'text-muted-foreground',
-    isUnitPricing: false,
-    pricingType: 'FIXED',
-    isPricingTypeInvalid: true,
-  };
-}
-
 export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): FreightPriceDisplay {
-  // ✅ ANTI-REGRESSÃO: validar pricing_type rigorosamente
-  const validatedType = validatePricingType(freight.pricing_type);
-  
-  if (!validatedType) {
-    console.warn(
-      `[PriceDisplay] ⚠️ pricing_type AUSENTE ou INVÁLIDO para frete com price=${freight.price}, ` +
-      `pricing_type="${freight.pricing_type}". NÃO será assumido PER_KM. Exibindo como dado incompleto.`
-    );
-    return createInvalidPricingResult(freight);
+  const canonical = getCanonicalFreightPrice({
+    pricing_type: freight.pricing_type,
+    price_per_ton: freight.price_per_ton,
+    price_per_km: freight.price_per_km,
+    price: freight.price,
+    required_trucks: freight.required_trucks,
+    weight: freight.weight,
+    distance_km: freight.distance_km,
+  });
+
+  if (!canonical.ok || canonical.isPricingTypeInvalid) {
+    return {
+      primaryValue: freight.price || 0,
+      primaryFormatted: freight.price > 0 ? formatBRL(freight.price, true) : '—',
+      primarySuffix: '',
+      primaryLabel: canonical.primaryLabel,
+      secondaryLabel: canonical.isPricingTypeInvalid ? '⚠️ Tipo de precificação não informado' : null,
+      unitRateLabel: '—',
+      unitRateValue: null,
+      unitRateFormatted: '—',
+      unitRateColorClass: 'text-muted-foreground',
+      isUnitPricing: false,
+      pricingType: 'FIXED',
+      isPricingTypeInvalid: true,
+    };
   }
 
-  const pricingType = validatedType;
-  const unitRate = freight.price_per_km; // Stores unit value for PER_KM (and legacy PER_TON)
-  const tonUnitRate = freight.price_per_ton ?? freight.price_per_km; // PER_TON: prefer explicit field
-  const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
-  const hasMultipleTrucks = requiredTrucks > 1;
+  const unitValue = canonical.unitValue ?? 0;
+  const pricingType = canonical.pricingType!;
+  const suffixMap: Record<string, string> = { ton: '/ton', km: '/km', veiculo: '/veículo' };
+  const suffix = canonical.unit ? suffixMap[canonical.unit] || '' : '';
+
+  // Derive R$/km for FIXED (for unit rate display)
   const distKm = freight.distance_km || 0;
-
-  // === PER_KM: show exactly the R$/km the producer entered ===
-  if (pricingType === 'PER_KM') {
-    const effectiveUnitRate = (unitRate && unitRate > 0)
-      ? unitRate
-      : (distKm > 0 ? freight.price / distKm : null);
-
-    if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
-      // Secondary: distance info only, NEVER aggregate total
-      let secondary: string | null = null;
-      if (distKm > 0) {
-        secondary = `${Math.round(distKm)} km`;
-      }
-      if (hasMultipleTrucks) {
-        secondary = secondary
-          ? `${secondary} · ${requiredTrucks} carretas`
-          : `${requiredTrucks} carretas`;
-      }
-
-      return {
-        primaryValue: effectiveUnitRate,
-        primaryFormatted: formatBRL(effectiveUnitRate, true),
-        primarySuffix: '/km',
-        primaryLabel: `${formatBRL(effectiveUnitRate, true)}/km`,
-        secondaryLabel: secondary,
-        unitRateLabel: 'R$/km',
-        unitRateValue: effectiveUnitRate,
-        unitRateFormatted: `R$${effectiveUnitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        unitRateColorClass: getUnitRateColor(effectiveUnitRate, 'PER_KM'),
-        isUnitPricing: true,
-        pricingType: 'PER_KM',
-        isPricingTypeInvalid: false,
-      };
-    }
+  let derivedPerKm: number | null = null;
+  if (pricingType === 'FIXED' && distKm > 0) {
+    derivedPerKm = unitValue / distKm;
   }
-
-  // === PER_TON: show exactly the R$/ton the producer entered ===
-  if (pricingType === 'PER_TON') {
-    const weightTons = (freight.weight || 0) / 1000;
-    const effectiveUnitRate = (tonUnitRate && tonUnitRate > 0) 
-      ? tonUnitRate 
-      : (weightTons > 0 ? freight.price / weightTons : null);
-    
-    if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
-      // Secondary: weight/truck info only, NEVER aggregate total
-      let secondary: string | null = null;
-      if (weightTons > 0) {
-        secondary = `${weightTons.toFixed(1)} ton`;
-      }
-      if (hasMultipleTrucks) {
-        secondary = secondary
-          ? `${secondary} · ${requiredTrucks} carretas`
-          : `${requiredTrucks} carretas`;
-      }
-
-      return {
-        primaryValue: effectiveUnitRate,
-        primaryFormatted: formatBRL(effectiveUnitRate, true),
-        primarySuffix: '/ton',
-        primaryLabel: `${formatBRL(effectiveUnitRate, true)}/ton`,
-        secondaryLabel: secondary,
-        unitRateLabel: 'R$/ton',
-        unitRateValue: effectiveUnitRate,
-        unitRateFormatted: `R$${effectiveUnitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        unitRateColorClass: getUnitRateColor(effectiveUnitRate, 'PER_TON'),
-        isUnitPricing: true,
-        pricingType: 'PER_TON',
-        isPricingTypeInvalid: false,
-      };
-    }
-  }
-
-  // === FIXED: always per-vehicle unit price ===
-  const perTruck = hasMultipleTrucks ? freight.price / requiredTrucks : freight.price;
-  const derivedPerKm = distKm > 0 ? perTruck / distKm : null;
 
   return {
-    primaryValue: hasMultipleTrucks ? perTruck : freight.price,
-    primaryFormatted: formatBRL(hasMultipleTrucks ? perTruck : freight.price, true),
-    primarySuffix: hasMultipleTrucks ? '/carreta' : '',
-    primaryLabel: hasMultipleTrucks
-      ? `${formatBRL(perTruck, true)}/carreta`
-      : formatBRL(freight.price, true),
-    secondaryLabel: hasMultipleTrucks
-      ? `${requiredTrucks} carretas`
-      : null,
-    unitRateLabel: 'R$/km',
-    unitRateValue: derivedPerKm,
-    unitRateFormatted: derivedPerKm !== null
-      ? `R$${derivedPerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : '—',
-    unitRateColorClass: derivedPerKm !== null ? getUnitRateColor(derivedPerKm, 'PER_KM') : 'text-muted-foreground',
-    isUnitPricing: false,
-    pricingType: 'FIXED',
+    primaryValue: unitValue,
+    primaryFormatted: formatBRL(unitValue, true),
+    primarySuffix: suffix,
+    primaryLabel: canonical.primaryLabel,
+    secondaryLabel: canonical.secondaryLabel ?? null,
+    unitRateLabel: pricingType === 'PER_TON' ? 'R$/ton' : 'R$/km',
+    unitRateValue: pricingType === 'PER_TON' ? unitValue
+      : pricingType === 'PER_KM' ? unitValue
+      : derivedPerKm,
+    unitRateFormatted: (() => {
+      const v = pricingType === 'PER_TON' ? unitValue
+        : pricingType === 'PER_KM' ? unitValue
+        : derivedPerKm;
+      return v != null
+        ? `R$${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : '—';
+    })(),
+    unitRateColorClass: (() => {
+      const v = pricingType === 'PER_TON' ? unitValue : (pricingType === 'PER_KM' ? unitValue : derivedPerKm);
+      if (v == null) return 'text-muted-foreground';
+      return getUnitRateColor(v, pricingType);
+    })(),
+    isUnitPricing: pricingType === 'PER_KM' || pricingType === 'PER_TON',
+    pricingType,
     isPricingTypeInvalid: false,
   };
 }
@@ -219,5 +150,5 @@ export function useFreightPriceDisplay(freight: FreightPriceDisplayInput | null)
   return useMemo(() => {
     if (!freight) return null;
     return getFreightPriceDisplay(freight);
-  }, [freight?.price, freight?.pricing_type, freight?.price_per_km, freight?.required_trucks, freight?.distance_km, freight?.weight]);
+  }, [freight?.price, freight?.pricing_type, freight?.price_per_km, freight?.price_per_ton, freight?.required_trucks, freight?.distance_km, freight?.weight]);
 }

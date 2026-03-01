@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Clock, CheckCircle, XCircle, Truck, Star, Building2 } from 'lucide-react';
-import { formatBRL } from '@/lib/formatters';
 import type { PendingDeliveryItem } from '@/hooks/usePendingDeliveryConfirmations';
-import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
+import { getCanonicalFreightPrice } from '@/lib/freightPriceContract';
 
 interface PendingDeliveryConfirmationCardProps {
   item: PendingDeliveryItem;
@@ -22,17 +21,16 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
   onDispute,
   isHighlighted = false,
 }) => {
-  // ✅ Hook centralizado: resolveDriverUnitPrice para calcular valor por carreta
-  const requiredTrucks = Math.max(item.freight.required_trucks || 1, 1);
-  const agreed = (typeof item.agreed_price === 'number' && Number.isFinite(item.agreed_price) && item.agreed_price > 0)
-    ? item.agreed_price
-    : 0;
-
-  const individualPrice = resolveDriverUnitPrice(
-    agreed,
-    item.freight.price,
-    requiredTrucks,
-  );
+  // ✅ Contrato canônico: nunca formata preço manualmente
+  const priceDisplay = getCanonicalFreightPrice({
+    pricing_type: (item.freight as any).pricing_type,
+    price_per_ton: (item.freight as any).price_per_ton,
+    price_per_km: (item.freight as any).price_per_km,
+    price: item.agreed_price || item.freight.price,
+    required_trucks: item.freight.required_trucks,
+    weight: (item.freight as any).weight,
+    distance_km: (item.freight as any).distance_km,
+  });
   return (
     <Card 
       className={`h-full flex flex-col border-amber-200 ${
@@ -81,11 +79,11 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
               Aguardando Confirmação
             </Badge>
             <p className="text-lg font-bold text-green-600 whitespace-nowrap">
-              R$ {formatBRL(individualPrice)}
+              {priceDisplay.primaryLabel}
             </p>
-            {item.freight.required_trucks > 1 && (
+            {priceDisplay.secondaryLabel && (
               <p className="text-xs text-muted-foreground">
-                (valor desta carreta)
+                {priceDisplay.secondaryLabel}
               </p>
             )}
           </div>
