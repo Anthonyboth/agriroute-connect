@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { usePrecoPreenchido } from '@/hooks/usePrecoPreenchido';
 
 export interface PaymentCardData {
   id: string;
@@ -40,6 +41,10 @@ export interface PaymentCardData {
     pickup_date?: string;
     status?: string;
     price?: number;
+    pricing_type?: string;
+    price_per_km?: number;
+    required_trucks?: number;
+    weight?: number;
     distance_km?: number;
   };
   driver?: {
@@ -130,6 +135,17 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const statusConfig = getStatusConfig(payment.status);
   const StatusIcon = statusConfig.icon;
+
+  // ✅ Preço canônico via pipeline — NUNCA usar freight.price direto
+  const preco = usePrecoPreenchido(payment.freight ? {
+    id: payment.freight.id,
+    price: payment.freight.price,
+    pricing_type: payment.freight.pricing_type,
+    price_per_km: payment.freight.price_per_km,
+    required_trucks: payment.freight.required_trucks,
+    weight: payment.freight.weight,
+    distance_km: payment.freight.distance_km,
+  } : null);
 
   const formatRoute = () => {
     if (!payment.freight) return 'Rota não disponível';
@@ -232,11 +248,11 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   </div>
                 )}
                 
-                {payment.freight?.price && (
+                {preco && !preco.invalid && (
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Valor do Frete:</span>
-                    <span className="font-medium">R$ {payment.freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">Preço do Frete:</span>
+                    <span className="font-medium">{preco.primaryText}</span>
                   </div>
                 )}
 
