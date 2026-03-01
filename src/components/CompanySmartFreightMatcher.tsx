@@ -114,6 +114,11 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       const missingItems: string[] = [];
       if (vehicleCount === 0) missingItems.push('veículos cadastrados');
       if (cityCount === 0) missingItems.push('cidades ativas');
+      
+      // Check if service_types are configured
+      const serviceTypes = profile?.service_types;
+      const hasServiceTypes = Array.isArray(serviceTypes) && serviceTypes.length > 0;
+      if (!hasServiceTypes) missingItems.push('tipos de frete marcados no perfil');
 
       const result = await fetchAvailableMarketplaceItems({
         profile,
