@@ -1,10 +1,11 @@
 import React, { useCallback } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ERP } from "@/styles/agri-erp";
 
 // ============================================
-// AgriCategoryRow — Card de Categoria
-// 60/30/10: fundo neutro (card), ícone com acento primary (10%)
+// AgriCategoryRow — Card de Categoria (ERP multicolorido)
+// 60% base neutro, 30% cor da categoria, 10% acento
 // ============================================
 
 interface ServiceCategoryCardProps {
@@ -41,6 +42,9 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
     }
   }, [id, onClick]);
 
+  // Resolve category color — fallback to agricultural (green)
+  const colors = ERP.catColors[id] || ERP.catColors.agricultural;
+
   return (
     <button
       type="button"
@@ -52,15 +56,13 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
       className={cn(
         // Layout — row alinhado
         "group w-full flex items-center gap-3.5 p-4",
-        // 60% base: fundo neutro card
-        "rounded-2xl bg-card border border-border",
-        "transition-all duration-150 ease-out",
-        // Estado ativo: acento primary sutil
-        isActive && "border-primary/30 ring-1 ring-primary/20",
+        // 60% base + 30% cor da categoria
+        "rounded-2xl border transition-all duration-150 ease-out",
+        colors.bg, colors.border, colors.bgHover,
+        // Estado ativo
+        isActive && "ring-1 ring-primary/20",
         // Hover enterprise
-        "hover:-translate-y-0.5",
-        "hover:shadow-sm",
-        "hover:border-primary/25",
+        "hover:-translate-y-0.5 hover:shadow-sm",
         // Focus acessibilidade
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         // Touch
@@ -68,15 +70,14 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
         "pointer-events-auto cursor-pointer"
       )}
     >
-      {/* Ícone — 10% acento: primary com opacidade */}
+      {/* Ícone — cor da categoria */}
       <div
         className={cn(
           "flex-shrink-0 flex items-center justify-center",
-          "w-11 h-11 rounded-xl",
-          // Fundo primary translúcido (10% acento) em vez de cores por categoria
-          "bg-primary/10 text-primary border border-primary/15",
+          "w-11 h-11 rounded-xl border",
+          colors.text, colors.bg, colors.border,
           "transition-all duration-150",
-          "group-hover:scale-105 group-hover:bg-primary/15"
+          "group-hover:scale-105"
         )}
       >
         <IconComponent className="h-5 w-5" strokeWidth={1.75} />
@@ -85,17 +86,17 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
       {/* Conteúdo — grid fixo */}
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-150 truncate">
+          <h3 className="font-semibold text-foreground transition-colors duration-150 truncate">
             {title}
           </h3>
-          {/* Badge neutro — 30% estrutura */}
+          {/* Badge com cor da categoria */}
           <span
             className={cn(
               "inline-flex items-center justify-center",
               "h-6 px-2 rounded-full",
-              "text-xs font-medium",
-              "bg-muted text-muted-foreground",
-              "border border-border"
+              "text-xs font-semibold leading-none whitespace-nowrap",
+              "border",
+              colors.chipBg
             )}
           >
             {count} {count === 1 ? "tipo" : "tipos"}
@@ -106,7 +107,7 @@ export const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({
         </p>
       </div>
 
-      {/* Chevron — 30% estrutura */}
+      {/* Chevron */}
       <div className="flex-shrink-0">
         <ChevronRight
           className={cn(

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AgriChip } from '@/components/ui/AgriChip';
+import { ERP } from '@/styles/agri-erp';
 import { 
   Search,
   Clock,
@@ -131,7 +131,9 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
           return (
             <Card 
               key={service.id} 
-              className={`group flex flex-col min-h-[240px] rounded-2xl border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+              className={`group flex flex-col min-h-[240px] rounded-2xl shadow-sm transition-all duration-200 cursor-pointer ${
+                ERP.cardSoftGreen
+              } ${
                 isSelected && showCheckboxes ? 'ring-2 ring-primary border-primary/30' : ''
               }`}
               onClick={() => {
@@ -141,9 +143,7 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
               }}
             >
               <CardHeader className="pb-3">
-                {/* Grid fixo: ícone + título */}
                 <div className="grid grid-cols-[44px_1fr] gap-3 items-start">
-                  {/* Checkbox antes do ícone se modo seleção */}
                   <div className="relative">
                     {showCheckboxes && (
                       <div className="absolute -top-1 -left-1 z-10">
@@ -154,14 +154,13 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
                         />
                       </div>
                     )}
-                    {/* Ícone — 10% acento: primary translúcido */}
-                    <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/15 transition-all duration-150 group-hover:bg-primary/15 group-hover:scale-105">
+                    <div className={ERP.iconBox}>
                       <IconComponent className="h-5 w-5" strokeWidth={1.75} />
                     </div>
                   </div>
 
                   <div className="min-w-0">
-                    <CardTitle className="text-base font-bold text-foreground leading-tight truncate group-hover:text-primary transition-colors">
+                    <CardTitle className={`${ERP.title} truncate group-hover:text-primary transition-colors`}>
                       {service.label}
                     </CardTitle>
                   </div>
@@ -169,31 +168,29 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
               </CardHeader>
               
               <CardContent className="pt-0 flex flex-col flex-1">
-                {/* Descrição com clamp — 60% base */}
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 flex-1">
+                <p className={`${ERP.desc} flex-1`}>
                   {service.description}
                 </p>
                 
-                {/* Footer fixo — mt-auto */}
-                <div className="mt-auto pt-3 space-y-3">
-                  {/* Chips alinhados — AgriChip */}
+                <div className={ERP.footer}>
                   <div className="flex flex-wrap gap-1.5">
-                    <AgriChip tone="neutral" icon={<Clock className="h-3 w-3" />}>
+                    <span className={ERP.chipNeutral}>
+                      <Clock className="h-3 w-3" />
                       Resposta rápida
-                    </AgriChip>
-                    <AgriChip tone="verified" icon={<ShieldCheck className="h-3 w-3" />}>
+                    </span>
+                    <span className={ERP.chipVerified}>
+                      <ShieldCheck className="h-3 w-3" />
                       Verificado
-                    </AgriChip>
+                    </span>
                   </div>
 
-                  {/* CTA — 10% acento */}
                   {!showCheckboxes && onServiceRequest && (
                     <Button 
                       onClick={(e) => {
                         e.stopPropagation();
                         onServiceRequest(service);
                       }} 
-                      className="w-full rounded-xl"
+                      className={ERP.cta}
                       size="sm"
                     >
                       Solicitar Serviço
