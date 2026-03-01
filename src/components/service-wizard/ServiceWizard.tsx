@@ -682,7 +682,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <Step1ServiceType formData={formData} onUpdate={handleUpdate} serviceType={serviceType} />;
+        return <Step1ServiceType formData={formData} onUpdate={handleUpdate} serviceType={serviceType} catalogServiceId={catalogServiceId} />;
       case 2:
         // Usuários logados com perfil nunca devem ver esta tela
         if (isLoggedInWithProfile) return null;
