@@ -11,14 +11,16 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Send, Paperclip, Mic, Camera, X, Square, Loader2,
+  Send, Paperclip, Mic, Camera, X, Square, Loader2, MapPin,
 } from 'lucide-react';
 import { useMediaRecorder } from '@/hooks/useMediaRecorder';
 import { toast } from 'sonner';
+import { getCurrentPositionSafe } from '@/utils/location';
 
 interface ChatInputBarProps {
   onSendText: (text: string) => Promise<boolean> | void;
   onSendMedia: (file: File, type: 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO') => Promise<boolean>;
+  onSendLocation?: (lat: number, lng: number, address: string) => Promise<boolean>;
   isSending?: boolean;
   isUploading?: boolean;
   disabled?: boolean;
@@ -38,6 +40,7 @@ const formatDuration = (seconds: number): string => {
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onSendText,
   onSendMedia,
+  onSendLocation,
   isSending = false,
   isUploading = false,
   disabled = false,
@@ -46,6 +49,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   extraTopContent,
 }) => {
   const [newMessage, setNewMessage] = useState('');
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -61,7 +65,27 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     onRecordingComplete: onSendMedia,
   });
 
-  const isDisabled = isSending || isUploading || isRecording || disabled;
+  const isDisabled = isSending || isUploading || isRecording || isFetchingLocation || disabled;
+
+  const handleSendLocation = async () => {
+    if (!onSendLocation || isDisabled) return;
+    setIsFetchingLocation(true);
+    try {
+      const pos = await getCurrentPositionSafe();
+      if (!pos) {
+        toast.error('Não foi possível obter sua localização. Verifique as permissões de GPS.');
+        return;
+      }
+      const { latitude, longitude } = pos.coords;
+      const address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      await onSendLocation(latitude, longitude, address);
+    } catch (err: any) {
+      console.error('[ChatInputBar] Erro ao obter localização:', err);
+      toast.error(err.message || 'Erro ao obter localização');
+    } finally {
+      setIsFetchingLocation(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!newMessage.trim() || isDisabled) return;
@@ -213,6 +237,25 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           >
             <Paperclip className="h-5 w-5" />
           </Button>
+
+          {/* 📍 Localização */}
+          {onSendLocation && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleSendLocation}
+              disabled={isDisabled}
+              title="Compartilhar localização"
+              className="flex-shrink-0 h-10 w-10"
+            >
+              {isFetchingLocation ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <MapPin className="h-5 w-5" />
+              )}
+            </Button>
+          )}
 
           {/* Extra left content */}
           {extraLeftContent}

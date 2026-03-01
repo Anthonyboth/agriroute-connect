@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -14,6 +14,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useServiceChatConnection, ChatMessage } from '@/hooks/useServiceChatConnection';
 import { ChatInputBar } from '@/components/chat/ChatInputBar';
+import { ChatLocationBubble } from '@/components/chat/ChatLocationBubble';
+import { ChatLocationRouteModal } from '@/components/chat/ChatLocationRouteModal';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ServiceChatProps {
@@ -26,6 +28,9 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   currentUserProfile 
 }) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [routeModal, setRouteModal] = useState<{ open: boolean; lat: number; lng: number; address?: string }>({
+    open: false, lat: 0, lng: 0,
+  });
 
   const {
     messages,
@@ -37,6 +42,7 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
     isParticipant,
     sendTextMessage,
     sendMediaMessage,
+    sendLocationMessage,
     refresh,
   } = useServiceChatConnection({
     serviceRequestId,
@@ -274,6 +280,16 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                           </div>
                           <Download className="h-4 w-4 flex-shrink-0" />
                         </a>
+                      ) : msg.message_type === 'LOCATION' && msg.location_lat && msg.location_lng ? (
+                        /* Localização */
+                        <ChatLocationBubble
+                          lat={msg.location_lat}
+                          lng={msg.location_lng}
+                          address={msg.location_address}
+                          timestamp={msg.created_at}
+                          isCurrentUser={isCurrentUser}
+                          onOpenRouteModal={(lat, lng, addr) => setRouteModal({ open: true, lat, lng, address: addr })}
+                        />
                       ) : (
                         /* Texto */
                         <p className="text-sm whitespace-pre-wrap" translate="no">{msg.message}</p>
@@ -308,12 +324,21 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
           <ChatInputBar
             onSendText={sendTextMessage}
             onSendMedia={sendMediaMessage}
+            onSendLocation={sendLocationMessage}
             isSending={isSending}
             isUploading={isUploading}
             placeholder="Digite sua mensagem..."
           />
         </div>
       </CardContent>
+
+      <ChatLocationRouteModal
+        open={routeModal.open}
+        onOpenChange={(open) => setRouteModal(prev => ({ ...prev, open }))}
+        destinationLat={routeModal.lat}
+        destinationLng={routeModal.lng}
+        destinationAddress={routeModal.address}
+      />
     </Card>
   );
 };

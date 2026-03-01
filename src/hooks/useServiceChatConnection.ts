@@ -8,11 +8,14 @@ export interface ChatMessage {
   service_request_id: string;
   sender_id: string;
   message: string;
-  message_type: 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO';
+  message_type: 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO' | 'LOCATION';
   image_url?: string;
   file_url?: string;
   file_name?: string;
   file_size?: number;
+  location_lat?: number;
+  location_lng?: number;
+  location_address?: string;
   created_at: string;
   read_at?: string;
   delivered_at?: string;
@@ -39,6 +42,7 @@ interface ServiceChatConnectionResult {
   isParticipant: boolean;
   sendTextMessage: (text: string) => Promise<boolean>;
   sendMediaMessage: (file: File, type: 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO') => Promise<boolean>;
+  sendLocationMessage: (lat: number, lng: number, address: string) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -184,7 +188,9 @@ export function useServiceChatConnection({
             .from('service_messages')
             .select(`
               id, service_request_id, sender_id, message, message_type,
-              image_url, file_url, file_name, file_size, created_at, read_at, delivered_at,
+              image_url, file_url, file_name, file_size,
+              location_lat, location_lng, location_address,
+              created_at, read_at, delivered_at,
               sender:profiles!service_messages_sender_id_fkey(id, full_name, role, profile_photo_url)
             `)
             .eq('service_request_id', serviceRequestId)
@@ -388,6 +394,38 @@ export function useServiceChatConnection({
     }
   }, [serviceRequestId, currentUserProfileId, uploadMedia]);
 
+  // ✅ Enviar mensagem de localização
+  const sendLocationMessage = useCallback(async (
+    lat: number, lng: number, address: string
+  ): Promise<boolean> => {
+    if (!currentUserProfileId || !serviceRequestId) return false;
+
+    setIsSending(true);
+    try {
+      const { error: insertError } = await supabase
+        .from('service_messages')
+        .insert({
+          service_request_id: serviceRequestId,
+          sender_id: currentUserProfileId,
+          message: `📍 Localização compartilhada: ${address}`,
+          message_type: 'LOCATION',
+          location_lat: lat,
+          location_lng: lng,
+          location_address: address,
+        });
+
+      if (insertError) throw insertError;
+      toast.success('Localização compartilhada');
+      return true;
+    } catch (err: any) {
+      console.error('[ServiceChat] Erro ao enviar localização:', err);
+      toast.error('Erro ao compartilhar localização');
+      return false;
+    } finally {
+      if (isMountedRef.current) setIsSending(false);
+    }
+  }, [serviceRequestId, currentUserProfileId]);
+
   // ✅ Inicialização: validar participante + carregar mensagens + subscription
   useEffect(() => {
     isMountedRef.current = true;
@@ -501,6 +539,7 @@ export function useServiceChatConnection({
     isParticipant,
     sendTextMessage,
     sendMediaMessage,
+    sendLocationMessage,
     refresh: fetchMessages,
   };
 }
