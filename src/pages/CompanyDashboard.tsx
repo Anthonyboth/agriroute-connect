@@ -1195,7 +1195,7 @@ const CompanyDashboard = () => {
 
       {/* Modal de Detalhes do Frete */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" hideCloseButton>
           <DialogTitle className="sr-only">Detalhes do Frete</DialogTitle>
           {selectedFreightId && (
             <FreightDetails
