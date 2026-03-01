@@ -12,11 +12,95 @@ interface Step1Props {
   formData: ServiceFormData;
   onUpdate: (field: keyof ServiceFormData | string, value: any) => void;
   serviceType: ServiceType;
+  catalogServiceId?: string;
 }
 
-export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, serviceType }) => {
+// ============================================================
+// Serviços que precisam de campos agrícolas (hectares, cultura)
+// ============================================================
+const AGRICULTURAL_FIELD_SERVICES = new Set([
+  'PULVERIZACAO_DRONE',
+  'COLHEITA_PLANTIO_TERCEIRIZADA',
+  'ANALISE_SOLO',
+  'AGRONOMO',
+  'ASSISTENCIA_TECNICA',
+  'PIVO_IRRIGACAO',
+  'SECAGEM_GRAOS',
+  'CLASSIFICACAO_GRAOS',
+  'ARMAZENAGEM',
+  'OPERADOR_MAQUINAS',
+  'TOPOGRAFIA_RURAL',
+]);
+
+// ============================================================
+// Serviços de reparo de veículos/máquinas (tipo de veículo)
+// ============================================================
+const VEHICLE_REPAIR_SERVICES = new Set([
+  'BORRACHEIRO',
+  'MECANICO',
+  'AUTO_ELETRICA',
+  'MECANICO_INDUSTRIAL',
+  'CHAVEIRO',
+]);
+
+// ============================================================
+// Serviços veterinários
+// ============================================================
+const VETERINARY_SERVICES = new Set([
+  'SERVICOS_VETERINARIOS',
+]);
+
+// ============================================================
+// Serviços de construção/terraplenagem (área + descrição)
+// ============================================================
+const CONSTRUCTION_SERVICES = new Set([
+  'TERRAPLENAGEM',
+  'CONSTRUCAO_MANUTENCAO_CERCAS',
+  'LIMPEZA_DESASSOREAMENTO_REPRESAS',
+]);
+
+// ============================================================
+// Serviços de instalação/técnicos (equipamento + descrição)
+// ============================================================
+const INSTALLATION_SERVICES = new Set([
+  'ENERGIA_SOLAR',
+  'CFTV_SEGURANCA',
+  'CONSULTORIA_TI',
+  'AUTOMACAO_INDUSTRIAL',
+  'MANUTENCAO_BALANCAS',
+  'MANUTENCAO_REVISAO_GPS',
+  'TORNEARIA_SOLDA_REPAROS',
+  'GUINDASTE',
+  'CARREGAMENTO_DESCARREGAMENTO',
+]);
+
+const VEHICLE_TYPES_FOR_REPAIR = [
+  { value: 'CARRO', label: 'Carro / Caminhonete' },
+  { value: 'MOTO', label: 'Moto' },
+  { value: 'CAMINHAO', label: 'Caminhão' },
+  { value: 'VAN', label: 'Van / Utilitário' },
+  { value: 'TRATOR', label: 'Trator' },
+  { value: 'COLHEITADEIRA', label: 'Colheitadeira' },
+  { value: 'IMPLEMENTO', label: 'Implemento Agrícola' },
+  { value: 'OUTRO', label: 'Outro' },
+];
+
+const ANIMAL_TYPES = [
+  { value: 'BOVINO', label: 'Bovinos (gado)' },
+  { value: 'EQUINO', label: 'Equinos (cavalos)' },
+  { value: 'SUINO', label: 'Suínos (porcos)' },
+  { value: 'AVES', label: 'Aves' },
+  { value: 'OVINO', label: 'Ovinos / Caprinos' },
+  { value: 'PET', label: 'Pet (cão, gato)' },
+  { value: 'OUTRO', label: 'Outro' },
+];
+
+export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, serviceType, catalogServiceId }) => {
   const isGuindaste = formData.subServiceType === 'GUINDASTE' || formData.subServiceType === 'Guindaste';
   
+  // Determinar qual formulário contextual exibir baseado no catalogServiceId real
+  const effectiveServiceId = catalogServiceId || '';
+
   const renderGuinchoFields = () => (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -92,13 +176,10 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
           </CardContent>
         </Card>
       )}
-
     </div>
   );
 
   const renderMudancaFields = () => {
-    // Se o tipo já foi selecionado no MudancaModal (MUDANCA_RESIDENCIAL/MUDANCA_COMERCIAL),
-    // não mostrar a seleção duplicada de tipo
     const typeAlreadySelected = serviceType === 'MUDANCA_RESIDENCIAL' || serviceType === 'MUDANCA_COMERCIAL';
 
     return (
@@ -167,6 +248,9 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
     );
   };
 
+  // ============================================================
+  // CAMPOS AGRÍCOLAS: hectares, cultura, descrição
+  // ============================================================
   const renderAgriculturalFields = () => (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -211,7 +295,128 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
     </div>
   );
 
-  const renderTechnicalFields = () => (
+  // ============================================================
+  // CAMPOS PARA REPARO DE VEÍCULOS: tipo de veículo, descrição do problema
+  // ============================================================
+  const renderVehicleRepairFields = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Tipo de Veículo / Máquina *</Label>
+        <Select 
+          value={formData.vehicle?.type || ''} 
+          onValueChange={(value) => onUpdate('vehicle.type', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o tipo de veículo" />
+          </SelectTrigger>
+          <SelectContent>
+            {VEHICLE_TYPES_FOR_REPAIR.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Placa do Veículo (opcional)</Label>
+        <Input
+          value={formData.vehicle?.plate || ''}
+          onChange={(e) => onUpdate('vehicle.plate', e.target.value.toUpperCase())}
+          placeholder="Ex: ABC-1234"
+          maxLength={8}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Descreva o problema *</Label>
+        <Textarea
+          value={formData.problemDescription}
+          onChange={(e) => onUpdate('problemDescription', e.target.value)}
+          placeholder="Descreva o que está acontecendo com o veículo/máquina..."
+          rows={4}
+        />
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // CAMPOS VETERINÁRIOS: tipo de animal, quantidade, descrição
+  // ============================================================
+  const renderVeterinaryFields = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Tipo de Animal *</Label>
+        <Select 
+          value={formData.agricultural?.culture || ''} 
+          onValueChange={(value) => onUpdate('agricultural.culture', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o tipo de animal" />
+          </SelectTrigger>
+          <SelectContent>
+            {ANIMAL_TYPES.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Quantidade de Animais</Label>
+        <Input
+          type="number"
+          value={formData.agricultural?.area || ''}
+          onChange={(e) => onUpdate('agricultural.area', e.target.value)}
+          placeholder="Ex: 5"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Descreva a necessidade *</Label>
+        <Textarea
+          value={formData.problemDescription}
+          onChange={(e) => onUpdate('problemDescription', e.target.value)}
+          placeholder="Descreva os sintomas, urgência, tipo de atendimento necessário..."
+          rows={4}
+        />
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // CAMPOS DE CONSTRUÇÃO/TERRAPLENAGEM: área, descrição
+  // ============================================================
+  const renderConstructionFields = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Área estimada (m² ou hectares)</Label>
+        <Input
+          value={formData.agricultural?.area || ''}
+          onChange={(e) => onUpdate('agricultural.area', e.target.value)}
+          placeholder="Ex: 500m² ou 2 hectares"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Descreva o serviço que precisa *</Label>
+        <Textarea
+          value={formData.problemDescription}
+          onChange={(e) => onUpdate('problemDescription', e.target.value)}
+          placeholder="Descreva o tipo de trabalho, terreno, acesso ao local..."
+          rows={4}
+        />
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // CAMPOS DE INSTALAÇÃO/TÉCNICOS: tipo de equipamento + descrição
+  // ============================================================
+  const renderInstallationFields = () => (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Tipo de Equipamento *</Label>
@@ -228,17 +433,40 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
             <SelectItem value="PLANTADEIRA">Plantadeira</SelectItem>
             <SelectItem value="PULVERIZADOR">Pulverizador</SelectItem>
             <SelectItem value="CAMINHAO">Caminhão</SelectItem>
+            <SelectItem value="SISTEMA_ELETRICO">Sistema Elétrico</SelectItem>
+            <SelectItem value="CAMERAS_CFTV">Câmeras / CFTV</SelectItem>
+            <SelectItem value="REDE_INTERNET">Rede / Internet</SelectItem>
+            <SelectItem value="PAINEL_SOLAR">Painel Solar</SelectItem>
+            <SelectItem value="BALANCA">Balança</SelectItem>
+            <SelectItem value="GPS">GPS / Sistema de Navegação</SelectItem>
             <SelectItem value="OUTRO">Outro</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label>Descreva o problema *</Label>
+        <Label>Descreva o problema ou serviço necessário *</Label>
         <Textarea
           value={formData.problemDescription}
           onChange={(e) => onUpdate('problemDescription', e.target.value)}
-          placeholder="Descreva detalhadamente o problema ou serviço necessário..."
+          placeholder="Descreva detalhadamente o que precisa ser feito..."
+          rows={4}
+        />
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // CAMPOS GENÉRICOS (fallback): apenas descrição
+  // ============================================================
+  const renderGenericFields = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Descreva o serviço que precisa *</Label>
+        <Textarea
+          value={formData.problemDescription}
+          onChange={(e) => onUpdate('problemDescription', e.target.value)}
+          placeholder="Descreva detalhadamente o que você precisa..."
           rows={4}
         />
       </div>
@@ -263,6 +491,28 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
       );
     }
 
+    // ✅ Para serviços do catálogo (agrícola/técnico), usar catalogServiceId para determinar campos
+    if (effectiveServiceId && (serviceType === 'SERVICO_AGRICOLA' || serviceType === 'SERVICO_TECNICO')) {
+      if (VEHICLE_REPAIR_SERVICES.has(effectiveServiceId)) {
+        return renderVehicleRepairFields();
+      }
+      if (VETERINARY_SERVICES.has(effectiveServiceId)) {
+        return renderVeterinaryFields();
+      }
+      if (AGRICULTURAL_FIELD_SERVICES.has(effectiveServiceId)) {
+        return renderAgriculturalFields();
+      }
+      if (CONSTRUCTION_SERVICES.has(effectiveServiceId)) {
+        return renderConstructionFields();
+      }
+      if (INSTALLATION_SERVICES.has(effectiveServiceId)) {
+        return renderInstallationFields();
+      }
+      // Fallback genérico para serviços não categorizados
+      return renderGenericFields();
+    }
+
+    // Fluxo original para serviços com serviceType específico (guincho, frete, mudança, etc.)
     switch (serviceType) {
       case 'GUINCHO':
         return renderGuinchoFields();
@@ -275,7 +525,7 @@ export const Step1ServiceType: React.FC<Step1Props> = ({ formData, onUpdate, ser
       case 'SERVICO_AGRICOLA':
         return renderAgriculturalFields();
       case 'SERVICO_TECNICO':
-        return renderTechnicalFields();
+        return renderInstallationFields();
       default:
         return renderFreteFields();
     }
