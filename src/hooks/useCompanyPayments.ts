@@ -122,6 +122,10 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
             pickup_date,
             status,
             price,
+            pricing_type,
+            price_per_km,
+            required_trucks,
+            weight,
             distance_km
           )
         `)

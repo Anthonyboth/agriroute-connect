@@ -103,6 +103,10 @@ export const useDriverPayments = (): UseDriverPaymentsReturn => {
             pickup_date,
             status,
             price,
+            pricing_type,
+            price_per_km,
+            required_trucks,
+            weight,
             distance_km
           )
         `)

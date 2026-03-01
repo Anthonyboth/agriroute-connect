@@ -72,7 +72,7 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
       devLog('[useProducerPayments] Fetching payments for producer:', profile.id);
       const { data, error: fetchError } = await supabase
         .from('external_payments')
-        .select(`*, freight:freights!external_payments_freight_id_fkey(id, cargo_type, origin_city, origin_state, destination_city, destination_state, pickup_date, status, price, distance_km)`)
+        .select(`*, freight:freights!external_payments_freight_id_fkey(id, cargo_type, origin_city, origin_state, destination_city, destination_state, pickup_date, status, price, pricing_type, price_per_km, required_trucks, weight, distance_km)`)
         .eq('producer_id', profile.id)
         .not('status', 'in', '("cancelled")')
         .order('created_at', { ascending: false });
