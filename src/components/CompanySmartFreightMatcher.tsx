@@ -229,7 +229,11 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
       if (import.meta.env.DEV) console.log(`✅ [FRETES I.A] ${normalizedFreights.length} fretes compatíveis, ${(serviceData || []).length} service_requests, descartados: ${discardedByStatus} status, ${discardedNoSlots} sem vagas`);
 
-      setCompatibleFreights(normalizedFreights);
+      // ✅ Deduplicate by freight_id to prevent React duplicate key errors
+      const deduped = Array.from(
+        new Map(normalizedFreights.map(f => [f.freight_id, f])).values()
+      );
+      setCompatibleFreights(deduped);
       setMatchingStats({
         total: (freightsData?.length || 0) + (serviceData?.length || 0),
         matched: normalizedFreights.length + (serviceData?.length || 0),
