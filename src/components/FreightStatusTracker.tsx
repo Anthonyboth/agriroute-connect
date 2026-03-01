@@ -264,6 +264,9 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   const updateStatus = async (newStatus: string) => {
     if (!currentUserProfile) return;
 
+    // ✅ Guard contra cliques rápidos duplicados
+    if (loading) return;
+
     // ✅ VALIDAÇÃO LOCAL: Bloquear se status efetivo já é final
     if (isFinalStatus) {
       toast({
@@ -320,8 +323,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       if (recentHistory && recentHistory.length > 0) {
         toast({
           title: "Status já atualizado",
-          description: "Este status já foi registrado recentemente.",
-          variant: "destructive",
+          description: "Este status já foi registrado recentemente. Aguarde alguns minutos.",
         });
         clearTimeout(loadingTimeout);
         setLoading(false);
