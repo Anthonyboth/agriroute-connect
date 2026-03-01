@@ -52,7 +52,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
               size="sm"
               variant="ghost"
               className="h-6 text-xs"
-              onLocationFilled={(address, lat, lng, locationData) => {
+              onLocationFilled={async (address, lat, lng, locationData) => {
                 if (locationData?.city) {
                   onUpdate(`${prefix}.city`, locationData.city);
                 }
@@ -71,6 +71,27 @@ const AddressForm: React.FC<AddressFormProps> = ({
                 }
                 if (locationData?.cep) {
                   onUpdate(`${prefix}.cep`, locationData.cep);
+                }
+                // Resolver city_id a partir do nome da cidade
+                if (locationData?.city && locationData?.state) {
+                  try {
+                    const { supabase } = await import('@/integrations/supabase/client');
+                    const normalizedState = locationData.state.length === 2 
+                      ? locationData.state.toUpperCase() 
+                      : locationData.state;
+                    const { data } = await supabase
+                      .from('cities')
+                      .select('id')
+                      .ilike('name', locationData.city)
+                      .eq('state', normalizedState)
+                      .limit(1)
+                      .maybeSingle();
+                    if (data?.id) {
+                      onUpdate(`${prefix}.city_id`, data.id);
+                    }
+                  } catch (e) {
+                    console.warn('GPS: city_id lookup failed', e);
+                  }
                 }
               }}
             />

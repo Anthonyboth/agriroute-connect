@@ -54,6 +54,18 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   error
 }) => {
   const [searchTerm, setSearchTerm] = useState(value?.city && value?.state ? formatCityDisplay(value.city, value.state) : '');
+  
+  // Sync searchTerm when value changes externally (e.g. GPS fill)
+  const prevValueRef = useRef(value);
+  useEffect(() => {
+    const prev = prevValueRef.current;
+    const changed = value?.city !== prev?.city || value?.state !== prev?.state;
+    prevValueRef.current = value;
+    if (changed && value?.city && value?.state) {
+      setSearchTerm(formatCityDisplay(value.city, value.state));
+      setValidationStatus(value.id ? 'valid' : 'none');
+    }
+  }, [value?.city, value?.state, value?.id]);
   const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
