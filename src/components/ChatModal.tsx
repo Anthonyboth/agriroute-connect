@@ -227,7 +227,7 @@ export const ChatModal = ({
             unreadCount={conversation.unreadCount}
           />
         </DialogHeader>
-        <div className="overflow-auto">{renderChatContent()}</div>
+        <div className="overflow-hidden h-[65vh]">{renderChatContent()}</div>
       </DialogContent>
     </Dialog>
   );
