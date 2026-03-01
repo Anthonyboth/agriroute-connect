@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Clock, CheckCircle, XCircle, Truck, Star, Building2 } from 'lucide-react';
 import type { PendingDeliveryItem } from '@/hooks/usePendingDeliveryConfirmations';
-import { getCanonicalFreightPrice } from '@/lib/freightPriceContract';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface PendingDeliveryConfirmationCardProps {
   item: PendingDeliveryItem;
@@ -21,15 +21,15 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
   onDispute,
   isHighlighted = false,
 }) => {
-  // ✅ Contrato canônico: nunca formata preço manualmente
-  const priceDisplay = getCanonicalFreightPrice({
-    pricing_type: (item.freight as any).pricing_type,
-    price_per_ton: (item.freight as any).price_per_ton,
-    price_per_km: (item.freight as any).price_per_km,
-    price: item.agreed_price || item.freight.price,
+  // ✅ HARDENING v9: Usa pipeline canônico com cache por freight.id
+  const preco = precoPreenchidoDoFrete(item.freight.id, {
+    price: item.freight.price,
+    pricing_type: item.freight.pricing_type,
+    price_per_km: item.freight.price_per_km,
+    price_per_ton: item.freight.price_per_km, // banco usa price_per_km para PER_TON também
     required_trucks: item.freight.required_trucks,
-    weight: (item.freight as any).weight,
-    distance_km: (item.freight as any).distance_km,
+    weight: item.freight.weight,
+    distance_km: item.freight.distance_km,
   });
   return (
     <Card 
@@ -79,11 +79,11 @@ export const PendingDeliveryConfirmationCard: React.FC<PendingDeliveryConfirmati
               Aguardando Confirmação
             </Badge>
             <p className="text-lg font-bold text-green-600 whitespace-nowrap">
-              {priceDisplay.primaryLabel}
+              {preco.primaryText}
             </p>
-            {priceDisplay.secondaryLabel && (
+            {preco.secondaryText && (
               <p className="text-xs text-muted-foreground">
-                {priceDisplay.secondaryLabel}
+                {preco.secondaryText}
               </p>
             )}
           </div>
