@@ -38,7 +38,7 @@ import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { UnifiedTrackingControl } from '@/components/UnifiedTrackingControl';
-import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
+import { UnifiedServiceCard } from '@/components/UnifiedServiceCard';
 import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';

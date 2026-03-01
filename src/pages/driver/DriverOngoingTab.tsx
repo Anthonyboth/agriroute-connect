@@ -20,7 +20,7 @@ import { normalizeFreightStatus } from "@/lib/freight-status";
 import { cn } from "@/lib/utils";
 import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
-import { ServiceRequestInProgressCard } from "@/components/ServiceRequestInProgressCard";
+import { UnifiedServiceCard } from "@/components/UnifiedServiceCard";
 import { ServiceChatDialog } from "@/components/ServiceChatDialog";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
@@ -360,35 +360,10 @@ export const DriverOngoingTab: React.FC = () => {
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {serviceRequests.map((r) => (
-                  <ServiceRequestInProgressCard
+                  <UnifiedServiceCard
                     key={r.id}
-                    uiNomenclature="FREIGHT"
-                    request={{
-                      id: r.id,
-                      service_type: r.service_type || '',
-                      status: r.status,
-                      contact_name: r.contact_name || undefined,
-                      contact_phone: r.contact_phone || undefined,
-                      contact_email: r.contact_email || undefined,
-                      location_address: r.location_address || undefined,
-                      location_lat: r.location_lat || undefined,
-                      location_lng: r.location_lng || undefined,
-                      problem_description: r.problem_description || undefined,
-                      estimated_price: r.estimated_price || undefined,
-                      is_emergency: r.is_emergency || undefined,
-                      client_id: r.client_id || undefined,
-                      prospect_user_id: r.prospect_user_id || undefined,
-                      city_name: r.city_name || undefined,
-                      state: r.state || undefined,
-                      created_at: r.created_at,
-                      accepted_at: r.accepted_at || undefined,
-                      vehicle_info: r.vehicle_info || undefined,
-                      urgency: r.urgency || undefined,
-                      preferred_datetime: r.preferred_datetime || undefined,
-                      additional_info: r.additional_info || undefined,
-                      driver_lat: r.driver_lat || undefined,
-                      driver_lng: r.driver_lng || undefined,
-                    }}
+                    serviceRequest={r}
+                    viewerRole="DRIVER"
                     onMarkOnTheWay={(id) => handleTransitionService(id, "ON_THE_WAY", "A caminho da coleta!")}
                     onStartTransit={(id) => handleTransitionService(id, "IN_PROGRESS", "Em trânsito!")}
                     onFinishService={(id) => handleTransitionService(id, "COMPLETED", "Entrega realizada com sucesso!")}

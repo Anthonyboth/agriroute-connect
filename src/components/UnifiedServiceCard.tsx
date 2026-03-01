@@ -13,7 +13,7 @@ import {
   Wrench, MapPin, Calendar, Phone, User, Edit, X,
   AlertTriangle, MessageSquare, Star, Users, Clock,
   DollarSign, Truck, PawPrint, Package, Bike, Zap,
-  CheckCircle2
+  CheckCircle2, Navigation, Play, Flag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -64,7 +64,7 @@ export interface UnifiedServiceCardProps {
     rating?: number;
     profile_photo_url?: string;
   } | null;
-  /** Client info (for provider-side view) */
+  /** Client info (for provider/driver view) */
   client?: {
     full_name?: string;
     phone?: string;
@@ -75,7 +75,11 @@ export interface UnifiedServiceCardProps {
   onEdit?: () => void;
   onCancel?: () => void;
   onAccept?: () => void;
-  onOpenChat?: () => void;
+  onOpenChat?: ((req?: any) => void);
+  /** Status transition actions (for in-progress services) */
+  onMarkOnTheWay?: (id: string) => void;
+  onStartTransit?: (id: string) => void;
+  onFinishService?: (id: string) => void;
   /** Accepting state */
   accepting?: boolean;
   /** Extra content to render below (e.g. proposals) */
@@ -91,6 +95,9 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
   onCancel,
   onAccept,
   onOpenChat,
+  onMarkOnTheWay,
+  onStartTransit,
+  onFinishService,
   accepting = false,
   children,
 }) => {
@@ -105,14 +112,27 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
   const state = sr.state || sr.location_state || '';
   const locationAddress = sr.location_address || '';
 
+  // Contact (from serviceRequest directly)
+  const contactName = sr.contact_name || client?.full_name || provider?.full_name || '';
+  const contactPhone = sr.contact_phone || client?.phone || provider?.phone || '';
+
   // Price
   const price = sr.final_price || sr.estimated_price;
 
   // Date
   const dateStr = sr.accepted_at || sr.created_at;
 
+  // Vehicle info
+  const vehicleInfo = sr.vehicle_info;
+
   const canEdit = (sr.status === 'OPEN' || sr.status === 'PENDING') && onEdit;
-  const canCancel = (sr.status === 'OPEN' || sr.status === 'PENDING') && onCancel;
+  const canCancel = (sr.status === 'OPEN' || sr.status === 'PENDING' || sr.status === 'ACCEPTED') && onCancel;
+  const status = (sr.status || '').toUpperCase();
+
+  // Status transition buttons logic
+  const showOnTheWay = onMarkOnTheWay && status === 'ACCEPTED';
+  const showStartTransit = onStartTransit && status === 'ON_THE_WAY';
+  const showFinish = onFinishService && (status === 'IN_PROGRESS' || status === 'ON_THE_WAY');
 
   return (
     <Card className="group bg-card border-border/60 hover:border-border hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden">
@@ -241,13 +261,79 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
           </div>
         )}
 
+        {/* ── CONTACT INFO (inline from service request) ── */}
+        {contactName && !provider?.full_name && !client?.full_name && (
+          <div className="flex items-center gap-3 pt-2 border-t border-border/40">
+            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">{contactName}</p>
+              {contactPhone && (
+                <a href={`tel:${contactPhone}`} className="text-[11px] text-primary hover:underline flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {contactPhone}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── VEHICLE INFO ── */}
+        {vehicleInfo && (
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Truck className="h-3.5 w-3.5" />
+            {typeof vehicleInfo === 'object' ? (
+              <span>{vehicleInfo.brand} {vehicleInfo.model} {vehicleInfo.plate ? `• ${vehicleInfo.plate}` : ''}</span>
+            ) : (
+              <span>{String(vehicleInfo)}</span>
+            )}
+          </div>
+        )}
+
+        {/* ── STATUS TRANSITION ACTIONS (for in-progress services) ── */}
+        {(showOnTheWay || showStartTransit || showFinish) && (
+          <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
+            {showOnTheWay && (
+              <Button
+                size="sm"
+                className="w-full rounded-xl bg-primary/90 hover:bg-primary"
+                onClick={() => onMarkOnTheWay!(sr.id)}
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                A Caminho
+              </Button>
+            )}
+            {showStartTransit && (
+              <Button
+                size="sm"
+                className="w-full rounded-xl bg-primary/90 hover:bg-primary"
+                onClick={() => onStartTransit!(sr.id)}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Iniciar Serviço
+              </Button>
+            )}
+            {showFinish && (
+              <Button
+                size="sm"
+                className="w-full rounded-xl bg-primary/90 hover:bg-primary"
+                onClick={() => onFinishService!(sr.id)}
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                Finalizar Serviço
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* ── CHAT BUTTON ── */}
         {onOpenChat && (
           <Button
             variant="outline"
             size="sm"
             className="w-full rounded-xl border-border/60 hover:border-primary/30 hover:bg-primary/5"
-            onClick={onOpenChat}
+            onClick={() => onOpenChat(sr)}
           >
             <MessageSquare className="h-4 w-4 mr-2" />
             Abrir Chat
