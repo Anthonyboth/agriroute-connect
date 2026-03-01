@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { formatBRL, getPricePerTruck, formatTons } from '@/lib/formatters';
+import { getCanonicalFreightPrice } from '@/lib/freightPriceContract';
 
 interface ProposalCounterModalProps {
   isOpen: boolean;
@@ -398,12 +399,14 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Valor original:</span>
               <span className="font-medium">
-                {freightPricingType === 'PER_KM' && freightPricePerKm
-                  ? `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
-                  : freightPricingType === 'PER_TON' && freightPricePerKm
-                    ? `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
-                    : formatBRL(pricePerTruck, true)
-                }
+                {getCanonicalFreightPrice({
+                  pricing_type: freightPricingType,
+                  price_per_km: freightPricePerKm,
+                  price: freightPrice,
+                  required_trucks: requiredTrucks,
+                  weight: freightWeight,
+                  distance_km: freightDistance,
+                }).primaryLabel}
               </span>
             </div>
             

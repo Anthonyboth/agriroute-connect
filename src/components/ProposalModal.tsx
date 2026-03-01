@@ -12,6 +12,7 @@ import { showErrorToast } from '@/lib/error-handler';
 import { DollarSign, MessageCircle, Calendar, Truck, Scale } from 'lucide-react';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 import { formatKm, formatBRL, getPricePerTruck, formatTons } from '@/lib/formatters';
+import { getCanonicalFreightPrice } from '@/lib/freightPriceContract';
 
 
 interface ProposalModalProps {
@@ -275,11 +276,14 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               </div>
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                 Você está fazendo proposta para <strong>1 carreta apenas</strong>. 
-                Valor original: {freight.pricing_type === 'PER_KM' && freight.price_per_km
-                  ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
-                  : freight.pricing_type === 'PER_TON' && freight.price_per_km
-                    ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
-                    : `${formatBRL(pricePerTruck, true)} por carreta`}
+                Valor original: {getCanonicalFreightPrice({
+                  pricing_type: freight.pricing_type,
+                  price_per_km: freight.price_per_km,
+                  price: freight.price,
+                  required_trucks: freight.required_trucks,
+                  weight: freight.weight,
+                  distance_km: freight.distance_km,
+                }).primaryLabel}
               </p>
             </div>
           )}
