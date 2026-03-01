@@ -385,14 +385,21 @@ const CompanyDashboard = () => {
         // Preço unitário para exibição PER_TRUCK no card
         const unitPrice = companyTruckCount > 0 ? visible.displayPrice / companyTruckCount : visible.displayPrice;
 
+        // ✅ CORREÇÃO CRÍTICA: Preservar pricing_type ORIGINAL do frete
+        // Se PER_TON → manter PER_TON + price_per_ton original (R$ 80,00/ton)
+        // Se PER_KM → manter PER_KM + price_per_km original
+        // Se FIXED → manter FIXED + calcular por veículo
+        const originalPricingType = mf.rawFreight?.pricing_type;
+        
         return {
           ...mf.rawFreight,
-          price: unitPrice,
-          // ✅ Forçar FIXED para o card usar o preço calculado diretamente
-          pricing_type: 'FIXED' as const,
-          price_per_km: null,
+          // Preservar pricing_type original — NUNCA sobrescrever
+          pricing_type: originalPricingType,
+          // Manter price_per_km original para PER_TON (campo sobrecarregado = R$/ton)
+          price_per_km: mf.rawFreight?.price_per_km,
+          price_per_ton: mf.rawFreight?.price_per_ton,
           price_display_mode: 'PER_TRUCK' as const,
-          // ✅ CRÍTICO: carretas da EMPRESA, não o total do frete
+          // Carretas da EMPRESA para contexto secundário
           original_required_trucks: companyTruckCount,
         };
       })(),
