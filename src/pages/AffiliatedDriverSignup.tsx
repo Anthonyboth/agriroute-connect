@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { VisuallyHidden } from '@/components/ui/dialog';
 import { CameraSelfie } from '@/components/CameraSelfie';
 import { useAffiliatedDriverManager } from '@/hooks/useAffiliatedDriverManager';
+import { ZipCodeService } from '@/services/zipCodeService';
 
 const AffiliatedDriverSignup = () => {
   const navigate = useNavigate();
@@ -47,6 +48,32 @@ const AffiliatedDriverSignup = () => {
   const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [selfieBlobPending, setSelfieBlobPending] = useState<Blob | null>(null);
   const [selfieMethodPending, setSelfieMethodPending] = useState<'CAMERA' | 'GALLERY'>('CAMERA');
+  const [cepLoading, setCepLoading] = useState(false);
+
+  // CEP auto-fill
+  const fetchAddressByCep = useCallback(async (cep: string) => {
+    const clean = cep.replace(/\D/g, '');
+    if (clean.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const result = await ZipCodeService.searchZipCode(clean);
+      if (result) {
+        setFormData(prev => ({
+          ...prev,
+          address_city: result.city || prev.address_city,
+          address_state: result.state || prev.address_state,
+          address_neighborhood: result.neighborhood || prev.address_neighborhood,
+          address_street: result.street || prev.address_street,
+        }));
+      } else {
+        toast.error('CEP não encontrado. Preencha o endereço manualmente.');
+      }
+    } catch {
+      console.warn('Erro ao buscar CEP');
+    } finally {
+      setCepLoading(false);
+    }
+  }, []);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -749,13 +776,24 @@ const AffiliatedDriverSignup = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="address_zip">CEP *</Label>
-                  <Input
-                    id="address_zip"
-                    value={formData.address_zip}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address_zip: e.target.value }))}
-                    placeholder="00000-000"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="address_zip"
+                      value={formData.address_zip}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, address_zip: val }));
+                        const clean = val.replace(/\D/g, '');
+                        if (clean.length === 8) fetchAddressByCep(clean);
+                      }}
+                      onBlur={() => fetchAddressByCep(formData.address_zip)}
+                      placeholder="00000-000"
+                      required
+                    />
+                    {cepLoading && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
