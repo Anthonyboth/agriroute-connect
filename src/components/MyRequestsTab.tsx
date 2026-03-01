@@ -22,6 +22,7 @@ import { EditFreightModal } from '@/components/EditFreightModal';
 import { ServiceEditModal } from '@/components/service-wizard/ServiceEditModal';
 import { FreightCard } from '@/components/FreightCard';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
+import { UnifiedServiceCard } from '@/components/UnifiedServiceCard';
 import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -494,130 +495,28 @@ export const MyRequestsTab: React.FC = () => {
             </h4>
 
             <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-              {ongoingServiceRequests.map((sr: any) => {
-                // Extrair destino do additional_info
-                let additionalInfo: any = null;
-                try {
-                  additionalInfo = typeof sr.additional_info === 'string'
-                    ? JSON.parse(sr.additional_info)
-                    : (typeof sr.additional_info === 'object' ? sr.additional_info : null);
-                } catch { /* ignore */ }
-                const destination = additionalInfo?.destination || null;
-
-                const originLat = sr.location_lat || sr.city_lat || null;
-                const originLng = sr.location_lng || sr.city_lng || null;
-                const destLat = destination?.lat || null;
-                const destLng = destination?.lng || null;
-                const originCity = sr.city_name || sr.location_city || '';
-                const originState = sr.state || sr.location_state || '';
-                const destCity = destination?.city || originCity;
-                const destState = destination?.state || originState;
-
-                // Mapear status de service para status de frete
-                const statusMap: Record<string, string> = {
-                  ACCEPTED: 'ACCEPTED',
-                  ON_THE_WAY: 'LOADING',
-                  IN_PROGRESS: 'IN_TRANSIT',
-                };
-                const mappedStatus = statusMap[sr.status] || sr.status;
-
-                return (
-                  <FreightInProgressCard
-                    key={sr.id}
-                    freight={{
-                      id: sr.id,
-                      origin_city: originCity,
-                      origin_state: originState,
-                      destination_city: destCity,
-                      destination_state: destState,
-                      origin_lat: originLat,
-                      origin_lng: originLng,
-                      destination_lat: destLat,
-                      destination_lng: destLng,
-                      origin_address: sr.location_address || undefined,
-                      origin_neighborhood: additionalInfo?.origin?.neighborhood || undefined,
-                      origin_street: additionalInfo?.origin?.street || undefined,
-                      origin_number: additionalInfo?.origin?.number || undefined,
-                      origin_complement: additionalInfo?.origin?.complement || undefined,
-                      origin_zip_code: additionalInfo?.origin?.zip_code || undefined,
-                      destination_address: destination?.full_address || undefined,
-                      destination_neighborhood: destination?.neighborhood || undefined,
-                      destination_street: destination?.street || undefined,
-                      destination_number: destination?.number || undefined,
-                      destination_complement: destination?.complement || undefined,
-                      destination_zip_code: destination?.zip_code || undefined,
-                      weight: null,
-                      distance_km: null,
-                      pickup_date: sr.accepted_at || sr.created_at,
-                      price: sr.estimated_price,
-                      required_trucks: 1,
-                      status: mappedStatus,
-                      service_type: sr.service_type,
-                      driver_profiles: sr.provider ? {
-                        full_name: sr.provider.full_name,
-                        profile_photo_url: sr.provider.profile_photo_url,
-                      } : null,
-                      driver_id: sr.provider_id,
-                    }}
-                    serviceWorkflowActions={
-                      <div className="space-y-2">
-                        {sr.problem_description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            📝 {sr.problem_description}
-                          </p>
-                        )}
-                        {sr.provider && (
-                          <div className="bg-secondary/50 rounded-lg p-2 flex items-center gap-2">
-                            <Users className="h-4 w-4 text-primary" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{sr.provider.full_name}</p>
-                              {sr.provider.phone && (
-                                <a
-                                  href={`tel:${sr.provider.phone}`}
-                                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                                >
-                                  <Phone className="h-3 w-3" />
-                                  {sr.provider.phone}
-                                </a>
-                              )}
-                            </div>
-                            {sr.provider.rating && (
-                              <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                <span className="text-sm font-medium">{Number(sr.provider.rating).toFixed(1)}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {sr.provider_id && sr.client_id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => {
-                              setSelectedChatServiceRequest(sr);
-                              setServiceChatOpen(true);
-                            }}
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Abrir Chat
-                          </Button>
-                        )}
-                        {/* Propostas de valor */}
-                        <ServiceProposalSection
-                          proposals={getClientProposals(sr.id)}
-                          currentUserProfileId={profile?.id || ''}
-                          viewerRole="CLIENT"
-                          onSubmitProposal={(price, msg) => submitClientProposal(sr.id, profile?.id || '', 'CLIENT', price, msg)}
-                          onAcceptProposal={acceptClientProposal}
-                          onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
-                          submitting={clientProposalSubmitting}
-                        />
-                      </div>
-                    }
+              {ongoingServiceRequests.map((sr: any) => (
+                <UnifiedServiceCard
+                  key={sr.id}
+                  serviceRequest={sr}
+                  provider={sr.provider || null}
+                  viewerRole="CLIENT"
+                  onOpenChat={sr.provider_id && sr.client_id ? () => {
+                    setSelectedChatServiceRequest(sr);
+                    setServiceChatOpen(true);
+                  } : undefined}
+                >
+                  <ServiceProposalSection
+                    proposals={getClientProposals(sr.id)}
+                    currentUserProfileId={profile?.id || ''}
+                    viewerRole="CLIENT"
+                    onSubmitProposal={(price, msg) => submitClientProposal(sr.id, profile?.id || '', 'CLIENT', price, msg)}
+                    onAcceptProposal={acceptClientProposal}
+                    onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
+                    submitting={clientProposalSubmitting}
                   />
-                );
-              })}
+                </UnifiedServiceCard>
+              ))}
             </div>
           </div>
         )}
@@ -643,156 +542,26 @@ export const MyRequestsTab: React.FC = () => {
 
             {/* Open Service Requests — cards with edit/cancel */}
             {openServiceRequests.length > 0 && (
-              <div className="space-y-3">
-                {openServiceRequests.map((request) => {
-                  const statusConfig = getStatusConfig(request.status);
-                  const isTransport = TRANSPORT_TYPES.includes(request.service_type);
-                  const Icon = isTransport
-                    ? (request.service_type === 'TRANSPORTE_PET' ? PawPrint : Truck)
-                    : Wrench;
-                  const canCancel = CANCELLABLE_SERVICE_STATUSES.includes(request.status);
-
-                  return (
-                    <Card key={request.id} className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="p-4 pb-3 space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-2 rounded-lg bg-primary/10">
-                                <Icon className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm">
-                                  {getServiceLabel(request.service_type)}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  Solicitação de serviço
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant={statusConfig.variant}>
-                              {statusConfig.label}
-                            </Badge>
-                          </div>
-
-                          {request.problem_description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {request.problem_description}
-                            </p>
-                          )}
-
-                          {/* Origin & Destination */}
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
-                              <div className="min-w-0">
-                                <span className="text-xs font-semibold text-muted-foreground uppercase">Origem</span>
-                                {(request as any).city_name && (
-                                  <p className="text-sm font-bold text-foreground">
-                                    {String((request as any).city_name).toUpperCase()} — {(request as any).state || ''}
-                                  </p>
-                                )}
-                                <p className="text-xs text-muted-foreground line-clamp-1">
-                                  {request.location_address || 'Endereço não informado'}
-                                </p>
-                              </div>
-                            </div>
-                            {(() => {
-                              const ai = typeof request.additional_info === 'string'
-                                ? (() => { try { return JSON.parse(request.additional_info); } catch { return null; } })()
-                                : request.additional_info;
-                              const destCity = (request as any).destination_city || ai?.destination?.city;
-                              const destState = (request as any).destination_state || ai?.destination?.state;
-                              const destAddr = (request as any).destination_address || ai?.destination?.full_address;
-                              if (!destCity && !destAddr) return null;
-                              return (
-                                <div className="flex items-start gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                                  <div className="min-w-0">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase">Destino</span>
-                                    {destCity && (
-                                      <p className="text-sm font-bold text-foreground">
-                                        {String(destCity).toUpperCase()} — {destState || ''}
-                                      </p>
-                                    )}
-                                    <p className="text-xs text-muted-foreground line-clamp-1">
-                                      {destAddr || 'Endereço não informado'}
-                                    </p>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-
-                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {new Date(request.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                            {(request.estimated_price ?? 0) > 0 && (
-                              <span className="flex items-center gap-1 font-medium text-foreground">
-                                <DollarSign className="h-3 w-3" />
-                                R$ {Number(request.estimated_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            )}
-                          </div>
-
-                          {request.is_emergency && (
-                            <div className="flex items-center gap-1 text-xs text-destructive font-medium">
-                              <AlertTriangle className="h-3 w-3" />
-                              Emergência
-                            </div>
-                          )}
-                          {/* Propostas de valor */}
-                          <ServiceProposalSection
-                            proposals={getClientProposals(request.id)}
-                            currentUserProfileId={profile?.id || ''}
-                            viewerRole="CLIENT"
-                            onSubmitProposal={(price, msg) => submitClientProposal(request.id, profile?.id || '', 'CLIENT', price, msg)}
-                            onAcceptProposal={acceptClientProposal}
-                            onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
-                            submitting={clientProposalSubmitting}
-                          />
-                        </div>
-
-                        {request.status !== 'CANCELLED' && (
-                          <div className="px-4 pb-4">
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() => handleServiceAction('edit', request)}
-                                className="flex-1"
-                                size="sm"
-                                variant="outline"
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Editar
-                              </Button>
-                              {canCancel && (
-                                <Button
-                                  onClick={() => handleServiceAction('cancel', request)}
-                                  className="flex-1"
-                                  size="sm"
-                                  variant="destructive"
-                                >
-                                  <X className="h-4 w-4 mr-2" />
-                                  Cancelar
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {request.status === 'CANCELLED' && (
-                          <div className="px-4 pb-4">
-                            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                              <p className="text-sm text-red-600 dark:text-red-400">Solicitação cancelada</p>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+              <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                {openServiceRequests.map((request) => (
+                  <UnifiedServiceCard
+                    key={request.id}
+                    serviceRequest={request}
+                    viewerRole="CLIENT"
+                    onEdit={() => handleServiceAction('edit', request)}
+                    onCancel={CANCELLABLE_SERVICE_STATUSES.includes(request.status) ? () => handleServiceAction('cancel', request) : undefined}
+                  >
+                    <ServiceProposalSection
+                      proposals={getClientProposals(request.id)}
+                      currentUserProfileId={profile?.id || ''}
+                      viewerRole="CLIENT"
+                      onSubmitProposal={(price, msg) => submitClientProposal(request.id, profile?.id || '', 'CLIENT', price, msg)}
+                      onAcceptProposal={acceptClientProposal}
+                      onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
+                      submitting={clientProposalSubmitting}
+                    />
+                  </UnifiedServiceCard>
+                ))}
               </div>
             )}
           </>

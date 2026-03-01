@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UnifiedServiceCard } from "@/components/UnifiedServiceCard";
 
 import { Truck, MapPin, Calendar, Bike, Wrench, Package, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -346,69 +347,14 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
         ) : (
           <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
             {safeOpenServices.map((sr: any) => (
-              <Card key={sr.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {getServiceIcon(sr.service_type)}
-                        <span className="truncate">{getServiceLabel(sr.service_type)}</span>
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">Frete #{sr.id?.slice(0, 8)}</p>
-                    </div>
-                    {getStatusBadge(sr.status)}
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
-                    <div className="flex-1 text-sm min-w-0">
-                      <p className="font-medium truncate">
-                        {(sr.city_name || sr.location_address || "Local não informado") as string}
-                        {sr.state ? `, ${sr.state}` : ""}
-                      </p>
-                      {sr.location_address && (
-                        <p className="text-xs text-muted-foreground truncate">{sr.location_address}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Criado em {sr.created_at ? new Date(sr.created_at).toLocaleDateString("pt-BR") : "-"}</span>
-                  </div>
-
-                  {sr.estimated_price != null && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Valor estimado: </span>
-                      <span className="font-semibold text-primary">R$ {Number(sr.estimated_price).toFixed(2)}</span>
-                    </div>
-                  )}
-
-                  {sr.client?.full_name && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Cliente: </span>
-                      <span className="font-medium">{sr.client.full_name}</span>
-                    </div>
-                  )}
-
-                  <Button
-                    className="w-full"
-                    onClick={() => acceptServiceMutation.mutate(sr.id)}
-                    disabled={acceptServiceMutation.isPending}
-                  >
-                    {acceptServiceMutation.isPending ? (
-                      "Aceitando..."
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Aceitar Solicitação
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+              <UnifiedServiceCard
+                key={sr.id}
+                serviceRequest={sr}
+                client={sr.client || null}
+                viewerRole="DRIVER"
+                onAccept={() => acceptServiceMutation.mutate(sr.id)}
+                accepting={acceptServiceMutation.isPending}
+              />
             ))}
           </div>
         )}
@@ -430,58 +376,12 @@ export const DriverFreightsTab = ({ driverProfileId, companyId }: DriverFreights
         ) : (
           <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
             {safeMyServices.map((sr: any) => (
-              <Card key={sr.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {getServiceIcon(sr.service_type)}
-                        <span className="truncate">{getServiceLabel(sr.service_type)}</span>
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">Frete #{sr.id?.slice(0, 8)}</p>
-                    </div>
-                    {getStatusBadge(sr.status)}
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
-                    <div className="flex-1 text-sm min-w-0">
-                      <p className="font-medium truncate">
-                        {(sr.city_name || sr.location_address || "Local não informado") as string}
-                        {sr.state ? `, ${sr.state}` : ""}
-                      </p>
-                      {sr.location_address && (
-                        <p className="text-xs text-muted-foreground truncate">{sr.location_address}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {sr.accepted_at
-                        ? `Aceito em ${new Date(sr.accepted_at).toLocaleDateString("pt-BR")}`
-                        : `Criado em ${new Date(sr.created_at).toLocaleDateString("pt-BR")}`}
-                    </span>
-                  </div>
-
-                  {sr.estimated_price != null && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Valor estimado: </span>
-                      <span className="font-semibold text-primary">R$ {Number(sr.estimated_price).toFixed(2)}</span>
-                    </div>
-                  )}
-
-                  {sr.client?.full_name && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Cliente: </span>
-                      <span className="font-medium">{sr.client.full_name}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <UnifiedServiceCard
+                key={sr.id}
+                serviceRequest={sr}
+                client={sr.client || null}
+                viewerRole="DRIVER"
+              />
             ))}
           </div>
         )}
