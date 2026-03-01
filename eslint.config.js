@@ -82,6 +82,7 @@ export default tseslint.config(
   {
     files: [
       "src/lib/precoPreenchido.ts",
+      "src/lib/precoFechado.ts",
       "src/lib/normalizeFreightPricing.ts",
       "src/lib/freightPriceContract.ts",
       "src/lib/formatters.ts",
@@ -117,6 +118,7 @@ export default tseslint.config(
       "src/hooks/useFreightPriceDisplay.ts",
       "src/hooks/__tests__/useFreightPriceDisplay.test.ts",
       "src/lib/precoPreenchido.ts",
+      "src/lib/precoFechado.ts",
       "src/lib/__tests__/precoPreenchido.test.ts",
       "src/hooks/usePrecoPreenchido.ts",
     ],
