@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Truck, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
-import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
+import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
 
 interface CompanyBulkFreightAcceptorProps {
   open: boolean;
@@ -15,6 +15,11 @@ interface CompanyBulkFreightAcceptorProps {
     required_trucks?: number;
     accepted_trucks?: number;
     price: number;
+    pricing_type?: string | null;
+    price_per_ton?: number | null;
+    price_per_km?: number | null;
+    weight?: number | null;
+    distance_km?: number | null;
     origin_address: string;
     destination_address: string;
   };
@@ -33,8 +38,17 @@ export const CompanyBulkFreightAcceptor = ({
   const [numTrucks, setNumTrucks] = useState(Math.min(availableSlots, 1));
   const [loading, setLoading] = useState(false);
 
-  // ✅ Hook centralizado: resolveDriverUnitPrice para cálculo por carreta
-  const pricePerTruck = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
+  // ✅ Contrato canônico: respeita pricing_type (PER_TON, PER_KM, FIXED)
+  const pricingInput: FreightPricingInput = {
+    pricing_type: freight.pricing_type,
+    price_per_ton: freight.price_per_ton,
+    price_per_km: freight.price_per_km,
+    price: freight.price,
+    required_trucks: requiredTrucks,
+    weight: freight.weight,
+    distance_km: freight.distance_km,
+  };
+  const priceDisplay = getCanonicalFreightPrice(pricingInput);
 
   const handleAccept = async () => {
     setLoading(true);
@@ -97,18 +111,26 @@ export const CompanyBulkFreightAcceptor = ({
             </div>
           </div>
 
-          {/* Resumo de Valores */}
+          {/* Resumo de Valores — usando contrato canônico */}
           <div className="bg-primary/5 p-4 rounded-lg space-y-1">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Valor por carreta:</span>
+              <span className="text-muted-foreground">Valor unitário:</span>
               <span className="font-semibold">
-                R$ {pricePerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {priceDisplay.primaryLabel}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Total ({numTrucks} carretas):</span>
+            {priceDisplay.secondaryLabel && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Detalhes:</span>
+                <span className="text-muted-foreground">
+                  {priceDisplay.secondaryLabel}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm pt-1 border-t border-border/50">
+              <span className="font-medium">Carretas selecionadas:</span>
               <span className="text-xl font-bold text-primary">
-                R$ {(pricePerTruck * numTrucks).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {numTrucks}
               </span>
             </div>
           </div>
