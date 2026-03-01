@@ -11,9 +11,10 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
-import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
+import { formatKm, formatTons, formatDate } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getVehicleTypeLabel } from '@/lib/vehicle-types';
+import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
 
 export const CompanyFreightsManager: React.FC = () => {
   const { company } = useTransportCompany();
@@ -202,7 +203,19 @@ export const CompanyFreightsManager: React.FC = () => {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-xl text-accent">{formatBRL(freight.price)}</p>
+                  {(() => {
+                    const pricingInput: FreightPricingInput = {
+                      pricing_type: freight.pricing_type,
+                      price_per_ton: freight.price_per_ton,
+                      price_per_km: freight.price_per_km,
+                      price: freight.price,
+                      required_trucks: freight.required_trucks,
+                      weight: freight.weight,
+                      distance_km: freight.distance_km,
+                    };
+                    const display = getCanonicalFreightPrice(pricingInput);
+                    return <p className="font-bold text-xl text-accent">{display.primaryLabel}</p>;
+                  })()}
                 </div>
               </div>
 
