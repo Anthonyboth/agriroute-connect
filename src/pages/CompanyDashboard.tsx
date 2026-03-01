@@ -421,9 +421,16 @@ const CompanyDashboard = () => {
     }));
   }, [managedFreights, company?.id]);
 
+  // ✅ Deduplicate by freight id to prevent React duplicate key errors
+  const dedupedActiveFreights = React.useMemo(() => {
+    return Array.from(
+      new Map(activeFreightsForCards.map(f => [f.id, f])).values()
+    );
+  }, [activeFreightsForCards]);
+
   // ✅ Legacy: manter arrays vazios para compatibilidade com código existente
   const myAssignments: any[] = []; // Não usar mais - fretes já agrupados
-  const activeFreights = activeFreightsForCards;
+  const activeFreights = dedupedActiveFreights;
 
   // ✅ NOVO: Buscar serviços urbanos (PET, Pacotes, etc.) dos motoristas afiliados
   const [activeServices, setActiveServices] = useState<any[]>([]);
