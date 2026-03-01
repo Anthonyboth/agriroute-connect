@@ -33,7 +33,8 @@ export function validatePricingType(value: unknown): PricingType | null {
 export interface FreightPriceDisplayInput {
   price: number;
   pricing_type?: PricingType | string | null;
-  price_per_km?: number | null;  // Stores unit rate for PER_KM and PER_TON
+  price_per_km?: number | null;  // Stores unit rate for PER_KM; also reused for PER_TON in DB
+  price_per_ton?: number | null; // Optional explicit field; takes priority over price_per_km for PER_TON
   required_trucks?: number;
   accepted_trucks?: number;
   distance_km?: number;
@@ -101,7 +102,8 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
   }
 
   const pricingType = validatedType;
-  const unitRate = freight.price_per_km; // Stores unit value for both PER_KM and PER_TON
+  const unitRate = freight.price_per_km; // Stores unit value for PER_KM (and legacy PER_TON)
+  const tonUnitRate = freight.price_per_ton ?? freight.price_per_km; // PER_TON: prefer explicit field
   const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
   const hasMultipleTrucks = requiredTrucks > 1;
   const distKm = freight.distance_km || 0;
@@ -144,8 +146,8 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
   // === PER_TON: show exactly the R$/ton the producer entered ===
   if (pricingType === 'PER_TON') {
     const weightTons = (freight.weight || 0) / 1000;
-    const effectiveUnitRate = (unitRate && unitRate > 0) 
-      ? unitRate 
+    const effectiveUnitRate = (tonUnitRate && tonUnitRate > 0) 
+      ? tonUnitRate 
       : (weightTons > 0 ? freight.price / weightTons : null);
     
     if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
