@@ -841,15 +841,15 @@ const CompanyDashboard = () => {
 
         {/* Navegação por Tabs com Scroll Horizontal - igual aos outros dashboards */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="w-full overflow-x-auto pb-2 mb-6">
-            <TabsList className="inline-flex h-11 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+          <div className="w-full overflow-x-auto pb-2 mb-6 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+            <TabsList className="inline-flex h-12 items-center rounded-xl bg-card shadow-md border border-border/50 p-1.5 text-muted-foreground min-w-fit gap-0.5">
               {COMPANY_TABS.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted/60"
                     {...(tab.value === 'freights' ? { 'data-tutorial': 'company-freights' } :
                          tab.value === 'drivers' ? { 'data-tutorial': 'company-drivers' } :
                          tab.value === 'ongoing' ? { 'data-tutorial': 'tab-ongoing' } :
@@ -859,7 +859,7 @@ const CompanyDashboard = () => {
                          tab.value === 'chat' ? { 'data-tutorial': 'tab-chat-co' } :
                          tab.value === 'reports' ? { 'data-tutorial': 'tab-reports' } : {})}
                   >
-                    <Icon className="h-3.5 w-3.5 mr-1" />
+                    <Icon className="h-3.5 w-3.5 mr-1.5" />
                     <span className="hidden sm:inline" translate="no">{tab.label}</span>
                     <span className="sm:hidden" translate="no">{tab.shortLabel}</span>
                     <TabBadge count={tab.badge || 0} />
