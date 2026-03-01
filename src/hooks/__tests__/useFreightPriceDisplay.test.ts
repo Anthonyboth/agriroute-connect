@@ -30,13 +30,16 @@ describe('getFreightPriceDisplay', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
+  // =========================================================================
+  // PER_TON
+  // =========================================================================
   describe('PER_TON', () => {
     it('shows /ton suffix — NEVER /km', () => {
       const result = getFreightPriceDisplay({
         price: 40000,
         pricing_type: 'PER_TON',
         price_per_km: 80,
-        weight: 500000, // 500 tons
+        weight: 500000,
         distance_km: 300,
       });
       expect(result.primarySuffix).toBe('/ton');
@@ -58,34 +61,33 @@ describe('getFreightPriceDisplay', () => {
     });
 
     /**
-     * CONTRACT TEST: PER_TON multi-truck
-     * Frete: 500t, R$80/ton, 12 carretas
-     * Primary: R$ 80,00/ton (NUNCA R$ 40.000,00/carreta)
-     * Secondary: Total + per-carreta breakdown
+     * CONTRACT: PER_TON multi-truck — NEVER show aggregate total
+     * Primary: R$ 80,00/ton (unit rate)
+     * Secondary: weight + truck count only
      */
-    it('PER_TON 500t R$80/ton 12 trucks: shows R$80/ton primary, NEVER R$40.000/carreta', () => {
+    it('PER_TON 500t R$80/ton 12 trucks: unit primary, NO aggregate total', () => {
       const result = getFreightPriceDisplay({
         price: 40000,
         pricing_type: 'PER_TON',
         price_per_km: 80,
-        weight: 500000, // 500 tons
+        weight: 500000,
         required_trucks: 12,
         distance_km: 130,
       });
-      // Primary MUST be unit rate
       expect(result.primarySuffix).toBe('/ton');
       expect(result.primaryValue).toBe(80);
-      expect(result.pricingType).toBe('PER_TON');
-      // Secondary MUST include total AND per-carreta
-      expect(result.secondaryLabel).toContain('Total:');
-      expect(result.secondaryLabel).toContain('/carreta');
-      // NEVER show total as primary with /carreta suffix
-      expect(result.primarySuffix).not.toBe('/carreta');
+      // NEVER show aggregate total
+      expect(result.secondaryLabel).not.toContain('Total');
+      expect(result.secondaryLabel).not.toContain('R$');
+      expect(result.secondaryLabel).toContain('12 carretas');
+      // NEVER show total as primary
       expect(result.primaryValue).not.toBe(40000);
-      expect(result.primaryValue).not.toBe(40000 / 12);
     });
   });
 
+  // =========================================================================
+  // PER_KM
+  // =========================================================================
   describe('PER_KM', () => {
     it('shows /km suffix', () => {
       const result = getFreightPriceDisplay({
@@ -101,12 +103,9 @@ describe('getFreightPriceDisplay', () => {
     });
 
     /**
-     * CONTRACT TEST: PER_KM R$2/km, 100km
-     * Primary: R$ 2,00/km
-     * Secondary: Total: R$ 200,00 (100 km)
-     * NEVER show R$200,00/km
+     * CONTRACT: PER_KM — primary is unit rate, NO aggregate total
      */
-    it('PER_KM R$2/km 100km: shows R$2/km primary, total R$200 secondary', () => {
+    it('PER_KM R$2/km 100km: R$2/km primary, NO total in secondary', () => {
       const result = getFreightPriceDisplay({
         price: 200,
         pricing_type: 'PER_KM',
@@ -115,15 +114,33 @@ describe('getFreightPriceDisplay', () => {
       });
       expect(result.primaryValue).toBe(2);
       expect(result.primarySuffix).toBe('/km');
-      expect(result.secondaryLabel).toContain('Total:');
+      // Secondary shows distance, NOT "Total: R$ 200"
       expect(result.secondaryLabel).toContain('100');
-      // NEVER show total as primary
+      expect(result.secondaryLabel).not.toContain('Total');
+      expect(result.secondaryLabel).not.toContain('R$');
       expect(result.primaryValue).not.toBe(200);
+    });
+
+    it('PER_KM multi-truck: shows truck count, NO aggregate total', () => {
+      const result = getFreightPriceDisplay({
+        price: 600,
+        pricing_type: 'PER_KM',
+        price_per_km: 2,
+        distance_km: 100,
+        required_trucks: 3,
+      });
+      expect(result.primaryValue).toBe(2);
+      expect(result.secondaryLabel).toContain('3 carretas');
+      expect(result.secondaryLabel).not.toContain('Total');
+      expect(result.secondaryLabel).not.toContain('R$');
     });
   });
 
+  // =========================================================================
+  // FIXED
+  // =========================================================================
   describe('FIXED', () => {
-    it('shows no unit suffix', () => {
+    it('shows no unit suffix for single truck', () => {
       const result = getFreightPriceDisplay({
         price: 1200,
         pricing_type: 'FIXED',
@@ -146,30 +163,50 @@ describe('getFreightPriceDisplay', () => {
     });
 
     /**
-     * CONTRACT TEST: FIXED R$40.000, 12 carretas
-     * Primary: R$ 3.333,33/carreta
-     * Secondary: Total (12 carretas): R$ 40.000,00
-     * NEVER show R$40.000,00/carreta as primary
+     * CONTRACT: FIXED multi-truck — per-vehicle primary, NO aggregate total
      */
-    it('FIXED R$40.000 12 trucks: shows per-carreta primary, total secondary, NEVER R$40.000/carreta', () => {
+    it('FIXED R$40.000 12 trucks: per-carreta primary, NO aggregate total', () => {
       const result = getFreightPriceDisplay({
         price: 40000,
         pricing_type: 'FIXED',
         required_trucks: 12,
         distance_km: 130,
       });
-      // Primary should be per-carreta
       expect(result.primarySuffix).toBe('/carreta');
       const perCarreta = 40000 / 12;
       expect(result.primaryValue).toBeCloseTo(perCarreta, 0);
-      // Secondary should show total
-      expect(result.secondaryLabel).toContain('Total');
+      // NEVER show aggregate total
+      expect(result.secondaryLabel).not.toContain('Total');
+      expect(result.secondaryLabel).not.toContain('R$');
       expect(result.secondaryLabel).toContain('12');
-      // NEVER show total as primary with /carreta suffix
       expect(result.primaryValue).not.toBe(40000);
     });
   });
 
+  // =========================================================================
+  // GLOBAL ANTI-REGRESSION: no aggregate total anywhere
+  // =========================================================================
+  describe('GLOBAL: no aggregate total in any pricing type', () => {
+    const cases = [
+      { pricing_type: 'PER_TON' as const, price: 40000, price_per_km: 80, weight: 500000, required_trucks: 12 },
+      { pricing_type: 'PER_KM' as const, price: 600, price_per_km: 2, distance_km: 100, required_trucks: 3 },
+      { pricing_type: 'FIXED' as const, price: 40000, required_trucks: 12 },
+    ];
+
+    cases.forEach(({ pricing_type, ...rest }) => {
+      it(`${pricing_type} multi-truck: secondaryLabel NEVER contains "Total:" or "R$"`, () => {
+        const result = getFreightPriceDisplay({ pricing_type, ...rest });
+        if (result.secondaryLabel) {
+          expect(result.secondaryLabel).not.toMatch(/Total/i);
+          expect(result.secondaryLabel).not.toContain('R$');
+        }
+      });
+    });
+  });
+
+  // =========================================================================
+  // MISSING pricing_type (anti-regression)
+  // =========================================================================
   describe('MISSING pricing_type (anti-regression)', () => {
     it('NEVER defaults to PER_KM when pricing_type is undefined', () => {
       const result = getFreightPriceDisplay({
