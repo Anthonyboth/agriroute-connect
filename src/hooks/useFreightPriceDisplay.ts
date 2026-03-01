@@ -1,16 +1,18 @@
 /**
  * Hook centralizado para exibição de preços nos cards de frete.
  * 
- * REGRA CRÍTICA: Exibir EXATAMENTE o valor e unidade que o produtor preencheu.
- * - PER_KM → "R$ X,XX/km"
- * - PER_TON → "R$ X,XX/ton"  
- * - FIXED → "R$ X.XXX,XX" (ou /carreta se multi-truck)
+ * REGRA CRÍTICA — PREÇO POR VEÍCULO:
+ * O motorista/transportadora sempre vê o preço UNITÁRIO por veículo.
+ * - PER_KM → "R$ X,XX/km" (taxa unitária do produtor)
+ * - PER_TON → "R$ X,XX/ton" (taxa unitária do produtor)
+ * - FIXED → "R$ X.XXX,XX/carreta" (price / required_trucks)
  * 
- * NUNCA derive um valor diferente do que o produtor digitou.
+ * PROIBIÇÕES:
+ * - NUNCA exibir total agregado ("Total (N carretas): R$ X") em cards
+ * - NUNCA exibir "R$ total /carreta" — sempre derivar unitário
+ * - NUNCA assumir PER_KM quando pricing_type ausente
+ * 
  * O campo price_per_km armazena o valor unitário para PER_KM e PER_TON.
- * 
- * ANTI-REGRESSÃO: Se pricing_type estiver ausente, NUNCA assumir PER_KM.
- * Mostrar "Preço indisponível" e logar warning.
  */
 
 import { useMemo } from 'react';
@@ -111,19 +113,23 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
       : (distKm > 0 ? freight.price / distKm : null);
 
     if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
-      const totalCalc = distKm > 0 ? effectiveUnitRate * distKm : freight.price;
+      // Secondary: distance info only, NEVER aggregate total
+      let secondary: string | null = null;
+      if (distKm > 0) {
+        secondary = `${Math.round(distKm)} km`;
+      }
+      if (hasMultipleTrucks) {
+        secondary = secondary
+          ? `${secondary} · ${requiredTrucks} carretas`
+          : `${requiredTrucks} carretas`;
+      }
+
       return {
         primaryValue: effectiveUnitRate,
         primaryFormatted: formatBRL(effectiveUnitRate, true),
         primarySuffix: '/km',
         primaryLabel: `${formatBRL(effectiveUnitRate, true)}/km`,
-        secondaryLabel: distKm > 0
-          ? hasMultipleTrucks
-            ? `Total: ${formatBRL(totalCalc, true)} · ${formatBRL(freight.price / requiredTrucks, true)}/carreta (${requiredTrucks})`
-            : `Total: ${formatBRL(totalCalc, true)} (${Math.round(distKm)} km)`
-          : hasMultipleTrucks
-            ? `${formatBRL(freight.price / requiredTrucks, true)}/carreta (${requiredTrucks})`
-            : null,
+        secondaryLabel: secondary,
         unitRateLabel: 'R$/km',
         unitRateValue: effectiveUnitRate,
         unitRateFormatted: `R$${effectiveUnitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -143,17 +149,23 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
       : (weightTons > 0 ? freight.price / weightTons : null);
     
     if (effectiveUnitRate !== null && effectiveUnitRate > 0) {
-      const totalCalc = weightTons > 0 ? effectiveUnitRate * weightTons : freight.price;
+      // Secondary: weight/truck info only, NEVER aggregate total
+      let secondary: string | null = null;
+      if (weightTons > 0) {
+        secondary = `${weightTons.toFixed(1)} ton`;
+      }
+      if (hasMultipleTrucks) {
+        secondary = secondary
+          ? `${secondary} · ${requiredTrucks} carretas`
+          : `${requiredTrucks} carretas`;
+      }
+
       return {
         primaryValue: effectiveUnitRate,
         primaryFormatted: formatBRL(effectiveUnitRate, true),
         primarySuffix: '/ton',
         primaryLabel: `${formatBRL(effectiveUnitRate, true)}/ton`,
-        secondaryLabel: hasMultipleTrucks
-          ? `Total: ${formatBRL(totalCalc, true)} · ${formatBRL(freight.price / requiredTrucks, true)}/carreta (${requiredTrucks})`
-          : weightTons > 0
-            ? `Total: ${formatBRL(totalCalc, true)} (${weightTons.toFixed(1)} ton)`
-            : null,
+        secondaryLabel: secondary,
         unitRateLabel: 'R$/ton',
         unitRateValue: effectiveUnitRate,
         unitRateFormatted: `R$${effectiveUnitRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -165,7 +177,7 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
     }
   }
 
-  // === FIXED: show total or per-truck ===
+  // === FIXED: always per-vehicle unit price ===
   const perTruck = hasMultipleTrucks ? freight.price / requiredTrucks : freight.price;
   const derivedPerKm = distKm > 0 ? perTruck / distKm : null;
 
@@ -177,7 +189,7 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
       ? `${formatBRL(perTruck, true)}/carreta`
       : formatBRL(freight.price, true),
     secondaryLabel: hasMultipleTrucks
-      ? `Total (${requiredTrucks} carretas): ${formatBRL(freight.price, true)}`
+      ? `${requiredTrucks} carretas`
       : null,
     unitRateLabel: 'R$/km',
     unitRateValue: derivedPerKm,
