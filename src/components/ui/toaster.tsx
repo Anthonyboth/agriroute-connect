@@ -12,6 +12,10 @@ import { CheckCircle2, XCircle, AlertTriangle, Info } from "lucide-react"
 export function Toaster() {
   const { toasts } = useToast()
 
+  // Don't render anything (including ToastViewport) when there are no toasts
+  // This prevents a blank notification box from appearing alongside Sonner toasts
+  if (toasts.length === 0) return null;
+
   const getIcon = (variant?: string) => {
     switch (variant) {
       case 'destructive':
