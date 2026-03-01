@@ -528,8 +528,23 @@ const [pricePerKm, setPricePerKm] = useState('');
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <span className="font-medium">
-                {formatBRL(driverProposedPerTruck, true)}
-                {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+                {(() => {
+                  // Use canonical contract to display driver's proposal in the SAME unit as the freight
+                  const driverPriceDisplay = getCanonicalFreightPrice({
+                    pricing_type: freight.pricing_type,
+                    price_per_ton: freight.pricing_type?.toUpperCase()?.includes('TON') && freight.weight && freight.weight > 0
+                      ? (driverProposedPriceTotal / (freight.weight / 1000))
+                      : null,
+                    price_per_km: freight.pricing_type?.toUpperCase()?.includes('KM') && freight.distance_km && freight.distance_km > 0
+                      ? (driverProposedPriceTotal / freight.distance_km)
+                      : null,
+                    price: driverProposedPriceTotal,
+                    required_trucks: requiredTrucks,
+                    weight: freight.weight,
+                    distance_km: freight.distance_km,
+                  });
+                  return driverPriceDisplay.primaryLabel;
+                })()}
               </span>
             </div>
             {freightPriceDisplay.secondaryLabel && (
