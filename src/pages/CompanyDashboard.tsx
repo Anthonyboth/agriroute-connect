@@ -388,6 +388,9 @@ const CompanyDashboard = () => {
         return {
           ...mf.rawFreight,
           price: unitPrice,
+          // ✅ Forçar FIXED para o card usar o preço calculado diretamente
+          pricing_type: 'FIXED' as const,
+          price_per_km: null,
           price_display_mode: 'PER_TRUCK' as const,
           // ✅ CRÍTICO: carretas da EMPRESA, não o total do frete
           original_required_trucks: companyTruckCount,
