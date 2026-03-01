@@ -154,14 +154,13 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
       // Apenas enviar push notification (que é separado do banco)
       if (paymentData.driver_id) {
         const freight = paymentData.freight as any;
-        const amountFormatted = paymentData.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00';
         const routeInfo = freight?.origin_city && freight?.destination_city ? `${freight.origin_city} → ${freight.destination_city}` : 'Frete';
         sendPushNotification({
           userIds: [paymentData.driver_id],
           title: '💰 Pagamento Confirmado pelo Produtor',
-          message: `R$ ${amountFormatted} - ${routeInfo}. Confirme o recebimento no app.`,
+          message: `${routeInfo}. Confirme o recebimento no app.`,
           type: 'payment_confirmed_by_producer',
-          data: { payment_id: paymentId, freight_id: paymentData.freight_id, amount: paymentData.amount },
+          data: { payment_id: paymentId, freight_id: paymentData.freight_id },
           url: '/dashboard?tab=payments', requireInteraction: true,
         }).catch(err => console.error('[useProducerPayments] Push notification error:', err));
       }
@@ -199,7 +198,7 @@ export const useProducerPayments = (): UseProducerPaymentsReturn => {
   const pendingCount = payments.filter(p => p.status === 'proposed').length;
   const awaitingConfirmationCount = payments.filter(p => p.status === 'paid_by_producer').length;
   const completedCount = payments.filter(p => p.status === 'confirmed').length;
-  const totalPending = payments.filter(p => p.status === 'proposed').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPending = payments.filter(p => p.status === 'proposed').reduce((sum, p) => sum + (p.freight?.price_per_km || p.freight?.price_per_ton || 0), 0);
 
   useEffect(() => {
     if (profile?.id && profile.role === 'PRODUTOR') fetchPayments();
