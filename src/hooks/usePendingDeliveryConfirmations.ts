@@ -373,6 +373,10 @@ export function usePendingDeliveryConfirmations(producerId: string | undefined) 
             pickup_date: freight.pickup_date,
             updated_at: freight.updated_at,
             metadata: (freight as any).metadata,
+            pricing_type: (freight as any).pricing_type,
+            price_per_km: (freight as any).price_per_km,
+            weight: (freight as any).weight,
+            distance_km: (freight as any).distance_km,
           },
           driver: {
             id: driver.id,
