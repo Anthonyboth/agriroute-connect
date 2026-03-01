@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface Payment {
   id: string;
@@ -59,9 +60,16 @@ export const CompanyPaymentsManager: React.FC = () => {
           status,
           created_at,
           freight:freights(
+            id,
             cargo_type,
             driver_id,
-            price
+            price,
+            pricing_type,
+            price_per_km,
+            price_per_ton,
+            required_trucks,
+            weight,
+            distance_km
           )
         `)
         .order('created_at', { ascending: false })
@@ -118,9 +126,21 @@ export const CompanyPaymentsManager: React.FC = () => {
             <div>
               <p className="text-xs text-muted-foreground">Valor</p>
               <p className="text-2xl font-bold text-green-600">
-                R$ {payment.amount.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2
-                })}
+                {(() => {
+                  const f = (payment as any).freight;
+                  if (f?.id) {
+                    return precoPreenchidoDoFrete(f.id, {
+                      price: f.price || 0,
+                      pricing_type: f.pricing_type,
+                      price_per_km: f.price_per_km,
+                      price_per_ton: f.price_per_ton,
+                      required_trucks: f.required_trucks,
+                      weight: f.weight,
+                      distance_km: f.distance_km,
+                    }, { unitOnly: true }).primaryText;
+                  }
+                  return 'Preço indisponível';
+                })()}
               </p>
             </div>
             {payment.status === 'PENDING' && (

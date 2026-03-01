@@ -54,6 +54,7 @@ import { forceLogoutAndRedirect } from '@/utils/authRecovery';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
 import { useDriverOngoingCards } from '@/hooks/useDriverOngoingCards';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 // Sub-components refatorados
 import { 
@@ -1259,7 +1260,14 @@ const DriverDashboard = () => {
             destination_address,
             pickup_date,
             status,
-            price
+            price,
+            pricing_type,
+            price_per_km,
+            price_per_ton,
+            required_trucks,
+            weight,
+            distance_km,
+            producer_id
           )
         `)
         .eq('driver_id', profile.id)
@@ -3022,7 +3030,21 @@ const DriverDashboard = () => {
                                   {isPaidByProducer ? 'Valor pago pelo produtor:' : 'Valor proposto:'}
                                 </p>
                                 <p className={`text-2xl font-bold ${isPaidByProducer ? 'text-green-600' : 'text-yellow-600'}`}>
-                                  R$ {payment.amount?.toLocaleString('pt-BR')}
+                                  {(() => {
+                                    if (payment.freight) {
+                                      const pd = precoPreenchidoDoFrete(payment.freight.id, {
+                                        price: payment.freight.price || 0,
+                                        pricing_type: payment.freight.pricing_type,
+                                        price_per_km: payment.freight.price_per_km,
+                                        price_per_ton: payment.freight.price_per_ton,
+                                        required_trucks: payment.freight.required_trucks,
+                                        weight: payment.freight.weight,
+                                        distance_km: payment.freight.distance_km,
+                                      }, { unitOnly: true });
+                                      return pd.primaryText;
+                                    }
+                                    return 'Preço indisponível';
+                                  })()}
                                 </p>
                               </div>
                               <div className="text-right">
