@@ -331,7 +331,7 @@ export function CompanyInternalChat() {
       // 4. Mapear mensagens
       const chatMapped = (chatMessages || []).map(msg => ({
         ...msg,
-        message_type: 'TEXT' as const,
+        message_type: msg.message_type || 'TEXT',
         sender_type: msg.sender_type
       }));
 
@@ -456,17 +456,33 @@ export function CompanyInternalChat() {
         toast.error('Não foi possível obter sua localização.');
         return;
       }
-      const address = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+      const { latitude, longitude } = position.coords;
+
+      // Tentar reverse geocode (mesmo padrão do ServiceChat)
+      let address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      try {
+        const response = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
+        );
+        const data = await response.json();
+        if (data?.city || data?.locality) {
+          const parts = [data.locality, data.city, data.principalSubdivision].filter(Boolean);
+          if (parts.length > 0) address = parts.join(', ');
+        }
+      } catch {
+        // fallback: coordenadas brutas
+      }
+
       const { error } = await supabase
         .from('company_driver_chats')
         .insert({
           company_id: companyId,
           driver_profile_id: selectedDriver.id,
           sender_type: 'COMPANY',
-          message: `📍 Localização compartilhada: ${address}`,
+          message: '📍 Localização compartilhada',
           message_type: 'LOCATION',
-          location_lat: position.coords.latitude,
-          location_lng: position.coords.longitude,
+          location_lat: latitude,
+          location_lng: longitude,
           location_address: address,
           is_read: false,
         });
@@ -752,6 +768,8 @@ export function CompanyInternalChat() {
               <div className="mt-4">
                 <ChatInput
                   onSendMessage={sendMessage}
+                  onSendLocation={handleSendLocation}
+                  sendingLocation={sendingLocation}
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
                   disabled={loading}
@@ -783,6 +801,17 @@ export function CompanyInternalChat() {
         companyOwnerId={profile?.id || ''}
         companyId={companyId || ''}
       />
+
+      {/* Modal de rota MapLibre */}
+      {routeModalLocation && (
+        <ChatLocationRouteModal
+          open={!!routeModalLocation}
+          onOpenChange={(open) => { if (!open) setRouteModalLocation(null); }}
+          destinationLat={routeModalLocation.lat}
+          destinationLng={routeModalLocation.lng}
+          destinationAddress={routeModalLocation.address}
+        />
+      )}
     </div>
   );
 }
