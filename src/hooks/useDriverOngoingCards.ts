@@ -432,10 +432,14 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       }));
 
       const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).filter((a: any) => {
-        // ✅ REGRA CRÍTICA: Assignments com pickup_date futura e status ACCEPTED são AGENDADOS
+        // ✅ REGRA CORRIGIDA: Assignments (freight_assignments) representam despachos confirmados
+        // pela transportadora. O motorista DEVE vê-los em "Em Andamento" independente da data
+        // de coleta, pois já foram atribuídos e exigem ação do motorista.
         const freight = a.freight;
         if (!freight) return false;
-        return isInProgressFreight(freight.pickup_date, a.status);
+        // Apenas excluir status terminais
+        const terminalStatuses = ['CANCELLED', 'DELIVERED', 'COMPLETED'];
+        return !terminalStatuses.includes(a.status) && !terminalStatuses.includes(freight.status);
       }).map((a: any) => ({
         ...a,
         freight: a.freight ? {
