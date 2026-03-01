@@ -33,7 +33,7 @@ export const ServiceChatDialog: React.FC<ServiceChatDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -47,7 +47,7 @@ export const ServiceChatDialog: React.FC<ServiceChatDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {isGuestClient ? (
             <div className="space-y-4">
               <Alert variant="destructive" className="border-2">
@@ -101,7 +101,7 @@ export const ServiceChatDialog: React.FC<ServiceChatDialogProps> = ({
 
             </div>
           ) : (
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-h-0">
               <ServiceChat
                 serviceRequestId={serviceRequest.id}
                 currentUserProfile={currentUserProfile}
