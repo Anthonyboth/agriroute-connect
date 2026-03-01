@@ -31,6 +31,9 @@ interface Vehicle {
   status: string;
   crlv_url?: string;
   vehicle_photo_url?: string;
+  vehicle_specifications?: string;
+  vehicle_documents?: any;
+  vehicle_photos?: any;
 }
 
 interface VehicleManagerProps {
@@ -59,7 +62,10 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
     max_capacity_kg: 0,
     axle_count: 2,
     crlv_url: '',
-    vehicle_photo_url: ''
+    vehicle_photo_url: '',
+    vehicle_specifications: '',
+    vehicle_documents: [] as string[],
+    vehicle_photos: [] as string[],
   });
   const [photoCount, setPhotoCount] = useState(0);
   const [viewingGalleryVehicleId, setViewingGalleryVehicleId] = useState<string | null>(null);
@@ -90,7 +96,10 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       max_capacity_kg: 0,
       axle_count: 2,
       crlv_url: '',
-      vehicle_photo_url: ''
+      vehicle_photo_url: '',
+      vehicle_specifications: '',
+      vehicle_documents: [],
+      vehicle_photos: [],
     });
     setEditingVehicle(null);
     setDuplicatePlateError(null);
@@ -263,7 +272,10 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       max_capacity_kg: isSmall ? vehicle.max_capacity_tons * 1000 : 0,
       axle_count: vehicle.axle_count,
       crlv_url: vehicle.crlv_url || '',
-      vehicle_photo_url: vehicle.vehicle_photo_url || ''
+      vehicle_photo_url: vehicle.vehicle_photo_url || '',
+      vehicle_specifications: vehicle.vehicle_specifications || '',
+      vehicle_documents: vehicle.vehicle_documents || [],
+      vehicle_photos: vehicle.vehicle_photos || [],
     });
     setEditingVehicle(vehicle);
     setIsAddModalOpen(true);
@@ -447,27 +459,65 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium">Documentos do Veículo</h4>
+                <h4 className="font-medium">Especificações Técnicas</h4>
+                <textarea
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Descreva características especiais: equipamentos, modificações, restrições..."
+                  value={vehicleData.vehicle_specifications}
+                  onChange={(e) => setVehicleData(prev => ({ ...prev, vehicle_specifications: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Documentação do Veículo</h4>
                 
                 <DocumentUpload
-                  label="CRLV (Certificado de Registro)"
+                  label="CRLV (Certificado de Registro) *"
                   fileType="crlv"
                   bucketName="driver-documents"
                   onUploadComplete={(url) => setVehicleData(prev => ({ ...prev, crlv_url: url }))}
                 />
+
+                <DocumentUpload
+                  label="Documentos Adicionais"
+                  fileType="vehicle_docs"
+                  bucketName="driver-documents"
+                  onUploadComplete={(url) => setVehicleData(prev => ({ ...prev, vehicle_documents: [...(prev.vehicle_documents || []), url] }))}
+                />
+                {vehicleData.vehicle_documents.length > 0 && (
+                  <p className="text-xs text-muted-foreground">{vehicleData.vehicle_documents.length} documento(s) anexado(s)</p>
+                )}
               </div>
 
-              {/* Galeria de fotos - só aparece ao editar veículo existente */}
-              {editingVehicle && (
-                <div className="space-y-2">
+              {/* Fotos do veículo */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Fotos do Veículo</h4>
+                <p className="text-sm text-muted-foreground">
+                  Adicione fotos (mínimo 3): lateral, frontal, traseira, placa, equipamentos
+                </p>
+
+                {editingVehicle ? (
                   <VehiclePhotoGallery
                     vehicleId={editingVehicle.id}
                     isEditing={true}
                     minPhotos={['CARRETA', 'CARRETA_BAU', 'BITREM', 'RODOTREM'].includes(vehicleData.vehicle_type) ? 1 : 0}
                     onPhotosChange={setPhotoCount}
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((index) => (
+                      <DocumentUpload
+                        key={`vehicle-photo-${index}`}
+                        onUploadComplete={(url) => setVehicleData(prev => ({ ...prev, vehicle_photos: [...(prev.vehicle_photos || []), url] }))}
+                        label={`Foto ${index}${index <= 3 ? ' (obrigatória)' : ' (opcional)'}`}
+                        fileType={`vehicle_photo_${index}`}
+                        bucketName="driver-documents"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Aviso para novos veículos */}
 
