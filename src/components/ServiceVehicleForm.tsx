@@ -38,6 +38,7 @@ export const ServiceVehicleForm: React.FC<ServiceVehicleFormProps> = ({
   const [specifications, setSpecifications] = useState('');
   const [vehicleDocuments, setVehicleDocuments] = useState<string[]>([]);
   const [vehiclePhotos, setVehiclePhotos] = useState<string[]>([]);
+  const [crrlvUrl, setCrrlvUrl] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export const ServiceVehicleForm: React.FC<ServiceVehicleFormProps> = ({
       setSpecifications(specs.replace(/Tipo:\s*.+?\n/, ''));
       setVehicleDocuments(editingVehicle.vehicle_documents || []);
       setVehiclePhotos(editingVehicle.vehicle_photos || []);
+      setCrrlvUrl(editingVehicle.crlv_url || '');
     }
   }, [editingVehicle]);
 
@@ -65,6 +67,7 @@ export const ServiceVehicleForm: React.FC<ServiceVehicleFormProps> = ({
     setSpecifications('');
     setVehicleDocuments([]);
     setVehiclePhotos([]);
+    setCrrlvUrl('');
   };
 
   const handleSubmit = async () => {
@@ -86,6 +89,7 @@ export const ServiceVehicleForm: React.FC<ServiceVehicleFormProps> = ({
         vehicle_specifications: fullSpecs,
         vehicle_documents: vehicleDocuments,
         vehicle_photos: vehiclePhotos,
+        crlv_url: crrlvUrl,
         is_company_vehicle: true,
         status: 'PENDING',
       };
@@ -199,11 +203,21 @@ export const ServiceVehicleForm: React.FC<ServiceVehicleFormProps> = ({
           />
         </div>
 
-        {/* Documentos */}
+        {/* CRLV */}
         <div className="space-y-2">
-          <Label>Documentos do Veículo</Label>
+          <Label>CRLV (Certificado de Registro e Licenciamento) *</Label>
           <DocumentUpload
-            label="CRLV, Alvará, Certificações"
+            label="CRLV"
+            onUploadComplete={(url) => setCrrlvUrl(url)}
+            accept="image/*,application/pdf"
+          />
+        </div>
+
+        {/* Documentos Adicionais */}
+        <div className="space-y-2">
+          <Label>Documentos Adicionais</Label>
+          <DocumentUpload
+            label="Alvará, Certificações"
             onUploadComplete={(url) => setVehicleDocuments([...vehicleDocuments, url])}
             accept="image/*,application/pdf"
           />

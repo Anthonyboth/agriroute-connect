@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Info, Edit, X } from 'lucide-react';
+import { Plus, Info, Edit, X, AlertCircle } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { toast } from 'sonner';
 import { VEHICLE_TYPES, getVehicleTypeInfo } from '@/lib/vehicle-types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdvancedVehicleManagerProps {
   onVehicleAdd: (vehicleData: any) => void;
@@ -33,7 +34,43 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
   const [vehicleDocuments, setVehicleDocuments] = useState<string[]>([]);
   const [vehiclePhotos, setVehiclePhotos] = useState<string[]>([]);
   const [crrlvUrl, setCrrlvUrl] = useState('');
+  const [duplicatePlateError, setDuplicatePlateError] = useState<string | null>(null);
 
+  const checkDuplicatePlate = async (plate: string): Promise<boolean> => {
+    if (!plate || plate.length < 7) return false;
+    const normalizedPlate = plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    let query = supabase
+      .from('vehicles')
+      .select('id, license_plate')
+      .ilike('license_plate', `%${normalizedPlate}%`);
+    
+    if (editingVehicle) {
+      query = query.neq('id', editingVehicle.id);
+    }
+
+    const { data } = await query;
+    
+    if (data?.length) {
+      const match = data.find(v => v.license_plate.toUpperCase().replace(/[^A-Z0-9]/g, '') === normalizedPlate);
+      if (match) {
+        setDuplicatePlateError('Esta placa já está cadastrada no sistema');
+        return true;
+      }
+    }
+    setDuplicatePlateError(null);
+    return false;
+  };
+
+  const handlePlateChange = async (value: string) => {
+    const formatted = value.toUpperCase();
+    setLicensePlate(formatted);
+    if (formatted.length >= 7) {
+      await checkDuplicatePlate(formatted);
+    } else {
+      setDuplicatePlateError(null);
+    }
+  };
   useEffect(() => {
     if (editingVehicle) {
       setVehicleType(editingVehicle.vehicle_type || '');
@@ -57,11 +94,19 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
     setVehicleDocuments([]);
     setVehiclePhotos([]);
     setCrrlvUrl('');
+    setDuplicatePlateError(null);
   };
 
-  const handleAddVehicle = () => {
+  const handleAddVehicle = async () => {
     if (vehicleType === 'OUTROS' && !specifications) {
       toast.error('Para o tipo "Outros", descreva o veículo nas especificações');
+      return;
+    }
+
+    // Check for duplicate plate
+    const isDuplicate = await checkDuplicatePlate(licensePlate);
+    if (isDuplicate) {
+      toast.error('Já existe um veículo cadastrado com esta placa.');
       return;
     }
     
@@ -184,8 +229,15 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
           <Input
             placeholder="ABC-1234"
             value={licensePlate}
-            onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+            onChange={(e) => handlePlateChange(e.target.value)}
+            className={duplicatePlateError ? 'border-destructive' : ''}
           />
+          {duplicatePlateError && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {duplicatePlateError}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
