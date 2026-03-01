@@ -141,7 +141,7 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   // ============ CHAT PRINCIPAL ============
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col min-h-0">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="h-5 w-5" />
@@ -167,7 +167,7 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
+      <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden min-h-0">
         {/* Área de mensagens */}
         <ScrollArea 
           ref={scrollAreaRef}
