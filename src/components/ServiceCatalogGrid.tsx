@@ -175,11 +175,6 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
                       <CardTitle className="text-lg group-hover:text-primary transition-colors">
                         {service.label}
                       </CardTitle>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {getServiceIcon(displayCategory)} {CATEGORY_LABELS[displayCategory]}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
