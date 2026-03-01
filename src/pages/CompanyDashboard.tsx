@@ -104,13 +104,13 @@ const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: nu
   
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínculos', icon: Link2, badge: undefined },
-  { value: 'freights', label: 'Em Andamento', shortLabel: 'Em Andamento', icon: Play, badge: undefined },
+  { value: 'freights', label: 'Gerenciamento', shortLabel: 'Gerenciar', icon: Package, badge: undefined },
   { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agendamentos', icon: Calendar, badge: undefined },
   { 
     value: 'active', 
     label: 'Em Andamento', 
-    shortLabel: 'Ativo', 
-    icon: Navigation,
+    shortLabel: 'Em Andamento', 
+    icon: Play,
     badge: activeCount > 0 ? activeCount : undefined
   },
   { value: 'proposals', label: 'Propostas', shortLabel: 'Propostas', icon: FileText, badge: undefined },
