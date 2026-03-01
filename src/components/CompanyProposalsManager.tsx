@@ -17,7 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL, formatKm } from '@/lib/formatters';
 import { UI_TEXTS } from '@/lib/ui-texts';
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
-import { getCanonicalFreightPrice } from '@/lib/freightPriceContract';
+import { getCanonicalFreightPrice, getCanonicalPriceFromTotal } from '@/lib/freightPriceContract';
 
 interface Proposal {
   id: string;
@@ -248,7 +248,12 @@ export const CompanyProposalsManager: React.FC = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Valor Proposto</p>
                 <p className={`text-lg font-semibold ${priceDiff > 0 ? 'text-red-600' : priceDiff < 0 ? 'text-green-600' : ''}`}>
-                  R$ {formatBRL(proposal.proposed_price)}
+                  {getCanonicalPriceFromTotal(proposal.proposed_price, {
+                    pricing_type: (proposal.freight as any)?.pricing_type,
+                    weight: (proposal.freight as any)?.weight,
+                    distance_km: (proposal.freight as any)?.distance_km,
+                    required_trucks: (proposal.freight as any)?.required_trucks,
+                  }).primaryLabel}
                 </p>
               </div>
             </div>

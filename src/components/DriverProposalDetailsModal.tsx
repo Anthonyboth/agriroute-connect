@@ -248,7 +248,7 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
                   Frete com {requiredTrucks} carretas
                 </div>
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  Valores exibidos são <strong>por carreta</strong>.
+                  Valores exibidos na unidade original do frete.
                 </p>
               </div>
             )}
@@ -374,10 +374,8 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-sm font-medium flex items-center gap-2">
                           Novo valor sugerido pelo produtor:
-                          {isMultiTruck && <Badge variant="outline" className="text-xs">/carreta</Badge>}
                         </span>
                         <Badge variant="default" className="text-base px-3">
-                          {/* ✅ SEGURANÇA: formatBRL já inclui R$ */}
                           {formatBRL(parseFloat(counterOffer.counter_proposed_price), true)}
                         </Badge>
                       </div>

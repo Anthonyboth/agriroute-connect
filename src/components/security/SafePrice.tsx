@@ -2,22 +2,14 @@
  * src/components/security/SafePrice.tsx
  *
  * Componente OBRIGATÓRIO para exibição de preço em telas de frete/proposta.
- * Internamente aplica:
- *   - formatPriceForUser() do multiTruckPriceGuard
- *   - validatePriceConsistency() quando aplicável
- *   - NUNCA exibe valor total para motoristas em multi-carreta
- *
- * PROIBIDO usar formatBRL direto para preços de frete — use este componente.
+ * Agora usa o contrato canônico getCanonicalFreightPrice para respeitar
+ * pricing_type (PER_TON, PER_KM, FIXED) em vez de hardcodar "/carreta".
  */
 
 import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Truck } from 'lucide-react';
-import {
-  formatPriceForUser,
-  type PriceContext,
-  type PriceGuardResult,
-} from '@/security/multiTruckPriceGuard';
+import { getCanonicalFreightPrice, getCanonicalPriceFromTotal, type FreightPriceDisplay } from '@/lib/freightPriceContract';
 
 // =============================================================================
 // TIPOS
@@ -28,10 +20,15 @@ type ViewerRole = 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRODUTOR' | 'TRANSPORTAD
 interface SafePriceProps {
   /** Preço total do frete (freights.price) */
   price: number | null | undefined;
-  /** Dados do frete para contexto multi-carreta */
+  /** Dados do frete para contexto */
   freight: {
     required_trucks?: number | null;
     price?: number | null;
+    pricing_type?: string | null;
+    price_per_km?: number | null;
+    price_per_ton?: number | null;
+    weight?: number | null;
+    distance_km?: number | null;
   };
   /** Contexto de uso */
   context: 'FREIGHT' | 'PROPOSAL' | 'COUNTER';
@@ -41,9 +38,9 @@ interface SafePriceProps {
   agreedPrice?: number | null;
   /** Tamanho da fonte */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** Mostrar label "/carreta" */
+  /** Mostrar label de unidade */
   showLabel?: boolean;
-  /** Mostrar total como secundário (só para PRODUTOR/TRANSPORTADORA) */
+  /** Mostrar info secundária */
   showSecondary?: boolean;
   /** Classes adicionais */
   className?: string;
@@ -51,24 +48,6 @@ interface SafePriceProps {
   asBadge?: boolean;
   /** Variante do Badge */
   badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
-}
-
-// Mapa de papel para contexto de preço
-function roleToPriceContext(role: string): PriceContext {
-  const normalized = role.toUpperCase().trim();
-  switch (normalized) {
-    case 'MOTORISTA':
-    case 'MOTORISTA_AFILIADO':
-      return 'DRIVER';
-    case 'PRODUTOR':
-      return 'PRODUCER';
-    case 'TRANSPORTADORA':
-      return 'COMPANY';
-    case 'ADMIN':
-      return 'ADMIN';
-    default:
-      return 'DRIVER'; // Fallback seguro: menor exposição
-  }
 }
 
 // Classes de tamanho
@@ -96,83 +75,57 @@ export const SafePrice: React.FC<SafePriceProps> = ({
   asBadge = false,
   badgeVariant = 'default',
 }) => {
-  const priceContext = roleToPriceContext(viewerRole);
   const requiredTrucks = Math.max(freight.required_trucks || 1, 1);
-
-  // Determinar qual preço usar baseado no contexto
-  const effectivePrice = context === 'PROPOSAL' || context === 'COUNTER'
-    ? price  // Em propostas, o preço passado já é por carreta
-    : freight.price ?? price;
-
-  const result: PriceGuardResult = useMemo(
-    () => formatPriceForUser({
-      freightPrice: context === 'PROPOSAL' || context === 'COUNTER'
-        ? (freight.price ?? 0) // Preço total do frete para referência
-        : (effectivePrice ?? 0),
-      requiredTrucks,
-      agreedPrice: agreedPrice ?? (context === 'PROPOSAL' ? (price ?? null) : null),
-      context: priceContext,
-    }),
-    [effectivePrice, requiredTrucks, agreedPrice, priceContext, price, freight.price, context]
-  );
-
-  const isMultiTruck = result.isMultiTruck;
+  const isMultiTruck = requiredTrucks > 1;
   const sizeClass = SIZE_CLASSES[size];
 
-  // Para propostas onde o preço passado JÁ é por carreta
-  const displayFormatted = context === 'PROPOSAL' || context === 'COUNTER'
-    ? `R$ ${(price ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : result.formattedPrice;
+  // Use canonical contract for display
+  const display: FreightPriceDisplay = useMemo(() => {
+    // For proposals/counters, the price passed might be a driver's total - derive from total
+    if ((context === 'PROPOSAL' || context === 'COUNTER') && price != null) {
+      return getCanonicalPriceFromTotal(price, {
+        pricing_type: freight.pricing_type,
+        weight: freight.weight,
+        distance_km: freight.distance_km,
+        required_trucks: freight.required_trucks,
+      });
+    }
 
-  // Conteúdo principal
+    // For freight display, use the freight's own data
+    return getCanonicalFreightPrice({
+      pricing_type: freight.pricing_type,
+      price_per_ton: freight.price_per_ton,
+      price_per_km: freight.price_per_km,
+      price: freight.price ?? price ?? 0,
+      required_trucks: freight.required_trucks,
+      weight: freight.weight,
+      distance_km: freight.distance_km,
+    });
+  }, [price, freight, context]);
+
   const primaryContent = (
     <span className={`${sizeClass} text-primary ${className}`}>
-      {displayFormatted}
-      {showLabel && isMultiTruck && result.isPerTruck && (
-        <span className="text-xs font-semibold text-muted-foreground ml-1">/carreta</span>
-      )}
-      {showLabel && isMultiTruck && !result.isPerTruck && (
-        <span className="text-xs font-normal text-muted-foreground ml-1">(total)</span>
-      )}
+      {display.primaryLabel}
     </span>
   );
 
   if (asBadge) {
     return (
       <Badge variant={badgeVariant} className={`${sizeClass} px-3 ${className}`}>
-        {displayFormatted}
-        {showLabel && isMultiTruck && result.isPerTruck && (
-          <span className="text-xs ml-1">/carreta</span>
-        )}
+        {display.primaryLabel}
       </Badge>
     );
   }
 
-  // Transportadora: Total como primário, /carreta como secundário
-  if (priceContext === 'COMPANY' && isMultiTruck && showSecondary) {
-    return (
-      <div className={`flex flex-col items-end ${className}`}>
-        <span className={`${sizeClass} text-primary`}>
-          {result.formattedPrice}
-        </span>
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-          {result.formattedTotalPrice && result.formattedTotalPrice !== result.formattedPrice
-            ? `${result.formattedPrice}/carreta`
-            : ''}
-          <span className="ml-1">({requiredTrucks} carretas)</span>
-        </span>
-      </div>
-    );
-  }
-
-  // Produtor/Admin: mostrar total com info de carretas
-  if ((priceContext === 'PRODUCER' || priceContext === 'ADMIN') && isMultiTruck && showSecondary) {
+  // Show secondary info (truck count, weight, distance)
+  if (isMultiTruck && showSecondary) {
     return (
       <div className={`flex flex-col items-end ${className}`}>
         {primaryContent}
         <span className="text-[11px] text-muted-foreground whitespace-nowrap flex items-center gap-1">
           <Truck className="h-3 w-3" />
           {requiredTrucks} carretas
+          {display.secondaryLabel && ` · ${display.secondaryLabel}`}
         </span>
       </div>
     );
