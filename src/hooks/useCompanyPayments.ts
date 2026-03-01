@@ -33,6 +33,11 @@ export interface CompanyPayment {
     pickup_date?: string;
     status?: string;
     price?: number;
+    pricing_type?: string;
+    price_per_km?: number;
+    price_per_ton?: number;
+    required_trucks?: number;
+    weight?: number;
     distance_km?: number;
   };
   driver?: {

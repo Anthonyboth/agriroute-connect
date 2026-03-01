@@ -4,7 +4,7 @@
  * Mostra os pagamentos de motoristas afiliados (external_payments).
  * Utiliza o hook useCompanyPayments para buscar dados.
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
 import { useCompanyPayments, type CompanyPayment } from '@/hooks/useCompanyPayments';
 import { formatBRL } from '@/lib/formatters';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 export function CompanyExternalPaymentsPanel() {
   const { 
@@ -170,7 +171,7 @@ export function CompanyExternalPaymentsPanel() {
                             </div>
                           </div>
 
-                          {/* Valor */}
+                          {/* Valor unitário */}
                           <div className="text-right flex-shrink-0">
                             <p className={`text-xl font-bold ${
                               payment.status === 'confirmed' 
@@ -179,7 +180,15 @@ export function CompanyExternalPaymentsPanel() {
                                 ? 'text-blue-600' 
                                 : 'text-foreground'
                             }`}>
-                              R$ {formatBRL(payment.amount)}
+                              {payment.freight ? precoPreenchidoDoFrete(payment.freight.id, {
+                                price: payment.freight.price || 0,
+                                pricing_type: (payment.freight as any).pricing_type,
+                                price_per_km: (payment.freight as any).price_per_km,
+                                price_per_ton: (payment.freight as any).price_per_ton,
+                                required_trucks: (payment.freight as any).required_trucks,
+                                weight: (payment.freight as any).weight,
+                                distance_km: payment.freight.distance_km,
+                              }, { unitOnly: true }).primaryText : 'Preço indisponível'}
                             </p>
                             {payment.producer?.full_name && (
                               <p className="text-xs text-muted-foreground mt-1">

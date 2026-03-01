@@ -5,6 +5,7 @@ import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { Banknote, CheckCircle, MessageSquare, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface Payment {
   id: string;
@@ -14,6 +15,16 @@ interface Payment {
   payment_method?: string;
   payment_notes?: string;
   created_at?: string;
+  freight?: {
+    id: string;
+    price?: number;
+    pricing_type?: string;
+    price_per_km?: number;
+    price_per_ton?: number;
+    required_trucks?: number;
+    weight?: number;
+    distance_km?: number;
+  };
 }
 
 interface DriverPaymentsTabProps {
@@ -27,6 +38,22 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
   onConfirmPayment,
   onDisputePayment,
 }) => {
+  const getUnitPrice = (payment: Payment): string => {
+    if (payment.freight) {
+      const pd = precoPreenchidoDoFrete(payment.freight.id, {
+        price: payment.freight.price || 0,
+        pricing_type: payment.freight.pricing_type,
+        price_per_km: payment.freight.price_per_km,
+        price_per_ton: payment.freight.price_per_ton,
+        required_trucks: payment.freight.required_trucks,
+        weight: payment.freight.weight,
+        distance_km: payment.freight.distance_km,
+      }, { unitOnly: true });
+      return pd.primaryText;
+    }
+    return 'Preço indisponível';
+  };
+
   return (
     <SafeListWrapper>
       <Card>
@@ -69,7 +96,7 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
                           </p>
                         </div>
                         <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                          R$ {payment.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          {getUnitPrice(payment)}
                         </span>
                       </div>
 
