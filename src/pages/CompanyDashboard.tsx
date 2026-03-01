@@ -28,7 +28,8 @@ import {
   BarChart,
   Brain,
   ClipboardList,
-  Plus
+  Plus,
+  Play
 } from 'lucide-react';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useNavigate } from 'react-router-dom';
@@ -103,7 +104,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: nu
   
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínculos', icon: Link2, badge: undefined },
-  { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package, badge: undefined },
+  { value: 'freights', label: 'Em Andamento', shortLabel: 'Em Andamento', icon: Play, badge: undefined },
   { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agendamentos', icon: Calendar, badge: undefined },
   { 
     value: 'active', 
