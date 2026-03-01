@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle, User, Truck as TruckIcon } from 'lucide-react';
 import { SignedStorageImage } from '@/components/ui/signed-storage-image';
 import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@/lib/formatters';
-import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
 import { ChatModal } from '@/components/ChatModal';
@@ -209,17 +209,16 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
           {/* ✅ Valor do Frete - SEMPRE usa pipeline centralizado de preço */}
           <div className="pt-2 border-t">
             {(() => {
-              // ✅ SEMPRE usar o pipeline centralizado — NUNCA exibir agreed_price bruto como /carreta
-              const pd = getFreightPriceDisplay(freight);
+              // ✅ PREÇO PREENCHIDO — fonte única de verdade
+              const pd = precoPreenchidoDoFrete(freight.id, freight);
 
               return (
                 <>
                   <div className="text-2xl font-bold text-primary">
-                    {pd.primaryFormatted}
-                    <span className="text-xs font-normal text-muted-foreground ml-1">{pd.primarySuffix}</span>
+                    {pd.primaryText}
                   </div>
-                  {pd.secondaryLabel && (
-                    <p className="text-xs text-muted-foreground">{pd.secondaryLabel}</p>
+                  {pd.secondaryText && (
+                    <p className="text-xs text-muted-foreground">{pd.secondaryText}</p>
                   )}
                 </>
               );

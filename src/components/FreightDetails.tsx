@@ -31,7 +31,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatKm, getPricePerTruck, formatBRL } from '@/lib/formatters';
-import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { CTeEmitirDialog } from './fiscal/CTeEmitirDialog';
 import { isFeatureEnabled } from '@/config/featureFlags';
 import { AntifraudPanel } from './antifraude';
@@ -621,8 +621,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               </div>
             </div>
             {(() => {
-              // ✅ ALWAYS use centralized pipeline for price display
-              const pd = getFreightPriceDisplay({
+              // ✅ PREÇO PREENCHIDO — fonte única de verdade
+              const pd = precoPreenchidoDoFrete(freight.id, {
                 price: freight.price || 0,
                 pricing_type: freight.pricing_type,
                 price_per_km: freight.price_per_km,
@@ -634,14 +634,14 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 <>
                   <div>
                     <span className="text-muted-foreground text-xs">
-                      {pd.isUnitPricing ? 'Valor unitário:' : isFreightProducer ? 'Valor total:' : 'Valor do frete:'}
+                      {pd.pricingType !== 'FIXED' ? 'Valor unitário:' : isFreightProducer ? 'Valor total:' : 'Valor do frete:'}
                     </span>
-                    <p className="font-medium">{pd.primaryLabel}</p>
+                    <p className="font-medium">{pd.primaryText}</p>
                   </div>
-                  {pd.secondaryLabel && (
+                  {pd.secondaryText && (
                     <div>
                       <span className="text-muted-foreground text-xs">Detalhes:</span>
-                      <p className="font-medium text-muted-foreground text-sm">{pd.secondaryLabel}</p>
+                      <p className="font-medium text-muted-foreground text-sm">{pd.secondaryText}</p>
                     </div>
                   )}
                 </>

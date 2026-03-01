@@ -10,7 +10,7 @@ import { MapPin, Package, Truck, Calendar, DollarSign, ArrowRight, Wrench, Home,
 import { getCargoTypeLabel } from "@/lib/cargo-types";
 // ✅ PERF: Removed per-card supabase query and useAuth (N+1 elimination)
 import { formatTons, formatKm, formatBRL, formatDate, formatSolicitadoHa, getPricePerTruck } from "@/lib/formatters";
-import { getFreightPriceDisplay } from "@/hooks/useFreightPriceDisplay";
+import { precoPreenchidoDoFrete } from "@/lib/precoPreenchido";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FreightCardProps {
@@ -362,15 +362,14 @@ const OptimizedFreightCard = memo<FreightCardProps>(
           <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
             <div className="text-left">
               {(() => {
-                const pd = getFreightPriceDisplay(freight);
+                const pd = precoPreenchidoDoFrete(freight.id, freight);
                 return (
                   <>
                     <p className="font-bold text-3xl text-primary">
-                      {pd.primaryFormatted}
-                      <span className="text-sm font-normal text-muted-foreground ml-1">{pd.primarySuffix}</span>
+                      {pd.primaryText}
                     </p>
-                    {pd.secondaryLabel && (
-                      <p className="text-xs text-muted-foreground mt-1">{pd.secondaryLabel}</p>
+                    {pd.secondaryText && (
+                      <p className="text-xs text-muted-foreground mt-1">{pd.secondaryText}</p>
                     )}
                   </>
                 );

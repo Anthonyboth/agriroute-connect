@@ -14,7 +14,7 @@ import { formatTons, formatKm, formatBRL, formatDate, formatCityState } from '@/
 import { LABELS } from '@/lib/labels';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
-import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -171,9 +171,8 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
               <span className="text-xs font-semibold text-muted-foreground ml-1">{visiblePrice.suffix}</span>
             )}
           </p>
-          {/* ✅ Show unit rate from centralized pipeline */}
           {(() => {
-            const pd = getFreightPriceDisplay({
+            const pd = precoPreenchidoDoFrete(freight?.id || assignment?.freight_id || 'unknown', {
               price: freight?.price || 0,
               pricing_type: freight?.pricing_type || assignment?.pricing_type,
               price_per_km: freight?.price_per_km || assignment?.price_per_km,
@@ -181,8 +180,8 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
               distance_km: distanceKm ?? undefined,
               weight: freight?.weight,
             });
-            return pd.isUnitPricing && pd.secondaryLabel ? (
-              <p className="text-xs text-muted-foreground">{pd.secondaryLabel}</p>
+            return pd.pricingType !== 'FIXED' && pd.secondaryText ? (
+              <p className="text-xs text-muted-foreground">{pd.secondaryText}</p>
             ) : null;
           })()}
         </div>

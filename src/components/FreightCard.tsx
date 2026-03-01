@@ -33,7 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTransportCompany } from "@/hooks/useTransportCompany";
 import { toast } from "sonner";
 import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from "@/lib/formatters";
-import { getFreightPriceDisplay } from "@/hooks/useFreightPriceDisplay";
+import { precoPreenchidoDoFrete } from "@/lib/precoPreenchido";
 import { LABELS } from "@/lib/labels";
 import { getPickupDateBadge } from "@/utils/freightDateHelpers";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
@@ -112,11 +112,24 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const urgencyLabel = getUrgencyLabel(freight.urgency);
   const urgencyDotColor = freight.urgency === 'HIGH' ? 'bg-destructive' : freight.urgency === 'MEDIUM' ? 'bg-yellow-500' : 'bg-muted-foreground/40';
 
-  // ✅ Hook centralizado de exibição de preço — exibe EXATAMENTE o que o produtor preencheu
-  // ✅ ANTI-REGRESSÃO: se pricing_type ausente, hook retorna isPricingTypeInvalid=true
-  const priceDisplay = useMemo(() => getFreightPriceDisplay(freight), [
-    freight.price, freight.pricing_type, freight.price_per_km, freight.required_trucks, freight.distance_km, freight.weight
+  // ✅ PREÇO PREENCHIDO: fonte única de verdade por ID do frete
+  const preco = useMemo(() => precoPreenchidoDoFrete(freight.id, freight), [
+    freight.id, freight.price, freight.pricing_type, freight.price_per_km, (freight as any).price_per_ton, freight.required_trucks, freight.distance_km, freight.weight
   ]);
+
+  // Bridge: manter interface legada para unitRateColorClass/unitRateValue
+  const priceDisplay = useMemo(() => ({
+    primaryFormatted: preco.primaryText.replace(preco.suffix, ''),
+    primarySuffix: preco.suffix,
+    primaryLabel: preco.primaryText,
+    secondaryLabel: preco.secondaryText,
+    unitRateColorClass: preco.pricingType === 'PER_TON' 
+      ? (preco.unitValue >= 80 ? 'text-primary' : preco.unitValue >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive')
+      : (preco.unitValue >= 6 ? 'text-primary' : preco.unitValue >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'),
+    unitRateValue: preco.unitValue || null,
+    pricingType: preco.pricingType || 'FIXED',
+    isPricingTypeInvalid: preco.invalid,
+  }), [preco]);
 
   // Cor semântica de rentabilidade (usa hook centralizado)
   const rpmColor = priceDisplay.unitRateColorClass;
@@ -632,11 +645,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             }`}>
               <div className="flex items-center justify-center gap-1 mb-1">
                 <DollarSign className="h-3 w-3 text-muted-foreground" />
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{priceDisplay.unitRateLabel}</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{preco.pricingType === 'PER_TON' ? 'R$/ton' : 'R$/km'}</p>
               </div>
               <p className={`text-xs font-bold flex items-center justify-center gap-0.5 ${rpmColor}`}>
                 {rpmIcon}
-                {priceDisplay.unitRateFormatted}
+                {preco.unitValue ? `R$${preco.unitValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
               </p>
             </div>
           </div>
