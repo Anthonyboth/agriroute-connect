@@ -74,29 +74,39 @@ export default function AdminAnnouncements() {
 
   const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("system_announcements")
         .update({ archived: true, is_active: false })
-        .eq("id", id);
+        .eq("id", id)
+        .select();
       if (error) throw error;
+      if (!updated || updated.length === 0) throw new Error("Operação bloqueada por permissões. Verifique se você é administrador.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
       toast({ title: "Aviso arquivado", description: "O aviso foi arquivado com sucesso." });
     },
+    onError: (error: any) => {
+      toast({ title: "Erro ao arquivar", description: error.message, variant: "destructive" });
+    },
   });
 
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("system_announcements")
         .update({ archived: false, is_active: false })
-        .eq("id", id);
+        .eq("id", id)
+        .select();
       if (error) throw error;
+      if (!updated || updated.length === 0) throw new Error("Operação bloqueada por permissões. Verifique se você é administrador.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
       toast({ title: "Aviso restaurado", description: "O aviso foi movido para rascunhos." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao restaurar", description: error.message, variant: "destructive" });
     },
   });
 
@@ -112,15 +122,20 @@ export default function AdminAnnouncements() {
       queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
       toast({ title: "Aviso excluído", description: "O aviso foi excluído permanentemente." });
     },
+    onError: (error: any) => {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    },
   });
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("system_announcements")
         .update({ is_active })
-        .eq("id", id);
+        .eq("id", id)
+        .select();
       if (error) throw error;
+      if (!updated || updated.length === 0) throw new Error("Operação bloqueada por permissões. Verifique se você é administrador.");
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
@@ -130,6 +145,9 @@ export default function AdminAnnouncements() {
           ? "O aviso está visível para os usuários."
           : "O aviso foi desativado.",
       });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     },
   });
 

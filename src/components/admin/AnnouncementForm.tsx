@@ -65,16 +65,24 @@ export const AnnouncementForm = ({ isOpen, onClose, announcement }: Announcement
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
       if (announcement) {
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from("system_announcements")
           .update(data)
-          .eq("id", announcement.id);
+          .eq("id", announcement.id)
+          .select();
         if (error) throw error;
+        if (!updated || updated.length === 0) {
+          throw new Error("Atualização não aplicada (0 linhas). Verifique permissões de administrador.");
+        }
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from("system_announcements")
-          .insert(data);
+          .insert(data)
+          .select();
         if (error) throw error;
+        if (!inserted || inserted.length === 0) {
+          throw new Error("Inserção não aplicada (0 linhas). Verifique permissões de administrador.");
+        }
       }
     },
     onSuccess: () => {
