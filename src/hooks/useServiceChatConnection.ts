@@ -510,7 +510,7 @@ export function useServiceChatConnection({
           if (isMountedRef.current) {
             setIsConnected(status === 'SUBSCRIBED');
             if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              console.error('[ServiceChat] Subscription error:', status);
+              console.warn('[ServiceChat] Realtime status:', status, '(fallback to polling)');
               setError('Conexão perdida. Tentando reconectar...');
             }
           }
