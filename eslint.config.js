@@ -58,6 +58,16 @@ export default tseslint.config(
           selector: "JSXExpressionContainer > CallExpression[callee.name='formatBRL'] > MemberExpression[property.name='price'][object.property.name='freight']",
           message: "PROIBIDO usar formatBRL(freight.price) em JSX. Isso renderiza o TOTAL. Use precoPreenchidoDoFrete() ou useFreightPriceUI.",
         },
+        // 🔒 REGRA v7: bloquear payment.amount em JSX para fretes
+        {
+          selector: "JSXExpressionContainer > MemberExpression[property.name='amount'][object.property.name='payment']",
+          message: "PROIBIDO renderizar payment.amount em JSX para fretes. Use precoPreenchidoDoFrete() ou precoFechadoParaUI().",
+        },
+        // 🔒 REGRA v7: bloquear getPricePerTruck(freight.price, ...) — derivação proibida
+        {
+          selector: "CallExpression[callee.name='getPricePerTruck'] > MemberExpression[property.name='price'][object.property.name='freight']",
+          message: "PROIBIDO usar getPricePerTruck(freight.price). Use precoPreenchidoDoFrete() que resolve o tipo correto sem dividir.",
+        },
       ],
       // 🔒 Anti-regression: block manual price formatting with unit strings outside canonical helper
       "no-restricted-imports": [
@@ -106,6 +116,13 @@ export default tseslint.config(
       "src/components/FreightAnalyticsDashboard.tsx",
       "src/components/RouteRentabilityReport.tsx",
       "src/components/reports/**",
+      "src/components/CompletedServicesPayment.tsx",
+      "src/components/ServicePaymentHistory.tsx",
+      "src/pages/driver/DriverOngoingTab.tsx",
+      "src/components/admin-panel/AdminFreights.tsx",
+      "src/components/proposal/ProposalCard.tsx",
+      "src/components/ServiceProposalModal.tsx",
+      "src/components/CompanyDashboard.tsx",
       "**/*.test.ts",
       "**/*.test.tsx",
     ],
