@@ -502,7 +502,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10 md:px-8 md:py-16">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background px-6 py-10 md:px-8 md:py-16 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center px-4 sm:px-6">
           <div className="flex items-center justify-between mb-4">
