@@ -83,6 +83,26 @@ describe('getFreightPriceDisplay', () => {
       // NEVER show total as primary
       expect(result.primaryValue).not.toBe(40000);
     });
+
+    /**
+     * CONTRACT: PER_TON R$80 must show "R$ 80,00/ton" in ALL screens
+     * (cards, details modal, scheduled list, proposals)
+     * NEVER divide by required_trucks for PER_TON.
+     */
+    it('PER_TON R$80 must show exactly R$ 80,00/ton regardless of truck count', () => {
+      [1, 3, 12].forEach(trucks => {
+        const result = getFreightPriceDisplay({
+          price: 80 * 500, // total price = rate * tons
+          pricing_type: 'PER_TON',
+          price_per_km: 80,
+          weight: 500000,
+          required_trucks: trucks,
+        });
+        expect(result.primaryValue).toBe(80);
+        expect(result.primaryLabel).toBe('R$ 80,00/ton');
+        expect(result.primarySuffix).toBe('/ton');
+      });
+    });
   });
 
   // =========================================================================
