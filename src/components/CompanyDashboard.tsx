@@ -266,7 +266,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                         {freight.service_type === 'CARGA' && (
                           freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
                             <ANTTValidation
-                              proposedPrice={freight.price}
+                              proposedPrice={precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).unitValue}
                               minimumAnttPrice={freight.minimum_antt_price}
                               distance={freight.distance_km}
                             />

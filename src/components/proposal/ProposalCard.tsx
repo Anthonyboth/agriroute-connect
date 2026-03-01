@@ -11,9 +11,9 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
-import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
 import { getCanonicalPriceFromTotal } from '@/lib/freightPriceContract';
 import { SafeStatusBadge } from '@/components/security';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface Proposal {
   id: string;
@@ -85,7 +85,16 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   // ✅ CRÍTICO: Cálculos por carreta
   const requiredTrucks = getRequiredTrucks(freight);
   const multipleTrucks = checkMultipleTrucks(freight);
-  const freightPricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+
+  // ✅ Preço canônico via pipeline — NUNCA usar freight.price direto
+  const freightPreco = precoPreenchidoDoFrete(freight.id, {
+    price: freight.price,
+    pricing_type: freight.pricing_type,
+    price_per_km: freight.price_per_km,
+    required_trucks: freight.required_trucks,
+    weight: freight.weight,
+    distance_km: freight.distance_km,
+  }, { unitOnly: true });
   
   // A proposta do motorista JÁ É por carreta (padrão do sistema)
   const proposalPricePerTruck = proposal.proposed_price;
@@ -196,17 +205,8 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 : proposal.proposal_pricing_type === 'PER_TON' && proposal.proposal_unit_price
                   ? `R$ ${proposal.proposal_unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
                   : (() => {
-                      // Use canonical contract to derive display from freight's pricing_type
-                      const pd = getFreightPriceDisplay({
-                        price: proposalPricePerTruck * requiredTrucks, // reconstruct total
-                        pricing_type: freight.pricing_type,
-                        price_per_km: freight.price_per_km,
-                        required_trucks: freight.required_trucks,
-                        distance_km: freight.distance_km,
-                        weight: freight.weight,
-                      });
-                      // If freight has a unit type, derive proposal in that unit
-                      if (pd.pricingType === 'PER_TON' || pd.pricingType === 'PER_KM') {
+                      // Use canonical pipeline for proposal display
+                      if (freightPreco.pricingType === 'PER_TON' || freightPreco.pricingType === 'PER_KM') {
                         const proposalDisplay = getCanonicalPriceFromTotal(proposalPricePerTruck * requiredTrucks, {
                           pricing_type: freight.pricing_type,
                           weight: freight.weight,
@@ -215,7 +215,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                         });
                         return proposalDisplay.primaryLabel;
                       }
-                      return pd.pricingType === 'PER_VEHICLE' && multipleTrucks
+                      return freightPreco.pricingType === 'PER_VEHICLE' && multipleTrucks
                         ? `${formatBRL(proposalPricePerTruck, true)}/veíc`
                         : formatBRL(proposalPricePerTruck, true);
                     })()
@@ -223,21 +223,11 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             </Badge>
           </div>
           
-          {/* Valor original do frete — usa pipeline centralizado */}
+          {/* ✅ Valor original do frete — pipeline canônico */}
           <div className="flex items-center justify-between text-sm mb-1">
             <span className="text-muted-foreground">Valor original:</span>
             <span className="text-muted-foreground">
-              {(() => {
-                const pd = getFreightPriceDisplay({
-                  price: freight.price || 0,
-                  pricing_type: freight.pricing_type,
-                  price_per_km: freight.price_per_km,
-                  required_trucks: freight.required_trucks,
-                  distance_km: freight.distance_km,
-                  weight: freight.weight,
-                });
-                return pd.primaryLabel;
-              })()}
+              {freightPreco.primaryText}
             </span>
           </div>
           

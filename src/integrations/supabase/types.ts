@@ -5353,6 +5353,123 @@ export type Database = {
           },
         ]
       }
+      freight_price_agreements: {
+        Row: {
+          agreed_at: string
+          agreed_by_driver_id: string | null
+          agreed_by_requester_id: string | null
+          agreed_pricing_type: string
+          agreed_total: number | null
+          agreed_unit_rate: number
+          created_at: string
+          currency: string
+          driver_location_accuracy_m: number | null
+          driver_location_lat: number | null
+          driver_location_lng: number | null
+          driver_location_source: string | null
+          driver_role: string | null
+          freight_id: string
+          id: string
+          metadata: Json | null
+          requester_location_accuracy_m: number | null
+          requester_location_lat: number | null
+          requester_location_lng: number | null
+          requester_location_source: string | null
+          requester_role: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          agreed_at?: string
+          agreed_by_driver_id?: string | null
+          agreed_by_requester_id?: string | null
+          agreed_pricing_type: string
+          agreed_total?: number | null
+          agreed_unit_rate: number
+          created_at?: string
+          currency?: string
+          driver_location_accuracy_m?: number | null
+          driver_location_lat?: number | null
+          driver_location_lng?: number | null
+          driver_location_source?: string | null
+          driver_role?: string | null
+          freight_id: string
+          id?: string
+          metadata?: Json | null
+          requester_location_accuracy_m?: number | null
+          requester_location_lat?: number | null
+          requester_location_lng?: number | null
+          requester_location_source?: string | null
+          requester_role?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          agreed_at?: string
+          agreed_by_driver_id?: string | null
+          agreed_by_requester_id?: string | null
+          agreed_pricing_type?: string
+          agreed_total?: number | null
+          agreed_unit_rate?: number
+          created_at?: string
+          currency?: string
+          driver_location_accuracy_m?: number | null
+          driver_location_lat?: number | null
+          driver_location_lng?: number | null
+          driver_location_source?: string | null
+          driver_role?: string | null
+          freight_id?: string
+          id?: string
+          metadata?: Json | null
+          requester_location_accuracy_m?: number | null
+          requester_location_lat?: number | null
+          requester_location_lng?: number | null
+          requester_location_source?: string | null
+          requester_role?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_price_agreements_agreed_by_driver_id_fkey"
+            columns: ["agreed_by_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_price_agreements_agreed_by_driver_id_fkey"
+            columns: ["agreed_by_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_price_agreements_agreed_by_requester_id_fkey"
+            columns: ["agreed_by_requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_price_agreements_agreed_by_requester_id_fkey"
+            columns: ["agreed_by_requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_price_agreements_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_proposals: {
         Row: {
           created_at: string
