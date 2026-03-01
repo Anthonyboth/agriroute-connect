@@ -53,6 +53,7 @@ import { getPricePerTruck } from '@/lib/formatters';
 import { forceLogoutAndRedirect } from '@/utils/authRecovery';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
+import { useDriverOngoingCards } from '@/hooks/useDriverOngoingCards';
 
 // Sub-components refatorados
 import { 
@@ -97,6 +98,10 @@ const DriverDashboard = () => {
   
   // ✅ Sincronizar permissão de localização real do dispositivo com o banco
   const { isLocationEnabled, isSyncing: isLocationSyncing } = useLocationPermissionSync();
+
+  // ✅ FIX: Usar mesma fonte de dados do DriverOngoingTab para o badge
+  const { data: ongoingCardsData } = useDriverOngoingCards(profile?.id);
+  const ongoingBadgeCount = (ongoingCardsData?.freights?.length ?? 0) + (ongoingCardsData?.assignments?.length ?? 0) + (ongoingCardsData?.serviceRequests?.length ?? 0);
 
   // ✅ Definir permissão unificada: autônomo vê fretes, empresa só se canAcceptFreights
   const canSeeFreights = !isCompanyDriver || canAcceptFreights;
@@ -2382,7 +2387,7 @@ const DriverDashboard = () => {
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Em Andamento</span>
-                <TabBadge count={visibleOngoing.length + activeAssignments.length + acceptedServiceRequests.length} />
+                <TabBadge count={ongoingBadgeCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
