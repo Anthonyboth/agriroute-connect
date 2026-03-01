@@ -201,7 +201,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             {info.subServices.map((service) => (
               <Card 
                 key={service.id} 
-                className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary"
+                className="cursor-pointer transition-all duration-200 bg-primary/[0.04] border-primary/[0.18] hover:bg-primary/[0.08] hover:border-primary/[0.30] hover:shadow-md shadow-sm"
                 onClick={() => handleSelectService(service)}
               >
                 <CardHeader className="pb-3">
@@ -209,7 +209,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-3">{service.description}</p>
-                  <Badge variant="secondary">{service.price}</Badge>
+                  <Badge variant="secondary" className="bg-primary/[0.15] text-primary border-primary/[0.25]">{service.price}</Badge>
                 </CardContent>
               </Card>
             ))}
