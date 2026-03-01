@@ -51,7 +51,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { UrbanFreightCard } from "@/components/freights/UrbanFreightCard";
-import { ServiceRequestCard } from "@/components/ServiceRequestCard";
+import { UnifiedServiceCard } from "@/components/UnifiedServiceCard";
 import { FreightFilters } from "@/components/AdvancedFreightFilters";
 import { useFreightReportData } from "@/hooks/useFreightReportData";
 import { ProducerReportsTab } from "@/pages/producer/ProducerReportsTab";
@@ -1832,9 +1832,10 @@ const ProducerDashboard = () => {
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                   {classifiedOpenItems.servicesOpen.map((service) => (
-                    <ServiceRequestCard
+                    <UnifiedServiceCard
                       key={service.id}
                       serviceRequest={service}
+                      viewerRole="CLIENT"
                       onEdit={() => handleServiceAction("edit", service)}
                       onCancel={() => handleServiceAction("cancel", service)}
                     />
