@@ -312,7 +312,7 @@ const DataAuditPage: React.FC = () => {
                             </div>
                             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                               <span>{new Date(freight.created_at).toLocaleString('pt-BR')}</span>
-                              <span>R$ {freight.price?.toLocaleString('pt-BR') || '0'}</span>
+                              <span>Preço (admin): R$ {freight.price?.toLocaleString('pt-BR') || '0'}</span>
                             </div>
                           </div>
                         ))}

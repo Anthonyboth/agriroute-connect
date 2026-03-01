@@ -195,6 +195,7 @@ export const CompanyFreightHistory: React.FC<CompanyFreightHistoryProps> = ({ co
           <div className="flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-green-600" />
             <span className="font-semibold text-green-600">
+              {/* ✅ Histórico da empresa — preço armazenado, sem detalhamento */}
               R$ {formatBRL(freight.price)}
             </span>
           </div>

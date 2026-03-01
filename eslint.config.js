@@ -47,6 +47,17 @@ export default tseslint.config(
           selector: "BinaryExpression[operator='/'][right.property.name='companyTruckCount'][left.property.name='displayPrice']",
           message: "Dividing displayPrice by truck count is PROHIBITED. Use precoPreenchidoDoFrete() from '@/lib/precoPreenchido'.",
         },
+        // 🔒 REGRA UNIVERSAL: bloquear freight.price renderizado diretamente em JSX
+        // freight.price é o TOTAL e NUNCA deve ser exibido fora do painel do solicitante.
+        // Usar precoPreenchidoDoFrete(..., {unitOnly:true}) ou useFreightPriceUI.
+        {
+          selector: "JSXExpressionContainer > MemberExpression[property.name='price'][object.property.name='freight']",
+          message: "PROIBIDO renderizar freight.price em JSX. Isso mostra o TOTAL. Use precoPreenchidoDoFrete(freight, {unitOnly:true}).primaryText para exibir preço unitário.",
+        },
+        {
+          selector: "JSXExpressionContainer > CallExpression[callee.name='formatBRL'] > MemberExpression[property.name='price'][object.property.name='freight']",
+          message: "PROIBIDO usar formatBRL(freight.price) em JSX. Isso renderiza o TOTAL. Use precoPreenchidoDoFrete() ou useFreightPriceUI.",
+        },
       ],
       // 🔒 Anti-regression: block manual price formatting with unit strings outside canonical helper
       "no-restricted-imports": [
