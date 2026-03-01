@@ -347,3 +347,6 @@ verify_jwt = false
 
 [functions.monitor-match-feed]
 verify_jwt = false
+
+[functions.provision-affiliated-driver]
+verify_jwt = false
