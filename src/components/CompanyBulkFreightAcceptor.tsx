@@ -102,13 +102,13 @@ export const CompanyBulkFreightAcceptor = ({
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Valor por carreta:</span>
               <span className="font-semibold">
-                R$ {pricePerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {pricePerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium">Total ({numTrucks} carretas):</span>
               <span className="text-xl font-bold text-primary">
-                R$ {(pricePerTruck * numTrucks).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(pricePerTruck * numTrucks).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>
