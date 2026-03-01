@@ -699,15 +699,11 @@ const DriverDashboard = () => {
           return freight;
         })
         .filter((freight: any) => {
-          // ✅ NÃO esconder fretes realmente em andamento por data.
-          // Regra: ACCEPTED com pickup_date futura pode ficar fora; demais status sempre entram.
-          if (freight.status !== 'ACCEPTED') return true;
-          if (!freight.pickup_date) return true;
-          const pickupDate = new Date(freight.pickup_date);
-          pickupDate.setHours(0, 0, 0, 0);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return pickupDate <= today;
+          // ✅ REGRA CORRIGIDA: Assignments são despachos confirmados pela transportadora.
+          // O motorista DEVE vê-los em "Em Andamento" independente da data de coleta.
+          // Apenas excluir status terminais.
+          if (['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(freight.status)) return false;
+          return true;
         });
       
       // ✅ REMOVIDO: Não buscar service_requests aqui (motoristas não veem serviços)
