@@ -87,6 +87,7 @@ import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { MyRequestsTab } from '@/components/MyRequestsTab';
+import { useMyRequestsCount } from '@/hooks/useMyRequestsCount';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 import { ServiceProposalSection } from '@/components/service-provider/ServiceProposalSection';
@@ -169,6 +170,7 @@ const getDisplayLocation = (request: ServiceRequest): string => {
 
 export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
+  const myRequestsCount = useMyRequestsCount();
   const { user, profile, profiles } = useAuth();
   const { desktopUrl: heroDesktop, mobileUrl: heroMobile } = useHeroBackground();
   const navigate = useNavigate();
@@ -1341,6 +1343,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <ClipboardList className="h-3.5 w-3.5 mr-1" />
                 Solicitações
+                <TabBadge count={myRequestsCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="fiscal" 

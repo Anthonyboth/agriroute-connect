@@ -77,6 +77,7 @@ import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { MyRequestsTab } from '@/components/MyRequestsTab';
+import { useMyRequestsCount } from '@/hooks/useMyRequestsCount';
 import { calculateVisiblePrice, resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 
@@ -91,7 +92,7 @@ const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyRep
 const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
 
 // Definição de tabs
-const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: number) => [
+const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: number, myRequestsCount: number) => [
   { 
     value: 'overview', 
     label: 'Visão Geral', 
@@ -127,13 +128,14 @@ const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: nu
     badge: chatCount > 0 ? chatCount : undefined
   },
   { value: 'services', label: 'Serviços', shortLabel: 'Serviços', icon: Wrench, badge: undefined },
-  { value: 'my-requests', label: 'Solicitações', shortLabel: 'Solicitações', icon: ClipboardList, badge: undefined },
+  { value: 'my-requests', label: 'Solicitações', shortLabel: 'Solicitações', icon: ClipboardList, badge: myRequestsCount > 0 ? myRequestsCount : undefined },
   { value: 'fiscal', label: 'Fiscal', shortLabel: 'Fiscal', icon: FileText, badge: undefined },
   { value: 'reports', label: 'Relatórios', shortLabel: 'Relatórios', icon: BarChart, badge: undefined }
 ];
 
 const CompanyDashboard = () => {
   const { profile, profiles, switchProfile, signOut } = useAuth();
+  const companyMyRequestsCount = useMyRequestsCount();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -778,7 +780,7 @@ const CompanyDashboard = () => {
   // NOTE: cases where the user is not transportadora are handled by route guards.
 
   const totalActiveFreights = myAssignments.length + activeFreights.length + activeServices.length;
-  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount, pendingRatingsCount);
+  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount, pendingRatingsCount, companyMyRequestsCount);
 
   return (
     <div data-dashboard-ready="true" className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

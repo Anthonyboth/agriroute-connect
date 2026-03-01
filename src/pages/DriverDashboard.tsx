@@ -55,6 +55,7 @@ import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFeed';
 import { useDriverOngoingCards } from '@/hooks/useDriverOngoingCards';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
+import { useMyRequestsCount } from '@/hooks/useMyRequestsCount';
 
 // Sub-components refatorados
 import { 
@@ -103,6 +104,7 @@ const DriverDashboard = () => {
   // ✅ FIX: Usar mesma fonte de dados do DriverOngoingTab para o badge
   const { data: ongoingCardsData } = useDriverOngoingCards(profile?.id);
   const ongoingBadgeCount = (ongoingCardsData?.freights?.length ?? 0) + (ongoingCardsData?.assignments?.length ?? 0) + (ongoingCardsData?.serviceRequests?.length ?? 0);
+  const myRequestsCount = useMyRequestsCount();
 
   // ✅ Definir permissão unificada: autônomo vê fretes, empresa só se canAcceptFreights
   const canSeeFreights = !isCompanyDriver || canAcceptFreights;
@@ -2443,6 +2445,7 @@ const DriverDashboard = () => {
               >
                 <ClipboardList className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Solicitações</span>
+                <TabBadge count={myRequestsCount} />
               </TabsTrigger>
               <TabsTrigger
                 value="vehicles" 
