@@ -307,7 +307,7 @@ export const DriverAvailabilityCalendar: React.FC = () => {
                                 <p className="font-medium">{freight.producer_name}</p>
                                 <p className="text-sm text-muted-foreground">{freight.cargo_type} - {(freight.weight / 1000).toFixed(1)}t</p>
                               </div>
-                              <Badge variant="secondary">R$ {(freight.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Badge>
+                              <Badge variant="secondary">Frete disponível</Badge>
                             </div>
                             
                             <div className="text-sm space-y-1">

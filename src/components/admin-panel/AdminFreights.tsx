@@ -180,7 +180,7 @@ const AdminFreights = () => {
                           <TableCell className="text-sm text-muted-foreground truncate max-w-[100px]">{freight.producer_name || '—'}</TableCell>
                           <TableCell className="text-sm text-muted-foreground truncate max-w-[100px]">{freight.driver_name || '—'}</TableCell>
                           <TableCell className="text-sm font-medium">
-                            {freight.price ? `R$ ${Number(freight.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}
+                            {freight.price ? `${freight.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} (admin)` : '—'}
                           </TableCell>
                           <TableCell>
                             <Badge className={`text-xs ${statusInfo.className}`}>{statusInfo.label}</Badge>

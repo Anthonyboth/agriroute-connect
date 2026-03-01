@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { formatDate } from '@/lib/formatters';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface FreightData {
   id: string;
@@ -27,7 +28,10 @@ interface FreightData {
   cargo_type: string;
   weight: number;
   price: number;
+  pricing_type?: string;
   price_per_km?: number;
+  price_per_ton?: number;
+  required_trucks?: number;
   distance_km?: number;
   flexible_dates: boolean;
   date_range_start?: string;
@@ -248,7 +252,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
               </p>
             </div>
             <Badge variant="secondary" className="text-lg px-3">
-              R$ {freight.price.toLocaleString()}
+              {precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}
             </Badge>
           </div>
 
@@ -396,7 +400,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
             <div className={pricingType === 'FIXED' ? 'block' : 'hidden'}>
               <Input
                 type="number"
-                placeholder={`Valor original: R$ ${freight.price.toLocaleString()}`}
+                placeholder={`Valor original: ${precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}`}
                 value={proposedPrice}
                 onChange={(e) => setProposedPrice(e.target.value)}
                 step="0.01"
@@ -439,7 +443,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
             <div className="text-xs text-muted-foreground">
               {pricingType === 'FIXED' ? (
-                `Deixe em branco para manter o valor original (R$ ${freight.price.toLocaleString()})`
+                `Deixe em branco para manter o valor original (${precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText})`
               ) : pricingType === 'PER_KM' ? (
                 <>
                   {(freight.distance_km || 0) > 0 ? (
