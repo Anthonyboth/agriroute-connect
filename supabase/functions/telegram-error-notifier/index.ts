@@ -159,10 +159,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: sent,
       notified: sent,
-      message: sent ? 'Erro notificado no Telegram' : 'Falha ao notificar'
+      message: sent ? 'Erro notificado no Telegram' : 'Falha ao notificar (rate limit ou token ausente)'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: sent ? 200 : 500
+      status: 200 // ✅ Always 200 - function ran correctly, delivery is best-effort
     });
 
   } catch (error) {
