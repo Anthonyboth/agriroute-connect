@@ -1,12 +1,13 @@
 import { useState, useRef, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Image, Paperclip, X } from "lucide-react";
+import { Send, Image, Paperclip, X, MapPin, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ChatInputProps {
   onSendMessage: (message: string, imageUrl?: string, fileData?: FileData) => Promise<void>;
+  onSendLocation?: () => Promise<void>;
   replyingTo?: {
     id: string;
     message: string;
@@ -14,6 +15,7 @@ interface ChatInputProps {
   };
   onCancelReply?: () => void;
   disabled?: boolean;
+  sendingLocation?: boolean;
 }
 
 interface FileData {
@@ -25,9 +27,11 @@ interface FileData {
 
 export function ChatInput({ 
   onSendMessage, 
+  onSendLocation,
   replyingTo, 
   onCancelReply,
-  disabled = false 
+  disabled = false,
+  sendingLocation = false,
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -301,6 +305,22 @@ export function ChatInput({
         >
           <Paperclip className="w-5 h-5" />
         </Button>
+
+        {onSendLocation && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSendLocation}
+            disabled={disabled || sendingLocation}
+            title="Compartilhar localização"
+          >
+            {sendingLocation ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <MapPin className="w-5 h-5" />
+            )}
+          </Button>
+        )}
 
         <Textarea
           ref={textareaRef}
