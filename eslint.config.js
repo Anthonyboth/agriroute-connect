@@ -35,6 +35,18 @@ export default tseslint.config(
           selector: "MemberExpression[property.name='has_registration']",
           message: "Direct access to 'has_registration' is prohibited. Use checkFreightRequesterHasRegistration() from '@/lib/checkFreightRequester' instead.",
         },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleString'][arguments.0.value='pt-BR']",
+          message: "Currency formatting via toLocaleString is prohibited in UI. Use precoPreenchidoDoFrete() from '@/lib/precoPreenchido' for freight prices, or formatBRL from '@/lib/formatters' for non-freight monetary values.",
+        },
+        {
+          selector: "BinaryExpression[operator='/'][left.property.name='price'][right.property.name='required_trucks']",
+          message: "Dividing price by required_trucks is PROHIBITED. Use precoPreenchidoDoFrete() which handles pricing types correctly.",
+        },
+        {
+          selector: "BinaryExpression[operator='/'][right.property.name='companyTruckCount'][left.property.name='displayPrice']",
+          message: "Dividing displayPrice by truck count is PROHIBITED. Use precoPreenchidoDoFrete() from '@/lib/precoPreenchido'.",
+        },
       ],
       // 🔒 Anti-regression: block manual price formatting with unit strings outside canonical helper
       "no-restricted-imports": [
@@ -64,6 +76,35 @@ export default tseslint.config(
     ],
     rules: {
       "no-restricted-syntax": "off",
+    },
+  },
+  // Allow currency formatting in canonical pricing files, formatters, and tests
+  {
+    files: [
+      "src/lib/precoPreenchido.ts",
+      "src/lib/normalizeFreightPricing.ts",
+      "src/lib/freightPriceContract.ts",
+      "src/lib/formatters.ts",
+      "src/lib/proposal-utils.ts",
+      "src/security/multiTruckPriceGuard.ts",
+      "src/hooks/useFreightCalculator/**",
+      "src/hooks/useFreightPriceDisplay.ts",
+      "src/components/driver/DriverFinancialReport.tsx",
+      "src/components/CompanyFinancialDashboard.tsx",
+      "src/components/FreightAnalyticsDashboard.tsx",
+      "src/components/RouteRentabilityReport.tsx",
+      "src/components/reports/**",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[property.name='has_registration']",
+          message: "Direct access to 'has_registration' is prohibited.",
+        },
+      ],
     },
   },
   // Allow getPricePerTruck in legacy files being migrated and the formatters module itself

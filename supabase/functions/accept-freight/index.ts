@@ -49,6 +49,9 @@ serve(async (req) => {
     
     const body = await req.json().catch(() => ({}));
     const freightId: string | undefined = body.freight_id;
+    // ✅ Captura localização best-effort do aceite
+    const locationData = body.location ?? {};
+    
     if (!freightId) {
       return new Response(
         JSON.stringify({ error: "freight_id is required" }),
@@ -161,7 +164,7 @@ if (!consent?.consent_given) {
     // Fetch freight
     const { data: freight, error: freightFetchErr } = await supabase
       .from("freights")
-      .select("id, status, driver_id, price, service_type, origin_address, destination_address, pickup_date, delivery_date, cargo_type, distance_km, minimum_antt_price")
+      .select("id, status, driver_id, price, pricing_type, service_type, origin_address, destination_address, pickup_date, delivery_date, cargo_type, distance_km, minimum_antt_price")
       .eq("id", freightId)
       .single();
     if (freightFetchErr || !freight) {
@@ -221,6 +224,37 @@ if (!consent?.consent_given) {
           status: "ACCEPTED",
           message: "Aceito o frete pelo valor anunciado.",
         });
+    }
+
+    // ✅ PREÇO FECHADO: salvar snapshot imutável do preço acordado
+    try {
+      const agreedPricingType = freight.pricing_type ?? 'FIXED';
+      const agreedUnitRate = freight.price ?? 0;
+      
+      await supabase
+        .from("freight_agreed_prices")
+        .insert({
+          freight_id: freightId,
+          agreed_pricing_type: agreedPricingType,
+          agreed_unit_rate: agreedUnitRate,
+          agreed_by_user_id: user.id,
+          agreed_by_role: 'MOTORISTA',
+          agreed_location_lat: locationData.lat ?? null,
+          agreed_location_lng: locationData.lng ?? null,
+          agreed_location_accuracy_m: locationData.accuracy ?? null,
+          agreed_location_source: locationData.source ?? 'unknown',
+          agreed_location_error: locationData.error ?? null,
+          metadata: {
+            original_price: freight.price,
+            original_pricing_type: freight.pricing_type,
+            distance_km: freight.distance_km,
+            minimum_antt_price: freight.minimum_antt_price,
+          },
+        });
+      console.log(`[AGREED_PRICE] Snapshot saved for freight ${freightId}`);
+    } catch (agreedErr) {
+      // Best effort: don't block the accept if snapshot fails
+      console.error("[AGREED_PRICE] Failed to save snapshot:", agreedErr);
     }
 
     return new Response(

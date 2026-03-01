@@ -4240,6 +4240,65 @@ export type Database = {
           },
         ]
       }
+      freight_agreed_prices: {
+        Row: {
+          agreed_at: string
+          agreed_by_role: string
+          agreed_by_user_id: string
+          agreed_location_accuracy_m: number | null
+          agreed_location_error: string | null
+          agreed_location_lat: number | null
+          agreed_location_lng: number | null
+          agreed_location_source: string
+          agreed_pricing_type: string
+          agreed_unit_rate: number
+          created_at: string
+          freight_id: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          agreed_at?: string
+          agreed_by_role: string
+          agreed_by_user_id: string
+          agreed_location_accuracy_m?: number | null
+          agreed_location_error?: string | null
+          agreed_location_lat?: number | null
+          agreed_location_lng?: number | null
+          agreed_location_source?: string
+          agreed_pricing_type: string
+          agreed_unit_rate: number
+          created_at?: string
+          freight_id: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          agreed_at?: string
+          agreed_by_role?: string
+          agreed_by_user_id?: string
+          agreed_location_accuracy_m?: number | null
+          agreed_location_error?: string | null
+          agreed_location_lat?: number | null
+          agreed_location_lng?: number | null
+          agreed_location_source?: string
+          agreed_pricing_type?: string
+          agreed_unit_rate?: number
+          created_at?: string
+          freight_id?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_agreed_prices_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_alerts: {
         Row: {
           alert_type: string

@@ -33,7 +33,8 @@ import { getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { formatWeight } from '@/lib/freight-calculations';
-import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { formatKm, formatDate } from '@/lib/formatters';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { LABELS } from '@/lib/labels';
 import { getFreightTypesForQuery } from '@/lib/item-classification';
 
@@ -484,7 +485,7 @@ export const FreightHistory: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-primary">
-                              {formatBRL(freight.price, true)}
+                              {precoPreenchidoDoFrete(freight.id, freight).primaryText}
                             </p>
                           </div>
                         </div>
