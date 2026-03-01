@@ -174,7 +174,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   // ✅ Driver-specific effective status (critical for multi-truck: each driver progresses independently)
   const driverId = currentUserProfile?.id as string | undefined;
-  const { status: driverEffectiveStatus } = useDriverFreightStatus(
+  const { status: driverEffectiveStatus, isLoading: isLoadingDriverStatus } = useDriverFreightStatus(
     isDriver && isMultiTruck ? freightId : null,
     isDriver && isMultiTruck ? driverId : null,
   );
@@ -321,12 +321,12 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         .limit(1);
 
       if (recentHistory && recentHistory.length > 0) {
-        toast({
-          title: "Status já atualizado",
-          description: "Este status já foi registrado recentemente. Aguarde alguns minutos.",
-        });
+        // ✅ Status já aplicado com sucesso — apenas atualizar UI silenciosamente
+        console.log('[FreightStatusTracker] Status já registrado recentemente, atualizando UI...');
         clearTimeout(loadingTimeout);
         setLoading(false);
+        await fetchStatusHistory();
+        if (onStatusUpdated) onStatusUpdated(newStatus);
         return;
       }
 
@@ -574,10 +574,10 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
             <Button 
               onClick={() => updateStatus(nextStatus.key)}
-              disabled={loading}
+              disabled={loading || (isDriver && isMultiTruck && isLoadingDriverStatus)}
               className="w-full"
             >
-              {loading ? 'Atualizando...' : `Atualizar para ${nextStatus.label}`}
+              {loading ? 'Atualizando...' : (isDriver && isMultiTruck && isLoadingDriverStatus) ? 'Carregando status...' : `Atualizar para ${nextStatus.label}`}
             </Button>
           </CardContent>
         </Card>
