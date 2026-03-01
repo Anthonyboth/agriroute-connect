@@ -1046,7 +1046,7 @@ const App = () => {
                         <Route 
                           path="/dashboard/service-provider" 
                           element={
-                            <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
+                            <ProtectedRoute requiresAuth allowedRoles={["PRESTADOR_SERVICOS"]}>
                               <RequirePanel panel="SERVICE_PROVIDER">
                                 <Suspense fallback={<DashboardLoader message="Carregando painel de serviços..." />}>
                                   <ServiceProviderDashboard />
