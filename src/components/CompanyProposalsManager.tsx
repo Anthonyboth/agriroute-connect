@@ -170,7 +170,23 @@ export const CompanyProposalsManager: React.FC = () => {
   };
 
   const renderProposalCard = (proposal: Proposal) => {
-    const priceDiff = proposal.proposed_price - proposal.freight.price;
+    // ✅ Usar preço canônico unitário, NUNCA freight.price total
+    const canonicalOriginal = getCanonicalFreightPrice({
+      pricing_type: (proposal.freight as any)?.pricing_type,
+      price_per_ton: (proposal.freight as any)?.price_per_ton,
+      price_per_km: (proposal.freight as any)?.price_per_km,
+      price: proposal.freight.price || 0,
+      required_trucks: (proposal.freight as any)?.required_trucks,
+      weight: (proposal.freight as any)?.weight,
+      distance_km: (proposal.freight as any)?.distance_km,
+    });
+    const canonicalProposed = getCanonicalPriceFromTotal(proposal.proposed_price, {
+      pricing_type: (proposal.freight as any)?.pricing_type,
+      weight: (proposal.freight as any)?.weight,
+      distance_km: (proposal.freight as any)?.distance_km,
+      required_trucks: (proposal.freight as any)?.required_trucks,
+    });
+    const priceDiff = (canonicalProposed.unitValue || 0) - (canonicalOriginal.unitValue || 0);
 
     return (
       <Card 
@@ -451,42 +467,81 @@ export const CompanyProposalsManager: React.FC = () => {
 
               <Separator />
 
-              {/* Valores */}
+              {/* Valores — SEMPRE unitário para transportadora */}
               <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{UI_TEXTS.VALOR_ORIGINAL_FRETE}:</span>
                   <span className="text-lg font-semibold">
-                    R$ {formatBRL(detailsDialog.proposal.freight.price)}
+                    {(() => {
+                      const pd = getCanonicalFreightPrice({
+                        pricing_type: (detailsDialog.proposal.freight as any)?.pricing_type,
+                        price_per_ton: (detailsDialog.proposal.freight as any)?.price_per_ton,
+                        price_per_km: (detailsDialog.proposal.freight as any)?.price_per_km,
+                        price: detailsDialog.proposal.freight.price || 0,
+                        required_trucks: (detailsDialog.proposal.freight as any)?.required_trucks,
+                        weight: (detailsDialog.proposal.freight as any)?.weight,
+                        distance_km: (detailsDialog.proposal.freight as any)?.distance_km,
+                      });
+                      return pd.primaryLabel;
+                    })()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{UI_TEXTS.VALOR_PROPOSTO}:</span>
                   <Badge variant="default" className="text-xl px-4 py-1">
-                    R$ {formatBRL(detailsDialog.proposal.proposed_price)}
+                    {(() => {
+                      const pd = getCanonicalPriceFromTotal(detailsDialog.proposal.proposed_price, {
+                        pricing_type: (detailsDialog.proposal.freight as any)?.pricing_type,
+                        weight: (detailsDialog.proposal.freight as any)?.weight,
+                        distance_km: (detailsDialog.proposal.freight as any)?.distance_km,
+                        required_trucks: (detailsDialog.proposal.freight as any)?.required_trucks,
+                      });
+                      return pd.primaryLabel;
+                    })()}
                   </Badge>
                 </div>
-                {detailsDialog.proposal.proposed_price !== detailsDialog.proposal.freight.price && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{UI_TEXTS.DIFERENCA}:</span>
-                    <span className={
-                      detailsDialog.proposal.proposed_price > detailsDialog.proposal.freight.price
-                        ? 'text-red-600 font-semibold flex items-center gap-1'
-                        : 'text-green-600 font-semibold flex items-center gap-1'
-                    }>
-                      {detailsDialog.proposal.proposed_price > detailsDialog.proposal.freight.price ? (
-                        <>
-                          <TrendingUp className="h-3 w-3" />
-                          +R$ {formatBRL(Math.abs(detailsDialog.proposal.proposed_price - detailsDialog.proposal.freight.price))}
-                        </>
-                      ) : (
-                        <>
-                          <TrendingDown className="h-3 w-3" />
-                          -R$ {formatBRL(Math.abs(detailsDialog.proposal.proposed_price - detailsDialog.proposal.freight.price))}
-                        </>
-                      )}
-                    </span>
-                  </div>
-                )}
+                {(() => {
+                  const origCanon = getCanonicalFreightPrice({
+                    pricing_type: (detailsDialog.proposal.freight as any)?.pricing_type,
+                    price_per_ton: (detailsDialog.proposal.freight as any)?.price_per_ton,
+                    price_per_km: (detailsDialog.proposal.freight as any)?.price_per_km,
+                    price: detailsDialog.proposal.freight.price || 0,
+                    required_trucks: (detailsDialog.proposal.freight as any)?.required_trucks,
+                    weight: (detailsDialog.proposal.freight as any)?.weight,
+                    distance_km: (detailsDialog.proposal.freight as any)?.distance_km,
+                  });
+                  const propCanon = getCanonicalPriceFromTotal(detailsDialog.proposal.proposed_price, {
+                    pricing_type: (detailsDialog.proposal.freight as any)?.pricing_type,
+                    weight: (detailsDialog.proposal.freight as any)?.weight,
+                    distance_km: (detailsDialog.proposal.freight as any)?.distance_km,
+                    required_trucks: (detailsDialog.proposal.freight as any)?.required_trucks,
+                  });
+                  const diff = (propCanon.unitValue || 0) - (origCanon.unitValue || 0);
+                  if (Math.abs(diff) < 0.01) return null;
+                  const suffixStr = origCanon.unit === 'ton' ? '/ton' : origCanon.unit === 'km' ? '/km' : '/veíc';
+                  return (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{UI_TEXTS.DIFERENCA}:</span>
+                      <span className={
+                        diff > 0
+                          ? 'text-red-600 font-semibold flex items-center gap-1'
+                          : 'text-green-600 font-semibold flex items-center gap-1'
+                      }>
+                        {diff > 0 ? (
+                          <>
+                            <TrendingUp className="h-3 w-3" />
+                            +R$ {formatBRL(Math.abs(diff))}{suffixStr}
+                          </>
+                        ) : (
+                          <>
+                            <TrendingDown className="h-3 w-3" />
+                            -R$ {formatBRL(Math.abs(diff))}{suffixStr}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Mensagem */}
