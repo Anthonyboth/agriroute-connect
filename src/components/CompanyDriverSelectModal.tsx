@@ -88,11 +88,7 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
             <p className="text-sm font-bold text-primary mt-2">
               {priceDisplay.primaryLabel}
             </p>
-            {priceDisplay.secondaryLabel && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {priceDisplay.secondaryLabel}
-              </p>
-            )}
+            {/* ✅ REGRA UNIVERSAL: Transportadora NÃO vê secondary/meta */}
           </div>
 
           {drivers.length === 0 ? (

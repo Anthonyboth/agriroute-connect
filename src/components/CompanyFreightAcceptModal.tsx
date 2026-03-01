@@ -326,11 +326,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
                 <p className="text-2xl font-bold text-primary">
                   {priceDisplay.primaryLabel}
                 </p>
-                {priceDisplay.secondaryLabel && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {priceDisplay.secondaryLabel}
-                  </p>
-                )}
+                {/* ✅ REGRA UNIVERSAL: Transportadora NÃO vê secondary/meta */}
               </div>
             </div>
 

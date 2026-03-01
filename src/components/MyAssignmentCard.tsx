@@ -171,19 +171,7 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
               <span className="text-xs font-semibold text-muted-foreground ml-1">{visiblePrice.suffix}</span>
             )}
           </p>
-          {(() => {
-            const pd = precoPreenchidoDoFrete(freight?.id || assignment?.freight_id || 'unknown', {
-              price: freight?.price || 0,
-              pricing_type: freight?.pricing_type || assignment?.pricing_type,
-              price_per_km: freight?.price_per_km || assignment?.price_per_km,
-              required_trucks: requiredTrucks,
-              distance_km: distanceKm ?? undefined,
-              weight: freight?.weight,
-            });
-            return pd.pricingType !== 'PER_VEHICLE' && pd.secondaryText ? (
-              <p className="text-xs text-muted-foreground">{pd.secondaryText}</p>
-            ) : null;
-          })()}
+          {/* ✅ REGRA UNIVERSAL: Motorista NÃO vê secondary/metadata */}
         </div>
 
         {/* Validação ANTT */}

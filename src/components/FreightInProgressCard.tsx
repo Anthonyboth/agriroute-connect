@@ -10,6 +10,7 @@
 
 import React, { useState, lazy, Suspense, useMemo, useRef } from 'react';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
+import { resolveUiPriceMode } from '@/lib/precoUI';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -152,8 +153,9 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 }) => {
   const { profile } = useAuth();
   const viewerRole = profile?.role;
-  const canShowTotalFreightValue = viewerRole === 'PRODUTOR' || viewerRole === 'TRANSPORTADORA';
-  const preferTotalAsPrimary = viewerRole === 'TRANSPORTADORA';
+  // ✅ REGRA UNIVERSAL: só solicitante vê secondary/meta
+  const priceMode = resolveUiPriceMode(profile?.id, viewerRole, freight.producer_id);
+  const isUnitOnly = priceMode === 'UNIT_ONLY';
 
   const [activeTab, setActiveTab] = useState<string>('details');
   const [mapMounted, setMapMounted] = useState(false);
@@ -176,7 +178,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const hasAcceptedTrucks = (freight.accepted_trucks ?? 0) > 0;
   const isMultiTruckFreight = (freight.required_trucks ?? 1) > 1;
   const hasMultipleDrivers = hasAssignedDrivers && (freight.drivers_assigned?.length ?? 0) > 1;
-  const shouldUseMultiDriverMap = canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks);
+  const shouldUseMultiDriverMap = !isUnitOnly && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks);
   
   const canShowMap = [
     'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'
@@ -229,7 +231,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const distKmNum = parseFloat(String(freight.distance_km ?? 0).replace(/[^\d.]/g, "")) || 0;
   const estimatedHours = distKmNum > 0 ? Math.round(distKmNum / 60) : null;
 
-  // ✅ PREÇO PREENCHIDO: fonte única de verdade
+  // ✅ PREÇO PREENCHIDO: fonte única de verdade + gating por viewer
   const priceDisplay = useMemo(() => {
     const freightId = freight.id || 'unknown';
     return precoPreenchidoDoFrete(freightId, {
@@ -240,8 +242,8 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
       required_trucks: requiredTrucks,
       distance_km: distKmNum,
       weight: (freight as any).weight,
-    });
-  }, [freight.id, freight.price, (freight as any).pricing_type, (freight as any).price_per_km, (freight as any).price_per_ton, requiredTrucks, distKmNum, (freight as any).weight]);
+    }, { unitOnly: isUnitOnly });
+  }, [freight.id, freight.price, (freight as any).pricing_type, (freight as any).price_per_km, (freight as any).price_per_ton, requiredTrucks, distKmNum, (freight as any).weight, isUnitOnly]);
 
   const pricePerKmCalc = priceDisplay?.unitValue ?? null;
   const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
@@ -504,7 +506,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 
             <TabsContent value="details" className="flex-1 flex flex-col mt-2 space-y-3 overflow-y-auto max-h-[300px]">
               {/* Multi-driver list for producer */}
-              {canShowTotalFreightValue && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks) ? (
+              {!isUnitOnly && (isMultiTruckFreight || hasMultipleDrivers) && (hasAssignedDrivers || hasAcceptedTrucks) ? (
                 <>
                   <div className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg p-2 border border-border/20">
                     <div className="flex items-center gap-2">

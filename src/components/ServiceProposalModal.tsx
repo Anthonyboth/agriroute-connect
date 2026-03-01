@@ -535,11 +535,7 @@ const [pricePerKm, setPricePerKm] = useState('');
                 }).primaryLabel}
               </span>
             </div>
-            {freightPriceDisplay.secondaryLabel && (
-              <div className="pt-1 text-xs text-muted-foreground">
-                {freightPriceDisplay.secondaryLabel}
-              </div>
-            )}
+            {/* ✅ REGRA UNIVERSAL: Motorista/Prestador NÃO vê secondary/meta */}
           </div>
           );
         })()}

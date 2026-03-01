@@ -34,6 +34,7 @@ import { useTransportCompany } from "@/hooks/useTransportCompany";
 import { toast } from "sonner";
 import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from "@/lib/formatters";
 import { precoPreenchidoDoFrete } from "@/lib/precoPreenchido";
+import { resolveUiPriceMode } from "@/lib/precoUI";
 import { LABELS } from "@/lib/labels";
 import { getPickupDateBadge } from "@/utils/freightDateHelpers";
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
@@ -112,9 +113,12 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const urgencyLabel = getUrgencyLabel(freight.urgency);
   const urgencyDotColor = freight.urgency === 'HIGH' ? 'bg-destructive' : freight.urgency === 'MEDIUM' ? 'bg-yellow-500' : 'bg-muted-foreground/40';
 
+  // ✅ REGRA UNIVERSAL: só solicitante vê secondary/meta
+  const isUnitOnly = resolveUiPriceMode(profile?.id, profile?.role, freight.producer_id) === 'UNIT_ONLY';
+
   // ✅ PREÇO PREENCHIDO: fonte única de verdade por ID do frete
-  const preco = useMemo(() => precoPreenchidoDoFrete(freight.id, freight), [
-    freight.id, freight.price, freight.pricing_type, freight.price_per_km, (freight as any).price_per_ton, freight.required_trucks, freight.distance_km, freight.weight
+  const preco = useMemo(() => precoPreenchidoDoFrete(freight.id, freight, { unitOnly: isUnitOnly }), [
+    freight.id, freight.price, freight.pricing_type, freight.price_per_km, (freight as any).price_per_ton, freight.required_trucks, freight.distance_km, freight.weight, isUnitOnly
   ]);
 
   // Bridge: manter interface legada para unitRateColorClass/unitRateValue
