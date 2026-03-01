@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { Button } from '@/components/ui/button';
 import { Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -154,7 +155,7 @@ export const ShareFreightToCompany: React.FC<ShareFreightToCompanyProps> = ({
                 <div className="mt-4 p-3 bg-muted rounded-lg space-y-1 text-sm">
                   <p><strong>Origem:</strong> {freight.origin_address}</p>
                   <p><strong>Destino:</strong> {freight.destination_address}</p>
-                  <p><strong>Valor:</strong> R$ {freight.price.toLocaleString('pt-BR')}</p>
+                  <p><strong>Valor:</strong> {precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}</p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-4">
                   A transportadora receberá esta informação no chat interno e decidirá se aceita o frete ou faz uma contraproposta ao produtor.

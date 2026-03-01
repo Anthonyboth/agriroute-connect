@@ -8,7 +8,8 @@ import { Clock, Package, MapPin, DollarSign, Calendar, Filter } from 'lucide-rea
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { formatBRL, formatDate, formatKm } from '@/lib/formatters';
+import { formatDate, formatKm } from '@/lib/formatters';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 
 interface HistoricalFreight {
@@ -120,7 +121,7 @@ export const CompanyHistory: React.FC = () => {
           <div className="grid grid-cols-3 gap-4 pt-2 border-t">
             <div>
               <p className="text-xs text-muted-foreground">Valor</p>
-              <p className="font-semibold text-sm">{formatBRL(freight.price)}</p>
+              <p className="font-semibold text-sm">{precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Distância</p>

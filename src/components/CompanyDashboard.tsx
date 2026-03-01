@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { isInProgressFreight, isScheduledFreight } from '@/utils/freightDateHelpers';
 import { calculateVisiblePrice, resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface CompanyDashboardProps {
   onNavigateToReport?: (tab: string) => void;
@@ -253,11 +254,11 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3 overflow-hidden">
-                        {/* Valor do frete */}
+                        {/* ✅ Valor do frete — pipeline unitário */}
                         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
                           <p className="text-sm text-muted-foreground">Valor do frete:</p>
                           <p className="text-2xl font-bold text-green-600">
-                            R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}
                           </p>
                         </div>
 
