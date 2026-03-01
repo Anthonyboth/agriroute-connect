@@ -554,8 +554,12 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       // 5. SOLICITAÇÕES DE DOCUMENTOS agora aparecem dentro do DIRECT_CHAT
       // Não precisamos criar conversas separadas para document_requests
 
-      devLog('[useUnifiedChats] Total conversas retornadas:', allConversations.length);
-      return allConversations;
+      // ✅ Deduplicate conversations by id to prevent React duplicate key errors
+      const deduped = Array.from(
+        new Map(allConversations.map(c => [c.id, c])).values()
+      );
+      devLog('[useUnifiedChats] Total conversas retornadas:', deduped.length);
+      return deduped;
     },
     enabled: !!userProfileId && !!userRole,
     staleTime: 60 * 1000, // 1 minuto
