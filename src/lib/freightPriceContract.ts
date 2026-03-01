@@ -226,3 +226,50 @@ function buildSecondary(input: FreightPricingInput, type: PricingType): string |
 
   return parts.length > 0 ? parts.join(' · ') : null;
 }
+
+// ─── Helper: convert ANY total price to canonical display ────
+
+/**
+ * Converts a total price (e.g. driver's proposed_price) back to the
+ * freight's canonical unit for display.
+ * 
+ * For PER_TON: derives R$/ton from total / (weight_kg / 1000)
+ * For PER_KM:  derives R$/km  from total / distance_km
+ * For FIXED:   derives R$/veículo from total / required_trucks
+ * 
+ * This MUST be used for displaying driver proposals, counter-offers,
+ * or any monetary value that needs to match the freight's pricing_type.
+ */
+export function getCanonicalPriceFromTotal(
+  totalPrice: number,
+  freightContext: {
+    pricing_type?: string | null;
+    weight?: number | null;
+    distance_km?: number | null;
+    required_trucks?: number | null;
+  }
+): FreightPriceDisplay {
+  const type = normalizePricingType(freightContext.pricing_type);
+
+  // Derive unit prices from total
+  let price_per_ton: number | null = null;
+  let price_per_km: number | null = null;
+
+  if (type === 'PER_TON' && freightContext.weight && freightContext.weight > 0) {
+    const tons = freightContext.weight / 1000;
+    if (tons > 0) price_per_ton = totalPrice / tons;
+  }
+  if (type === 'PER_KM' && freightContext.distance_km && freightContext.distance_km > 0) {
+    price_per_km = totalPrice / freightContext.distance_km;
+  }
+
+  return getCanonicalFreightPrice({
+    pricing_type: freightContext.pricing_type,
+    price_per_ton,
+    price_per_km,
+    price: totalPrice,
+    required_trucks: freightContext.required_trucks,
+    weight: freightContext.weight,
+    distance_km: freightContext.distance_km,
+  });
+}

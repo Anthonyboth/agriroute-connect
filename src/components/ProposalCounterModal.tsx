@@ -255,15 +255,17 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
           throw new Error('Você não tem permissão para enviar mensagens neste frete');
         }
 
-        // ✅ Helper para formatar valor original unitário
+        // ✅ Helper para formatar valor original unitário via contrato canônico
         const formatOriginalUnit = () => {
-          if (freightPricingType === 'PER_KM' && freightPricePerKm) {
-            return `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`;
-          }
-          if (freightPricingType === 'PER_TON' && freightPricePerKm) {
-            return `R$ ${freightPricePerKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`;
-          }
-          return formatBRL(pricePerTruck, true) + (hasMultipleTrucks ? ' /carreta' : '');
+          const pd = getCanonicalFreightPrice({
+            pricing_type: freightPricingType,
+            price_per_km: freightPricePerKm,
+            price: freightPrice,
+            required_trucks: requiredTrucks,
+            weight: freightWeight,
+            distance_km: freightDistance,
+          });
+          return pd.primaryLabel;
         };
 
         // ✅ Mensagem de chat com valores unitários
@@ -391,9 +393,8 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
           {/* Current Proposal Summary - ✅ Valores por carreta */}
           <div className="bg-secondary/30 p-3 rounded-lg space-y-2">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
+            <h3 className="font-semibold text-sm">
               Proposta Atual
-              {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
             </h3>
             
             <div className="flex items-center justify-between text-sm">

@@ -386,21 +386,22 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               </div>
               
               <div className="text-sm text-muted-foreground">
-                {/* ✅ Mostrar valor unitário preenchido pelo produtor */}
+                {/* ✅ Mostrar valor unitário usando contrato canônico */}
                 <p className="font-medium">
-                  Valor original: {freight.pricing_type === 'PER_KM' && freight.price_per_km
-                    ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
-                    : freight.pricing_type === 'PER_TON' && freight.price_per_km
-                      ? `R$ ${freight.price_per_km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
-                      : <>
-                          {formatBRL(pricePerTruck, true)}
-                          {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
-                        </>
-                  }
+                  Valor original: {(() => {
+                    const pd = getCanonicalFreightPrice({
+                      pricing_type: freight.pricing_type,
+                      price_per_km: freight.price_per_km,
+                      price: freight.price,
+                      required_trucks: freight.required_trucks,
+                      weight: freight.weight,
+                      distance_km: freight.distance_km,
+                    });
+                    return pd.primaryLabel;
+                  })()}
                 </p>
                 <p className="text-xs">
                   Distância: {formatKm(distance)} • Peso: {formatTons(weightPerTruck)}
-                  {hasMultipleTrucks && <span> (por carreta)</span>}
                 </p>
                 
                 {proposalData.pricing_type === 'PER_KM' && proposalData.proposed_price_per_km && (

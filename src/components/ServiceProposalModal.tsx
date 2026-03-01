@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { formatKm, formatBRL, formatTons } from '@/lib/formatters';
 import { getPricePerTruck, getWeightInTons } from '@/lib/proposal-utils';
-import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
+import { getCanonicalFreightPrice, getCanonicalPriceFromTotal, type FreightPricingInput } from '@/lib/freightPriceContract';
 
 interface ServiceProposalModalProps {
   isOpen: boolean;
@@ -515,9 +515,8 @@ const [pricePerKm, setPricePerKm] = useState('');
           });
           return (
           <div className="bg-secondary/30 p-3 rounded-lg space-y-2 mb-4">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
+            <h3 className="font-semibold text-sm">
               Proposta Atual
-              {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
             </h3>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Valor original:</span>
@@ -528,23 +527,12 @@ const [pricePerKm, setPricePerKm] = useState('');
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <span className="font-medium">
-                {(() => {
-                  // Use canonical contract to display driver's proposal in the SAME unit as the freight
-                  const driverPriceDisplay = getCanonicalFreightPrice({
-                    pricing_type: freight.pricing_type,
-                    price_per_ton: freight.pricing_type?.toUpperCase()?.includes('TON') && freight.weight && freight.weight > 0
-                      ? (driverProposedPriceTotal / (freight.weight / 1000))
-                      : null,
-                    price_per_km: freight.pricing_type?.toUpperCase()?.includes('KM') && freight.distance_km && freight.distance_km > 0
-                      ? (driverProposedPriceTotal / freight.distance_km)
-                      : null,
-                    price: driverProposedPriceTotal,
-                    required_trucks: requiredTrucks,
-                    weight: freight.weight,
-                    distance_km: freight.distance_km,
-                  });
-                  return driverPriceDisplay.primaryLabel;
-                })()}
+                {getCanonicalPriceFromTotal(driverProposedPriceTotal, {
+                  pricing_type: freight.pricing_type,
+                  weight: freight.weight,
+                  distance_km: freight.distance_km,
+                  required_trucks: requiredTrucks,
+                }).primaryLabel}
               </span>
             </div>
             {freightPriceDisplay.secondaryLabel && (

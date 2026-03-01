@@ -12,6 +12,7 @@ import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
 import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { getCanonicalPriceFromTotal } from '@/lib/freightPriceContract';
 import { SafeStatusBadge } from '@/components/security';
 
 interface Proposal {
@@ -194,10 +195,30 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 ? `R$ ${proposal.proposal_unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/km`
                 : proposal.proposal_pricing_type === 'PER_TON' && proposal.proposal_unit_price
                   ? `R$ ${proposal.proposal_unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ton`
-                  : <>
-                      {formatBRL(proposalPricePerTruck, true)}
-                      {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
-                    </>
+                  : (() => {
+                      // Use canonical contract to derive display from freight's pricing_type
+                      const pd = getFreightPriceDisplay({
+                        price: proposalPricePerTruck * requiredTrucks, // reconstruct total
+                        pricing_type: freight.pricing_type,
+                        price_per_km: freight.price_per_km,
+                        required_trucks: freight.required_trucks,
+                        distance_km: freight.distance_km,
+                        weight: freight.weight,
+                      });
+                      // If freight has a unit type, derive proposal in that unit
+                      if (pd.pricingType === 'PER_TON' || pd.pricingType === 'PER_KM') {
+                        const proposalDisplay = getCanonicalPriceFromTotal(proposalPricePerTruck * requiredTrucks, {
+                          pricing_type: freight.pricing_type,
+                          weight: freight.weight,
+                          distance_km: freight.distance_km,
+                          required_trucks: freight.required_trucks,
+                        });
+                        return proposalDisplay.primaryLabel;
+                      }
+                      return pd.pricingType === 'FIXED' && multipleTrucks
+                        ? `${formatBRL(proposalPricePerTruck, true)}/veículo`
+                        : formatBRL(proposalPricePerTruck, true);
+                    })()
               }
             </Badge>
           </div>
@@ -225,7 +246,6 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               <span className="text-muted-foreground">Mínimo ANTT:</span>
               <span className={belowAntt ? 'text-destructive font-semibold' : 'text-muted-foreground'}>
                 {formatBRL(minAnttPerTruck, true)}
-                {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
               </span>
             </div>
           )}
