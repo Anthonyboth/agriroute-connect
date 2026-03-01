@@ -10181,6 +10181,9 @@ export type Database = {
           file_url: string | null
           id: string
           image_url: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
           message: string
           message_type: string
           read_at: string | null
@@ -10196,6 +10199,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           message: string
           message_type?: string
           read_at?: string | null
@@ -10211,6 +10217,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           message?: string
           message_type?: string
           read_at?: string | null
