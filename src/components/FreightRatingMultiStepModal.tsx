@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +51,7 @@ export const FreightRatingMultiStepModal: React.FC<FreightRatingMultiStepModalPr
   const [comment, setComment] = useState('');
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const { submitRating, isSubmitting } = useRatingSubmit();
+  const queryClient = useQueryClient();
 
   const currentStep = steps[currentStepIndex];
   const isLastStep = currentStepIndex === steps.length - 1;
@@ -83,6 +85,10 @@ export const FreightRatingMultiStepModal: React.FC<FreightRatingMultiStepModalPr
       setCompletedSteps(prev => [...prev, currentStepIndex]);
       
       if (isLastStep) {
+        // ✅ Invalidar cache para remover frete finalizado
+        queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+        queryClient.invalidateQueries({ queryKey: ['freight-driver-manager'] });
+        queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
         // Todas as avaliações concluídas
         setTimeout(() => {
           onAllRatingsSubmitted();

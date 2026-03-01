@@ -327,7 +327,8 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
             last_location_update,
             tracking_status
           `)
-          .in("id", filteredFreightIds);
+          .in("id", filteredFreightIds)
+          .not("status", "in", "(DELIVERED,COMPLETED,CANCELLED)");
 
         if (!afErr && assignmentFreights) {
           assignmentFreightsMap = Object.fromEntries(

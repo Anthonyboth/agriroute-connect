@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +47,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
   const [checkingPermission, setCheckingPermission] = useState(false);
   
   const { submitRating, isSubmitting, canSubmitRating } = useRatingSubmit();
+  const queryClient = useQueryClient();
 
   const effectiveFreightId = freight?.id || freightIdProp || '';
   const effectiveUserRole = userRole || currentUserProfile?.role || 'PRODUTOR';
@@ -156,6 +158,10 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
           title: appTexts.ratings.success,
           description: `Sua avaliação para ${ratedUserName} foi enviada com sucesso.`,
         });
+        // ✅ Invalidar cache para remover frete finalizado das listas de "em andamento"
+        queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+        queryClient.invalidateQueries({ queryKey: ['freight-driver-manager'] });
+        queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
         
         onRatingSubmitted();
         onClose();

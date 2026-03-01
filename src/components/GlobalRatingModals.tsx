@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGlobalRating } from '@/contexts/RatingContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +53,7 @@ export const GlobalRatingModals: React.FC = () => {
 
   // Hook centralizado para submissão de ratings
   const { canSubmitRating, submitRating } = useRatingSubmit();
+  const queryClient = useQueryClient();
 
   // Determinar se deve usar modal multi-step (quando há transportadora envolvida)
   const useMultiStepModal = ratingSteps.length > 1 || freightCompanyId;
@@ -116,6 +118,9 @@ export const GlobalRatingModals: React.FC = () => {
       toast.success('Avaliação enviada com sucesso!');
       setServiceRating(0);
       setServiceComment('');
+      // ✅ Invalidar cache de serviços em andamento
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['freight-driver-manager'] });
       closeServiceRating();
     } catch (error: any) {
       console.error('❌ Erro ao enviar avaliação de serviço:', error);
@@ -167,6 +172,10 @@ export const GlobalRatingModals: React.FC = () => {
         setFreightRating(0);
         setFreightComment('');
         setPaymentNotConfirmedWarning(null);
+        // ✅ Invalidar cache de fretes em andamento para remover frete finalizado
+        queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+        queryClient.invalidateQueries({ queryKey: ['freight-driver-manager'] });
+        queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
         closeFreightRating();
       }
     } catch (error: any) {
