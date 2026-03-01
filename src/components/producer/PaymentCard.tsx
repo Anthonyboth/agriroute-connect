@@ -201,11 +201,11 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   </div>
                 </div>
 
-                {/* Valor e Status */}
+                {/* Valor e Status — ✅ SEMPRE preço unitário canônico, NUNCA payment.amount */}
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <p className="font-bold text-base">
-                      R$ {payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {preco && !preco.invalid ? preco.primaryText : `R$ ${payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     </p>
                     <Badge 
                       variant={statusConfig.variant}
