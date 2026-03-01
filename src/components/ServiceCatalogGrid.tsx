@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { AgriChip } from '@/components/ui/AgriChip';
 import { 
   Search,
   Clock,
-  Shield,
+  ShieldCheck,
   CheckCircle,
-  MoreHorizontal
 } from 'lucide-react';
 import { ALL_SERVICE_TYPES, CATEGORY_LABELS, getServiceById, canonicalizeServiceId, type ServiceCategory } from '@/lib/service-types';
 
@@ -75,17 +74,6 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       return a.label.localeCompare(b.label, 'pt-BR');
     });
 
-  const getServiceIcon = (category: string) => {
-    switch (category) {
-      case 'agricultural': return '🚜';
-      case 'freight': return '🚛';
-      case 'logistics': return '📦';
-      case 'technical': return '🔧';
-      case 'urban': return '🏘️';
-      default: return '⚙️';
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -115,25 +103,24 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
 
       {/* Category Filters */}
       {!hideCategoryFilter && (
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-2">
           {categories.map((category) => (
             <Button
               key={category.id}
               variant={selectedCategory === category.id ? "default" : "outline"}
               onClick={() => setSelectedCategory(category.id)}
+              size="sm"
               className="rounded-full"
             >
               {category.label}
-              <Badge variant="secondary" className="ml-2">
-                {category.count}
-              </Badge>
+              <span className="ml-1.5 text-xs opacity-70">{category.count}</span>
             </Button>
           ))}
         </div>
       )}
 
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Services Grid — AgriServiceCard pattern */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {filteredServices.map((service) => {
           if (!service) return null;
           
@@ -141,16 +128,11 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
           const canonicalSelected = selectedServices.map(canonicalizeServiceId);
           const isSelected = canonicalSelected.includes(service.id);
           
-          // Determine which category label to show based on current filter
-          const displayCategory = selectedCategory !== 'all' && service.categories.includes(selectedCategory as ServiceCategory)
-            ? selectedCategory as ServiceCategory
-            : service.categories[0];
-          
           return (
             <Card 
               key={service.id} 
-              className={`hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col ${
-                isSelected && showCheckboxes ? 'ring-2 ring-primary' : ''
+              className={`group flex flex-col min-h-[240px] rounded-2xl border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                isSelected && showCheckboxes ? 'ring-2 ring-primary border-primary/30' : ''
               }`}
               onClick={() => {
                 if (showCheckboxes && onServiceToggle) {
@@ -158,54 +140,61 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
                 }
               }}
             >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
+              <CardHeader className="pb-3">
+                {/* Grid fixo: ícone + título */}
+                <div className="grid grid-cols-[44px_1fr] gap-3 items-start">
+                  {/* Checkbox antes do ícone se modo seleção */}
+                  <div className="relative">
                     {showCheckboxes && (
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => onServiceToggle?.(service.id, checked as boolean)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      <div className="absolute -top-1 -left-1 z-10">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => onServiceToggle?.(service.id, checked as boolean)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
                     )}
-                    <div className={`p-3 rounded-lg ${service.color}`}>
-                      <IconComponent className="h-6 w-6" />
+                    {/* Ícone — 10% acento: primary translúcido */}
+                    <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/15 transition-all duration-150 group-hover:bg-primary/15 group-hover:scale-105">
+                      <IconComponent className="h-5 w-5" strokeWidth={1.75} />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                        {service.label}
-                      </CardTitle>
-                    </div>
+                  </div>
+
+                  <div className="min-w-0">
+                    <CardTitle className="text-base font-bold text-foreground leading-tight truncate group-hover:text-primary transition-colors">
+                      {service.label}
+                    </CardTitle>
                   </div>
                 </div>
               </CardHeader>
               
               <CardContent className="pt-0 flex flex-col flex-1">
-                <div className="flex-1">
-                  <CardDescription className="mb-4 leading-relaxed">
-                    {service.description}
-                  </CardDescription>
-                  
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>Resposta rápida</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Shield className="h-4 w-4" />
-                      <span>Verificado</span>
-                    </div>
-                  </div>
-                </div>
+                {/* Descrição com clamp — 60% base */}
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 flex-1">
+                  {service.description}
+                </p>
                 
-                <div className="mt-auto">
+                {/* Footer fixo — mt-auto */}
+                <div className="mt-auto pt-3 space-y-3">
+                  {/* Chips alinhados — AgriChip */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <AgriChip tone="neutral" icon={<Clock className="h-3 w-3" />}>
+                      Resposta rápida
+                    </AgriChip>
+                    <AgriChip tone="verified" icon={<ShieldCheck className="h-3 w-3" />}>
+                      Verificado
+                    </AgriChip>
+                  </div>
+
+                  {/* CTA — 10% acento */}
                   {!showCheckboxes && onServiceRequest && (
                     <Button 
                       onClick={(e) => {
                         e.stopPropagation();
                         onServiceRequest(service);
                       }} 
-                      className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                      className="w-full rounded-xl"
+                      size="sm"
                     >
                       Solicitar Serviço
                     </Button>
