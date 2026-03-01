@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL, formatKm } from '@/lib/formatters';
 import { UI_TEXTS } from '@/lib/ui-texts';
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
+import { getCanonicalFreightPrice } from '@/lib/freightPriceContract';
 
 interface Proposal {
   id: string;
@@ -231,14 +232,16 @@ export const CompanyProposalsManager: React.FC = () => {
                 <p className="text-xs text-muted-foreground">Valor Original</p>
                 <p className="text-lg font-semibold">
                   {(() => {
-                    const requiredTrucks = Math.max((proposal.freight as any)?.required_trucks ?? 1, 1);
-                    const perTruck = resolveDriverUnitPrice(0, proposal.freight.price || 0, requiredTrucks);
-                    return (
-                      <>
-                        R$ {formatBRL(perTruck)}
-                        {requiredTrucks > 1 && <span className="text-xs ml-1">/carreta</span>}
-                      </>
-                    );
+                    const pd = getCanonicalFreightPrice({
+                      pricing_type: (proposal.freight as any)?.pricing_type,
+                      price_per_ton: (proposal.freight as any)?.price_per_ton,
+                      price_per_km: (proposal.freight as any)?.price_per_km,
+                      price: proposal.freight.price || 0,
+                      required_trucks: (proposal.freight as any)?.required_trucks,
+                      weight: (proposal.freight as any)?.weight,
+                      distance_km: (proposal.freight as any)?.distance_km,
+                    });
+                    return pd.primaryLabel;
                   })()}
                 </p>
               </div>

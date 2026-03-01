@@ -166,33 +166,33 @@ describe('getFreightPriceDisplay', () => {
         pricing_type: 'FIXED',
         distance_km: 200,
       });
-      expect(result.primarySuffix).toBe('');
+      expect(result.primarySuffix).toBe('/veículo');
       expect(result.pricingType).toBe('FIXED');
       expect(result.primaryValue).toBe(1200);
       expect(result.isPricingTypeInvalid).toBe(false);
     });
 
-    it('shows /carreta for multi-truck', () => {
+    it('shows /veículo for multi-truck', () => {
       const result = getFreightPriceDisplay({
         price: 12000,
         pricing_type: 'FIXED',
         required_trucks: 3,
       });
-      expect(result.primarySuffix).toBe('/carreta');
+      expect(result.primarySuffix).toBe('/veículo');
       expect(result.primaryValue).toBe(4000);
     });
 
     /**
      * CONTRACT: FIXED multi-truck — per-vehicle primary, NO aggregate total
      */
-    it('FIXED R$40.000 12 trucks: per-carreta primary, NO aggregate total', () => {
+    it('FIXED R$40.000 12 trucks: per-veículo primary, NO aggregate total', () => {
       const result = getFreightPriceDisplay({
         price: 40000,
         pricing_type: 'FIXED',
         required_trucks: 12,
         distance_km: 130,
       });
-      expect(result.primarySuffix).toBe('/carreta');
+      expect(result.primarySuffix).toBe('/veículo');
       const perCarreta = 40000 / 12;
       expect(result.primaryValue).toBeCloseTo(perCarreta, 0);
       // NEVER show aggregate total
