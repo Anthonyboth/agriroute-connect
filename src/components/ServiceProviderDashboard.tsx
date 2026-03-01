@@ -90,7 +90,7 @@ import { MyRequestsTab } from '@/components/MyRequestsTab';
 import { ServiceWorkflowActions } from '@/components/service-provider/ServiceWorkflowActions';
 import { ServiceStatusBadge } from '@/components/service-provider/ServiceStatusBadge';
 import { ServiceProposalSection } from '@/components/service-provider/ServiceProposalSection';
-import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
+import { UnifiedServiceCard } from '@/components/UnifiedServiceCard';
 import { maskServiceRequestPii, isPiiVisibleForStatus } from '@/security/serviceRequestPiiGuard';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
 import { useServiceProposals } from '@/hooks/useServiceProposals';
@@ -1543,9 +1543,9 @@ export const ServiceProviderDashboard: React.FC = () => {
               return acceptedFiltered.length > 0 ? (
                 <div className="space-y-4">
                   {acceptedFiltered.map((request) => (
-                    <ServiceRequestInProgressCard
+                    <UnifiedServiceCard
                       key={request.id}
-                      request={{
+                      serviceRequest={{
                         id: request.id,
                         service_type: request.service_type,
                         status: request.status,
@@ -1566,25 +1566,25 @@ export const ServiceProviderDashboard: React.FC = () => {
                         urgency: request.urgency,
                         additional_info: request.additional_info,
                       }}
+                      viewerRole="PROVIDER"
                       onMarkOnTheWay={(id) => handleStatusChange(id, 'ON_THE_WAY')}
                       onStartTransit={(id) => handleStatusChange(id, 'IN_PROGRESS')}
                       onFinishService={(id) => handleStatusChange(id, 'COMPLETED')}
                       onCancel={() => { setServiceToCancel(request); setCancelDialogOpen(true); }}
                       onOpenChat={(req) => { setSelectedChatRequest(req); setChatDialogOpen(true); }}
-                      proposalsSection={
-                        request.client_id ? (
-                          <ServiceProposalSection
-                            proposals={getProposalsForRequest(request.id)}
-                            currentUserProfileId={profile?.id || ''}
-                            viewerRole="PROVIDER"
-                            onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
-                            onAcceptProposal={acceptProposal}
-                            onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
-                            submitting={proposalSubmitting}
-                          />
-                        ) : undefined
-                      }
-                    />
+                    >
+                      {request.client_id ? (
+                        <ServiceProposalSection
+                          proposals={getProposalsForRequest(request.id)}
+                          currentUserProfileId={profile?.id || ''}
+                          viewerRole="PROVIDER"
+                          onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
+                          onAcceptProposal={acceptProposal}
+                          onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
+                          submitting={proposalSubmitting}
+                        />
+                      ) : undefined}
+                    </UnifiedServiceCard>
                   ))}
                 </div>
               ) : (

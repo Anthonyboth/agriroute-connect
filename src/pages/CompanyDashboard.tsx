@@ -60,7 +60,7 @@ import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryN
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
-import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
+import { UnifiedServiceCard } from '@/components/UnifiedServiceCard';
 import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { UnifiedProposalsWrapper } from '@/components/proposal/UnifiedProposalsWrapper';
@@ -1103,10 +1103,10 @@ const CompanyDashboard = () => {
                     ) : (
                       <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                         {activeServices.map((service) => (
-                          <ServiceRequestInProgressCard
+                          <UnifiedServiceCard
                             key={`service-${service.id}`}
-                            uiNomenclature="FREIGHT"
-                            request={service}
+                            serviceRequest={service}
+                            viewerRole="DRIVER"
                             onMarkOnTheWay={handleServiceOnTheWay}
                             onStartTransit={handleStartTransit}
                             onFinishService={handleFinishService}
