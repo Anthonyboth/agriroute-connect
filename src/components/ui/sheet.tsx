@@ -90,14 +90,16 @@ const SheetContent = React.forwardRef<
       <SheetOverlay />
       <SheetPrimitive.Content
         ref={ref}
-        className={cn(
-          sheetVariants({ side }),
-          // Ultra-high z-index to ensure content is always on top of overlay
-          "z-[9999]",
-          // Ensure solid background - no transparency
-          "bg-background",
-          className
-        )}
+          className={cn(
+            sheetVariants({ side }),
+            // Ultra-high z-index to ensure content is always on top of overlay
+            "z-[9999]",
+            // Ensure solid background - no transparency
+            "bg-background",
+            // ✅ iOS scroll fix: ensure sheet content scrolls
+            "overflow-y-auto",
+            className
+          )}
         style={{
           // Fallback styles for fixed positioning
           position: 'fixed',
