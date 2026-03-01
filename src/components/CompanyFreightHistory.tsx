@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL, formatDate, formatTons } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface CompanyFreightHistoryProps {
   companyId: string;
@@ -195,8 +196,8 @@ export const CompanyFreightHistory: React.FC<CompanyFreightHistoryProps> = ({ co
           <div className="flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-green-600" />
             <span className="font-semibold text-green-600">
-              {/* ✅ Histórico da empresa — preço armazenado, sem detalhamento */}
-              R$ {formatBRL(freight.price)}
+              {/* ✅ Histórico da empresa — preço unitário canônico, NUNCA total */}
+              {precoPreenchidoDoFrete(freight.id, freight, { unitOnly: true }).primaryText}
             </span>
           </div>
 

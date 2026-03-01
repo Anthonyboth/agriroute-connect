@@ -43,6 +43,7 @@ export interface PaymentCardData {
     price?: number;
     pricing_type?: string;
     price_per_km?: number;
+    price_per_ton?: number;
     required_trucks?: number;
     weight?: number;
     distance_km?: number;
@@ -136,12 +137,13 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   const statusConfig = getStatusConfig(payment.status);
   const StatusIcon = statusConfig.icon;
 
-  // ✅ Preço canônico via pipeline — NUNCA usar freight.price direto
+  // ✅ Preço canônico via pipeline — NUNCA usar freight.price ou payment.amount direto
   const preco = usePrecoPreenchido(payment.freight ? {
     id: payment.freight.id,
     price: payment.freight.price,
     pricing_type: payment.freight.pricing_type,
     price_per_km: payment.freight.price_per_km,
+    price_per_ton: payment.freight.price_per_ton,
     required_trucks: payment.freight.required_trucks,
     weight: payment.freight.weight,
     distance_km: payment.freight.distance_km,
@@ -205,7 +207,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <p className="font-bold text-base">
-                      {preco && !preco.invalid ? preco.primaryText : `R$ ${payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      {preco && !preco.invalid ? preco.primaryText : 'Preço indisponível'}
                     </p>
                     <Badge 
                       variant={statusConfig.variant}
