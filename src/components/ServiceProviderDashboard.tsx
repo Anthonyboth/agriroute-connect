@@ -1853,14 +1853,67 @@ export const ServiceProviderDashboard: React.FC = () => {
                 )}
 
                 {/* Informações Adicionais */}
-                {selectedRequest.additional_info && (
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Informações Adicionais</h4>
-                    <p className="text-sm bg-muted p-3 rounded-lg">
-                      {selectedRequest.additional_info}
-                    </p>
-                  </div>
-                )}
+                {selectedRequest.additional_info && (() => {
+                  let parsed: any = null;
+                  try {
+                    parsed = typeof selectedRequest.additional_info === 'string'
+                      ? JSON.parse(selectedRequest.additional_info)
+                      : selectedRequest.additional_info;
+                    if (typeof parsed !== 'object') parsed = null;
+                  } catch { parsed = null; }
+
+                  if (!parsed) {
+                    return (
+                      <div className="space-y-2">
+                        <h4 className="font-semibold">Informações Adicionais</h4>
+                        <p className="text-sm bg-muted p-3 rounded-lg">{selectedRequest.additional_info}</p>
+                      </div>
+                    );
+                  }
+
+                  const origin = parsed.origin;
+                  const catalog = parsed.catalog;
+                  const agri = parsed.agriculturalDetails;
+                  const hasAgri = agri && (agri.farmName || agri.area || agri.culture || agri.accessInstructions);
+
+                  return (
+                    <div className="space-y-3">
+                      {origin?.full_address && (
+                        <div className="space-y-1">
+                          <h4 className="font-semibold flex items-center gap-2 text-sm">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            Endereço Completo
+                          </h4>
+                          <p className="text-sm bg-muted p-3 rounded-lg">{origin.full_address}</p>
+                          {origin.reference && (
+                            <p className="text-xs text-muted-foreground">Referência: {origin.reference}</p>
+                          )}
+                        </div>
+                      )}
+                      {catalog?.label && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
+                            {catalog.label}
+                          </span>
+                        </div>
+                      )}
+                      {hasAgri && (
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-sm">Dados Agrícolas</h4>
+                          <div className="text-sm bg-muted p-3 rounded-lg space-y-1">
+                            {agri.farmName && <p><strong>Fazenda:</strong> {agri.farmName}</p>}
+                            {agri.area && <p><strong>Área:</strong> {agri.area}</p>}
+                            {agri.culture && <p><strong>Cultura:</strong> {agri.culture}</p>}
+                            {agri.accessInstructions && <p><strong>Acesso:</strong> {agri.accessInstructions}</p>}
+                          </div>
+                        </div>
+                      )}
+                      {parsed.notes && (
+                        <p className="text-xs text-muted-foreground">Obs: {parsed.notes}</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Propostas de Valor - somente para clientes cadastrados */}
                 {selectedRequest.client_id && (
