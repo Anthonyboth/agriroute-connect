@@ -119,14 +119,7 @@ export const CompanyBulkFreightAcceptor = ({
                 {priceDisplay.primaryLabel}
               </span>
             </div>
-            {priceDisplay.secondaryLabel && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Detalhes:</span>
-                <span className="text-muted-foreground">
-                  {priceDisplay.secondaryLabel}
-                </span>
-              </div>
-            )}
+            {/* ✅ REGRA UNIVERSAL: Transportadora NÃO vê secondary/meta */}
             <div className="flex justify-between text-sm pt-1 border-t border-border/50">
               <span className="font-medium">Carretas selecionadas:</span>
               <span className="text-xl font-bold text-primary">

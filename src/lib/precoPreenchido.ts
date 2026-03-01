@@ -84,11 +84,24 @@ function buildSecondary(type: PricingType, raw: PrecoPreenchidoInput): string | 
 
 // ─── Main function ───────────────────────────────────────────
 
+export interface PrecoPreenchidoOptions {
+  /**
+   * REGRA UNIVERSAL: Se true, secondaryText será SEMPRE null.
+   * Usar para viewers que NÃO são o solicitante (motorista, transportadora, etc.)
+   * Isso impede que cálculos/totais/metadata ("12 carretas", "500 ton") vazem.
+   */
+  unitOnly?: boolean;
+}
+
 export function precoPreenchidoDoFrete(
   freightId: string,
   freight: Omit<PrecoPreenchidoInput, 'id'>,
+  options?: PrecoPreenchidoOptions,
 ): PrecoPreenchido {
-  const cached = cache.get(freightId);
+  const unitOnly = options?.unitOnly ?? false;
+  const cacheKey = unitOnly ? `${freightId}__unit` : freightId;
+
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   // Normalize via centralizer
@@ -112,7 +125,7 @@ export function precoPreenchidoDoFrete(
       pricingType: null,
       invalid: true,
     };
-    cache.set(freightId, result);
+    cache.set(cacheKey, result);
     return result;
   }
 
@@ -122,13 +135,14 @@ export function precoPreenchidoDoFrete(
 
   const result: PrecoPreenchido = {
     primaryText: `${formatBRL(unit_rate)}${suffix}`,
-    secondaryText: buildSecondary(type, rawInput),
+    // ✅ REGRA UNIVERSAL: unitOnly → NUNCA mostrar secondary (totais/metadata)
+    secondaryText: unitOnly ? null : buildSecondary(type, rawInput),
     unitValue: unit_rate,
     suffix,
     pricingType: type,
     invalid: false,
   };
 
-  cache.set(freightId, result);
+  cache.set(cacheKey, result);
   return result;
 }
