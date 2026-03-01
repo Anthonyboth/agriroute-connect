@@ -10,9 +10,10 @@ describe('normalizePricingType', () => {
     ['PER_KM', 'PER_KM'],
     ['POR_KM', 'PER_KM'],
     ['KM', 'PER_KM'],
-    ['FIXED', 'FIXED'],
-    ['FIXO', 'FIXED'],
-    ['TOTAL', 'FIXED'],
+    ['FIXED', 'PER_VEHICLE'],
+    ['FIXO', 'PER_VEHICLE'],
+    ['TOTAL', 'PER_VEHICLE'],
+    ['PER_VEHICLE', 'PER_VEHICLE'],
   ])('maps "%s" → "%s"', (input, expected) => {
     expect(normalizePricingType(input)).toBe(expected);
   });
@@ -67,13 +68,15 @@ describe('getCanonicalFreightPrice — Contract Tests', () => {
       expect(r.primaryLabel).toBe('R$ 80,00/ton');
     });
 
-    it('derives from price/weight when no explicit unit rate', () => {
+    it('returns "Preço indisponível" when no explicit unit rate fields', () => {
       const r = getCanonicalFreightPrice({
         pricing_type: 'PER_TON',
         price: 40000,
-        weight: 500000, // 500 ton
+        weight: 500000,
       });
-      expect(r.primaryLabel).toBe('R$ 80,00/ton');
+      // Without price_per_ton or price_per_km, normalizer cannot resolve unit_rate
+      expect(r.ok).toBe(false);
+      expect(r.primaryLabel).toBe('Preço indisponível');
     });
 
     it('returns "Preço indisponível" when no rate and no derivable data', () => {
@@ -113,13 +116,15 @@ describe('getCanonicalFreightPrice — Contract Tests', () => {
       expect(r.unitValue).toBe(2);
     });
 
-    it('derives from price/distance when no explicit rate', () => {
+    it('returns "Preço indisponível" when no explicit price_per_km', () => {
       const r = getCanonicalFreightPrice({
         pricing_type: 'PER_KM',
         price: 200,
         distance_km: 100,
       });
-      expect(r.primaryLabel).toBe('R$ 2,00/km');
+      // Without price_per_km, normalizer cannot resolve
+      expect(r.ok).toBe(false);
+      expect(r.primaryLabel).toBe('Preço indisponível');
     });
 
     it('secondary shows distance, NEVER monetary values', () => {
@@ -135,34 +140,35 @@ describe('getCanonicalFreightPrice — Contract Tests', () => {
     });
   });
 
-  // ═══ FIXED ═══
-  describe('FIXED', () => {
-    it('single truck shows total price without suffix', () => {
+  // ═══ PER_VEHICLE (ex-FIXED) ═══
+  describe('PER_VEHICLE (ex-FIXED)', () => {
+    it('single truck: R$ 5.000,00/veíc (ALWAYS with suffix)', () => {
       const r = getCanonicalFreightPrice({
         pricing_type: 'FIXED',
         price: 5000,
         required_trucks: 1,
       });
       expect(r.ok).toBe(true);
-      expect(r.primaryLabel).toBe('R$ 5.000,00');
+      expect(r.primaryLabel).toBe('R$ 5.000,00/veíc');
       expect(r.unitValue).toBe(5000);
     });
 
-    it('R$40.000 with 12 trucks → R$ 3.333,33/veículo', () => {
+    it('R$4.500 with 12 trucks → R$ 4.500,00/veíc (NEVER divides)', () => {
       const r = getCanonicalFreightPrice({
         pricing_type: 'FIXED',
-        price: 40000,
+        price: 4500,
         required_trucks: 12,
       });
       expect(r.ok).toBe(true);
-      expect(r.primaryLabel).toBe('R$ 3.333,33/veículo');
-      expect(r.unitValue).toBe(3333.33);
+      expect(r.primaryLabel).toBe('R$ 4.500,00/veíc');
+      expect(r.unitValue).toBe(4500);
+      expect(r.pricingType).toBe('PER_VEHICLE');
     });
 
     it('secondary shows truck count, NEVER total price', () => {
       const r = getCanonicalFreightPrice({
         pricing_type: 'FIXED',
-        price: 40000,
+        price: 4500,
         required_trucks: 12,
       });
       expect(r.secondaryLabel).toContain('12 carretas');
@@ -187,7 +193,7 @@ describe('getCanonicalFreightPrice — Contract Tests', () => {
         expect(r.isPricingTypeInvalid).toBe(true);
         expect(r.primaryLabel).not.toContain('/km');
         expect(r.primaryLabel).not.toContain('/ton');
-        expect(r.primaryLabel).not.toContain('/veículo');
+        expect(r.primaryLabel).not.toContain('/veíc');
       }
     );
   });
@@ -197,7 +203,7 @@ describe('getCanonicalFreightPrice — Contract Tests', () => {
     const cases = [
       { pricing_type: 'PER_TON', price_per_ton: 80, price: 40000, weight: 500000, required_trucks: 12 },
       { pricing_type: 'PER_KM', price_per_km: 6.5, price: 1950, distance_km: 300, required_trucks: 3 },
-      { pricing_type: 'FIXED', price: 40000, required_trucks: 12 },
+      { pricing_type: 'FIXED', price: 4500, required_trucks: 12 },
     ];
 
     cases.forEach(c => {

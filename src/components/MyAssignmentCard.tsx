@@ -180,7 +180,7 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
               distance_km: distanceKm ?? undefined,
               weight: freight?.weight,
             });
-            return pd.pricingType !== 'FIXED' && pd.secondaryText ? (
+            return pd.pricingType !== 'PER_VEHICLE' && pd.secondaryText ? (
               <p className="text-xs text-muted-foreground">{pd.secondaryText}</p>
             ) : null;
           })()}

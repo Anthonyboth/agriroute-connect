@@ -9,143 +9,227 @@ beforeEach(() => {
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
-describe('precoPreenchidoDoFrete', () => {
-  describe('PER_TON (POR_TONELADA)', () => {
-    it('exibe R$ 80,00/ton — NUNCA /veículo — com 12 carretas', () => {
-      const result = precoPreenchidoDoFrete('frete-001', {
+describe('precoPreenchidoDoFrete — PADRÃO GLOBAL', () => {
+  
+  // ─── PER_TON ───────────────────────────────────────────────
+  
+  describe('PER_TON', () => {
+    it('unit_rate 130 → "R$ 130,00/ton"', () => {
+      const r = precoPreenchidoDoFrete('ton-130', {
         pricing_type: 'PER_TON',
-        price_per_km: 80, // campo sobrecarregado = rate por tonelada
+        price_per_km: 130, // campo sobrecarregado
+        price: 65000,
+        required_trucks: 12,
+        weight: 500000,
+      });
+      expect(r.primaryText).toBe('R$ 130,00/ton');
+      expect(r.unitValue).toBe(130);
+      expect(r.suffix).toBe('/ton');
+      expect(r.pricingType).toBe('PER_TON');
+      expect(r.invalid).toBe(false);
+    });
+
+    it('unit_rate 80 com 12 carretas → NUNCA /veíc ou /veículo', () => {
+      const r = precoPreenchidoDoFrete('ton-80', {
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
         price: 40000,
         required_trucks: 12,
-        weight: 500000, // 500 ton
-        distance_km: 130,
+        weight: 500000,
       });
-
-      expect(result.primaryText).toBe('R$ 80,00/ton');
-      expect(result.suffix).toBe('/ton');
-      expect(result.unitValue).toBe(80);
-      expect(result.pricingType).toBe('PER_TON');
-      expect(result.invalid).toBe(false);
-      // NUNCA /veículo
-      expect(result.primaryText).not.toContain('/veículo');
-      expect(result.primaryText).not.toContain('277');
+      expect(r.primaryText).toBe('R$ 80,00/ton');
+      expect(r.primaryText).not.toContain('/veíc');
+      expect(r.primaryText).not.toContain('/veículo');
+      expect(r.primaryText).not.toContain('277');
     });
 
     it('usa price_per_ton quando disponível', () => {
-      const result = precoPreenchidoDoFrete('frete-002', {
+      const r = precoPreenchidoDoFrete('ton-ppt', {
         pricing_type: 'PER_TON',
         price_per_ton: 95,
+        price_per_km: 80,
         price: 47500,
         required_trucks: 5,
-        weight: 500000,
       });
-
-      expect(result.primaryText).toBe('R$ 95,00/ton');
-      expect(result.unitValue).toBe(95);
+      expect(r.primaryText).toBe('R$ 95,00/ton');
+      expect(r.unitValue).toBe(95);
     });
 
-    it('aceita aliases: POR_TONELADA', () => {
-      const result = precoPreenchidoDoFrete('frete-003', {
+    it('aceita alias POR_TONELADA', () => {
+      const r = precoPreenchidoDoFrete('ton-alias', {
         pricing_type: 'POR_TONELADA',
         price_per_km: 80,
         price: 40000,
         required_trucks: 12,
       });
-
-      expect(result.suffix).toBe('/ton');
-      expect(result.unitValue).toBe(80);
+      expect(r.suffix).toBe('/ton');
+      expect(r.unitValue).toBe(80);
     });
 
-    it('nunca divide por required_trucks', () => {
+    it('NUNCA divide por required_trucks', () => {
       [1, 3, 12, 50].forEach((trucks) => {
         limparCachePrecoPreenchido();
-        const result = precoPreenchidoDoFrete(`ton-${trucks}`, {
+        const r = precoPreenchidoDoFrete(`ton-trucks-${trucks}`, {
           pricing_type: 'PER_TON',
           price_per_km: 80,
           price: 80 * 500,
           required_trucks: trucks,
           weight: 500000,
         });
-        expect(result.unitValue).toBe(80);
-        expect(result.suffix).toBe('/ton');
+        expect(r.unitValue).toBe(80);
+        expect(r.suffix).toBe('/ton');
       });
     });
   });
 
+  // ─── PER_KM ────────────────────────────────────────────────
+
   describe('PER_KM', () => {
-    it('exibe R$ 3,00/km', () => {
-      const result = precoPreenchidoDoFrete('frete-km-1', {
+    it('unit_rate 12 → "R$ 12,00/km"', () => {
+      const r = precoPreenchidoDoFrete('km-12', {
+        pricing_type: 'PER_KM',
+        price_per_km: 12,
+        price: 3600,
+        distance_km: 300,
+        required_trucks: 2,
+      });
+      expect(r.primaryText).toBe('R$ 12,00/km');
+      expect(r.unitValue).toBe(12);
+      expect(r.suffix).toBe('/km');
+      expect(r.pricingType).toBe('PER_KM');
+    });
+
+    it('NUNCA exibe /veíc', () => {
+      const r = precoPreenchidoDoFrete('km-no-veic', {
         pricing_type: 'PER_KM',
         price_per_km: 3,
         price: 900,
         distance_km: 300,
-        required_trucks: 2,
+        required_trucks: 5,
       });
-
-      expect(result.primaryText).toBe('R$ 3,00/km');
-      expect(result.suffix).toBe('/km');
-      expect(result.unitValue).toBe(3);
+      expect(r.primaryText).not.toContain('/veíc');
     });
   });
 
-  describe('FIXED', () => {
-    it('exibe /veículo com 12 carretas', () => {
-      const result = precoPreenchidoDoFrete('frete-fixed-1', {
-        pricing_type: 'FIXED',
-        price: 40000,
+  // ─── PER_VEHICLE (ex-FIXED) ────────────────────────────────
+
+  describe('PER_VEHICLE', () => {
+    it('unit_rate 4500 com required_trucks 12 → "R$ 4.500,00/veíc" (NUNCA 375 ou 277)', () => {
+      const r = precoPreenchidoDoFrete('veic-4500', {
+        pricing_type: 'FIXED', // legacy DB value
+        price: 4500,
         required_trucks: 12,
         distance_km: 130,
       });
-
-      expect(result.suffix).toBe('/veículo');
-      expect(result.unitValue).toBeCloseTo(3333.33, 0);
-      expect(result.primaryText).toContain('/veículo');
+      expect(r.primaryText).toBe('R$ 4.500,00/veíc');
+      expect(r.unitValue).toBe(4500);
+      expect(r.suffix).toBe('/veíc');
+      expect(r.pricingType).toBe('PER_VEHICLE');
+      expect(r.primaryText).not.toContain('375');
+      expect(r.primaryText).not.toContain('277');
     });
 
-    it('exibe valor total sem sufixo para 1 carreta', () => {
-      const result = precoPreenchidoDoFrete('frete-fixed-solo', {
-        pricing_type: 'FIXED',
-        price: 5000,
-        required_trucks: 1,
+    it('NUNCA divide price por required_trucks', () => {
+      [1, 5, 12, 100].forEach((trucks) => {
+        limparCachePrecoPreenchido();
+        const r = precoPreenchidoDoFrete(`veic-trucks-${trucks}`, {
+          pricing_type: 'FIXED',
+          price: 4500,
+          required_trucks: trucks,
+        });
+        expect(r.unitValue).toBe(4500);
+        expect(r.suffix).toBe('/veíc');
       });
+    });
 
-      expect(result.unitValue).toBe(5000);
+    it('aceita pricing_type PER_VEHICLE diretamente', () => {
+      const r = precoPreenchidoDoFrete('veic-direct', {
+        pricing_type: 'PER_VEHICLE',
+        price: 3000,
+        required_trucks: 3,
+      });
+      expect(r.primaryText).toBe('R$ 3.000,00/veíc');
+      expect(r.unitValue).toBe(3000);
     });
   });
 
+  // ─── FALLBACK ──────────────────────────────────────────────
+
   describe('pricing_type ausente/inválido', () => {
-    it('retorna "Preço indisponível"', () => {
-      const result = precoPreenchidoDoFrete('frete-invalid', {
+    it('retorna "Preço indisponível" se pricing_type null', () => {
+      const r = precoPreenchidoDoFrete('invalid-null', {
         pricing_type: null,
         price: 1000,
       });
+      expect(r.primaryText).toBe('Preço indisponível');
+      expect(r.invalid).toBe(true);
+    });
 
-      expect(result.primaryText).toBe('Preço indisponível');
-      expect(result.invalid).toBe(true);
+    it('retorna "Preço indisponível" se unit_rate ausente', () => {
+      const r = precoPreenchidoDoFrete('invalid-no-rate', {
+        pricing_type: 'PER_TON',
+        price: null,
+        price_per_km: null,
+        price_per_ton: null,
+      });
+      expect(r.primaryText).toBe('Preço indisponível');
+      expect(r.invalid).toBe(true);
     });
   });
 
-  describe('cache', () => {
-    it('retorna resultado cacheado para mesmo ID', () => {
-      const input = {
-        pricing_type: 'PER_TON' as const,
-        price_per_km: 80,
-        price: 40000,
-        required_trucks: 12,
-      };
+  // ─── CACHE ─────────────────────────────────────────────────
 
-      const r1 = precoPreenchidoDoFrete('cache-test', input);
-      const r2 = precoPreenchidoDoFrete('cache-test', input);
-      expect(r1).toBe(r2); // same reference
+  describe('cache', () => {
+    it('retorna mesma referência para mesmo ID', () => {
+      const input = { pricing_type: 'PER_TON', price_per_km: 80, price: 40000, required_trucks: 12 };
+      const r1 = precoPreenchidoDoFrete('cache-1', input);
+      const r2 = precoPreenchidoDoFrete('cache-1', input);
+      expect(r1).toBe(r2);
     });
 
-    it('limpa cache específico', () => {
-      const input = { pricing_type: 'FIXED' as const, price: 1000, required_trucks: 1 };
-      const r1 = precoPreenchidoDoFrete('clear-test', input);
-      limparCachePrecoPreenchido('clear-test');
-      const r2 = precoPreenchidoDoFrete('clear-test', input);
+    it('limpa cache por freightId', () => {
+      const input = { pricing_type: 'FIXED', price: 5000, required_trucks: 1 };
+      const r1 = precoPreenchidoDoFrete('cache-clear', input);
+      limparCachePrecoPreenchido('cache-clear');
+      const r2 = precoPreenchidoDoFrete('cache-clear', input);
       expect(r1).not.toBe(r2);
       expect(r1.primaryText).toBe(r2.primaryText);
+    });
+  });
+
+  // ─── SECONDARY TEXT ────────────────────────────────────────
+
+  describe('secondaryText', () => {
+    it('PER_TON inclui peso e carretas', () => {
+      const r = precoPreenchidoDoFrete('sec-ton', {
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
+        weight: 500000,
+        required_trucks: 12,
+      });
+      expect(r.secondaryText).toContain('500.0 ton');
+      expect(r.secondaryText).toContain('12 carretas');
+    });
+
+    it('PER_KM inclui distância', () => {
+      const r = precoPreenchidoDoFrete('sec-km', {
+        pricing_type: 'PER_KM',
+        price_per_km: 3,
+        distance_km: 300,
+        required_trucks: 2,
+      });
+      expect(r.secondaryText).toContain('300 km');
+    });
+
+    it('secondaryText NUNCA contém R$', () => {
+      const r = precoPreenchidoDoFrete('sec-no-money', {
+        pricing_type: 'PER_TON',
+        price_per_km: 80,
+        price: 40000,
+        weight: 500000,
+        required_trucks: 12,
+      });
+      expect(r.secondaryText).not.toContain('R$');
     });
   });
 });

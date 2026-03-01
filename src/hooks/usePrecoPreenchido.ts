@@ -22,8 +22,6 @@ export { limparCachePrecoPreenchido } from '@/lib/precoPreenchido';
 /**
  * Retorna o preço preenchido canônico para um frete.
  * Aceita null/undefined (retorna null nesse caso).
- * 
- * O freight DEVE ter `id` — é a chave do cache.
  */
 export function usePrecoPreenchido(
   freight: (PrecoPreenchidoInput & { id: string }) | null | undefined,

@@ -90,7 +90,7 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
       unitRateFormatted: '—',
       unitRateColorClass: 'text-muted-foreground',
       isUnitPricing: false,
-      pricingType: 'FIXED',
+      pricingType: 'PER_VEHICLE',
       isPricingTypeInvalid: true,
     };
   }
@@ -103,7 +103,7 @@ export function getFreightPriceDisplay(freight: FreightPriceDisplayInput): Freig
   // Derive R$/km for FIXED (for unit rate display)
   const distKm = freight.distance_km || 0;
   let derivedPerKm: number | null = null;
-  if (pricingType === 'FIXED' && distKm > 0) {
+  if (pricingType === 'PER_VEHICLE' && distKm > 0) {
     derivedPerKm = unitValue / distKm;
   }
 

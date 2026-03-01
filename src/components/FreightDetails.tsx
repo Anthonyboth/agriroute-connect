@@ -634,7 +634,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 <>
                   <div>
                     <span className="text-muted-foreground text-xs">
-                      {pd.pricingType !== 'FIXED' ? 'Valor unitário:' : isFreightProducer ? 'Valor total:' : 'Valor do frete:'}
+                      {pd.pricingType !== 'PER_VEHICLE' ? 'Valor unitário:' : isFreightProducer ? 'Valor total:' : 'Valor do frete:'}
                     </span>
                     <p className="font-medium">{pd.primaryText}</p>
                   </div>

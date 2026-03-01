@@ -3,55 +3,46 @@
  * 
  * CONTRATO CANÔNICO DE EXIBIÇÃO DE PREÇO DE FRETE.
  * 
- * REGRA DE OURO:
- * - PER_TON → SEMPRE exibe R$ X,XX/ton (X = valor unitário preenchido pelo produtor)
- * - PER_KM  → SEMPRE exibe R$ X,XX/km  (X = valor unitário preenchido pelo produtor)
- * - FIXED   → SEMPRE exibe valor unitário por veículo: total / required_trucks
- * - pricing_type ausente/inválido → "Preço indisponível" (NUNCA assume /km)
+ * REGRA IMUTÁVEL (3 tipos):
+ * 1) PER_VEHICLE → exibir SEMPRE R$ X/veíc (unit_rate cheio). NUNCA dividir por carretas.
+ * 2) PER_KM     → exibir SEMPRE R$ X/km como principal.
+ * 3) PER_TON    → exibir SEMPRE R$ X/ton como principal.
  * 
  * PROIBIÇÕES ABSOLUTAS:
- * - NUNCA exibir total agregado ("Total (N carretas): R$ X") em cards
+ * - NUNCA dividir unit_rate PER_VEHICLE por required_trucks
+ * - NUNCA dividir unit_rate PER_TON por required_trucks  
  * - NUNCA inventar unidade quando pricing_type está ausente
- * - NUNCA dividir PER_TON por required_trucks
+ * - NUNCA exibir total agregado em cards
  * 
  * TODOS os componentes DEVEM usar este helper. Formatação manual de preço é PROIBIDA.
  */
 
-export type PricingType = 'PER_TON' | 'PER_KM' | 'FIXED';
+import type { PricingType as ContractPricingType } from '@/contracts/freightPricing';
+import { PRICING_SUFFIX } from '@/contracts/freightPricing';
+import { normalizeFreightPricing, normalizePricingType, type RawFreightPricingData } from '@/lib/normalizeFreightPricing';
+
+// Re-export for backward compat
+export type PricingType = ContractPricingType;
+export { normalizePricingType };
 
 export interface FreightPricingInput {
   pricing_type?: string | null;
-
-  /** Valor unitário por tonelada (canônico para PER_TON) */
   price_per_ton?: number | null;
-  /** Valor unitário por km (canônico para PER_KM; fallback legado para PER_TON) */
   price_per_km?: number | null;
-
-  /** Preço total (FIXED) ou legado */
   price?: number | null;
   required_trucks?: number | null;
-
-  /** Opcionais para derivação de fallback */
-  weight?: number | null;       // em kg
+  weight?: number | null;
   distance_km?: number | null;
 }
 
 export interface FreightPriceDisplay {
-  /** Whether the display resolved successfully */
   ok: boolean;
-  /** Primary label: "R$ 80,00/ton", "R$ 2,00/km", "R$ 3.333,33/veículo", or "Preço indisponível" */
   primaryLabel: string;
-  /** Unit type resolved */
   unit?: 'ton' | 'km' | 'veiculo';
-  /** Numeric unit value */
   unitValue?: number;
-  /** Secondary context: distance, weight, truck count — NEVER monetary values */
   secondaryLabel?: string | null;
-  /** Resolved pricing type */
   pricingType?: PricingType;
-  /** Whether pricing_type was missing/invalid */
   isPricingTypeInvalid: boolean;
-  /** Debug info for DEV logging */
   debug?: { reason: string };
 }
 
@@ -61,165 +52,70 @@ function formatBRLContract(value: number): string {
   return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const PRICING_TYPE_MAP: Record<string, PricingType> = {
-  PER_TON: 'PER_TON',
-  POR_TON: 'PER_TON',
-  POR_TONELADA: 'PER_TON',
-  TON: 'PER_TON',
-  PER_TONELADA: 'PER_TON',
-  PER_KM: 'PER_KM',
-  POR_KM: 'PER_KM',
-  KM: 'PER_KM',
-  FIXED: 'FIXED',
-  FIXO: 'FIXED',
-  TOTAL: 'FIXED',
+const UNIT_MAP: Record<PricingType, 'ton' | 'km' | 'veiculo'> = {
+  PER_TON: 'ton',
+  PER_KM: 'km',
+  PER_VEHICLE: 'veiculo',
 };
-
-export function normalizePricingType(raw?: string | null): PricingType | null {
-  if (!raw) return null;
-  return PRICING_TYPE_MAP[String(raw).toUpperCase()] ?? null;
-}
 
 // ─── Main contract ───────────────────────────────────────────
 
 export function getCanonicalFreightPrice(input: FreightPricingInput): FreightPriceDisplay {
-  const type = normalizePricingType(input.pricing_type);
+  // Use normalizer to get clean input
+  const normalized = normalizeFreightPricing({
+    id: 'canonical',
+    pricing_type: input.pricing_type,
+    price: input.price,
+    price_per_km: input.price_per_km,
+    price_per_ton: input.price_per_ton,
+    required_trucks: input.required_trucks,
+    weight: input.weight,
+    distance_km: input.distance_km,
+  });
 
-  // FAIL CLOSED: never invent a unit
-  if (!type) {
+  if (!normalized) {
     if (import.meta.env.DEV) {
       console.warn(
-        `[PRICE_CONTRACT_FAIL] pricing_type AUSENTE ou INVÁLIDO: "${input.pricing_type}", price=${input.price}. Exibindo "Preço indisponível".`
+        `[PRICE_CONTRACT_FAIL] pricing_type AUSENTE/INVÁLIDO ou unit_rate ausente: "${input.pricing_type}". Exibindo "Preço indisponível".`
       );
     }
+    const type = normalizePricingType(input.pricing_type);
     return {
       ok: false,
       primaryLabel: 'Preço indisponível',
-      isPricingTypeInvalid: true,
-      debug: { reason: 'missing_or_invalid_pricing_type' },
+      isPricingTypeInvalid: !type,
+      pricingType: type ?? undefined,
+      debug: { reason: type ? 'missing_unit_rate' : 'missing_or_invalid_pricing_type' },
     };
   }
 
-  // === PER_TON ===
-  if (type === 'PER_TON') {
-    // Priority: explicit price_per_ton > legacy price_per_km > derive from total/weight
-    const unitRate = resolvePositive(input.price_per_ton)
-      ?? resolvePositive(input.price_per_km)
-      ?? derivePerTon(input.price, input.weight);
-
-    if (unitRate == null) {
-      return {
-        ok: false,
-        primaryLabel: 'Preço indisponível',
-        isPricingTypeInvalid: false,
-        pricingType: 'PER_TON',
-        debug: { reason: 'missing_price_per_ton' },
-      };
-    }
-
-    return {
-      ok: true,
-      primaryLabel: `${formatBRLContract(unitRate)}/ton`,
-      unit: 'ton',
-      unitValue: unitRate,
-      pricingType: 'PER_TON',
-      secondaryLabel: buildSecondary(input, 'PER_TON'),
-      isPricingTypeInvalid: false,
-    };
-  }
-
-  // === PER_KM ===
-  if (type === 'PER_KM') {
-    const unitRate = resolvePositive(input.price_per_km)
-      ?? derivePerKm(input.price, input.distance_km);
-
-    if (unitRate == null) {
-      return {
-        ok: false,
-        primaryLabel: 'Preço indisponível',
-        isPricingTypeInvalid: false,
-        pricingType: 'PER_KM',
-        debug: { reason: 'missing_price_per_km' },
-      };
-    }
-
-    return {
-      ok: true,
-      primaryLabel: `${formatBRLContract(unitRate)}/km`,
-      unit: 'km',
-      unitValue: unitRate,
-      pricingType: 'PER_KM',
-      secondaryLabel: buildSecondary(input, 'PER_KM'),
-      isPricingTypeInvalid: false,
-    };
-  }
-
-  // === FIXED ===
-  const total = resolvePositive(input.price);
-  if (total == null) {
-    return {
-      ok: false,
-      primaryLabel: 'Preço indisponível',
-      isPricingTypeInvalid: false,
-      pricingType: 'FIXED',
-      debug: { reason: 'missing_total_price_fixed' },
-    };
-  }
-
-  const trucks = Math.max(Number(input.required_trucks ?? 1) || 1, 1);
-  const hasMultiple = trucks > 1;
-
-  // Cent-based division to avoid floating point errors
-  const totalCents = Math.round(total * 100);
-  const unitCents = Math.round(totalCents / trucks);
-  const unitPrice = unitCents / 100;
+  const { pricing_type: type, unit_rate } = normalized;
+  const suffix = PRICING_SUFFIX[type];
+  const unit = UNIT_MAP[type];
 
   return {
     ok: true,
-    primaryLabel: hasMultiple
-      ? `${formatBRLContract(unitPrice)}/veículo`
-      : formatBRLContract(total),
-    unit: 'veiculo',
-    unitValue: unitPrice,
-    pricingType: 'FIXED',
-    secondaryLabel: buildSecondary(input, 'FIXED'),
+    primaryLabel: `${formatBRLContract(unit_rate)}${suffix}`,
+    unit,
+    unitValue: unit_rate,
+    pricingType: type,
+    secondaryLabel: buildSecondary(normalized),
     isPricingTypeInvalid: false,
   };
 }
 
-// ─── Derivation helpers ──────────────────────────────────────
+// ─── Secondary label builder ─────────────────────────────────
 
-function resolvePositive(v: number | null | undefined): number | null {
-  if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
-  return null;
-}
-
-function derivePerTon(price: number | null | undefined, weightKg: number | null | undefined): number | null {
-  const p = resolvePositive(price);
-  const w = resolvePositive(weightKg);
-  if (p == null || w == null) return null;
-  const tons = w / 1000;
-  if (tons <= 0) return null;
-  return p / tons;
-}
-
-function derivePerKm(price: number | null | undefined, distKm: number | null | undefined): number | null {
-  const p = resolvePositive(price);
-  const d = resolvePositive(distKm);
-  if (p == null || d == null) return null;
-  return p / d;
-}
-
-function buildSecondary(input: FreightPricingInput, type: PricingType): string | null {
+function buildSecondary(input: { pricing_type: PricingType; distance_km?: number | null; weight_ton?: number | null; required_trucks?: number | null }): string | null {
   const parts: string[] = [];
-  const trucks = Math.max(Number(input.required_trucks ?? 1) || 1, 1);
 
-  if (type === 'PER_KM' && input.distance_km && input.distance_km > 0) {
+  if (input.pricing_type === 'PER_KM' && input.distance_km && input.distance_km > 0) {
     parts.push(`${Math.round(input.distance_km)} km`);
   }
-  if (type === 'PER_TON' && input.weight && input.weight > 0) {
-    parts.push(`${(input.weight / 1000).toFixed(1)} ton`);
+  if (input.pricing_type === 'PER_TON' && input.weight_ton && input.weight_ton > 0) {
+    parts.push(`${input.weight_ton.toFixed(1)} ton`);
   }
+  const trucks = Math.max(Number(input.required_trucks ?? 1) || 1, 1);
   if (trucks > 1) {
     parts.push(`${trucks} carretas`);
   }
@@ -229,17 +125,6 @@ function buildSecondary(input: FreightPricingInput, type: PricingType): string |
 
 // ─── Helper: convert ANY total price to canonical display ────
 
-/**
- * Converts a total price (e.g. driver's proposed_price) back to the
- * freight's canonical unit for display.
- * 
- * For PER_TON: derives R$/ton from total / (weight_kg / 1000)
- * For PER_KM:  derives R$/km  from total / distance_km
- * For FIXED:   derives R$/veículo from total / required_trucks
- * 
- * This MUST be used for displaying driver proposals, counter-offers,
- * or any monetary value that needs to match the freight's pricing_type.
- */
 export function getCanonicalPriceFromTotal(
   totalPrice: number,
   freightContext: {
@@ -251,7 +136,6 @@ export function getCanonicalPriceFromTotal(
 ): FreightPriceDisplay {
   const type = normalizePricingType(freightContext.pricing_type);
 
-  // Derive unit prices from total
   let price_per_ton: number | null = null;
   let price_per_km: number | null = null;
 

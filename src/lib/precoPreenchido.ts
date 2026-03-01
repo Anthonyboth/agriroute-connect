@@ -3,25 +3,18 @@
  * 
  * FONTE ÚNICA DE VERDADE para exibição do preço de um frete.
  * 
+ * REGRA IMUTÁVEL (3 tipos):
+ * 1) PER_VEHICLE → R$ X/veíc (unit_rate cheio, NUNCA dividir por carretas)
+ * 2) PER_KM     → R$ X/km
+ * 3) PER_TON    → R$ X/ton
+ * 
  * TODA tela/card que exibe preço de frete DEVE chamar:
  *   precoPreenchidoDoFrete(freight.id, freight)
- * 
- * REGRAS:
- * - PER_TON  → R$ X,XX/ton  (rate unitário do produtor, campo price_per_ton ou price_per_km)
- * - PER_KM   → R$ X,XX/km   (rate unitário do produtor)
- * - FIXED    → R$ X,XX/veículo (total / required_trucks)
- * - NUNCA dividir PER_TON por required_trucks
- * - NUNCA inventar unidade quando pricing_type ausente
- * 
- * CACHE: resultados são armazenados por freightId para evitar recálculos.
  */
 
-import {
-  getCanonicalFreightPrice,
-  normalizePricingType,
-  type PricingType,
-  type FreightPriceDisplay as CanonicalResult,
-} from '@/lib/freightPriceContract';
+import { normalizeFreightPricing, normalizePricingType, type RawFreightPricingData } from '@/lib/normalizeFreightPricing';
+import type { PricingType, FreightPricingDisplay } from '@/contracts/freightPricing';
+import { PRICING_SUFFIX } from '@/contracts/freightPricing';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -37,27 +30,24 @@ export interface PrecoPreenchidoInput {
 }
 
 export interface PrecoPreenchido {
-  /** "R$ 80,00/ton", "R$ 2,00/km", "R$ 3.333,33/veículo", or "Preço indisponível" */
+  /** "R$ 80,00/ton", "R$ 12,00/km", "R$ 4.500,00/veíc", or "Preço indisponível" */
   primaryText: string;
+  /** Optional secondary info: "500,0 ton · 12 carretas" — NEVER monetary */
+  secondaryText: string | null;
   /** Numeric unit value for sorting/comparison */
   unitValue: number;
-  /** Suffix only: "/ton", "/km", "/veículo", or "" */
+  /** Suffix only: "/ton", "/km", "/veíc", or "" */
   suffix: string;
-  /** Context line: "500,0 ton · 12 carretas" — NEVER monetary */
-  secondaryText: string | null;
   /** Resolved type */
   pricingType: PricingType | null;
-  /** true when pricing_type was missing/invalid */
+  /** true when pricing_type was missing/invalid or unit_rate absent */
   invalid: boolean;
-  /** Full canonical result for advanced consumers */
-  _canonical: CanonicalResult;
 }
 
 // ─── Cache ───────────────────────────────────────────────────
 
 const cache = new Map<string, PrecoPreenchido>();
 
-/** Limpa todo o cache ou apenas um freightId específico */
 export function limparCachePrecoPreenchido(freightId?: string): void {
   if (freightId) {
     cache.delete(freightId);
@@ -66,49 +56,79 @@ export function limparCachePrecoPreenchido(freightId?: string): void {
   }
 }
 
+// ─── Format helper (ONLY allowed here) ──────────────────────
+
+function formatBRL(value: number): string {
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// ─── Secondary builder ──────────────────────────────────────
+
+function buildSecondary(type: PricingType, raw: PrecoPreenchidoInput): string | null {
+  const parts: string[] = [];
+
+  if (type === 'PER_KM' && raw.distance_km && raw.distance_km > 0) {
+    parts.push(`${Math.round(raw.distance_km)} km`);
+  }
+  if (type === 'PER_TON' && raw.weight && raw.weight > 0) {
+    const tons = raw.weight / 1000;
+    parts.push(`${tons.toFixed(1)} ton`);
+  }
+  const trucks = Math.max(Number(raw.required_trucks ?? 1) || 1, 1);
+  if (trucks > 1) {
+    parts.push(`${trucks} carretas`);
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 // ─── Main function ───────────────────────────────────────────
 
-/**
- * Retorna o preço preenchido canônico para exibição.
- * Cacheia por freightId para evitar recálculos em re-renders.
- */
 export function precoPreenchidoDoFrete(
   freightId: string,
   freight: Omit<PrecoPreenchidoInput, 'id'>,
 ): PrecoPreenchido {
-  // Check cache
   const cached = cache.get(freightId);
   if (cached) return cached;
 
-  // Delegate to canonical contract
-  const canonical = getCanonicalFreightPrice({
+  // Normalize via centralizer
+  const normalized = normalizeFreightPricing({
+    id: freightId,
     pricing_type: freight.pricing_type,
-    price_per_ton: freight.price_per_ton,
-    price_per_km: freight.price_per_km,
     price: freight.price,
+    price_per_km: freight.price_per_km,
+    price_per_ton: freight.price_per_ton,
     required_trucks: freight.required_trucks,
     weight: freight.weight,
     distance_km: freight.distance_km,
   });
 
-  const suffixMap: Record<string, string> = {
-    ton: '/ton',
-    km: '/km',
-    veiculo: '/veículo',
-  };
+  if (!normalized) {
+    const result: PrecoPreenchido = {
+      primaryText: 'Preço indisponível',
+      secondaryText: null,
+      unitValue: 0,
+      suffix: '',
+      pricingType: null,
+      invalid: true,
+    };
+    cache.set(freightId, result);
+    return result;
+  }
+
+  const { pricing_type: type, unit_rate } = normalized;
+  const suffix = PRICING_SUFFIX[type];
+  const rawInput = { id: freightId, ...freight };
 
   const result: PrecoPreenchido = {
-    primaryText: canonical.primaryLabel,
-    unitValue: canonical.unitValue ?? 0,
-    suffix: canonical.unit ? (suffixMap[canonical.unit] || '') : '',
-    secondaryText: canonical.secondaryLabel ?? null,
-    pricingType: canonical.pricingType ?? null,
-    invalid: canonical.isPricingTypeInvalid || !canonical.ok,
-    _canonical: canonical,
+    primaryText: `${formatBRL(unit_rate)}${suffix}`,
+    secondaryText: buildSecondary(type, rawInput),
+    unitValue: unit_rate,
+    suffix,
+    pricingType: type,
+    invalid: false,
   };
 
-  // Store in cache
   cache.set(freightId, result);
-
   return result;
 }
