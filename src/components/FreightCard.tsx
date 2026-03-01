@@ -800,6 +800,12 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             origin_address: freight.origin_address,
             destination_address: freight.destination_address,
             price: freight.price,
+            required_trucks: freight.required_trucks,
+            pricing_type: freight.pricing_type,
+            price_per_ton: (freight as any).price_per_ton,
+            price_per_km: freight.price_per_km,
+            weight: freight.weight,
+            distance_km: freight.distance_km,
           }}
         />
         {renderExtra && (

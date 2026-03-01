@@ -22,6 +22,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatKm } from '@/lib/formatters';
+import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 
 interface ShareFreightToDriverProps {
@@ -37,6 +38,10 @@ interface ShareFreightToDriverProps {
     distance_km?: number;
     minimum_antt_price?: number;
     service_type?: string;
+    pricing_type?: string | null;
+    price_per_ton?: number | null;
+    price_per_km?: number | null;
+    weight?: number | null;
   };
   companyId: string;
   onSuccess?: () => void;
@@ -58,6 +63,20 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
   onSuccess
 }) => {
   const requiredTrucks = Math.max((freight.required_trucks ?? 1) || 1, 1);
+  
+  // ✅ Contrato canônico para exibição
+  const pricingInput: FreightPricingInput = {
+    pricing_type: freight.pricing_type,
+    price_per_ton: freight.price_per_ton,
+    price_per_km: freight.price_per_km,
+    price: freight.price,
+    required_trucks: requiredTrucks,
+    weight: freight.weight,
+    distance_km: freight.distance_km,
+  };
+  const priceDisplay = getCanonicalFreightPrice(pricingInput);
+
+  // Valor unitário legado para operações de banco e campo de input
   const unitOriginalPrice = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
   const minAnttPerTruck = typeof freight.minimum_antt_price === 'number'
     ? resolveDriverUnitPrice(0, freight.minimum_antt_price || 0, requiredTrucks)
@@ -279,8 +298,7 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
               <p><strong>Destino:</strong> {freight.destination_city}, {freight.destination_state}</p>
               {freight.distance_km && <p><strong>Distância:</strong> {formatKm(freight.distance_km)}</p>}
               <p>
-                <strong>Valor original:</strong> R$ {unitOriginalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                {requiredTrucks > 1 ? ' /carreta' : ''}
+                <strong>Valor:</strong> {priceDisplay.primaryLabel}
               </p>
             </div>
 

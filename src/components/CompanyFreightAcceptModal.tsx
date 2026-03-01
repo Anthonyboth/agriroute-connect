@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatWeight } from '@/lib/freight-calculations';
+import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
 import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
 import { formatKm } from '@/lib/formatters';
 
@@ -40,6 +41,22 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'accept' | 'counter'>('accept');
   const requiredTrucks = useMemo(() => Math.max((freight?.required_trucks ?? 1) || 1, 1), [freight?.required_trucks]);
+  
+  // ✅ Contrato canônico para exibição
+  const priceDisplay = useMemo(() => {
+    const input: FreightPricingInput = {
+      pricing_type: freight?.pricing_type,
+      price_per_ton: freight?.price_per_ton,
+      price_per_km: freight?.price_per_km,
+      price: freight?.price,
+      required_trucks: requiredTrucks,
+      weight: freight?.weight,
+      distance_km: freight?.distance_km,
+    };
+    return getCanonicalFreightPrice(input);
+  }, [freight?.pricing_type, freight?.price_per_ton, freight?.price_per_km, freight?.price, requiredTrucks, freight?.weight, freight?.distance_km]);
+
+  // Valor unitário para operações de banco (agreed_price) — mantém lógica legada para writes
   const unitBasePrice = useMemo(() => resolveDriverUnitPrice(0, freight?.price || 0, requiredTrucks), [freight?.price, requiredTrucks]);
 
   const [counterPrice, setCounterPrice] = useState(unitBasePrice);
@@ -157,7 +174,6 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
       });
 
       // 5. Notificação automática via trigger notify_freight_status_change
-      // NÃO inserir manualmente — o trigger do banco já cria a notificação ao mudar status para ACCEPTED
 
       toast.success('✅ Frete em andamento! Visualize na aba "Em Andamento"', {
         duration: 5000
@@ -194,7 +210,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         .insert({
           freight_id: freight.id,
           sender_id: companyOwnerId,
-          message: `💰 **Contraproposta da Transportadora**\n\n**Valor Original:** R$ ${unitBasePrice.toFixed(2)}${requiredTrucks > 1 ? ' /carreta' : ''}\n**Novo Valor:** R$ ${counterPrice.toFixed(2)}${requiredTrucks > 1 ? ' /carreta' : ''}\n\n**Justificativa:** ${justification}`,
+          message: `💰 **Contraproposta da Transportadora**\n\n**Valor Original:** ${priceDisplay.primaryLabel}\n**Novo Valor:** R$ ${counterPrice.toFixed(2)}\n\n**Justificativa:** ${justification}`,
           message_type: 'COUNTER_PROPOSAL',
           metadata: {
             original_price: unitBasePrice,
@@ -302,13 +318,19 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
 
             <Separator />
 
+            {/* ✅ CONTRATO CANÔNICO: Exibe preço conforme pricing_type */}
             <div className="flex items-start gap-3">
               <DollarSign className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <p className="text-sm font-medium">Valor do Frete</p>
                 <p className="text-2xl font-bold text-primary">
-                  R$ {unitBasePrice?.toFixed(2)}{requiredTrucks > 1 ? ' /carreta' : ''}
+                  {priceDisplay.primaryLabel}
                 </p>
+                {priceDisplay.secondaryLabel && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {priceDisplay.secondaryLabel}
+                  </p>
+                )}
               </div>
             </div>
 

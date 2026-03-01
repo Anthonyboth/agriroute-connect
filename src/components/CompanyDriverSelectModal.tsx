@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { resolveDriverUnitPrice } from '@/hooks/useFreightCalculator';
+import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,11 @@ interface CompanyDriverSelectModalProps {
     destination_address: string;
     price: number;
     required_trucks?: number;
+    pricing_type?: string | null;
+    price_per_ton?: number | null;
+    price_per_km?: number | null;
+    weight?: number | null;
+    distance_km?: number | null;
   };
 }
 
@@ -44,8 +49,17 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
 }) => {
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
 
-  const requiredTrucks = Math.max((freight.required_trucks ?? 1) || 1, 1);
-  const unitPrice = resolveDriverUnitPrice(0, freight.price || 0, requiredTrucks);
+  // ✅ Contrato canônico: respeita pricing_type
+  const pricingInput: FreightPricingInput = {
+    pricing_type: freight.pricing_type,
+    price_per_ton: freight.price_per_ton,
+    price_per_km: freight.price_per_km,
+    price: freight.price,
+    required_trucks: freight.required_trucks,
+    weight: freight.weight,
+    distance_km: freight.distance_km,
+  };
+  const priceDisplay = getCanonicalFreightPrice(pricingInput);
 
   const handleAccept = () => {
     if (selectedDriverId) {
@@ -72,9 +86,13 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
               {freight.origin_address} → {freight.destination_address}
             </p>
             <p className="text-sm font-bold text-primary mt-2">
-              R$ {unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              {requiredTrucks > 1 && <span className="text-xs ml-1">/carreta</span>}
+              {priceDisplay.primaryLabel}
             </p>
+            {priceDisplay.secondaryLabel && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {priceDisplay.secondaryLabel}
+              </p>
+            )}
           </div>
 
           {drivers.length === 0 ? (

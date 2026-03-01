@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { formatKm, formatBRL, formatTons } from '@/lib/formatters';
 import { getPricePerTruck, getWeightInTons } from '@/lib/proposal-utils';
+import { getCanonicalFreightPrice, type FreightPricingInput } from '@/lib/freightPriceContract';
 
 interface ServiceProposalModalProps {
   isOpen: boolean;
@@ -31,6 +32,9 @@ interface ServiceProposalModalProps {
     delivery_date?: string;
     minimum_antt_price?: number;
     required_trucks?: number;
+    pricing_type?: string | null;
+    price_per_ton?: number | null;
+    price_per_km?: number | null;
   };
   originalProposal?: {
     id: string;
@@ -498,8 +502,18 @@ const [pricePerKm, setPricePerKm] = useState('');
           </div>
         )}
 
-        {/* ✅ PROPOSTA ATUAL: Valores por carreta */}
-        {originalProposal && (
+        {/* ✅ PROPOSTA ATUAL: Valores usando contrato canônico */}
+        {originalProposal && (() => {
+          const freightPriceDisplay = getCanonicalFreightPrice({
+            pricing_type: freight.pricing_type,
+            price_per_ton: freight.price_per_ton,
+            price_per_km: freight.price_per_km,
+            price: freight.price,
+            required_trucks: requiredTrucks,
+            weight: freight.weight,
+            distance_km: freight.distance_km,
+          });
+          return (
           <div className="bg-secondary/30 p-3 rounded-lg space-y-2 mb-4">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               Proposta Atual
@@ -508,8 +522,7 @@ const [pricePerKm, setPricePerKm] = useState('');
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Valor original:</span>
               <span className="font-medium">
-                {formatBRL(freightPricePerTruck, true)}
-                {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+                {freightPriceDisplay.primaryLabel}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
@@ -519,13 +532,14 @@ const [pricePerKm, setPricePerKm] = useState('');
                 {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
               </span>
             </div>
-            {hasMultipleTrucks && (
+            {freightPriceDisplay.secondaryLabel && (
               <div className="pt-1 text-xs text-muted-foreground">
-                Peso por carreta: {formatTons(freight.weight ? freight.weight / requiredTrucks : 0)} • Distância: {distance} km
+                {freightPriceDisplay.secondaryLabel}
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {minAnttPerTruck > 0 && (
           <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
