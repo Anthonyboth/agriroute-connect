@@ -23,7 +23,7 @@ import {
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
 import { MultiDriversList } from '@/components/freight/MultiDriversList';
 import { normalizeFreightStatus } from '@/lib/freight-status';
-import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState, getPricePerTruck } from '@/lib/formatters';
+import { formatKm, formatTons, formatDate, formatCityState } from '@/lib/formatters';
 import { SafeStatusBadge } from '@/components/security';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
