@@ -9,7 +9,7 @@
  */
 
 import React, { useState, lazy, Suspense, useMemo, useRef } from 'react';
-import { useFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -229,17 +229,21 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const distKmNum = parseFloat(String(freight.distance_km ?? 0).replace(/[^\d.]/g, "")) || 0;
   const estimatedHours = distKmNum > 0 ? Math.round(distKmNum / 60) : null;
 
-  // Centralized pricing display — NEVER use inline pricePerKmCalc again
-  const priceDisplay = useFreightPriceDisplay({
-    price: freight.price || 0,
-    pricing_type: (freight as any).pricing_type,
-    price_per_km: (freight as any).price_per_km,
-    required_trucks: requiredTrucks,
-    distance_km: distKmNum,
-    weight: (freight as any).weight,
-  });
+  // ✅ PREÇO PREENCHIDO: fonte única de verdade
+  const priceDisplay = useMemo(() => {
+    const freightId = freight.id || 'unknown';
+    return precoPreenchidoDoFrete(freightId, {
+      price: freight.price || 0,
+      pricing_type: (freight as any).pricing_type,
+      price_per_km: (freight as any).price_per_km,
+      price_per_ton: (freight as any).price_per_ton,
+      required_trucks: requiredTrucks,
+      distance_km: distKmNum,
+      weight: (freight as any).weight,
+    });
+  }, [freight.id, freight.price, (freight as any).pricing_type, (freight as any).price_per_km, (freight as any).price_per_ton, requiredTrucks, distKmNum, (freight as any).weight]);
 
-  const pricePerKmCalc = priceDisplay?.unitRateValue ?? null;
+  const pricePerKmCalc = priceDisplay?.unitValue ?? null;
   const rpmColor = pricePerKmCalc === null ? 'text-muted-foreground' : pricePerKmCalc >= 6 ? 'text-primary' : pricePerKmCalc >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive';
   const rpmIcon = pricePerKmCalc === null ? null : pricePerKmCalc >= 6 ? <TrendingUp className="h-3 w-3" /> : pricePerKmCalc < 4 ? <TrendingDown className="h-3 w-3" /> : null;
 
@@ -275,15 +279,14 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
       return <p className="font-bold text-xl text-primary">—</p>;
     }
 
-    // ✅ ALWAYS use priceDisplay from useFreightPriceDisplay — NEVER manual suffix
     return (
       <div>
         <p className="font-bold text-xl text-primary">
-          {priceDisplay.primaryLabel}
+          {priceDisplay.primaryText}
         </p>
-        {priceDisplay.secondaryLabel && (
+        {priceDisplay.secondaryText && (
           <p className="text-[10px] text-muted-foreground">
-            {priceDisplay.secondaryLabel}
+            {priceDisplay.secondaryText}
           </p>
         )}
       </div>
@@ -473,11 +476,11 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             }`}>
               <div className="flex items-center justify-center gap-1 mb-1">
                 <DollarSign className="h-3 w-3 text-muted-foreground" />
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{priceDisplay?.unitRateLabel || 'R$/km'}</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{priceDisplay?.pricingType === 'PER_TON' ? 'R$/ton' : 'R$/km'}</p>
               </div>
               <p className={`text-xs font-bold flex items-center justify-center gap-0.5 ${rpmColor}`}>
                 {rpmIcon}
-                {priceDisplay?.unitRateFormatted || '—'}
+                {priceDisplay?.unitValue ? `R$${priceDisplay.unitValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
               </p>
             </div>
           </div>

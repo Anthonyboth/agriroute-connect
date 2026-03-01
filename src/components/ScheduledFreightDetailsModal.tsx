@@ -6,7 +6,7 @@ import { formatBRL, formatKm, formatTons, formatDate, getPricePerTruck } from '@
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
-import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface ScheduledFreightDetailsModalProps {
   isOpen: boolean;
@@ -223,7 +223,7 @@ export const ScheduledFreightDetailsModal = ({
         {/* SEÇÃO 4: VALOR */}
         <div className="bg-primary/5 p-4 rounded-lg">
           {(() => {
-            const pd = getFreightPriceDisplay({
+            const pd = precoPreenchidoDoFrete(freight.id, {
               price: freight.price || 0,
               pricing_type: freight.pricing_type,
               price_per_km: freight.price_per_km,
@@ -235,11 +235,11 @@ export const ScheduledFreightDetailsModal = ({
               <>
                 <p className="text-sm text-muted-foreground">Valor do Frete</p>
                 <p className="text-3xl font-bold text-primary">
-                  {pd.primaryLabel}
+                  {pd.primaryText}
                 </p>
-                {pd.secondaryLabel && (
+                {pd.secondaryText && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {pd.secondaryLabel}
+                    {pd.secondaryText}
                   </p>
                 )}
               </>

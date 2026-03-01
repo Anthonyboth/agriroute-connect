@@ -46,6 +46,11 @@ export default tseslint.config(
               importNames: ["getPricePerTruck"],
               message: "Use getCanonicalFreightPrice() from '@/lib/freightPriceContract' instead of getPricePerTruck().",
             },
+            {
+              name: "@/hooks/useFreightPriceDisplay",
+              importNames: ["getFreightPriceDisplay", "useFreightPriceDisplay"],
+              message: "Use usePrecoPreenchido() from '@/hooks/usePrecoPreenchido' or precoPreenchidoDoFrete() from '@/lib/precoPreenchido' instead.",
+            },
           ],
         },
       ],
@@ -70,6 +75,9 @@ export default tseslint.config(
       "src/lib/__tests__/freightPriceContract.test.ts",
       "src/hooks/useFreightPriceDisplay.ts",
       "src/hooks/__tests__/useFreightPriceDisplay.test.ts",
+      "src/lib/precoPreenchido.ts",
+      "src/lib/__tests__/precoPreenchido.test.ts",
+      "src/hooks/usePrecoPreenchido.ts",
     ],
     rules: {
       "no-restricted-imports": "off",

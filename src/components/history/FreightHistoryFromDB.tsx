@@ -15,7 +15,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
-import { getFreightPriceDisplay } from '@/hooks/useFreightPriceDisplay';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useFreightHistory, FreightHistoryItem, FreightAssignmentHistoryItem } from '@/hooks/useFreightHistory';
 import { getFreightStatusLabel } from '@/lib/freight-status';
@@ -227,7 +227,7 @@ const FreightHistoryCard: React.FC<{
           <div className="text-right">
             {(() => {
               const snapshot = item.trip_snapshot || {};
-              const pd = getFreightPriceDisplay({
+              const pd = precoPreenchidoDoFrete(item.freight_id || item.id, {
                 price: item.price_total || 0,
                 pricing_type: snapshot.pricing_type,
                 price_per_km: snapshot.price_per_km,
@@ -237,9 +237,9 @@ const FreightHistoryCard: React.FC<{
               });
               return (
                 <>
-                  <p className="text-lg font-bold text-primary">{pd.primaryLabel}</p>
-                  {pd.secondaryLabel && (
-                    <p className="text-xs text-muted-foreground">{pd.secondaryLabel}</p>
+                  <p className="text-lg font-bold text-primary">{pd.primaryText}</p>
+                  {pd.secondaryText && (
+                    <p className="text-xs text-muted-foreground">{pd.secondaryText}</p>
                   )}
                 </>
               );
