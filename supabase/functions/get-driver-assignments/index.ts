@@ -35,12 +35,16 @@ serve(async (req) => {
       );
     }
 
-    // Buscar profile do motorista
-    const { data: profile } = await supabase
+    // Buscar profiles do motorista (suporta multi-role)
+    const { data: profiles } = await supabase
       .from("profiles")
       .select("id, role")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
+
+    // Priorizar perfil MOTORISTA ou MOTORISTA_AFILIADO
+    const profile = (profiles || []).find(
+      (p: any) => p.role === "MOTORISTA" || p.role === "MOTORISTA_AFILIADO"
+    ) || (profiles && profiles[0]);
 
     if (!profile || (profile.role !== "MOTORISTA" && profile.role !== "MOTORISTA_AFILIADO")) {
       return new Response(
