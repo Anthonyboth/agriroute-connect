@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Star, Calendar, User, TrendingUp, MessageSquare, Clock } from 'lucide-react';
+import { Star, Calendar, TrendingUp, MessageSquare } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 interface Rating {
@@ -256,29 +256,17 @@ export const RatingsHistoryPanel: React.FC = () => {
                 <div key={rating.id} className="py-4 first:pt-0 last:pb-0">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-full bg-primary/10">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{rating.rater_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {rating.rating_type?.includes('CLIENT') ? 'Cliente' : 
-                             rating.rating_type?.includes('PRODUCER') ? 'Produtor' :
-                             rating.rating_type?.includes('DRIVER') ? 'Motorista' :
-                             rating.rating_type?.includes('COMPANY') ? 'Transportadora' : 'Usuário'}
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="text-xs ml-auto">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
                           {rating.service_type}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 mb-2 ml-9">
+                      <div className="flex items-center gap-2 mb-2">
                         {renderStars(rating.rating)}
                         <span className="text-sm font-medium">{rating.rating.toFixed(1)}</span>
                       </div>
                       {rating.comment && (
-                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg ml-9">
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
                           "{rating.comment}"
                         </p>
                       )}
