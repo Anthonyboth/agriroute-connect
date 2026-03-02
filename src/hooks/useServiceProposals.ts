@@ -143,7 +143,7 @@ export function useServiceProposals({ serviceRequestId, serviceRequestIds, enabl
     }
   }, [fetchProposals, toast]);
 
-  const acceptProposal = useCallback(async (proposalId: string) => {
+  const acceptProposal = useCallback(async (proposalId: string, onSuccess?: () => void) => {
     setSubmitting(true);
     try {
       const { data, error } = await supabase.rpc('accept_service_proposal' as any, {
@@ -168,6 +168,7 @@ export function useServiceProposals({ serviceRequestId, serviceRequestIds, enabl
       });
 
       fetchProposals();
+      onSuccess?.();
       return true;
     } catch (err: any) {
       console.error('Error accepting proposal:', err);
