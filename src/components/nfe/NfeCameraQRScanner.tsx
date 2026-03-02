@@ -87,14 +87,20 @@ export function NfeCameraQRScanner({ open, onClose, onScan }: NfeCameraQRScanner
 
   // Parar scanner
   const stopScanner = useCallback(async () => {
-    if (scannerRef.current) {
+    const scanner = scannerRef.current;
+    if (scanner) {
+      scannerRef.current = null;
       try {
-        await scannerRef.current.stop();
-        await scannerRef.current.clear();
+        const state = scanner.getState();
+        // Only stop if currently scanning (state 2 = SCANNING)
+        if (state === 2) {
+          await scanner.stop();
+        }
+        scanner.clear();
       } catch (err) {
         console.error('[NfeCameraQRScanner] Error stopping scanner:', err);
+        try { scanner.clear(); } catch (_) { /* ignore */ }
       }
-      scannerRef.current = null;
     }
     setIsScanning(false);
   }, []);
