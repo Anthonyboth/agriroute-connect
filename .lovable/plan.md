@@ -2,24 +2,28 @@
 
 ## Problema
 
-O ícone atual tem fundo verde + quadrado branco, criando um visual "dupla moldura" feio no iOS. O iOS pega a imagem inteira e aplica a máscara arredondada por cima.
+O `LaunchScreen.storyboard` e o `capacitor.config.ts` já estão com `backgroundColor: white`, mas a **imagem** referenciada pelo storyboard (`Splash` no asset catalog) ainda tem fundo verde com o logo num quadrado branco. O iOS renderiza essa imagem sobre o fundo branco, resultando no visual verde que você vê.
 
 ## Solução
 
-1. **Gerar um novo ícone 1024x1024** com:
-   - Fundo 100% branco preenchendo toda a imagem
-   - Logo AgriRoute (folha verde) centralizado, ocupando ~60-70% do espaço
-   - Sem bordas, sem fundo verde externo
+Gerar novas imagens de splash com:
+- **Fundo 100% transparente ou branco** (sem verde)
+- **Logo AgriRoute (folha verde)** centralizado
+- Três tamanhos: 200x200 (1x), 400x400 (2x), 600x600 (3x)
 
-2. **Substituir `public/app-icon.png`** com a nova imagem
+Substituir os arquivos:
+- `ios/App/App/Assets.xcassets/Splash.imageset/splash-1x.png`
+- `ios/App/App/Assets.xcassets/Splash.imageset/splash-2x.png`
+- `ios/App/App/Assets.xcassets/Splash.imageset/splash-3x.png`
 
-3. **No Xcode**: arrastar novamente para o AppIcon slot
+## Após implementação
 
-## Opções de implementação
+Rodar:
+```bash
+git pull
+npm run build
+npx cap sync ios
+```
 
-**Opção A** — Usar a API de geração de imagem para criar automaticamente o ícone com fundo branco e o logo centralizado.
-
-**Opção B** — Você edita manualmente a imagem em qualquer editor (Canva, Figma, Preview) colocando fundo branco e envia novamente.
-
-Recomendo a **Opção A** — posso gerar o ícone correto automaticamente.
+No Xcode: **Cmd + Shift + K** (limpar) → **Cmd + R** (rodar). Se o cache persistir, deletar o app do simulador/dispositivo antes de rodar.
 
