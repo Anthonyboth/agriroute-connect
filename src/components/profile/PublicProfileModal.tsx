@@ -164,7 +164,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 !overflow-hidden">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 overflow-x-hidden overflow-y-hidden">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
