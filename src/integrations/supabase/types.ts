@@ -4279,9 +4279,46 @@ export type Database = {
         }
         Relationships: []
       }
+      forum_board_rules: {
+        Row: {
+          board_id: string
+          body: string
+          created_at: string
+          id: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          board_id: string
+          body: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          title: string
+        }
+        Update: {
+          board_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_board_rules_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "forum_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_boards: {
         Row: {
+          allowed_flairs: string[] | null
           allowed_roles: string[] | null
+          block_phone_in_body: boolean | null
           category_id: string
           created_at: string
           description: string | null
@@ -4289,11 +4326,15 @@ export type Database = {
           is_active: boolean
           name: string
           order_index: number
+          requires_flair: boolean | null
+          requires_market_fields_for_flairs: string[] | null
           slug: string
           visibility: string
         }
         Insert: {
+          allowed_flairs?: string[] | null
           allowed_roles?: string[] | null
+          block_phone_in_body?: boolean | null
           category_id: string
           created_at?: string
           description?: string | null
@@ -4301,11 +4342,15 @@ export type Database = {
           is_active?: boolean
           name: string
           order_index?: number
+          requires_flair?: boolean | null
+          requires_market_fields_for_flairs?: string[] | null
           slug: string
           visibility?: string
         }
         Update: {
+          allowed_flairs?: string[] | null
           allowed_roles?: string[] | null
+          block_phone_in_body?: boolean | null
           category_id?: string
           created_at?: string
           description?: string | null
@@ -4313,6 +4358,8 @@ export type Database = {
           is_active?: boolean
           name?: string
           order_index?: number
+          requires_flair?: boolean | null
+          requires_market_fields_for_flairs?: string[] | null
           slug?: string
           visibility?: string
         }
@@ -4522,6 +4569,42 @@ export type Database = {
           },
         ]
       }
+      forum_saves: {
+        Row: {
+          created_at: string
+          id: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_saves_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
+          },
+          {
+            foreignKeyName: "forum_saves_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_thread_views: {
         Row: {
           id: string
@@ -4564,11 +4647,14 @@ export type Database = {
       forum_threads: {
         Row: {
           author_user_id: string
+          automod_flags: Json | null
+          availability_date: string | null
           board_id: string
           contact_preference: string | null
           created_at: string
           currency: string
           id: string
+          is_auto_hidden: boolean | null
           is_locked: boolean
           is_pinned: boolean
           last_post_at: string
@@ -4577,15 +4663,19 @@ export type Database = {
           status: string
           thread_type: string
           title: string
+          unit: string | null
           updated_at: string
         }
         Insert: {
           author_user_id: string
+          automod_flags?: Json | null
+          availability_date?: string | null
           board_id: string
           contact_preference?: string | null
           created_at?: string
           currency?: string
           id?: string
+          is_auto_hidden?: boolean | null
           is_locked?: boolean
           is_pinned?: boolean
           last_post_at?: string
@@ -4594,15 +4684,19 @@ export type Database = {
           status?: string
           thread_type?: string
           title: string
+          unit?: string | null
           updated_at?: string
         }
         Update: {
           author_user_id?: string
+          automod_flags?: Json | null
+          availability_date?: string | null
           board_id?: string
           contact_preference?: string | null
           created_at?: string
           currency?: string
           id?: string
+          is_auto_hidden?: boolean | null
           is_locked?: boolean
           is_pinned?: boolean
           last_post_at?: string
@@ -4611,6 +4705,7 @@ export type Database = {
           status?: string
           thread_type?: string
           title?: string
+          unit?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -13319,6 +13414,15 @@ export type Database = {
           score: number | null
           thread_id: string | null
           upvotes: number | null
+        }
+        Relationships: []
+      }
+      forum_user_karma: {
+        Row: {
+          karma: number | null
+          post_count: number | null
+          thread_count: number | null
+          user_id: string | null
         }
         Relationships: []
       }
