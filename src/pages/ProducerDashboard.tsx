@@ -1339,7 +1339,7 @@ const ProducerDashboard = () => {
           .from('company_drivers')
           .select('company_id, transport_companies:transport_companies!company_drivers_company_id_fkey(profile_id)')
           .eq('driver_profile_id', paymentData.driver_id)
-          .eq('status', 'active')
+          .eq('status', 'ACTIVE')
           .maybeSingle();
 
         if (affiliation?.transport_companies) {
