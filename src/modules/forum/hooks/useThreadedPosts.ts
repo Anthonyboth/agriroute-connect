@@ -34,34 +34,26 @@ export function useThreadedPosts(threadId: string | undefined, sortBy: CommentSo
       if (error) throw error;
       if (!posts || posts.length === 0) return [];
 
-      // Fetch authors
       const authorIds = [...new Set(posts.map(p => p.author_user_id))];
-      let authors: Record<string, { name: string; role: string }> = {};
-      if (authorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, role')
-          .in('id', authorIds);
-        (profiles || []).forEach(p => {
-          authors[p.id] = { name: p.full_name || 'Anônimo', role: p.role || '' };
-        });
-      }
-
-      // Fetch vote scores
       const postIds = posts.map(p => p.id);
-      let scoreMap: Record<string, number> = {};
-      if (postIds.length > 0) {
-        const { data: votes } = await supabase
-          .from('forum_votes' as any)
-          .select('post_id, value')
-          .eq('target_type', 'POST')
-          .in('post_id', postIds);
-        if (votes) {
-          (votes as any[]).forEach(v => {
-            scoreMap[v.post_id] = (scoreMap[v.post_id] || 0) + v.value;
-          });
-        }
-      }
+
+      // Parallel fetch: authors + scores via view
+      const [profilesRes, scoresRes] = await Promise.all([
+        authorIds.length > 0
+          ? supabase.from('profiles').select('id, full_name, role').in('id', authorIds)
+          : Promise.resolve({ data: [] }),
+        supabase.from('forum_post_scores' as any).select('post_id, score').in('post_id', postIds),
+      ]);
+
+      const authors: Record<string, { name: string; role: string }> = {};
+      (profilesRes.data || []).forEach((p: any) => {
+        authors[p.id] = { name: p.full_name || 'Anônimo', role: p.role || '' };
+      });
+
+      const scoreMap: Record<string, number> = {};
+      (scoresRes.data || []).forEach((s: any) => {
+        scoreMap[s.post_id] = Number(s.score) || 0;
+      });
 
       // Build tree
       const flat: ThreadedPost[] = posts.map(p => ({
@@ -87,7 +79,7 @@ export function useThreadedPosts(threadId: string | undefined, sortBy: CommentSo
         }
       });
 
-      // Sort
+      // Sort recursively
       const sortFn = (arr: ThreadedPost[]) => {
         if (sortBy === 'best') arr.sort((a, b) => b.score - a.score);
         else if (sortBy === 'new') arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -116,6 +108,32 @@ export function useCreateReply() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
+
+      // Check if thread is locked
+      const { data: thread } = await supabase
+        .from('forum_threads')
+        .select('is_locked')
+        .eq('id', threadId)
+        .single();
+      
+      if (thread?.is_locked) throw new Error('Este tópico está trancado.');
+
+      // Validate depth limit
+      if (replyToPostId) {
+        let depth = 0;
+        let currentId: string | null = replyToPostId;
+        while (currentId && depth < 7) {
+          const { data: parent } = await supabase
+            .from('forum_posts')
+            .select('reply_to_post_id')
+            .eq('id', currentId)
+            .maybeSingle();
+          if (!parent || !parent.reply_to_post_id) break;
+          currentId = parent.reply_to_post_id;
+          depth++;
+        }
+        if (depth >= 6) throw new Error('Limite de profundidade de respostas atingido.');
+      }
 
       const { data, error } = await supabase
         .from('forum_posts')

@@ -66,11 +66,12 @@ export function useForumFeed({ boardSlug, sort, topPeriod = 'all', search, page,
         if (board) boardId = board.id;
       }
 
-      // 2. Build threads query
+      // 2. Build threads query with joins to boards
       let query = supabase
         .from('forum_threads')
-        .select('id, board_id, author_user_id, title, thread_type, price, location_text, status, is_pinned, is_locked, created_at, last_post_at', { count: 'exact' })
-        .neq('status', 'ARCHIVED');
+        .select('id, board_id, author_user_id, title, thread_type, price, location_text, status, is_pinned, is_locked, created_at, last_post_at, forum_boards!inner(name, slug)', { count: 'exact' })
+        .neq('status', 'ARCHIVED')
+        .eq('forum_boards.is_active', true);
 
       if (boardId) query = query.eq('board_id', boardId);
 
@@ -88,7 +89,6 @@ export function useForumFeed({ boardSlug, sort, topPeriod = 'all', search, page,
       if (sort === 'new') {
         query = query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
       } else {
-        // For hot and top, fetch more and sort client-side
         query = query.order('created_at', { ascending: false });
       }
 
@@ -101,91 +101,70 @@ export function useForumFeed({ boardSlug, sort, topPeriod = 'all', search, page,
       if (error) throw error;
       if (!threads || threads.length === 0) return { threads: [], total: 0 };
 
-      // 3. Fetch board info
-      const boardIds = [...new Set(threads.map(t => t.board_id))];
-      const { data: boards } = await supabase
-        .from('forum_boards')
-        .select('id, name, slug')
-        .in('id', boardIds);
-      const boardMap: Record<string, { name: string; slug: string }> = {};
-      (boards || []).forEach(b => { boardMap[b.id] = { name: b.name, slug: b.slug }; });
-
-      // 4. Fetch author names
-      const authorIds = [...new Set(threads.map(t => t.author_user_id))];
-      let authorNames: Record<string, string> = {};
-      if (authorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', authorIds);
-        (profiles || []).forEach(p => { authorNames[p.id] = p.full_name || 'Anônimo'; });
-      }
-
-      // 5. Fetch vote scores
       const threadIds = threads.map(t => t.id);
-      let scoreMap: Record<string, number> = {};
-      if (threadIds.length > 0) {
-        const { data: votes } = await supabase
-          .from('forum_votes' as any)
-          .select('thread_id, value')
-          .eq('target_type', 'THREAD')
-          .in('thread_id', threadIds);
-        if (votes) {
-          (votes as any[]).forEach(v => {
-            scoreMap[v.thread_id] = (scoreMap[v.thread_id] || 0) + v.value;
-          });
-        }
-      }
+      const authorIds = [...new Set(threads.map(t => t.author_user_id))];
 
-      // 6. Fetch comment counts
-      let commentMap: Record<string, number> = {};
-      if (threadIds.length > 0) {
-        const { data: posts } = await supabase
-          .from('forum_posts')
-          .select('thread_id')
-          .in('thread_id', threadIds)
-          .eq('is_deleted', false);
-        if (posts) {
-          posts.forEach(p => {
-            commentMap[p.thread_id] = (commentMap[p.thread_id] || 0) + 1;
-          });
-        }
-      }
-
-      // 7. Fetch body previews (first post per thread)
-      let bodyMap: Record<string, string> = {};
-      if (threadIds.length > 0) {
-        const { data: firstPosts } = await supabase
-          .from('forum_posts')
+      // 3. Batch fetch: authors, scores, comment counts, body previews — all in parallel
+      const [profilesRes, scoresRes, countsRes, bodiesRes] = await Promise.all([
+        // Authors
+        authorIds.length > 0
+          ? supabase.from('profiles').select('id, full_name').in('id', authorIds)
+          : Promise.resolve({ data: [] }),
+        // Scores via view
+        supabase.from('forum_thread_scores' as any).select('thread_id, score').in('thread_id', threadIds),
+        // Comment counts via view
+        supabase.from('forum_thread_comment_counts' as any).select('thread_id, comment_count').in('thread_id', threadIds),
+        // Body previews (first post per thread)
+        supabase.from('forum_posts')
           .select('thread_id, body')
           .in('thread_id', threadIds)
           .is('reply_to_post_id', null)
           .eq('is_deleted', false)
-          .order('created_at', { ascending: true });
-        if (firstPosts) {
-          // Take only first post per thread
-          const seen = new Set<string>();
-          firstPosts.forEach(p => {
-            if (!seen.has(p.thread_id)) {
-              seen.add(p.thread_id);
-              bodyMap[p.thread_id] = p.body.slice(0, 300);
-            }
-          });
-        }
-      }
+          .order('created_at', { ascending: true }),
+      ]);
 
-      // 8. Build result
-      let result: FeedThread[] = threads.map(t => ({
-        ...t,
-        board_name: boardMap[t.board_id]?.name || '',
-        board_slug: boardMap[t.board_id]?.slug || '',
-        author_name: authorNames[t.author_user_id] || 'Anônimo',
+      // Build maps
+      const authorMap: Record<string, string> = {};
+      (profilesRes.data || []).forEach((p: any) => { authorMap[p.id] = p.full_name || 'Anônimo'; });
+
+      const scoreMap: Record<string, number> = {};
+      (scoresRes.data || []).forEach((s: any) => { scoreMap[s.thread_id] = Number(s.score) || 0; });
+
+      const commentMap: Record<string, number> = {};
+      (countsRes.data || []).forEach((c: any) => { commentMap[c.thread_id] = Number(c.comment_count) || 0; });
+
+      const bodyMap: Record<string, string> = {};
+      const bodySeen = new Set<string>();
+      (bodiesRes.data || []).forEach((p: any) => {
+        if (!bodySeen.has(p.thread_id)) {
+          bodySeen.add(p.thread_id);
+          bodyMap[p.thread_id] = p.body.slice(0, 300);
+        }
+      });
+
+      // 4. Build result
+      let result: FeedThread[] = threads.map((t: any) => ({
+        id: t.id,
+        board_id: t.board_id,
+        author_user_id: t.author_user_id,
+        title: t.title,
+        thread_type: t.thread_type,
+        price: t.price,
+        location_text: t.location_text,
+        status: t.status,
+        is_pinned: t.is_pinned,
+        is_locked: t.is_locked,
+        created_at: t.created_at,
+        last_post_at: t.last_post_at,
+        board_name: t.forum_boards?.name || '',
+        board_slug: t.forum_boards?.slug || '',
+        author_name: authorMap[t.author_user_id] || 'Anônimo',
         score: scoreMap[t.id] || 0,
         comment_count: commentMap[t.id] || 0,
         body_preview: bodyMap[t.id] || '',
       }));
 
-      // 9. Sort
+      // 5. Sort
       if (sort === 'hot') {
         const pinned = result.filter(t => t.is_pinned);
         const unpinned = result.filter(t => !t.is_pinned);

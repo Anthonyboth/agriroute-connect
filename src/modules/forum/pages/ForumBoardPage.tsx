@@ -11,6 +11,7 @@ import { ForumLayout } from '../components/ForumLayout';
 import { FeedCard } from '../components/FeedCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export default function ForumBoardPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -54,6 +55,11 @@ export default function ForumBoardPage() {
     e.preventDefault();
     setSearch(searchInput);
     setPage(1);
+  };
+
+  const handleReport = (threadId: string) => {
+    toast.info('Use a página do post para denunciar.');
+    navigate(`/forum/topico/${threadId}`);
   };
 
   return (
@@ -131,7 +137,7 @@ export default function ForumBoardPage() {
 
       <div className="space-y-2">
         {feed.data?.threads.map(thread => (
-          <FeedCard key={thread.id} thread={thread} userVote={userVotes.data?.[thread.id]} />
+          <FeedCard key={thread.id} thread={thread} userVote={userVotes.data?.[thread.id]} onReport={handleReport} />
         ))}
       </div>
 

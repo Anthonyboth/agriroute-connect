@@ -10,14 +10,18 @@ interface VoteColumnProps {
   score: number;
   userVote?: number; // 1, -1, or undefined
   compact?: boolean;
+  disabled?: boolean;
 }
 
-export function VoteColumn({ targetType, targetId, score, userVote, compact }: VoteColumnProps) {
+export function VoteColumn({ targetType, targetId, score, userVote, compact, disabled }: VoteColumnProps) {
   const vote = useVote();
 
-  const handleVote = (value: 1 | -1) => {
+  const handleVote = (e: React.MouseEvent, value: 1 | -1) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
     vote.mutate({ targetType, targetId, value }, {
-      onError: () => toast.error('Erro ao votar.'),
+      onError: (err: any) => toast.error(err?.message || 'Erro ao votar.'),
     });
   };
 
@@ -27,9 +31,11 @@ export function VoteColumn({ targetType, targetId, score, userVote, compact }: V
       compact ? 'flex-row' : 'flex-col',
     )}>
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVote(1); }}
+        onClick={(e) => handleVote(e, 1)}
+        disabled={disabled}
         className={cn(
           'p-0.5 rounded hover:bg-muted transition-colors',
+          disabled && 'opacity-50 cursor-not-allowed',
           userVote === 1 ? 'text-orange-500' : 'text-muted-foreground hover:text-foreground',
         )}
         aria-label="Upvote"
@@ -44,9 +50,11 @@ export function VoteColumn({ targetType, targetId, score, userVote, compact }: V
         {score}
       </span>
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVote(-1); }}
+        onClick={(e) => handleVote(e, -1)}
+        disabled={disabled}
         className={cn(
           'p-0.5 rounded hover:bg-muted transition-colors',
+          disabled && 'opacity-50 cursor-not-allowed',
           userVote === -1 ? 'text-blue-500' : 'text-muted-foreground hover:text-foreground',
         )}
         aria-label="Downvote"

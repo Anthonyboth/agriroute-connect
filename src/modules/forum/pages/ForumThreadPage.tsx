@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Flag, MapPin, Phone, DollarSign, Lock, Share2 } from 'lucide-react';
 import { renderSafeMarkdown, checkClientRateLimit } from '../utils/sanitize';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForumThread, useMarkThreadViewed, useCreateReport } from '../hooks/useForumThread';
 import { useThreadedPosts, useCreateReply, type CommentSort } from '../hooks/useThreadedPosts';
-import { useUserVotes, useVote } from '../hooks/useForumVotes';
+import { useUserVotes } from '../hooks/useForumVotes';
 import { useAuth } from '@/hooks/useAuth';
 import { ForumLayout } from '../components/ForumLayout';
 import { VoteColumn } from '../components/VoteColumn';
 import { CommentTree } from '../components/CommentTree';
 import { THREAD_TYPE_LABELS, THREAD_TYPE_COLORS, REPORT_REASONS } from '../types';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
@@ -42,29 +41,32 @@ export default function ForumThreadPage() {
   const thread = threadQuery.data;
   const isMarketplace = thread && MARKETPLACE_TYPES.includes(thread.thread_type);
 
-  // Get vote scores for the thread
+  // Get vote data for the thread
   const threadVotes = useUserVotes('THREAD', id ? [id] : []);
   
   // Get all post ids for vote lookup
-  const allPostIds: string[] = [];
-  const collectIds = (posts: any[]) => {
-    posts.forEach(p => { allPostIds.push(p.id); collectIds(p.children || []); });
-  };
-  if (postsQuery.data) collectIds(postsQuery.data);
+  const allPostIds = useMemo(() => {
+    const ids: string[] = [];
+    const collect = (posts: any[]) => {
+      posts.forEach(p => { ids.push(p.id); collect(p.children || []); });
+    };
+    if (postsQuery.data) collect(postsQuery.data);
+    return ids;
+  }, [postsQuery.data]);
+  
   const postVotes = useUserVotes('POST', allPostIds);
 
-  // Calculate thread score from votes
+  // Calculate thread score from post scores view
   const [threadScore, setThreadScore] = useState(0);
   useEffect(() => {
     if (!id) return;
-    // Simple fetch for thread score
     import('@/integrations/supabase/client').then(({ supabase }) => {
-      supabase.from('forum_votes' as any)
-        .select('value')
-        .eq('target_type', 'THREAD')
+      supabase.from('forum_thread_scores' as any)
+        .select('score')
         .eq('thread_id', id)
+        .maybeSingle()
         .then(({ data }) => {
-          if (data) setThreadScore((data as any[]).reduce((sum, v) => sum + v.value, 0));
+          if (data) setThreadScore(Number((data as any).score) || 0);
         });
     });
   }, [id, threadVotes.data]);
@@ -84,8 +86,8 @@ export default function ForumThreadPage() {
       await createReply.mutateAsync({ threadId: id, body: newComment.trim() });
       setNewComment('');
       toast.success('Comentário publicado!');
-    } catch {
-      toast.error('Erro ao publicar comentário.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao publicar comentário.');
     }
   };
 
@@ -95,8 +97,12 @@ export default function ForumThreadPage() {
       toast.error('Aguarde um momento.');
       return;
     }
-    await createReply.mutateAsync({ threadId: id, body, replyToPostId: postId });
-    toast.success('Resposta publicada!');
+    try {
+      await createReply.mutateAsync({ threadId: id, body, replyToPostId: postId });
+      toast.success('Resposta publicada!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao responder.');
+    }
   };
 
   const handleReport = async () => {
@@ -118,6 +124,18 @@ export default function ForumThreadPage() {
       toast.error('Erro ao enviar denúncia.');
     }
   };
+
+  // Comment count (excluding first post / body)
+  const commentCount = useMemo(() => {
+    if (!postsQuery.data) return 0;
+    const countAll = (posts: any[]): number => 
+      posts.reduce((sum: number, p: any) => sum + 1 + countAll(p.children || []), 0);
+    const roots = postsQuery.data.filter(p => p.reply_to_post_id === null);
+    // First root is the thread body, rest are comments
+    return roots.length > 1 
+      ? countAll(roots.slice(1))
+      : 0;
+  }, [postsQuery.data]);
 
   return (
     <ForumLayout
@@ -155,6 +173,8 @@ export default function ForumThreadPage() {
                 <span>por <strong>{thread.author_name}</strong></span>
                 <span>•</span>
                 <span>{format(new Date(thread.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                <span>•</span>
+                <span>{commentCount} comentários</span>
               </div>
 
               {/* Badges */}
@@ -187,7 +207,7 @@ export default function ForumThreadPage() {
                 </div>
               )}
 
-              {/* First post body (rendered from posts) */}
+              {/* First post body */}
               {postsQuery.data && postsQuery.data.length > 0 && !postsQuery.data[0].reply_to_post_id && (
                 <div
                   className="prose prose-sm max-w-none text-foreground mb-3"
@@ -205,7 +225,7 @@ export default function ForumThreadPage() {
                 </button>
                 <button
                   className="flex items-center gap-1 hover:text-foreground"
-                  onClick={() => navigator.clipboard.writeText(window.location.href)}
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copiado!'); }}
                 >
                   <Share2 className="h-3.5 w-3.5" /> Compartilhar
                 </button>
@@ -219,7 +239,7 @@ export default function ForumThreadPage() {
             {thread.is_locked ? (
               <div className="text-center text-muted-foreground py-3 mb-4">
                 <Lock className="h-5 w-5 inline mr-2" />
-                Este tópico está trancado.
+                Este tópico está trancado. Não é possível comentar.
               </div>
             ) : profile ? (
               <div className="mb-4 space-y-2">

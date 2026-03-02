@@ -40,6 +40,10 @@ export default function ForumHome() {
   const { data: categories } = useForumCategories();
   const { data: allCategories } = useAdminForumCategories();
 
+  // Report dialog
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportThreadId, setReportThreadId] = useState('');
+
   const feed = useForumFeed({
     boardSlug: boardFilter || undefined,
     sort,
@@ -85,20 +89,25 @@ export default function ForumHome() {
     } catch { toast.error('Erro ao criar comunidade.'); }
   };
 
+  const handleReport = (threadId: string) => {
+    setReportThreadId(threadId);
+    setReportOpen(true);
+  };
+
   return (
     <ForumLayout title="Fórum da Comunidade" breadcrumbs={[{ label: 'Fórum' }]}>
       {/* Top bar */}
       <div className="flex flex-col gap-3 mb-4">
         {/* Actions row */}
         <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => navigate('/forum/novo-topico')} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Criar Post
+          </Button>
           <Button onClick={() => setShowNewCategory(true)} variant="outline" size="sm">
             <FolderPlus className="h-4 w-4 mr-1" /> Nova Categoria
           </Button>
           <Button onClick={() => setShowNewBoard(true)} variant="outline" size="sm">
             <LayoutGrid className="h-4 w-4 mr-1" /> Nova Comunidade
-          </Button>
-          <Button onClick={() => navigate('/forum/novo-topico')} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Criar Post
           </Button>
         </div>
 
@@ -180,6 +189,7 @@ export default function ForumHome() {
             key={thread.id}
             thread={thread}
             userVote={userVotes.data?.[thread.id]}
+            onReport={handleReport}
           />
         ))}
       </div>
