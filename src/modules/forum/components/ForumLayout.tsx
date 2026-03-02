@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, MessageSquare } from 'lucide-react';
+import { ChevronRight, MessageSquare, ArrowLeft } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 
 interface Breadcrumb {
   label: string;
@@ -17,6 +18,11 @@ export function ForumLayout({ title, breadcrumbs, children }: ForumLayoutProps) 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-5xl">
+        {/* Botão Voltar ao App */}
+        <div className="mb-4">
+          <BackButton to="/" label="Voltar ao App" />
+        </div>
+
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4 flex-wrap">
           <MessageSquare className="h-4 w-4" />
