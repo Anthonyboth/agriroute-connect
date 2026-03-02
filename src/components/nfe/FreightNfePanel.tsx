@@ -6,7 +6,8 @@ import { AssistedManifestationDialog } from './AssistedManifestationDialog';
 import { NfeCard } from './NfeCard';
 import { useNfe } from '@/hooks/useNfe';
 import { NFeDocument } from '@/types/nfe';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 
 interface FreightNfePanelProps {
   freightId: string;
@@ -59,9 +60,7 @@ export function FreightNfePanel({ freightId, autoLoad = true }: FreightNfePanelP
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <CenteredSpinner />
       ) : nfes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <p>Nenhuma NF-e vinculada a este frete</p>
