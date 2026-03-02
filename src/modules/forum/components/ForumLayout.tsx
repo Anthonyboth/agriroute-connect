@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, MessageSquare, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ArrowLeft } from 'lucide-react';
+import { ForumIcon } from './ForumIcon';
 import { BackButton } from '@/components/BackButton';
 
 interface Breadcrumb {
@@ -25,7 +26,7 @@ export function ForumLayout({ title, breadcrumbs, children }: ForumLayoutProps) 
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4 flex-wrap">
-          <MessageSquare className="h-4 w-4" />
+          <ForumIcon size={16} className="h-4 w-4" />
           {breadcrumbs.map((bc, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && <ChevronRight className="h-3 w-3" />}

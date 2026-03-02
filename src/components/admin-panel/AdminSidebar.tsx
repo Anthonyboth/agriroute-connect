@@ -7,8 +7,9 @@ import {
 import {
   LayoutDashboard, Users, FileText, Shield, Settings, LogOut,
   Truck, ShieldAlert, BarChart3, Megaphone, DollarSign, Building2,
-  Wrench, Bell, Car, MessageSquare,
+  Wrench, Bell, Car,
 } from 'lucide-react';
+import { ForumIcon } from '@/modules/forum/components/ForumIcon';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 
@@ -29,7 +30,7 @@ const menuItems = [
   { title: 'Notificações', icon: Bell, path: '/admin-v2/notificacoes' },
   { title: 'Gestão de Risco', icon: ShieldAlert, path: '/admin-v2/riscos' },
   { title: 'Auditoria', icon: FileText, path: '/admin-v2/auditoria' },
-  { title: 'Fórum', icon: MessageSquare, path: '/admin-v2/forum' },
+  { title: 'Fórum', icon: ForumIcon, path: '/admin-v2/forum' },
 ];
 
 const superAdminItems = [
