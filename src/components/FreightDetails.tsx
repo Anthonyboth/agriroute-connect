@@ -796,7 +796,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             {/* ✅ Exibir fotos do veículo para o produtor */}
             {isFreightProducer && <DriverVehiclePreview driverId={freight.driver.id} freightId={freightId} />}
           </div>
-        ) : participants.drivers.length > 0 && (isFreightProducer || (isTransportadora && hasActiveCompanyAssignment)) ? (
+        ) : (participants.drivers.length > 0 || (Array.isArray(freight?.drivers_assigned) && (freight.drivers_assigned as string[]).length > 0)) && (isFreightProducer || (isTransportadora && hasActiveCompanyAssignment)) ? (
           // ✅ Regra: Lista de motoristas atribuídos visível para:
           // - Produtor do frete
           // - Transportadora participante (quando existir assignment ativo da empresa)
@@ -806,7 +806,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Truck className="h-4 w-4" />
-                  Motoristas atribuídos ({participants.drivers.length})
+                  Motoristas atribuídos ({participants.drivers.length || (freight?.drivers_assigned as string[])?.length || 0})
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -817,7 +817,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </Card>
 
             <div className="grid gap-2">
-              {participants.drivers.map((d) => {
+              {participants.drivers.length > 0 ? participants.drivers.map((d) => {
                 // Buscar localização em tempo real deste motorista
                 const driverLocation = multiDriversLocations.find(dl => dl.driverId === d.profileId);
                 
@@ -862,7 +862,29 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                     {isFreightProducer && <DriverVehiclePreview driverId={d.profileId} freightId={freightId} />}
                   </div>
                 );
-              })}
+              }) : (
+                /* ✅ FALLBACK: Se participants.drivers está vazio mas drivers_assigned tem IDs,
+                   renderizar cards básicos usando o profileId direto */
+                (freight?.drivers_assigned as string[] || []).map((driverId: string) => (
+                  <div key={driverId} className="space-y-2">
+                    <FreightParticipantCard
+                      participantId={driverId}
+                      participantType="driver"
+                      name="Motorista"
+                      rating={0}
+                      totalRatings={0}
+                      onClick={() => {
+                        setProfileModalOpen({
+                          open: true,
+                          userId: driverId,
+                          userType: 'driver',
+                          userName: ''
+                        });
+                      }}
+                    />
+                  </div>
+                ))
+              )}
             </div>
 
             {/* ✅ Exibir transportadoras envolvidas */}
