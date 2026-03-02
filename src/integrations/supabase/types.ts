@@ -4981,6 +4981,8 @@ export type Database = {
           origin_state: string | null
           payment_confirmed_by_driver_at: string | null
           payment_confirmed_by_producer_at: string | null
+          price_per_km: number | null
+          pricing_type: string | null
           status_final: string
           trip_snapshot: Json | null
           weight_per_truck: number | null
@@ -5003,6 +5005,8 @@ export type Database = {
           origin_state?: string | null
           payment_confirmed_by_driver_at?: string | null
           payment_confirmed_by_producer_at?: string | null
+          price_per_km?: number | null
+          pricing_type?: string | null
           status_final: string
           trip_snapshot?: Json | null
           weight_per_truck?: number | null
@@ -5025,6 +5029,8 @@ export type Database = {
           origin_state?: string | null
           payment_confirmed_by_driver_at?: string | null
           payment_confirmed_by_producer_at?: string | null
+          price_per_km?: number | null
+          pricing_type?: string | null
           status_final?: string
           trip_snapshot?: Json | null
           weight_per_truck?: number | null
