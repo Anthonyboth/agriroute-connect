@@ -590,8 +590,16 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           <CardTitle>Histórico de Status</CardTitle>
         </CardHeader>
         <CardContent>
-          {statusHistory.length > 0 ? (
-            <div className="space-y-4">
+          {/* ✅ Sempre mostrar timeline completa do driver_trip_progress (tem timestamps confiáveis) */}
+          <FreightStatusHistory
+            freightId={freightId}
+            driverId={isDriver ? currentUserProfile?.id : undefined}
+          />
+
+          {/* Registros detalhados do freight_status_history (com notas, localização, etc.) */}
+          {statusHistory.length > 0 && (
+            <div className="space-y-4 mt-4 pt-4 border-t">
+              <p className="text-sm font-semibold text-muted-foreground">Registros Detalhados:</p>
               {statusHistory.map((item) => {
                 const status = statusFlow.find(s => s.key === item.status);
                 const Icon = status?.icon || Clock;
@@ -632,11 +640,6 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                 );
               })}
             </div>
-          ) : (
-            <FreightStatusHistory
-              freightId={freightId}
-              driverId={isDriver ? currentUserProfile?.id : undefined}
-            />
           )}
         </CardContent>
       </Card>
