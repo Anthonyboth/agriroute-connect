@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { routeAfterAuth } from '@/lib/route-after-auth';
+import { routeAfterAuth, waitForProfile } from '@/lib/route-after-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -116,29 +116,20 @@ export default function AffiliateSignup() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Erro ao criar usuário');
 
-      // 2. Criar perfil
-      const { error: profileError } = await supabase
+      // 2. Aguardar perfil criado pelo trigger handle_new_user (sem INSERT manual)
+      const profile = await waitForProfile(authData.user.id);
+      if (!profile) throw new Error('Perfil não foi criado automaticamente. Tente novamente.');
+
+      // 3. Atualizar dados extras no perfil (trigger pode não ter todos os campos)
+      const { error: updateError } = await supabase
         .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          full_name: validatedData.full_name,
-          email: validatedData.email,
+        .update({
           phone: validatedData.phone,
           cpf_cnpj: cleanDoc,
-          role: 'MOTORISTA',
-          status: 'PENDING'
-        });
+        })
+        .eq('id', profile.id);
 
-      if (profileError) throw profileError;
-
-      // 3. Buscar o profile_id recém criado
-      const { data: profile, error: profileFetchError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', authData.user.id)
-        .single();
-
-      if (profileFetchError || !profile) throw new Error('Erro ao buscar perfil');
+      if (updateError) console.warn('Aviso: erro ao atualizar perfil:', updateError);
 
       // 4. Vincular à transportadora
       const { error: companyDriverError } = await supabase
