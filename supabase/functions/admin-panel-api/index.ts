@@ -1049,8 +1049,8 @@ async function handleFreightDetail(serviceClient: any, freightId: string, corsHe
 
   if (error || !freight) return jsonResponse(corsHeaders, { error: 'Frete não encontrado' }, 404)
 
-  // Resolve producer + driver names, assignments, trip progress
-  const [producerRes, driverRes, assignmentsRes, tripProgressRes, checkinsRes] = await Promise.all([
+  // Resolve producer + driver names, assignments, trip progress, status history, location history
+  const [producerRes, driverRes, assignmentsRes, tripProgressRes, checkinsRes, statusHistoryRes, locationHistoryRes] = await Promise.all([
     freight.producer_id
       ? serviceClient.from('profiles').select('id, full_name, phone, role, cpf_cnpj, base_city_name, base_state').eq('id', freight.producer_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -1060,6 +1060,10 @@ async function handleFreightDetail(serviceClient: any, freightId: string, corsHe
     serviceClient.from('freight_assignments').select('*, driver:driver_id(full_name, phone), vehicle:vehicle_id(license_plate, vehicle_type)').eq('freight_id', freightId),
     serviceClient.from('driver_trip_progress').select('*').eq('freight_id', freightId).order('created_at', { ascending: false }).limit(50).catch(() => ({ data: [] })),
     serviceClient.from('driver_checkins').select('*').eq('freight_id', freightId).order('checked_at', { ascending: false }).catch(() => ({ data: [] })),
+    // ✅ Histórico COMPLETO de status (auditoria)
+    serviceClient.from('freight_status_history').select('*, changer:changed_by(full_name, role)').eq('freight_id', freightId).order('created_at', { ascending: true }).limit(200).catch(() => ({ data: [] })),
+    // ✅ Histórico de localização GPS do motorista durante o frete
+    serviceClient.from('driver_location_history').select('id, lat, lng, speed, heading, accuracy, captured_at, driver_profile_id').eq('freight_id', freightId).order('captured_at', { ascending: true }).limit(500).catch(() => ({ data: [] })),
   ])
 
   return jsonResponse(corsHeaders, {
@@ -1069,6 +1073,8 @@ async function handleFreightDetail(serviceClient: any, freightId: string, corsHe
     assignments: assignmentsRes.data || [],
     trip_progress: tripProgressRes.data || [],
     checkins: checkinsRes.data || [],
+    status_history: statusHistoryRes.data || [],
+    location_history: locationHistoryRes.data || [],
   })
 }
 
