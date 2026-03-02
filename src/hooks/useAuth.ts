@@ -642,65 +642,86 @@ const useAuthInternal = () => {
     if (!session?.user?.id) return;
 
     let debounceTimer: NodeJS.Timeout;
-    
-    const channel = supabase
-      .channel('profile_changes')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'profiles',
-        filter: `user_id=eq.${session.user.id}`
-      }, (payload) => {
-        if (!mountedRef.current || fetchingRef.current) return;
-        
-        // ✅ P0 FIX: Verificar se realmente precisa refetch
-        // Se o payload.new.id é o mesmo que o profile atual, pode ser update redundante
-        const newProfile = payload.new as any;
-        if (profile?.id === newProfile?.id) {
-          // Comparar alguns campos chave para decidir se precisa refetch
-          const hasSignificantChange = 
-            profile?.status !== newProfile?.status ||
-            profile?.role !== newProfile?.role ||
-            profile?.active_mode !== newProfile?.active_mode;
+    let retryTimer: NodeJS.Timeout;
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+    let currentChannel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    const createChannel = () => {
+      if (cancelled) return;
+
+      // Remove canal anterior se existir
+      if (currentChannel) {
+        try { supabase.removeChannel(currentChannel); } catch {}
+      }
+
+      currentChannel = supabase
+        .channel(`profile_changes_${Date.now()}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${session.user.id}`
+        }, (payload) => {
+          if (!mountedRef.current || fetchingRef.current) return;
           
-          if (!hasSignificantChange) {
-            if (import.meta.env.DEV) {
-              console.log('[Realtime] Perfil não mudou significativamente, ignorando');
+          const newProfile = payload.new as any;
+          if (profile?.id === newProfile?.id) {
+            const hasSignificantChange = 
+              profile?.status !== newProfile?.status ||
+              profile?.role !== newProfile?.role ||
+              profile?.active_mode !== newProfile?.active_mode;
+            
+            if (!hasSignificantChange) {
+              if (import.meta.env.DEV) {
+                console.log('[Realtime] Perfil não mudou significativamente, ignorando');
+              }
+              return;
             }
-            return;
           }
-        }
-        
-        // ✅ Debounce aumentado: aguardar 2s para evitar múltiplas chamadas
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          if (!mountedRef.current) return;
-          fetchProfile(newProfile.user_id, true);
-        }, 2000);
-      })
-      .subscribe((status) => {
-        // ✅ Tratamento resiliente de erros do WebSocket (não bloqueante)
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (import.meta.env.DEV) {
-            console.warn('[Realtime] Perfil: status=', status, '(conexão em tempo real indisponível)');
-          }
-          // ✅ Erro silencioso: o app continua funcionando sem realtime
-        } else if (status === 'SUBSCRIBED') {
-          if (import.meta.env.DEV) {
+          
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (!mountedRef.current) return;
+            fetchProfile(newProfile.user_id, true);
+          }, 2000);
+        })
+        .subscribe((status) => {
+          if (cancelled) return;
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`[Realtime] Perfil: ${status} (tentativa ${retryCount + 1}/${MAX_RETRIES})`);
+            
+            // ✅ AUTO-RECONNECT com backoff exponencial
+            if (retryCount < MAX_RETRIES && !cancelled) {
+              retryCount++;
+              const delay = Math.min(2000 * Math.pow(2, retryCount - 1), 30000); // 2s, 4s, 8s, 16s, 30s
+              console.log(`[Realtime] Reconectando em ${delay / 1000}s...`);
+              clearTimeout(retryTimer);
+              retryTimer = setTimeout(() => {
+                if (!cancelled && mountedRef.current) {
+                  createChannel();
+                }
+              }, delay);
+            } else if (retryCount >= MAX_RETRIES) {
+              console.warn('[Realtime] Máximo de tentativas atingido. App continua sem realtime.');
+            }
+          } else if (status === 'SUBSCRIBED') {
+            retryCount = 0; // Reset ao conectar com sucesso
             console.log('[Realtime] Perfil: conectado com sucesso');
           }
-        }
-      });
+        });
+    };
+
+    createChannel();
 
     return () => {
+      cancelled = true;
       clearTimeout(debounceTimer);
-      // ✅ Garantir cleanup mesmo se WebSocket falhou
-      try {
-        supabase.removeChannel(channel);
-      } catch (e) {
-        if (import.meta.env.DEV) {
-          console.warn('[Realtime] Erro ao remover canal:', e);
-        }
+      clearTimeout(retryTimer);
+      if (currentChannel) {
+        try { supabase.removeChannel(currentChannel); } catch {}
       }
     };
   }, [session?.user?.id, fetchProfile]);
