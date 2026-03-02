@@ -171,7 +171,7 @@ export const FreightActionButton: React.FC<FreightActionButtonProps> = ({
 
     // Fail-safe: re-validar mesmo se botão estava habilitado
     if (!isActionAllowed) {
-      toast.error(blockReason || 'Ação não permitida.');
+      toast.warning(blockReason || 'Ação não permitida.');
       return;
     }
 

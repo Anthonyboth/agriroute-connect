@@ -1971,7 +1971,7 @@ const DriverDashboard = () => {
           // Only require location for non-transport companies
           // ✅ Usa isLocationEnabled que considera permissão real do dispositivo
           if (!isTransportCompany && !isLocationEnabled) {
-            toast.error('❌ Você precisa ativar a localização para aceitar fretes', {
+            toast.warning('Você precisa ativar a localização para aceitar fretes', {
               description: 'Vá em Configurações → Localização para ativar'
             });
             return;
@@ -1979,7 +1979,7 @@ const DriverDashboard = () => {
 
           // ✅ FASE 1 - CRÍTICO: Verificar se cadastro foi aprovado pelo admin
           if (profile.status !== 'APPROVED') {
-            toast.error('❌ Seu cadastro ainda não foi aprovado', {
+            toast.warning('Seu cadastro ainda não foi aprovado', {
               description: 'Aguarde a aprovação do administrador para acessar esta funcionalidade.',
               id: 'driver-not-approved'
             });
