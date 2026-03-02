@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, MessageSquare } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard } from 'lucide-react';
+import { ForumIcon } from '@/modules/forum/components/ForumIcon';
 import { useNavigate } from 'react-router-dom';
 import { FEATURE_FORUM } from '@/modules/forum/config';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -82,7 +83,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
     ...(hasMultipleProfiles && user.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
-    { icon: MessageSquare, label: 'Fórum', action: () => navigateTo('/forum') },
+    { icon: ForumIcon, label: 'Fórum', action: () => navigateTo('/forum') },
   ], [user.role, navigateTo, hasMultipleProfiles]);
 
   // Memoized handlers

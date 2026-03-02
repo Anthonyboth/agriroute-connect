@@ -13,7 +13,8 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText, ChevronDown, Loader2, MessageSquare } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText, ChevronDown, Loader2 } from 'lucide-react';
+import { ForumIcon } from '@/modules/forum/components/ForumIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter, UserProfileModal } from '@/components/LazyComponents';
@@ -156,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({
     { icon: Bell, label: 'Notificações', action: () => setShowNotificationPrefs(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
     ...(isCompanyDriver ? [{ icon: Truck, label: 'Minha Afiliação', action: () => setShowAffiliation(true) }] : []),
-    { icon: MessageSquare, label: 'Fórum', action: () => navigate('/forum') },
+    { icon: ForumIcon, label: 'Fórum', action: () => navigate('/forum') },
   ];
 
   return (
