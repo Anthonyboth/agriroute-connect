@@ -71,10 +71,12 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
       'PRODUTOR': { label: 'Cliente', variant: 'default' },
-      'MOTORISTA': { label: 'Prestador', variant: 'secondary' },
-      'PRESTADOR_SERVICOS': { label: 'Prestador', variant: 'secondary' }
+      'MOTORISTA': { label: 'Motorista', variant: 'secondary' },
+      'MOTORISTA_AFILIADO': { label: 'Motorista', variant: 'secondary' },
+      'PRESTADOR_SERVICOS': { label: 'Prestador', variant: 'secondary' },
+      'TRANSPORTADORA': { label: 'Transportadora', variant: 'secondary' }
     };
-    return roleMap[role] || { label: role, variant: 'default' };
+    return roleMap[role] || null;
   };
 
   // ============ ESTADOS ESPECIAIS ============
