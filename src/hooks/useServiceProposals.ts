@@ -67,6 +67,10 @@ export function useServiceProposals({ serviceRequestId, serviceRequestIds, enabl
 
   useEffect(() => {
     fetchProposals();
+    
+    // Polling fallback every 15s to catch missed realtime events
+    const interval = setInterval(fetchProposals, 15000);
+    return () => clearInterval(interval);
   }, [fetchProposals]);
 
   // Realtime subscription

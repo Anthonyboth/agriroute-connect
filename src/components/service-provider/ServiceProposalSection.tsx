@@ -54,6 +54,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
   const [expanded, setExpanded] = useState(false);
 
   const pendingProposals = proposals.filter(p => p.status === 'PENDING');
+  const myRejectedProposals = proposals.filter(p => p.status === 'REJECTED' && p.proposer_id === currentUserProfileId);
   const otherProposals = proposals.filter(p => p.status !== 'PENDING');
   const hasPendingFromMe = pendingProposals.some(p => p.proposer_id === currentUserProfileId);
 
@@ -207,7 +208,22 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
         </div>
       ))}
 
-      {/* Submit new proposal */}
+      {/* Show latest rejection notice to the provider */}
+      {myRejectedProposals.length > 0 && !hasPendingFromMe && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-2.5 text-xs">
+          <p className="font-medium text-red-700 dark:text-red-400 flex items-center gap-1">
+            <X className="h-3 w-3" />
+            Sua proposta de {formatCurrency(myRejectedProposals[0].proposed_price)} foi recusada
+          </p>
+          {myRejectedProposals[0].rejection_reason && (
+            <p className="text-red-600/70 dark:text-red-400/70 mt-0.5">
+              Motivo: {myRejectedProposals[0].rejection_reason}
+            </p>
+          )}
+          <p className="text-muted-foreground mt-1">Você pode enviar uma nova proposta.</p>
+        </div>
+      )}
+
       {!hasPendingFromMe && (
         <>
           {!showForm ? (
