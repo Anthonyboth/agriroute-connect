@@ -50,7 +50,7 @@ interface UseFreightChatConnectionOptions {
 
 interface FreightChatConnectionResult {
   messages: FreightChatMessage[];
-  freightInfo: { producer_id: string; driver_id: string; status: string } | null;
+  freightInfo: { producer_id: string; driver_id: string | null; status: string } | null;
   isLoading: boolean;
   isConnected: boolean;
   isSending: boolean;
@@ -126,7 +126,8 @@ export function useFreightChatConnection({
   currentUserProfileId,
 }: UseFreightChatConnectionOptions): FreightChatConnectionResult {
   const [messages, setMessages] = useState<FreightChatMessage[]>([]);
-  const [freightInfo, setFreightInfo] = useState<{ producer_id: string; driver_id: string; status: string } | null>(null);
+  const [freightInfo, setFreightInfo] = useState<{ producer_id: string; driver_id: string | null; status: string } | null>(null);
+  const [resolvedDriverId, setResolvedDriverId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -150,7 +151,13 @@ export function useFreightChatConnection({
 
       if (freightError || !freight) return false;
       
-      if (isMountedRef.current) setFreightInfo(freight);
+      if (isMountedRef.current) {
+        setFreightInfo(freight);
+        // Se driver_id direto existe, usar como resolved
+        if (freight.driver_id) {
+          setResolvedDriverId(freight.driver_id);
+        }
+      }
 
       // Direct participant (producer or driver)
       if (freight.producer_id === currentUserProfileId || freight.driver_id === currentUserProfileId) {
@@ -169,6 +176,7 @@ export function useFreightChatConnection({
       }
 
       // Check if user is a company owner of an assigned driver
+      // Also resolve driver_id from assignments if not set on freight
       const { data: assignments } = await supabase
         .from('freight_assignments')
         .select('driver_id, company_id')
@@ -176,7 +184,15 @@ export function useFreightChatConnection({
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED']);
 
       if (assignments && assignments.length > 0) {
+        // Se freight.driver_id é null, resolver a partir do primeiro assignment
+        if (!freight.driver_id && assignments[0]?.driver_id && isMountedRef.current) {
+          setResolvedDriverId(assignments[0].driver_id);
+        }
+
         for (const assignment of assignments) {
+          // Check if user is the assigned driver
+          if (assignment.driver_id === currentUserProfileId) return true;
+
           if (assignment.company_id) {
             const { data: company } = await supabase
               .from('transport_companies')
@@ -315,15 +331,17 @@ export function useFreightChatConnection({
   }, [currentUserProfileId]);
 
   // Determinar target_driver_id com base em quem é o sender
+  // Usa resolvedDriverId que pode vir de freights.driver_id OU freight_assignments
   const getTargetDriverId = useCallback((): string | null => {
     if (!freightInfo || !currentUserProfileId) return null;
+    const driverId = freightInfo.driver_id || resolvedDriverId;
     // Se o sender é o produtor, o target é o motorista
     if (currentUserProfileId === freightInfo.producer_id) {
-      return freightInfo.driver_id || null;
+      return driverId || null;
     }
     // Se o sender é o motorista (ou empresa), o target é ele mesmo (driver do frete)
-    return freightInfo.driver_id || currentUserProfileId;
-  }, [freightInfo, currentUserProfileId]);
+    return driverId || currentUserProfileId;
+  }, [freightInfo, currentUserProfileId, resolvedDriverId]);
 
   // Enviar mensagem de texto
   const sendTextMessage = useCallback(async (text: string): Promise<boolean> => {
@@ -331,8 +349,8 @@ export function useFreightChatConnection({
 
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
-      console.error('[FreightChat] target_driver_id não disponível');
-      toast.error('Erro: motorista não identificado no frete');
+      console.warn(`[FreightChat] target_driver_id não disponível (freightId=${freightId}, driver_id=${freightInfo?.driver_id}, resolvedDriverId=${resolvedDriverId})`);
+      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
       return false;
     }
 
@@ -368,8 +386,8 @@ export function useFreightChatConnection({
 
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
-      console.error('[FreightChat] target_driver_id não disponível para mídia');
-      toast.error('Erro: motorista não identificado no frete');
+      console.warn(`[FreightChat] target_driver_id não disponível para mídia (freightId=${freightId}, driver_id=${freightInfo?.driver_id}, resolvedDriverId=${resolvedDriverId})`);
+      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
       return false;
     }
 
@@ -421,7 +439,8 @@ export function useFreightChatConnection({
 
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
-      toast.error('Erro: motorista não identificado no frete');
+      console.warn(`[FreightChat] target_driver_id não disponível para localização (freightId=${freightId})`);
+      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
       return false;
     }
 
@@ -460,7 +479,8 @@ export function useFreightChatConnection({
 
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
-      toast.error('Erro: motorista não identificado no frete');
+      console.warn(`[FreightChat] target_driver_id não disponível para sistema (freightId=${freightId})`);
+      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
       return false;
     }
 
