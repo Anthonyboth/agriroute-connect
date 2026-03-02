@@ -18,6 +18,7 @@ export function ForumRoutes() {
       <Routes>
         <Route index element={<ForumHome />} />
         <Route path="subforum/:slug" element={<ForumBoardPage />} />
+        <Route path="r/:slug" element={<ForumBoardPage />} />
         <Route path="topico/:id" element={<ForumThreadPage />} />
         <Route path="novo-topico" element={<ForumNewThread />} />
       </Routes>

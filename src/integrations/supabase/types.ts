@@ -4226,8 +4226,22 @@ export type Database = {
             foreignKeyName: "forum_attachments_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
+            referencedRelation: "forum_post_scores"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "forum_attachments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
             referencedRelation: "forum_posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_attachments_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
           },
           {
             foreignKeyName: "forum_attachments_thread_id_fkey"
@@ -4377,6 +4391,7 @@ export type Database = {
           deleted_reason: string | null
           id: string
           is_deleted: boolean
+          reply_to_post_id: string | null
           thread_id: string
           updated_at: string
         }
@@ -4387,6 +4402,7 @@ export type Database = {
           deleted_reason?: string | null
           id?: string
           is_deleted?: boolean
+          reply_to_post_id?: string | null
           thread_id: string
           updated_at?: string
         }
@@ -4397,10 +4413,32 @@ export type Database = {
           deleted_reason?: string | null
           id?: string
           is_deleted?: boolean
+          reply_to_post_id?: string | null
           thread_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "forum_posts_reply_to_post_id_fkey"
+            columns: ["reply_to_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_post_scores"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "forum_posts_reply_to_post_id_fkey"
+            columns: ["reply_to_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
+          },
           {
             foreignKeyName: "forum_posts_thread_id_fkey"
             columns: ["thread_id"]
@@ -4458,8 +4496,22 @@ export type Database = {
             foreignKeyName: "forum_reports_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
+            referencedRelation: "forum_post_scores"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "forum_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
             referencedRelation: "forum_posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_reports_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
           },
           {
             foreignKeyName: "forum_reports_thread_id_fkey"
@@ -4493,6 +4545,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "forum_thread_views_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
+          },
           {
             foreignKeyName: "forum_thread_views_thread_id_fkey"
             columns: ["thread_id"]
@@ -4560,6 +4619,65 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "forum_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_votes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string | null
+          target_type: string
+          thread_id: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          target_type: string
+          thread_id?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          target_type?: string
+          thread_id?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_post_scores"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "forum_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_votes_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
+          },
+          {
+            foreignKeyName: "forum_votes_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
             referencedColumns: ["id"]
           },
         ]
@@ -13163,6 +13281,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      forum_post_scores: {
+        Row: {
+          downvotes: number | null
+          post_id: string | null
+          score: number | null
+          upvotes: number | null
+        }
+        Relationships: []
+      }
+      forum_thread_comment_counts: {
+        Row: {
+          comment_count: number | null
+          thread_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_scores"
+            referencedColumns: ["thread_id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_thread_scores: {
+        Row: {
+          downvotes: number | null
+          score: number | null
+          thread_id: string | null
+          upvotes: number | null
+        }
+        Relationships: []
       }
       freight_payments_secure: {
         Row: {
