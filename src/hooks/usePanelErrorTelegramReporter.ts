@@ -52,6 +52,9 @@ export function usePanelErrorTelegramReporter() {
       'hydration error',            // React hydration warnings
       'Encountered two children with the same key',  // React duplicate key warnings (non-fatal)
       'Non-unique keys may cause children',           // React duplicate key warnings
+      'senha incorretos',                              // Login com credenciais erradas - esperado
+      'Invalid login credentials',                     // Same in English
+      'invalid_credentials',                           // Supabase error code
     ];
 
     const shouldIgnore = (msg: string): boolean => {
