@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Loader2, Shield } from 'lucide-react';
+import { Trash2, Plus, Shield } from 'lucide-react';
+import { CenteredSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -141,8 +142,8 @@ export const WhitelistManager = () => {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <CardContent className="py-8">
+          <CenteredSpinner />
         </CardContent>
       </Card>
     );
@@ -217,7 +218,7 @@ export const WhitelistManager = () => {
           <Button onClick={addEntity} disabled={adding} className="w-full">
             {adding ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <InlineSpinner />
                 Adicionando...
               </>
             ) : (

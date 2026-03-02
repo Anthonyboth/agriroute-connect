@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, Send, MessageSquare } from 'lucide-react';
+import { Send, MessageSquare } from 'lucide-react';
+import { CenteredSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
@@ -186,11 +187,7 @@ export const AffiliationDirectChat: React.FC<AffiliationDirectChatProps> = ({
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
+    return <CenteredSpinner className="h-48" />;
   }
 
   return (
@@ -293,7 +290,7 @@ export const AffiliationDirectChat: React.FC<AffiliationDirectChatProps> = ({
           className="h-9 w-9 flex-shrink-0"
         >
           {isSending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <InlineSpinner className="mr-0" />
           ) : (
             <Send className="h-4 w-4" />
           )}

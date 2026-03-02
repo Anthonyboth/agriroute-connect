@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useFiscal, AntifraudAnalysis, AntifraudEvent } from '@/hooks/useFiscal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -128,7 +129,7 @@ export function AntifraudeAnalysisCard({
       <CardContent className="space-y-4">
         {loading && !analise ? (
           <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <AppSpinner size="sm" />
           </div>
         ) : analise ? (
           <>

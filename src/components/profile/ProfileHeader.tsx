@@ -11,7 +11,8 @@ import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Camera, Edit2, X, Check, Loader2, MapPin, Calendar, Trash2 } from 'lucide-react';
+import { Camera, Edit2, X, Check, MapPin, Calendar, Trash2 } from 'lucide-react';
+import { AppSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { cn } from '@/lib/utils';
 import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
 import { format } from 'date-fns';
@@ -143,7 +144,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             )}>
               {isPhotoUploading ? (
                 <div className="flex items-center justify-center h-full w-full bg-muted">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <AppSpinner size="sm" />
                 </div>
               ) : (
                 <>
@@ -225,7 +226,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </Button>
               <Button size="sm" onClick={handleConfirmPhoto} disabled={isPhotoUploading}>
                 {isPhotoUploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  <InlineSpinner className="mr-0" />
                 ) : (
                   <Check className="h-3.5 w-3.5 mr-1" />
                 )}
@@ -265,7 +266,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="hidden sm:inline">Cancelar</span>
                 </Button>
                 <Button size="sm" onClick={onSave} disabled={isSaving} className="gap-1.5">
-                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {isSaving ? <InlineSpinner className="mr-0" /> : <Check className="h-4 w-4" />}
                   <span className="hidden sm:inline">{isSaving ? 'Salvando...' : 'Salvar'}</span>
                 </Button>
               </>

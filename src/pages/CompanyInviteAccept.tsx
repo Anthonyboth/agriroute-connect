@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { routeAfterAuth } from '@/lib/route-after-auth';
 import { toast } from 'sonner';
 import { Truck, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { PasswordInput } from '@/components/ui/password-input';
 import { z } from 'zod';
 
@@ -186,7 +187,7 @@ const CompanyInviteAccept: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <AppSpinner size="lg" />
       </div>
     );
   }

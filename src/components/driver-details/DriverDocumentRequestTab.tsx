@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { 
   CheckCircle, 
   XCircle, 
@@ -137,11 +138,7 @@ export const DriverDocumentRequestTab = ({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <CenteredSpinner className="p-8" />;
   }
 
   return (

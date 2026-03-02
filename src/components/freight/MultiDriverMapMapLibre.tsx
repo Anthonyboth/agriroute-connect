@@ -10,7 +10,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTileWatchdog } from '@/hooks/maplibre';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, WifiOff, Users, Loader2 } from 'lucide-react';
+import { MapPin, WifiOff, Users } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useMultiDriverLocations, DriverLocationData } from '@/hooks/useMultiDriverLocations';
 import { useCityCoordinates } from '@/hooks/useCityCoordinates';
 import { useOSRMRoute } from '@/hooks/maplibre';
@@ -419,7 +420,7 @@ export const MultiDriverMapMapLibre: React.FC<MultiDriverMapMapLibreProps> = ({
       {/* Loading */}
       {driversLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-lg">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <AppSpinner />
         </div>
       )}
     </div>

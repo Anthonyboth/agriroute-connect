@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { 
   User, Star, Truck, MapPin, Calendar, Award, CheckCircle, Clock, Loader2, ExternalLink
 } from 'lucide-react';
@@ -179,9 +180,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <CenteredSpinner className="py-12" />
             ) : !profile ? (
               <div className="text-center py-12 text-muted-foreground">
                 <User className="h-12 w-12 mx-auto mb-3 opacity-50" />

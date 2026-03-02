@@ -9,6 +9,7 @@ import { devLog } from '@/lib/devLogger';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Camera, QrCode, Barcode, X, Loader2, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { toast } from 'sonner';
 import { validateNfeKey } from '@/lib/sefaz-errors';
 
@@ -230,7 +231,7 @@ export function NfeCameraQRScanner({ open, onClose, onScan }: NfeCameraQRScanner
           {/* Loading */}
           {!isScanning && !scannedValue && !error && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <AppSpinner className="text-white border-white/20 border-t-white" />
             </div>
           )}
 

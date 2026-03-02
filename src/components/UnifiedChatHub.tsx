@@ -6,7 +6,8 @@ import { useAdvancedChatFilters } from '@/hooks/useAdvancedChatFilters';
 import { ChatConversationCard } from './ChatConversationCard';
 import { ChatModal } from './ChatModal';
 import { AdvancedChatFilters } from './AdvancedChatFilters';
-import { Loader2, MessageSquareOff } from 'lucide-react';
+import { MessageSquareOff } from 'lucide-react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 
 interface UnifiedChatHubProps {
   userProfileId: string;
@@ -48,11 +49,7 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <CenteredSpinner className="h-96" />;
   }
 
   return (

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { AffiliationDirectChat } from '@/components/AffiliationDirectChat';
+import { AppSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { 
   Building2, 
   User, 
@@ -153,7 +154,7 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
 
           {isLoading && (
             <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <AppSpinner />
               <p className="ml-2 text-muted-foreground">Carregando informações...</p>
             </div>
           )}
@@ -363,7 +364,7 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
               >
                 {isLeaving ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <InlineSpinner />
                     Saindo...
                   </>
                 ) : (

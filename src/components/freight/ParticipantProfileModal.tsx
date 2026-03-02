@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { 
   User, 
   Star, 
@@ -133,7 +134,7 @@ export const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = (
           <ScrollArea className="flex-1 min-h-0 px-6">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <AppSpinner />
               </div>
             ) : !profile ? (
               <div className="text-center py-12 text-muted-foreground">

@@ -7,7 +7,8 @@ import { NfeCard } from '@/components/nfe/NfeCard';
 import { BackButton } from '@/components/BackButton';
 import { useNfe } from '@/hooks/useNfe';
 import { NFeDocument } from '@/types/nfe';
-import { Plus, Loader2, FileText } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 
 export default function NfeDashboard() {
   const [showScanner, setShowScanner] = useState(false);
@@ -64,9 +65,7 @@ export default function NfeDashboard() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
+          <CenteredSpinner className="py-16" />
         ) : nfes.length === 0 ? (
           <div className="text-center py-16">
             <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { devLog } from '@/lib/devLogger';
 import { Button } from '@/components/ui/button';
-import { Camera, Flashlight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Camera, Flashlight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { cn } from '@/lib/utils';
 
 interface NfeCameraScannerProps {
@@ -217,7 +218,7 @@ export function NfeCameraScanner({ onKeyDetected, onError, className }: NfeCamer
         {/* Loading */}
         {status === 'idle' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/95">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <AppSpinner size="lg" className="mb-4" />
             <p className="text-sm text-muted-foreground">Iniciando câmera...</p>
           </div>
         )}

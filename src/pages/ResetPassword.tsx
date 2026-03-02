@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, Lock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Lock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { PasswordInput } from '@/components/ui/password-input';
 import { BackButton } from '@/components/BackButton';
 
@@ -110,7 +111,7 @@ const ResetPassword = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <AppSpinner size="sm" />
           <span>Verificando sessão...</span>
         </div>
       </div>
