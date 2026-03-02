@@ -16,7 +16,7 @@ import {
   Navigation,
   MapPin,
   DollarSign,
-  Loader2,
+  
   Building2,
   Link2,
   Calendar,
@@ -1014,10 +1014,7 @@ const CompanyDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     {isLoadingActive ? (
-                      <div className="text-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-                        <p>Carregando fretes ativos...</p>
-                      </div>
+                      <CenteredSpinner />
                     ) : activeFreights.length === 0 ? (
                       <div className="text-center py-8">
                         <Navigation className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -1090,10 +1087,7 @@ const CompanyDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     {isLoadingServices ? (
-                      <div className="text-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-                        <p>Carregando serviços...</p>
-                      </div>
+                      <CenteredSpinner />
                     ) : activeServices.length === 0 ? (
                       <div className="text-center py-8">
                         <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />

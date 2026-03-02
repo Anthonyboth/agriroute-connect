@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useDriverAffiliations } from '@/hooks/useDriverAffiliations';
-import { Building2, MapPin, CheckCircle, XCircle, LogOut, LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import { Building2, MapPin, CheckCircle, XCircle, LogOut, LogIn, AlertCircle } from 'lucide-react';
+import { CenteredSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -28,11 +29,7 @@ export const DriverAffiliationsManager: React.FC = () => {
   } = useDriverAffiliations();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <CenteredSpinner />;
   }
 
   return (
@@ -133,7 +130,7 @@ export const DriverAffiliationsManager: React.FC = () => {
                       >
                         {isLeaving ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            <InlineSpinner />
                             Saindo...
                           </>
                         ) : (
@@ -246,7 +243,7 @@ export const DriverAffiliationsManager: React.FC = () => {
                         >
                           {isRejoining ? (
                             <>
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              <InlineSpinner />
                               Voltando...
                             </>
                           ) : (

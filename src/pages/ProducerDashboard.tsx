@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
-import { AppSpinner } from "@/components/ui/AppSpinner";
+import { AppSpinner, CenteredSpinner } from "@/components/ui/AppSpinner";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -44,7 +44,7 @@ import {
   Star,
   MessageCircle,
   BarChart,
-  Loader2,
+  
   Bike,
   FileText,
   Wrench,
@@ -90,7 +90,7 @@ const RouteRentabilityReport = lazyWithRetry(() =>
 // Loading fallback for chart components - SEM TEXTO (padrão global)
 const ChartLoader = () => (
   <div className="flex items-center justify-center p-12 min-h-[300px]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <AppSpinner />
   </div>
 );
 
@@ -2035,9 +2035,7 @@ const ProducerDashboard = () => {
             </div>
 
             {pendingDeliveryLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <CenteredSpinner />
             ) : pendingDeliveryItems.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
