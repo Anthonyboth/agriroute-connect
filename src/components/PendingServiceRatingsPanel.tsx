@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Calendar } from 'lucide-react';
+import { Star, Calendar, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { ServiceAutoRatingModal } from './ServiceAutoRatingModal';
 import { useServiceRatingSubmit } from '@/hooks/useServiceRatingSubmit';
 import { appTexts } from '@/lib/app-texts';
@@ -217,31 +218,49 @@ export const PendingServiceRatingsPanel: React.FC = () => {
               const otherUserName = isServiceClient 
                 ? service.provider_name 
                 : service.client_name;
+              const otherUserRole = isServiceClient ? 'Prestador' : 'Cliente';
 
               return (
-                <div
+                <Card
                   key={service.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                 >
-                  <div className="flex-1">
-                    <p className="font-medium">{service.service_type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isServiceClient ? appTexts.pendingRatings.provider : appTexts.pendingRatings.client}: {otherUserName}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-xs">
+                            {service.service_type}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="p-1.5 rounded-full bg-primary/10">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">{otherUserRole} a ser avaliado</p>
+                            <p className="font-semibold text-base">{otherUserName || 'Não identificado'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
                       <Calendar className="h-3 w-3" />
-                      {new Date(service.updated_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setSelectedService(service)}
-                    disabled={isSubmitting || isSubmittingHook}
-                  >
-                    <Star className="h-4 w-4 mr-2" />
-                    {appTexts.pendingRatings.rateButton}
-                  </Button>
-                </div>
+                      <span>Concluído em {new Date(service.updated_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setSelectedService(service)}
+                      disabled={isSubmitting || isSubmittingHook}
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      Avaliar {otherUserName || otherUserRole}
+                    </Button>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>

@@ -199,47 +199,57 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
                     <Card className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h4 className="font-semibold">{rating.cargoType || 'Frete'}</h4>
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                              <User className="h-3 w-3" />
-                              <span>{getRatingTargetText(rating)}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {rating.cargoType || 'Frete'}
+                              </Badge>
+                              {rating.price && (
+                                <span className="text-sm font-semibold ml-auto">
+                                  R$ {rating.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              )}
                             </div>
+                            
+                            {/* Nome da pessoa a ser avaliada - destaque */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="p-1.5 rounded-full bg-primary/10">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Avaliar</p>
+                                <p className="font-semibold text-base">{getRatingTargetText(rating)}</p>
+                              </div>
+                            </div>
+
                             {/* Badge para indicar transportadora envolvida */}
                             {rating.companyId && rating.pendingTypes.includes('PRODUCER_TO_COMPANY') && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2 ml-9">
                                 <Building2 className="h-3 w-3" />
                                 <span>Inclui avaliação da transportadora</span>
                               </div>
                             )}
                           </div>
-                          {rating.price && (
-                            <div className="text-right">
-                              <p className="font-semibold text-lg">
-                                R$ {rating.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                          )}
                         </div>
 
                         {(rating.originAddress || rating.destinationAddress) && (
-                          <div className="space-y-2 mb-4">
+                          <div className="space-y-1.5 mb-3 ml-9">
                             {rating.originAddress && (
                               <div className="flex items-center gap-2 text-sm">
-                                <MapPin className="h-3 w-3 text-green-600" />
+                                <MapPin className="h-3 w-3 text-green-600 shrink-0" />
                                 <span className="truncate">{rating.originAddress}</span>
                               </div>
                             )}
                             {rating.destinationAddress && (
                               <div className="flex items-center gap-2 text-sm">
-                                <MapPin className="h-3 w-3 text-red-600" />
+                                <MapPin className="h-3 w-3 text-red-600 shrink-0" />
                                 <span className="truncate">{rating.destinationAddress}</span>
                               </div>
                             )}
                           </div>
                         )}
 
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                           <Clock className="h-3 w-3" />
                           <span>Pagamento confirmado em {format(new Date(rating.paymentConfirmedAt), 'dd/MM/yyyy HH:mm')}</span>
                         </div>
