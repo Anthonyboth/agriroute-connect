@@ -446,7 +446,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-4xl h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] p-0 flex flex-col overflow-x-hidden overflow-y-hidden">
+        <DialogContent className="!grid-rows-none !grid-cols-none w-[calc(100vw-1rem)] sm:w-full sm:max-w-4xl h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] p-0 !flex !flex-col !overflow-x-hidden !overflow-y-hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
             <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>
@@ -471,8 +471,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
 
           <div 
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-pb-40"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-pb-40 -webkit-overflow-scrolling-touch"
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
           >
             <div className="px-4 sm:px-6 pb-6" style={{ paddingBottom: 'max(7rem, env(safe-area-inset-bottom, 1.5rem))' }}>
               
