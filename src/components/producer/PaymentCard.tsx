@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { PublicProfileModal } from '@/components/profile/PublicProfileModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -134,6 +135,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   defaultExpanded = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [showProfile, setShowProfile] = useState(false);
   const statusConfig = getStatusConfig(payment.status);
   const StatusIcon = statusConfig.icon;
 
@@ -199,18 +201,36 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 
               {/* Main content: avatar + info + price */}
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                  <Avatar className="h-11 w-11 shrink-0 mt-0.5 ring-2 ring-background shadow-sm">
-                    <SignedAvatarImage src={payment.driver?.profile_photo_url} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                      <User className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
+              <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                  <button
+                    type="button"
+                    className="shrink-0 mt-0.5 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-105"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowProfile(true);
+                    }}
+                    title="Ver perfil do motorista"
+                  >
+                    <Avatar className="h-11 w-11 ring-2 ring-background shadow-sm cursor-pointer">
+                      <SignedAvatarImage src={payment.driver?.profile_photo_url} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                        <User className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
                   
                   <div className="min-w-0 flex-1 space-y-1.5">
-                    <h4 className="font-semibold text-sm text-foreground truncate">
+                    <button
+                      type="button"
+                      className="font-semibold text-sm text-foreground truncate block hover:text-primary hover:underline transition-colors focus:outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowProfile(true);
+                      }}
+                      title="Ver perfil do motorista"
+                    >
                       {payment.driver?.full_name || 'Motorista'}
-                    </h4>
+                    </button>
                     <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                       {formatRoute()}
@@ -290,6 +310,18 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
               <div className="flex flex-col sm:flex-row gap-3 pt-1">
                 <Button
                   variant="outline"
+                  size="sm"
+                  className="h-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowProfile(true);
+                  }}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Ver Perfil
+                </Button>
+                <Button
+                  variant="outline"
                   className="flex-1 h-10"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -318,6 +350,15 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
           </CardContent>
         </CollapsibleContent>
       </Card>
+
+      {/* Modal de perfil público do motorista */}
+      <PublicProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        userId={payment.driver_id}
+        userType="driver"
+        userName={payment.driver?.full_name}
+      />
     </Collapsible>
   );
 };
