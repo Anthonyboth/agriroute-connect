@@ -246,6 +246,40 @@ serve(async (req) => {
           }
         }
       }
+      
+      // Case 6: Generic freight relationship (no freight_id needed)
+      // Check if caller is producer of ANY freight where target is assigned driver, or vice-versa
+      if (!isAuthorized && callerProfileId) {
+        // Check if caller is a producer who has freights assigned to the target
+        const { data: callerFreightsWithTarget } = await adminClient
+          .from('freights')
+          .select('id, freight_assignments!inner(driver_id)')
+          .eq('producer_id', callerProfileId)
+          .eq('freight_assignments.driver_id', user_id)
+          .not('status', 'in', '("COMPLETED","CANCELLED")')
+          .limit(1);
+        
+        if (callerFreightsWithTarget && callerFreightsWithTarget.length > 0) {
+          isAuthorized = true;
+          log('INFO', 'Producer-to-driver generic freight relationship authorized');
+        }
+        
+        // Check reverse: caller is driver assigned to a freight owned by target (producer)
+        if (!isAuthorized) {
+          const { data: targetFreightsWithCaller } = await adminClient
+            .from('freights')
+            .select('id, freight_assignments!inner(driver_id)')
+            .eq('producer_id', user_id)
+            .eq('freight_assignments.driver_id', callerProfileId)
+            .not('status', 'in', '("COMPLETED","CANCELLED")')
+            .limit(1);
+          
+          if (targetFreightsWithCaller && targetFreightsWithCaller.length > 0) {
+            isAuthorized = true;
+            log('INFO', 'Driver-to-producer generic freight relationship authorized');
+          }
+        }
+      }
     }
     
     if (!isAuthorized) {
