@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Flag, MapPin, Phone, DollarSign, Lock } from 'lucide-react';
+import { renderSafeMarkdown, checkClientRateLimit } from '../utils/sanitize';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -47,6 +48,10 @@ export default function ForumThreadPage() {
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyBody.trim() || !id) return;
+    if (!checkClientRateLimit('post', 10)) {
+      toast.error('Aguarde um momento antes de enviar outra resposta.');
+      return;
+    }
     try {
       await createPost.mutateAsync({ threadId: id, body: replyBody.trim() });
       setReplyBody('');
@@ -179,7 +184,7 @@ export default function ForumThreadPage() {
                   {post.is_deleted ? (
                     <p className="italic text-muted-foreground text-sm">[Mensagem removida{post.deleted_reason ? `: ${post.deleted_reason}` : ''}]</p>
                   ) : (
-                    <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{post.body}</div>
+                    <div className="prose prose-sm max-w-none text-foreground" dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(post.body) }} />
                   )}
                 </CardContent>
               </Card>

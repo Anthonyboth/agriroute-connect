@@ -14381,6 +14381,10 @@ export type Database = {
         }[]
       }
       forum_can_access_board: { Args: { p_board_id: string }; Returns: boolean }
+      forum_check_rate_limit: {
+        Args: { p_action: string; p_max_per_minute: number; p_user_id: string }
+        Returns: boolean
+      }
       forum_get_my_profile_id: { Args: never; Returns: string }
       forum_is_admin: { Args: never; Returns: boolean }
       forum_is_banned: { Args: { p_user_id: string }; Returns: boolean }
