@@ -135,16 +135,22 @@ export const ChatLocationRouteModal: React.FC<ChatLocationRouteModalProps> = ({
     map.on('load', async () => {
       // Destination marker (B - red)
       const destEl = document.createElement('div');
-      destEl.innerHTML = `<div style="background:#ef4444;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid white;">B</div>`;
-      new maplibregl.Marker({ element: destEl })
+      destEl.style.width = '32px';
+      destEl.style.height = '32px';
+      destEl.style.cursor = 'pointer';
+      destEl.innerHTML = `<div style="background:#ef4444;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid white;pointer-events:auto;">B</div>`;
+      new maplibregl.Marker({ element: destEl, anchor: 'center' })
         .setLngLat([destinationLng, destinationLat])
         .addTo(map);
 
       // Origin marker (A - green) if we have user location
       if (myLoc) {
         const originEl = document.createElement('div');
-        originEl.innerHTML = `<div style="background:#22c55e;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid white;">A</div>`;
-        new maplibregl.Marker({ element: originEl })
+        originEl.style.width = '32px';
+        originEl.style.height = '32px';
+        originEl.style.cursor = 'pointer';
+        originEl.innerHTML = `<div style="background:#22c55e;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid white;pointer-events:auto;">A</div>`;
+        new maplibregl.Marker({ element: originEl, anchor: 'center' })
           .setLngLat([myLoc.lng, myLoc.lat])
           .addTo(map);
 
@@ -188,7 +194,7 @@ export const ChatLocationRouteModal: React.FC<ChatLocationRouteModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden">
+      <DialogContent className="max-w-lg p-0 overflow-visible [&>div]:overflow-visible">
         <DialogHeader className="p-4 pb-2">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Navigation className="h-5 w-5 text-primary" />
