@@ -10,7 +10,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FEATURE_FORUM } from '@/modules/forum/config';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { UserProfileModal } from '@/components/UserProfileModal';
@@ -42,6 +44,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
   userProfile
 }) => {
   const { hasMultiple: hasMultipleProfiles } = useHasMultipleProfiles();
+  const navigateTo = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -79,7 +82,8 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
     ...(hasMultipleProfiles && user.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
-  ], [user.role]);
+    ...(FEATURE_FORUM ? [{ icon: MessageSquare, label: 'Fórum', action: () => navigateTo('/forum') }] : []),
+  ], [user.role, navigateTo]);
 
   // Memoized handlers
   const handleNotificationClick = useCallback(() => {

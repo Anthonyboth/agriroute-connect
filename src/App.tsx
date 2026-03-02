@@ -116,6 +116,9 @@ const AdminLogin = lazyWithRetry(() => import("./pages/AdminLogin"), { retries: 
 const AdminAnnouncementsManager = lazy(() => import("./pages/AdminAnnouncementsManager"));
 const AdminMaintenancePanel = lazy(() => import("./pages/AdminMaintenancePanel"));
 
+// ✅ FORUM MODULE (isolated)
+import { ForumRoutes } from '@/modules/forum/ForumRoutes';
+
 // ✅ CRITICAL DASHBOARDS: Use lazyWithRetry with 3 retries for robustness
 const ProducerDashboard = lazyWithRetry(() => import("./pages/ProducerDashboard"), { 
   retries: 3, 
@@ -1141,6 +1144,12 @@ const App = () => {
                           <Suspense fallback={<ComponentLoader />}> 
                             <InspectionView />
                           </Suspense>
+                        } />
+                        {/* Forum Module (isolated) */}
+                        <Route path="/forum/*" element={
+                          <ProtectedRoute requiresAuth>
+                            <ForumRoutes />
+                          </ProtectedRoute>
                         } />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<SmartFallback />} />
