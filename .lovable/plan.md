@@ -1,18 +1,25 @@
 
-## Problem
 
-The close button on the "Motorista Afiliado" banner (CompanyDriverBadge) exists in code with an X icon, but visually the X is not appearing in the deployed version. The button shows as a small empty circle.
+## Problema
 
-## Root Cause
+O ícone atual tem fundo verde + quadrado branco, criando um visual "dupla moldura" feio no iOS. O iOS pega a imagem inteira e aplica a máscara arredondada por cima.
 
-The button at line 50-57 of `CompanyDriverBadge.tsx` already has `<X className="h-4 w-4" strokeWidth={3} />` with `text-white` and `bg-destructive`. The icon may not be rendering due to CSS specificity issues or the SVG stroke color being overridden.
+## Solução
 
-## Fix
+1. **Gerar um novo ícone 1024x1024** com:
+   - Fundo 100% branco preenchendo toda a imagem
+   - Logo AgriRoute (folha verde) centralizado, ocupando ~60-70% do espaço
+   - Sem bordas, sem fundo verde externo
 
-Make the X icon more explicitly visible by:
+2. **Substituir `public/app-icon.png`** com a nova imagem
 
-1. **Add explicit color to the X icon itself** -- use `text-white` directly on the `<X>` component and add `!important` via inline style or explicit `stroke` prop
-2. **Increase button size slightly** from `h-7 w-7` to `h-8 w-8` for better visibility
-3. **Add a shadow** to make it stand out more against the light background
+3. **No Xcode**: arrastar novamente para o AppIcon slot
 
-Single file change: `src/components/CompanyDriverBadge.tsx`, lines 50-57.
+## Opções de implementação
+
+**Opção A** — Usar a API de geração de imagem para criar automaticamente o ícone com fundo branco e o logo centralizado.
+
+**Opção B** — Você edita manualmente a imagem em qualquer editor (Canva, Figma, Preview) colocando fundo branco e envia novamente.
+
+Recomendo a **Opção A** — posso gerar o ícone correto automaticamente.
+
