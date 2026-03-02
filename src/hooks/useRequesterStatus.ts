@@ -133,30 +133,86 @@ export function useRequesterStatus(
     }
   }, [localResolution]);
 
-  // ✅ Fetch da API apenas se não conseguimos resolver localmente
+  // ✅ Fetch direto do banco como primeira tentativa, edge function como fallback
   const fetchStatus = useCallback(async (signal?: AbortSignal) => {
     if (!freightId) return;
-    if (localResolution) return; // Já resolvemos localmente
+    if (localResolution) return;
 
     setStatus(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Verificar se já foi abortado antes de iniciar
       if (signal?.aborted) return;
 
-      const { data, error } = await supabase.functions.invoke('check-freight-requester', {
+      // ✅ PASSO 1: Buscar direto do banco (rápido, sem edge function)
+      const { data: freightData } = await supabase
+        .from('freights')
+        .select('producer_id, is_guest_freight')
+        .eq('id', freightId)
+        .maybeSingle();
+
+      if (signal?.aborted) return;
+
+      if (freightData?.is_guest_freight) {
+        setStatus({
+          type: 'GUEST',
+          hasRegistration: false,
+          producerId: freightData.producer_id ?? null,
+          producerName: null,
+          producerStatus: null,
+          producerPhotoUrl: null,
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
+
+      if (freightData?.producer_id) {
+        // Buscar dados do produtor direto da view segura
+        const { data: producerData } = await supabase
+          .from('profiles_secure')
+          .select('id, full_name, status, profile_photo_url')
+          .eq('id', freightData.producer_id)
+          .maybeSingle();
+
+        if (signal?.aborted) return;
+
+        if (producerData) {
+          setStatus({
+            type: 'REGISTERED',
+            hasRegistration: true,
+            producerId: producerData.id,
+            producerName: producerData.full_name ?? null,
+            producerStatus: producerData.status ?? null,
+            producerPhotoUrl: producerData.profile_photo_url ?? null,
+            isLoading: false,
+            error: null,
+          });
+          return;
+        }
+      }
+
+      // ✅ PASSO 2: Fallback para edge function com timeout de 8s
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('timeout')), 8000)
+      );
+
+      const fetchPromise = supabase.functions.invoke('check-freight-requester', {
         body: { freight_id: freightId },
       });
 
-      // Verificar abort após a resposta
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
       if (signal?.aborted) return;
 
       if (error) {
-        console.error('[useRequesterStatus] Error fetching:', error);
+        console.error('[useRequesterStatus] Edge function error:', error);
         setStatus(prev => ({
           ...prev,
           isLoading: false,
-          error: error.message || 'Erro ao verificar solicitante',
+          type: freightData?.producer_id ? 'REGISTERED' : 'UNKNOWN',
+          hasRegistration: !!freightData?.producer_id,
+          producerId: freightData?.producer_id ?? null,
+          error: null, // Don't show error to user
         }));
         return;
       }
@@ -169,7 +225,7 @@ export function useRequesterStatus(
           producerId: requester.producer_id ?? null,
           producerName: requester.producer_name ?? null,
           producerStatus: requester.producer_status ?? null,
-          producerPhotoUrl: null, // API não retorna foto atualmente
+          producerPhotoUrl: null,
           isLoading: false,
           error: null,
         });
@@ -177,17 +233,17 @@ export function useRequesterStatus(
         setStatus(prev => ({
           ...prev,
           isLoading: false,
-          error: data?.error || 'Resposta inválida',
+          error: null,
         }));
       }
     } catch (err: any) {
-      // ✅ Silenciar AbortError (cleanup normal de useEffect)
       if (err.name === 'AbortError' || signal?.aborted) return;
-      console.error('[useRequesterStatus] Exception:', err);
+      console.warn('[useRequesterStatus] Fallback:', err.message);
+      // ✅ Nunca ficar preso em isLoading=true
       setStatus(prev => ({
         ...prev,
         isLoading: false,
-        error: err.message || 'Erro de conexão',
+        error: null,
       }));
     }
   }, [freightId, localResolution]);
