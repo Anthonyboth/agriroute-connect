@@ -1207,6 +1207,42 @@ export type Database = {
         }
         Relationships: []
       }
+      city_id_mismatch_logs: {
+        Row: {
+          city_name: string | null
+          correct_city_id: string | null
+          corrected_at: string | null
+          field_name: string
+          freight_id: string | null
+          id: string
+          operation: string | null
+          state: string | null
+          wrong_city_id: string | null
+        }
+        Insert: {
+          city_name?: string | null
+          correct_city_id?: string | null
+          corrected_at?: string | null
+          field_name: string
+          freight_id?: string | null
+          id?: string
+          operation?: string | null
+          state?: string | null
+          wrong_city_id?: string | null
+        }
+        Update: {
+          city_name?: string | null
+          correct_city_id?: string | null
+          corrected_at?: string | null
+          field_name?: string
+          freight_id?: string | null
+          id?: string
+          operation?: string | null
+          state?: string | null
+          wrong_city_id?: string | null
+        }
+        Relationships: []
+      }
       company_driver_chats: {
         Row: {
           chat_closed_by: Json | null
