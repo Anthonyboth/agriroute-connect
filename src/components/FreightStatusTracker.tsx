@@ -198,10 +198,8 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         .eq('freight_id', freightId)
         .order('created_at', { ascending: true });
 
-      // ✅ Multi-truck driver view: show ONLY this driver's history to avoid mixing other drivers
-      if (isDriver && isMultiTruck && driverId) {
-        query = query.eq('changed_by', driverId);
-      }
+      // ✅ REGRA: Mostrar SEMPRE todo o histórico do frete para todos os participantes
+      // Nunca filtrar por changed_by — o histórico completo é prova e deve ser visível.
 
       const { data, error } = await query;
 
@@ -635,7 +633,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           ) : (
             <FreightStatusHistory
               freightId={freightId}
-              driverId={isDriver ? currentUserProfile?.id : undefined}
+              driverId={undefined}
             />
           )}
         </CardContent>
