@@ -21,17 +21,17 @@ export function ForumIcon({ className = '', size = 24, color = 'currentColor', s
       strokeLinejoin="round"
       className={className}
     >
-      {/* Speech bubble on top */}
-      <path d="M12 3h5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1l-2 2-2-2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5z" />
+      {/* Speech bubble */}
+      <path d="M8 2h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2l-2 2-2-2H8a2 2 0 0 1-2-2V4a2 2 0 1 1 2-2z" />
       {/* Left person */}
-      <circle cx="6" cy="15" r="2" />
-      <path d="M2 21a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4" />
+      <circle cx="5" cy="15.5" r="1.5" />
+      <path d="M2.5 21a2.5 2.5 0 0 1 5 0" />
       {/* Center person */}
-      <circle cx="12" cy="15" r="2" />
-      <path d="M8 21a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4" />
+      <circle cx="12" cy="15.5" r="1.5" />
+      <path d="M9.5 21a2.5 2.5 0 0 1 5 0" />
       {/* Right person */}
-      <circle cx="18" cy="15" r="2" />
-      <path d="M14 21a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4" />
+      <circle cx="19" cy="15.5" r="1.5" />
+      <path d="M16.5 21a2.5 2.5 0 0 1 5 0" />
     </svg>
   );
 }
