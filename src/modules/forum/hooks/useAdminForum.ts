@@ -29,7 +29,10 @@ export function useAdminSaveCategory() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-forum-categories'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-forum-categories'] });
+      qc.invalidateQueries({ queryKey: ['forum-categories'] });
+    },
   });
 }
 
@@ -40,7 +43,10 @@ export function useAdminDeleteCategory() {
       const { error } = await supabase.from('forum_categories').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-forum-categories'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-forum-categories'] });
+      qc.invalidateQueries({ queryKey: ['forum-categories'] });
+    },
   });
 }
 
@@ -72,7 +78,10 @@ export function useAdminSaveBoard() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-forum-boards'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-forum-boards'] });
+      qc.invalidateQueries({ queryKey: ['forum-categories'] });
+    },
   });
 }
 

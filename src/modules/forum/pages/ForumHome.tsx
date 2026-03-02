@@ -292,14 +292,20 @@ export default function ForumHome() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Categoria *</Label>
-              <Select value={boardCategoryId} onValueChange={setBoardCategoryId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  {(allCategories || categories || []).map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {(allCategories || categories || []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma categoria encontrada. <button type="button" className="underline text-primary" onClick={() => { setShowNewBoard(false); setShowNewCategory(true); }}>Crie uma categoria primeiro.</button>
+                </p>
+              ) : (
+                <Select value={boardCategoryId} onValueChange={setBoardCategoryId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent position="popper" className="z-[9999]">
+                    {(allCategories || categories || []).map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Nome *</Label>
