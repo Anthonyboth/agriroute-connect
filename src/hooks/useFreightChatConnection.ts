@@ -332,25 +332,65 @@ export function useFreightChatConnection({
 
   // Determinar target_driver_id com base em quem é o sender
   // Usa resolvedDriverId que pode vir de freights.driver_id OU freight_assignments
-  const getTargetDriverId = useCallback((): string | null => {
+  // Se ambos forem null, faz query em tempo real como fallback
+  const getTargetDriverId = useCallback(async (): Promise<string | null> => {
     if (!freightInfo || !currentUserProfileId) return null;
-    const driverId = freightInfo.driver_id || resolvedDriverId;
+    
+    let driverId = freightInfo.driver_id || resolvedDriverId;
+    
+    // Fallback: se driver_id não está disponível, buscar em tempo real
+    if (!driverId && freightId) {
+      console.warn(`[FreightChat] driver_id null, buscando fallback em tempo real (freightId=${freightId})`);
+      
+      // Tentar buscar driver_id atualizado diretamente do frete
+      const { data: freshFreight } = await supabase
+        .from('freights')
+        .select('driver_id')
+        .eq('id', freightId)
+        .single();
+      
+      if (freshFreight?.driver_id) {
+        driverId = freshFreight.driver_id;
+        if (isMountedRef.current) {
+          setResolvedDriverId(driverId);
+          setFreightInfo(prev => prev ? { ...prev, driver_id: driverId } : prev);
+        }
+      }
+      
+      // Se ainda null, buscar via freight_assignments
+      if (!driverId) {
+        const { data: assignments } = await supabase
+          .from('freight_assignments')
+          .select('driver_id')
+          .eq('freight_id', freightId)
+          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED'])
+          .limit(1);
+        
+        if (assignments && assignments.length > 0 && assignments[0].driver_id) {
+          driverId = assignments[0].driver_id;
+          if (isMountedRef.current) {
+            setResolvedDriverId(driverId);
+          }
+        }
+      }
+    }
+    
     // Se o sender é o produtor, o target é o motorista
     if (currentUserProfileId === freightInfo.producer_id) {
       return driverId || null;
     }
     // Se o sender é o motorista (ou empresa), o target é ele mesmo (driver do frete)
     return driverId || currentUserProfileId;
-  }, [freightInfo, currentUserProfileId, resolvedDriverId]);
+  }, [freightInfo, currentUserProfileId, resolvedDriverId, freightId]);
 
   // Enviar mensagem de texto
   const sendTextMessage = useCallback(async (text: string): Promise<boolean> => {
     if (!text.trim() || !currentUserProfileId || !freightId) return false;
 
-    const targetDriverId = getTargetDriverId();
+    const targetDriverId = await getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível (freightId=${freightId}, driver_id=${freightInfo?.driver_id}, resolvedDriverId=${resolvedDriverId})`);
-      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
+      toast.error('Não foi possível identificar o motorista deste frete. Tente recarregar a página.', { id: 'no-driver-chat' });
       return false;
     }
 
@@ -384,10 +424,10 @@ export function useFreightChatConnection({
   ): Promise<boolean> => {
     if (!currentUserProfileId || !freightId) return false;
 
-    const targetDriverId = getTargetDriverId();
+    const targetDriverId = await getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível para mídia (freightId=${freightId}, driver_id=${freightInfo?.driver_id}, resolvedDriverId=${resolvedDriverId})`);
-      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
+      toast.error('Não foi possível identificar o motorista deste frete. Tente recarregar a página.', { id: 'no-driver-chat' });
       return false;
     }
 
@@ -437,10 +477,10 @@ export function useFreightChatConnection({
   ): Promise<boolean> => {
     if (!currentUserProfileId || !freightId) return false;
 
-    const targetDriverId = getTargetDriverId();
+    const targetDriverId = await getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível para localização (freightId=${freightId})`);
-      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
+      toast.error('Não foi possível identificar o motorista deste frete. Tente recarregar a página.', { id: 'no-driver-chat' });
       return false;
     }
 
@@ -477,10 +517,10 @@ export function useFreightChatConnection({
   ): Promise<boolean> => {
     if (!currentUserProfileId || !freightId) return false;
 
-    const targetDriverId = getTargetDriverId();
+    const targetDriverId = await getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível para sistema (freightId=${freightId})`);
-      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
+      toast.error('Não foi possível identificar o motorista deste frete. Tente recarregar a página.', { id: 'no-driver-chat' });
       return false;
     }
 
