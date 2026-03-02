@@ -350,7 +350,7 @@ export function useFreightChatConnection({
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível (freightId=${freightId}, driver_id=${freightInfo?.driver_id}, resolvedDriverId=${resolvedDriverId})`);
-      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
+      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
       return false;
     }
 
@@ -387,7 +387,7 @@ export function useFreightChatConnection({
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível para mídia (freightId=${freightId}, driver_id=${freightInfo?.driver_id}, resolvedDriverId=${resolvedDriverId})`);
-      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
+      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
       return false;
     }
 
@@ -440,7 +440,7 @@ export function useFreightChatConnection({
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível para localização (freightId=${freightId})`);
-      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
+      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
       return false;
     }
 
@@ -480,7 +480,7 @@ export function useFreightChatConnection({
     const targetDriverId = getTargetDriverId();
     if (!targetDriverId) {
       console.warn(`[FreightChat] target_driver_id não disponível para sistema (freightId=${freightId})`);
-      toast.error(`Erro: motorista não identificado no frete ${freightId?.slice(0, 8)}...`);
+      toast.error('Nenhum motorista aceito neste frete ainda. Aguarde a aceitação para enviar mensagens.', { id: 'no-driver-chat' });
       return false;
     }
 
