@@ -380,7 +380,7 @@ const AdminPanel = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen min-h-[100dvh] flex w-full bg-gray-50">
         <AdminSidebar activeItem={activeItem} setActiveItem={setActiveItem} />
         
         <div className="flex-1 flex flex-col">

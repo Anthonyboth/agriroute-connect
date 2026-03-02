@@ -73,7 +73,7 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
           </TabsList>
 
           <TabsContent value={filters.status} className="mt-4">
-            <ScrollArea className="h-[calc(100vh-280px)]">
+            <ScrollArea className="h-[calc(100dvh-280px)]">
               {filteredConversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <MessageSquareOff className="h-12 w-12 text-muted-foreground mb-4" />

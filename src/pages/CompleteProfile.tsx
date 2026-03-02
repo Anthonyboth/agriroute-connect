@@ -738,7 +738,7 @@ const CompleteProfile = () => {
   const progress = (safeCurrentStep / totalSteps) * 100;
 
   return (
-    <div className="min-h-screen bg-background py-8">
+    <div className="min-h-screen min-h-[100dvh] bg-background py-8">
       <div className="container max-w-2xl mx-auto px-4">
         <Card>
           <CardHeader className="text-center">

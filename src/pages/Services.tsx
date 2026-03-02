@@ -61,7 +61,7 @@ const Services: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen min-h-[100dvh] bg-background">
       <Header 
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as any) || 'GUEST' }}
         onMenuClick={handleMenuClick}

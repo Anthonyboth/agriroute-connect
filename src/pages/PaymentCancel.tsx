@@ -43,7 +43,7 @@ export default function PaymentCancel() {
   const cancelInfo = getCancelMessage();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-destructive/5 to-muted/10 p-4">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-destructive/5 to-muted/10 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mb-4">

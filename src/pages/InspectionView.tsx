@@ -94,7 +94,7 @@ export default function InspectionView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen min-h-[100dvh] bg-background flex items-center justify-center p-4">
         <CenteredSpinner size="lg" />
       </div>
     );
@@ -102,7 +102,7 @@ export default function InspectionView() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen min-h-[100dvh] bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-lg border-destructive">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
@@ -133,7 +133,7 @@ export default function InspectionView() {
   const statusColor = COMPLIANCE_STATUS_COLORS[data.compliance_status] || '';
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen min-h-[100dvh] bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header com Logo e Disclaimer */}
         <Card>

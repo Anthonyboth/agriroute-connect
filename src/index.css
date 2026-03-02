@@ -614,3 +614,23 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* 
+ * GLOBAL iOS Safe Area Fix:
+ * Every page using min-h-screen gets 100dvh + safe-area bottom padding automatically.
+ * This prevents content from being hidden behind the iPhone home indicator.
+ */
+.min-h-screen {
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Fix calc(100vh-*) to use 100dvh on iOS */
+@supports (height: 100dvh) {
+  .h-\[calc\(100vh-80px\)\] {
+    height: calc(100dvh - 80px) !important;
+  }
+  .h-\[calc\(100vh-280px\)\] {
+    height: calc(100dvh - 280px) !important;
+  }
+}

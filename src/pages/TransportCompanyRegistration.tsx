@@ -212,7 +212,7 @@ const TransportCompanyRegistration: React.FC = () => {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-10">
+    <main className="min-h-screen min-h-[100dvh] bg-background px-4 py-10">
       <section className="max-w-2xl mx-auto">
         <header className="mb-6">
           <BackButton label="Voltar" className="mb-4" />
