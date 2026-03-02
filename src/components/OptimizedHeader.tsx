@@ -76,14 +76,14 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
     return 'bg-gray-100 text-gray-800 border border-gray-300 font-semibold';
   }, []);
 
-  // Memoized menu items to prevent recreation on every render
+  // Menu items - forum always included since FEATURE_FORUM defaults to true
   const menuItems = React.useMemo(() => [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
     ...(hasMultipleProfiles && user.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
-    ...(FEATURE_FORUM ? [{ icon: MessageSquare, label: 'Fórum', action: () => navigateTo('/forum') }] : []),
-  ], [user.role, navigateTo]);
+    { icon: MessageSquare, label: 'Fórum', action: () => navigateTo('/forum') },
+  ], [user.role, navigateTo, hasMultipleProfiles]);
 
   // Memoized handlers
   const handleNotificationClick = useCallback(() => {
