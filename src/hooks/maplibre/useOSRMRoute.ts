@@ -166,11 +166,28 @@ export function useOSRMRoute({
         if (fetchErr.name === 'AbortError') {
           return null; // Silenciar AbortError antes que vire unhandled rejection
         }
-        throw fetchErr;
+        // Network errors (Failed to fetch) — fallback silencioso, não reportar ao Telegram
+        console.warn('[useOSRMRoute] Network error (OSRM server unreachable):', fetchErr.message);
+        return null;
       });
 
-      // Se foi abortado, sair silenciosamente
-      if (!response) return;
+      // Se foi abortado ou falhou na rede, usar fallback silencioso
+      if (!response) {
+        if (origin && destination) {
+          setRoute({
+            coordinates: [
+              [origin.lng, origin.lat],
+              [destination.lng, destination.lat],
+            ],
+            distance: 0,
+            duration: 0,
+            distanceText: 'N/A',
+            durationText: 'N/A',
+          });
+        }
+        setIsLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`OSRM error: ${response.status}`);
