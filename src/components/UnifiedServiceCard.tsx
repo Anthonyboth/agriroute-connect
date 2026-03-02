@@ -148,7 +148,7 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
                 {typeConfig.label}
               </h3>
               <span className="text-[11px] text-muted-foreground">
-                #{sr.id?.slice(0, 8)}
+                ID #{sr.id?.slice(0, 8)}
               </span>
             </div>
           </div>

@@ -65,9 +65,12 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
       <Card className="h-full flex flex-col overflow-hidden">
         <CardHeader className="space-y-3 pb-3">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-lg font-semibold truncate flex-1">
-              {getCargoTypeLabel(freight.cargo_type)}
-            </CardTitle>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg font-semibold truncate">
+                {getCargoTypeLabel(freight.cargo_type)}
+              </CardTitle>
+              <span className="text-[11px] text-muted-foreground">ID #{freight.id?.slice(0, 8)}</span>
+            </div>
             {badgeInfo && (() => {
               const iconMap = { AlertTriangle, Clock, Calendar };
               const IconComponent = iconMap[badgeInfo.icon];

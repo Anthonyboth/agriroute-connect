@@ -236,9 +236,12 @@ export const UrbanFreightCard: React.FC<UrbanFreightCardProps> = ({
           {/* ROW 1: Icon + Title */}
           <div className="flex items-center gap-2">
             {getIcon()}
-            <h3 className="font-semibold text-foreground text-base">
-              {getTitle()}
-            </h3>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-foreground text-base">
+                {getTitle()}
+              </h3>
+              <span className="text-[11px] text-muted-foreground">ID #{sr.id?.slice(0, 8)}</span>
+            </div>
           </div>
 
           {/* ROW 2: Status Badges */}
