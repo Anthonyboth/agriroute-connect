@@ -94,7 +94,7 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
         .from('company_drivers')
         .select('driver_profile_id')
         .eq('company_id', company.id)
-        .in('status', ['active', 'ACTIVE']);
+        .eq('status', 'ACTIVE');
 
       if (driversError) {
         console.error('[useCompanyPayments] Error fetching affiliated drivers:', driversError);
@@ -203,7 +203,7 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
         .select('id, can_accept_freights')
         .eq('company_id', company.id)
         .eq('driver_profile_id', driverId)
-        .in('status', ['active', 'ACTIVE'])
+        .eq('status', 'ACTIVE')
         .maybeSingle();
 
       if (affError || !affiliation) {
