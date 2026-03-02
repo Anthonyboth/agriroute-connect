@@ -432,8 +432,10 @@ export function CreateFreightWizard({
     setLoading(true);
 
     try {
-      const originCityId = formData.origin_city_id || await getCityId(formData.origin_city, formData.origin_state);
-      const destinationCityId = formData.destination_city_id || await getCityId(formData.destination_city, formData.destination_state);
+      // SEMPRE resolver city_id fresco a partir do nome — nunca confiar no ID pré-existente
+      // Isso previne mismatches onde o usuário muda a cidade mas o ID antigo permanece
+      const originCityId = await getCityId(formData.origin_city, formData.origin_state) || formData.origin_city_id;
+      const destinationCityId = await getCityId(formData.destination_city, formData.destination_state) || formData.destination_city_id;
 
       const totalWeightTonnes = parseFloat(formData.weight);
       const totalWeightKg = convertWeightToKg(totalWeightTonnes);
