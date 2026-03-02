@@ -1792,10 +1792,9 @@ const DriverDashboard = () => {
   }, [profile?.id, hasCounterProposed, fetchCounterOffers]);
 
   // ✅ Filtrar assignments ativos usando função canônica isFinalStatus + filtro de data
+  // ✅ Filtrar assignments ativos: NUNCA filtrar por data se já está em progresso
+  // Padrão documentado: visibilidade determinada por ausência de status terminal, ignorando pickup_date
   const activeAssignments = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     return (myAssignments || []).filter(assignment => {
       if (!assignment) return false;
       
@@ -1808,15 +1807,7 @@ const DriverDashboard = () => {
       // Excluir de "Em Andamento" se qualquer um for final
       if (freightFinal || assignmentFinal) return false;
       
-      // Filtrar por data: só mostrar em "Em Andamento" se pickup_date <= hoje
-      const pickupDate = assignment.freight?.pickup_date;
-      if (pickupDate) {
-        const date = new Date(pickupDate);
-        date.setHours(0, 0, 0, 0);
-        return date <= today;
-      }
-      
-      return true; // Se não tem pickup_date, manter comportamento anterior
+      return true;
     });
   }, [myAssignments]);
 
