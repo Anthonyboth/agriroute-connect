@@ -313,6 +313,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               {getServiceIcon()}
               <div className="min-w-0">
                 <h3 className="font-bold text-foreground text-base truncate">{getServiceLabel()}</h3>
+                <span className="text-[11px] text-muted-foreground">ID #{freight.id?.slice(0, 8)}</span>
                 {pickupRemaining && (
                   <p className={`text-xs mt-0.5 ${pickupIsUrgent ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
                     {pickupIsUrgent && <AlertTriangle className="h-3 w-3 inline mr-1" />}
