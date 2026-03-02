@@ -31,6 +31,9 @@ const AdminCompanies = lazy(() => import('@/components/admin-panel/AdminCompanie
 const AdminServices = lazy(() => import('@/components/admin-panel/AdminServices'));
 const AdminNotifications = lazy(() => import('@/components/admin-panel/AdminNotifications'));
 
+// ✅ FORUM ADMIN MODULE (isolated)
+import { AdminForumRoutes } from '@/modules/forum/admin/AdminForumRoutes';
+
 const AdminPanelV2 = () => {
   const { adminUser, isAdmin, isSuperAdmin, loading, error } = useAdminAuth();
   const { signOut } = useAuth();
@@ -103,6 +106,7 @@ const AdminPanelV2 = () => {
               <Route path="notificacoes" element={<AdminNotifications />} />
               <Route path="riscos" element={<AdminRiskManagement />} />
               <Route path="auditoria" element={<AdminAuditLogs />} />
+              <Route path="forum/*" element={<AdminForumRoutes />} />
               {isSuperAdmin && (
                 <>
                   <Route path="relatorios" element={<AdminReports />} />
