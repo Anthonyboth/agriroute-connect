@@ -56,6 +56,8 @@ export interface FreightAssignmentHistoryItem {
   destination_state: string | null;
   cargo_type: string | null;
   created_at: string;
+  pricing_type: string | null;
+  price_per_km: number | null;
   // Campos de confirmação (adicionados via migração)
   delivery_confirmed_at: string | null;
   payment_confirmed_by_producer_at: string | null;

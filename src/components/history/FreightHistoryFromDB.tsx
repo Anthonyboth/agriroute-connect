@@ -368,14 +368,27 @@ const AssignmentHistoryCard: React.FC<{ item: FreightAssignmentHistoryItem }> = 
             </div>
             <CardDescription className="text-xs">
               {item.distance_km > 0 && `${item.distance_km} km`}
-              {item.weight_per_truck > 0 && ` • ${item.weight_per_truck} kg`}
+              {item.weight_per_truck > 0 && ` • ${Math.round(item.weight_per_truck).toLocaleString('pt-BR')} kg`}
             </CardDescription>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-primary">
-              {formatBRL(item.agreed_price)}
-            </p>
-            <p className="text-xs text-muted-foreground">por viagem</p>
+            {item.pricing_type === 'PER_TON' && item.price_per_km > 0 ? (
+              <>
+                <p className="text-lg font-bold text-primary">
+                  {formatBRL(item.price_per_km)}
+                </p>
+                <p className="text-xs text-muted-foreground">por tonelada</p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-primary">
+                  {formatBRL(item.agreed_price)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {item.pricing_type === 'PER_KM' ? 'por km' : 'por viagem'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </CardHeader>
