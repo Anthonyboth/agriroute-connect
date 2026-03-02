@@ -89,6 +89,20 @@ export function useNotificationNavigation() {
           },
         };
 
+      // ============ CANCELAMENTOS ============
+      case 'freight_cancelled':
+      case 'freight_auto_cancelled':
+        if (!data?.freight_id) return null;
+        return {
+          route: dashboardRoute,
+          state: {
+            showCancelledFreightInfo: data.freight_id,
+            cancellationReason: data.cancellation_reason,
+            cancelledAt: data.cancelled_at,
+            notificationType: type,
+          },
+        };
+
       // ============ CHAT DE FRETE OU SERVIÇO ============
       case 'chat_message':
         // Se tem service_request_id (chat de serviço), redirecionar para aba de chat de serviço
