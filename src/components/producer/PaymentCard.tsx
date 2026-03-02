@@ -170,58 +170,63 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <Card className={`transition-all duration-200 ${statusConfig.bgColor} ${isExpanded ? 'shadow-md' : 'hover:shadow-sm'}`}>
+      <Card className={`transition-all duration-200 border ${isExpanded ? 'shadow-md ring-1 ring-border' : 'hover:shadow-sm'} bg-card`}>
         <CollapsibleTrigger asChild>
           <div className="cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-4">
-                {/* Avatar e Info Principal */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <Avatar className="h-10 w-10 shrink-0">
+            <CardContent className="p-5 sm:p-6">
+              {/* Top row: cargo badge + status */}
+              <div className="flex items-center justify-between mb-4">
+                {payment.freight?.cargo_type && (
+                  <Badge variant="outline" className="text-xs font-medium bg-orange-500/[0.06] border-orange-200 text-orange-700">
+                    <Package className="h-3 w-3 mr-1.5" />
+                    {payment.freight.cargo_type}
+                  </Badge>
+                )}
+                <Badge 
+                  variant={statusConfig.variant}
+                  className={`text-xs font-medium ${
+                    normalizeStatus(payment.status) === 'completed' 
+                      ? 'bg-emerald-500/[0.08] text-emerald-700 border-emerald-200' 
+                      : normalizeStatus(payment.status) === 'paid_by_producer' 
+                        ? 'bg-orange-500/[0.08] text-orange-700 border-orange-200' 
+                        : 'bg-blue-500/[0.08] text-blue-700 border-blue-200'
+                  }`}
+                >
+                  <StatusIcon className="h-3 w-3 mr-1" />
+                  {statusConfig.label}
+                </Badge>
+              </div>
+
+              {/* Main content: avatar + info + price */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                  <Avatar className="h-11 w-11 shrink-0 mt-0.5 ring-2 ring-background shadow-sm">
                     <SignedAvatarImage src={payment.driver?.profile_photo_url} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                       <User className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                   
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-sm truncate">
-                        {payment.driver?.full_name || 'Motorista'}
-                      </h4>
-                      {payment.freight?.cargo_type && (
-                        <Badge variant="outline" className="shrink-0 text-xs">
-                          <Package className="h-3 w-3 mr-1" />
-                          {payment.freight.cargo_type}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                      <MapPin className="h-3 w-3 shrink-0" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <h4 className="font-semibold text-sm text-foreground truncate">
+                      {payment.driver?.full_name || 'Motorista'}
+                    </h4>
+                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                       {formatRoute()}
                     </p>
                   </div>
                 </div>
 
-                {/* Valor e Status — ✅ SEMPRE preço unitário canônico, NUNCA payment.amount */}
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right">
-                    <p className="font-bold text-base">
-                      {preco && !preco.invalid ? preco.primaryText : 'Preço indisponível'}
-                    </p>
-                    <Badge 
-                      variant={statusConfig.variant}
-                      className={`text-xs ${payment.status === 'completed' ? 'bg-green-100 text-green-800' : payment.status === 'paid_by_producer' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}
-                    >
-                      <StatusIcon className="h-3 w-3 mr-1" />
-                      {statusConfig.label}
-                    </Badge>
-                  </div>
-                  
+                {/* Price + chevron */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <p className="font-bold text-base text-foreground">
+                    {preco && !preco.invalid ? preco.primaryText : 'Preço indisponível'}
+                  </p>
                   {isExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    <ChevronUp className="h-4.5 w-4.5 text-muted-foreground/60" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    <ChevronDown className="h-4.5 w-4.5 text-muted-foreground/60" />
                   )}
                 </div>
               </div>
@@ -230,54 +235,62 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="pt-0 pb-4 px-4 border-t border-border/50">
-            <div className="space-y-4 pt-4">
-              {/* Detalhes do Frete */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+          <CardContent className="pt-0 pb-5 px-5 sm:px-6">
+            <div className="border-t border-border/40 pt-5 space-y-5">
+              {/* Detalhes do Frete — stacked layout for clarity */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {payment.freight?.pickup_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Coleta:</span>
-                    <span className="font-medium">{formatDate(payment.freight.pickup_date)}</span>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <Calendar className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Coleta</span>
+                      <span className="text-sm font-medium text-foreground">{formatDate(payment.freight.pickup_date)}</span>
+                    </div>
                   </div>
                 )}
                 
                 {payment.freight?.distance_km && (
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Distância:</span>
-                    <span className="font-medium">{payment.freight.distance_km.toLocaleString('pt-BR')} km</span>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <Truck className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Distância</span>
+                      <span className="text-sm font-medium text-foreground">{payment.freight.distance_km.toLocaleString('pt-BR')} km</span>
+                    </div>
                   </div>
                 )}
                 
                 {preco && !preco.invalid && (
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Preço do Frete:</span>
-                    <span className="font-medium">{preco.primaryText}</span>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <DollarSign className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Preço do Frete</span>
+                      <span className="text-sm font-medium text-foreground">{preco.primaryText}</span>
+                    </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Solicitado em:</span>
-                  <span className="font-medium">{formatDate(payment.created_at)}</span>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <Clock className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+                  <div>
+                    <span className="text-xs text-muted-foreground block">Solicitado em</span>
+                    <span className="text-sm font-medium text-foreground">{formatDate(payment.created_at)}</span>
+                  </div>
                 </div>
               </div>
 
               {/* Notas */}
               {payment.notes && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm font-medium mb-1">Observações:</p>
-                  <p className="text-sm text-muted-foreground">{payment.notes}</p>
+                <div className="p-4 bg-muted/20 rounded-lg border border-border/30">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Observações</p>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{payment.notes}</p>
                 </div>
               )}
 
-              {/* Ações */}
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              {/* Ações — proper spacing */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
                 <Button
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 h-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenChat(payment.freight_id, payment.driver_id);
@@ -287,10 +300,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   Chat com Motorista
                 </Button>
                 
-                {/* ✅ Botão de ação baseado no status normalizado */}
                 {(payment.status === 'proposed' || normalizeStatus(payment.status) === 'proposed') && (
                   <Button
-                    className="flex-1"
+                    className="flex-1 h-10"
                     onClick={(e) => {
                       e.stopPropagation();
                       onConfirmPayment(payment.id);
