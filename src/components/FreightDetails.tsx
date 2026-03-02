@@ -520,9 +520,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 <Package className="h-4 w-4" />
                 Frete: {getCargoTypeLabel(freight.cargo_type)}
               </CardTitle>
-              {/* ID do frete sempre visível */}
+              {/* ID do frete sempre visível — formato curto padronizado */}
               <span className="text-xs text-muted-foreground font-mono">
-                ID: {freight.id}
+                ID #{freight.id?.slice(0, 8)}
               </span>
             </div>
             <div className="flex items-center gap-2">
