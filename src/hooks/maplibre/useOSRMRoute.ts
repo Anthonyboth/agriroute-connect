@@ -171,20 +171,8 @@ export function useOSRMRoute({
         return null;
       });
 
-      // Se foi abortado ou falhou na rede, usar fallback silencioso
+      // Se foi abortado ou falhou na rede, sair silenciosamente
       if (!response) {
-        if (origin && destination) {
-          setRoute({
-            coordinates: [
-              [origin.lng, origin.lat],
-              [destination.lng, destination.lat],
-            ],
-            distance: 0,
-            duration: 0,
-            distanceText: 'N/A',
-            durationText: 'N/A',
-          });
-        }
         setIsLoading(false);
         return;
       }
