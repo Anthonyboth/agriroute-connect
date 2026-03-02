@@ -198,10 +198,24 @@ export const watchPositionSafe = (
   onError: (err: any) => void
 ): { clear: () => void } => {
   if (isNative()) {
-    let watchId: string | undefined;
+    // ✅ FIX: Race condition — track pending promise to handle clear() before resolve
+    let pendingWatchId: string | null = null;
+    let wasStoppedBeforeResolve = false;
+
+    const handle = {
+      clear: () => {
+        if (pendingWatchId) {
+          Geolocation.clearWatch({ id: pendingWatchId });
+          pendingWatchId = null;
+        } else {
+          wasStoppedBeforeResolve = true;
+        }
+      },
+    };
+
     Geolocation.watchPosition({ enableHighAccuracy: true }, (pos, err) => {
+      if (wasStoppedBeforeResolve) return; // already stopped
       if (err) {
-        // Traduzir erros nativos para português
         const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
         if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
           return onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
@@ -210,7 +224,12 @@ export const watchPositionSafe = (
       }
       if (pos) onSuccess(toWebLike(pos).coords);
     }).then((id) => {
-      watchId = id as unknown as string;
+      pendingWatchId = id as unknown as string;
+      if (wasStoppedBeforeResolve) {
+        console.log('[GPS] watchPositionSafe: clear() called before resolve — clearing immediately');
+        Geolocation.clearWatch({ id: pendingWatchId });
+        pendingWatchId = null;
+      }
     }).catch((err) => {
       console.warn('[GPS] Erro nativo ao iniciar watchPosition:', err);
       const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
@@ -220,7 +239,7 @@ export const watchPositionSafe = (
         onError({ code: 1, message: 'Não foi possível iniciar o rastreamento. Verifique as permissões de localização.' });
       }
     });
-    return { clear: () => { if (watchId) Geolocation.clearWatch({ id: watchId }); } } as any;
+    return handle as any;
   }
   const id = navigator.geolocation.watchPosition(
     (p) => onSuccess(p.coords),
