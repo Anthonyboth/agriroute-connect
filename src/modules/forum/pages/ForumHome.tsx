@@ -36,7 +36,7 @@ export default function ForumHome() {
 
   const handleCreateCategory = async () => {
     if (!catName.trim()) {
-      toast.error('Informe o nome da categoria.');
+      toast.warning('Informe o nome da categoria.');
       return;
     }
     const slug = catName.trim().toLowerCase()
@@ -61,7 +61,7 @@ export default function ForumHome() {
 
   const handleCreateBoard = async () => {
     if (!boardName.trim() || !boardCategoryId) {
-      toast.error('Preencha nome e selecione a categoria.');
+      toast.warning('Preencha nome e selecione a categoria.');
       return;
     }
     const slug = boardName.trim().toLowerCase()
