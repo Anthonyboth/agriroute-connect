@@ -446,7 +446,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-4xl h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] p-0 flex flex-col !overflow-hidden">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-4xl h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] p-0 flex flex-col overflow-x-hidden overflow-y-hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
             <DialogDescription>Visualize e edite suas informações pessoais</DialogDescription>

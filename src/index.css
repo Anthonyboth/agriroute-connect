@@ -598,6 +598,12 @@
   /* Ensure dialogs/modals scroll on iOS */
   [data-radix-dialog-content] {
     -webkit-overflow-scrolling: touch;
-    overflow-y: auto;
+  }
+
+  /* Ensure inner flex scroll containers inside dialogs work on iOS WKWebView */
+  [data-radix-dialog-content] .overflow-y-auto,
+  [data-radix-dialog-content] .overflow-auto {
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain;
   }
 }
