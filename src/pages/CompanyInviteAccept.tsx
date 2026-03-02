@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BackButton } from '@/components/BackButton';
 import { supabase } from '@/integrations/supabase/client';
-import { routeAfterAuth } from '@/lib/route-after-auth';
+import { routeAfterAuth, waitForProfile } from '@/lib/route-after-auth';
 import { toast } from 'sonner';
 import { Truck, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { AppSpinner } from '@/components/ui/AppSpinner';
@@ -129,22 +129,20 @@ const CompanyInviteAccept: React.FC = () => {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Erro ao criar usuário');
 
-      // 2. Criar perfil de motorista
-      const { data: profile, error: profileError } = await supabase
+      // 2. Aguardar perfil criado pelo trigger handle_new_user (sem INSERT manual)
+      const profile = await waitForProfile(authData.user.id);
+      if (!profile) throw new Error('Perfil não foi criado automaticamente. Tente novamente.');
+
+      // 2.1 Atualizar dados extras no perfil
+      const { error: updateError } = await supabase
         .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          full_name: formData.full_name,
-          email: formData.email,
+        .update({
           phone: formData.phone,
           cpf_cnpj: formData.cpf_cnpj,
-          role: 'MOTORISTA',
-          status: 'PENDING',
         })
-        .select()
-        .single();
+        .eq('id', profile.id);
 
-      if (profileError) throw profileError;
+      if (updateError) console.warn('Aviso: erro ao atualizar perfil:', updateError);
 
       // 3. Vincular à transportadora
       const { error: driverError } = await supabase
