@@ -590,41 +590,67 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         <CardContent>
           {statusHistory.length > 0 ? (
             <div className="space-y-4">
-              {statusHistory.map((item) => {
+              {statusHistory.map((item, index) => {
                 const status = statusFlow.find(s => s.key === item.status);
                 const Icon = status?.icon || Clock;
+                const isCurrentDriver = driverId && item.changed_by === driverId;
+                const isOtherDriver = driverId && item.changed_by !== driverId && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role || '');
+                
+                const prevItem = index > 0 ? statusHistory[index - 1] : null;
+                const driverChanged = prevItem && prevItem.changed_by !== item.changed_by && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role || '');
                 
                 return (
-                  <div key={item.id} className="flex gap-3 pb-4 border-b last:border-0">
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <Icon className="h-4 w-4 text-primary" />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{status?.label || getStatusLabelFallback(item.status)}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
-                        </Badge>
+                  <div key={item.id}>
+                    {driverChanged && (
+                      <div className="flex items-center gap-2 py-2 mb-2">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-muted-foreground font-medium px-2">
+                          Motorista diferente
+                        </span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                    )}
+                    <div className={`flex gap-3 pb-4 border-b last:border-0 ${isOtherDriver ? 'opacity-70 pl-2 border-l-2 border-muted-foreground/30' : ''}`}>
+                      <div className={`p-2 rounded-full ${isCurrentDriver ? 'bg-primary/10' : 'bg-muted'}`}>
+                        <Icon className={`h-4 w-4 ${isCurrentDriver ? 'text-primary' : 'text-muted-foreground'}`} />
                       </div>
                       
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
-                        {item.changer && ` • ${item.changer.full_name}`}
-                      </p>
-                      
-                      {item.notes && (
-                        <p className="text-sm bg-muted p-2 rounded">
-                          {item.notes}
-                        </p>
-                      )}
-                      
-                      {item.location_lat && item.location_lng && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          <span>Localização: {item.location_lat.toFixed(4)}, {item.location_lng.toFixed(4)}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-medium">{status?.label || getStatusLabelFallback(item.status)}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
+                          </Badge>
+                          {isOtherDriver && (
+                            <Badge variant="secondary" className="text-xs">
+                              Outro motorista
+                            </Badge>
+                          )}
+                          {isCurrentDriver && (
+                            <Badge className="text-xs bg-primary/20 text-primary border-0">
+                              Você
+                            </Badge>
+                          )}
                         </div>
-                      )}
+                        
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
+                          {item.changer && ` • ${item.changer.full_name}`}
+                        </p>
+                        
+                        {item.notes && (
+                          <p className="text-sm bg-muted p-2 rounded">
+                            {item.notes}
+                          </p>
+                        )}
+                        
+                        {item.location_lat && item.location_lng && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            <span>Localização: {item.location_lat.toFixed(4)}, {item.location_lng.toFixed(4)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
