@@ -511,7 +511,7 @@ export const MyRequestsTab: React.FC = () => {
                     currentUserProfileId={profile?.id || ''}
                     viewerRole="CLIENT"
                     onSubmitProposal={(price, msg) => submitClientProposal(sr.id, profile?.id || '', 'CLIENT', price, msg)}
-                    onAcceptProposal={acceptClientProposal}
+                    onAcceptProposal={(id) => acceptClientProposal(id, refetchAll)}
                     onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
                     submitting={clientProposalSubmitting}
                   />
@@ -556,7 +556,7 @@ export const MyRequestsTab: React.FC = () => {
                       currentUserProfileId={profile?.id || ''}
                       viewerRole="CLIENT"
                       onSubmitProposal={(price, msg) => submitClientProposal(request.id, profile?.id || '', 'CLIENT', price, msg)}
-                      onAcceptProposal={acceptClientProposal}
+                      onAcceptProposal={(id) => acceptClientProposal(id, refetchAll)}
                       onRejectProposal={(id, returnToOpen) => rejectClientProposal(id, undefined, returnToOpen)}
                       submitting={clientProposalSubmitting}
                     />

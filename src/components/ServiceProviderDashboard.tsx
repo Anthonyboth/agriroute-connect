@@ -1582,7 +1582,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                           currentUserProfileId={profile?.id || ''}
                           viewerRole="PROVIDER"
                           onSubmitProposal={(price, msg) => submitProposal(request.id, profile?.id || '', 'PROVIDER', price, msg)}
-                          onAcceptProposal={acceptProposal}
+                          onAcceptProposal={(id) => acceptProposal(id, () => fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true }))}
                           onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
                           submitting={proposalSubmitting}
                         />
@@ -1925,7 +1925,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                     currentUserProfileId={profile?.id || ''}
                     viewerRole="PROVIDER"
                     onSubmitProposal={(price, msg) => submitProposal(selectedRequest.id, profile?.id || '', 'PROVIDER', price, msg)}
-                    onAcceptProposal={acceptProposal}
+                    onAcceptProposal={(id) => acceptProposal(id, () => fetchServiceRequests({ scope: 'all', silent: true, skipSpatialMatching: true }))}
                     onRejectProposal={(id, returnToOpen) => rejectProposal(id, undefined, returnToOpen)}
                     submitting={proposalSubmitting}
                   />

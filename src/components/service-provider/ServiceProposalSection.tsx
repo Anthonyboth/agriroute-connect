@@ -53,9 +53,11 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
   const [message, setMessage] = useState('');
   const [expanded, setExpanded] = useState(false);
 
-  const pendingProposals = proposals.filter(p => p.status === 'PENDING');
-  const myRejectedProposals = proposals.filter(p => p.status === 'REJECTED' && p.proposer_id === currentUserProfileId);
-  const otherProposals = proposals.filter(p => p.status !== 'PENDING');
+  // Filter out REJECTED and CANCELLED proposals entirely - they're no longer relevant
+  const activeProposals = proposals.filter(p => p.status === 'PENDING' || p.status === 'ACCEPTED');
+  const pendingProposals = activeProposals.filter(p => p.status === 'PENDING');
+  const otherProposals = activeProposals.filter(p => p.status !== 'PENDING');
+  const myRejectedProposals: ServiceProposal[] = []; // No longer show rejected notices
   const hasPendingFromMe = pendingProposals.some(p => p.proposer_id === currentUserProfileId);
 
   const handleSubmit = () => {
@@ -70,7 +72,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
   if (compact) {
     // Compact view for cards in "Disponível" tab - show latest proposal price
     const latestPending = pendingProposals[0];
-    if (!latestPending && proposals.length === 0) return null;
+    if (!latestPending && activeProposals.length === 0) return null;
 
     return (
       <div className="space-y-1">
@@ -106,7 +108,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
             </Badge>
           )}
         </h4>
-        {proposals.length > 0 && (
+        {activeProposals.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
@@ -114,7 +116,7 @@ export const ServiceProposalSection: React.FC<ServiceProposalSectionProps> = ({
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {expanded ? 'Menos' : `${proposals.length} proposta(s)`}
+            {expanded ? 'Menos' : `${activeProposals.length} proposta(s)`}
           </Button>
         )}
       </div>
