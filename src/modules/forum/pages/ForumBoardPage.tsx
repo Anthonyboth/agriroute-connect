@@ -1,41 +1,54 @@
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Plus, Pin, Lock, Search } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Plus, Search, Flame, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { useForumBoard } from '../hooks/useForumBoard';
-import { useAuth } from '@/hooks/useAuth';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useForumFeed, type FeedSort, type TopPeriod } from '../hooks/useForumFeed';
+import { useUserVotes } from '../hooks/useForumVotes';
 import { ForumLayout } from '../components/ForumLayout';
-import { THREAD_TYPE_LABELS, THREAD_TYPE_COLORS } from '../types';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { FeedCard } from '../components/FeedCard';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 export default function ForumBoardPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { profile } = useAuth();
-  const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState('ALL');
+  const navigate = useNavigate();
+  const [sort, setSort] = useState<FeedSort>('hot');
+  const [topPeriod, setTopPeriod] = useState<TopPeriod>('7d');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [sortBy, setSortBy] = useState<'recent' | 'most_replies'>('recent');
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const { board, threads } = useForumBoard({
-    slug: slug || '',
-    page,
-    typeFilter,
-    search,
-    sortBy,
-    unreadOnly,
-    userId: profile?.id,
+  // Board info
+  const boardQuery = useQuery({
+    queryKey: ['forum-board-info', slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('forum_boards')
+        .select('*, forum_categories!inner(name)')
+        .eq('slug', slug!)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
 
-  const boardData = board.data as any;
-  const categoryName = boardData?.forum_categories?.name;
+  const boardData = boardQuery.data as any;
+
+  const feed = useForumFeed({
+    boardSlug: slug,
+    sort,
+    topPeriod,
+    search,
+    page,
+  });
+
+  const threadIds = feed.data?.threads.map(t => t.id) || [];
+  const userVotes = useUserVotes('THREAD', threadIds);
+  const totalPages = Math.ceil((feed.data?.total || 0) / 20);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,123 +56,90 @@ export default function ForumBoardPage() {
     setPage(1);
   };
 
-  const totalPages = Math.ceil((threads.data?.total || 0) / 20);
-
   return (
     <ForumLayout
-      title={boardData?.name || 'Subfórum'}
+      title={boardData?.name ? `r/${boardData.name}` : 'Comunidade'}
       breadcrumbs={[
         { label: 'Fórum', href: '/forum' },
-        ...(categoryName ? [{ label: categoryName }] : []),
         { label: boardData?.name || '...' },
       ]}
     >
-      {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <Input
-            placeholder="Buscar tópico..."
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            className="max-w-xs"
-          />
-          <Button type="submit" variant="outline" size="icon">
+      {/* Board header */}
+      {boardData && (
+        <div className="bg-card border rounded-lg p-4 mb-4">
+          <h2 className="text-xl font-bold">r/{boardData.name}</h2>
+          {boardData.description && (
+            <p className="text-sm text-muted-foreground mt-1">{boardData.description}</p>
+          )}
+          <div className="mt-3">
+            <Button size="sm" onClick={() => navigate(`/forum/novo-topico?board=${boardData.id}`)}>
+              <Plus className="h-4 w-4 mr-1" /> Criar Post
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Filter bar */}
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center mb-4">
+        <Tabs value={sort} onValueChange={v => { setSort(v as FeedSort); setPage(1); }}>
+          <TabsList className="h-9">
+            <TabsTrigger value="hot" className="text-xs gap-1 px-3">
+              <Flame className="h-3.5 w-3.5" /> Hot
+            </TabsTrigger>
+            <TabsTrigger value="new" className="text-xs gap-1 px-3">
+              <Clock className="h-3.5 w-3.5" /> Novo
+            </TabsTrigger>
+            <TabsTrigger value="top" className="text-xs gap-1 px-3">
+              <TrendingUp className="h-3.5 w-3.5" /> Top
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {sort === 'top' && (
+          <Select value={topPeriod} onValueChange={v => { setTopPeriod(v as TopPeriod); setPage(1); }}>
+            <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">24 horas</SelectItem>
+              <SelectItem value="7d">7 dias</SelectItem>
+              <SelectItem value="30d">30 dias</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+
+        <form onSubmit={handleSearch} className="flex gap-1.5 flex-1 max-w-xs">
+          <Input placeholder="Buscar..." value={searchInput} onChange={e => setSearchInput(e.target.value)} className="h-9" />
+          <Button type="submit" variant="outline" size="icon" className="h-9 w-9">
             <Search className="h-4 w-4" />
           </Button>
         </form>
-        <Select value={typeFilter} onValueChange={v => { setTypeFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Todos</SelectItem>
-            {Object.entries(THREAD_TYPE_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={v => { setSortBy(v as any); setPage(1); }}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">Mais Recente</SelectItem>
-            <SelectItem value="most_replies">Mais Respondidos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          variant={unreadOnly ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => { setUnreadOnly(!unreadOnly); setPage(1); }}
-        >
-          Não Lidos
-        </Button>
-        {boardData && (
-          <Link to={`/forum/novo-topico?board=${boardData.id}`}>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Novo Tópico
-            </Button>
-          </Link>
-        )}
       </div>
 
-      {/* Threads list */}
-      <Card>
-        <CardContent className="p-0">
-          {/* Header */}
-          <div className="hidden md:grid grid-cols-[1fr_80px_120px] gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase border-b bg-muted/30">
-            <span>Tópico</span>
-            <span className="text-center">Respostas</span>
-            <span>Último Post</span>
-          </div>
+      {/* Feed */}
+      {feed.isLoading && <p className="text-center py-8 text-muted-foreground">Carregando...</p>}
 
-          {threads.isLoading && <p className="text-center py-8 text-muted-foreground">Carregando...</p>}
-          {threads.data?.threads.length === 0 && !threads.isLoading && (
-            <p className="text-center py-8 text-muted-foreground">Nenhum tópico encontrado.</p>
+      {feed.data && feed.data.threads.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Nenhum post nesta comunidade ainda.</p>
+          {boardData && (
+            <Button className="mt-3" onClick={() => navigate(`/forum/novo-topico?board=${boardData.id}`)}>
+              <Plus className="h-4 w-4 mr-1" /> Criar primeiro post
+            </Button>
           )}
+        </div>
+      )}
 
-          {threads.data?.threads.map((thread, idx) => (
-            <React.Fragment key={thread.id}>
-              {idx > 0 && <Separator />}
-              <Link
-                to={`/forum/topico/${thread.id}`}
-                className={`grid grid-cols-1 md:grid-cols-[1fr_80px_120px] gap-2 px-4 py-3 hover:bg-muted/40 transition-colors items-center ${thread.is_unread ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {thread.is_pinned && <Pin className="h-3 w-3 text-primary" />}
-                      {thread.is_locked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                      <Badge variant="outline" className={`text-xs ${THREAD_TYPE_COLORS[thread.thread_type] || ''}`}>
-                        {THREAD_TYPE_LABELS[thread.thread_type] || thread.thread_type}
-                      </Badge>
-                      <span className="font-semibold text-foreground">{thread.title}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">por {thread.author_name}</span>
-                  </div>
-                </div>
-                <span className="text-center text-sm">{thread.post_count || 0}</span>
-                <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(thread.last_post_at), { addSuffix: true, locale: ptBR })}
-                </span>
-              </Link>
-            </React.Fragment>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        {feed.data?.threads.map(thread => (
+          <FeedCard key={thread.id} thread={thread} userVote={userVotes.data?.[thread.id]} />
+        ))}
+      </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-            Anterior
-          </Button>
-          <span className="text-sm self-center text-muted-foreground">
-            Página {page} de {totalPages}
-          </span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-            Próxima
-          </Button>
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
+          <span className="text-sm self-center text-muted-foreground">Página {page} de {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Próxima</Button>
         </div>
       )}
     </ForumLayout>
