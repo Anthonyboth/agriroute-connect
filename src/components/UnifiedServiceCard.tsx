@@ -276,7 +276,31 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
                 </a>
               )}
             </div>
+            {contactPhone && (
+              <a
+                href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 w-8 h-8 rounded-lg bg-[hsl(142,70%,45%)]/10 hover:bg-[hsl(142,70%,45%)]/20 flex items-center justify-center transition-colors"
+                title={`WhatsApp ${contactPhone}`}
+              >
+                <MessageSquare className="h-4 w-4 text-[hsl(142,70%,45%)]" />
+              </a>
+            )}
           </div>
+        )}
+
+        {/* ── WHATSAPP BUTTON (standalone when phone exists but no contact name section) ── */}
+        {contactPhone && !contactName && !provider?.full_name && !client?.full_name && (
+          <a
+            href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-[hsl(142,70%,45%)]/30 bg-[hsl(142,70%,45%)]/5 hover:bg-[hsl(142,70%,45%)]/10 text-[hsl(142,70%,45%)] text-xs font-medium transition-colors"
+          >
+            <MessageSquare className="h-4 w-4" />
+            WhatsApp {contactPhone}
+          </a>
         )}
 
         {/* ── VEHICLE INFO ── */}
