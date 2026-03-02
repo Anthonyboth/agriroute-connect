@@ -8,7 +8,7 @@ import { useAdminApi } from '@/hooks/useAdminApi';
 import {
   ArrowLeft, MapPin, Truck, User, DollarSign, Calendar, Package,
   Menu, Navigation, Clock, CheckCircle, Hash, Phone, Building2,
-  Route, Weight, Gauge,
+  Route, Weight, Gauge, History, MapPinned, Activity,
 } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -30,12 +30,24 @@ const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   EXPIRED: { label: 'Expirado', className: 'bg-muted text-muted-foreground' },
 };
 
+const STATUS_LABEL_PT: Record<string, string> = {
+  ACCEPTED: 'Aceito',
+  LOADING: 'A Caminho da Coleta',
+  LOADED: 'Carregado',
+  IN_TRANSIT: 'Em Trânsito',
+  DELIVERED_PENDING_CONFIRMATION: 'Entrega Reportada',
+  DELIVERED: 'Entregue',
+  COMPLETED: 'Concluído',
+  CANCELLED: 'Cancelado',
+};
+
 const AdminFreightDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { callApi } = useAdminApi();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showAllLocations, setShowAllLocations] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -61,6 +73,10 @@ const AdminFreightDetail = () => {
   const statusInfo = STATUS_BADGES[f.status] || { label: f.status, className: '' };
   const fmtDate = (d: string | null) => d ? format(new Date(d), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—';
   const fmtCurrency = (v: number | null) => v ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+
+  const statusHistory = data.status_history || [];
+  const locationHistory = data.location_history || [];
+  const visibleLocations = showAllLocations ? locationHistory : locationHistory.slice(0, 20);
 
   return (
     <div className="flex-1 bg-muted/30">
@@ -234,6 +250,106 @@ const AdminFreightDetail = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* ✅ STATUS HISTORY - Histórico completo de auditoria */}
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" /> 
+              Histórico de Status ({statusHistory.length} registros)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {statusHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum registro de histórico encontrado.</p>
+            ) : (
+              <div className="space-y-3">
+                {statusHistory.map((h: any, i: number) => (
+                  <div key={h.id || i} className="flex gap-3 pb-3 border-b border-border/40 last:border-0">
+                    <div className="bg-primary/10 p-2 rounded-full h-fit">
+                      <CheckCircle className="h-3 w-3 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs">
+                          {STATUS_LABEL_PT[h.status] || h.status}
+                        </Badge>
+                        {h.changer?.full_name && (
+                          <span className="text-xs text-muted-foreground">por {h.changer.full_name}</span>
+                        )}
+                        {h.changer?.role && (
+                          <Badge variant="secondary" className="text-[10px]">{h.changer.role}</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {fmtDate(h.created_at)}
+                      </p>
+                      {h.notes && (
+                        <p className="text-xs bg-muted p-2 rounded mt-1">{h.notes}</p>
+                      )}
+                      {h.location_lat && h.location_lng && (
+                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {Number(h.location_lat).toFixed(4)}, {Number(h.location_lng).toFixed(4)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ✅ GPS LOCATION HISTORY - Rastreamento do motorista */}
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPinned className="h-4 w-4 text-warning" />
+              Histórico de Localização GPS ({locationHistory.length} pontos)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {locationHistory.length === 0 ? (
+              <div className="text-center py-4">
+                <Activity className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhum registro de GPS encontrado para este frete.</p>
+                <p className="text-xs text-muted-foreground mt-1">O GPS é salvo a cada 1 minuto durante fretes ativos.</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-2 text-muted-foreground font-medium">Horário</th>
+                        <th className="text-left py-2 px-2 text-muted-foreground font-medium">Latitude</th>
+                        <th className="text-left py-2 px-2 text-muted-foreground font-medium">Longitude</th>
+                        <th className="text-left py-2 px-2 text-muted-foreground font-medium">Velocidade</th>
+                        <th className="text-left py-2 px-2 text-muted-foreground font-medium">Precisão</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleLocations.map((loc: any, i: number) => (
+                        <tr key={loc.id || i} className="border-b border-border/30 hover:bg-muted/50">
+                          <td className="py-1.5 px-2">{fmtDate(loc.captured_at)}</td>
+                          <td className="py-1.5 px-2 font-mono">{Number(loc.lat).toFixed(6)}</td>
+                          <td className="py-1.5 px-2 font-mono">{Number(loc.lng).toFixed(6)}</td>
+                          <td className="py-1.5 px-2">{loc.speed != null ? `${Number(loc.speed).toFixed(1)} km/h` : '—'}</td>
+                          <td className="py-1.5 px-2">{loc.accuracy != null ? `±${Number(loc.accuracy).toFixed(0)}m` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {locationHistory.length > 20 && !showAllLocations && (
+                  <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowAllLocations(true)}>
+                    Ver todos os {locationHistory.length} pontos
+                  </Button>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Trip Progress */}
         {data.trip_progress && data.trip_progress.length > 0 && (
