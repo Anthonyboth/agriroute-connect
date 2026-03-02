@@ -97,9 +97,7 @@ export const FreightStatusHistory: React.FC<FreightStatusHistoryProps> = ({ frei
         `)
         .eq('freight_id', freightId);
       
-      if (driverId) {
-        progressQuery = progressQuery.eq('driver_id', driverId);
-      }
+      // ✅ REGRA: Nunca filtrar por driver_id — sempre mostrar histórico completo do frete
       
       const { data: progressData, error: progressError } = await progressQuery;
 
