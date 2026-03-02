@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Flame, Clock, TrendingUp, FolderPlus, LayoutGrid } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Flame, Clock, TrendingUp, FolderPlus, LayoutGrid, Bookmark, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,12 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useForumFeed, type FeedSort, type TopPeriod } from '../hooks/useForumFeed';
 import { useUserVotes } from '../hooks/useForumVotes';
 import { useForumCategories } from '../hooks/useForumCategories';
 import { useAdminSaveCategory, useAdminSaveBoard, useAdminForumCategories } from '../hooks/useAdminForum';
+import { useForumSaves, useToggleSave } from '../hooks/useForumMarketplace';
 import { ForumLayout } from '../components/ForumLayout';
 import { FeedCard } from '../components/FeedCard';
+import { THREAD_TYPE_LABELS } from '../types';
 import { toast } from 'sonner';
 
 export default function ForumHome() {
@@ -24,6 +27,8 @@ export default function ForumHome() {
   const [searchInput, setSearchInput] = useState('');
   const [boardFilter, setBoardFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [showSaved, setShowSaved] = useState(false);
 
   // Category/Board creation
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -40,9 +45,10 @@ export default function ForumHome() {
   const { data: categories } = useForumCategories();
   const { data: allCategories } = useAdminForumCategories();
 
-  // Report dialog
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportThreadId, setReportThreadId] = useState('');
+  // Saves
+  const { data: saves } = useForumSaves();
+  const toggleSave = useToggleSave();
+  const savedThreadIds = useMemo(() => new Set((saves || []).map(s => s.thread_id)), [saves]);
 
   const feed = useForumFeed({
     boardSlug: boardFilter || undefined,
@@ -58,6 +64,18 @@ export default function ForumHome() {
 
   // All boards for filter dropdown
   const allBoards = categories?.flatMap(c => c.boards) || [];
+
+  // Apply client-side type filter and saved filter
+  const filteredThreads = useMemo(() => {
+    let threads = feed.data?.threads || [];
+    if (typeFilter) {
+      threads = threads.filter(t => t.thread_type === typeFilter);
+    }
+    if (showSaved) {
+      threads = threads.filter(t => savedThreadIds.has(t.id));
+    }
+    return threads;
+  }, [feed.data?.threads, typeFilter, showSaved, savedThreadIds]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,9 +108,26 @@ export default function ForumHome() {
   };
 
   const handleReport = (threadId: string) => {
-    setReportThreadId(threadId);
-    setReportOpen(true);
+    navigate(`/forum/topico/${threadId}`);
   };
+
+  const handleToggleSave = (threadId: string) => {
+    toggleSave.mutate(threadId, {
+      onSuccess: (res) => toast.success(res.action === 'saved' ? 'Post salvo!' : 'Post removido dos salvos.'),
+      onError: () => toast.error('Erro ao salvar post.'),
+    });
+  };
+
+  const FLAIR_FILTERS = [
+    { value: '', label: 'Todos' },
+    { value: 'VENDA', label: '🏷️ Venda' },
+    { value: 'COMPRA', label: '🛒 Compra' },
+    { value: 'SERVICO', label: '🔧 Serviço' },
+    { value: 'FRETE', label: '🚚 Frete' },
+    { value: 'PARCERIA', label: '🤝 Parceria' },
+    { value: 'DUVIDA', label: '❓ Dúvida' },
+    { value: 'GERAL', label: '💬 Geral' },
+  ];
 
   return (
     <ForumLayout title="Fórum da Comunidade" breadcrumbs={[{ label: 'Fórum' }]}>
@@ -102,6 +137,14 @@ export default function ForumHome() {
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => navigate('/forum/novo-topico')} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Criar Post
+          </Button>
+          <Button 
+            onClick={() => setShowSaved(!showSaved)} 
+            variant={showSaved ? 'default' : 'outline'} 
+            size="sm"
+          >
+            <Bookmark className={`h-4 w-4 mr-1 ${showSaved ? 'fill-current' : ''}`} />
+            Salvos
           </Button>
           <Button onClick={() => setShowNewCategory(true)} variant="outline" size="sm">
             <FolderPlus className="h-4 w-4 mr-1" /> Nova Categoria
@@ -144,9 +187,7 @@ export default function ForumHome() {
           {/* Top period */}
           {sort === 'top' && (
             <Select value={topPeriod} onValueChange={v => { setTopPeriod(v as TopPeriod); setPage(1); }}>
-              <SelectTrigger className="w-[120px] h-9">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="24h">24 horas</SelectItem>
                 <SelectItem value="7d">7 dias</SelectItem>
@@ -158,44 +199,62 @@ export default function ForumHome() {
 
           {/* Search */}
           <form onSubmit={handleSearch} className="flex gap-1.5 flex-1 max-w-xs">
-            <Input
-              placeholder="Buscar..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="h-9"
-            />
+            <Input placeholder="Buscar..." value={searchInput} onChange={e => setSearchInput(e.target.value)} className="h-9" />
             <Button type="submit" variant="outline" size="icon" className="h-9 w-9">
               <Search className="h-4 w-4" />
             </Button>
           </form>
+        </div>
+
+        {/* Flair quick filters */}
+        <div className="flex flex-wrap gap-1.5">
+          {FLAIR_FILTERS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setTypeFilter(f.value)}
+              className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                typeFilter === f.value
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Feed */}
       {feed.isLoading && <p className="text-center py-8 text-muted-foreground">Carregando feed...</p>}
 
-      {feed.data && feed.data.threads.length === 0 && (
+      {!feed.isLoading && filteredThreads.length === 0 && (
         <div className="text-center py-12 space-y-3">
-          <p className="text-muted-foreground">Nenhum post encontrado.</p>
-          <Button onClick={() => navigate('/forum/novo-topico')}>
-            <Plus className="h-4 w-4 mr-1" /> Criar primeiro post
-          </Button>
+          <p className="text-muted-foreground">
+            {showSaved ? 'Nenhum post salvo.' : 'Nenhum post encontrado.'}
+          </p>
+          {!showSaved && (
+            <Button onClick={() => navigate('/forum/novo-topico')}>
+              <Plus className="h-4 w-4 mr-1" /> Criar primeiro post
+            </Button>
+          )}
         </div>
       )}
 
       <div className="space-y-2">
-        {feed.data?.threads.map(thread => (
+        {filteredThreads.map(thread => (
           <FeedCard
             key={thread.id}
             thread={thread}
             userVote={userVotes.data?.[thread.id]}
             onReport={handleReport}
+            isSaved={savedThreadIds.has(thread.id)}
+            onToggleSave={handleToggleSave}
           />
         ))}
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPages > 1 && !showSaved && (
         <div className="flex justify-center gap-2 mt-4">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
           <span className="text-sm self-center text-muted-foreground">Página {page} de {totalPages}</span>

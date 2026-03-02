@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Plus, Search, Flame, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForumFeed, type FeedSort, type TopPeriod } from '../hooks/useForumFeed';
 import { useUserVotes } from '../hooks/useForumVotes';
+import { useForumSaves, useToggleSave } from '../hooks/useForumMarketplace';
 import { ForumLayout } from '../components/ForumLayout';
 import { FeedCard } from '../components/FeedCard';
+import { BoardRules } from '../components/BoardRules';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
