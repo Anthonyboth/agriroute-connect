@@ -256,7 +256,7 @@ export const MyRequestsTab: React.FC = () => {
     
     const canCancelDirectly = CANCELLABLE_FREIGHT_STATUSES.includes(freightToCancel.status);
     if (!canCancelDirectly) {
-      toast.error('Este frete está em andamento. Solicite o cancelamento via chat com o motorista.');
+      toast.error('Este frete está em andamento. Entre em contato com o suporte do app para solicitar o cancelamento.');
       setConfirmCancelOpen(false);
       return;
     }
