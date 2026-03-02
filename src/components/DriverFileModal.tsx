@@ -43,7 +43,7 @@ export const DriverFileModal = ({
         <Tabs 
           value={activeTab} 
           onValueChange={setActiveTab}
-          className="h-[calc(100vh-80px)] flex flex-col"
+          className="h-[calc(100dvh-80px)] flex flex-col"
         >
           <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <TabsList className="w-full grid grid-cols-2 px-6 pt-4 h-auto bg-transparent">

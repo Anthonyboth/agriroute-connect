@@ -188,7 +188,7 @@ const Landing: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-background isolate" style={{ contain: 'layout' }}>
+    <div className="min-h-screen min-h-[100dvh] bg-background isolate" style={{ contain: 'layout' }}>
       {/* Header - Fixed height to prevent CLS. z-50 is sufficient since Sheet uses z-[9998+] */}
       <header className="border-b bg-card/80 sticky top-0 z-50 h-[72px] supports-[backdrop-filter]:bg-card/50 supports-[backdrop-filter]:backdrop-blur-sm">
         <div className="container mx-auto px-4 pr-2 sm:pr-4 flex items-center justify-between h-full">

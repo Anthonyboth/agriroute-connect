@@ -596,7 +596,7 @@ const AffiliatedDriverSignup = () => {
   const progress = (currentStep / 5) * 100;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background px-6 py-10">
       <Card className="w-full max-w-2xl">
         <CardHeader className="text-center">
           <BackButton to="/auth" />

@@ -19,7 +19,7 @@ export function useDoubleTapResetZoom() {
         if (viewport) {
           viewport.setAttribute(
             'content',
-            'width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0, user-scalable=yes'
+            'width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover'
           );
         }
       }

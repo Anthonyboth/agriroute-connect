@@ -34,7 +34,7 @@ export default function ServicePaymentSuccess() {
   }, [navigate, toast]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="max-w-md w-full border-green-200 shadow-lg">
         <CardHeader className="text-center pb-4">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">

@@ -197,7 +197,7 @@ export default function DriverInviteSignup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       {loading ? (
         <Card className="w-full max-w-2xl">
           <CardHeader>

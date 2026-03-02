@@ -17,7 +17,7 @@ interface ForumLayoutProps {
 
 export function ForumLayout({ title, breadcrumbs, children }: ForumLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen min-h-[100dvh] bg-background">
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Botão Voltar ao App */}
         <div className="mb-4">
