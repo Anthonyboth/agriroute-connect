@@ -283,6 +283,7 @@ if (typeof window !== 'undefined') {
 import { useErrorMonitoring } from '@/hooks/useErrorMonitoring';
 import { useSecurityAntiError } from '@/hooks/useSecurityAntiError';
 import { usePanelErrorTelegramReporter } from '@/hooks/usePanelErrorTelegramReporter';
+import { useCityIdMismatchMonitor } from '@/hooks/useCityIdMismatchMonitor';
 
 const ErrorMonitoringSetup = () => {
   useErrorMonitoring();
@@ -296,6 +297,11 @@ const SecurityAntiErrorSetup = () => {
 
 const PanelErrorTelegramSetup = () => {
   usePanelErrorTelegramReporter();
+  return null;
+};
+
+const CityIdMismatchMonitorSetup = () => {
+  useCityIdMismatchMonitor();
   return null;
 };
 
@@ -955,6 +961,7 @@ const App = () => {
                       <ErrorMonitoringSetup />
                       <SecurityAntiErrorSetup />
                       <PanelErrorTelegramSetup />
+                      <CityIdMismatchMonitorSetup />
                       <ZipCodeSyncOnReconnect />
                       <FloatingSupportButton />
                       <SilentCityBootstrap />
