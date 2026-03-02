@@ -607,3 +607,10 @@
     overscroll-behavior: contain;
   }
 }
+
+/* iOS Capacitor safe area bottom padding */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom-padding {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

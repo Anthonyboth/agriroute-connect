@@ -1385,7 +1385,7 @@ const ProducerDashboard = () => {
   );
 
   return (
-    <div data-dashboard-ready="true" className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden overflow-y-auto">
+    <div data-dashboard-ready="true" className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
       <Header
         user={{
           name: profile?.full_name || "Usuário",
