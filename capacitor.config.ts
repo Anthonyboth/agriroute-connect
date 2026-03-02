@@ -27,21 +27,19 @@ const config: CapacitorConfig = {
   // ✅ PRODUCTION MODE: Uses bundled assets from webDir (dist/)
   // No server config = load from local bundle
   
+  // ✅ SplashScreen DISABLED - using native LaunchScreen.storyboard only
+  // The Capacitor SplashScreen plugin was overriding the storyboard with green background
   plugins: {
-    SplashScreen: {
-      // Keep splash visible longer to ensure WebView is ready
-      launchShowDuration: 3000,
-      launchAutoHide: false,
-      // AgriRoute green - MUST match LaunchScreen.storyboard
-      backgroundColor: '#FFFFFF',
-      showSpinner: false,
-      // iOS: use native launch screen as splash
-      launchFadeOutDuration: 500,
-      // Android settings
-      androidScaleType: 'CENTER_CROP',
-      splashFullScreen: true,
-      splashImmersive: true
-    },
+    // SplashScreen: {
+    //   launchShowDuration: 3000,
+    //   launchAutoHide: false,
+    //   backgroundColor: '#FFFFFF',
+    //   showSpinner: false,
+    //   launchFadeOutDuration: 500,
+    //   androidScaleType: 'CENTER_CROP',
+    //   splashFullScreen: true,
+    //   splashImmersive: true
+    // },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert']
     },
