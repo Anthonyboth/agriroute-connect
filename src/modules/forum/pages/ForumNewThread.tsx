@@ -11,10 +11,9 @@ import { useCreateThread } from '../hooks/useCreateThread';
 import { ForumLayout } from '../components/ForumLayout';
 import { THREAD_TYPE_LABELS } from '../types';
 import { toast } from 'sonner';
+import { checkClientRateLimit, validateForumFile, FORUM_MAX_FILES } from '../utils/sanitize';
 
 const MARKETPLACE_TYPES = ['VENDA', 'COMPRA', 'SERVICO', 'FRETE', 'PARCERIA'];
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function ForumNewThread() {
   const navigate = useNavigate();
@@ -36,17 +35,14 @@ export default function ForumNewThread() {
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
     const valid = selected.filter(f => {
-      if (!ALLOWED_TYPES.includes(f.type)) {
-        toast.error(`Tipo não permitido: ${f.name}`);
-        return false;
-      }
-      if (f.size > MAX_FILE_SIZE) {
-        toast.error(`Arquivo muito grande: ${f.name} (máx 10MB)`);
+      const err = validateForumFile(f);
+      if (err) {
+        toast.error(err);
         return false;
       }
       return true;
     });
-    setFiles(prev => [...prev, ...valid].slice(0, 5));
+    setFiles(prev => [...prev, ...valid].slice(0, FORUM_MAX_FILES));
   };
 
   const removeFile = (idx: number) => {
@@ -57,6 +53,10 @@ export default function ForumNewThread() {
     e.preventDefault();
     if (!title.trim() || !body.trim() || !boardId) {
       toast.error('Preencha título e conteúdo.');
+      return;
+    }
+    if (!checkClientRateLimit('thread', 3)) {
+      toast.error('Aguarde um momento antes de criar outro tópico.');
       return;
     }
 
