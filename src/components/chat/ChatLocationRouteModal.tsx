@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Navigation, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, AlertCircle, ExternalLink } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getCurrentPositionSafe } from '@/utils/location';
@@ -229,7 +230,7 @@ export const ChatLocationRouteModal: React.FC<ChatLocationRouteModalProps> = ({
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <AppSpinner size="sm" />
                 <span className="text-sm text-muted-foreground">Carregando mapa...</span>
               </div>
             </div>

@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Package, Truck, CheckCircle, Clock, Navigation, Map, Loader2 } from 'lucide-react';
+import { MapPin, Package, Truck, CheckCircle, Clock, Navigation, Map } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +32,7 @@ const FreightRealtimeMap = lazy(() =>
 // Loading fallback for map
 const MapLoader = () => (
   <div className="flex items-center justify-center h-[300px] bg-muted rounded-lg">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <AppSpinner />
     <span className="ml-2 text-muted-foreground">Carregando mapa...</span>
   </div>
 );

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Copy, Check, RefreshCw, QrCode, Clock, AlertCircle } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { usePixPayment, PixPaymentData, DocumentType } from '@/hooks/usePixPayment';
 import { formatCurrency } from '@/lib/formatters';
 
@@ -184,7 +185,7 @@ export function PixPaymentModal({
           {/* Loading */}
           {loading && !pixData && (
             <div className="flex flex-col items-center justify-center py-8 gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <AppSpinner />
               <p className="text-muted-foreground">Gerando cobrança PIX...</p>
             </div>
           )}

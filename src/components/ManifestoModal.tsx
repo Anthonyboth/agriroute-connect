@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FileText, Loader2, Download, Lock, XCircle, CheckCircle, AlertCircle, Clock, Settings } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useManifesto } from '@/hooks/useManifesto';
 import { useMdfeConfig } from '@/hooks/useMdfeConfig';
 import { MdfeConfigModal } from '@/components/MdfeConfigModal';
@@ -110,7 +111,7 @@ export const ManifestoModal: React.FC<ManifestoModalProps> = ({ open, onClose, f
 
         {loadingConfig ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <AppSpinner />
             <span className="ml-2 text-muted-foreground">Verificando configuração...</span>
           </div>
         ) : !hasConfig ? (

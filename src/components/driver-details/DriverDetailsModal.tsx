@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle, Loader2, AlertCircle } from "lucide-react";
+import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle, AlertCircle } from "lucide-react";
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useDriverDetailsData } from "@/hooks/useDriverDetailsData";
 import { DriverInfoTab } from "./DriverInfoTab";
 import { DriverLocationTab } from "./DriverLocationTab";
@@ -74,7 +75,7 @@ export const DriverDetailsModal = ({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <AppSpinner />
             <span className="ml-2 text-muted-foreground">Carregando dados do motorista...</span>
           </div>
         ) : error && !profile ? (

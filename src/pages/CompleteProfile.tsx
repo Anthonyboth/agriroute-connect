@@ -21,6 +21,7 @@ import { SelfieCaptureModal } from '@/components/selfie/SelfieCaptureModal';
 import { AddressLocationInput } from '@/components/AddressLocationInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X, Shield, Loader2 } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { validateDocument } from '@/utils/cpfValidator';
@@ -580,7 +581,7 @@ const CompleteProfile = () => {
   if (authLoading || (!profile && autoRetryCount < autoRetryMaxRef.current)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <AppSpinner size="lg" />
       </div>
     );
   }
@@ -727,7 +728,7 @@ const CompleteProfile = () => {
   if (isLoadingCompany && profile?.role === 'MOTORISTA') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <AppSpinner size="lg" />
       </div>
     );
   }

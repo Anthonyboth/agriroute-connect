@@ -7,7 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Loader2, Check, X, Users } from 'lucide-react';
+import { FileText, Check, X, Users } from 'lucide-react';
+import { CenteredSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { TemplateCardActions } from './TemplateCardActions';
 import { ShareTemplateDialog } from './ShareTemplateDialog';
@@ -219,11 +220,7 @@ export const FreightTemplatesTab: React.FC<FreightTemplatesTabProps> = ({
   }, [producerId]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <CenteredSpinner className="p-8" />;
   }
 
   if (templates.length === 0) {

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Save, AlertCircle, FileText } from 'lucide-react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { useMdfeConfig, type MdfeConfig } from '@/hooks/useMdfeConfig';
 import { usePrefilledUserData } from '@/hooks/usePrefilledUserData';
 
@@ -159,9 +160,7 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
         </DialogHeader>
 
         {loadingConfig && !config ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <CenteredSpinner className="py-12" />
         ) : (
           <div className="space-y-6 py-4">
             <Alert>

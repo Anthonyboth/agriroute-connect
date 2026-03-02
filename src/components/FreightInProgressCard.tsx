@@ -18,9 +18,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   MapPin, Truck, Clock, Calendar, Package, Wrench, Home,
-  Map, FileText, Loader2, User, Users, Bike, DollarSign,
+  Map, FileText, User, Users, Bike, DollarSign,
   TrendingUp, TrendingDown, AlertTriangle,
 } from 'lucide-react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { DriverVehiclePreview } from '@/components/freight/DriverVehiclePreview';
 import { MultiDriversList } from '@/components/freight/MultiDriversList';
 import { normalizeFreightStatus } from '@/lib/freight-status';
@@ -620,7 +621,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                   <Suspense fallback={
                     <div className="flex items-center justify-center bg-muted/30 rounded-lg" style={{ height: '280px' }}>
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <AppSpinner />
                         <span className="text-sm">Carregando mapa...</span>
                       </div>
                     </div>

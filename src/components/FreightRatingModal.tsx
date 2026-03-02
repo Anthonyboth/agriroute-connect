@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { InteractiveStarRating } from '@/components/InteractiveStarRating';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Star, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Star, User, AlertCircle } from 'lucide-react';
+import { AppSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { appTexts } from '@/lib/app-texts';
 import { useRatingSubmit, RatingType } from '@/hooks/useRatingSubmit';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -191,7 +192,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
           {/* Loading state */}
           {checkingPermission && (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <AppSpinner size="sm" />
               <span className="ml-2 text-sm text-muted-foreground">Verificando permissões...</span>
             </div>
           )}
@@ -269,7 +270,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <InlineSpinner />
                     {appTexts.general.sending}
                   </>
                 ) : (
