@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
-import { Banknote, CheckCircle, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Banknote, CheckCircle, MessageSquare, AlertTriangle, User } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SignedAvatarImage } from '@/components/ui/signed-avatar-image';
+import { PublicProfileModal } from '@/components/profile/PublicProfileModal';
+import { supabase } from '@/integrations/supabase/client';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 
 interface Payment {
@@ -38,6 +42,31 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
   onConfirmPayment,
   onDisputePayment,
 }) => {
+  const [profileModal, setProfileModal] = useState<{ open: boolean; userId: string; userName: string }>({
+    open: false, userId: '', userName: ''
+  });
+  const [producerProfiles, setProducerProfiles] = useState<Record<string, { full_name: string; profile_photo_url?: string }>>({});
+
+  // Resolve producer profiles via profiles_secure
+  useEffect(() => {
+    const producerIds = [...new Set(pendingPayments.map(p => p.producer_id).filter(Boolean))];
+    if (producerIds.length === 0) return;
+
+    const fetchProfiles = async () => {
+      const { data } = await supabase
+        .from('profiles_secure' as any)
+        .select('id, full_name, profile_photo_url')
+        .in('id', producerIds);
+      
+      if (data) {
+        const map: Record<string, { full_name: string; profile_photo_url?: string }> = {};
+        (data as any[]).forEach((p: any) => { map[p.id] = { full_name: p.full_name, profile_photo_url: p.profile_photo_url }; });
+        setProducerProfiles(map);
+      }
+    };
+    fetchProfiles();
+  }, [pendingPayments]);
+
   const getUnitPrice = (payment: Payment): string => {
     if (payment.freight) {
       const pd = precoPreenchidoDoFrete(payment.freight.id, {
@@ -86,23 +115,67 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
               
               <SafeListWrapper fallback={<div className="p-4 text-muted-foreground">Carregando pagamentos...</div>}>
                 {pendingPayments.map((payment) => (
-                  <Card key={payment.id} className="bg-gradient-to-r from-green-50/30 to-emerald-50/30 dark:from-green-900/10 dark:to-emerald-900/10 border-green-200 dark:border-green-800">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold text-lg">Pagamento Externo</h4>
-                          <p className="text-sm text-muted-foreground">
-                            ID do frete: {payment.freight_id?.slice(0, 8)}...
-                          </p>
+                  <Card key={payment.id} className="bg-card border transition-all hover:shadow-sm">
+                    <CardContent className="p-5 space-y-4">
+                      {/* Producer info + price */}
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-105"
+                            onClick={() => setProfileModal({ 
+                              open: true, 
+                              userId: payment.producer_id, 
+                              userName: producerProfiles[payment.producer_id]?.full_name || 'Produtor' 
+                            })}
+                            title="Ver perfil do produtor"
+                          >
+                            <Avatar className="h-11 w-11 ring-2 ring-background shadow-sm cursor-pointer">
+                              <SignedAvatarImage src={producerProfiles[payment.producer_id]?.profile_photo_url} />
+                              <AvatarFallback className="bg-emerald-500/[0.08] text-emerald-700 text-sm font-semibold">
+                                <User className="h-5 w-5" />
+                              </AvatarFallback>
+                            </Avatar>
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <button
+                              type="button"
+                              className="font-semibold text-sm text-foreground truncate block hover:text-primary hover:underline transition-colors focus:outline-none"
+                              onClick={() => setProfileModal({ 
+                                open: true, 
+                                userId: payment.producer_id, 
+                                userName: producerProfiles[payment.producer_id]?.full_name || 'Produtor' 
+                              })}
+                              title="Ver perfil do produtor"
+                            >
+                              {producerProfiles[payment.producer_id]?.full_name || 'Produtor'}
+                            </button>
+                            <p className="text-xs text-muted-foreground">
+                              ID do frete: #{payment.freight_id?.slice(0, 8)}
+                            </p>
+                          </div>
                         </div>
-                        <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        <span className="text-lg font-bold text-foreground shrink-0">
                           {getUnitPrice(payment)}
                         </span>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          onClick={() => setProfileModal({ 
+                            open: true, 
+                            userId: payment.producer_id, 
+                            userName: producerProfiles[payment.producer_id]?.full_name || 'Produtor' 
+                          })}
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Ver Perfil
+                        </Button>
                         <Button 
-                          className="gradient-primary flex-1"
+                          className="flex-1 h-10"
                           onClick={() => onConfirmPayment({
                             id: payment.id,
                             freight_id: payment.freight_id,
@@ -114,6 +187,7 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
                         </Button>
                         <Button 
                           variant="outline"
+                          className="h-10"
                           onClick={() => onDisputePayment(payment.id)}
                         >
                           <MessageSquare className="mr-2 h-4 w-4" />
@@ -131,9 +205,9 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
                       )}
 
                       {payment.payment_notes && (
-                        <div className="bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded text-xs">
-                          <p className="font-medium mb-1">Observações:</p>
-                          <p className="text-muted-foreground">{payment.payment_notes}</p>
+                        <div className="bg-muted/30 p-3 rounded-lg border border-border/30">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Observações</p>
+                          <p className="text-sm text-foreground/80 leading-relaxed">{payment.payment_notes}</p>
                         </div>
                       )}
                     </CardContent>
@@ -144,6 +218,15 @@ export const DriverPaymentsTab: React.FC<DriverPaymentsTabProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de perfil público do produtor */}
+      <PublicProfileModal
+        isOpen={profileModal.open}
+        onClose={() => setProfileModal(prev => ({ ...prev, open: false }))}
+        userId={profileModal.userId}
+        userType="producer"
+        userName={profileModal.userName}
+      />
     </SafeListWrapper>
   );
 };
