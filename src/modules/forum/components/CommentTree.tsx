@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Reply, Flag, ChevronDown } from 'lucide-react';
+import { Reply, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -90,9 +90,15 @@ function CommentNode({
           <button onClick={() => setCollapsed(!collapsed)} className="hover:text-foreground">
             {collapsed ? '[+]' : '[-]'}
           </button>
-          <span className="font-semibold text-foreground">{post.author_name}</span>
-          {post.author_role && (
-            <Badge variant="outline" className="text-[10px] h-4 px-1">{post.author_role}</Badge>
+          {post.is_deleted ? (
+            <span className="italic">[removido]</span>
+          ) : (
+            <>
+              <span className="font-semibold text-foreground">{post.author_name}</span>
+              {post.author_role && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1">{post.author_role}</Badge>
+              )}
+            </>
           )}
           <span>•</span>
           <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}</span>
@@ -102,9 +108,11 @@ function CommentNode({
           <>
             {/* Body */}
             {post.is_deleted ? (
-              <p className="italic text-muted-foreground text-sm py-1">
-                [comentário removido{post.deleted_reason ? `: ${post.deleted_reason}` : ''}]
-              </p>
+              <div className="bg-muted/50 rounded p-2 my-1">
+                <p className="italic text-muted-foreground text-sm">
+                  [Comentário removido{post.deleted_reason ? ` — ${post.deleted_reason}` : ''}]
+                </p>
+              </div>
             ) : (
               <div
                 className="prose prose-sm max-w-none text-foreground mb-1"
@@ -112,7 +120,7 @@ function CommentNode({
               />
             )}
 
-            {/* Actions */}
+            {/* Actions — only for non-deleted */}
             {!post.is_deleted && (
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <VoteColumn
@@ -121,6 +129,7 @@ function CommentNode({
                   score={post.score}
                   userVote={userVotes[post.id]}
                   compact
+                  disabled={post.is_deleted}
                 />
                 {!isLocked && post.depth < maxDepth && (
                   <button
@@ -162,7 +171,7 @@ function CommentNode({
               </div>
             )}
 
-            {/* Children */}
+            {/* Children — always render even if parent is deleted (Reddit behavior) */}
             {post.children.length > 0 && (
               <CommentTree
                 posts={post.children}
