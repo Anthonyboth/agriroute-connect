@@ -21,8 +21,8 @@ export function ForumIcon({ className = '', size = 24, color = 'currentColor', s
       strokeLinejoin="round"
       className={className}
     >
-      {/* Speech bubble */}
-      <path d="M8 2h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2l-2 2-2-2H8a2 2 0 0 1-2-2V4a2 2 0 1 1 2-2z" />
+      {/* Speech bubble with tail pointing down */}
+      <path d="M8 2h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4l-2 2-2-2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
       {/* Left person */}
       <circle cx="5" cy="15.5" r="1.5" />
       <path d="M2.5 21a2.5 2.5 0 0 1 5 0" />
