@@ -65,7 +65,7 @@ export const FreightStatusHistory: React.FC<FreightStatusHistoryProps> = ({ frei
       setLoading(true);
       
       // Buscar histórico de status (freight_status_history)
-      const { data: historyData, error: historyError } = await supabase
+      let historyQuery = supabase
         .from('freight_status_history')
         .select(`
           id,
@@ -77,6 +77,13 @@ export const FreightStatusHistory: React.FC<FreightStatusHistoryProps> = ({ frei
         .eq('freight_id', freightId)
         .order('created_at', { ascending: false })
         .limit(20);
+
+      // ✅ Motorista: filtrar apenas seus registros
+      if (driverId) {
+        historyQuery = historyQuery.eq('changed_by', driverId);
+      }
+
+      const { data: historyData, error: historyError } = await historyQuery;
 
       if (!historyError && historyData) {
         setHistory(historyData as any);
@@ -97,7 +104,12 @@ export const FreightStatusHistory: React.FC<FreightStatusHistoryProps> = ({ frei
         `)
         .eq('freight_id', freightId);
       
-      // ✅ REGRA: Nunca filtrar por driver_id — sempre mostrar histórico completo do frete
+      // ✅ REGRA DE VISIBILIDADE:
+      // - Se driverId fornecido (motorista logado): filtrar apenas registros dele
+      // - Se sem driverId (produtor/admin): mostrar histórico completo
+      if (driverId) {
+        progressQuery = progressQuery.eq('driver_id', driverId);
+      }
       
       const { data: progressData, error: progressError } = await progressQuery;
 

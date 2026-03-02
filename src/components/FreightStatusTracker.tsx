@@ -198,8 +198,12 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         .eq('freight_id', freightId)
         .order('created_at', { ascending: true });
 
-      // ✅ REGRA: Mostrar SEMPRE todo o histórico do frete para todos os participantes
-      // Nunca filtrar por changed_by — o histórico completo é prova e deve ser visível.
+      // ✅ REGRA DE VISIBILIDADE:
+      // - Motorista: vê APENAS seu próprio histórico (changed_by = seu ID)
+      // - Produtor/Admin: vê histórico COMPLETO de todos os motoristas
+      if (isDriver && driverId) {
+        query = query.eq('changed_by', driverId);
+      }
 
       const { data, error } = await query;
 
@@ -594,23 +598,10 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                 const status = statusFlow.find(s => s.key === item.status);
                 const Icon = status?.icon || Clock;
                 const isCurrentDriver = driverId && item.changed_by === driverId;
-                const isOtherDriver = driverId && item.changed_by !== driverId && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role || '');
-                
-                const prevItem = index > 0 ? statusHistory[index - 1] : null;
-                const driverChanged = prevItem && prevItem.changed_by !== item.changed_by && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role || '');
                 
                 return (
                   <div key={item.id}>
-                    {driverChanged && (
-                      <div className="flex items-center gap-2 py-2 mb-2">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground font-medium px-2">
-                          Motorista diferente
-                        </span>
-                        <div className="flex-1 h-px bg-border" />
-                      </div>
-                    )}
-                    <div className={`flex gap-3 pb-4 border-b last:border-0 ${isOtherDriver ? 'opacity-70 pl-2 border-l-2 border-muted-foreground/30' : ''}`}>
+                    <div className="flex gap-3 pb-4 border-b last:border-0">
                       <div className={`p-2 rounded-full ${isCurrentDriver ? 'bg-primary/10' : 'bg-muted'}`}>
                         <Icon className={`h-4 w-4 ${isCurrentDriver ? 'text-primary' : 'text-muted-foreground'}`} />
                       </div>
@@ -621,16 +612,6 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                           <Badge variant="outline" className="text-xs">
                             {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
                           </Badge>
-                          {isOtherDriver && (
-                            <Badge variant="secondary" className="text-xs">
-                              Outro motorista
-                            </Badge>
-                          )}
-                          {isCurrentDriver && (
-                            <Badge className="text-xs bg-primary/20 text-primary border-0">
-                              Você
-                            </Badge>
-                          )}
                         </div>
                         
                         <p className="text-sm text-muted-foreground mb-2">
@@ -659,7 +640,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           ) : (
             <FreightStatusHistory
               freightId={freightId}
-              driverId={undefined}
+              driverId={isDriver ? driverId : undefined}
             />
           )}
         </CardContent>
