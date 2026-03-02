@@ -1,20 +1,18 @@
 
+## Problem
 
-## Plan: Add forum community icon
+The close button on the "Motorista Afiliado" banner (CompanyDriverBadge) exists in code with an X icon, but visually the X is not appearing in the deployed version. The button shows as a small empty circle.
 
-The forum currently uses `MessageSquare` from lucide-react in 3 places (Header, OptimizedHeader, AdminSidebar). The user wants a community/group icon like the uploaded image (people with speech bubble).
+## Root Cause
 
-### Approach
+The button at line 50-57 of `CompanyDriverBadge.tsx` already has `<X className="h-4 w-4" strokeWidth={3} />` with `text-white` and `bg-destructive`. The icon may not be rendering due to CSS specificity issues or the SVG stroke color being overridden.
 
-1. **Copy the uploaded image** to `src/assets/forum-icon.png`
-2. **Create a reusable `ForumIcon` component** (`src/modules/forum/components/ForumIcon.tsx`) that renders the image as an inline icon with configurable size, matching the lucide icon API pattern (`size`, `className`)
-3. **Replace `MessageSquare` with `ForumIcon`** in these 3 files:
-   - `src/components/Header.tsx` (line 159)
-   - `src/components/OptimizedHeader.tsx` (line 85)
-   - `src/components/admin-panel/AdminSidebar.tsx` (line 32)
-4. **Use it in ForumLayout breadcrumb** (`src/modules/forum/components/ForumLayout.tsx` line 31) replacing the `MessageSquare` icon there too
+## Fix
 
-### Technical detail
+Make the X icon more explicitly visible by:
 
-The `ForumIcon` component will accept `size` and `className` props to match the pattern used by lucide icons so it can be dropped in as a replacement. Since the menu item arrays expect a component reference (`icon: ForumIcon`), the component will render an `<img>` tag with the imported asset.
+1. **Add explicit color to the X icon itself** -- use `text-white` directly on the `<X>` component and add `!important` via inline style or explicit `stroke` prop
+2. **Increase button size slightly** from `h-7 w-7` to `h-8 w-8` for better visibility
+3. **Add a shadow** to make it stand out more against the light background
 
+Single file change: `src/components/CompanyDriverBadge.tsx`, lines 50-57.
