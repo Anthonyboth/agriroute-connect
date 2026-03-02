@@ -19,7 +19,7 @@ const ServiceProviderDashboard = () => {
   // ✅ NÃO limpar state aqui - o componente ServiceDashboard consome via useLocation
   
   return (
-    <div data-dashboard-ready="true" className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 dark:to-primary/5">
+    <div data-dashboard-ready="true" className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-background via-background to-primary/10 dark:to-primary/5 pb-[env(safe-area-inset-bottom,0px)]">
       <Header
         user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'PRESTADOR_SERVICOS' }}
         onMenuClick={handleMenuClick}
