@@ -145,6 +145,17 @@ export function useErrorMonitoring() {
         if (error instanceof DOMException && (error as DOMException).name === 'AbortError') {
           throw error;
         }
+
+        // ✅ Correção 3: NÃO reportar erros de rede de APIs externas não-críticas (OSRM, tiles, etc.)
+        const isExternalNonCritical = urlString.includes('router.project-osrm.org') ||
+          urlString.includes('tile.openstreetmap.org') ||
+          urlString.includes('tiles.stadiamaps.com') ||
+          urlString.includes('demotiles.maplibre.org');
+
+        if (isExternalNonCritical) {
+          console.warn('[useErrorMonitoring] Erro de rede em API externa não-crítica - suprimido:', urlString.substring(0, 80));
+          throw error;
+        }
         
         console.error('💥 [useErrorMonitoring] Erro de fetch:', error);
         // Capturar erros de rede (fetch falhou)
