@@ -32,12 +32,12 @@ export const useActiveFreight = (): ActiveFreightInfo => {
 
     const checkActiveFreights = async () => {
       try {
-        // Verificar fretes diretos do motorista (EXCLUIR DELIVERED_PENDING_CONFIRMATION)
+        // Verificar fretes diretos do motorista (INCLUIR DELIVERED_PENDING_CONFIRMATION para manter tracking ativo)
         const { data: directFreights } = await supabase
           .from('freights')
           .select('id, status')
           .eq('driver_id', profile.id)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
           .limit(1)
           .maybeSingle();
 
@@ -51,12 +51,12 @@ export const useActiveFreight = (): ActiveFreightInfo => {
           return;
         }
 
-        // Verificar assignments de transportadora (EXCLUIR DELIVERED_PENDING_CONFIRMATION)
+        // Verificar assignments de transportadora (INCLUIR DELIVERED_PENDING_CONFIRMATION para manter tracking ativo)
         const { data: assignments } = await supabase
           .from('freight_assignments')
           .select('id, freight_id, status')
           .eq('driver_id', profile.id)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
           .limit(5);
 
         // ✅ CORREÇÃO: Cross-reference com driver_trip_progress para detectar motoristas

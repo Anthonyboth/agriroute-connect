@@ -223,7 +223,24 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
     consecutiveErrorsRef.current = 0;
 
     if (isCapacitorEnv()) {
-      let watchId: string;
+      // ✅ FIX: Track pending promise to handle stop() called before resolve
+      let pendingWatchId: string | null = null;
+      let wasStoppedBeforeResolve = false;
+
+      const clearHandle = {
+        clear: () => {
+          if (pendingWatchId) {
+            Geolocation.clearWatch({ id: pendingWatchId });
+            pendingWatchId = null;
+          } else {
+            // stop() was called before watchPosition resolved — flag it
+            wasStoppedBeforeResolve = true;
+          }
+          watchHandleRef.current = null;
+        },
+      };
+      watchHandleRef.current = clearHandle;
+
       Geolocation.watchPosition(
         { enableHighAccuracy: true },
         (pos, err) => {
@@ -236,15 +253,17 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
           if (pos) handleSuccess(pos.coords);
         }
       ).then((id) => {
-        watchId = id as unknown as string;
-        watchHandleRef.current = {
-          clear: () => {
-            if (watchId) Geolocation.clearWatch({ id: watchId });
-            watchHandleRef.current = null;
-          },
-        };
+        pendingWatchId = id as unknown as string;
+        // If stop() was called while we were waiting for the promise, clear immediately
+        if (wasStoppedBeforeResolve || !activeRef.current) {
+          console.log('[GPS-Monitor] Watch started but stop() was already called — clearing immediately');
+          Geolocation.clearWatch({ id: pendingWatchId });
+          pendingWatchId = null;
+          watchHandleRef.current = null;
+        }
       }).catch((err) => {
         console.warn('[GPS-Monitor] Erro ao iniciar watchPosition nativo:', err);
+        watchHandleRef.current = null;
         handleError({ code: 1, message: String(err?.message ?? err) });
       });
     } else {
