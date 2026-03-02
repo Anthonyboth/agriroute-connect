@@ -33,7 +33,7 @@ const config: CapacitorConfig = {
       launchShowDuration: 3000,
       launchAutoHide: false,
       // AgriRoute green - MUST match LaunchScreen.storyboard
-      backgroundColor: '#16a34a',
+      backgroundColor: '#FFFFFF',
       showSpinner: false,
       // iOS: use native launch screen as splash
       launchFadeOutDuration: 500,
@@ -65,7 +65,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
     // Use same background as splash to eliminate black flash
-    backgroundColor: '#16a34a',
+    backgroundColor: '#FFFFFF',
     // ✅ RELEASE HARDENING: Proper scheme for deep links
     scheme: 'agriroute'
   }
