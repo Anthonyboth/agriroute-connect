@@ -1977,10 +1977,11 @@ const DriverDashboard = () => {
             return;
           }
 
-          // ✅ FASE 1 - CRÍTICO: Verificar status de validação antes de aceitar
+          // ✅ FASE 1 - CRÍTICO: Verificar se cadastro foi aprovado pelo admin
           if (profile.status !== 'APPROVED') {
-            toast.error('❌ Seus documentos ainda estão em validação', {
-              description: 'Aguarde a aprovação do administrador para aceitar fretes'
+            toast.error('❌ Seu cadastro ainda não foi aprovado', {
+              description: 'Aguarde a aprovação do administrador para acessar esta funcionalidade.',
+              id: 'driver-not-approved'
             });
             return;
           }
@@ -2572,13 +2573,13 @@ const DriverDashboard = () => {
             </Alert>
           )}
 
-          {/* ✅ FASE 1/3 - Alerta de Documentos Pendentes */}
-          {profile?.status === 'PENDING' && (
+          {/* ✅ Alerta de Cadastro Pendente - aparece para QUALQUER status que não seja APPROVED */}
+          {profile?.status && profile.status !== 'APPROVED' && (
             <Alert variant="default" className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertTitle className="text-yellow-800 dark:text-yellow-200">Documentos em Validação</AlertTitle>
+              <AlertTitle className="text-yellow-800 dark:text-yellow-200">Cadastro Pendente de Aprovação</AlertTitle>
               <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                Seus documentos estão sendo analisados. Você poderá aceitar fretes após a aprovação.
+                Seu cadastro está sendo analisado pelo administrador. Após a aprovação, você terá acesso completo à plataforma.
               </AlertDescription>
             </Alert>
           )}
