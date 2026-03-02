@@ -240,11 +240,14 @@ export const Step3Location: React.FC<Step3Props> = ({
             variant="outline"
             size="sm"
             className="w-full flex items-center gap-2 text-sm border-dashed border-primary/50 text-primary hover:bg-primary/5"
+            disabled={!formData.origin.city || !formData.origin.state || !formData.origin.city_id}
             onClick={() => {
-              // Copia apenas cidade/estado da origem para o destino
+              // Copia cidade/estado/city_id/lat/lng da origem para o destino
               onUpdate('destination.city_id', formData.origin.city_id);
               onUpdate('destination.city', formData.origin.city);
               onUpdate('destination.state', formData.origin.state);
+              onUpdate('destination.lat', formData.origin.lat);
+              onUpdate('destination.lng', formData.origin.lng);
             }}
           >
             <Copy className="h-4 w-4" />
