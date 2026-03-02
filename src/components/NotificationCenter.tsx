@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw, Filter, MailCheck } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw, Filter, MailCheck, XCircle, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { useNotificationNavigation } from '@/hooks/useNotificationNavigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { NotificationSound } from './NotificationSound';
+import { CancelledFreightInfoModal } from './CancelledFreightInfoModal';
 
 interface Notification {
   id: string;
@@ -42,6 +43,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [loading, setLoading] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelledFreightModal, setCancelledFreightModal] = useState<{
+    freightId: string;
+    reason?: string;
+    cancelledAt?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -157,6 +163,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
     
     const { type, data } = notification;
+
+    // Cancelled freight → open info popup
+    if ((type === 'freight_cancelled' || type === 'freight_auto_cancelled') && data?.freight_id) {
+      setCancelledFreightModal({
+        freightId: data.freight_id,
+        reason: data.cancellation_reason,
+        cancelledAt: data.cancelled_at,
+      });
+      return;
+    }
     
     // Ratings need special handling (open modal, not navigate)
     if (type === 'rating_pending' && data?.freight_id && data?.rated_user_id) {
@@ -248,7 +264,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       'company_driver_assignment',
       'company_delivery_confirmation',
       'vehicle_assignment_created',
-      'vehicle_assignment_removed'
+      'vehicle_assignment_removed',
+      'freight_cancelled',
+      'freight_auto_cancelled'
     ];
     return actionableTypes.includes(type);
   };
@@ -264,6 +282,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       case 'freight_created':
       case 'company_freight_status_change':
         return <Truck className={`${iconClass} text-blue-500`} />;
+      case 'freight_cancelled':
+      case 'freight_auto_cancelled':
+        return <XCircle className={`${iconClass} text-destructive`} />;
       case 'proposal_received':
       case 'company_new_proposal':
         return <Package className={`${iconClass} text-purple-500`} />;
@@ -624,6 +645,17 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de frete cancelado */}
+      {cancelledFreightModal && (
+        <CancelledFreightInfoModal
+          isOpen={!!cancelledFreightModal}
+          onClose={() => setCancelledFreightModal(null)}
+          freightId={cancelledFreightModal.freightId}
+          cancellationReason={cancelledFreightModal.reason}
+          cancelledAt={cancelledFreightModal.cancelledAt}
+        />
+      )}
     </>
   );
 };
