@@ -1114,7 +1114,7 @@ const ProducerDashboard = () => {
     const status = String(freightToCancel.status || '').toUpperCase().trim();
     const canCancelDirectly = ["OPEN", "ACCEPTED", "LOADING", "IN_NEGOTIATION"].includes(status);
     if (!canCancelDirectly) {
-      toast.error("Este frete está em andamento. Solicite o cancelamento via chat com o motorista.");
+      toast.error("Este frete está em andamento. Entre em contato com o suporte do app para solicitar o cancelamento.");
       setConfirmDialogOpen(false);
       return;
     }
