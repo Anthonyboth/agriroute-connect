@@ -294,7 +294,7 @@ export default function ForumHome() {
               <Label>Categoria *</Label>
               <Select value={boardCategoryId} onValueChange={setBoardCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   {(allCategories || categories || []).map(cat => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
