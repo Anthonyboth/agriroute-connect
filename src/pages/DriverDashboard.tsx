@@ -2564,8 +2564,9 @@ const DriverDashboard = () => {
             </Alert>
           )}
 
-          {/* ✅ Alerta de Cadastro Pendente - aparece para QUALQUER status que não seja APPROVED */}
-          {profile?.status && profile.status !== 'APPROVED' && (
+          {/* ✅ Alerta de Cadastro Pendente - aparece para status não-APPROVED
+               EXCETO para motoristas afiliados/de empresa (acesso via afiliação, não aprovação individual) */}
+          {profile?.status && profile.status !== 'APPROVED' && !isAffiliated && !isCompanyDriver && (
             <Alert variant="default" className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertTitle className="text-yellow-800 dark:text-yellow-200">Cadastro Pendente de Aprovação</AlertTitle>
