@@ -108,14 +108,20 @@ export function NfeCameraScanner({ onKeyDetected, onError, className }: NfeCamer
   }, [handleScanSuccess, handleScanError, onError]);
 
   const stopScanner = useCallback(async () => {
-    if (scannerRef.current) {
+    const scanner = scannerRef.current;
+    if (scanner) {
+      scannerRef.current = null;
       try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
+        const state = scanner.getState();
+        // Only stop if currently scanning (state 2 = SCANNING)
+        if (state === 2) {
+          await scanner.stop();
+        }
+        scanner.clear();
       } catch (err) {
         console.error('[NfeCameraScanner] Erro ao parar scanner:', err);
+        try { scanner.clear(); } catch (_) { /* ignore */ }
       }
-      scannerRef.current = null;
     }
     setStatus('idle');
   }, []);
@@ -150,9 +156,19 @@ export function NfeCameraScanner({ onKeyDetected, onError, className }: NfeCamer
   // Cleanup ao desmontar
   useEffect(() => {
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current.clear();
+      const scanner = scannerRef.current;
+      if (scanner) {
+        scannerRef.current = null;
+        try {
+          const state = scanner.getState();
+          if (state === 2) {
+            scanner.stop().then(() => scanner.clear()).catch(() => {
+              try { scanner.clear(); } catch (_) { /* ignore */ }
+            });
+          } else {
+            scanner.clear();
+          }
+        } catch (_) { /* ignore */ }
       }
     };
   }, []);
