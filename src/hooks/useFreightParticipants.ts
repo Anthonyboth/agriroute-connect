@@ -90,7 +90,9 @@ const VALID_ASSIGNMENT_STATUSES = [
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION'
+  'DELIVERED_PENDING_CONFIRMATION',
+  'DELIVERED',
+  'COMPLETED'
 ];
 
 const ACTIVE_ASSIGNMENT_STATUSES = [
@@ -98,7 +100,9 @@ const ACTIVE_ASSIGNMENT_STATUSES = [
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION'
+  'DELIVERED_PENDING_CONFIRMATION',
+  'DELIVERED',
+  'COMPLETED'
 ];
 
 // =====================================================
@@ -184,10 +188,11 @@ export const useFreightParticipants = ({
         });
       }
 
-      // 2c. Filtrar motoristas que já terminaram (trip_progress diz DELIVERED/COMPLETED/CANCELLED)
+      // 2c. Filtrar apenas motoristas cancelados/rejeitados — DELIVERED e COMPLETED ainda devem aparecer
       const activeAssignments = (assignmentsData || []).filter(assignment => {
         const tripStatus = tripProgressMap.get(assignment.driver_id);
-        return isDriverStillActive(assignment.status, tripStatus);
+        const effective = getDriverEffectiveStatus(assignment.status, tripStatus);
+        return !['CANCELLED', 'REJECTED'].includes(effective);
       });
 
       // 3. Coletar todos os IDs únicos para buscar perfis
