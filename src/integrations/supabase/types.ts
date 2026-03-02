@@ -15595,6 +15595,15 @@ export type Database = {
         }[]
       }
       migrate_profile_to_encrypted: { Args: { p_id: string }; Returns: boolean }
+      monitor_and_fix_freight_status_desync: {
+        Args: never
+        Returns: {
+          freight_id: string
+          new_status: string
+          old_status: string
+          reason: string
+        }[]
+      }
       normalize_service_type_canonical: {
         Args: { p_type: string }
         Returns: string
