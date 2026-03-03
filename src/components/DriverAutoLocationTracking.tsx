@@ -20,6 +20,7 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { isNative } from '@/utils/location';
+import { updateForegroundNotification } from '@/utils/foregroundService';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Navigation, AlertTriangle, WifiOff } from 'lucide-react';
 import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
@@ -123,6 +124,14 @@ export const DriverAutoLocationTracking = () => {
 
     // Analisar sinais antifraude
     analyze(coords);
+
+    // Atualizar texto da notificação persistente (Android)
+    if (isNative()) {
+      const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      updateForegroundNotification(
+        `Última posição: ${timeStr} — Precisão: ${Math.round(coords.accuracy)}m`
+      );
+    }
   }, [coords, hasActiveFreight, profile?.id, persist, analyze]);
 
   // ── Exibir dialog de permissão quando necessário ──────────────────────────
