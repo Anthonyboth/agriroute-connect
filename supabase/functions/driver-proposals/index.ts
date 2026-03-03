@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
@@ -56,12 +56,11 @@ serve(async (req) => {
 
     logStep("Usuário autenticado", { userId: user.id });
 
-    // Find driver profile id
-    const { data: profile, error: profileErr } = await supabase
+    // Find driver profile id (multi-role safe: never use .single())
+    const { data: profiles, error: profileErr } = await supabase
       .from("profiles")
       .select("id, role")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
 
     if (profileErr) {
       logStep("Erro ao buscar perfil", { error: profileErr.message });
@@ -71,8 +70,13 @@ serve(async (req) => {
       );
     }
 
-    if (!profile || (profile.role !== "MOTORISTA" && profile.role !== "MOTORISTA_AFILIADO")) {
-      logStep("Perfil de motorista não encontrado", { role: profile?.role });
+    // Pick driver profile (prioritize MOTORISTA, then MOTORISTA_AFILIADO)
+    const driverRoles = ["MOTORISTA", "MOTORISTA_AFILIADO"];
+    const profile = (profiles ?? []).find((p: any) => driverRoles.includes(p.role))
+      || (profiles ?? [])[0];
+
+    if (!profile || !driverRoles.includes(profile.role)) {
+      logStep("Perfil de motorista não encontrado", { roles: (profiles ?? []).map((p: any) => p.role) });
       return new Response(
         JSON.stringify({ error: "Perfil de motorista não encontrado", code: "DRIVER_NOT_FOUND" }), 
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
