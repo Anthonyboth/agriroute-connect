@@ -11,6 +11,13 @@ export class ErrorMonitoringService {
   private errorQueue: ErrorReport[] = [];
   private isOnline = navigator.onLine;
 
+  // Circuit breaker para report-user-panel-error
+  private reportFailureCount = 0;
+  private reportCircuitOpenUntil = 0;
+  private static readonly CIRCUIT_BREAKER_THRESHOLD = 3;
+  private static readonly CIRCUIT_BREAKER_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos
+  private static readonly MAX_ERROR_QUEUE_SIZE = 50;
+
   private constructor() {
     this.autoCorrector = ErrorAutoCorrector.getInstance();
 
@@ -64,6 +71,35 @@ export class ErrorMonitoringService {
     return userPanelRoutes.some(route => pathname.startsWith(route));
   }
 
+  private isCircuitOpen(): boolean {
+    if (this.reportFailureCount < ErrorMonitoringService.CIRCUIT_BREAKER_THRESHOLD) {
+      return false;
+    }
+    if (Date.now() >= this.reportCircuitOpenUntil) {
+      // Cooldown expirou, resetar
+      this.reportFailureCount = 0;
+      this.reportCircuitOpenUntil = 0;
+      return false;
+    }
+    return true;
+  }
+
+  private recordReportFailure(): void {
+    this.reportFailureCount++;
+    if (this.reportFailureCount >= ErrorMonitoringService.CIRCUIT_BREAKER_THRESHOLD) {
+      this.reportCircuitOpenUntil = Date.now() + ErrorMonitoringService.CIRCUIT_BREAKER_COOLDOWN_MS;
+      console.warn(
+        `[ErrorMonitoringService] Circuit breaker ABERTO: report-user-panel-error falhou ${this.reportFailureCount}x. Pausando por 5 min.`
+      );
+    }
+  }
+
+  private safeQueuePush(report: ErrorReport): void {
+    if (this.errorQueue.length < ErrorMonitoringService.MAX_ERROR_QUEUE_SIZE) {
+      this.errorQueue.push(report);
+    }
+  }
+
   async reportUserPanelError(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
     if (import.meta.env.DEV) {
       console.log('[ErrorMonitoringService] Reportando erro de painel:', report.errorMessage);
@@ -76,12 +112,17 @@ export class ErrorMonitoringService {
       if (import.meta.env.DEV) {
         console.log('[ErrorMonitoringService] Offline - adicionando à fila');
       }
-      this.errorQueue.push(report);
+      this.safeQueuePush(report);
+      return { notified: telegramNotified };
+    }
+
+    // Circuit breaker: não chamar edge function se está em cooldown
+    if (this.isCircuitOpen()) {
+      console.debug('[ErrorMonitoringService] Circuit breaker aberto - pulando report-user-panel-error');
       return { notified: telegramNotified };
     }
 
     try {
-      // ✅ Defensive normalization: guarantee schema-compatible payload
       const safeReport: ErrorReport = {
         ...report,
         errorCode: report.errorCode != null ? String(report.errorCode) : undefined,
@@ -91,17 +132,30 @@ export class ErrorMonitoringService {
         body: safeReport
       });
       if (error) {
-        console.error('[ErrorMonitoringService] Erro ao reportar ao backend:', error);
-        this.errorQueue.push(report);
+        console.debug('[ErrorMonitoringService] Erro ao reportar ao backend (não crítico):', error?.message || error);
+        this.recordReportFailure();
+        // NÃO empurrar para errorQueue em FunctionsFetchError
+        const isFetchError = error?.name === 'FunctionsFetchError' || (typeof error === 'object' && String(error).includes('FunctionsFetchError'));
+        if (!isFetchError) {
+          this.safeQueuePush(report);
+        }
+      } else {
+        // Sucesso: resetar circuit breaker
+        this.reportFailureCount = 0;
+        this.reportCircuitOpenUntil = 0;
       }
 
       return {
         notified: telegramNotified || data?.notified || false,
         errorLogId: data?.errorLogId
       };
-    } catch (error) {
-      console.error('[ErrorMonitoringService] Falha ao reportar erro de painel:', error);
-      this.errorQueue.push(report);
+    } catch (error: any) {
+      console.debug('[ErrorMonitoringService] Falha ao reportar erro de painel (suprimido):', error?.message || error);
+      this.recordReportFailure();
+      const isFetchError = error?.name === 'FunctionsFetchError' || String(error).includes('FunctionsFetchError');
+      if (!isFetchError) {
+        this.safeQueuePush(report);
+      }
       return { notified: telegramNotified };
     }
   }
