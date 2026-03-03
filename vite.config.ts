@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
-import { purgeCSSPlugin } from '@fullhuman/postcss-purgecss';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 
@@ -88,62 +87,8 @@ export default defineConfig(({ mode }) => ({
         // ✅ CRÍTICO: Tailwind DEVE vir primeiro para compilar @tailwind/@apply
         tailwindcss(),
         autoprefixer(),
-        // PurgeCSS apenas em produção, APÓS Tailwind compilar
-        ...(mode === 'production' ? [
-          purgeCSSPlugin({
-            content: [
-              './index.html',
-              './src/**/*.{js,ts,jsx,tsx}',
-            ],
-             // ✅ HOTFIX (modais com "tela preta"):
-             // O PurgeCSS estava removendo classes Tailwind com valores arbitrários (ex: z-[10000], left-[50%], translate-x-[-50%]).
-             // Isso faz o overlay do Radix aparecer sem o conteúdo/posicionamento correto.
-             // Incluímos [ ] % . para manter esses utilitários.
-             defaultExtractor: (content: string) => content.match(/[\w-/:.\[\]%]+(?<!:)/g) || [],
-            safelist: {
-               standard: [
-                 /^html/,
-                 /^body/,
-                 /^:root/,
-                 /^dark/,
-                 // Radix UI data attributes
-                 /^data-/,
-                 /\[data-.*\]/,
-                 // ✅ AgriRoute Design System - Custom CSS classes (not in source files)
-                 /^gradient-/,
-                 /^shadow-/,
-                 /^btn-/,
-                 /^card-/,
-                 /^text-gradient-/,
-                 /^text-shadow-/,
-                 /^text-accessible/,
-                 /^freight-/,
-                 /^spacing-/,
-                 /^pentagon-/,
-                 /^status-/,
-                 /^scroll-/,
-                 /^safe-/,
-                 /^responsive-/,
-                 /^badge-/,
-                 /^touch-/,
-                 /^prevent-/,
-                 /^provider-/,
-                 'transition-smooth',
-                 'transition-bounce',
-               ],
-               deep: [
-                 /radix/,
-                 /sonner/,
-                 /cmdk/,
-               ],
-               greedy: [
-                 /^lucide-/,
-                 // ✅ Keep Tailwind arbitrary value utilities: z-[...], left-[...], etc.
-                 /\[[^\]]+\]/,
-               ]
-             }
-          })
-        ] : []),
+        // PurgeCSS DESABILITADO - pacote não instalado
+        // Para reativar: npm install @fullhuman/postcss-purgecss
       ],
     },
   },
