@@ -108,7 +108,7 @@ interface AdvancedSearchFilters {
 
 interface SmartFreightMatcherProps {
   onFreightAction?: (freightId: string, action: string) => void;
-  onCountsChange?: (counts: { total: number; highUrgency: number }) => void;
+  onCountsChange?: (counts: { total: number; highUrgency: number; freightCount: number; serviceCount: number }) => void;
   advancedFilters?: AdvancedSearchFilters | null;
 }
 
@@ -253,7 +253,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         setHasActiveCities(unifiedFreights.length > 0 || unifiedServices.length > 0);
 
         const highUrgency = unifiedFreights.filter((f) => f.urgency === 'HIGH').length;
-        onCountsChangeRef.current?.({ total: unifiedFreights.length + unifiedServices.length, highUrgency });
+        onCountsChangeRef.current?.({ total: unifiedFreights.length + unifiedServices.length, highUrgency, freightCount: unifiedFreights.length, serviceCount: unifiedServices.length });
 
         setMatchingStats({
           exactMatches: result.metrics.feed_total_eligible,
@@ -550,9 +550,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
   useEffect(() => {
     if (!onCountsChange) return;
-    const total = filteredFreights.length + filteredRequests.length;
+    const freightCount = filteredFreights.length;
+    const serviceCount = filteredRequests.length;
+    const total = freightCount + serviceCount;
     const highUrgency = filteredFreights.filter((f) => f.urgency === "HIGH").length;
-    onCountsChange({ total, highUrgency });
+    onCountsChange({ total, highUrgency, freightCount, serviceCount });
   }, [filteredFreights, filteredRequests, onCountsChange]);
 
   const getServiceTypeBadge = (serviceType: string) => {
