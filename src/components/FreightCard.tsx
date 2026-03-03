@@ -25,6 +25,7 @@ import {
   MessageCircle,
   TrendingUp,
   TrendingDown,
+  Bike,
 } from "lucide-react";
 import { getCargoTypeLabel } from "@/lib/cargo-types";
 import { getUrgencyLabel } from "@/lib/urgency-labels";
@@ -481,7 +482,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       case "MUDANCA":
         return <Home className="h-5 w-5 text-accent" />;
       case "FRETE_MOTO":
-        return <Truck className="h-5 w-5 text-blue-500" />;
+        return <Bike className="h-5 w-5 text-blue-500" />;
       default:
         return <Package className="h-5 w-5 text-primary" />;
     }
@@ -511,7 +512,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
     <TooltipProvider>
       <Card
         data-testid="freight-card"
-        className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.01] border-2 border-border rounded-xl bg-card"
+        className="freight-card-standard hover:shadow-lg transition-all duration-300 transform-gpu will-change-transform hover:scale-[1.01] ring-2 ring-transparent hover:ring-primary/20 border border-border rounded-xl bg-card"
         style={{ boxShadow: '0 2px 8px hsl(var(--foreground) / 0.06)' }}
       >
         {/* ── HEADER: Título + Urgência + Prazo ── (30% zone: structure & text) */}
@@ -656,6 +657,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 {rpmIcon}
                 {preco.unitValue ? `R$${preco.unitValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
               </p>
+              {preco.unitValue != null && (
+                <span className={`text-[9px] font-medium ${rpmColor}`}>
+                  {rpmColor.includes('primary') ? '↑ Boa' : rpmColor.includes('destructive') ? '↓ Baixa' : '→ Média'}
+                </span>
+              )}
             </div>
           </div>
         </CardContent>
