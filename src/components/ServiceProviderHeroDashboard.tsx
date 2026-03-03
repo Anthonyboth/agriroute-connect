@@ -65,13 +65,13 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
     fetchStats();
   }, [profile, profiles]);
 
-  // Real-time subscription para user_cities
+  // Real-time subscription para user_cities + service_requests
   useEffect(() => {
     const providerProfileId = getProviderProfileId();
     if (!providerProfileId || !profile?.user_id) return;
 
     const channel = supabase
-      .channel('provider-hero-user-cities')
+      .channel('provider-hero-realtime')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -79,7 +79,16 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         filter: `user_id=eq.${profile.user_id}`
       }, (payload) => {
         if (import.meta.env.DEV) console.log('user_cities mudou no hero dashboard:', payload);
-        fetchStats(); // Atualizar estatísticas quando cidades mudam
+        fetchStats();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'service_requests',
+        filter: `provider_id=eq.${providerProfileId}`
+      }, () => {
+        if (import.meta.env.DEV) console.log('[HeroDashboard] service_requests changed — refreshing stats');
+        fetchStats();
       })
       .subscribe();
 
