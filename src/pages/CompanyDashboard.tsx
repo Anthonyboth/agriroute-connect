@@ -29,9 +29,14 @@ import {
   Brain,
   ClipboardList,
   Plus,
-  Play
+  Play,
+  ShieldCheck,
+  CheckCircle
 } from 'lucide-react';
 import { usePendingRatingsCount } from '@/hooks/usePendingRatingsCount';
+import { usePendingDeliveryConfirmations } from '@/hooks/usePendingDeliveryConfirmations';
+import { PendingDeliveryConfirmationCard } from '@/components/PendingDeliveryConfirmationCard';
+import { DeliveryConfirmationModal } from '@/components/DeliveryConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { TabBadge } from '@/components/ui/TabBadge';
@@ -92,7 +97,7 @@ const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyRep
 const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
 
 // Definição de tabs
-const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: number, myRequestsCount: number) => [
+const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: number, myRequestsCount: number, pendingDeliveryCount: number) => [
   { 
     value: 'overview', 
     label: 'Visão Geral', 
@@ -115,7 +120,13 @@ const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: nu
     badge: activeCount > 0 ? activeCount : undefined
   },
   { value: 'proposals', label: 'Propostas', shortLabel: 'Propostas', icon: FileText, badge: undefined },
-  
+  { 
+    value: 'confirm-delivery', 
+    label: 'Confirmar Entrega', 
+    shortLabel: 'Entregas', 
+    icon: ShieldCheck,
+    badge: pendingDeliveryCount > 0 ? pendingDeliveryCount : undefined
+  },
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pagamentos', icon: DollarSign, badge: undefined },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cidades', icon: MapPin, badge: undefined },
   { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: ratingsCount > 0 ? ratingsCount : undefined },
@@ -211,7 +222,68 @@ const CompanyDashboard = () => {
   );
   const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
 
-  // Estado para analytics
+  // ✅ Hook para confirmações de entrega pendentes (transportadora como solicitante de frete)
+  const {
+    items: pendingDeliveryItems,
+    loading: pendingDeliveryLoading,
+    totalCount: pendingDeliveryCount,
+    criticalCount: pendingDeliveryCritical,
+    urgentCount: pendingDeliveryUrgent,
+    refetch: refetchPendingDeliveries,
+  } = usePendingDeliveryConfirmations(profile?.id);
+
+  // Estado para modal de confirmação de entrega
+  const [deliveryConfirmationModal, setDeliveryConfirmationModal] = useState(false);
+  const [freightToConfirm, setFreightToConfirm] = useState<any>(null);
+  const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'critical' | 'urgent'>('all');
+
+  const openDeliveryConfirmationModal = (freight: any) => {
+    setFreightToConfirm(freight);
+    setDeliveryConfirmationModal(true);
+  };
+
+  const closeDeliveryConfirmationModal = () => {
+    setFreightToConfirm(null);
+    setDeliveryConfirmationModal(false);
+  };
+
+  const handleDeliveryConfirmed = useCallback(() => {
+    if (freightToConfirm) {
+      const driverId = freightToConfirm.driver_id || freightToConfirm.profiles?.id;
+      const amount = freightToConfirm.price;
+
+      if (freightToConfirm.id && driverId && typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
+        // Criar solicitação de pagamento externo
+        supabase
+          .from('external_payments')
+          .select('id')
+          .eq('freight_id', freightToConfirm.id)
+          .eq('producer_id', profile?.id || '')
+          .eq('driver_id', driverId)
+          .limit(1)
+          .then(({ data: existing }) => {
+            if (!existing?.length) {
+              supabase.from('external_payments').insert({
+                freight_id: freightToConfirm.id,
+                producer_id: profile?.id || '',
+                driver_id: driverId,
+                amount,
+                status: 'proposed',
+                notes: 'Pagamento do frete após entrega confirmada',
+                proposed_at: new Date().toISOString(),
+              }).then(() => {});
+            }
+          });
+      }
+
+      setActiveTab('payments');
+      toast.info('Entrega confirmada. Vá em "Pagamentos" para confirmar o pagamento ao motorista.');
+    }
+
+    refetchActiveFreights();
+    refetchPendingDeliveries();
+    closeDeliveryConfirmationModal();
+  }, [freightToConfirm, profile?.id, refetchPendingDeliveries]);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   
   useEffect(() => {
@@ -780,7 +852,7 @@ const CompanyDashboard = () => {
   // NOTE: cases where the user is not transportadora are handled by route guards.
 
   const totalActiveFreights = myAssignments.length + activeFreights.length + activeServices.length;
-  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount, pendingRatingsCount, companyMyRequestsCount);
+  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount, pendingRatingsCount, companyMyRequestsCount, pendingDeliveryCount);
 
   return (
     <div data-dashboard-ready="true" className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-background via-background to-primary/5 pb-[env(safe-area-inset-bottom,0px)]">
@@ -1136,6 +1208,107 @@ const CompanyDashboard = () => {
             />
           </TabsContent>
 
+          {/* ✅ CONFIRMAR ENTREGA - Transportadora como solicitante de frete */}
+          <TabsContent value="confirm-delivery" className="mt-6 space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Confirmar Entregas</h3>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={urgencyFilter === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUrgencyFilter("all")}
+                >
+                  Todos ({pendingDeliveryCount})
+                </Button>
+                <Button
+                  variant={urgencyFilter === "critical" ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={() => setUrgencyFilter("critical")}
+                >
+                  🚨 Críticos ({pendingDeliveryCritical})
+                </Button>
+                <Button
+                  variant={urgencyFilter === "urgent" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUrgencyFilter("urgent")}
+                  className={urgencyFilter === "urgent" ? "bg-orange-600 hover:bg-orange-700" : ""}
+                >
+                  ⚠️ Urgentes ({pendingDeliveryUrgent})
+                </Button>
+              </div>
+            </div>
+
+            {pendingDeliveryLoading ? (
+              <CenteredSpinner />
+            ) : pendingDeliveryItems.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <CheckCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Nenhuma entrega aguardando confirmação</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Quando motoristas reportarem entregas dos fretes que você solicitou, aparecerão aqui para confirmação.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                  {pendingDeliveryItems
+                    .filter((item) => {
+                      const hours = item.deliveryDeadline.hoursRemaining;
+                      if (urgencyFilter === "all") return true;
+                      if (urgencyFilter === "critical") return hours < 6;
+                      if (urgencyFilter === "urgent") return hours < 24 && hours >= 6;
+                      return true;
+                    })
+                    .map((item) => (
+                      <PendingDeliveryConfirmationCard
+                        key={item.id}
+                        item={item}
+                        onDispute={() => {
+                          toast.info('Disputa de entrega em breve');
+                        }}
+                        onConfirmDelivery={() => {
+                          const reportedAt =
+                            item.deliveryDeadline?.reportedAt ||
+                            item.delivered_at ||
+                            (item.freight as any)?.updated_at ||
+                            new Date().toISOString();
+
+                          const confirmationDeadline = new Date(
+                            new Date(reportedAt).getTime() + 72 * 60 * 60 * 1000,
+                          ).toISOString();
+
+                          const confirmationData = {
+                            id: item.freight_id,
+                            assignment_id: item.id,
+                            driver_id: item.driver_id,
+                            cargo_type: item.freight.cargo_type,
+                            origin_address: item.freight.origin_address,
+                            destination_address: item.freight.destination_address,
+                            price: item.agreed_price || (item.freight.price / item.freight.required_trucks),
+                            updated_at: reportedAt,
+                            status: 'DELIVERED_PENDING_CONFIRMATION',
+                            metadata: {
+                              ...(item.freight as any).metadata,
+                              confirmation_deadline: confirmationDeadline,
+                            },
+                            profiles: {
+                              id: item.driver.id,
+                              full_name: item.driver.full_name,
+                              contact_phone: item.driver.contact_phone,
+                            },
+                            _isIndividualConfirmation: true,
+                            _assignmentId: item.id,
+                          };
+                          openDeliveryConfirmationModal(confirmationData);
+                        }}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
             <div className="space-y-8">
@@ -1220,6 +1393,35 @@ const CompanyDashboard = () => {
         onClose={() => setServicesModalOpen(false)}
         mode="client"
       />
+
+      {/* Modal de Confirmação de Entrega */}
+      {freightToConfirm && (
+        <DeliveryConfirmationModal
+          freight={{
+            id: freightToConfirm.id,
+            cargo_type: freightToConfirm.cargo_type,
+            origin_address: freightToConfirm.origin_address,
+            destination_address: freightToConfirm.destination_address,
+            status: freightToConfirm.status,
+            updated_at: freightToConfirm.updated_at,
+            metadata: freightToConfirm.metadata,
+            driver: freightToConfirm.profiles
+              ? {
+                  full_name: freightToConfirm.profiles.full_name,
+                  contact_phone: freightToConfirm.profiles.contact_phone || freightToConfirm.profiles.phone,
+                }
+              : undefined,
+            profiles: freightToConfirm.profiles,
+            _isIndividualConfirmation: freightToConfirm._isIndividualConfirmation,
+            _assignmentId: freightToConfirm._assignmentId,
+            driver_id: freightToConfirm.driver_id,
+            price: freightToConfirm.price,
+          }}
+          isOpen={deliveryConfirmationModal}
+          onClose={closeDeliveryConfirmationModal}
+          onConfirm={handleDeliveryConfirmed}
+        />
+      )}
     </div>
   );
 };
