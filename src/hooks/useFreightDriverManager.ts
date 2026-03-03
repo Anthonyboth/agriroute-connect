@@ -115,7 +115,6 @@ const ACTIVE_FREIGHT_STATUSES = [
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION'
 ] as const;
 
 const ACTIVE_ASSIGNMENT_STATUSES = [
@@ -123,7 +122,6 @@ const ACTIVE_ASSIGNMENT_STATUSES = [
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION'
 ];
 
 // =====================================================
