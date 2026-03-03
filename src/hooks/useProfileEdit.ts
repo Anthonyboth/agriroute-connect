@@ -159,8 +159,11 @@ export function useProfileEdit() {
   }, []);
 
   // ── Save ────────────────────────────────────────────────────────────
-  const handleSave = useCallback(async () => {
-    if (!authProfile?.user_id) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!authProfile?.user_id) {
+      toast({ title: 'Erro', description: 'Sessão inválida. Faça login novamente.', variant: 'destructive' });
+      return false;
+    }
     setSaving(true);
     try {
       const { data: updated, error } = await supabase
@@ -279,13 +282,15 @@ export function useProfileEdit() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) throw new Error('Sessão inválida');
 
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ profile_photo_url: null })
         .eq('id', authProfile?.id || '')
         .eq('user_id', authUser.id)
         .select('id')
         .maybeSingle();
+
+      if (error) throw error;
 
       setCurrentPhotoPath('');
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
