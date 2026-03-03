@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sendNotification } from '@/utils/notify';
 
 interface CreateThreadInput {
   board_id: string;
@@ -77,6 +78,18 @@ export function useCreateThread() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['forum-categories'] });
       queryClient.invalidateQueries({ queryKey: ['forum-threads'] });
+    },
+    onError: (error: any) => {
+      console.error('[Forum] Thread creation error:', error);
+      supabase.functions.invoke('send-telegram-alert', {
+        body: {
+          type: 'forum_error',
+          title: '🔴 Erro no Fórum - Criar Tópico',
+          message: `**Erro**: ${error?.message || 'Desconhecido'}`,
+          severity: 'error',
+          source: 'forum_create_thread',
+        },
+      }).catch(() => {});
     },
   });
 }

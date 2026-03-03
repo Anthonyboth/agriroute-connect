@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,7 @@ import { useCreateThread } from '../hooks/useCreateThread';
 import { useForumCategories } from '../hooks/useForumCategories';
 import { ForumLayout } from '../components/ForumLayout';
 import { AutoModBanner } from '../components/AutoModBanner';
+import { ForumFileUpload } from '../components/ForumFileUpload';
 import { THREAD_TYPE_LABELS } from '../types';
 import { toast } from 'sonner';
 import { checkClientRateLimit, validateForumFile, FORUM_MAX_FILES } from '../utils/sanitize';
@@ -307,32 +308,8 @@ export default function ForumNewThread() {
 
             {/* Attachments */}
             <div className="space-y-2">
-              <Label>Anexos (máx 5, até 10MB cada)</Label>
-              <div className="flex flex-wrap gap-2">
-                {files.map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm">
-                    <span className="truncate max-w-[150px]">{f.name}</span>
-                    <button type="button" onClick={() => removeFile(idx)}>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-                {files.length < 5 && (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.webp,.pdf"
-                      multiple
-                      onChange={handleFiles}
-                      className="hidden"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="h-4 w-4 mr-1" /> Anexar
-                    </Button>
-                  </>
-                )}
-              </div>
+              <Label>Anexos (máx 5 — JPG, PNG, WebP, GIF ou PDF, até 10MB cada)</Label>
+              <ForumFileUpload files={files} onFilesChange={setFiles} />
             </div>
 
             <div className="flex gap-3">

@@ -154,5 +154,19 @@ export function useCreateReply() {
       qc.invalidateQueries({ queryKey: ['forum-thread', threadId] });
       qc.invalidateQueries({ queryKey: ['forum-feed'] });
     },
+    onError: (error: any) => {
+      console.error('[Forum] Reply error:', error);
+      import('@/integrations/supabase/client').then(({ supabase }) => {
+        supabase.functions.invoke('send-telegram-alert', {
+          body: {
+            type: 'forum_error',
+            title: '🔴 Erro no Fórum - Resposta',
+            message: `**Erro**: ${error?.message || 'Desconhecido'}`,
+            severity: 'error',
+            source: 'forum_create_reply',
+          },
+        }).catch(() => {});
+      });
+    },
   });
 }
