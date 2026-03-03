@@ -23,6 +23,9 @@ export interface CompanyPayment {
   notes?: string;
   created_at: string;
   updated_at?: string;
+  proposed_at?: string;
+  confirmed_at?: string;
+  accepted_at?: string;
   freight?: {
     id: string;
     cargo_type: string;
