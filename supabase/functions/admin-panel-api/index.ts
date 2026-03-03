@@ -868,7 +868,7 @@ Deno.serve(async (req) => {
 
         let query = serviceClient
           .from('transport_companies')
-          .select('id, company_name, company_cnpj, company_type, profile_id, is_verified, created_at, city, state, phone, email, total_vehicles, total_drivers, status', { count: 'exact' })
+          .select('id, company_name, company_cnpj, profile_id, created_at, city, state, status, antt_registration', { count: 'exact' })
 
         if (search && search.length >= 2) {
           query = query.or(`company_name.ilike.%${search}%,company_cnpj.ilike.%${search}%`)
@@ -887,19 +887,48 @@ Deno.serve(async (req) => {
           profiles?.forEach((p: any) => { profileMap[p.id] = p.full_name })
         }
 
-        const enriched = data?.map((c: any) => ({ ...c, owner_name: profileMap[c.profile_id] || null })) || []
+        // Resolve driver/vehicle counts per company
+        const companyIds = data?.map((c: any) => c.id) || []
+        let driverCountMap: Record<string, number> = {}
+        let vehicleCountMap: Record<string, number> = {}
+        if (companyIds.length > 0) {
+          const { data: driverCounts } = await serviceClient
+            .from('company_drivers')
+            .select('company_id')
+            .in('company_id', companyIds)
+            .eq('status', 'active')
+          driverCounts?.forEach((d: any) => {
+            driverCountMap[d.company_id] = (driverCountMap[d.company_id] || 0) + 1
+          })
 
-        const [totalCompanies, verified] = await Promise.all([
-          serviceClient.from('transport_companies').select('id', { count: 'exact', head: true }),
-          serviceClient.from('transport_companies').select('id', { count: 'exact', head: true }).eq('is_verified', true),
-        ])
+          const { data: vehicleCounts } = await serviceClient
+            .from('company_vehicle_assignments')
+            .select('company_id')
+            .in('company_id', companyIds)
+            .is('removed_at', null)
+          vehicleCounts?.forEach((v: any) => {
+            vehicleCountMap[v.company_id] = (vehicleCountMap[v.company_id] || 0) + 1
+          })
+        }
+
+        const enriched = data?.map((c: any) => ({
+          ...c,
+          owner_name: profileMap[c.profile_id] || null,
+          total_drivers: driverCountMap[c.id] || 0,
+          total_vehicles: vehicleCountMap[c.id] || 0,
+          is_verified: c.status === 'approved',
+          company_type: c.antt_registration ? 'ANTT' : 'Padrão',
+        })) || []
+
+        const totalCompanies = count || 0
+        const verifiedCount = enriched.filter((c: any) => c.is_verified).length
 
         return jsonResponse(corsHeaders, {
           data: enriched,
           total: count || 0,
           page, pageSize,
           totalPages: Math.ceil((count || 0) / pageSize),
-          stats: { total: totalCompanies.count || 0, verified: verified.count || 0 },
+          stats: { total: totalCompanies, verified: verifiedCount },
         })
       }
 
