@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Download, ZoomIn } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Download, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { ForumAttachmentWithUrl } from '../hooks/useForumAttachments';
 
@@ -13,6 +13,28 @@ export function ForumImageGallery({ attachments, compact }: ForumImageGalleryPro
 
   const images = attachments.filter(a => a.mime_type.startsWith('image/') && a.signed_url);
   const files = attachments.filter(a => !a.mime_type.startsWith('image/') && a.signed_url);
+
+  const goNext = useCallback(() => {
+    if (lightboxIdx === null || images.length <= 1) return;
+    setLightboxIdx((lightboxIdx + 1) % images.length);
+  }, [lightboxIdx, images.length]);
+
+  const goPrev = useCallback(() => {
+    if (lightboxIdx === null || images.length <= 1) return;
+    setLightboxIdx((lightboxIdx - 1 + images.length) % images.length);
+  }, [lightboxIdx, images.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') goNext();
+      else if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key === 'Escape') setLightboxIdx(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIdx, goNext, goPrev]);
 
   if (images.length === 0 && files.length === 0) return null;
 
@@ -44,6 +66,12 @@ export function ForumImageGallery({ attachments, compact }: ForumImageGalleryPro
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                 <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
               </div>
+              {/* Image count badge for galleries */}
+              {idx === 0 && images.length > 1 && compact && (
+                <div className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  +{images.length}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -73,33 +101,61 @@ export function ForumImageGallery({ attachments, compact }: ForumImageGalleryPro
         </div>
       )}
 
-      {/* Lightbox */}
+      {/* Lightbox with navigation */}
       <Dialog open={lightboxIdx !== null} onOpenChange={() => setLightboxIdx(null)}>
-        <DialogContent className="max-w-4xl p-0 bg-black/95 border-none">
+        <DialogContent className="max-w-5xl p-0 bg-black/95 border-none [&>button]:hidden">
           {lightboxIdx !== null && images[lightboxIdx] && (
-            <div className="relative">
+            <div className="relative select-none">
+              {/* Close */}
               <button
                 onClick={() => setLightboxIdx(null)}
-                className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/70"
+                className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
+
+              {/* Image */}
               <img
                 src={images[lightboxIdx].signed_url!}
                 alt="Anexo ampliado"
-                className="w-full max-h-[80vh] object-contain"
+                className="w-full max-h-[85vh] object-contain"
               />
+
+              {/* Prev/Next navigation */}
               {images.length > 1 && (
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                  {images.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setLightboxIdx(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                        idx === lightboxIdx ? 'bg-white' : 'bg-white/40 hover:bg-white/70'
-                      }`}
-                    />
-                  ))}
+                <>
+                  <button
+                    onClick={goPrev}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    onClick={goNext}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Counter + dots */}
+              {images.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2">
+                  <span className="text-white/70 text-xs font-medium">
+                    {lightboxIdx + 1} / {images.length}
+                  </span>
+                  <div className="flex gap-1.5">
+                    {images.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setLightboxIdx(idx)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          idx === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
