@@ -384,15 +384,10 @@
     @apply space-y-4;
   }
 
-  /* Freight card standardization */
+  /* Freight card standardization — no fixed height, cards grow to fit content */
   .freight-card-standard {
-    height: 460px;
-    max-height: 460px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   /* Status badge variants */

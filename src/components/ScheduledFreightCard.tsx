@@ -62,7 +62,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
 
   return (
     <>
-      <Card className="h-full flex flex-col overflow-hidden">
+      <Card className="h-full flex flex-col">
         <CardHeader className="space-y-3 pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">

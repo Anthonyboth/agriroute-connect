@@ -135,7 +135,7 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
   const showFinish = onFinishService && (status === 'IN_PROGRESS' || status === 'ON_THE_WAY');
 
   return (
-    <Card className="group bg-card border-border/60 hover:border-border hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden">
+    <Card className="group bg-card border-border/60 hover:border-border hover:shadow-md transition-all duration-200 rounded-2xl">
       <CardContent className="p-5 space-y-3.5">
         {/* ── HEADER: Icon + Title + Status ── */}
         <div className="flex items-start justify-between gap-3">

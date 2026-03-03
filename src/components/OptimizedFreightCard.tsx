@@ -187,7 +187,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(
     const urgencyLabel = getUrgencyLabel(freight.urgency);
 
     return (
-      <Card className="freight-card-standard card-accessible hover:scale-[1.02] border-2 border-border/60 hover:border-primary/30">
+      <Card className="freight-card-standard card-accessible hover:scale-[1.02] border-2 border-border/60 hover:border-primary/30 rounded-xl">
         <CardHeader className="pb-6 flex-shrink-0">
           <div className="flex flex-col spacing-accessible">
             <div className="flex items-center justify-between">
