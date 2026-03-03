@@ -16,10 +16,10 @@ import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { 
   DollarSign, CheckCircle, Clock, AlertTriangle, 
   Truck, User, RefreshCw, MapPin, Package, Calendar,
-  ArrowRight, Hash, History
+  ArrowRight, Hash, History, ThumbsUp
 } from 'lucide-react';
 import { useCompanyPayments, type CompanyPayment } from '@/hooks/useCompanyPayments';
-import { formatBRL } from '@/lib/formatters';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { TabBadge } from '@/components/ui/TabBadge';
 
@@ -29,6 +29,7 @@ export function CompanyExternalPaymentsPanel() {
     loading, 
     error, 
     refetch,
+    confirmReceiptForDriver,
     totalPendingPayments,
     totalAwaitingConfirmation,
     totalConfirmed,
@@ -36,6 +37,7 @@ export function CompanyExternalPaymentsPanel() {
   } = useCompanyPayments();
 
   const [subTab, setSubTab] = useState('a-fazer');
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
     proposed: { 
@@ -93,7 +95,28 @@ export function CompanyExternalPaymentsPanel() {
   const renderPaymentCard = (payment: CompanyPayment) => {
     const config = statusConfig[payment.status] || statusConfig.proposed;
     const route = buildRoute(payment.freight);
-    const hasAmount = payment.amount != null && payment.amount > 0;
+    
+    // ✅ Usar pipeline de preço canônico
+    const freightPriceData = payment.freight ? precoPreenchidoDoFrete(
+      payment.freight_id,
+      {
+        pricing_type: payment.freight.pricing_type,
+        price_per_km: payment.freight.price_per_km,
+        price: payment.freight.price,
+        required_trucks: payment.freight.required_trucks,
+        weight: payment.freight.weight,
+        distance_km: payment.freight.distance_km,
+      },
+      { unitOnly: true }
+    ) : null;
+
+    const isConfirming = confirmingId === payment.id;
+
+    const handleConfirm = async () => {
+      setConfirmingId(payment.id);
+      await confirmReceiptForDriver(payment.id, payment.driver_id);
+      setConfirmingId(null);
+    };
     
     return (
       <Card 
@@ -137,10 +160,10 @@ export function CompanyExternalPaymentsPanel() {
                   ? 'text-blue-600 dark:text-blue-400' 
                   : 'text-foreground'
               }`}>
-                {hasAmount ? `R$ ${formatBRL(payment.amount)}` : 'Valor não definido'}
+                {freightPriceData?.primaryText || 'Preço indisponível'}
               </p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-                {payment.status === 'confirmed' ? 'Recebido' : 'Valor do frete'}
+                {payment.status === 'confirmed' ? 'Recebido' : 'Taxa unitária'}
               </p>
             </div>
           </div>
@@ -219,6 +242,19 @@ export function CompanyExternalPaymentsPanel() {
               📝 {payment.notes}
             </p>
           )}
+
+          {/* ✅ Botão de Confirmar Recebimento — APENAS transportadora pode confirmar */}
+          {payment.status === 'paid_by_producer' && (
+            <Button 
+              onClick={handleConfirm}
+              disabled={isConfirming}
+              className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+              size="lg"
+            >
+              <ThumbsUp className="h-5 w-5" />
+              {isConfirming ? 'Confirmando...' : 'Confirmar Recebimento do Pagamento'}
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -254,7 +290,7 @@ export function CompanyExternalPaymentsPanel() {
             <DollarSign className="h-4 w-4" />
             <span className="text-xs font-medium">Total Confirmado</span>
           </div>
-          <p className="text-2xl font-bold text-primary">R$ {formatBRL(totalAmount)}</p>
+          <p className="text-2xl font-bold text-primary">R$ {totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </Card>
       </div>
 
