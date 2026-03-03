@@ -88,6 +88,7 @@ const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
 const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
+const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
 const ServiceProviderRegistration = lazy(() => import("./pages/ServiceProviderRegistration"));
 const Services = lazy(() => import("./pages/Services"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -1088,6 +1089,16 @@ const App = () => {
                               </Suspense>
                             </ProtectedRoute>
                           } 
+                        />
+                        <Route
+                          path="/profile/edit"
+                          element={
+                            <ProtectedRoute requiresAuth>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <ProfileEdit />
+                              </Suspense>
+                            </ProtectedRoute>
+                          }
                         />
                         <Route path="/services" element={<Suspense fallback={<ComponentLoader />}><Services /></Suspense>} />
                         <Route path="/subscription" element={<Suspense fallback={<ComponentLoader />}><Subscription /></Suspense>} />
