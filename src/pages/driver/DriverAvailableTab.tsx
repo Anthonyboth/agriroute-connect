@@ -10,12 +10,14 @@ interface DriverAvailableTabProps {
   profileId: string | undefined;
   onFreightAction: (freightId: string, action: "propose" | "accept" | "complete" | "cancel") => void;
   onFetchAvailable: () => void;
+  onCountsChange?: (counts: { total: number; highUrgency: number }) => void;
 }
 
 export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
   profileId,
   onFreightAction,
   onFetchAvailable,
+  onCountsChange,
 }) => {
   const [advancedFilters, setAdvancedFilters] = useState<any | null>(null);
 
@@ -76,6 +78,7 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
       <SmartFreightMatcher
         key={`freight-matcher-${profileId || "loading"}`}
         onFreightAction={onFreightAction}
+        onCountsChange={onCountsChange}
         advancedFilters={advancedFilters}
       />
     </SafeListWrapper>
