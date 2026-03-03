@@ -86,6 +86,16 @@ export interface UnifiedServiceCardProps {
   children?: React.ReactNode;
 }
 
+// ── WhatsApp phone normalization ──
+const normalizeWhatsAppPhone = (phone: string | null | undefined): string | null => {
+  if (!phone) return null;
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length < 10) return null; // Invalid phone
+  if (cleaned.startsWith('55')) return cleaned;
+  if (cleaned.startsWith('0')) return `55${cleaned.slice(1)}`;
+  return `55${cleaned}`;
+};
+
 export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
   serviceRequest,
   provider,
@@ -276,32 +286,51 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
                 </a>
               )}
             </div>
-            {contactPhone && (
-              <a
-                href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-shrink-0 w-8 h-8 rounded-lg bg-[hsl(142,70%,45%)]/10 hover:bg-[hsl(142,70%,45%)]/20 flex items-center justify-center transition-colors"
-                title={`WhatsApp ${contactPhone}`}
-              >
-                <MessageSquare className="h-4 w-4 text-[hsl(142,70%,45%)]" />
-              </a>
-            )}
+            {contactPhone && (() => {
+                const waPhone = normalizeWhatsAppPhone(contactPhone);
+                if (!waPhone) return (
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center" title="Telefone inválido para WhatsApp">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                );
+                return (
+                  <a
+                    href={`https://wa.me/${waPhone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 w-10 h-10 min-w-[40px] rounded-lg bg-[hsl(142,70%,45%)]/10 hover:bg-[hsl(142,70%,45%)]/20 flex items-center justify-center transition-colors"
+                    title={`WhatsApp ${contactPhone}`}
+                    aria-label={`Abrir WhatsApp com ${contactPhone}`}
+                  >
+                    <MessageSquare className="h-4 w-4 text-[hsl(142,70%,45%)]" />
+                  </a>
+                );
+              })()}
           </div>
         )}
 
         {/* ── WHATSAPP BUTTON (standalone when phone exists but no contact name section) ── */}
-        {contactPhone && !contactName && !provider?.full_name && !client?.full_name && (
-          <a
-            href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-[hsl(142,70%,45%)]/30 bg-[hsl(142,70%,45%)]/5 hover:bg-[hsl(142,70%,45%)]/10 text-[hsl(142,70%,45%)] text-xs font-medium transition-colors"
-          >
-            <MessageSquare className="h-4 w-4" />
-            WhatsApp {contactPhone}
-          </a>
-        )}
+        {contactPhone && !contactName && !provider?.full_name && !client?.full_name && (() => {
+          const waPhone = normalizeWhatsAppPhone(contactPhone);
+          if (!waPhone) return (
+            <div className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-border bg-muted/50 text-muted-foreground text-xs font-medium">
+              <MessageSquare className="h-4 w-4" />
+              Telefone inválido
+            </div>
+          );
+          return (
+            <a
+              href={`https://wa.me/${waPhone}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full min-h-[44px] py-2 rounded-xl border border-[hsl(142,70%,45%)]/30 bg-[hsl(142,70%,45%)]/5 hover:bg-[hsl(142,70%,45%)]/10 text-[hsl(142,70%,45%)] text-xs font-medium transition-colors"
+              aria-label={`Abrir WhatsApp com ${contactPhone}`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              WhatsApp {contactPhone}
+            </a>
+          );
+        })()}
 
         {/* ── VEHICLE INFO ── */}
         {vehicleInfo && (
@@ -320,8 +349,9 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
           <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
             {showOnTheWay && (
               <Button
+                type="button"
                 size="sm"
-                className="w-full rounded-xl bg-primary/90 hover:bg-primary"
+                className="w-full min-h-[44px] rounded-xl bg-primary/90 hover:bg-primary"
                 onClick={() => onMarkOnTheWay!(sr.id)}
               >
                 <Navigation className="h-4 w-4 mr-2" />
@@ -330,8 +360,9 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
             )}
             {showStartTransit && (
               <Button
+                type="button"
                 size="sm"
-                className="w-full rounded-xl bg-primary/90 hover:bg-primary"
+                className="w-full min-h-[44px] rounded-xl bg-primary/90 hover:bg-primary"
                 onClick={() => onStartTransit!(sr.id)}
               >
                 <Play className="h-4 w-4 mr-2" />
@@ -340,8 +371,9 @@ export const UnifiedServiceCard: React.FC<UnifiedServiceCardProps> = ({
             )}
             {showFinish && (
               <Button
+                type="button"
                 size="sm"
-                className="w-full rounded-xl bg-primary/90 hover:bg-primary"
+                className="w-full min-h-[44px] rounded-xl bg-primary/90 hover:bg-primary"
                 onClick={() => onFinishService!(sr.id)}
               >
                 <Flag className="h-4 w-4 mr-2" />

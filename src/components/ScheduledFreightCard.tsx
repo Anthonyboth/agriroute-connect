@@ -91,7 +91,7 @@ const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3 flex-1 overflow-hidden">
+        <CardContent className="space-y-3 flex-1">
           {/* Detalhes do Frete */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">

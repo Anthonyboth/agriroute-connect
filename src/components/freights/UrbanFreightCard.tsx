@@ -228,7 +228,7 @@ export const UrbanFreightCard: React.FC<UrbanFreightCardProps> = ({
   return (
     <Card
       data-testid="urban-freight-card"
-      className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60"
+      className="hover:shadow-lg transition-all duration-300 transform-gpu will-change-transform hover:scale-[1.02] ring-2 ring-transparent hover:ring-primary/20 border border-border/60"
     >
       {/* HEADER */}
       <CardHeader className="pb-2 flex-shrink-0">
@@ -337,18 +337,20 @@ export const UrbanFreightCard: React.FC<UrbanFreightCardProps> = ({
       {/* FOOTER: Action Buttons */}
       <CardFooter className="pt-0 pb-4 px-4 flex gap-2">
         <Button
+          type="button"
           variant="outline"
           size="sm"
-          className="flex-1 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+          className="flex-1 min-h-[44px] border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
           onClick={onEdit}
         >
           <Edit className="h-4 w-4 mr-1" />
           Editar
         </Button>
         <Button
+          type="button"
           variant="destructive"
           size="sm"
-          className="flex-1"
+          className="flex-1 min-h-[44px]"
           onClick={onCancel}
         >
           <X className="h-4 w-4 mr-1" />
