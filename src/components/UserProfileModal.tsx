@@ -133,7 +133,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   const handleGoToEdit = () => {
     onClose();
-    // Small delay so the dialog closes smoothly
     setTimeout(() => navigate('/profile/edit'), 150);
   };
 
@@ -156,94 +155,96 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md p-0 !overflow-hidden rounded-xl">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md p-0 overflow-x-hidden overflow-y-hidden max-h-[85vh] rounded-xl">
         <DialogHeader className="sr-only">
           <DialogTitle>Perfil de {user?.full_name}</DialogTitle>
           <DialogDescription>Visualize suas informações</DialogDescription>
         </DialogHeader>
 
-        {/* Avatar + Info */}
-        <div className="flex flex-col items-center pt-8 pb-4 px-6">
-          <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-            <AvatarImage src={resolvedPhotoUrl || undefined} alt={user?.full_name} className="object-cover" />
-            <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-              {getInitials(user?.full_name || '')}
-            </AvatarFallback>
-          </Avatar>
+        <div className="overflow-y-auto max-h-[85vh] overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Avatar + Info */}
+          <div className="flex flex-col items-center pt-8 pb-4 px-6">
+            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+              <AvatarImage src={resolvedPhotoUrl || undefined} alt={user?.full_name} className="object-cover" />
+              <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                {getInitials(user?.full_name || '')}
+              </AvatarFallback>
+            </Avatar>
 
-          <h2 className="mt-3 text-lg font-bold text-foreground text-center">
-            {profileData.full_name || user?.full_name || 'Usuário'}
-          </h2>
+            <h2 className="mt-3 text-lg font-bold text-foreground text-center">
+              {profileData.full_name || user?.full_name || 'Usuário'}
+            </h2>
 
-          <div className="flex items-center gap-2 mt-1.5">
-            <Badge variant="secondary" className="text-xs">{getRoleLabel(user?.role || '')}</Badge>
-            <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
+            <div className="flex items-center gap-2 mt-1.5">
+              <Badge variant="secondary" className="text-xs">{getRoleLabel(user?.role || '')}</Badge>
+              <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
+            </div>
+
+            {contextParts.length > 0 && (
+              <p className="mt-1.5 text-xs text-muted-foreground text-center">
+                {contextParts.join(' • ')}
+              </p>
+            )}
+
+            {/* Edit button */}
+            <Button
+              onClick={handleGoToEdit}
+              variant="outline"
+              className="mt-4 w-full gap-2 font-semibold"
+            >
+              <Edit2 className="h-4 w-4" />
+              Editar Perfil
+            </Button>
           </div>
 
-          {contextParts.length > 0 && (
-            <p className="mt-1.5 text-xs text-muted-foreground text-center">
-              {contextParts.join(' • ')}
-            </p>
+          {/* Completeness CTA */}
+          {missingFields.length > 0 && (
+            <div className="mx-6 mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Complete seu perfil</p>
+                <p className="text-xs text-muted-foreground">Faltam: {missingFields.join(', ')}</p>
+              </div>
+            </div>
           )}
 
-          {/* Edit button */}
-          <Button
-            onClick={handleGoToEdit}
-            variant="outline"
-            className="mt-4 w-full gap-2 font-semibold"
-          >
-            <Edit2 className="h-4 w-4" />
-            Editar Perfil
-          </Button>
-        </div>
-
-        {/* Completeness CTA */}
-        {missingFields.length > 0 && (
-          <div className="mx-6 mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Complete seu perfil</p>
-              <p className="text-xs text-muted-foreground">Faltam: {missingFields.join(', ')}</p>
-            </div>
+          {/* Quick info */}
+          <div className="px-6 pb-2 space-y-2">
+            {profileData.phone && (
+              <div className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">WhatsApp</span>
+                <span className="text-sm text-foreground">{profileData.phone}</span>
+              </div>
+            )}
+            {profileData.cpf_cnpj && (
+              <div className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">CPF/CNPJ</span>
+                <span className="text-sm text-foreground">{maskCpfCnpj(profileData.cpf_cnpj)}</span>
+              </div>
+            )}
+            {profileData.farm_name && (
+              <div className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Fazenda</span>
+                <span className="text-sm text-foreground">{profileData.farm_name}</span>
+              </div>
+            )}
+            {profileData.cooperative && (
+              <div className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Cooperativa</span>
+                <span className="text-sm text-foreground">{profileData.cooperative}</span>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Quick info */}
-        <div className="px-6 pb-2 space-y-2">
-          {profileData.phone && (
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">WhatsApp</span>
-              <span className="text-sm text-foreground">{profileData.phone}</span>
-            </div>
-          )}
-          {profileData.cpf_cnpj && (
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">CPF/CNPJ</span>
-              <span className="text-sm text-foreground">{maskCpfCnpj(profileData.cpf_cnpj)}</span>
-            </div>
-          )}
-          {profileData.farm_name && (
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">Fazenda</span>
-              <span className="text-sm text-foreground">{profileData.farm_name}</span>
-            </div>
-          )}
-          {profileData.cooperative && (
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">Cooperativa</span>
-              <span className="text-sm text-foreground">{profileData.cooperative}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Ratings */}
-        <div className="px-6 pb-6">
-          <ProfileStatsCard
-            rating={user?.rating || 0}
-            totalRatings={user?.total_ratings || 0}
-            memberSince={user?.created_at}
-            ratingDistribution={ratingDistribution}
-          />
+          {/* Ratings */}
+          <div className="px-6 pb-6">
+            <ProfileStatsCard
+              rating={user?.rating || 0}
+              totalRatings={user?.total_ratings || 0}
+              memberSince={user?.created_at}
+              ratingDistribution={ratingDistribution}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
