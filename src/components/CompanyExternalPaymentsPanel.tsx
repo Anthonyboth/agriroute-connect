@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useCompanyPayments, type CompanyPayment } from '@/hooks/useCompanyPayments';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
+import { formatBRL } from '@/lib/formatters';
 import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { TabBadge } from '@/components/ui/TabBadge';
 
