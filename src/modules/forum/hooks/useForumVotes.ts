@@ -109,5 +109,11 @@ export function useVote() {
       qc.invalidateQueries({ queryKey: ['forum-thread'] });
       qc.invalidateQueries({ queryKey: ['forum-threaded-posts'] });
     },
+    onError: (error: any) => {
+      console.error('[Forum] Vote error:', error);
+      import('../utils/telegramReporter').then(({ forumErrorHandler }) => {
+        forumErrorHandler('forum_vote', 'Voto')(error);
+      });
+    },
   });
 }

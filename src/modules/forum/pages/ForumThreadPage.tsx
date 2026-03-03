@@ -270,6 +270,7 @@ export default function ForumThreadPage() {
                 onReport={(postId) => { setReportTarget({ type: 'POST', id: postId }); setReportOpen(true); }}
                 isLocked={thread.is_locked}
                 attachments={attachmentsQuery.data || []}
+                onAttachmentsRefresh={() => attachmentsQuery.refetch()}
               />
             )}
             {postsQuery.data && postsQuery.data.filter(p => p.reply_to_post_id === null).length <= 1 && (

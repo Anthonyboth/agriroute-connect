@@ -48,6 +48,12 @@ export function useToggleSave() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['forum-saves'] });
     },
+    onError: (error: any) => {
+      console.error('[Forum] Save error:', error);
+      import('../utils/telegramReporter').then(({ forumErrorHandler }) => {
+        forumErrorHandler('forum_save', 'Salvar Post')(error);
+      });
+    },
   });
 }
 
@@ -132,6 +138,12 @@ export function useUpdateThreadStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['forum-feed'] });
       qc.invalidateQueries({ queryKey: ['forum-thread'] });
+    },
+    onError: (error: any) => {
+      console.error('[Forum] Status change error:', error);
+      import('../utils/telegramReporter').then(({ forumErrorHandler }) => {
+        forumErrorHandler('forum_status_change', 'Alterar Status')(error);
+      });
     },
   });
 }
