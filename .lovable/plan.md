@@ -1,41 +1,37 @@
 
 
-## Diagnóstico
+## Problemas Identificados nos Prints
 
-A causa raiz é a classe CSS `.freight-card-standard` em `src/index.css` (linha 388-396):
+### Problema 1: "Carregando destino..." no card de frete em andamento
+**Causa raiz:** O frete `d1b0e039` tem `destination_city: null` e `destination_state: null` no banco, mas possui `destination_address: "Poxoréu - Destino Seed 7"`. O componente `FreightInProgressCard.tsx` (linha 409-411) só exibe a cidade/estado, e quando ambos são nulos mostra "Carregando destino..." em vez de usar o fallback `destination_address`.
 
-```css
-.freight-card-standard {
-  height: 460px;
-  max-height: 460px;
-  overflow: hidden;
-  overflow-y: auto;
-}
-```
+**Correção:** Alterar `FreightInProgressCard.tsx` para usar `destination_address` como fallback quando `destination_city`/`destination_state` forem nulos, igual ao que `FreightCard.tsx` já faz.
 
-Isso força **todos os cards de frete a 460px fixos**. Quando o conteúdo do card (título + rota + specs + grid de datas + preço + botões Aceitar/Contraproposta) ultrapassa 460px, os botões ficam cortados. No iOS, o scroll interno de `overflow-y: auto` dentro de um card pequeno não funciona bem com `-webkit-overflow-scrolling: touch` — o usuário não consegue rolar até os botões.
+### Problema 2: Card "Ativas" mostrando 0 enquanto badge "Em Andamento" mostra 1
+**Causa raiz:** O `statistics` memo (linha 1872) usa `ongoingBadgeCount` que vem de `useDriverOngoingCards` (React Query). Porém, o `statistics` memo também referencia `visibleOngoing` e `activeAssignments` internamente (linhas 1855-1861) sem tê-los no array de dependências. Esse código morto dentro do memo causa confusão mas não é a causa direta. A causa real é que o memo NÃO inclui `visibleOngoing` e `activeAssignments` nas dependências, e esses são dados de uma pipeline SEPARADA (`fetchOngoingFreights`). A discrepância visual no print sugere race condition na carga inicial.
 
-## Plano de Correção
+**Correção:** 
+1. Remover o código morto dentro do `statistics` memo (linhas 1838-1869 que calculam `activeTripsCount` mas nunca o usam)
+2. Limpar o array de dependências para incluir apenas o que é efetivamente usado
+3. Garantir que o stats card e o badge usem exatamente a mesma variável `ongoingBadgeCount`
 
-### 1. Remover altura fixa do `.freight-card-standard` (index.css)
-- Trocar `height: 460px; max-height: 460px;` por `min-height: 0;` (ou remover completamente)
-- Manter `display: flex; flex-direction: column;` para layout correto
-- Remover `overflow: hidden; overflow-y: auto;` — o card deve crescer para acomodar todo o conteúdo incluindo botões
-- Resultado: cards terão altura natural baseada no conteúdo, sem cortar botões
+### Problema 3: Frete agendado aparecendo na aba "Em Andamento"
+O frete `d1b0e039` tem pickup_date 2026-03-20 (17 dias no futuro) e status OPEN no banco. O assignment tem status ACCEPTED. No hook `useDriverOngoingCards`, assignments NÃO são filtrados por data de pickup (por design - linhas 439-447), então aparecem em "Em Andamento" mesmo quando deveriam ser "Agendados". A seção do card mostra "Coleta em 16 dias", confirmando que é um frete futuro. 
 
-### 2. Remover `overflow-hidden` do FreightCard (FreightCard.tsx, linha 514)
-- A classe `overflow-hidden` no Card component clippa o conteúdo no iOS
-- Remover para garantir que botões fiquem sempre visíveis e clicáveis
+**Correção:** No `useDriverOngoingCards`, filtrar assignments ACCEPTED com pickup_date futura para que apareçam apenas em "Agendados", usando a mesma lógica `isInProgressFreight` aplicada aos fretes diretos.
 
-### 3. Remover `overflow-hidden` do OptimizedFreightCard (OptimizedFreightCard.tsx, linha 190)
-- Mesma correção para o card otimizado usado em outros contextos
+## Plano de Implementação
 
-### 4. Auditar outros cards (FreightInProgressCard, MyAssignmentCard, UnifiedServiceCard)
-- Verificar se usam `.freight-card-standard` ou `overflow-hidden` e aplicar a mesma correção
-- Garantir que nenhum card de frete/serviço corte conteúdo no iPhone
+### 1. Corrigir fallback de destino no FreightInProgressCard (FreightInProgressCard.tsx)
+- Linha 409-411: trocar `'Carregando destino...'` por fallback para `destination_address`
+- Aplicar mesma lógica que `FreightCard.tsx` já usa: `freight.destination_address || 'Destino não informado'`
 
-### Detalhes Técnicos
-- A classe `.freight-card-standard` era provavelmente usada para uniformizar alturas no grid, mas sacrifica acessibilidade dos botões
-- Sem altura fixa, os cards no grid terão alturas diferentes, mas todos os botões serão acessíveis — prioridade funcional sobre estética
-- Se uniformização de altura for desejada no futuro, usar `auto-rows-[minmax(0,1fr)]` no grid pai ao invés de forçar altura no card
+### 2. Limpar statistics memo (DriverDashboard.tsx)
+- Remover código morto (cálculo de `activeTripsCount` que nunca é retornado)
+- Manter `activeTrips: ongoingBadgeCount` como fonte única de verdade
+- Limpar dependências do useMemo
+
+### 3. Filtrar assignments agendados no useDriverOngoingCards (useDriverOngoingCards.ts)
+- Nos `enrichedAssignments` (linha 439), adicionar filtro: se assignment status é ACCEPTED e pickup_date do frete é futura, excluir dos resultados (ficam apenas para "Agendados")
+- Manter assignments em LOADING/LOADED/IN_TRANSIT sempre visíveis independente da data
 
