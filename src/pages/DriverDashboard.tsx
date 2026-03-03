@@ -167,6 +167,8 @@ const DriverDashboard = () => {
   const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [transportRequests, setTransportRequests] = useState<any[]>([]);
   const [smartMatcherCount, setSmartMatcherCount] = useState(0);
+  const [smartMatcherFreightCount, setSmartMatcherFreightCount] = useState(0);
+  const [smartMatcherServiceCount, setSmartMatcherServiceCount] = useState(0);
   const [scheduledTabCount, setScheduledTabCount] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
@@ -1214,9 +1216,11 @@ const DriverDashboard = () => {
     }
   };
 
-  // ✅ FIX: Callback estável para SmartFreightMatcher reportar contagem real
-  const handleSmartMatcherCounts = useCallback((counts: { total: number; highUrgency: number }) => {
+  // ✅ FIX: Callback estável para SmartFreightMatcher reportar contagem real (fretes e serviços separados)
+  const handleSmartMatcherCounts = useCallback((counts: { total: number; highUrgency: number; freightCount: number; serviceCount: number }) => {
     setSmartMatcherCount(counts.total);
+    setSmartMatcherFreightCount(counts.freightCount);
+    setSmartMatcherServiceCount(counts.serviceCount);
   }, []);
 
   // ✅ FIX: Callback estável para ScheduledFreightsManager reportar contagem real
@@ -1841,14 +1845,14 @@ const DriverDashboard = () => {
     return {
       activeTrips: ongoingBadgeCount,
       completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,
-      availableCount: smartMatcherCount,
+      availableCount: smartMatcherFreightCount,
       totalEarnings: acceptedProposals
         .filter(p => p.freight?.status === 'DELIVERED')
         .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0),
       totalCheckins: totalCheckins,
       pendingProposals: pendingProposalsCount,
     };
-  }, [myProposals, smartMatcherCount, totalCheckins, ongoingBadgeCount]);
+  }, [myProposals, smartMatcherFreightCount, totalCheckins, ongoingBadgeCount]);
 
   const handleLogout = async () => {
     // ✅ Logout silencioso - sem toasts
