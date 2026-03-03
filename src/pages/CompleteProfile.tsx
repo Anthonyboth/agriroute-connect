@@ -217,6 +217,19 @@ const CompleteProfile = () => {
         setProfileData(prev => ({ ...prev, fixed_address: savedAddress }));
       }
 
+      // Redirect if profile is already APPROVED - never force re-registration
+      if (profile.status === 'APPROVED') {
+        const dashboardPath = isDriver
+          ? '/dashboard/driver'
+          : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
+            ? '/dashboard/company'
+            : (profile.role as any) === 'PRESTADOR_SERVICOS'
+              ? '/dashboard/service-provider'
+              : '/dashboard/producer';
+        navigate(dashboardPath);
+        return;
+      }
+
       // Redirect if profile is fully complete (even if pending approval)
       const hasCompletedProfile = profile.selfie_url && profile.document_photo_url && 
         (!isAutonomousDriver || (
