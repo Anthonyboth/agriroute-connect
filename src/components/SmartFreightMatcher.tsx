@@ -438,7 +438,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   }, [profile?.id, user?.id]);
 
   // ✅ CRITICAL FIX: Separar fretes rurais (CARGA) de fretes urbanos (GUINCHO, MUDANCA, etc.)
-  const URBAN_FREIGHT_TYPES = new Set(['GUINCHO', 'FRETE_MOTO', 'MUDANCA', 'ENTREGA_PACOTES', 'TRANSPORTE_PET']);
+  const URBAN_FREIGHT_TYPES = new Set(['GUINCHO', 'FRETE_MOTO', 'MUDANCA', 'ENTREGA_PACOTES', 'TRANSPORTE_PET', 'FRETE_URBANO']);
 
   const allFilteredFreights = useMemo(() => {
     return compatibleFreights.filter((freight) => {
