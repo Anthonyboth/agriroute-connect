@@ -86,6 +86,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const [assignTargetId, setAssignTargetId] = useState<string>("");
   const [assignTargetType, setAssignTargetType] = useState<"freight" | "service">("freight");
   const fetchingRef = React.useRef(false);
+  const fetchCompatibleFreightsRef = React.useRef<() => Promise<void>>();
 
   const fetchCompatibleFreights = useCallback(async () => {
     if (!company?.id) return;
@@ -260,6 +261,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       fetchingRef.current = false;
     }
   }, [company?.id, drivers?.length, profile, fetchAvailableMarketplaceItems, marketplaceFilters]);
+
+  // ✅ Manter ref atualizado para evitar stale closure
+  fetchCompatibleFreightsRef.current = fetchCompatibleFreights;
 
   useMarketplaceAvailabilityGuarantee({
     enabled: !!company?.id,
@@ -461,7 +465,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           filters={marketplaceFilters}
           onChange={(newFilters) => {
             setMarketplaceFilters(newFilters);
-            setTimeout(() => fetchCompatibleFreights(), 100);
+            // ✅ FIX: usar ref para evitar stale closure no setTimeout
+            const fetchRef = fetchCompatibleFreightsRef;
+            setTimeout(() => fetchRef.current(), 100);
           }}
           showRpmSort={true}
           showDistSort={true}
