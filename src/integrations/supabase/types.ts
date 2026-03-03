@@ -386,6 +386,44 @@ export type Database = {
           },
         ]
       }
+      announcement_audit_log: {
+        Row: {
+          action: string
+          announcement_id: string
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          action: string
+          announcement_id: string
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          action?: string
+          announcement_id?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_audit_log_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "system_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       antifraud_feedback: {
         Row: {
           confirmed_fraud: boolean | null
@@ -11943,48 +11981,75 @@ export type Database = {
       system_announcements: {
         Row: {
           archived: boolean | null
+          banner_url: string | null
           category: string | null
+          click_count: number | null
           created_at: string | null
+          cta_text: string | null
+          cta_url: string | null
           ends_at: string | null
           id: string
           is_active: boolean | null
+          last_viewed_at: string | null
           message: string
           metadata: Json | null
           priority: number | null
           starts_at: string | null
+          subtitle: string | null
+          target_audience: string[] | null
           title: string
           type: string
           updated_at: string | null
+          updated_by: string | null
+          view_count: number | null
         }
         Insert: {
           archived?: boolean | null
+          banner_url?: string | null
           category?: string | null
+          click_count?: number | null
           created_at?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
           ends_at?: string | null
           id?: string
           is_active?: boolean | null
+          last_viewed_at?: string | null
           message: string
           metadata?: Json | null
           priority?: number | null
           starts_at?: string | null
+          subtitle?: string | null
+          target_audience?: string[] | null
           title: string
           type?: string
           updated_at?: string | null
+          updated_by?: string | null
+          view_count?: number | null
         }
         Update: {
           archived?: boolean | null
+          banner_url?: string | null
           category?: string | null
+          click_count?: number | null
           created_at?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
           ends_at?: string | null
           id?: string
           is_active?: boolean | null
+          last_viewed_at?: string | null
           message?: string
           metadata?: Json | null
           priority?: number | null
           starts_at?: string | null
+          subtitle?: string | null
+          target_audience?: string[] | null
           title?: string
           type?: string
           updated_at?: string | null
+          updated_by?: string | null
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -15433,6 +15498,14 @@ export type Database = {
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
+      }
+      increment_announcement_click: {
+        Args: { p_announcement_id: string }
+        Returns: undefined
+      }
+      increment_announcement_view: {
+        Args: { p_announcement_id: string }
+        Returns: undefined
       }
       insert_driver_location_history: {
         Args: {

@@ -207,7 +207,12 @@ export default function AdminAnnouncementsManager() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{announcement.message}</p>
+                    <AnnouncementPreview
+                      title={announcement.title}
+                      message={announcement.message}
+                      type={announcement.type || "info"}
+                      compact
+                    />
                   </CardContent>
                 </Card>
               ))}
