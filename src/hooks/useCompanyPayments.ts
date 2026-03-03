@@ -234,13 +234,29 @@ export const useCompanyPayments = (): UseCompanyPaymentsReturn => {
         return false;
       }
 
-      // A confirmação precisa ser feita pelo próprio motorista ou via edge function
-      // Por segurança, apenas notificamos que o motorista deve confirmar
-      toast.info('Notificação enviada ao motorista', {
-        description: 'O motorista foi notificado para confirmar o recebimento.'
+      // Transportadora confirma o recebimento em nome do motorista afiliado
+      const { error: updateError } = await supabase
+        .from('external_payments')
+        .update({ 
+          status: 'confirmed', 
+          confirmed_at: new Date().toISOString(),
+          notes: `Recebimento confirmado pela transportadora em ${new Date().toLocaleDateString('pt-BR')}`
+        })
+        .eq('id', paymentId)
+        .eq('driver_id', driverId);
+
+      if (updateError) {
+        console.error('[useCompanyPayments] Error confirming:', updateError);
+        toast.error('Erro ao confirmar recebimento', { description: updateError.message });
+        return false;
+      }
+
+      toast.success('Recebimento confirmado!', {
+        description: 'O pagamento foi marcado como recebido.'
       });
 
-      // TODO: Implementar edge function para permitir que transportadora confirme em nome do motorista
+      // Atualizar lista
+      await fetchPayments();
       return true;
     } catch (err: any) {
       console.error('[useCompanyPayments] Error confirming receipt:', err);
