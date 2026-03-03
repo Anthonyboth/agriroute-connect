@@ -1835,39 +1835,6 @@ const DriverDashboard = () => {
     };
     const pendingProposalsCount = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && isProposalActive(p)).length;
     
-    // ✅ FIX: Filtro robusto - excluir fretes agendados (pickup_date futura) do contador
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const isCurrentOrPast = (item: any) => {
-      const status = String(item?.status || '').toUpperCase();
-      // Fretes em status ativo (não ACCEPTED/OPEN) sempre contam
-      if (status !== 'ACCEPTED' && status !== 'OPEN') return true;
-      // ACCEPTED/OPEN: só conta se pickup_date <= hoje
-      const pickupDate = item?.pickup_date;
-      if (!pickupDate) return true;
-      const d = new Date(pickupDate);
-      d.setHours(0, 0, 0, 0);
-      return d <= today;
-    };
-    
-    // Contar fretes ativos diretos (sem assignments, com filtro de data)
-    const activeFreightsCount = visibleOngoing.filter(isCurrentOrPast).length;
-    
-    // Contar assignments ativos (com filtro de data no frete)
-    const activeAssignmentsCount = activeAssignments.filter(a => {
-      const freight = a.freight || a;
-      return isCurrentOrPast(freight);
-    }).length;
-    
-    // Contar service requests ativos (GUINCHO, MUDANÇA, PET, PACOTES, etc.)
-    const activeServiceRequestsCount = acceptedServiceRequests.length;
-    
-    // Total de viagens ativas = fretes diretos + assignments + service requests
-    const activeTripsCount = activeFreightsCount + activeAssignmentsCount + activeServiceRequestsCount;
-    
-    if (import.meta.env.DEV) console.log('[stats] activeTrips:', activeTripsCount, '(freights:', activeFreightsCount, 'assignments:', activeAssignmentsCount, 'services:', activeServiceRequestsCount, ')');
-    
     return {
       activeTrips: ongoingBadgeCount,
       completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,

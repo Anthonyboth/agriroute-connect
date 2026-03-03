@@ -408,7 +408,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               <p className="text-sm font-semibold text-foreground ml-5">
                 {freight.destination_city && freight.destination_state
                   ? formatCityState(freight.destination_city, freight.destination_state)
-                  : 'Carregando destino...'}
+                  : freight.destination_address || 'Destino não informado'}
               </p>
               {(freight.destination_neighborhood || freight.destination_street || freight.destination_number || freight.destination_complement || freight.destination_zip_code || freight.destination_address) && (
                 <div className="ml-5 mt-1 space-y-0.5 text-[11px] text-muted-foreground">
