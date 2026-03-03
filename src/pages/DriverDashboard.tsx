@@ -1718,6 +1718,7 @@ const DriverDashboard = () => {
       filter: `driver_id=eq.${profile.id}`
     }, () => {
       debouncedFetchOngoing(); // ✅ Debounced
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] }); // ✅ Sync stats cards
     });
     
     channelBuilder.on('postgres_changes', { 
@@ -1727,6 +1728,7 @@ const DriverDashboard = () => {
       filter: `driver_id=eq.${profile.id}`
     }, () => {
       debouncedFetchAssignments(); // ✅ Debounced
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] }); // ✅ Sync stats cards
     });
     
     channelBuilder.on('postgres_changes', { 
@@ -1762,6 +1764,7 @@ const DriverDashboard = () => {
       }, () => {
         debouncedFetchOngoing();
         debouncedFetchTransportRequests();
+        queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] }); // ✅ Sync stats cards
       });
     }
     
@@ -2223,6 +2226,7 @@ const DriverDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['available-freights'] });
       queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
       queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
       
       // Forçar refetch imediato das queries
       await queryClient.refetchQueries({ queryKey: ['driver-assignments'] });
