@@ -22,7 +22,6 @@ export const getGPSQuality = (accuracy: number): GPSQuality => {
 };
 
 const toWebLike = (pos: Position): SafePosition => ({
-  // Web GeolocationCoordinates compatible object
   coords: {
     latitude: pos.coords.latitude,
     longitude: pos.coords.longitude,
@@ -34,82 +33,141 @@ const toWebLike = (pos: Position): SafePosition => ({
   } as GeolocationCoordinates,
 });
 
+/**
+ * Verifica se o erro é "serviços de localização desativados" (iOS/Android)
+ */
+const isLocationServicesDisabledError = (err: any): boolean => {
+  const msg = typeof err === 'string' ? err : err?.message ?? '';
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('location services') ||
+    lower.includes('location service') ||
+    lower.includes('disabled') ||
+    lower.includes('not enabled') ||
+    lower.includes('kclauthorizationstatusdenied') ||
+    lower.includes('denied') ||
+    // iOS specific
+    lower.includes('cllocationmanager')
+  );
+};
+
 export const checkPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
     try {
       const perm: PermissionStatus = await Geolocation.checkPermissions();
+      console.log('[GPS] checkPermissions result:', JSON.stringify(perm));
+      
       const granted = perm.location === 'granted' || perm.coarseLocation === 'granted';
       if (granted) return true;
 
-      // Fallback: checkPermissions pode retornar falso negativo em alguns Android.
-      // Tentar getCurrentPosition rápido como prova real de que o GPS funciona.
+      // On iOS, 'prompt' means user hasn't decided yet — not denied
+      // On some Android, checkPermissions returns wrong result
+      // Try a quick getCurrentPosition as real proof
       try {
-        await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 3000 });
-        if (import.meta.env.DEV) console.log('[GPS] checkPermissions retornou não-granted, mas getCurrentPosition funcionou — tratando como granted');
+        await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 5000 });
+        console.log('[GPS] checkPermissions returned non-granted, but getCurrentPosition worked — treating as granted');
         return true;
       } catch {
-        // GPS realmente não disponível
         return false;
       }
-    } catch (err) {
-      console.warn('[GPS] Erro ao verificar permissões nativas:', err);
+    } catch (err: any) {
+      console.warn('[GPS] Erro ao verificar permissões nativas:', err?.message || err);
+      // iOS throws when Location Services are OFF at system level
+      // This is NOT the same as permission denied — it means the toggle is off
+      if (isLocationServicesDisabledError(err)) {
+        console.warn('[GPS] Serviços de localização do SISTEMA estão DESATIVADOS (iOS/Android)');
+      }
       return false;
     }
   }
+
+  // Web fallback — navigator.permissions.query is NOT supported on iOS Safari
   try {
-    if (navigator?.permissions?.query) {
+    if (typeof navigator !== 'undefined' && navigator?.permissions?.query) {
       const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
       return status.state === 'granted';
     }
-  } catch {}
+  } catch {
+    // Silently fail — iOS Safari doesn't support permissions API
+  }
+  
+  // Final fallback for web: try to actually get position with short timeout
+  if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          () => resolve(),
+          (err) => reject(err),
+          { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 }
+        );
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  
   return false;
 };
 
 export const requestPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
     try {
-      // Primeiro, solicitar permissões de localização (foreground)
+      console.log('[GPS] Requesting native permissions...');
       const perm = await Geolocation.requestPermissions({ permissions: ['location', 'coarseLocation'] });
-      console.log('[GPS] Resultado requestPermissions:', JSON.stringify(perm));
+      console.log('[GPS] requestPermissions result:', JSON.stringify(perm));
       
       const granted = perm.location === 'granted' || perm.coarseLocation === 'granted';
       
-      if (!granted) {
-        // No Android, se o usuário negou 2x, o sistema bloqueia permanentemente.
-        // Nesse caso, precisamos direcionar o usuário para as Configurações.
-        console.warn('[GPS] Permissão negada pelo sistema. Pode ser bloqueio permanente (Android).');
-        
-        // Tentar fallback: getCurrentPosition pode funcionar se o GPS está ativo
-        // mesmo quando checkPermissions/requestPermissions reportam negado
+      if (granted) return true;
+      
+      // Fallback: try getCurrentPosition — some devices report wrong permission status
+      console.log('[GPS] Permission reported as not granted, trying getCurrentPosition fallback...');
+      try {
+        await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
+        console.log('[GPS] Fallback getCurrentPosition worked despite permission reported as denied');
+        return true;
+      } catch (fallbackErr: any) {
+        console.warn('[GPS] Fallback getCurrentPosition also failed:', fallbackErr?.message || fallbackErr);
+        return false;
+      }
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : err?.message ?? '';
+      console.warn('[GPS] Error requesting native permissions:', msg);
+      
+      if (isLocationServicesDisabledError(err)) {
+        console.error('[GPS] ❌ Serviços de localização do SISTEMA estão DESATIVADOS.');
+        console.error('[GPS] iOS: Ajustes > Privacidade > Serviços de Localização > ATIVAR');
+        console.error('[GPS] Android: Configurações > Localização > ATIVAR');
+        // Don't return false immediately — try getCurrentPosition anyway
+        // On some iOS versions, requestPermissions throws but GPS still works
         try {
-          await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 5000 });
-          console.log('[GPS] Fallback getCurrentPosition funcionou apesar de permissão reportada como negada');
+          await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
+          console.log('[GPS] getCurrentPosition worked despite requestPermissions throwing');
           return true;
-        } catch (fallbackErr) {
-          console.warn('[GPS] Fallback também falhou:', fallbackErr);
+        } catch {
           return false;
         }
       }
       
-      return true;
-    } catch (err: any) {
-      const msg = typeof err === 'string' ? err : err?.message ?? '';
-      console.warn('[GPS] Erro ao solicitar permissões nativas:', msg, err);
-      
-      // "location disabled" = serviços de localização desativados no Android
-      if (msg.toLowerCase().includes('disabled') || msg.toLowerCase().includes('location service')) {
-        console.error('[GPS] Serviços de localização do sistema estão DESATIVADOS');
+      // Any other error — try the fallback too
+      try {
+        await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
+        console.log('[GPS] getCurrentPosition fallback worked despite error in requestPermissions');
+        return true;
+      } catch {
+        return false;
       }
-      
-      return false;
     }
   }
+
+  // Web: request by actually calling getCurrentPosition (triggers browser prompt)
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) return resolve(false);
     navigator.geolocation.getCurrentPosition(
       () => resolve(true),
       () => resolve(false),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 };
@@ -129,8 +187,28 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
   lastGPSRequestTime = Date.now();
 
   if (isNative()) {
-    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
-    return toWebLike(pos);
+    try {
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+      return toWebLike(pos);
+    } catch (err: any) {
+      console.warn('[GPS] Native getCurrentPosition failed:', err?.message || err);
+      
+      // If high accuracy fails, try low accuracy (iOS simulator often has issues with high accuracy)
+      if (maxRetries > 0) {
+        console.log('[GPS] Retrying with enableHighAccuracy: false...');
+        try {
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 15000 });
+          return toWebLike(pos);
+        } catch (retryErr: any) {
+          console.warn('[GPS] Low accuracy also failed:', retryErr?.message || retryErr);
+        }
+      }
+      
+      if (isLocationServicesDisabledError(err)) {
+        throw new Error('Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.');
+      }
+      throw err;
+    }
   }
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -143,18 +221,14 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
             const quality = getGPSQuality(p.coords.accuracy);
             devLog(`[GPS] Tentativa ${attempt}: ${quality.quality} (${quality.accuracy}m)`);
             
-            // Rejeitar se accuracy > 1000m (exceto na última tentativa)
             if (p.coords.accuracy > 1000 && attempt < maxRetries) {
               reject(new Error(`GPS de baixa qualidade: ${p.coords.accuracy}m`));
               return;
             }
             
-            // Accept accuracy <= 500m OR always accept on last attempt
             if (quality.accuracy <= 500 || attempt === maxRetries) {
-              // ✅ Na última tentativa, avisar sobre GPS ruim
               if (attempt === maxRetries && quality.quality === 'POOR') {
                 console.warn(`[GPS] ⚠️ Aceitando GPS de baixa qualidade após ${maxRetries} tentativas: ${quality.accuracy}m`);
-                // Importar toast dinamicamente para evitar problemas de dependência circular
                 import('sonner').then(({ toast }) => {
                   toast.warning('GPS com baixa precisão. Considere mover-se para área aberta.', {
                     duration: 5000
@@ -183,7 +257,6 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
         throw err;
       }
       
-      // Exponential backoff: 3s, 6s, 9s
       const backoffTime = 3000 * attempt;
       devLog(`[GPS] Retry em ${backoffTime}ms...`);
       await new Promise(resolve => setTimeout(resolve, backoffTime));
@@ -198,7 +271,6 @@ export const watchPositionSafe = (
   onError: (err: any) => void
 ): { clear: () => void } => {
   if (isNative()) {
-    // ✅ FIX: Race condition — track pending promise to handle clear() before resolve
     let pendingWatchId: string | null = null;
     let wasStoppedBeforeResolve = false;
 
@@ -214,9 +286,12 @@ export const watchPositionSafe = (
     };
 
     Geolocation.watchPosition({ enableHighAccuracy: true }, (pos, err) => {
-      if (wasStoppedBeforeResolve) return; // already stopped
+      if (wasStoppedBeforeResolve) return;
       if (err) {
         const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
+        if (isLocationServicesDisabledError(msg)) {
+          return onError({ code: 2, message: 'Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.' });
+        }
         if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
           return onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
         }
@@ -233,7 +308,9 @@ export const watchPositionSafe = (
     }).catch((err) => {
       console.warn('[GPS] Erro nativo ao iniciar watchPosition:', err);
       const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
-      if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
+      if (isLocationServicesDisabledError(msg)) {
+        onError({ code: 2, message: 'Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.' });
+      } else if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
         onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
       } else {
         onError({ code: 1, message: 'Não foi possível iniciar o rastreamento. Verifique as permissões de localização.' });
@@ -244,7 +321,6 @@ export const watchPositionSafe = (
   const id = navigator.geolocation.watchPosition(
     (p) => onSuccess(p.coords),
     onError,
-    // Timeout maior evita falhas frequentes em ambientes com GPS lento (indoor/PWA)
     { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 }
   );
   return { clear: () => navigator.geolocation.clearWatch(id) } as any;

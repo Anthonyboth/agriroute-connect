@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { checkPermissionSafe, requestPermissionSafe, getCurrentPositionSafe } from '@/utils/location';
 
 interface LocationPermissionProps {
   onPermissionChange: (enabled: boolean) => void;
@@ -22,15 +23,15 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
   }, []);
 
   const checkLocationPermission = async () => {
-    if ('geolocation' in navigator) {
-      try {
-        const permission = await navigator.permissions.query({name: 'geolocation'});
-        const enabled = permission.state === 'granted';
-        setLocationEnabled(enabled);
-        onPermissionChange(enabled);
-      } catch (error) {
-        // Try to get location permission directly
-      }
+    try {
+      // Use the unified checkPermissionSafe that works on iOS, Android and Web
+      const granted = await checkPermissionSafe();
+      setLocationEnabled(granted);
+      onPermissionChange(granted);
+    } catch (error) {
+      console.warn('[LocationPermission] Error checking permission:', error);
+      setLocationEnabled(false);
+      onPermissionChange(false);
     }
   };
 
@@ -38,12 +39,11 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
     setChecking(true);
     
     try {
-      const { requestPermissionSafe, getCurrentPositionSafe } = await import('@/utils/location');
       const granted = await requestPermissionSafe();
       if (!granted) {
         setLocationEnabled(false);
         onPermissionChange(false);
-        toast.error('Permissão de localização negada. Por favor, ative nas configurações do navegador.');
+        toast.error('Permissão de localização negada. Ative em Ajustes > Privacidade > Serviços de Localização.');
         return;
       }
       
@@ -55,14 +55,17 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
       setLocationEnabled(false);
       onPermissionChange(false);
       
-      if (error?.code === 1) {
-        toast.error('Permissão de localização negada. Por favor, ative nas configurações do navegador.');
+      const msg = error?.message || '';
+      if (msg.includes('desativados') || msg.toLowerCase().includes('disabled') || msg.toLowerCase().includes('not enabled')) {
+        toast.error('Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.');
+      } else if (error?.code === 1) {
+        toast.error('Permissão de localização negada. Ative nas configurações do dispositivo.');
       } else if (error?.code === 2) {
-        toast.error('Localização indisponível no momento.');
+        toast.error('Localização indisponível. Verifique se o GPS está ativado.');
       } else if (error?.code === 3) {
-        toast.error('Tempo limite para obter localização.');
+        toast.error('Tempo limite para obter localização. Tente novamente.');
       } else {
-        toast.error('Erro ao obter localização.');
+        toast.error('Erro ao obter localização. Verifique as permissões do dispositivo.');
       }
     } finally {
       setChecking(false);
