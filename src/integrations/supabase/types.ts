@@ -424,6 +424,74 @@ export type Database = {
           },
         ]
       }
+      announcement_versions: {
+        Row: {
+          announcement_id: string
+          banner_url: string | null
+          category: string | null
+          change_summary: string | null
+          changed_at: string
+          changed_by: string | null
+          cta_text: string | null
+          cta_url: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          priority: number | null
+          subtitle: string | null
+          target_audience: string[] | null
+          title: string
+          type: string | null
+          version: number
+        }
+        Insert: {
+          announcement_id: string
+          banner_url?: string | null
+          category?: string | null
+          change_summary?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          priority?: number | null
+          subtitle?: string | null
+          target_audience?: string[] | null
+          title: string
+          type?: string | null
+          version?: number
+        }
+        Update: {
+          announcement_id?: string
+          banner_url?: string | null
+          category?: string | null
+          change_summary?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          priority?: number | null
+          subtitle?: string | null
+          target_audience?: string[] | null
+          title?: string
+          type?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_versions_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "system_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       antifraud_feedback: {
         Row: {
           confirmed_fraud: boolean | null
@@ -11980,6 +12048,8 @@ export type Database = {
       }
       system_announcements: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           archived: boolean | null
           banner_url: string | null
           category: string | null
@@ -11990,20 +12060,28 @@ export type Database = {
           ends_at: string | null
           id: string
           is_active: boolean | null
+          is_pinned: boolean
           last_viewed_at: string | null
           message: string
           metadata: Json | null
           priority: number | null
+          push_sent_at: string | null
+          rejection_reason: string | null
+          send_push: boolean
           starts_at: string | null
+          status: string
           subtitle: string | null
           target_audience: string[] | null
           title: string
           type: string
           updated_at: string | null
           updated_by: string | null
+          version: number
           view_count: number | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           archived?: boolean | null
           banner_url?: string | null
           category?: string | null
@@ -12014,20 +12092,28 @@ export type Database = {
           ends_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_pinned?: boolean
           last_viewed_at?: string | null
           message: string
           metadata?: Json | null
           priority?: number | null
+          push_sent_at?: string | null
+          rejection_reason?: string | null
+          send_push?: boolean
           starts_at?: string | null
+          status?: string
           subtitle?: string | null
           target_audience?: string[] | null
           title: string
           type?: string
           updated_at?: string | null
           updated_by?: string | null
+          version?: number
           view_count?: number | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           archived?: boolean | null
           banner_url?: string | null
           category?: string | null
@@ -12038,17 +12124,23 @@ export type Database = {
           ends_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_pinned?: boolean
           last_viewed_at?: string | null
           message?: string
           metadata?: Json | null
           priority?: number | null
+          push_sent_at?: string | null
+          rejection_reason?: string | null
+          send_push?: boolean
           starts_at?: string | null
+          status?: string
           subtitle?: string | null
           target_audience?: string[] | null
           title?: string
           type?: string
           updated_at?: string | null
           updated_by?: string | null
+          version?: number
           view_count?: number | null
         }
         Relationships: []
