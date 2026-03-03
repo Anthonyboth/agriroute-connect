@@ -167,6 +167,7 @@ const DriverDashboard = () => {
   const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [transportRequests, setTransportRequests] = useState<any[]>([]);
   const [smartMatcherCount, setSmartMatcherCount] = useState(0);
+  const [scheduledTabCount, setScheduledTabCount] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -1218,6 +1219,11 @@ const DriverDashboard = () => {
     setSmartMatcherCount(counts.total);
   }, []);
 
+  // ✅ FIX: Callback estável para ScheduledFreightsManager reportar contagem real
+  const handleScheduledCountChange = useCallback((count: number) => {
+    setScheduledTabCount(count);
+  }, []);
+
 
   // Estado para contar check-ins
   const [totalCheckins, setTotalCheckins] = useState(0);
@@ -1863,7 +1869,7 @@ const DriverDashboard = () => {
     if (import.meta.env.DEV) console.log('[stats] activeTrips:', activeTripsCount, '(freights:', activeFreightsCount, 'assignments:', activeAssignmentsCount, 'services:', activeServiceRequestsCount, ')');
     
     return {
-      activeTrips: activeTripsCount,
+      activeTrips: ongoingBadgeCount,
       completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,
       availableCount: smartMatcherCount,
       totalEarnings: acceptedProposals
@@ -1872,7 +1878,7 @@ const DriverDashboard = () => {
       totalCheckins: totalCheckins,
       pendingProposals: pendingProposalsCount,
     };
-  }, [myProposals, smartMatcherCount, totalCheckins, visibleOngoing, activeAssignments, acceptedServiceRequests]);
+  }, [myProposals, smartMatcherCount, totalCheckins, ongoingBadgeCount]);
 
   const handleLogout = async () => {
     // ✅ Logout silencioso - sem toasts
@@ -2398,7 +2404,7 @@ const DriverDashboard = () => {
               >
                 <Clock className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Agendados</span>
-                <TabBadge count={scheduledCount} />
+                <TabBadge count={scheduledTabCount ?? scheduledCount} />
               </TabsTrigger>
               <TabsTrigger 
                 value="calendar" 
@@ -2599,7 +2605,7 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="scheduled">
-            {activeTab === 'scheduled' && <DriverScheduledTab />}
+            {activeTab === 'scheduled' && <DriverScheduledTab onCountChange={handleScheduledCountChange} />}
           </TabsContent>
 
           <TabsContent value="calendar" className="space-y-4">
