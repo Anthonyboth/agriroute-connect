@@ -136,7 +136,7 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
   );
   
   return (
-    <Card className="border-l-4 border-l-green-600 overflow-hidden">
+    <Card className="border-l-4 border-l-green-600">
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold truncate flex-1">{cargoType}</h3>

@@ -300,7 +300,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
     <TooltipProvider>
       <Card
         className={cn(
-          "h-full flex flex-col hover:shadow-lg transition-all duration-300 border-2 rounded-xl overflow-hidden bg-card",
+          "h-full flex flex-col hover:shadow-lg transition-all duration-300 border-2 rounded-xl bg-card",
           isHighlighted
             ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl ring-2 ring-yellow-400"
             : "border-border"

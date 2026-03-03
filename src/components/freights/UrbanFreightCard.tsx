@@ -228,7 +228,7 @@ export const UrbanFreightCard: React.FC<UrbanFreightCardProps> = ({
   return (
     <Card
       data-testid="urban-freight-card"
-      className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-hidden"
+      className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60"
     >
       {/* HEADER */}
       <CardHeader className="pb-2 flex-shrink-0">
