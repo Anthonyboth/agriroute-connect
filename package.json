@@ -19,7 +19,6 @@
     "@capacitor/geolocation": "^7.1.7",
     "@capacitor/ios": "^7.4.4",
     "@capacitor/splash-screen": "^7.0.4",
-    
     "@googlemaps/js-api-loader": "^1.16.10",
     "@googlemaps/react-wrapper": "^1.2.0",
     "@hookform/resolvers": "^3.10.0",
@@ -63,7 +62,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    
     "date-fns": "^3.6.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
@@ -89,9 +87,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^5.1.1",
     "vaul": "^0.9.9",
-    "vite-plugin-pwa": "^1.1.0",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.18",
-    
     "zod": "^3.25.76"
   },
   "devDependencies": {
