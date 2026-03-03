@@ -52,7 +52,7 @@ function getStatusOrder(serviceType: string | null): readonly string[] {
   return STATUS_ORDER_FULL;
 }
 
-function validateStrictTransition(previousStatus: string, nextStatus: string, serviceType: string | null = null): { ok: boolean; error?: string; message?: string } {
+function validateStrictTransition(previousStatus: string, nextStatus: string, serviceType: string | null = null): { ok: boolean; error?: string; message?: string; warning?: string } {
   const prev = normalizeStatus(previousStatus) || 'NEW';
   const next = normalizeStatus(nextStatus);
   const statusOrder = getStatusOrder(serviceType);
@@ -84,8 +84,24 @@ function validateStrictTransition(previousStatus: string, nextStatus: string, se
     return { ok: false, error: 'STATUS_REGRESSION_BLOCKED', message: `Transição inválida: não é permitido voltar (${prev} → ${next}).` };
   }
 
-  // Bloquear pulo de etapas
+  // Pulo de etapas — tolerância inteligente
   if (nextIndex > prevIndex + 1) {
+    // ✅ CORREÇÃO: Permitir LOADING → IN_TRANSIT (pular LOADED) para QUALQUER frete
+    // A etapa LOADED é opcional — muitos fretes rurais não precisam dela.
+    // Quando service_type é null/desconhecido, também permitir este pulo.
+    if (prev === 'LOADING' && next === 'IN_TRANSIT') {
+      console.warn(`[validateStrictTransition] Permitindo pulo LOADING→IN_TRANSIT (LOADED opcional). serviceType=${serviceType}`);
+      return { ok: true, warning: 'LOADED_SKIPPED' };
+    }
+
+    // ✅ Tolerância: permitir pulo de no máximo 2 etapas com warning
+    // (cobre dessincronia entre assignment.status e driver_trip_progress.current_status)
+    if (nextIndex <= prevIndex + 2) {
+      const skipped = statusOrder.slice(prevIndex + 1, nextIndex).join(', ');
+      console.warn(`[validateStrictTransition] Pulo tolerado: ${prev} → ${next} (pulou: ${skipped}). serviceType=${serviceType}`);
+      return { ok: true, warning: `SKIP_TOLERATED: ${skipped}` };
+    }
+
     const expected = statusOrder[prevIndex + 1];
     return { ok: false, error: 'STATUS_SKIP_BLOCKED', message: `Transição inválida: de ${prev} você deve ir para ${expected} (não pode pular para ${next}).` };
   }
