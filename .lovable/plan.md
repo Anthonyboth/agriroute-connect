@@ -1,37 +1,24 @@
 
 
-## Problemas Identificados nos Prints
+## Problema Identificado
 
-### Problema 1: "Carregando destino..." no card de frete em andamento
-**Causa raiz:** O frete `d1b0e039` tem `destination_city: null` e `destination_state: null` no banco, mas possui `destination_address: "Poxoréu - Destino Seed 7"`. O componente `FreightInProgressCard.tsx` (linha 409-411) só exibe a cidade/estado, e quando ambos são nulos mostra "Carregando destino..." em vez de usar o fallback `destination_address`.
+O screenshot mostra um loop de spam no console do emulador iOS:
+- `[ErrorMonitoringService] Erro ao reportar ao backend: {"name":"FunctionsFetchError","context":{}}` repetido dezenas de vezes
 
-**Correção:** Alterar `FreightInProgressCard.tsx` para usar `destination_address` como fallback quando `destination_city`/`destination_state` forem nulos, igual ao que `FreightCard.tsx` já faz.
+**Causa raiz:** A edge function `report-user-panel-error` existe no codigo mas provavelmente nao esta deployed ou nao esta acessivel no emulador iOS. Quando `supabase.functions.invoke('report-user-panel-error')` falha com `FunctionsFetchError`, a linha 94 do `errorMonitoringService.ts` loga com `console.error`. Como o app esta na rota `/dashboard` (user panel route), CADA erro que ocorre no app passa por `captureError` → `reportUserPanelError` → falha → `console.error` → spam.
 
-### Problema 2: Card "Ativas" mostrando 0 enquanto badge "Em Andamento" mostra 1
-**Causa raiz:** O `statistics` memo (linha 1872) usa `ongoingBadgeCount` que vem de `useDriverOngoingCards` (React Query). Porém, o `statistics` memo também referencia `visibleOngoing` e `activeAssignments` internamente (linhas 1855-1861) sem tê-los no array de dependências. Esse código morto dentro do memo causa confusão mas não é a causa direta. A causa real é que o memo NÃO inclui `visibleOngoing` e `activeAssignments` nas dependências, e esses são dados de uma pipeline SEPARADA (`fetchOngoingFreights`). A discrepância visual no print sugere race condition na carga inicial.
+Adicionalmente, cada falha empurra o report para `errorQueue` (linha 95), que cresce sem limite.
 
-**Correção:** 
-1. Remover o código morto dentro do `statistics` memo (linhas 1838-1869 que calculam `activeTripsCount` mas nunca o usam)
-2. Limpar o array de dependências para incluir apenas o que é efetivamente usado
-3. Garantir que o stats card e o badge usem exatamente a mesma variável `ongoingBadgeCount`
+## Plano de Correção
 
-### Problema 3: Frete agendado aparecendo na aba "Em Andamento"
-O frete `d1b0e039` tem pickup_date 2026-03-20 (17 dias no futuro) e status OPEN no banco. O assignment tem status ACCEPTED. No hook `useDriverOngoingCards`, assignments NÃO são filtrados por data de pickup (por design - linhas 439-447), então aparecem em "Em Andamento" mesmo quando deveriam ser "Agendados". A seção do card mostra "Coleta em 16 dias", confirmando que é um frete futuro. 
+### 1. Silenciar erros nao-criticos no ErrorMonitoringService (errorMonitoringService.ts)
+- Linha 94: trocar `console.error` por `console.debug` (a notificacao Telegram ja foi feita na linha 73, entao o backend falhar nao e critico)
+- Nao empurrar para `errorQueue` quando o erro e `FunctionsFetchError` (evita crescimento sem limite da fila)
 
-**Correção:** No `useDriverOngoingCards`, filtrar assignments ACCEPTED com pickup_date futura para que apareçam apenas em "Agendados", usando a mesma lógica `isInProgressFreight` aplicada aos fretes diretos.
+### 2. Adicionar circuit breaker no reportUserPanelError
+- Se `report-user-panel-error` falhar 3 vezes consecutivas, parar de tentar por 5 minutos
+- Evita spam de chamadas a uma function que esta fora do ar
 
-## Plano de Implementação
-
-### 1. Corrigir fallback de destino no FreightInProgressCard (FreightInProgressCard.tsx)
-- Linha 409-411: trocar `'Carregando destino...'` por fallback para `destination_address`
-- Aplicar mesma lógica que `FreightCard.tsx` já usa: `freight.destination_address || 'Destino não informado'`
-
-### 2. Limpar statistics memo (DriverDashboard.tsx)
-- Remover código morto (cálculo de `activeTripsCount` que nunca é retornado)
-- Manter `activeTrips: ongoingBadgeCount` como fonte única de verdade
-- Limpar dependências do useMemo
-
-### 3. Filtrar assignments agendados no useDriverOngoingCards (useDriverOngoingCards.ts)
-- Nos `enrichedAssignments` (linha 439), adicionar filtro: se assignment status é ACCEPTED e pickup_date do frete é futura, excluir dos resultados (ficam apenas para "Agendados")
-- Manter assignments em LOADING/LOADED/IN_TRANSIT sempre visíveis independente da data
+### 3. Deploy da edge function report-user-panel-error
+- Verificar e fazer deploy da function que pode nao estar deployed
 
