@@ -21,14 +21,16 @@
 
 /**
  * Status que definem um frete como "Em Andamento" para motoristas.
- * Inclui DELIVERED_PENDING_CONFIRMATION até que seja confirmado pelo produtor.
+ * NÃO inclui DELIVERED_PENDING_CONFIRMATION — ao reportar entrega,
+ * o frete sai de "Em Andamento" e vai para "Confirmar Entrega".
+ * O motorista fica livre para aceitar novos fretes enquanto aguarda
+ * o produtor confirmar (72h de prazo).
  */
 export const FREIGHT_ONGOING_STATUSES = [
   'ACCEPTED',
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION',
 ] as const;
 
 /**
@@ -45,13 +47,13 @@ export const FREIGHT_ONGOING_STATUSES_PRODUCER = [
 /**
  * Status de assignments que devem aparecer na aba "Em Andamento" do motorista.
  * Inclui PENDING para assignments que ainda precisam ser aceitos.
+ * NÃO inclui DELIVERED_PENDING_CONFIRMATION — motorista fica livre após reportar.
  */
 export const ASSIGNMENT_ONGOING_STATUSES = [
   'ACCEPTED',
   'LOADING',
   'LOADED',
   'IN_TRANSIT',
-  'DELIVERED_PENDING_CONFIRMATION',
   'PENDING',
 ] as const;
 
