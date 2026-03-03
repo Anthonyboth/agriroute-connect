@@ -1,0 +1,1 @@
+UPDATE service_requests SET status = 'OPEN', updated_at = now() WHERE status = 'PENDING' AND provider_id IS NULL;
