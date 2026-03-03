@@ -7,6 +7,7 @@ import { Navigation, MapPin, Power, PowerOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative } from '@/utils/location';
+import { startForegroundService, stopForegroundService } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
 
@@ -30,6 +31,11 @@ export const ManualLocationTracking = () => {
         }
       }
 
+      // ✅ Start Android Foreground Service BEFORE watchPosition
+      if (isNative()) {
+        await startForegroundService();
+      }
+
       const handle = watchPositionSafe(
         (coords) => updateLocation(coords),
         (error) => handleGeolocationError(error)
@@ -46,10 +52,14 @@ export const ManualLocationTracking = () => {
     }
   };
 
-  const stopTracking = () => {
+  const stopTracking = async () => {
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
+      }
+      // ✅ Stop Android Foreground Service
+      if (isNative()) {
+        await stopForegroundService();
       }
       setWatchId(null);
       setIsTracking(false);

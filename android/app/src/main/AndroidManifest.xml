@@ -32,8 +32,14 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+            android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- ✅ Foreground Service for background location tracking (Google Play compliance) -->
+        <service
+            android:name="com.capawesome.capacitorjs.plugins.foregroundservice.ForegroundService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->

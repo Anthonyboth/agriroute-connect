@@ -58,7 +58,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     // ✅ RELEASE HARDENING: Proper WebView settings
-    webContentsDebuggingEnabled: true, // TEMP: enable for crash diagnostics
+    webContentsDebuggingEnabled: false, // ✅ RELEASE HARDENING: disabled for production
   },
   ios: {
     contentInset: 'automatic',

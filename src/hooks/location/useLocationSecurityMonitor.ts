@@ -15,6 +15,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { locationAlertManager } from '@/services/location/locationAlertManager';
+import { startForegroundService, stopForegroundService, updateForegroundNotification } from '@/utils/foregroundService';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
 
   // ── Start / Stop ──────────────────────────────────────────────────────────
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
     if (watchHandleRef.current) return; // já ativo
     if (!isCapacitorEnv() && !('geolocation' in navigator)) {
       setStatus('NO_PERMISSION');
@@ -221,6 +222,12 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
 
     activeRef.current = true;
     consecutiveErrorsRef.current = 0;
+
+    // ✅ Start Android Foreground Service BEFORE geolocation watch
+    // This ensures GPS continues working when app is backgrounded/screen locked
+    if (isAndroidEnv()) {
+      await startForegroundService();
+    }
 
     if (isCapacitorEnv()) {
       // ✅ FIX: Track pending promise to handle stop() called before resolve
@@ -283,11 +290,15 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
     setStatus('IDLE'); // aguardando primeiro fix
   }, [handleSuccess, handleError]);
 
-  const stop = useCallback(() => {
+  const stop = useCallback(async () => {
     activeRef.current = false;
     if (watchHandleRef.current) {
       watchHandleRef.current.clear();
       watchHandleRef.current = null;
+    }
+    // ✅ Stop Android Foreground Service — removes persistent notification
+    if (isAndroidEnv()) {
+      await stopForegroundService();
     }
     setStatus('IDLE');
     locationAlertManager.reset();
