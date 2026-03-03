@@ -49,6 +49,20 @@ const maskCpfCnpj = (value: string): string => {
   return value;
 };
 
+const formatPhone = (value: string): string => {
+  const d = value.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+const formatCep = (value: string): string => {
+  const d = value.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+};
+
 // ── Field component (Meta-style) ─────────────────────────────────────
 
 interface MetaFieldProps {
@@ -60,9 +74,10 @@ interface MetaFieldProps {
   type?: string;
   placeholder?: string;
   maxLength?: number;
+  mask?: (v: string) => string;
 }
 
-const MetaField: React.FC<MetaFieldProps> = ({ label, value, onChange, icon, readOnly, type = 'text', placeholder, maxLength }) => (
+const MetaField: React.FC<MetaFieldProps> = ({ label, value, onChange, icon, readOnly, type = 'text', placeholder, maxLength, mask }) => (
   <div className="flex items-center gap-3 py-3 px-4 border-b border-border/50 last:border-b-0">
     <div className="flex-shrink-0 w-5 text-muted-foreground">
       {icon}
@@ -78,7 +93,10 @@ const MetaField: React.FC<MetaFieldProps> = ({ label, value, onChange, icon, rea
         <Input
           type={type}
           value={value}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            onChange?.(mask ? mask(raw) : raw);
+          }}
           placeholder={placeholder || label}
           maxLength={maxLength}
           className="border-0 p-0 h-auto text-sm bg-transparent shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40"
@@ -315,6 +333,8 @@ const ProfileEdit: React.FC = () => {
                   icon={<Phone className="h-4 w-4" />}
                   type="tel"
                   placeholder="(00) 00000-0000"
+                  mask={formatPhone}
+                  maxLength={15}
                 />
                 <MetaField
                   label="Telefone de contato"
@@ -323,6 +343,8 @@ const ProfileEdit: React.FC = () => {
                   icon={<Phone className="h-4 w-4" />}
                   type="tel"
                   placeholder="(00) 0000-0000"
+                  mask={formatPhone}
+                  maxLength={15}
                 />
                 <MetaField
                   label="CPF/CNPJ"
@@ -418,6 +440,8 @@ const ProfileEdit: React.FC = () => {
                   onChange={(v) => onAddressChange('zip', v)}
                   icon={<MapPin className="h-4 w-4" />}
                   placeholder="00000-000"
+                  mask={formatCep}
+                  maxLength={9}
                 />
                 <MetaField
                   label="Rua/Logradouro"
@@ -496,6 +520,8 @@ const ProfileEdit: React.FC = () => {
                   icon={<Phone className="h-4 w-4" />}
                   type="tel"
                   placeholder="(00) 00000-0000"
+                  mask={formatPhone}
+                  maxLength={15}
                 />
               </div>
             </AccordionContent>
