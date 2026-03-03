@@ -116,7 +116,7 @@ export function useAdminForumThreads(boardId?: string, page = 1) {
       const authorIds = [...new Set((data || []).map(t => t.author_user_id))];
       let names: Record<string, string> = {};
       if (authorIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', authorIds);
+        const { data: profiles } = await (supabase as any).from('profiles_secure').select('id, full_name').in('id', authorIds);
         profiles?.forEach(p => { names[p.id] = p.full_name || 'Anônimo'; });
       }
 
@@ -178,7 +178,7 @@ export function useAdminForumPosts(threadId?: string) {
       const authorIds = [...new Set((data || []).map(p => p.author_user_id))];
       let names: Record<string, string> = {};
       if (authorIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', authorIds);
+        const { data: profiles } = await (supabase as any).from('profiles_secure').select('id, full_name').in('id', authorIds);
         profiles?.forEach(p => { names[p.id] = p.full_name || 'Anônimo'; });
       }
 
@@ -232,7 +232,7 @@ export function useAdminForumReports(status?: string) {
       const userIds = [...new Set((data || []).map(r => r.reporter_user_id))];
       let names: Record<string, string> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', userIds);
+        const { data: profiles } = await (supabase as any).from('profiles_secure').select('id, full_name').in('id', userIds);
         profiles?.forEach(p => { names[p.id] = p.full_name || 'Anônimo'; });
       }
 
@@ -304,7 +304,7 @@ export function useAdminForumBans() {
       const userIds = [...new Set((data || []).flatMap(b => [b.user_id, b.banned_by_admin_id]))];
       let names: Record<string, string> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', userIds);
+        const { data: profiles } = await (supabase as any).from('profiles_secure').select('id, full_name').in('id', userIds);
         profiles?.forEach(p => { names[p.id] = p.full_name || 'Anônimo'; });
       }
 
@@ -384,7 +384,7 @@ export function useAdminForumLogs(filters?: { action?: string; adminId?: string 
       const adminIds = [...new Set((data || []).map(l => l.admin_user_id))];
       let names: Record<string, string> = {};
       if (adminIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', adminIds);
+        const { data: profiles } = await (supabase as any).from('profiles_secure').select('id, full_name').in('id', adminIds);
         profiles?.forEach(p => { names[p.id] = p.full_name || 'Anônimo'; });
       }
 

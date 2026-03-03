@@ -40,7 +40,7 @@ export function useThreadedPosts(threadId: string | undefined, sortBy: CommentSo
       // Parallel fetch: authors + scores via view
       const [profilesRes, scoresRes] = await Promise.all([
         authorIds.length > 0
-          ? supabase.from('profiles').select('id, full_name, role').in('id', authorIds)
+          ? (supabase as any).from('profiles_secure').select('id, full_name, role').in('id', authorIds)
           : Promise.resolve({ data: [] }),
         supabase.from('forum_post_scores' as any).select('post_id, score').in('post_id', postIds),
       ]);
