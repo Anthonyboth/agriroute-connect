@@ -107,7 +107,11 @@ interface ScheduledFreight {
 }
 
 
-export const ScheduledFreightsManager: React.FC = () => {
+interface ScheduledFreightsManagerProps {
+  onCountChange?: (count: number) => void;
+}
+
+export const ScheduledFreightsManager: React.FC<ScheduledFreightsManagerProps> = ({ onCountChange }) => {
   const { profile } = useAuth();
   const [scheduledFreights, setScheduledFreights] = useState<ScheduledFreight[]>([]);
   const [loading, setLoading] = useState(false);
@@ -280,6 +284,7 @@ export const ScheduledFreightsManager: React.FC = () => {
         // ✅ Enriquecer com dados dos participantes (produtor/motorista)
         const enrichedFreights = await enrichFreightsWithParticipants(dedupedFreights, profile);
         setScheduledFreights(enrichedFreights);
+        onCountChange?.(enrichedFreights.length);
       } catch (queryError) {
         console.error('Erro na query de agendados:', queryError);
         throw queryError;
@@ -289,6 +294,7 @@ export const ScheduledFreightsManager: React.FC = () => {
       toast.error('Erro ao carregar fretes');
       // Definir array vazio em caso de erro
       setScheduledFreights([]);
+      onCountChange?.(0);
     } finally {
       setLoading(false);
     }
