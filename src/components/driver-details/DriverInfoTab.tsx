@@ -88,8 +88,12 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
     setUploadingPhoto(photoType);
     
     try {
+      // Use auth.uid() for folder path (matches storage RLS policies)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${driver.id}/${photoType}_${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${photoType}_${driver.id}_${Date.now()}.${fileExt}`;
       
       devLog('[Upload] Iniciando upload:', { photoType, fileName, fileSize: file.size });
       

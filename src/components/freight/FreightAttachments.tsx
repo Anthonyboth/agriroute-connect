@@ -171,8 +171,12 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
       
       // Try to upload to Supabase Storage if bucket exists
       try {
+        // Use auth.uid() for folder path (matches storage RLS policies)
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) throw new Error('Usuário não autenticado');
+        
         const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `${freightId}/${Date.now()}.${fileExt}`;
+        const fileName = `${currentUser.id}/${freightId}_${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('freight-attachments')
