@@ -108,7 +108,7 @@ export function useForumFeed({ boardSlug, sort, topPeriod = 'all', search, page,
       const [profilesRes, scoresRes, countsRes, bodiesRes] = await Promise.all([
         // Authors
         authorIds.length > 0
-          ? supabase.from('profiles').select('id, full_name').in('id', authorIds)
+          ? (supabase as any).from('profiles_secure').select('id, full_name').in('id', authorIds)
           : Promise.resolve({ data: [] }),
         // Scores via view
         supabase.from('forum_thread_scores' as any).select('thread_id, score').in('thread_id', threadIds),
