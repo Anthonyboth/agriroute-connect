@@ -25,16 +25,30 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   size = 'md',
 }) => {
   const isClickable = Boolean(onClick);
+
+  // Map iconColor to hover shadow color
+  const getGlowColor = (color: string) => {
+    if (color.includes('orange')) return 'hover:shadow-orange-300';
+    if (color.includes('green')) return 'hover:shadow-green-300';
+    if (color.includes('blue')) return 'hover:shadow-blue-300';
+    if (color.includes('purple')) return 'hover:shadow-purple-300';
+    if (color.includes('amber')) return 'hover:shadow-amber-300';
+    if (color.includes('teal')) return 'hover:shadow-teal-300';
+    return 'hover:shadow-primary/30';
+  };
+
+  const glowClasses = `hover:shadow-lg ${getGlowColor(iconColor)} hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80`;
+
   const styles = size === 'sm'
     ? {
-        card: 'rounded-lg border hover:border-primary/50 hover:shadow-md min-h-[100px]',
+        card: 'rounded-lg border hover:border-primary/50 min-h-[100px]',
         content: 'p-3 flex flex-col items-center justify-center text-center h-full gap-1',
         iconWrap: '',
         value: 'text-lg md:text-xl font-bold leading-none tabular-nums',
         label: 'text-[11px] md:text-xs font-medium text-muted-foreground leading-tight',
       }
     : {
-        card: 'rounded-xl border-2 hover:border-primary/50 hover:shadow-lg min-h-[120px]',
+        card: 'rounded-xl border-2 hover:border-primary/50 min-h-[120px]',
         content: 'p-4 flex flex-col items-center justify-center text-center h-full gap-2',
         iconWrap: '',
         value: 'text-2xl md:text-3xl font-bold leading-none tabular-nums',
@@ -44,7 +58,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   return (
     <Card 
       className={cn(
-        'w-full transition-all duration-200',
+        'w-full',
+        glowClasses,
         styles.card,
         isClickable && 'cursor-pointer active:scale-[0.98]',
         className
