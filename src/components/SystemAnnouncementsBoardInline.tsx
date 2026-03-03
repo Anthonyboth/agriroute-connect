@@ -1,68 +1,33 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { Megaphone, X, ChevronDown, ChevronUp } from "lucide-react";
-
-type Announcement = {
-  id: string;
-  title: string;
-  message: string;
-  type?: string;
-  created_at?: string;
-  priority?: number;
-  category?: string;
-  metadata?: {
-    whatsapp?: string;
-    whatsapp_message?: string;
-  };
-};
+import { useState } from "react";
+import { useAnnouncements } from "@/hooks/useAnnouncements";
 
 /**
  * Componente inline do Mural de Avisos para ser usado dentro do dashboard
  * Posicionado entre a busca e os cards de serviços
  */
 export const SystemAnnouncementsBoardInline = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const { announcements, isLoading, trackCtaClick } = useAnnouncements({
+    limit: 3,
+    enableRealtime: false,
+    trackViews: true,
+  });
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
-
-  useEffect(() => {
-    // Verificar se foi dispensado recentemente
-    const dismissedAt = localStorage.getItem('mural_inline_dismissed_at');
-    if (dismissedAt) {
-      const dismissed = new Date(dismissedAt);
-      const now = new Date();
-      const hoursSince = (now.getTime() - dismissed.getTime()) / (1000 * 60 * 60);
-      if (hoursSince < 12) {
-        setIsDismissed(true);
-        return;
-      }
-    }
-
-    fetchAnnouncements();
-  }, []);
-
-  const fetchAnnouncements = async () => {
-    const { data } = await supabase
-      .from("system_announcements")
-      .select("*")
-      .eq("is_active", true)
-      .order("priority", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(3);
-
-    if (data && data.length > 0) {
-      setAnnouncements(data as any);
-    }
-  };
+  const [isDismissed, setIsDismissed] = useState(() => {
+    const dismissedAt = localStorage.getItem("mural_inline_dismissed_at");
+    if (!dismissedAt) return false;
+    const hoursSince = (Date.now() - new Date(dismissedAt).getTime()) / (1000 * 60 * 60);
+    return hoursSince < 12;
+  });
 
   const handleDismiss = () => {
-    localStorage.setItem('mural_inline_dismissed_at', new Date().toISOString());
+    localStorage.setItem("mural_inline_dismissed_at", new Date().toISOString());
     setIsDismissed(true);
   };
 
-  if (isDismissed || announcements.length === 0) return null;
+  if (isDismissed || isLoading || announcements.length === 0) return null;
 
   const firstAnnouncement = announcements[0];
   const hasMore = announcements.length > 1;
@@ -78,34 +43,56 @@ export const SystemAnnouncementsBoardInline = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h4 className="font-semibold text-sm">Mural de Avisos</h4>
-                {announcements.length > 0 && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                    {announcements.length} {announcements.length === 1 ? 'aviso' : 'avisos'}
-                  </span>
-                )}
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {announcements.length} {announcements.length === 1 ? "aviso" : "avisos"}
+                </span>
               </div>
-              
-              {/* Primeiro aviso sempre visível */}
+
               <div className="space-y-2">
                 <div>
                   <p className="text-sm font-medium">{firstAnnouncement.title}</p>
+                  {firstAnnouncement.subtitle && (
+                    <p className="text-xs text-muted-foreground">{firstAnnouncement.subtitle}</p>
+                  )}
                   <p className="text-xs text-muted-foreground line-clamp-2">
-                    {firstAnnouncement.message.split('\n')[0]}
+                    {firstAnnouncement.message.split("\n")[0]}
                   </p>
+                  {firstAnnouncement.cta_text && firstAnnouncement.cta_url && (
+                    <a
+                      href={firstAnnouncement.cta_url}
+                      target={firstAnnouncement.cta_url.startsWith("http") ? "_blank" : undefined}
+                      rel="noopener noreferrer"
+                      onClick={() => trackCtaClick(firstAnnouncement.id)}
+                      className="text-xs text-primary font-medium hover:underline mt-1 inline-block"
+                    >
+                      {firstAnnouncement.cta_text} →
+                    </a>
+                  )}
                 </div>
 
-                {/* Avisos adicionais quando expandido */}
-                {isExpanded && announcements.slice(1).map((announcement) => (
-                  <div key={announcement.id} className="pt-2 border-t">
-                    <p className="text-sm font-medium">{announcement.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {announcement.message.split('\n')[0]}
-                    </p>
-                  </div>
-                ))}
+                {isExpanded &&
+                  announcements.slice(1).map((a) => (
+                    <div key={a.id} className="pt-2 border-t">
+                      <p className="text-sm font-medium">{a.title}</p>
+                      {a.subtitle && <p className="text-xs text-muted-foreground">{a.subtitle}</p>}
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {a.message.split("\n")[0]}
+                      </p>
+                      {a.cta_text && a.cta_url && (
+                        <a
+                          href={a.cta_url}
+                          target={a.cta_url.startsWith("http") ? "_blank" : undefined}
+                          rel="noopener noreferrer"
+                          onClick={() => trackCtaClick(a.id)}
+                          className="text-xs text-primary font-medium hover:underline mt-1 inline-block"
+                        >
+                          {a.cta_text} →
+                        </a>
+                      )}
+                    </div>
+                  ))}
               </div>
 
-              {/* Botão expandir/recolher */}
               {hasMore && (
                 <Button
                   variant="ghost"
@@ -121,7 +108,7 @@ export const SystemAnnouncementsBoardInline = () => {
                   ) : (
                     <>
                       <ChevronDown className="h-3 w-3 mr-1" />
-                      Ver mais {announcements.length - 1} {announcements.length - 1 === 1 ? 'aviso' : 'avisos'}
+                      Ver mais {announcements.length - 1} aviso(s)
                     </>
                   )}
                 </Button>
@@ -129,7 +116,6 @@ export const SystemAnnouncementsBoardInline = () => {
             </div>
           </div>
 
-          {/* Botão fechar */}
           <Button
             variant="ghost"
             size="icon"

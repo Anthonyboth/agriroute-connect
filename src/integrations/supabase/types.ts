@@ -14318,6 +14318,7 @@ export type Database = {
       auto_confirm_delivery_and_payments: { Args: never; Returns: undefined }
       auto_confirm_payments_after_72h: { Args: never; Returns: undefined }
       auto_confirm_pending_deliveries: { Args: never; Returns: Json }
+      auto_expire_announcements: { Args: never; Returns: number }
       auto_insert_city: {
         Args: {
           city_name: string
