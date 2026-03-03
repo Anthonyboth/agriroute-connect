@@ -166,6 +166,7 @@ const DriverDashboard = () => {
   const [acceptedServiceRequests, setAcceptedServiceRequests] = useState<any[]>([]);
   const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [transportRequests, setTransportRequests] = useState<any[]>([]);
+  const [smartMatcherCount, setSmartMatcherCount] = useState(0);
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -1212,6 +1213,11 @@ const DriverDashboard = () => {
     }
   };
 
+  // ✅ FIX: Callback estável para SmartFreightMatcher reportar contagem real
+  const handleSmartMatcherCounts = useCallback((counts: { total: number; highUrgency: number }) => {
+    setSmartMatcherCount(counts.total);
+  }, []);
+
 
   // Estado para contar check-ins
   const [totalCheckins, setTotalCheckins] = useState(0);
@@ -1859,14 +1865,14 @@ const DriverDashboard = () => {
     return {
       activeTrips: activeTripsCount,
       completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,
-      availableCount: availableFreights.length + transportRequests.length,
+      availableCount: smartMatcherCount,
       totalEarnings: acceptedProposals
         .filter(p => p.freight?.status === 'DELIVERED')
         .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0),
       totalCheckins: totalCheckins,
       pendingProposals: pendingProposalsCount,
     };
-  }, [myProposals, availableFreights, totalCheckins, visibleOngoing, activeAssignments, acceptedServiceRequests]);
+  }, [myProposals, smartMatcherCount, totalCheckins, visibleOngoing, activeAssignments, acceptedServiceRequests]);
 
   const handleLogout = async () => {
     // ✅ Logout silencioso - sem toasts
@@ -2374,7 +2380,7 @@ const DriverDashboard = () => {
                 >
                   <Brain className="h-3.5 w-3.5 mr-1" />
                   <span>{FRETES_IA_LABEL}</span>
-                  <TabBadge count={availableFreights.length} />
+                  <TabBadge count={smartMatcherCount} />
                 </TabsTrigger>
               )}
               <TabsTrigger
@@ -2583,6 +2589,7 @@ const DriverDashboard = () => {
                 profileId={profile?.id}
                 onFreightAction={handleFreightAction}
                 onFetchAvailable={fetchAvailableFreights}
+                onCountsChange={handleSmartMatcherCounts}
               />
             )}
           </TabsContent>
