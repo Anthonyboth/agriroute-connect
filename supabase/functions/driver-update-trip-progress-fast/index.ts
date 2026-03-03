@@ -16,7 +16,7 @@ const BodySchema = z.object({
 });
 
 // Ordem estrita dos status (não permite regressão nem pulo)
-const STATUS_ORDER = [
+const STATUS_ORDER_FULL = [
   'NEW',
   'ACCEPTED',
   'LOADING',
@@ -27,16 +27,38 @@ const STATUS_ORDER = [
   'COMPLETED',
 ] as const;
 
+// Fluxo simplificado para MOTO, GUINCHO, MUDANÇA (sem etapa LOADED)
+const STATUS_ORDER_SIMPLIFIED = [
+  'NEW',
+  'ACCEPTED',
+  'LOADING',
+  'IN_TRANSIT',
+  'DELIVERED_PENDING_CONFIRMATION',
+  'DELIVERED',
+  'COMPLETED',
+] as const;
+
+// Service types que usam fluxo simplificado (sem LOADED)
+const SIMPLIFIED_SERVICE_TYPES = ['FRETE_MOTO', 'GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'TRANSPORTE_PET', 'ENTREGA_PACOTES'];
+
 function normalizeStatus(s: unknown): string {
   return String(s ?? '').toUpperCase().trim();
 }
 
-function validateStrictTransition(previousStatus: string, nextStatus: string): { ok: boolean; error?: string; message?: string } {
+function getStatusOrder(serviceType: string | null): readonly string[] {
+  if (serviceType && SIMPLIFIED_SERVICE_TYPES.includes(serviceType)) {
+    return STATUS_ORDER_SIMPLIFIED;
+  }
+  return STATUS_ORDER_FULL;
+}
+
+function validateStrictTransition(previousStatus: string, nextStatus: string, serviceType: string | null = null): { ok: boolean; error?: string; message?: string } {
   const prev = normalizeStatus(previousStatus) || 'NEW';
   const next = normalizeStatus(nextStatus);
+  const statusOrder = getStatusOrder(serviceType);
 
-  const prevIndex = STATUS_ORDER.indexOf(prev as any);
-  const nextIndex = STATUS_ORDER.indexOf(next as any);
+  const prevIndex = statusOrder.indexOf(prev);
+  const nextIndex = statusOrder.indexOf(next);
 
   if (nextIndex === -1) {
     return { ok: false, error: 'STATUS_UNKNOWN', message: `Status inválido: ${nextStatus}` };
@@ -64,7 +86,7 @@ function validateStrictTransition(previousStatus: string, nextStatus: string): {
 
   // Bloquear pulo de etapas
   if (nextIndex > prevIndex + 1) {
-    const expected = STATUS_ORDER[prevIndex + 1];
+    const expected = statusOrder[prevIndex + 1];
     return { ok: false, error: 'STATUS_SKIP_BLOCKED', message: `Transição inválida: de ${prev} você deve ir para ${expected} (não pode pular para ${next}).` };
   }
 
@@ -123,19 +145,22 @@ serve(async (req) => {
     const notes = body.notes ?? null;
     const ts = nowIso();
 
-    // Resolve caller profile id
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Resolve caller profile id (multi-profile safe: busca array e prioriza papel MOTORISTA)
+    const { data: profiles, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('id, role')
-      .eq('user_id', user.id)
-      .maybeSingle();
+      .eq('user_id', user.id);
 
-    if (profileError || !profile?.id) {
+    if (profileError || !profiles || profiles.length === 0) {
       return new Response(JSON.stringify({ success: false, error: 'PROFILE_NOT_FOUND', message: 'Perfil não encontrado para o usuário autenticado' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Priorizar perfil de motorista para este contexto
+    const driverRoles = ['MOTORISTA', 'MOTORISTA_AFILIADO', 'AUTONOMO'];
+    const profile = profiles.find(p => driverRoles.includes(p.role)) || profiles[0];
 
     // Only drivers/providers should hit this endpoint
     if (profile.role === 'TRANSPORTADORA') {
@@ -169,6 +194,15 @@ serve(async (req) => {
       });
     }
 
+    // Buscar service_type do frete para determinar fluxo de status correto
+    const { data: freightData } = await supabaseAdmin
+      .from('freights')
+      .select('service_type')
+      .eq('id', freightId)
+      .single();
+
+    const serviceType = freightData?.service_type ?? null;
+
     // Read current progress
     const { data: currentProgress, error: progressFetchError } = await supabaseAdmin
       .from('driver_trip_progress')
@@ -190,8 +224,13 @@ serve(async (req) => {
 
     // =====================================================
     // Validação estrita no FAST PATH (service_role) — evita regressões e pulos
+    // Usa fluxo simplificado para MOTO/GUINCHO/MUDANCA (sem etapa LOADED)
     // =====================================================
-    const validation = validateStrictTransition(previousStatus, newStatus);
+    const validation = validateStrictTransition(previousStatus, newStatus, serviceType);
+    console.log('[driver-update-trip-progress-fast]', {
+      freightId, profileId: profile.id, previousStatus, newStatus, serviceType,
+      validationOk: validation.ok, validationError: validation.error,
+    });
     if (!validation.ok) {
       return new Response(
         JSON.stringify({
@@ -233,9 +272,10 @@ serve(async (req) => {
     };
 
     // Definir timestamps apenas na primeira ocorrência (preservar histórico real)
-    const acceptedIndex = STATUS_ORDER.indexOf('ACCEPTED');
-    const prevIndex = STATUS_ORDER.indexOf(previousStatus as any);
-    const nextIndex = STATUS_ORDER.indexOf(newStatus as any);
+    const currentStatusOrder = getStatusOrder(serviceType);
+    const acceptedIndex = currentStatusOrder.indexOf('ACCEPTED');
+    const prevIndex = currentStatusOrder.indexOf(previousStatus);
+    const nextIndex = currentStatusOrder.indexOf(newStatus);
 
     // Se já estamos em/apos ACCEPTED (ou indo para ACCEPTED+), garantir accepted_at
     const beyondAccepted = (prevIndex !== -1 && prevIndex >= acceptedIndex) || (nextIndex !== -1 && nextIndex >= acceptedIndex);
