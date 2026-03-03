@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, FileWarning } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
-import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe } from '@/utils/location';
+import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe, isNative } from '@/utils/location';
+import { startForegroundService, stopForegroundService } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 
 export const UnifiedTrackingControl = () => {
@@ -132,6 +133,11 @@ export const UnifiedTrackingControl = () => {
           handleGeolocationError(e);
         }
 
+        // ✅ Start Android Foreground Service BEFORE watchPosition
+        if (isNative()) {
+          await startForegroundService();
+        }
+
         const handle = watchPositionSafe(
           (coords) => updateLocation(coords),
           (error) => handleGeolocationError(error)
@@ -160,10 +166,14 @@ export const UnifiedTrackingControl = () => {
     executeStopTracking();
   };
 
-  const executeStopTracking = (silent?: boolean) => {
+  const executeStopTracking = async (silent?: boolean) => {
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
+      }
+      // ✅ Stop Android Foreground Service
+      if (isNative()) {
+        await stopForegroundService();
       }
       setWatchId(null);
       setIsTracking(false);
