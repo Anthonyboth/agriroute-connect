@@ -1,52 +1,41 @@
 
 
-## Redesign da Edição de Perfil — Estilo Meta (Instagram/Facebook)
+## Diagnóstico
 
-### Problema Atual
-O modal de perfil atual (`UserProfileModal`) usa um layout de cards separados dentro de um Dialog, que fica confuso no mobile. A troca de foto é problemática, os campos estão espalhados e a experiência não é fluida. Toda a lógica de estado, upload, save e hydrate está acoplada dentro do modal (568 linhas).
+A causa raiz é a classe CSS `.freight-card-standard` em `src/index.css` (linha 388-396):
 
-### Solução: Tela Dedicada de Edição estilo Meta
+```css
+.freight-card-standard {
+  height: 460px;
+  max-height: 460px;
+  overflow: hidden;
+  overflow-y: auto;
+}
+```
 
-Inspirado nos screenshots do Instagram/Facebook:
-- Tela full-screen dedicada (não modal) com header fixo "Editar perfil" + botão voltar
-- Avatar centralizado grande com botão "Editar foto ou avatar" abaixo
-- Campos em lista vertical limpa (floating label style), um por linha
-- Seções colapsáveis (Accordion): Dados Pessoais, Dados Profissionais, Endereço, Contato de Emergência, Zona de Perigo
-- Botão "Salvar" fixo no bottom
+Isso força **todos os cards de frete a 460px fixos**. Quando o conteúdo do card (título + rota + specs + grid de datas + preço + botões Aceitar/Contraproposta) ultrapassa 460px, os botões ficam cortados. No iOS, o scroll interno de `overflow-y: auto` dentro de um card pequeno não funciona bem com `-webkit-overflow-scrolling: touch` — o usuário não consegue rolar até os botões.
 
-### Mudanças Planejadas
+## Plano de Correção
 
-**1. Criar `src/hooks/useProfileManager.ts`**
-- Extrair TODA a lógica do `UserProfileModal` para um hook dedicado
-- Estado do perfil, hydrate do banco, save, upload de foto, delete de foto, delete de conta
-- Retorna: `profileData`, `addressData`, `isLoading`, `isSaving`, `photoUploading`, `handleSave`, `handlePhotoChange`, `handleRemovePhoto`, `handleDeleteAccount`, `handleFieldChange`, `handleAddressChange`, `missingFields`, `currentPhotoPath`
+### 1. Remover altura fixa do `.freight-card-standard` (index.css)
+- Trocar `height: 460px; max-height: 460px;` por `min-height: 0;` (ou remover completamente)
+- Manter `display: flex; flex-direction: column;` para layout correto
+- Remover `overflow: hidden; overflow-y: auto;` — o card deve crescer para acomodar todo o conteúdo incluindo botões
+- Resultado: cards terão altura natural baseada no conteúdo, sem cortar botões
 
-**2. Criar `src/pages/ProfileEdit.tsx`**
-- Tela full-screen (rota `/profile/edit`)
-- Header fixo com seta voltar + "Editar perfil" + botão Salvar
-- Avatar grande centralizado com camera overlay e link "Editar foto"
-- Campos organizados em seções com Accordion
-- Seção por role (Produtor, Motorista, Prestador, Transportadora)
-- Zona de perigo no final
-- Safe area padding para iOS
+### 2. Remover `overflow-hidden` do FreightCard (FreightCard.tsx, linha 514)
+- A classe `overflow-hidden` no Card component clippa o conteúdo no iOS
+- Remover para garantir que botões fiquem sempre visíveis e clicáveis
 
-**3. Atualizar `UserProfileModal.tsx`**
-- Simplificar para modo somente visualização
-- Botão "Editar Perfil" navega para `/profile/edit` (fecha modal)
-- Remove toda lógica de edição inline (usa o hook para dados read-only)
+### 3. Remover `overflow-hidden` do OptimizedFreightCard (OptimizedFreightCard.tsx, linha 190)
+- Mesma correção para o card otimizado usado em outros contextos
 
-**4. Adicionar rota em `App.tsx`**
-- `/profile/edit` → `ProfileEdit` (protegida por auth)
-
-**5. Atualizar componentes de profile/**
-- `ProfileHeader` será reutilizado no modo view do modal
-- Novos componentes inline no `ProfileEdit` para os campos estilo Meta
+### 4. Auditar outros cards (FreightInProgressCard, MyAssignmentCard, UnifiedServiceCard)
+- Verificar se usam `.freight-card-standard` ou `overflow-hidden` e aplicar a mesma correção
+- Garantir que nenhum card de frete/serviço corte conteúdo no iPhone
 
 ### Detalhes Técnicos
-
-- O hook `useProfileManager` centraliza: `hydrateProfileFromDatabase`, `handleSave` (com `.select()` para verificação), `handlePhotoChange` (relative path, não signed URL), `handleRemovePhoto`, rating distribution fetch
-- Upload de foto usa `useSignedImageUrl` para resolver paths privados
-- Campos read-only (CPF/CNPJ, RNTRC) exibidos com lock icon
-- Validação de completude no hook (missingFields)
-- `react-router-dom` `useNavigate` para ir para edição e voltar
+- A classe `.freight-card-standard` era provavelmente usada para uniformizar alturas no grid, mas sacrifica acessibilidade dos botões
+- Sem altura fixa, os cards no grid terão alturas diferentes, mas todos os botões serão acessíveis — prioridade funcional sobre estética
+- Se uniformização de altura for desejada no futuro, usar `auto-rows-[minmax(0,1fr)]` no grid pai ao invés de forçar altura no card
 
