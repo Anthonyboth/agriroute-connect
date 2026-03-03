@@ -71,6 +71,11 @@ export async function waitForProfile(userId: string, targetProfileId?: string): 
  * Verifica se o perfil tem os documentos mínimos obrigatórios preenchidos.
  */
 function isProfileComplete(profile: ProfileForRouting): boolean {
+  // Usuários já APROVADOS não devem ser forçados a refazer o cadastro,
+  // mesmo que selfie_url ou document_photo_url estejam nulos (ex: migração, limpeza de storage)
+  if (profile.status === 'APPROVED') {
+    return true;
+  }
   return !!(profile.selfie_url && profile.document_photo_url);
 }
 
