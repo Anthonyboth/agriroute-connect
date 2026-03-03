@@ -437,14 +437,22 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       }));
 
       const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).filter((a: any) => {
-        // ✅ REGRA CORRIGIDA: Assignments (freight_assignments) representam despachos confirmados
-        // pela transportadora. O motorista DEVE vê-los em "Em Andamento" independente da data
-        // de coleta, pois já foram atribuídos e exigem ação do motorista.
         const freight = a.freight;
         if (!freight) return false;
-        // Apenas excluir status terminais
+        // Excluir status terminais
         const terminalStatuses = ['CANCELLED', 'DELIVERED', 'COMPLETED'];
-        return !terminalStatuses.includes(a.status) && !terminalStatuses.includes(freight.status);
+        if (terminalStatuses.includes(a.status) || terminalStatuses.includes(freight.status)) return false;
+        // ✅ FIX: Assignments ACCEPTED com pickup_date futura vão para "Agendados", não "Em Andamento"
+        // Assignments em LOADING/LOADED/IN_TRANSIT sempre ficam visíveis (já estão em execução)
+        const aStatus = String(a.status || '').toUpperCase();
+        if (aStatus === 'ACCEPTED' && freight.pickup_date) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const pickupDate = new Date(freight.pickup_date);
+          pickupDate.setHours(0, 0, 0, 0);
+          if (pickupDate > today) return false;
+        }
+        return true;
       }).map((a: any) => ({
         ...a,
         freight: a.freight ? {
