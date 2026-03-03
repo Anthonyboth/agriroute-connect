@@ -1,51 +1,52 @@
 
 
-## Diagnose: Scroll cortado no iPhone (Capacitor)
+## Redesign da Edição de Perfil — Estilo Meta (Instagram/Facebook)
 
-**Problema identificado**: No iPhone com Capacitor, a parte inferior da tela fica coberta pelo "home indicator" do iOS (a barra branca na parte de baixo). O container principal do `DriverDashboard` usa `min-h-screen` mas nao tem padding-bottom para compensar a safe area do iOS. Resultado: o botao "Contraproposta" fica inacessivel.
+### Problema Atual
+O modal de perfil atual (`UserProfileModal`) usa um layout de cards separados dentro de um Dialog, que fica confuso no mobile. A troca de foto é problemática, os campos estão espalhados e a experiência não é fluida. Toda a lógica de estado, upload, save e hydrate está acoplada dentro do modal (568 linhas).
 
-**Causa raiz (2 pontos)**:
+### Solução: Tela Dedicada de Edição estilo Meta
 
-1. `index.html` - viewport meta NAO tem `viewport-fit=cover`, entao `env(safe-area-inset-bottom)` nao funciona
-2. `DriverDashboard.tsx` - container principal nao tem padding-bottom para safe area
+Inspirado nos screenshots do Instagram/Facebook:
+- Tela full-screen dedicada (não modal) com header fixo "Editar perfil" + botão voltar
+- Avatar centralizado grande com botão "Editar foto ou avatar" abaixo
+- Campos em lista vertical limpa (floating label style), um por linha
+- Seções colapsáveis (Accordion): Dados Pessoais, Dados Profissionais, Endereço, Contato de Emergência, Zona de Perigo
+- Botão "Salvar" fixo no bottom
 
----
+### Mudanças Planejadas
 
-## Plano de correcao
+**1. Criar `src/hooks/useProfileManager.ts`**
+- Extrair TODA a lógica do `UserProfileModal` para um hook dedicado
+- Estado do perfil, hydrate do banco, save, upload de foto, delete de foto, delete de conta
+- Retorna: `profileData`, `addressData`, `isLoading`, `isSaving`, `photoUploading`, `handleSave`, `handlePhotoChange`, `handleRemovePhoto`, `handleDeleteAccount`, `handleFieldChange`, `handleAddressChange`, `missingFields`, `currentPhotoPath`
 
-### 1. Adicionar `viewport-fit=cover` no viewport meta (index.html)
+**2. Criar `src/pages/ProfileEdit.tsx`**
+- Tela full-screen (rota `/profile/edit`)
+- Header fixo com seta voltar + "Editar perfil" + botão Salvar
+- Avatar grande centralizado com camera overlay e link "Editar foto"
+- Campos organizados em seções com Accordion
+- Seção por role (Produtor, Motorista, Prestador, Transportadora)
+- Zona de perigo no final
+- Safe area padding para iOS
 
-Alterar a tag meta viewport para:
-```
-width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover
-```
+**3. Atualizar `UserProfileModal.tsx`**
+- Simplificar para modo somente visualização
+- Botão "Editar Perfil" navega para `/profile/edit` (fecha modal)
+- Remove toda lógica de edição inline (usa o hook para dados read-only)
 
-### 2. Adicionar padding-bottom seguro no DriverDashboard
+**4. Adicionar rota em `App.tsx`**
+- `/profile/edit` → `ProfileEdit` (protegida por auth)
 
-No container principal (`div.min-h-screen.bg-background`), adicionar padding-bottom para a safe area do iOS:
+**5. Atualizar componentes de profile/**
+- `ProfileHeader` será reutilizado no modo view do modal
+- Novos componentes inline no `ProfileEdit` para os campos estilo Meta
 
-```
-className="min-h-screen bg-background pb-[env(safe-area-inset-bottom,0px)]"
-```
+### Detalhes Técnicos
 
-### 3. Garantir padding-bottom global para iOS Capacitor (index.css)
-
-Adicionar regra CSS global para que o body/root tenha padding-bottom respeitando a safe area em contexto Capacitor:
-
-```css
-/* iOS Capacitor safe area bottom padding */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom-padding {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-}
-```
-
-### 4. Aplicar padding-bottom nas paginas de dashboard
-
-Aplicar a mesma classe de safe-area nas outras paginas de dashboard (`CompanyDashboard`, `ProducerDashboard`) para consistencia.
-
----
-
-**Apos implementacao**: O usuario deve fazer `git pull && npm run build && npx cap sync ios` e rodar no Xcode novamente para testar.
+- O hook `useProfileManager` centraliza: `hydrateProfileFromDatabase`, `handleSave` (com `.select()` para verificação), `handlePhotoChange` (relative path, não signed URL), `handleRemovePhoto`, rating distribution fetch
+- Upload de foto usa `useSignedImageUrl` para resolver paths privados
+- Campos read-only (CPF/CNPJ, RNTRC) exibidos com lock icon
+- Validação de completude no hook (missingFields)
+- `react-router-dom` `useNavigate` para ir para edição e voltar
 
