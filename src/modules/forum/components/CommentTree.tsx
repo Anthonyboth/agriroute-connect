@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { VoteColumn } from './VoteColumn';
+import { ForumImageGallery } from './ForumImageGallery';
 import { renderSafeMarkdown } from '../utils/sanitize';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ThreadedPost } from '../hooks/useThreadedPosts';
+import type { ForumAttachmentWithUrl } from '../hooks/useForumAttachments';
 
 interface CommentTreeProps {
   posts: ThreadedPost[];
@@ -17,9 +19,10 @@ interface CommentTreeProps {
   onReport: (postId: string) => void;
   maxDepth?: number;
   isLocked?: boolean;
+  attachments?: ForumAttachmentWithUrl[];
 }
 
-export function CommentTree({ posts, threadId, userVotes, onReply, onReport, maxDepth = 6, isLocked }: CommentTreeProps) {
+export function CommentTree({ posts, threadId, userVotes, onReply, onReport, maxDepth = 6, isLocked, attachments }: CommentTreeProps) {
   return (
     <div className="space-y-0">
       {posts.map(post => (
@@ -32,6 +35,7 @@ export function CommentTree({ posts, threadId, userVotes, onReply, onReport, max
           onReport={onReport}
           maxDepth={maxDepth}
           isLocked={isLocked}
+          attachments={attachments}
         />
       ))}
     </div>
@@ -46,6 +50,7 @@ function CommentNode({
   onReport,
   maxDepth,
   isLocked,
+  attachments,
 }: {
   post: ThreadedPost;
   threadId: string;
@@ -54,6 +59,7 @@ function CommentNode({
   onReport: (postId: string) => void;
   maxDepth: number;
   isLocked?: boolean;
+  attachments?: ForumAttachmentWithUrl[];
 }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -114,10 +120,19 @@ function CommentNode({
                 </p>
               </div>
             ) : (
-              <div
-                className="prose prose-sm max-w-none text-foreground mb-1"
-                dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(post.body) }}
-              />
+              <>
+                <div
+                  className="prose prose-sm max-w-none text-foreground mb-1"
+                  dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(post.body) }}
+                />
+                {/* Post-level attachments */}
+                {attachments && attachments.filter(a => a.post_id === post.id).length > 0 && (
+                  <ForumImageGallery
+                    attachments={attachments.filter(a => a.post_id === post.id)}
+                    compact
+                  />
+                )}
+              </>
             )}
 
             {/* Actions — only for non-deleted */}
@@ -181,6 +196,7 @@ function CommentNode({
                 onReport={onReport}
                 maxDepth={maxDepth}
                 isLocked={isLocked}
+                attachments={attachments}
               />
             )}
           </>

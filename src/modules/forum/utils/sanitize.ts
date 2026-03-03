@@ -90,6 +90,7 @@ export const FORUM_ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png', 
   'image/webp',
+  'image/gif',
   'application/pdf',
 ] as const;
 
@@ -98,7 +99,7 @@ export const FORUM_MAX_FILES = 5;
 
 export function validateForumFile(file: File): string | null {
   if (!FORUM_ALLOWED_MIME_TYPES.includes(file.type as any)) {
-    return `Tipo não permitido: ${file.name}. Use JPG, PNG, WebP ou PDF.`;
+    return `Tipo não permitido: ${file.name}. Use JPG, PNG, WebP, GIF ou PDF.`;
   }
   if (file.size > FORUM_MAX_FILE_SIZE) {
     return `Arquivo muito grande: ${file.name} (máx 10MB)`;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Flag, MapPin, Phone, DollarSign, Lock, Share2, Bookmark, CheckCircle } from 'lucide-react';
+import { Flag, MapPin, Phone, DollarSign, Lock, Share2, Bookmark, CheckCircle, Image as ImageIcon } from 'lucide-react';
 import { renderSafeMarkdown, checkClientRateLimit } from '../utils/sanitize';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,17 +12,21 @@ import { useForumThread, useMarkThreadViewed, useCreateReport } from '../hooks/u
 import { useThreadedPosts, useCreateReply, type CommentSort } from '../hooks/useThreadedPosts';
 import { useUserVotes } from '../hooks/useForumVotes';
 import { useForumSaves, useToggleSave, useUpdateThreadStatus } from '../hooks/useForumMarketplace';
+import { useThreadAttachments, uploadForumAttachments } from '../hooks/useForumAttachments';
 import { useAuth } from '@/hooks/useAuth';
 import { ForumLayout } from '../components/ForumLayout';
 import { VoteColumn } from '../components/VoteColumn';
 import { CommentTree } from '../components/CommentTree';
 import { KarmaBadge } from '../components/KarmaBadge';
 import { AutoModBanner } from '../components/AutoModBanner';
+import { ForumImageGallery } from '../components/ForumImageGallery';
+import { ForumFileUpload } from '../components/ForumFileUpload';
 import { THREAD_TYPE_LABELS, THREAD_TYPE_COLORS, REPORT_REASONS } from '../types';
 import { THREAD_STATUS_LABELS, THREAD_STATUS_COLORS, runAutoMod } from '../utils/automod';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const MARKETPLACE_TYPES = ['VENDA', 'COMPRA', 'SERVICO', 'FRETE', 'PARCERIA'];
 
@@ -35,6 +39,7 @@ export default function ForumThreadPage() {
   const [reportTarget, setReportTarget] = useState<{ type: 'THREAD' | 'POST'; id: string } | null>(null);
   const [reportReason, setReportReason] = useState('');
   const [reportDetails, setReportDetails] = useState('');
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
 
   const threadQuery = useForumThread(id);
   const postsQuery = useThreadedPosts(id, commentSort);
@@ -44,6 +49,7 @@ export default function ForumThreadPage() {
   const updateStatus = useUpdateThreadStatus();
   const { data: saves } = useForumSaves();
   const toggleSave = useToggleSave();
+  const attachmentsQuery = useThreadAttachments(id);
 
   const thread = threadQuery.data;
   const isMarketplace = thread && MARKETPLACE_TYPES.includes(thread.thread_type);
@@ -80,8 +86,13 @@ export default function ForumThreadPage() {
     if (!newComment.trim() || !id) return;
     if (!checkClientRateLimit('post', 10)) { toast.error('Aguarde um momento.'); return; }
     try {
-      await createReply.mutateAsync({ threadId: id, body: newComment.trim() });
-      setNewComment(''); toast.success('Comentário publicado!');
+      const post = await createReply.mutateAsync({ threadId: id, body: newComment.trim() });
+      // Upload comment attachments
+      if (commentFiles.length > 0 && profile?.id) {
+        await uploadForumAttachments(commentFiles, id, post.id, profile.id);
+        attachmentsQuery.refetch();
+      }
+      setNewComment(''); setCommentFiles([]); toast.success('Comentário publicado!');
     } catch (err: any) { toast.error(err?.message || 'Erro ao publicar.'); }
   };
 
@@ -187,6 +198,13 @@ export default function ForumThreadPage() {
                 <div className="prose prose-sm max-w-none text-foreground mb-3" dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(postsQuery.data[0].body) }} />
               )}
 
+              {/* Thread attachments (images/files) */}
+              {attachmentsQuery.data && attachmentsQuery.data.length > 0 && (
+                <ForumImageGallery
+                  attachments={attachmentsQuery.data.filter(a => !a.post_id)}
+                />
+              )}
+
               <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                 <button onClick={() => { setReportTarget({ type: 'THREAD', id: thread.id }); setReportOpen(true); }} className="flex items-center gap-1 hover:text-foreground">
                   <Flag className="h-3.5 w-3.5" /> Denunciar
@@ -220,9 +238,12 @@ export default function ForumThreadPage() {
             ) : profile ? (
               <div className="mb-4 space-y-2">
                 <Textarea placeholder="Adicionar um comentário..." value={newComment} onChange={e => setNewComment(e.target.value)} rows={3} />
-                <Button onClick={handleAddComment} disabled={!newComment.trim() || createReply.isPending} size="sm">
-                  {createReply.isPending ? 'Enviando...' : 'Comentar'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleAddComment} disabled={!newComment.trim() || createReply.isPending} size="sm">
+                    {createReply.isPending ? 'Enviando...' : 'Comentar'}
+                  </Button>
+                  <ForumFileUpload files={commentFiles} onFilesChange={setCommentFiles} maxFiles={3} compact />
+                </div>
               </div>
             ) : (
               <div className="text-center py-3 mb-4 text-muted-foreground"><Link to="/auth" className="text-primary underline">Faça login</Link> para comentar.</div>
@@ -248,6 +269,7 @@ export default function ForumThreadPage() {
                 onReply={handleReply}
                 onReport={(postId) => { setReportTarget({ type: 'POST', id: postId }); setReportOpen(true); }}
                 isLocked={thread.is_locked}
+                attachments={attachmentsQuery.data || []}
               />
             )}
             {postsQuery.data && postsQuery.data.filter(p => p.reply_to_post_id === null).length <= 1 && (
