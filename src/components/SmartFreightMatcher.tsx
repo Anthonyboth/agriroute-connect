@@ -437,7 +437,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     };
   }, [profile?.id, user?.id]);
 
-  const filteredFreights = useMemo(() => {
+  // ✅ CRITICAL FIX: Separar fretes rurais (CARGA) de fretes urbanos (GUINCHO, MUDANCA, etc.)
+  const URBAN_FREIGHT_TYPES = new Set(['GUINCHO', 'FRETE_MOTO', 'MUDANCA', 'ENTREGA_PACOTES', 'TRANSPORTE_PET']);
+
+  const allFilteredFreights = useMemo(() => {
     return compatibleFreights.filter((freight) => {
       const matchesSearch =
         !searchTerm ||
@@ -506,6 +509,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       return matchesSearch && matchesCargoType && matchesVehicleType && matchesAdvanced;
     });
   }, [compatibleFreights, searchTerm, selectedCargoType, selectedVehicleType, advancedFilters]);
+
+  // ✅ SEGREGAÇÃO: fretes rurais (CARGA) vão para aba "Fretes", urbanos vão para aba "Fretes Urbanos"
+  const filteredFreights = useMemo(() => {
+    return allFilteredFreights.filter(f => !URBAN_FREIGHT_TYPES.has(normalizeServiceType(f.service_type)));
+  }, [allFilteredFreights]);
+
+  const urbanFreightsFromTable = useMemo(() => {
+    return allFilteredFreights.filter(f => URBAN_FREIGHT_TYPES.has(normalizeServiceType(f.service_type)));
+  }, [allFilteredFreights]);
 
   const filteredRequests = useMemo(() => {
     return towingRequests.filter((r: any) => {
@@ -704,9 +716,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
               <TabsTrigger value="services" className="flex items-center gap-2">
                 <Bike className="h-4 w-4" />
                 Fretes Urbanos
-                {filteredRequests.length > 0 && (
+                {(filteredRequests.length + urbanFreightsFromTable.length) > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                    {filteredRequests.length}
+                    {filteredRequests.length + urbanFreightsFromTable.length}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -795,7 +807,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
             {/* ABA SERVIÇOS */}
             <TabsContent value="services" className="space-y-4">
-            {filteredRequests.length === 0 ? (
+            {filteredRequests.length === 0 && urbanFreightsFromTable.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-8">
                   <Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -808,6 +820,52 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                 </CardContent>
               </Card>
             ) : (
+              <>
+                {/* ✅ Fretes urbanos vindos da tabela freights (GUINCHO, MUDANCA, etc.) */}
+                {urbanFreightsFromTable.length > 0 && (
+                  <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {urbanFreightsFromTable.map((freight) => (
+                        <div key={freight.freight_id} className="relative h-full">
+                          <FreightCard
+                            freight={{
+                              id: freight.freight_id,
+                              cargo_type: freight.cargo_type,
+                              weight: freight.weight || 0,
+                              origin_address: freight.origin_address,
+                              destination_address: freight.destination_address,
+                              origin_city: freight.origin_city,
+                              origin_state: freight.origin_state,
+                              destination_city: freight.destination_city,
+                              destination_state: freight.destination_state,
+                              pickup_date: freight.pickup_date,
+                              delivery_date: freight.delivery_date,
+                              price: freight.price,
+                              urgency: freight.urgency as "LOW" | "MEDIUM" | "HIGH",
+                              status: "OPEN" as const,
+                              distance_km: freight.distance_km,
+                              minimum_antt_price: freight.minimum_antt_price,
+                              required_trucks: freight.required_trucks,
+                              accepted_trucks: freight.accepted_trucks,
+                              service_type: freight.service_type as any,
+                              vehicle_type_required: freight.vehicle_type_required,
+                              vehicle_axles_required: freight.vehicle_axles_required,
+                              pricing_type: freight.pricing_type as any,
+                              price_per_km: freight.price_per_km,
+                              producer_id: (freight as any).producer_id || null,
+                            }}
+                            onAction={(action) => handleFreightAction(freight.freight_id, action)}
+                            showActions={true}
+                            canAcceptFreights={canAcceptFreights}
+                            isAffiliatedDriver={isAffiliated}
+                            driverCompanyId={companyId || permissionCompanyId}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </SafeListWrapper>
+                )}
+                {filteredRequests.length > 0 && (
               <SafeListWrapper
                 fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}
               >
@@ -1041,6 +1099,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                   </div>
                 </div>
               </SafeListWrapper>
+              )}
+              </>
             )}
             </TabsContent>
           </>
