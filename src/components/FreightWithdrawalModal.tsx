@@ -90,9 +90,10 @@ export const FreightWithdrawalModal: React.FC<FreightWithdrawalModalProps> = ({
             Manter Frete
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => {
+            onClick={(e) => {
+              // ✅ CRITICAL: Prevent Radix auto-close which nullifies state before async completes
+              e.preventDefault();
               onConfirm();
-              onClose();
             }}
             className="flex-1 bg-destructive hover:bg-destructive/90"
           >
