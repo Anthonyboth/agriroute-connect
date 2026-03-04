@@ -620,7 +620,7 @@ const DriverDashboard = () => {
         `)
         .eq('driver_id', profile.id)
         // ✅ Incluir DELIVERED_PENDING_CONFIRMATION (ainda é “andamento” até confirmar)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('updated_at', { ascending: false })
         .limit(100);
 
@@ -670,7 +670,7 @@ const DriverDashboard = () => {
           accepted_at
         `)
         .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('accepted_at', { ascending: false })
         .limit(100);
 
