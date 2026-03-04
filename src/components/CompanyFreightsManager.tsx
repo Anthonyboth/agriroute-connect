@@ -141,7 +141,7 @@ export const CompanyFreightsManager: React.FC = () => {
         .from('freights')
         .update({
           status: 'CANCELLED',
-          cancellation_reason: 'Cancelamento por vencimento (48h após data de coleta)',
+          cancellation_reason: 'Cancelamento por vencimento (72h sem aceite)',
           cancelled_at: new Date().toISOString()
         })
         .eq('id', freightId);
@@ -180,10 +180,10 @@ export const CompanyFreightsManager: React.FC = () => {
   };
 
   const renderFreightRow = (freight: any) => {
-    const pickupDate = new Date(freight.pickup_date);
+    const createdDate = new Date(freight.created_at);
     const now = new Date();
-    const hoursSincePickup = (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60);
-    const isExpired = hoursSincePickup > 48 && ['OPEN', 'IN_NEGOTIATION', 'ACCEPTED'].includes(freight.status);
+    const hoursSinceCreation = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+    const isExpired = hoursSinceCreation > 72 && ['OPEN', 'IN_NEGOTIATION'].includes(freight.status);
 
     return (
       <Card key={freight.id} className="border-l-4 border-l-primary bg-card hover:shadow-lg transition-shadow duration-200">
