@@ -163,6 +163,14 @@ export function FreightWizardStep1({
     setGpsError(message);
   };
 
+  const handleGPSDestinationFilled = (data: { city: string; state: string; lat: number; lng: number }) => {
+    setGpsError(null);
+    onInputChange('destination_city', data.city);
+    onInputChange('destination_state', data.state);
+    onInputChange('destination_lat', data.lat);
+    onInputChange('destination_lng', data.lng);
+  };
+
   const handleCorridorSelect = (corridorId: string) => {
     // Se o mesmo corredor foi selecionado, forçar re-preenchimento limpando antes
     if (corridorId === selectedCorridor) {
@@ -325,24 +333,30 @@ export function FreightWizardStep1({
             <span className="w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">B</span>
             Destino
           </Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => {
-              if (formData.origin_city && formData.origin_state) {
-                onInputChange('destination_city', formData.origin_city);
-                onInputChange('destination_state', formData.origin_state);
-                onInputChange('destination_city_id', formData.origin_city_id);
-                onInputChange('destination_lat', formData.origin_lat);
-                onInputChange('destination_lng', formData.origin_lng);
-              }
-            }}
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span className="hidden sm:inline">Mesma cidade</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <GPSOriginButton
+              onLocationFilled={handleGPSDestinationFilled}
+              onError={handleGPSError}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                if (formData.origin_city && formData.origin_state) {
+                  onInputChange('destination_city', formData.origin_city);
+                  onInputChange('destination_state', formData.origin_state);
+                  onInputChange('destination_city_id', formData.origin_city_id);
+                  onInputChange('destination_lat', formData.origin_lat);
+                  onInputChange('destination_lng', formData.origin_lng);
+                }
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Mesma cidade</span>
+            </Button>
+          </div>
         </div>
         
         <UnifiedLocationInput
