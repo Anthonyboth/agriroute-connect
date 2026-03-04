@@ -17,7 +17,6 @@
 const STATUS_DICTIONARY: Record<string, string> = {
   // Freight statuses
   NEW: 'Novo',
-  APPROVED: 'Aprovado',
   OPEN: 'Aberto',
   IN_NEGOTIATION: 'Em Negociação',
   ACCEPTED: 'Aceito',
@@ -82,7 +81,7 @@ const FORBIDDEN_ENGLISH_TERMS = new Set([
   'REJECTED',
   'PENDING',
   'IN_NEGOTIATION',
-  'APPROVED',
+  'APPROVED', // Keep for legacy data detection
   'EXPIRED',
   'PROCESSING',
   'FAILED',

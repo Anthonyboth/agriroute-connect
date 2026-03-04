@@ -54,7 +54,7 @@ export function useFreightShareActions(freightId: string | undefined) {
         };
       }
 
-      const OPEN_STATUSES = ['OPEN', 'APPROVED', 'NEW'];
+      const OPEN_STATUSES = ['OPEN', 'NEW'];
       const CANCELLED_STATUSES = ['CANCELLED', 'CANCELADO'];
       const ACCEPTED_STATUSES = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED', 'CONCLUIDO'];
 

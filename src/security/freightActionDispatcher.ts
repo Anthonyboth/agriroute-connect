@@ -345,9 +345,9 @@ export function getAvailableActions(input: {
 // =============================================================================
 
 const STATUS_ORDER_MAP: Record<string, number> = {
-  NEW: 0, APPROVED: 1, OPEN: 2, ACCEPTED: 3,
-  LOADING: 4, LOADED: 5, IN_TRANSIT: 6,
-  DELIVERED_PENDING_CONFIRMATION: 7, DELIVERED: 8, COMPLETED: 9,
+  NEW: 0, OPEN: 1, ACCEPTED: 2,
+  LOADING: 3, LOADED: 4, IN_TRANSIT: 5,
+  DELIVERED_PENDING_CONFIRMATION: 6, DELIVERED: 7, COMPLETED: 8,
 };
 
 function getStatusIndex(status: string): number {
