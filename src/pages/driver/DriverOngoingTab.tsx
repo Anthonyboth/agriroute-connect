@@ -89,6 +89,7 @@ export const DriverOngoingTab: React.FC = () => {
   const [selectedChatServiceRequest, setSelectedChatServiceRequest] = useState<any>(null);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<any>(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   // ✅ GUARD: Valida integridade do componente - evita regressões
   useDashboardIntegrityGuard('driver_ongoing', 'DriverOngoingTab');
@@ -187,14 +188,22 @@ export const DriverOngoingTab: React.FC = () => {
   }, []);
 
   const confirmFreightWithdrawal = useCallback(async () => {
-    if (!driverProfileId || !selectedFreightForWithdrawal) return;
+    console.log('[DriverOngoingTab] confirmFreightWithdrawal called', { driverProfileId, selectedFreightForWithdrawal: selectedFreightForWithdrawal?.id });
+    if (!driverProfileId || !selectedFreightForWithdrawal) {
+      console.warn('[DriverOngoingTab] Missing driverProfileId or selectedFreight, aborting');
+      return;
+    }
 
+    setIsWithdrawing(true);
     try {
       const freightId = selectedFreightForWithdrawal.id;
+      console.log('[DriverOngoingTab] Invoking withdraw-freight for:', freightId);
 
       const { data, error } = await supabase.functions.invoke('withdraw-freight', {
         body: { freight_id: freightId },
       });
+
+      console.log('[DriverOngoingTab] withdraw-freight response:', { data, error });
 
       if (error) {
         console.error('withdraw-freight error:', error);
@@ -204,6 +213,11 @@ export const DriverOngoingTab: React.FC = () => {
 
       if (data?.error === 'HAS_CHECKINS') {
         toast.error('Não é possível desistir do frete após o primeiro check-in.');
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.message || 'Erro ao processar desistência.');
         return;
       }
 
@@ -221,6 +235,8 @@ export const DriverOngoingTab: React.FC = () => {
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
       toast.error('Erro ao processar desistência. Tente novamente.');
+    } finally {
+      setIsWithdrawing(false);
     }
   }, [driverProfileId, selectedFreightForWithdrawal, queryClient, refetch]);
 
@@ -535,6 +551,7 @@ export const DriverOngoingTab: React.FC = () => {
           setSelectedFreightForWithdrawal(null);
         }}
         onConfirm={confirmFreightWithdrawal}
+        isLoading={isWithdrawing}
         freightInfo={selectedFreightForWithdrawal ? {
           cargo_type: selectedFreightForWithdrawal.cargo_type || selectedFreightForWithdrawal.service_type || 'Carga',
           origin_address: `${selectedFreightForWithdrawal.origin_city || ''} - ${selectedFreightForWithdrawal.origin_state || ''}`,
