@@ -22,6 +22,8 @@ import { Capacitor } from '@capacitor/core';
 let isServiceRunning = false;
 let buttonListenerRegistered = false;
 let stopCallback: (() => void) | null = null;
+let lastFailureAt = 0;
+const FAILURE_COOLDOWN_MS = 30_000; // Don't retry for 30s after a failure
 
 const NOTIFICATION_ID = 1001;
 const CHANNEL_ID = 'agriroute_tracking';
@@ -52,7 +54,7 @@ const ensureNotificationChannel = async () => {
       id: CHANNEL_ID,
       name: CHANNEL_NAME,
       description: CHANNEL_DESC,
-      importance: 3, // Importance.Default = 3
+      importance: 2, // Importance.Low = 2 — stays in tray, no heads-up popup
     });
     console.log('[ForegroundService] ✅ NotificationChannel criado:', CHANNEL_ID);
   } catch (err: any) {
@@ -92,6 +94,12 @@ const ensureButtonListener = async () => {
  */
 export const startForegroundService = async (): Promise<void> => {
   if (!isAndroid() || isServiceRunning) return;
+
+  // Don't retry if we recently failed (prevents notification/error spam)
+  if (Date.now() - lastFailureAt < FAILURE_COOLDOWN_MS) {
+    console.log('[ForegroundService] ⏳ Cooldown ativo — ignorando tentativa');
+    return;
+  }
 
   try {
     // 1. Create notification channel first (required on Android 8+)
@@ -133,6 +141,7 @@ export const startForegroundService = async (): Promise<void> => {
     console.log('[ForegroundService] ✅ Serviço iniciado com notificação persistente');
   } catch (err: any) {
     console.error('[ForegroundService] ❌ Falha ao iniciar:', err?.message || err);
+    lastFailureAt = Date.now();
     // Don't throw — tracking can still work in foreground without the service
   }
 };
