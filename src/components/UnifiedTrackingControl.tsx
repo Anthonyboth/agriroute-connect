@@ -57,7 +57,7 @@ export const UnifiedTrackingControl = () => {
     }
   }, [profile, hasAutoOpened, hasActiveFreight]);
 
-  // Auto-tracking quando houver frete ativo
+  // Auto-tracking quando houver frete ativo + auto-stop quando não há mais
   useEffect(() => {
     if (!profile?.id) return;
 
@@ -65,10 +65,19 @@ export const UnifiedTrackingControl = () => {
       startTracking(true);
     }
 
+    // ✅ Auto-stop: quando motorista reporta entrega, hasActiveFreight → false
+    if (!hasActiveFreight && isTracking) {
+      console.log('[UnifiedTrackingControl] Frete não mais ativo — parando rastreamento automaticamente');
+      executeStopTracking(true);
+      toast.info('Rastreamento encerrado automaticamente', {
+        description: 'Entrega reportada — localização não é mais compartilhada.'
+      });
+    }
+
     return () => {
       // Cleanup handled by stopTracking
     };
-  }, [hasActiveFreight, activeFreightId, profile?.id, hasUserGesture]);
+  }, [hasActiveFreight, activeFreightId, profile?.id, hasUserGesture, isTracking]);
 
   const handleGeolocationError = (error: any) => {
     // GeolocationPositionError possui props não-enumeráveis (aparece como {})
