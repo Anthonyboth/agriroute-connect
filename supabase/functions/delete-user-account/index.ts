@@ -11,9 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // 1. Validate JWT from Authorization header
+    // ✅ Validate JWT via getClaims() (signing-keys compatible)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Token de autenticação ausente' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -21,31 +21,32 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Auth client to verify the requesting user
-    const authClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+    // ✅ Use anon key + user's auth header for getClaims
+    const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !data?.claims) {
       return new Response(
-        JSON.stringify({ error: 'Usuário não autenticado' }),
+        JSON.stringify({ error: 'Token inválido ou expirado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = user.id;
+    const userId = data.claims.sub as string;
     console.log(`[delete-user-account] Iniciando exclusão para user_id=${userId}`);
 
-    // 2. Service role client for admin operations
+    // Service role client for admin operations
     const admin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // 3. Get all profile IDs for this user
+    // Get all profile IDs for this user
     const { data: profiles } = await admin
       .from('profiles')
       .select('id')
@@ -53,39 +54,19 @@ Deno.serve(async (req) => {
 
     const profileIds = (profiles || []).map((p: any) => p.id);
 
-    // 4. Clean up related data (order matters for FK constraints)
+    // Clean up related data (order matters for FK constraints)
     if (profileIds.length > 0) {
-      // Notifications
       await admin.from('notifications').delete().in('user_id', profileIds);
-
-      // Freight proposals
       await admin.from('freight_proposals').delete().in('driver_id', profileIds);
-
-      // Driver availability
       await admin.from('driver_availability').delete().in('driver_id', profileIds);
-
-      // Driver badges
       await admin.from('driver_badges').delete().in('driver_id', profileIds);
-
-      // Driver expenses
       await admin.from('driver_expenses').delete().in('driver_id', profileIds);
-
-      // User cities
       await admin.from('user_cities').delete().eq('user_id', userId);
-
-      // Company drivers
       await admin.from('company_drivers').delete().in('driver_profile_id', profileIds);
-
-      // Balance transactions
       await admin.from('balance_transactions').delete().in('provider_id', profileIds);
-
-      // Support tickets
       await admin.from('support_tickets').delete().in('user_id', profileIds);
-
-      // Driver current locations
       await admin.from('driver_current_locations').delete().in('driver_profile_id', profileIds);
 
-      // Profiles (all of them)
       const { error: profileDeleteError } = await admin
         .from('profiles')
         .delete()
@@ -96,12 +77,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Delete auth user (this is what Apple requires)
+    // Delete auth user
     const { error: deleteAuthError } = await admin.auth.admin.deleteUser(userId);
     if (deleteAuthError) {
       console.error('[delete-user-account] Erro ao deletar auth user:', deleteAuthError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao excluir conta de autenticação', details: deleteAuthError.message }),
+        JSON.stringify({ error: 'Erro ao excluir conta de autenticação' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
