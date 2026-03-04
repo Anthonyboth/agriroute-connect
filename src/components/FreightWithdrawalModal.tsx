@@ -15,7 +15,8 @@ import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 interface FreightWithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void;
+  isLoading?: boolean;
   freightInfo?: {
     cargo_type: string;
     origin_address: string;
@@ -28,6 +29,7 @@ export const FreightWithdrawalModal: React.FC<FreightWithdrawalModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  isLoading = false,
   freightInfo
 }) => {
   return (
@@ -90,14 +92,15 @@ export const FreightWithdrawalModal: React.FC<FreightWithdrawalModalProps> = ({
             Manter Frete
           </AlertDialogCancel>
           <AlertDialogAction
+            disabled={isLoading}
             onClick={(e) => {
-              // ✅ CRITICAL: Prevent Radix auto-close which nullifies state before async completes
               e.preventDefault();
+              console.log('[FreightWithdrawalModal] Confirm clicked, calling onConfirm');
               onConfirm();
             }}
             className="flex-1 bg-destructive hover:bg-destructive/90"
           >
-            Desistir do Frete
+            {isLoading ? 'Processando...' : 'Desistir do Frete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
