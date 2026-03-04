@@ -631,12 +631,9 @@ const [pricePerKm, setPricePerKm] = useState('');
             {/* Mensagem de validação e cálculo para PER_KM */}
             {pricingType === 'PER_KM' && (
               distance > 0 ? (
-                pricePerKm ? (
-                  <p className="text-sm text-muted-foreground">
-                    Total calculado: {formatBRL(parseFloat(pricePerKm) * distance, true)}
-                    {hasMultipleTrucks && ' (por carreta)'}
-                  </p>
-                ) : null
+                <p className="text-sm text-muted-foreground">
+                  Distância estimada: {distance} km
+                </p>
               ) : (
                 <p className="text-sm text-yellow-600 dark:text-yellow-400">
                   ⚠️ Distância não configurada. Não é possível propor por KM.
@@ -647,12 +644,9 @@ const [pricePerKm, setPricePerKm] = useState('');
             {/* Mensagem de validação e cálculo para PER_TON */}
             {pricingType === 'PER_TON' && (
               weightPerTruckInTons > 0 ? (
-                pricePerTon ? (
-                  <p className="text-sm text-muted-foreground">
-                    Total calculado: {formatBRL(parseFloat(pricePerTon) * weightPerTruckInTons, true)} ({weightPerTruckInTons.toFixed(1)} ton)
-                    {hasMultipleTrucks && ' (por carreta)'}
-                  </p>
-                ) : null
+                <p className="text-sm text-muted-foreground">
+                  Peso: {weightPerTruckInTons.toFixed(1)} toneladas
+                </p>
               ) : (
                 <p className="text-sm text-yellow-600 dark:text-yellow-400">
                   ⚠️ Peso não configurado. Não é possível propor por TON.
