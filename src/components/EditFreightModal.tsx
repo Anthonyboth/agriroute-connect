@@ -177,18 +177,17 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
         }
       }
 
-      // Calculate price and price_per_km based on pricing_type
+      // Save unit rate only — no derived total calculation
       const priceValue = Number(formData.price);
       let finalPrice = priceValue;
       let finalPricePerKm: number | null = null;
 
       if (formData.pricing_type === 'PER_KM') {
         finalPricePerKm = priceValue;
-        finalPrice = priceValue * (freight.distance_km || 0);
+        finalPrice = priceValue; // Store unit rate, not total
       } else if (formData.pricing_type === 'PER_TON') {
         finalPricePerKm = priceValue; // stored in price_per_km column
-        const weightTon = Number(formData.weight) || 0;
-        finalPrice = priceValue * weightTon;
+        finalPrice = priceValue; // Store unit rate, not total
       }
 
       const { data, error } = await supabase.functions.invoke('safe-update-freight', {

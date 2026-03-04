@@ -490,14 +490,12 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
               <div className="space-y-1 text-sm">
                 <div>Data: {format(proposedDate, 'PPP', { locale: ptBR })}</div>
                 <div>
-                  Valor: R$ {(pricingType === 'FIXED' 
-                    ? parseFloat(proposedPrice) || freight.price
+                  Valor: {pricingType === 'FIXED' 
+                    ? `R$ ${(parseFloat(proposedPrice) || freight.price || 0).toLocaleString()}`
                     : pricingType === 'PER_KM'
-                      ? parseFloat(proposedPricePerKm) * (freight.distance_km || 0) || freight.price
-                      : parseFloat(proposedPricePerTon) * ((freight.weight || 0) / 1000) || freight.price
-                  ).toLocaleString()}
-                  {pricingType === 'PER_KM' && proposedPricePerKm && ` (R$ ${proposedPricePerKm}/km)`}
-                  {pricingType === 'PER_TON' && proposedPricePerTon && ` (R$ ${proposedPricePerTon}/ton)`}
+                      ? `R$ ${proposedPricePerKm || '0'}/km`
+                      : `R$ ${proposedPricePerTon || '0'}/ton`
+                  }
                 </div>
                 <div className="text-muted-foreground">{getDaysDifferenceText()}</div>
               </div>

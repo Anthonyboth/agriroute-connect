@@ -228,14 +228,14 @@ export function calculateProposal(input: ProposalCalculationInput): ProposalCalc
     customMessage,
   } = input;
 
-  // Calcular preço final baseado no tipo
+  // Use unit rate as finalPrice — no derived total multiplication
   let finalPrice: number;
   switch (pricingType) {
     case 'PER_KM':
-      finalPrice = pricePerKm * distanceKm;
+      finalPrice = pricePerKm;
       break;
     case 'PER_TON':
-      finalPrice = pricePerTon * weightTons;
+      finalPrice = pricePerTon;
       break;
     case 'FIXED':
     default:
@@ -259,9 +259,9 @@ export function calculateProposal(input: ProposalCalculationInput): ProposalCalc
 
   let priceInfo = fmtBRL(finalPrice);
   if (pricingType === 'PER_KM' && pricePerKm > 0) {
-    priceInfo = `R$ ${pricePerKm.toLocaleString('pt-BR')}/km (Total: ${fmtBRL(finalPrice)} para ${distanceKm} km)`;
+    priceInfo = `R$ ${pricePerKm.toLocaleString('pt-BR')}/km`;
   } else if (pricingType === 'PER_TON' && pricePerTon > 0) {
-    priceInfo = `R$ ${pricePerTon.toLocaleString('pt-BR')}/ton (Total: ${fmtBRL(finalPrice)} para ${weightTons.toFixed(1)} ton)`;
+    priceInfo = `R$ ${pricePerTon.toLocaleString('pt-BR')}/ton`;
   }
 
   let formattedMessage = `${prefix}${type}: ${priceInfo}`;
