@@ -5,8 +5,8 @@ import { validateInput, uuidSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const WithdrawFreightSchema = z.object({
@@ -26,64 +26,82 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Missing Authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // ✅ User-scoped client — preserves auth.uid() inside RPC/RLS
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // ✅ Validate JWT via getClaims (signing-keys compatible)
     const token = authHeader.replace("Bearer ", "");
-    const { data: userRes } = await supabase.auth.getUser(token);
-    const user = userRes?.user;
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error('[withdraw-freight] Auth failed:', claimsError?.message);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const body = await req.json()
-    const validated = validateInput(WithdrawFreightSchema, body)
-    const freightId = validated.freight_id
+    const userId = claimsData.claims.sub as string;
+    console.log('[withdraw-freight] Authenticated user:', userId);
 
-    // Find driver profile id for this user
-    const { data: profile, error: profileErr } = await supabase
+    const body = await req.json();
+    const validated = validateInput(WithdrawFreightSchema, body);
+    const freightId = validated.freight_id;
+
+    // ✅ Service role client for profile lookup (multi-role safe)
+    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const { data: profiles, error: profileErr } = await serviceClient
       .from("profiles")
       .select("id, role")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", userId);
 
-    if (profileErr || !profile || profile.role !== "MOTORISTA") {
+    if (profileErr || !profiles || profiles.length === 0) {
+      console.error('[withdraw-freight] Profile lookup failed:', profileErr?.message);
       return new Response(JSON.stringify({ error: "Driver profile not found" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const driverId: string = profile.id as string;
+    // ✅ Multi-role: find MOTORISTA profile
+    const driverProfile = profiles.find(p => p.role === 'MOTORISTA') || profiles.find(p => p.role === 'MOTORISTA_AFILIADO');
+    if (!driverProfile) {
+      return new Response(JSON.stringify({ error: "Driver profile not found" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Call hardened SQL function
-    const { data: result, error: rpcError } = await supabase.rpc('process_freight_withdrawal', {
+    const driverId = driverProfile.id;
+    console.log('[withdraw-freight] Driver profile:', driverId, 'Freight:', freightId);
+
+    // ✅ Call RPC with USER client so auth.uid() is set inside the function
+    const { data: result, error: rpcError } = await userClient.rpc('process_freight_withdrawal', {
       freight_id_param: freightId,
       driver_profile_id: driverId
     });
 
     if (rpcError) {
-      console.error('withdraw-freight RPC error:', rpcError);
+      console.error('[withdraw-freight] RPC error:', rpcError);
       return new Response(JSON.stringify({ error: 'RPC_ERROR', details: rpcError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Parse result from function
     const res = result as any;
     if (!res || !res.success) {
       const errCode = res?.error || 'UNKNOWN_ERROR';
@@ -96,29 +114,39 @@ serve(async (req) => {
           statusCode = 404;
           break;
         case 'INVALID_STATUS':
-          message = 'Não é possível desistir do frete neste status (somente ACCEPTED ou LOADING são permitidos)';
+          message = 'Não é possível desistir do frete neste status (somente ACCEPTED ou LOADING)';
           statusCode = 409;
           break;
         case 'HAS_CHECKINS':
           message = 'Não é possível desistir do frete após o primeiro check-in.';
           statusCode = 409;
           break;
+        case 'NOT_AUTHENTICATED':
+          message = 'Sessão expirada. Faça login novamente.';
+          statusCode = 401;
+          break;
+        case 'ACCESS_DENIED':
+          message = 'Acesso negado.';
+          statusCode = 403;
+          break;
         default:
           message = errCode;
       }
 
+      console.error('[withdraw-freight] Business error:', errCode);
       return new Response(JSON.stringify({ error: errCode, message }), {
         status: statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log('[withdraw-freight] Success for freight:', freightId);
     return new Response(JSON.stringify({ success: true, message: res.message || 'Desistência processada com sucesso' }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (err) {
-    console.error("withdraw-freight error:", err);
+    console.error("[withdraw-freight] Unexpected error:", err);
     return new Response(
       JSON.stringify({ error: "Internal error", details: String(err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
