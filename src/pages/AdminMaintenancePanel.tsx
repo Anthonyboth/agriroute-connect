@@ -39,9 +39,9 @@ export default function AdminMaintenancePanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("freights")
-        .select("id, cargo_type, origin_city, destination_city, pickup_date, producer_id")
-        .in("status", ["OPEN", "ACCEPTED", "IN_NEGOTIATION", "LOADING", "LOADED", "IN_TRANSIT"])
-        .lt("pickup_date", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
+        .select("id, cargo_type, origin_city, destination_city, pickup_date, producer_id, created_at")
+        .in("status", ["OPEN", "IN_NEGOTIATION"])
+        .lt("created_at", new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString());
 
       if (error) throw error;
       return data as OverdueFreight[];

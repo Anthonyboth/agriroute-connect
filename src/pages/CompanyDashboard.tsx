@@ -1098,10 +1098,10 @@ const CompanyDashboard = () => {
                     ) : (
                       <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                         {activeFreights.map((freight) => {
-                          const pickupDate = freight.pickup_date ? new Date(freight.pickup_date) : null;
+                          const createdDate = freight.created_at ? new Date(freight.created_at) : null;
                           const now = new Date();
-                          const hoursSincePickup = pickupDate ? (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60) : 0;
-                          const isExpired = pickupDate ? hoursSincePickup > 48 : false;
+                          const hoursSinceCreation = createdDate ? (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60) : 0;
+                          const isExpired = createdDate ? hoursSinceCreation > 72 && ['OPEN', 'IN_NEGOTIATION'].includes(freight.status) : false;
 
                           return (
                             <FreightInProgressCard
@@ -1120,7 +1120,7 @@ const CompanyDashboard = () => {
                                     const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
                                       body: {
                                         freight_id: freight.id,
-                                        reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada'
+                                        reason: 'Cancelamento por vencimento: 72h sem aceite'
                                       }
                                     });
 
