@@ -1,22 +1,68 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { documentNumberSchema } from '../_shared/validation.ts'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
+import { documentNumberSchema, validateInput } from '../_shared/validation.ts'
+import { checkInMemoryRateLimit } from '../_shared/rate-limiter.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-serve(async (req) => {
+// ✅ Schema de validação rigoroso
+const UserDataSchema = z.object({
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(128),
+  fullName: z.string().min(2).max(200).transform(v => v.trim()),
+  phone: z.string().max(50).optional().nullable(),
+  cpf: documentNumberSchema,
+  address: z.object({
+    street: z.string().max(300).optional().nullable(),
+    number: z.string().max(20).optional().nullable(),
+    complement: z.string().max(200).optional().nullable(),
+    city: z.string().max(100).optional().nullable(),
+    state: z.string().max(2).optional().nullable(),
+    zipCode: z.string().max(10).optional().nullable(),
+  }).optional().nullable(),
+  vehicle: z.object({
+    plate: z.string().max(10).optional().nullable(),
+    type: z.string().max(50).optional().nullable(),
+    model: z.string().max(100).optional().nullable(),
+    year: z.string().max(4).optional().nullable(),
+  }).optional().nullable(),
+})
+
+const RequestSchema = z.object({
+  token: z.string().uuid('Token inválido'),
+  userData: UserDataSchema,
+})
+
+function getClientIP(req: Request): string {
+  for (const h of ['x-real-ip', 'x-forwarded-for', 'cf-connecting-ip']) {
+    const val = req.headers.get(h);
+    if (val) return val.split(',')[0].trim();
+  }
+  return '0.0.0.0';
+}
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { token, userData } = await req.json()
+    // ✅ Rate limiting por IP (3 cadastros por minuto)
+    const clientIP = getClientIP(req);
+    const rl = checkInMemoryRateLimit(`processar-cadastro:${clientIP}`, 3, 60000);
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Muitas tentativas. Aguarde e tente novamente.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
 
-    // Validate and normalize CPF
-    const cleanCPF = documentNumberSchema.parse(userData.cpf);
+    // ✅ Validação rigorosa de input
+    const rawBody = await req.json();
+    const { token, userData } = validateInput(RequestSchema, rawBody);
 
     console.log('[PROCESSAR-CADASTRO] Iniciando cadastro para:', userData.email)
 
@@ -33,7 +79,7 @@ serve(async (req) => {
       .single()
 
     if (conviteError || !convite) {
-      console.log('[PROCESSAR-CADASTRO] Erro ao buscar convite:', conviteError)
+      console.log('[PROCESSAR-CADASTRO] Convite não encontrado')
       throw new Error('Convite não encontrado')
     }
 
@@ -55,7 +101,7 @@ serve(async (req) => {
       .single()
 
     if (companyError || !transportCompany) {
-      console.log('[PROCESSAR-CADASTRO] Transportadora não encontrada:', companyError)
+      console.log('[PROCESSAR-CADASTRO] Transportadora não encontrada')
       throw new Error('Transportadora não encontrada')
     }
 
@@ -74,26 +120,25 @@ serve(async (req) => {
     })
 
     if (authError) {
-      console.log('[PROCESSAR-CADASTRO] Erro ao criar usuário:', authError)
-      throw authError
+      console.log('[PROCESSAR-CADASTRO] Erro ao criar usuário:', authError.message)
+      throw new Error('Erro ao criar conta. Verifique se o e-mail já está em uso.')
     }
 
     const user = authData.user
     console.log('[PROCESSAR-CADASTRO] Usuário criado:', user.id)
 
     // 4. Criar profile do motorista
-    const profileData: any = {
+    const profileData: Record<string, unknown> = {
       user_id: user.id,
       full_name: userData.fullName,
       email: userData.email,
       phone: userData.phone,
-      document: cleanCPF,
-      cpf_cnpj: cleanCPF,
+      document: userData.cpf,
+      cpf_cnpj: userData.cpf,
       role: 'MOTORISTA_AFILIADO',
       status: 'APPROVED'
     }
 
-    // Adicionar endereço nos campos dedicados da tabela profiles
     if (userData.address) {
       profileData.address_street = userData.address.street || null
       profileData.address_number = userData.address.number || null
@@ -125,14 +170,14 @@ serve(async (req) => {
       })
 
     if (vinculoError) {
-      console.log('[PROCESSAR-CADASTRO] Erro ao vincular motorista:', vinculoError)
+      console.log('[PROCESSAR-CADASTRO] Erro ao vincular motorista:', vinculoError.message)
       throw vinculoError
     }
 
     console.log('[PROCESSAR-CADASTRO] Motorista vinculado à transportadora')
 
     // 6. Criar veículo se fornecido
-    if (userData.vehicle && userData.vehicle.plate) {
+    if (userData.vehicle?.plate) {
       const { error: vehicleError } = await supabaseAdmin
         .from('vehicles')
         .insert({
@@ -145,12 +190,12 @@ serve(async (req) => {
         })
 
       if (vehicleError) {
-        console.error('Erro ao criar veículo:', vehicleError)
+        console.error('[PROCESSAR-CADASTRO] Erro ao criar veículo:', vehicleError.message)
       }
     }
 
     // 7. Marcar convite como usado
-    const { error: updateError } = await supabaseAdmin
+    await supabaseAdmin
       .from('convites_motoristas')
       .update({
         usado: true,
@@ -159,12 +204,8 @@ serve(async (req) => {
       })
       .eq('token', token)
 
-    if (updateError) {
-      console.error('Erro ao atualizar convite:', updateError)
-    }
-
     // 8. Criar notificação para a transportadora
-    const { error: notificationError } = await supabaseAdmin
+    await supabaseAdmin
       .from('notifications')
       .insert({
         user_id: companyProfileId,
@@ -178,10 +219,6 @@ serve(async (req) => {
         }
       })
 
-    if (notificationError) {
-      console.error('Erro ao criar notificação:', notificationError)
-    }
-
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -194,10 +231,18 @@ serve(async (req) => {
         status: 200 
       }
     )
-  } catch (error: any) {
-    console.error('Erro no processamento:', error)
+  } catch (error: unknown) {
+    // validateInput throws Response objects
+    if (error instanceof Response) {
+      const headers = new Headers(error.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
+      if (!headers.get('Content-Type')) headers.set('Content-Type', 'application/json');
+      return new Response(error.body, { status: error.status, statusText: error.statusText, headers });
+    }
+
+    console.error('[PROCESSAR-CADASTRO] Erro:', (error as Error).message)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Erro ao processar cadastro' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
