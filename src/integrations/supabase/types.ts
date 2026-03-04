@@ -14546,7 +14546,7 @@ export type Database = {
         Args: {
           endpoint_name: string
           max_requests?: number
-          time_window?: unknown
+          time_window?: string
         }
         Returns: boolean
       }
@@ -15178,7 +15178,7 @@ export type Database = {
           item_type: string
           service_type: string
           status: string
-          time_remaining: unknown
+          time_remaining: string
         }[]
       }
       get_multiple_ip_logins: {
