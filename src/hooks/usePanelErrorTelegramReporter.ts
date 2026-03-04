@@ -33,6 +33,29 @@ export function usePanelErrorTelegramReporter() {
 
     const errorMonitoring = ErrorMonitoringService.getInstance();
 
+    // ===== RATE LIMITER: Máximo 5 erros por minuto para evitar flooding =====
+    const recentErrors: number[] = [];
+    const RATE_LIMIT = 5;
+    const RATE_WINDOW_MS = 60_000; // 1 minuto
+    const recentMessages = new Set<string>(); // Deduplicação por mensagem
+
+    const isRateLimited = (msg: string): boolean => {
+      const now = Date.now();
+      // Limpar erros antigos
+      while (recentErrors.length > 0 && recentErrors[0] < now - RATE_WINDOW_MS) {
+        recentErrors.shift();
+      }
+      // Checar rate limit
+      if (recentErrors.length >= RATE_LIMIT) return true;
+      // Deduplicar mensagem idêntica (mesma string nos últimos 30s)
+      const msgKey = msg.slice(0, 100);
+      if (recentMessages.has(msgKey)) return true;
+      recentMessages.add(msgKey);
+      setTimeout(() => recentMessages.delete(msgKey), 30_000);
+      recentErrors.push(now);
+      return false;
+    };
+
     // Mensagens que são comportamento esperado do React/browser e NÃO devem ir pro Telegram
     const IGNORED_PATTERNS = [
       'signal is aborted without reason',
@@ -41,20 +64,20 @@ export function usePanelErrorTelegramReporter() {
       'aborted',
       'ResizeObserver loop',
       'ResizeObserver loop completed with undelivered notifications',
-      'Load failed',          // Safari fetch cancel
-      'Failed to fetch',      // offline/unmount
+      'Load failed',
+      'Failed to fetch',
       'NetworkError',
-      'Refresh Token Not Found',  // Sessão expirada - ciclo normal de auth
-      'refresh_token_not_found',  // Mesmo erro via código
-      'Invalid Refresh Token',    // Token revogado/expirado
-      'cannot be a descendant of',  // React HTML nesting warnings
-      'cannot contain a nested',    // React HTML nesting warnings
-      'hydration error',            // React hydration warnings
-      'Encountered two children with the same key',  // React duplicate key warnings (non-fatal)
-      'Non-unique keys may cause children',           // React duplicate key warnings
-      'senha incorretos',                              // Login com credenciais erradas - esperado
-      'Invalid login credentials',                     // Same in English
-      'invalid_credentials',                           // Supabase error code
+      'Refresh Token Not Found',
+      'refresh_token_not_found',
+      'Invalid Refresh Token',
+      'cannot be a descendant of',
+      'cannot contain a nested',
+      'hydration error',
+      'Encountered two children with the same key',
+      'Non-unique keys may cause children',
+      'senha incorretos',
+      'Invalid login credentials',
+      'invalid_credentials',
     ];
 
     const shouldIgnore = (msg: string): boolean => {
@@ -64,6 +87,7 @@ export function usePanelErrorTelegramReporter() {
 
     const reportError = (message: string, source: string, extra?: Record<string, unknown>) => {
       if (shouldIgnore(message)) return;
+      if (isRateLimited(message)) return;
 
       errorMonitoring.captureError(new Error(message.slice(0, 500)), {
         source,

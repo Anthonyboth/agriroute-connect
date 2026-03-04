@@ -24,6 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       expand={false}
       richColors
       closeButton
+      visibleToasts={3}
       duration={3000}
       icons={{
         success: null,

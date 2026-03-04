@@ -49,15 +49,18 @@ export class ErrorMonitoringService {
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
-          'X-Skip-Error-Monitoring': 'true' // ✅ Correção 2: Header para evitar loop
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'X-Skip-Error-Monitoring': 'true'
         },
         body: JSON.stringify(report)
       });
 
-      const data = await response.json();
-      if (import.meta.env.DEV) {
-        console.log('[ErrorMonitoringService] Notificação Telegram:', data);
+      if (!response.ok) {
+        console.debug('[ErrorMonitoringService] Telegram notifier HTTP error:', response.status);
+        return false;
       }
+
+      const data = await response.json();
       return data?.success || false;
     } catch (error) {
       // ✅ Não propagar erro para evitar loop infinito
