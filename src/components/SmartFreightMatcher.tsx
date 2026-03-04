@@ -636,7 +636,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             ))}
           </>
         )}
-        <div className="ml-auto">
+        <div>
           <MarketplaceFilters
             filters={marketplaceFilters}
             onChange={(newFilters) => {
