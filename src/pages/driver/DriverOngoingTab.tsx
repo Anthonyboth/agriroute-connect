@@ -23,6 +23,7 @@ import { FreightInProgressCard } from "@/components/FreightInProgressCard";
 import { UnifiedServiceCard } from "@/components/UnifiedServiceCard";
 import { ServiceChatDialog } from "@/components/ServiceChatDialog";
 import FreightWithdrawalModal from "@/components/FreightWithdrawalModal";
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
@@ -556,7 +557,7 @@ export const DriverOngoingTab: React.FC = () => {
           cargo_type: selectedFreightForWithdrawal.cargo_type || selectedFreightForWithdrawal.service_type || 'Carga',
           origin_address: `${selectedFreightForWithdrawal.origin_city || ''} - ${selectedFreightForWithdrawal.origin_state || ''}`,
           destination_address: `${selectedFreightForWithdrawal.destination_city || ''} - ${selectedFreightForWithdrawal.destination_state || ''}`,
-          price: selectedFreightForWithdrawal.price || 0,
+          priceText: precoPreenchidoDoFrete(selectedFreightForWithdrawal.id, selectedFreightForWithdrawal, { unitOnly: true }).primaryText,
         } : undefined}
       />
     </div>

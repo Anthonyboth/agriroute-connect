@@ -3160,7 +3160,7 @@ const DriverDashboard = () => {
           cargo_type: selectedFreightForWithdrawal.cargo_type,
           origin_address: selectedFreightForWithdrawal.origin_address,
           destination_address: selectedFreightForWithdrawal.destination_address,
-          price: selectedFreightForWithdrawal.price
+          priceText: precoPreenchidoDoFrete(selectedFreightForWithdrawal.id, selectedFreightForWithdrawal, { unitOnly: true }).primaryText,
         } : undefined}
       />
 

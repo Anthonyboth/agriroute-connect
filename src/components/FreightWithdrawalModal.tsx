@@ -21,7 +21,8 @@ interface FreightWithdrawalModalProps {
     cargo_type: string;
     origin_address: string;
     destination_address: string;
-    price: number;
+    /** Texto canônico do preço já formatado via usePrecoPreenchido (ex: "R$ 80,00/ton") */
+    priceText: string;
   };
 }
 
@@ -53,7 +54,7 @@ export const FreightWithdrawalModal: React.FC<FreightWithdrawalModalProps> = ({
               <p className="text-sm"><strong>Tipo de Carga:</strong> {freightInfo?.cargo_type}</p>
               <p className="text-sm"><strong>Origem:</strong> {freightInfo?.origin_address}</p>
               <p className="text-sm"><strong>Destino:</strong> {freightInfo?.destination_address}</p>
-              <p className="text-sm"><strong>Valor:</strong> R$ {freightInfo?.price?.toLocaleString('pt-BR')}</p>
+              <p className="text-sm"><strong>Valor:</strong> {freightInfo?.priceText || 'Preço indisponível'}</p>
             </div>
             
             <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">

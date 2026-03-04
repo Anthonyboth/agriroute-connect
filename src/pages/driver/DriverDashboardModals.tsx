@@ -1,4 +1,5 @@
 import React from 'react';
+import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import FreightCheckinModal from '@/components/FreightCheckinModal';
@@ -115,7 +116,7 @@ export const DriverDashboardModals: React.FC<DriverDashboardModalsProps> = ({
           cargo_type: selectedFreightForWithdrawal.cargo_type,
           origin_address: selectedFreightForWithdrawal.origin_address,
           destination_address: selectedFreightForWithdrawal.destination_address,
-          price: selectedFreightForWithdrawal.price
+          priceText: precoPreenchidoDoFrete(selectedFreightForWithdrawal.id, selectedFreightForWithdrawal, { unitOnly: true }).primaryText,
         } : undefined}
       />
 
