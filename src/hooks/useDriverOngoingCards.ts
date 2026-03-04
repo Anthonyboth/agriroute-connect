@@ -250,15 +250,17 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
           (terminalPayments || []).map(ep => `${ep.freight_id}_${ep.driver_id}`)
         );
 
-        // Filtrar assignments já completados (trip DELIVERED/COMPLETED + pagamento terminal)
+        // ✅ REGRA CRÍTICA: Filtrar assignments que o motorista já reportou como entregues
+        // Após reportar entrega (DELIVERED_PENDING_CONFIRMATION), o frete SAI de "Em Andamento"
+        // e o motorista fica LIVRE para aceitar novos fretes (regra das 72h).
+        const TERMINAL_TRIP_STATUSES = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED'];
         effectiveAssignments = effectiveAssignments.filter(a => {
           const key = `${a.freight_id}_${a.driver_id || driverProfileId}`;
           const tripStatus = tripMap.get(key);
-          const hasPaid = paidSet.has(key);
 
-          // Se trip_progress mostra DELIVERED/COMPLETED E pagamento já foi feito → remover do "em andamento"
-          if (tripStatus && ['DELIVERED', 'COMPLETED'].includes(tripStatus) && hasPaid) {
-            console.log(`[useDriverOngoingCards] Filtrando assignment ${a.id} - trip=${tripStatus}, pago=${hasPaid}`);
+          // Se trip_progress mostra qualquer status terminal → remover do "em andamento"
+          if (tripStatus && TERMINAL_TRIP_STATUSES.includes(tripStatus)) {
+            console.log(`[useDriverOngoingCards] Filtrando assignment ${a.id} - trip=${tripStatus} (entrega já reportada)`);
             return false;
           }
           return true;
@@ -439,8 +441,9 @@ export const useDriverOngoingCards = (driverProfileId?: string | null) => {
       const enrichedAssignments = (assignments || []).filter((a: any) => a?.freight).filter((a: any) => {
         const freight = a.freight;
         if (!freight) return false;
-        // Excluir status terminais
-        const terminalStatuses = ['CANCELLED', 'DELIVERED', 'COMPLETED'];
+        // ✅ REGRA CRÍTICA: Excluir status terminais E entrega reportada
+        // DELIVERED_PENDING_CONFIRMATION = motorista já entregou, não deve aparecer em "Em Andamento"
+        const terminalStatuses = ['CANCELLED', 'DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'];
         if (terminalStatuses.includes(a.status) || terminalStatuses.includes(freight.status)) return false;
         // ✅ FIX: Assignments ACCEPTED com pickup_date futura vão para "Agendados", não "Em Andamento"
         // Assignments em LOADING/LOADED/IN_TRANSIT sempre ficam visíveis (já estão em execução)
