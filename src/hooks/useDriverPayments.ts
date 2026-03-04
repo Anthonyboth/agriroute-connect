@@ -174,7 +174,7 @@ export const useDriverPayments = (): UseDriverPaymentsReturn => {
       // Verificar se o pagamento está no status correto
       const { data: existingPayment, error: checkError } = await supabase
         .from('external_payments')
-        .select('id, status')
+        .select('id, status, freight_id')
         .eq('id', paymentId)
         .eq('driver_id', profile.id)
         .maybeSingle();
@@ -209,6 +209,53 @@ export const useDriverPayments = (): UseDriverPaymentsReturn => {
           description: updateError.message
         });
         return false;
+      }
+
+      // ✅ CRITICAL: Após confirmar pagamento, verificar se todos os pagamentos do frete
+      // estão confirmados. Se sim, mover o frete para COMPLETED para disparar o trigger
+      // de operation_history e relatórios.
+      if (existingPayment.freight_id) {
+        try {
+          const { data: allPayments } = await supabase
+            .from('external_payments')
+            .select('id, status')
+            .eq('freight_id', existingPayment.freight_id)
+            .not('status', 'in', '(cancelled,rejected)');
+
+          const allConfirmed = allPayments?.every(p => 
+            p.id === paymentId ? true : p.status === 'confirmed'
+          );
+
+          if (allConfirmed) {
+            console.log('[useDriverPayments] All payments confirmed, transitioning freight to COMPLETED');
+            
+            // Verificar se o frete está em DELIVERED (pré-condição para COMPLETED)
+            const { data: freight } = await supabase
+              .from('freights')
+              .select('status')
+              .eq('id', existingPayment.freight_id)
+              .single();
+
+            if (freight?.status === 'DELIVERED') {
+              await supabase
+                .from('freights')
+                .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
+                .eq('id', existingPayment.freight_id);
+
+              console.log('[useDriverPayments] Freight moved to COMPLETED → triggers operation_history');
+            }
+
+            // Persistir snapshot do histórico
+            await supabase.rpc('save_freight_completion_snapshot', {
+              p_freight_id: existingPayment.freight_id,
+              p_delivery_confirmed_by: null,
+              p_payment_confirmed_by_producer_at: null,
+              p_payment_confirmed_by_driver_at: new Date().toISOString(),
+            });
+          }
+        } catch (historyErr) {
+          console.warn('[useDriverPayments] History persistence failed (non-blocking):', historyErr);
+        }
       }
 
       toast.success('Recebimento confirmado!', {

@@ -108,19 +108,6 @@ const ACTION_MATRIX: Record<string, Record<string, ActionDefinition[]>> = {
       { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
     ],
     ADMIN: [
-      { action: 'ADVANCE', label: 'Aprovar', primary: true, targetStatus: 'APPROVED', icon: 'Check' },
-      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
-    ],
-    MOTORISTA: [],
-    MOTORISTA_AFILIADO: [],
-    TRANSPORTADORA: [],
-  },
-  APPROVED: {
-    PRODUTOR: [
-      { action: 'ADVANCE', label: 'Publicar', primary: true, targetStatus: 'OPEN', icon: 'Send' },
-      { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
-    ],
-    ADMIN: [
       { action: 'ADVANCE', label: 'Publicar', primary: true, targetStatus: 'OPEN', icon: 'Send' },
       { action: 'CANCEL', label: 'Cancelar', destructive: true, icon: 'X' },
     ],

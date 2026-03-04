@@ -84,21 +84,13 @@ function validateStrictTransition(previousStatus: string, nextStatus: string, se
     return { ok: false, error: 'STATUS_REGRESSION_BLOCKED', message: `Transição inválida: não é permitido voltar (${prev} → ${next}).` };
   }
 
-  // Pulo de etapas — tolerância inteligente
+  // Pulo de etapas — tolerância máxima de 1 etapa
   if (nextIndex > prevIndex + 1) {
-    // ✅ CORREÇÃO: Permitir LOADING → IN_TRANSIT (pular LOADED) para QUALQUER frete
-    // A etapa LOADED é opcional — muitos fretes rurais não precisam dela.
-    // Quando service_type é null/desconhecido, também permitir este pulo.
-    if (prev === 'LOADING' && next === 'IN_TRANSIT') {
-      console.warn(`[validateStrictTransition] Permitindo pulo LOADING→IN_TRANSIT (LOADED opcional). serviceType=${serviceType}`);
-      return { ok: true, warning: 'LOADED_SKIPPED' };
-    }
-
-    // ✅ Tolerância: permitir pulo de no máximo 2 etapas com warning
+    // ✅ Tolerância: permitir pulo de no máximo 1 etapa com warning
     // (cobre dessincronia entre assignment.status e driver_trip_progress.current_status)
-    if (nextIndex <= prevIndex + 2) {
+    if (nextIndex === prevIndex + 2) {
       const skipped = statusOrder.slice(prevIndex + 1, nextIndex).join(', ');
-      console.warn(`[validateStrictTransition] Pulo tolerado: ${prev} → ${next} (pulou: ${skipped}). serviceType=${serviceType}`);
+      console.warn(`[validateStrictTransition] Pulo tolerado (1 etapa): ${prev} → ${next} (pulou: ${skipped}). serviceType=${serviceType}`);
       return { ok: true, warning: `SKIP_TOLERATED: ${skipped}` };
     }
 

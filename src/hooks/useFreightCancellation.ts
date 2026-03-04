@@ -27,7 +27,7 @@ const TERMINAL_STATUSES = ['DELIVERED', 'COMPLETED', 'CANCELLED'] as const;
 // CRITICAL: Produtor só pode cancelar diretamente ANTES do carregamento.
 // Após LOADING, deve entrar em contato com o suporte.
 const PRODUCER_ACTIVE_STATUSES = [
-  'NEW', 'APPROVED', 'OPEN', 'IN_NEGOTIATION',
+  'NEW', 'OPEN', 'IN_NEGOTIATION',
   'ACCEPTED',
 ] as const;
 

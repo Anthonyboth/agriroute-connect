@@ -17,7 +17,6 @@
 
 export type FreightWorkflowStatus =
   | 'NEW'
-  | 'APPROVED'
   | 'OPEN'
   | 'ACCEPTED'
   | 'LOADING'
@@ -67,7 +66,6 @@ export class FreightWorkflowError extends Error {
  */
 export const WORKFLOW_ORDER: readonly FreightWorkflowStatus[] = [
   'NEW',
-  'APPROVED',
   'OPEN',
   'ACCEPTED',
   'LOADING',
@@ -91,7 +89,6 @@ export const TERMINAL_STATUSES: readonly FreightWorkflowStatus[] = [
  */
 export const STATUS_LABELS_PTBR: Record<FreightWorkflowStatus, string> = {
   NEW: 'Novo',
-  APPROVED: 'Aprovado',
   OPEN: 'Aberto',
   ACCEPTED: 'Aceito',
   LOADING: 'A Caminho da Coleta',
@@ -109,7 +106,7 @@ export const STATUS_LABELS_PTBR: Record<FreightWorkflowStatus, string> = {
  */
 const ROLE_ALLOWED_TRANSITIONS: Record<string, FreightWorkflowStatus[]> = {
   // Produtor controla fase inicial e confirmação
-  PRODUTOR: ['APPROVED', 'OPEN', 'DELIVERED', 'COMPLETED'],
+  PRODUTOR: ['OPEN', 'DELIVERED', 'COMPLETED'],
   // Motoristas controlam a fase operacional
   MOTORISTA: ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'],
   MOTORISTA_AFILIADO: ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'],
