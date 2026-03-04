@@ -449,11 +449,6 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                   {(freight.distance_km || 0) > 0 ? (
                     <>
                       Distância estimada: {freight.distance_km || 0} km
-                      {proposedPricePerKm && (
-                        <div className="mt-1 font-medium text-primary">
-                          Total calculado: R$ {(parseFloat(proposedPricePerKm) * (freight.distance_km || 0)).toLocaleString()}
-                        </div>
-                      )}
                     </>
                   ) : (
                     <span className="text-yellow-600 dark:text-yellow-400">
@@ -466,11 +461,6 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                   {((freight.weight || 0) / 1000) > 0 ? (
                     <>
                       Peso: {((freight.weight || 0) / 1000).toFixed(1)} toneladas
-                      {proposedPricePerTon && (
-                        <div className="mt-1 font-medium text-primary">
-                          Total calculado: R$ {(parseFloat(proposedPricePerTon) * ((freight.weight || 0) / 1000)).toLocaleString()} ({((freight.weight || 0) / 1000).toFixed(1)} ton)
-                        </div>
-                      )}
                     </>
                   ) : (
                     <span className="text-yellow-600 dark:text-yellow-400">

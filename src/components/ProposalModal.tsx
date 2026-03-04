@@ -404,17 +404,6 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                   Distância: {formatKm(distance)} • Peso: {formatTons(weightPerTruck)}
                 </p>
                 
-                {proposalData.pricing_type === 'PER_KM' && proposalData.proposed_price_per_km && (
-                  <div className="mt-1 font-medium text-primary">
-                    Total calculado: {formatBRL(finalProposedPrice, true)}
-                  </div>
-                )}
-
-                {proposalData.pricing_type === 'PER_TON' && proposalData.proposed_price_per_ton && (
-                  <div className="mt-1 font-medium text-primary">
-                    Total calculado: {formatBRL(finalProposedPrice, true)} ({weightInTons.toFixed(1)} ton)
-                  </div>
-                )}
                 
                 {isCounterOffer && (
                   <span className={`block mt-1 ${priceDifference > 0 ? 'text-destructive' : 'text-green-600'}`}>

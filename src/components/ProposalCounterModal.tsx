@@ -415,12 +415,6 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <span className="font-medium">{formatDriverProposal()}</span>
             </div>
-            {(freightPricingType === 'PER_KM' || freightPricingType === 'PER_TON') && (
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Total calculado:</span>
-                <span>{formatBRL(driverProposedPrice, true)}</span>
-              </div>
-            )}
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Diferença:</span>
               <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
@@ -514,22 +508,10 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                 ) : pricingType === 'PER_KM' ? (
                   <>
                     Distância do frete: {freightDistance} km
-                    {counterPricePerKm && (
-                      <div className="mt-1 font-medium text-primary">
-                        Total calculado: {formatBRL(parseFloat(counterPricePerKm) * freightDistance, true)}
-                        {hasMultipleTrucks && ' (por carreta)'}
-                      </div>
-                    )}
                   </>
                 ) : (
                   <>
                     Peso por carreta: {formatTons(weightPerTruck)}
-                    {counterPricePerTon && (
-                      <div className="mt-1 font-medium text-primary">
-                        Total calculado: {formatBRL(parseFloat(counterPricePerTon) * weightPerTruckInTons, true)}
-                        {hasMultipleTrucks && ' (por carreta)'}
-                      </div>
-                    )}
                   </>
                 )}
               </div>
