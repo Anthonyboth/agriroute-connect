@@ -190,49 +190,15 @@ export async function driverUpdateFreightStatus({
 
     toast.success(statusMessages[normalizedStatus] || 'Status atualizado com sucesso!');
     
-    // 🔔 Enviar notificação persistente quando motorista reporta entrega
+    // 🔔 Notificação para DELIVERED_PENDING_CONFIRMATION é tratada EXCLUSIVAMENTE
+    // pela edge function driver-update-trip-progress-fast (linhas 449-501).
+    // NÃO duplicar aqui no frontend.
     if (normalizedStatus === 'DELIVERED_PENDING_CONFIRMATION') {
-      try {
-        // Buscar dados do frete para obter producer_id
-        const { data: freightData } = await supabase
-          .from('freights')
-          .select('id, producer_id, driver_id, cargo_type, origin_city, destination_city')
-          .eq('id', freightId)
-          .single();
-
-        if (freightData?.producer_id) {
-          const { sendNotification } = await import('@/utils/notify');
-          await sendNotification({
-            user_id: freightData.producer_id,
-            title: 'Entrega Reportada pelo Motorista',
-            message: `O motorista relatou que sua carga foi entregue. Você tem 72h para confirmar a entrega. Se não confirmar, o sistema confirmará automaticamente.`,
-            type: 'delivery_confirmation_required',
-            data: { freight_id: freightId }
-          });
-          devLog('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);
-        }
-
-        // ✅ Sincronização legada é não-bloqueante (o RPC já cuida do core)
-        await supabase
-          .from('freight_assignments')
-          .update({
-            status: 'DELIVERED_PENDING_CONFIRMATION',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('freight_id', freightId)
-          .eq('driver_id', currentUserProfile?.id)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT']);
-
-        // ✅ DISPARAR evento para mover frete para histórico na UI
-        window.dispatchEvent(new CustomEvent('freight:movedToHistory', { 
-          detail: { freightId } 
-        }));
-
-        devLog('[freight-status-helpers] ✅ Frete movido para histórico:', freightId);
-
-      } catch (notifyError) {
-        console.warn('[freight-status-helpers] ⚠️ Erro não bloqueante:', notifyError);
-      }
+      // ✅ DISPARAR evento para mover frete para histórico na UI
+      window.dispatchEvent(new CustomEvent('freight:movedToHistory', { 
+        detail: { freightId } 
+      }));
+      devLog('[freight-status-helpers] ✅ Frete movido para histórico:', freightId);
     }
     
     devLog('[STATUS UPDATE] ✅ Status atualizado com sucesso:', {
