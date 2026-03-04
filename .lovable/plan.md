@@ -1,43 +1,24 @@
 
 
-## Verificação Geral Pós-Implementações
+## Plano: Restaurar e Adicionar Botões no Step 1 do Wizard de Frete
 
-### Resultado da Auditoria
+### Problema
+Na tela do wizard, o usuário não vê os botões que deveriam estar visíveis (Corredor Agrícola, Mesma Cidade, GPS no destino). Verificando o código, os botões existem mas o GPS no destino está ausente. Os demais podem estar sendo "empurrados" para fora da área visível pela estrutura do modal.
 
-Inspecionei todos os arquivos modificados nas implementações recentes (Foreground Service, location tracking, capacitor config). O app **não está quebrado** — console logs mostram boot limpo sem erros, e todas as importações estão corretas.
+### Alterações
 
-### Problema Encontrado
+**1. Adicionar botão GPS no Destino** (`FreightWizardStep1.tsx`)
+- Adicionar um `GPSAddressButton` (ou reutilizar `GPSOriginButton` adaptado) na seção Destino, ao lado do botão "Mesma cidade", para permitir preenchimento via GPS igual ao da origem.
 
-**1. Arquivo duplicado obsoleto: `src/hooks/useLocationSecurityMonitor.ts` (171 linhas)**
+**2. Reorganizar layout dos botões para ficarem sempre visíveis**
+- Mover o bloco "Corredor Rodoviário" para uma posição mais proeminente, logo acima dos cards de Origem/Destino (já está, mas garantir que o scroll do modal não esconda).
+- Garantir que os botões GPS e "Mesma cidade" no destino fiquem na mesma linha, com layout responsivo (flex-wrap).
+- Adicionar ícone visual no botão "Mesma cidade" para deixá-lo mais visível.
 
-Este é o hook v1 original que foi substituído por `src/hooks/location/useLocationSecurityMonitor.ts` (v2). O arquivo antigo:
-- Exporta o mesmo nome `useLocationSecurityMonitor` e tipo `PermissionState`
-- Não é importado por nenhum componente atualmente
-- Mas pode causar confusão em IDEs (autocomplete apontando para o arquivo errado) e é dead code
+**3. Garantir que o conteúdo do modal seja scrollável**
+- Verificar se o `DialogContent` do `CreateFreightWizardModal.tsx` permite scroll interno correto para que nenhum botão fique cortado em telas menores (mobile).
 
-**Ação:** Deletar `src/hooks/useLocationSecurityMonitor.ts`.
-
-### Verificações que Passaram (sem problemas)
-
-| Area | Status |
-|------|--------|
-| `foregroundService.ts` — imports, API, no-op guards | OK |
-| `useLocationSecurityMonitor.ts` (v2) — hooks, refs, cleanup | OK |
-| `UnifiedTrackingControl.tsx` — start/stop foreground service | OK |
-| `ManualLocationTracking.tsx` — start/stop foreground service | OK |
-| `DriverAutoLocationTracking.tsx` — hooks, persist, fraud | OK |
-| `locationAlertManager.ts` — cooldowns, singleton | OK |
-| `GPSPermissionDeniedDialog` — exists, imported correctly | OK |
-| `capacitor.config.ts` — production hardened | OK |
-| `AndroidManifest.xml` — permissions, service declaration | OK |
-| Console logs — no runtime errors | OK |
-| Network requests — all 200/204 | OK |
-| All imports resolve to correct paths | OK |
-
-### Plano de Implementação
-
-1. **Deletar** `src/hooks/useLocationSecurityMonitor.ts` (arquivo v1 obsoleto, dead code)
-2. **Marcar** o finding `SUPA_security_definer_view` como ignorado (já documentado como padrão arquitetural deliberado)
-
-Nenhuma outra correção necessária. O app está funcional e estável.
+### Arquivos afetados
+- `src/components/freight-wizard/FreightWizardStep1.tsx` — adicionar GPS no destino, reorganizar botões
+- `src/components/freight-wizard/GPSAddressButton.tsx` — possivelmente criar componente reutilizável para GPS no destino (se `GPSOriginButton` não for genérico o suficiente)
 
