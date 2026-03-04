@@ -48,31 +48,27 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
 
   return (
     <SafeListWrapper>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
-          {advancedFilters && (
-            <div className="flex items-center gap-1">
-              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
-                Busca ativa
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAdvancedFilters}
-                className="h-6 w-6 p-0"
-                title="Limpar busca avançada"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-
+      <div className="flex flex-col items-center gap-2 mb-4">
         <AdvancedFreightSearch
           onSearch={handleAdvancedSearch}
           userRole="MOTORISTA"
         />
+        {advancedFilters && (
+          <div className="flex items-center gap-1">
+            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+              Busca ativa
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAdvancedFilters}
+              className="h-6 w-6 p-0"
+              title="Limpar busca avançada"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <SmartFreightMatcher

@@ -611,88 +611,62 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            Match Inteligente
-            <Badge className="bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-primary/20">
-              <Zap className="mr-1 h-3 w-3" />
-              IA
-            </Badge>
-            {matchingStats.totalChecked > 0 && (
-              <Badge variant="outline" className="ml-auto text-xs">
-                🎯 {matchingStats.exactMatches} | 🗺️ {matchingStats.fallbackMatches}
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription>
-            Fretes selecionados automaticamente com base nas suas áreas e tipos de frete.
-          </CardDescription>
-        </CardHeader>
+    <div className="space-y-4">
+      {/* Filtros rápidos + busca */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        {profile?.service_types && (
+          <>
+            {Array.from(
+              new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
+            ).map((serviceType: string) => (
+              <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
+            ))}
+          </>
+        )}
+        <div className="ml-auto">
+          <MarketplaceFilters
+            filters={marketplaceFilters}
+            onChange={(newFilters) => {
+              setMarketplaceFilters(newFilters);
+              setTimeout(() => fetchRef.current(), 100);
+            }}
+            showRpmSort={hasRuralFreights}
+            showDistSort={hasRuralFreights}
+          />
+        </div>
+      </div>
 
-        <CardContent>
-          {/* Tipos ativos + Ordenação em linha */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            {profile?.service_types && (
-              <>
-                <span className="text-xs font-medium text-muted-foreground mr-1">Fretes:</span>
-                {Array.from(
-                  new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
-                ).map((serviceType: string) => (
-                  <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
-                ))}
-              </>
-            )}
-            <div className="ml-auto">
-              <MarketplaceFilters
-                filters={marketplaceFilters}
-                onChange={(newFilters) => {
-                  setMarketplaceFilters(newFilters);
-                  setTimeout(() => fetchRef.current(), 100);
-                }}
-                showRpmSort={hasRuralFreights}
-                showDistSort={hasRuralFreights}
-              />
-            </div>
-          </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por origem, destino ou carga..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
 
-          <div className="space-y-4 mb-6">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por origem, destino ou carga..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="flex gap-2 flex-wrap sm:flex-nowrap items-center">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    fetchCompatibleFreights();
-                    setLastRefreshAt(new Date());
-                  }}
-                  disabled={loading}
-                  className="flex items-center gap-2 whitespace-nowrap"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                  <span className="hidden sm:inline">{loading ? 'Atualizando...' : 'Atualizar'}</span>
-                </Button>
-                {lastRefreshAt && !loading && (
-                  <span className="text-xs text-muted-foreground hidden md:inline">
-                    Atualizado às {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap items-center">
+          <Button
+            variant="outline"
+            onClick={() => {
+              fetchCompatibleFreights();
+              setLastRefreshAt(new Date());
+            }}
+            disabled={loading}
+            className="flex items-center gap-2 whitespace-nowrap"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{loading ? 'Atualizando...' : 'Atualizar'}</span>
+          </Button>
+          {lastRefreshAt && !loading && (
+            <span className="text-xs text-muted-foreground hidden md:inline">
+              Atualizado às {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+      </div>
 
 
       {/* ✅ TABS DINÂMICAS: exibe conforme tipos de serviço do motorista */}
