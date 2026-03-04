@@ -22,6 +22,7 @@ import { FreightDetails } from "@/components/FreightDetails";
 import { FreightInProgressCard } from "@/components/FreightInProgressCard";
 import { UnifiedServiceCard } from "@/components/UnifiedServiceCard";
 import { ServiceChatDialog } from "@/components/ServiceChatDialog";
+import FreightWithdrawalModal from "@/components/FreightWithdrawalModal";
 import { useDriverOngoingCards } from "@/hooks/useDriverOngoingCards";
 import { useDashboardIntegrityGuard } from "@/hooks/useDashboardIntegrityGuard";
 import { calculateVisiblePrice } from '@/hooks/useFreightCalculator';
@@ -86,6 +87,8 @@ export const DriverOngoingTab: React.FC = () => {
   const [confirmingReceiptId, setConfirmingReceiptId] = useState<string | null>(null);
   const [serviceChatOpen, setServiceChatOpen] = useState(false);
   const [selectedChatServiceRequest, setSelectedChatServiceRequest] = useState<any>(null);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<any>(null);
 
   // ✅ GUARD: Valida integridade do componente - evita regressões
   useDashboardIntegrityGuard('driver_ongoing', 'DriverOngoingTab');
@@ -171,6 +174,55 @@ export const DriverOngoingTab: React.FC = () => {
   const handleOpenDetails = useCallback((freightId: string) => {
     setSelectedFreightId(freightId);
   }, []);
+
+  // ✅ Withdrawal flow: permite motorista desistir de fretes ACCEPTED/LOADING
+  const handleFreightWithdrawal = useCallback((freight: any) => {
+    const status = String(freight?.status || '').toUpperCase();
+    if (!['ACCEPTED', 'LOADING'].includes(status)) {
+      toast.error('Não é possível desistir do frete neste status.');
+      return;
+    }
+    setSelectedFreightForWithdrawal(freight);
+    setShowWithdrawalModal(true);
+  }, []);
+
+  const confirmFreightWithdrawal = useCallback(async () => {
+    if (!driverProfileId || !selectedFreightForWithdrawal) return;
+
+    try {
+      const freightId = selectedFreightForWithdrawal.id;
+
+      const { data, error } = await supabase.functions.invoke('withdraw-freight', {
+        body: { freight_id: freightId },
+      });
+
+      if (error) {
+        console.error('withdraw-freight error:', error);
+        toast.error('Erro ao processar desistência. Tente novamente.');
+        return;
+      }
+
+      if (data?.error === 'HAS_CHECKINS') {
+        toast.error('Não é possível desistir do frete após o primeiro check-in.');
+        return;
+      }
+
+      toast.success('Desistência processada. O frete está novamente disponível para outros motoristas.');
+
+      setShowWithdrawalModal(false);
+      setSelectedFreightForWithdrawal(null);
+
+      queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['available-freights'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+      refetch();
+    } catch (error: any) {
+      console.error('Error processing freight withdrawal:', error);
+      toast.error('Erro ao processar desistência. Tente novamente.');
+    }
+  }, [driverProfileId, selectedFreightForWithdrawal, queryClient, refetch]);
 
   const handleTransitionService = useCallback(async (serviceId: string, targetStatus: string, successMsg: string) => {
     try {
@@ -287,10 +339,14 @@ export const DriverOngoingTab: React.FC = () => {
                       if (a.freight?.id) handleOpenDetails(a.freight.id);
                       handleStatusUpdate();
                     }}
-                    // No painel do motorista, o fluxo de cancelamento/adiantamento/NF-e é feito na tela de detalhes.
-                    // Então aqui o botão de cancelamento abre os detalhes também.
+                    // ✅ CORRIGIDO: Botão "Cancelar" agora abre modal de desistência diretamente
                     onRequestCancel={() => {
-                      if (a.freight?.id) handleOpenDetails(a.freight.id);
+                      if (a.freight) {
+                        handleFreightWithdrawal({
+                          ...a.freight,
+                          status: normalizeFreightStatus(String(a.status || a.freight.status || "")),
+                        });
+                      }
                     }}
                   />
                 ))}
@@ -342,7 +398,7 @@ export const DriverOngoingTab: React.FC = () => {
                         handleStatusUpdate();
                       }}
                       onRequestCancel={() => {
-                        handleOpenDetails(f.id);
+                        handleFreightWithdrawal({ ...f, status: normalizedStatus });
                       }}
                     />
                   );
@@ -462,10 +518,30 @@ export const DriverOngoingTab: React.FC = () => {
               currentUserProfile={profile}
               initialTab="status"
               onClose={() => setSelectedFreightId(null)}
+              onFreightWithdraw={(freight: any) => {
+                setSelectedFreightId(null);
+                handleFreightWithdrawal(freight);
+              }}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Desistência */}
+      <FreightWithdrawalModal
+        isOpen={showWithdrawalModal}
+        onClose={() => {
+          setShowWithdrawalModal(false);
+          setSelectedFreightForWithdrawal(null);
+        }}
+        onConfirm={confirmFreightWithdrawal}
+        freightInfo={selectedFreightForWithdrawal ? {
+          cargo_type: selectedFreightForWithdrawal.cargo_type || selectedFreightForWithdrawal.service_type || 'Carga',
+          origin_address: `${selectedFreightForWithdrawal.origin_city || ''} - ${selectedFreightForWithdrawal.origin_state || ''}`,
+          destination_address: `${selectedFreightForWithdrawal.destination_city || ''} - ${selectedFreightForWithdrawal.destination_state || ''}`,
+          price: selectedFreightForWithdrawal.price || 0,
+        } : undefined}
+      />
     </div>
   );
 };
