@@ -71,8 +71,8 @@ export const classifyFreightByPickupDate = (pickupDate: string | null): FreightD
     };
   }
 
-  // Frete com data passada (mais de 2 dias) = Vencido
-  if (diffDays <= -2) {
+  // Frete com data passada (mais de 3 dias = 72h) = Vencido
+  if (diffDays <= -3) {
     return {
       status: 'overdue',
       daysUntilPickup: diffDays,
