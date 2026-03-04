@@ -55,26 +55,6 @@ export function FreightWizardStep5Review({
     return <Badge className={v.className}>{v.label}</Badge>;
   };
 
-  const calculateTotalPrice = () => {
-    const trucks = parseInt(formData.required_trucks || '1');
-    
-    if (formData.pricing_type === 'FIXED') {
-      return parseFloat(formData.price || 0) * trucks;
-    }
-    
-    if (formData.pricing_type === 'PER_TON') {
-      // Peso informado no wizard é TOTAL (toneladas).
-      // Total = (R$/ton) × (toneladas totais)
-      const totalTons = parseFloat(formData.weight || 0);
-      return parseFloat(formData.price_per_km || 0) * totalTons;
-    }
-    
-    // PER_KM
-    if (calculatedDistance) {
-      return parseFloat(formData.price_per_km || 0) * calculatedDistance * trucks;
-    }
-    return 0;
-  };
   
   const getPricingLabel = () => {
     switch (formData.pricing_type) {
@@ -210,12 +190,6 @@ export function FreightWizardStep5Review({
                 </span>
                 <span className="font-medium">
                   {getPricingValue()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-lg">
-                <span className="font-semibold">Total:</span>
-                <span className="font-bold text-primary">
-                  {formatCurrency(calculateTotalPrice())}
                 </span>
               </div>
               {calculatedAnttPrice && calculatedAnttPrice > 0 && (
