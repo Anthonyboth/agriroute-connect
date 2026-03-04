@@ -611,7 +611,20 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   };
 
   return (
-    <div className="space-y-4">
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Brain className="h-5 w-5 text-primary" />
+            Match Inteligente
+            <Badge variant="outline" className="text-xs text-primary border-primary/30">
+              <Zap className="mr-1 h-3 w-3" />
+              IA
+            </Badge>
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
       {/* Filtros rápidos + busca */}
       <div className="flex flex-wrap items-center gap-2 mb-2">
         {profile?.service_types && (
@@ -1082,6 +1095,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           </>
         )}
       </Tabs>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
