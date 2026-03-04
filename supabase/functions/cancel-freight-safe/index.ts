@@ -73,8 +73,9 @@ serve(async (req) => {
     const callerProfileId = String((caller as any).id);
     const isAdmin = callerRole === 'ADMIN';
     const isProducer = callerRole === 'PRODUTOR';
+    const isDriver = callerRole === 'MOTORISTA' || callerRole === 'MOTORISTA_AFILIADO';
 
-    if (!isAdmin && !isProducer) {
+    if (!isAdmin && !isProducer && !isDriver) {
       console.error('[CANCEL-FREIGHT] Not authorized:', callerRole);
       return new Response(
         JSON.stringify({ success: false, error: 'Sem permissão para cancelar fretes' }),
@@ -97,12 +98,108 @@ serve(async (req) => {
       );
     }
 
-    // 3) Verify ownership (unless admin)
-    if (!isAdmin && String((freight as any).producer_id) !== callerProfileId) {
+    // 3) Verify ownership (unless admin or driver withdrawing)
+    if (!isAdmin && !isDriver && String((freight as any).producer_id) !== callerProfileId) {
       console.error('[CANCEL-FREIGHT] Not owner');
       return new Response(
         JSON.stringify({ success: false, error: 'Você não é o dono deste frete' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 3b) If driver, handle as withdrawal (cancel only their assignment, not the whole freight)
+    if (isDriver) {
+      console.log(`[CANCEL-FREIGHT] Driver ${callerProfileId} withdrawing from freight ${freight_id}`);
+      
+      // Cancel only THIS driver's assignment
+      const { data: driverAssignment, error: daErr } = await supabaseAdmin
+        .from('freight_assignments')
+        .select('id')
+        .eq('freight_id', freight_id)
+        .eq('driver_id', callerProfileId)
+        .not('status', 'in', '("CANCELLED","REJECTED")')
+        .maybeSingle();
+
+      if (daErr || !driverAssignment) {
+        console.error('[CANCEL-FREIGHT] Driver assignment not found:', daErr);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Você não está atribuído a este frete' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: withdrawErr } = await supabaseAdmin
+        .from('freight_assignments')
+        .update({
+          status: 'CANCELLED',
+          notes: reason || 'Desistência pelo motorista',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', driverAssignment.id);
+
+      if (withdrawErr) {
+        console.error('[CANCEL-FREIGHT] Error withdrawing driver:', withdrawErr);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao desistir do frete' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Clean up trip progress
+      await supabaseAdmin
+        .from('driver_trip_progress')
+        .delete()
+        .eq('freight_id', freight_id)
+        .eq('driver_id', callerProfileId);
+
+      // If freight has no more active assignments, revert to OPEN
+      const { data: remaining } = await supabaseAdmin
+        .from('freight_assignments')
+        .select('id')
+        .eq('freight_id', freight_id)
+        .not('status', 'in', '("CANCELLED","REJECTED")');
+
+      if (!remaining || remaining.length === 0) {
+        await supabaseAdmin
+          .from('freights')
+          .update({ 
+            status: 'OPEN', 
+            driver_id: null, 
+            accepted_trucks: 0,
+            drivers_assigned: [],
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', freight_id);
+        console.log(`[CANCEL-FREIGHT] Freight ${freight_id} reverted to OPEN (no drivers left)`);
+      }
+
+      // Send Telegram notification for driver withdrawal
+      try {
+        await supabaseAdmin.functions.invoke('send-telegram-alert', {
+          body: {
+            errorData: {
+              type: 'FREIGHT_DRIVER_WITHDRAWAL',
+              message: `🚛 Motorista desistiu de frete agendado`,
+              details: `Motorista (${callerProfileId.slice(0,8)}) desistiu do frete ${freight_id.slice(0,8)}. Motivo: ${reason || 'Não informado'}. Status do frete: ${(freight as any).status}`,
+              severity: 'MEDIUM',
+              timestamp: new Date().toISOString(),
+            }
+          }
+        });
+      } catch (tgErr) {
+        console.warn('[CANCEL-FREIGHT] Telegram notification failed:', tgErr);
+      }
+
+      console.log(`[CANCEL-FREIGHT] ✅ Driver ${callerProfileId} withdrew from freight ${freight_id}`);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Desistência registrada com sucesso',
+          freight_id,
+          driver_withdrew: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -213,6 +310,23 @@ serve(async (req) => {
     }
 
     console.log(`[CANCEL-FREIGHT] ✅ Freight ${freight_id} cancelled successfully (${activeAssignments?.length || 0} assignments also cancelled)`);
+
+    // Send Telegram notification for freight cancellation
+    try {
+      await supabaseAdmin.functions.invoke('send-telegram-alert', {
+        body: {
+          errorData: {
+            type: 'FREIGHT_CANCELLED',
+            message: `❌ Frete cancelado`,
+            details: `Frete ${freight_id.slice(0,8)} cancelado por ${isAdmin ? 'Admin' : 'Produtor'} (${callerProfileId.slice(0,8)}). Motivo: ${reason || 'Não informado'}. ${activeAssignments?.length || 0} atribuições canceladas.`,
+            severity: 'HIGH',
+            timestamp: new Date().toISOString(),
+          }
+        }
+      });
+    } catch (tgErr) {
+      console.warn('[CANCEL-FREIGHT] Telegram notification failed:', tgErr);
+    }
 
     return new Response(
       JSON.stringify({ 
