@@ -36,34 +36,37 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     // ✅ User-scoped client — preserves auth.uid() inside RPC/RLS
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // ✅ Validate JWT via getClaims (signing-keys compatible)
+    // ✅ Validate JWT via getUser (service role for reliable verification)
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error('[withdraw-freight] Auth failed:', claimsError?.message);
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !user) {
+      console.error('[withdraw-freight] Auth failed:', userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     console.log('[withdraw-freight] Authenticated user:', userId);
 
     const body = await req.json();
     const validated = validateInput(WithdrawFreightSchema, body);
     const freightId = validated.freight_id;
 
-    // ✅ Service role client for profile lookup (multi-role safe)
-    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // ✅ Reuse adminClient for profile lookup (multi-role safe)
 
-    const { data: profiles, error: profileErr } = await serviceClient
+    const { data: profiles, error: profileErr } = await adminClient
       .from("profiles")
       .select("id, role")
       .eq("user_id", userId);
