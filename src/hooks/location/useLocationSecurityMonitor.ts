@@ -237,8 +237,24 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
       }
     }
 
+    // Try Capacitor plugin first, fallback to navigator.geolocation
+    let useWebFallback = !isCapacitorEnv();
+
     if (isCapacitorEnv()) {
-      // ✅ FIX: Track pending promise to handle stop() called before resolve
+      try {
+        // Check if Capacitor Geolocation plugin can work
+        await Geolocation.checkPermissions();
+      } catch (pluginErr: any) {
+        const msg = pluginErr?.message ?? '';
+        if (msg.includes('Missing the following permissions') || msg.includes('AndroidManifest')) {
+          console.warn('[GPS-Monitor] Capacitor plugin has manifest issues — using WebView geolocation fallback');
+          useWebFallback = true;
+        }
+      }
+    }
+
+    if (isCapacitorEnv() && !useWebFallback) {
+      // ✅ Capacitor native path
       let pendingWatchId: string | null = null;
       let wasStoppedBeforeResolve = false;
 
@@ -248,7 +264,6 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
             Geolocation.clearWatch({ id: pendingWatchId });
             pendingWatchId = null;
           } else {
-            // stop() was called before watchPosition resolved — flag it
             wasStoppedBeforeResolve = true;
           }
           watchHandleRef.current = null;
@@ -269,7 +284,6 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
         }
       ).then((id) => {
         pendingWatchId = id as unknown as string;
-        // If stop() was called while we were waiting for the promise, clear immediately
         if (wasStoppedBeforeResolve || !activeRef.current) {
           console.log('[GPS-Monitor] Watch started but stop() was already called — clearing immediately');
           Geolocation.clearWatch({ id: pendingWatchId });
@@ -277,11 +291,33 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
           watchHandleRef.current = null;
         }
       }).catch((err) => {
-        console.warn('[GPS-Monitor] Erro ao iniciar watchPosition nativo:', err);
+        console.warn('[GPS-Monitor] Capacitor watchPosition failed, trying WebView fallback:', err?.message);
         watchHandleRef.current = null;
-        handleError({ code: 1, message: String(err?.message ?? err) });
+        // Instead of reporting as permission denied, try WebView geolocation
+        if ('geolocation' in navigator) {
+          console.log('[GPS-Monitor] Using navigator.geolocation fallback...');
+          const webId = navigator.geolocation.watchPosition(
+            (pos) => { if (activeRef.current) handleSuccess(pos.coords); },
+            (webErr) => { if (activeRef.current) handleError(webErr); },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          );
+          watchHandleRef.current = {
+            clear: () => {
+              navigator.geolocation.clearWatch(webId);
+              watchHandleRef.current = null;
+            },
+          };
+        } else {
+          handleError({ code: 1, message: String(err?.message ?? err) });
+        }
       });
     } else {
+      // ✅ Web / WebView fallback path
+      if (!('geolocation' in navigator)) {
+        setStatus('NO_PERMISSION');
+        setPermission('denied');
+        return;
+      }
       const id = navigator.geolocation.watchPosition(
         (pos) => { if (activeRef.current) handleSuccess(pos.coords); },
         (err) => { if (activeRef.current) handleError(err); },
