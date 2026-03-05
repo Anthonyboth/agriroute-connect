@@ -168,6 +168,28 @@ export const DriverOngoingTab: React.FC = () => {
     }
   }, [queryClient, refetch]);
 
+  // ✅ Listen for force-remove events (e.g., when NOT_ASSIGNED error occurs)
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ freightId: string }>) => {
+      const fid = e.detail?.freightId;
+      if (!fid || !driverProfileId) return;
+      queryClient.setQueryData(
+        ['driver-ongoing-cards', driverProfileId],
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            freights: (old.freights || []).filter((f: any) => f.id !== fid),
+            assignments: (old.assignments || []).filter((a: any) => a.freight?.id !== fid),
+          };
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+    };
+    window.addEventListener('freight:forceRemoveFromOngoing', handler as any);
+    return () => window.removeEventListener('freight:forceRemoveFromOngoing', handler as any);
+  }, [driverProfileId, queryClient]);
+
   const handleStatusUpdate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["driver-ongoing-cards"] });
     refetch();
