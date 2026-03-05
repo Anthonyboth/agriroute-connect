@@ -76,31 +76,38 @@ export const UnifiedTrackingControl = () => {
     };
   }, []);
 
-  // Auto-abrir modal APENAS com frete ativo + 1x por sessão
+  // Auto-abrir disclosure OBRIGATÓRIO quando há frete ativo (sem esperar gesto do usuário)
   useEffect(() => {
     if (
       profile &&
       ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role) &&
       hasActiveFreight &&
-      !hasAutoOpened &&
-      !sessionStorage.getItem('tracking_modal_shown')
+      !hasAutoOpened
     ) {
-      setIsModalOpen(true);
       setHasAutoOpened(true);
       sessionStorage.setItem('tracking_modal_shown', '1');
-    }
-  }, [profile, hasAutoOpened, hasActiveFreight]);
 
-  // Auto-tracking quando houver frete ativo + auto-stop quando não há mais
+      // Se disclosure ainda não foi aceito nesta sessão, forçar exibição
+      if (!sessionStorage.getItem('tracking_disclosure_accepted') && !isTracking) {
+        setPendingAutoStart(true);
+        setShowDisclosureModal(true);
+      } else if (!isTracking && !isStartingRef.current) {
+        // Disclosure já aceito — iniciar automaticamente após primeiro gesto
+        if (hasUserGesture) {
+          executeStartTracking(true);
+        } else {
+          setIsModalOpen(true);
+        }
+      }
+    }
+  }, [profile, hasAutoOpened, hasActiveFreight, hasUserGesture, isTracking]);
+
+  // Auto-tracking quando houver frete ativo + gesto do usuário (pós-disclosure)
   useEffect(() => {
     if (!profile?.id) return;
 
     if (hasActiveFreight && activeFreightId && hasUserGesture && !isTracking && !isStartingRef.current) {
-      // Show disclosure first if not shown this session
-      if (!sessionStorage.getItem('tracking_disclosure_accepted')) {
-        setPendingAutoStart(true);
-        setShowDisclosureModal(true);
-      } else {
+      if (sessionStorage.getItem('tracking_disclosure_accepted')) {
         executeStartTracking(true);
       }
     }
