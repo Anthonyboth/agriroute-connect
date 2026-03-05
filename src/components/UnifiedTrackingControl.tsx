@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -10,6 +10,7 @@ import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe, isNative } from '@/utils/location';
 import { startForegroundService, stopForegroundService } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
+import { useAppStateTracking } from '@/hooks/useAppStateTracking';
 
 export const UnifiedTrackingControl = () => {
   const { profile } = useAuth();
@@ -24,6 +25,19 @@ export const UnifiedTrackingControl = () => {
 
   // Evitar spam de toasts de geolocalização (timeouts são comuns em PWA/indoor)
   const lastGeoErrorRef = useRef<{ code?: number; at: number }>({ at: 0 });
+
+  // ✅ Pausar rastreamento quando app vai para background (Play Store compliance)
+  const handleBackgroundPause = useCallback(() => {
+    if (watchId) {
+      if (typeof watchId.clear === 'function') {
+        watchId.clear();
+      }
+      setWatchId(null);
+      setIsTracking(false);
+    }
+  }, [watchId]);
+
+  useAppStateTracking(isTracking, handleBackgroundPause);
 
   // Registrar user gesture para auto-tracking
   useEffect(() => {
@@ -342,19 +356,20 @@ export const UnifiedTrackingControl = () => {
             {/* Informações */}
             <Alert>
               <Navigation className="h-4 w-4" />
-              <AlertTitle>Rastreamento Automático</AlertTitle>
+              <AlertTitle>Rastreamento Ativo (Apenas com App Aberto)</AlertTitle>
               <AlertDescription className="text-xs">
                 Quando você tem um frete ativo, o rastreamento é iniciado automaticamente 
-                para segurança e tracking do frete. Ele será encerrado quando o frete for concluído.
+                para segurança do frete. <strong>Mantenha o app aberto durante a viagem</strong> — 
+                o rastreamento é pausado automaticamente ao minimizar o app.
               </AlertDescription>
             </Alert>
 
             <Alert variant="default">
               <Info className="h-4 w-4" />
-              <AlertTitle>Rastreamento Manual</AlertTitle>
+              <AlertTitle>Importante</AlertTitle>
               <AlertDescription className="text-xs">
-                Você pode controlar manualmente quando sua localização é compartilhada. 
-                O rastreamento só é necessário quando você tem um frete ativo.
+                Rastreamento ativo apenas com o app aberto (versão atual). 
+                Se você minimizar o app, o rastreamento será pausado e retomado quando voltar.
               </AlertDescription>
             </Alert>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative
 import { startForegroundService, stopForegroundService } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
+import { useAppStateTracking } from '@/hooks/useAppStateTracking';
 
 export const ManualLocationTracking = () => {
   const { profile } = useAuth();
@@ -18,6 +19,19 @@ export const ManualLocationTracking = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+
+  // ✅ Pausar rastreamento quando app vai para background (Play Store compliance)
+  const handleBackgroundPause = useCallback(() => {
+    if (watchId) {
+      if (typeof watchId.clear === 'function') {
+        watchId.clear();
+      }
+      setWatchId(null);
+      setIsTracking(false);
+    }
+  }, [watchId]);
+
+  useAppStateTracking(isTracking, handleBackgroundPause);
 
   const startTracking = async () => {
     try {
