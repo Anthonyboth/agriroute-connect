@@ -1,20 +1,28 @@
 import { useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { toast } from 'sonner';
 
 /**
- * Hook that detects when the app goes to background (native only)
- * and calls the provided callback to stop tracking.
+ * Hook that detects when the app goes to background/foreground (native only).
  * 
- * Play Store Compliance: This ensures zero location collection in background.
+ * With background tracking ENABLED via Foreground Service:
+ * - Going to background: logs info but does NOT stop tracking
+ * - The Foreground Service keeps GPS alive in background
+ * - Coming back to foreground: logs info
+ * 
+ * The onPause callback is only called if background tracking is NOT available
+ * (e.g., FGS failed to start, permissions denied).
  */
 export const useAppStateTracking = (
   isTracking: boolean,
-  onPause: () => void
+  onPause: () => void,
+  backgroundEnabled: boolean = true
 ) => {
   const isTrackingRef = useRef(isTracking);
   isTrackingRef.current = isTracking;
+
+  const backgroundEnabledRef = useRef(backgroundEnabled);
+  backgroundEnabledRef.current = backgroundEnabled;
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -24,12 +32,17 @@ export const useAppStateTracking = (
     const setup = async () => {
       listener = await App.addListener('appStateChange', ({ isActive }) => {
         if (!isActive && isTrackingRef.current) {
-          console.log('[AppState] App foi para background — pausando rastreamento');
-          onPause();
-          toast.info('Rastreamento pausado', {
-            description: 'Rastreamento em segundo plano desativado nesta versão. Mantenha o app aberto durante a viagem.',
-            duration: 8000,
-          });
+          if (backgroundEnabledRef.current) {
+            // Background tracking enabled via FGS — keep tracking alive
+            console.log('[AppState] App foi para background — rastreio continua via Foreground Service');
+          } else {
+            // No FGS — must pause
+            console.log('[AppState] App foi para background — pausando rastreamento (sem FGS)');
+            onPause();
+          }
+        }
+        if (isActive && isTrackingRef.current) {
+          console.log('[AppState] App voltou ao foreground — rastreio ativo');
         }
       });
     };
