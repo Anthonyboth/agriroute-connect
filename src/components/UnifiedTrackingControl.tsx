@@ -207,17 +207,21 @@ export const UnifiedTrackingControl = () => {
 
         // Start Android Foreground Service BEFORE watchPosition
         if (isNative()) {
+          console.log('[FGS] Starting foreground service before watchPosition...');
           const fgsStarted = await startForegroundService();
           setBackgroundEnabled(fgsStarted);
           if (!fgsStarted) {
+            console.warn('[FGS] start failed — background tracking will not work');
             toast.warning('Permissão de notificações negada — rastreio não funcionará em segundo plano', { duration: 6000 });
           }
         }
 
+        console.log('[GPS] Starting watchPosition...');
         const handle = watchPositionSafe(
           (coords) => updateLocation(coords),
           (error) => handleGeolocationError(error)
         );
+        console.log('[GPS] watch started');
 
         setWatchId(handle);
         setIsTracking(true);
@@ -246,13 +250,16 @@ export const UnifiedTrackingControl = () => {
   };
 
   const executeStopTracking = async (silent?: boolean) => {
+    console.log('[GPS] Stopping tracking...');
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
+        console.log('[GPS] watch stopped');
       }
     }
     // Always try to stop FGS
     if (isNative()) {
+      console.log('[FGS] Stopping foreground service...');
       await stopForegroundService();
     }
     setWatchId(null);

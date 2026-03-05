@@ -55,28 +55,30 @@ export const checkPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
     try {
       const perm: PermissionStatus = await Geolocation.checkPermissions();
-      console.log('[GPS] checkPermissions result:', JSON.stringify(perm));
+      console.log('[PERM] checkPermissions result:', JSON.stringify(perm));
       
       const granted = perm.location === 'granted' || perm.coarseLocation === 'granted';
-      if (granted) return true;
+      if (granted) {
+        console.log('[PERM] fine/coarse granted');
+        return true;
+      }
 
       // On iOS, 'prompt' means user hasn't decided yet — not denied
       // On some Android, checkPermissions returns wrong result
       // Try a quick getCurrentPosition as real proof
       try {
         await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 5000 });
-        console.log('[GPS] checkPermissions returned non-granted, but getCurrentPosition worked — treating as granted');
+        console.log('[PERM] checkPermissions returned non-granted, but getCurrentPosition worked — treating as granted');
         return true;
       } catch {
         return false;
       }
     } catch (err: any) {
-      console.warn('[GPS] Erro ao verificar permissões nativas:', err?.message || err);
-      // iOS throws when Location Services are OFF at system level
-      // This is NOT the same as permission denied — it means the toggle is off
+      console.warn('[PERM] Erro ao verificar permissões nativas:', err?.message || err);
       if (isLocationServicesDisabledError(err)) {
-        console.warn('[GPS] Serviços de localização do SISTEMA estão DESATIVADOS (iOS/Android)');
+        console.warn('[PERM] Serviços de localização do SISTEMA estão DESATIVADOS (iOS/Android)');
       }
+      console.log('[PERM] fine/coarse denied (check failed)');
       return false;
     }
   }
@@ -113,11 +115,12 @@ export const checkPermissionSafe = async (): Promise<boolean> => {
 export const requestPermissionSafe = async (): Promise<boolean> => {
   if (isNative()) {
     try {
-      console.log('[GPS] Requesting native permissions...');
+      console.log('[PERM] Requesting native fine/coarse permissions...');
       const perm = await Geolocation.requestPermissions({ permissions: ['location', 'coarseLocation'] });
-      console.log('[GPS] requestPermissions result:', JSON.stringify(perm));
+      console.log('[PERM] requestPermissions result:', JSON.stringify(perm));
       
       const granted = perm.location === 'granted' || perm.coarseLocation === 'granted';
+      console.log('[PERM] fine/coarse', granted ? 'granted' : 'denied');
       
       if (granted) return true;
       

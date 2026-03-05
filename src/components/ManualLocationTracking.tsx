@@ -64,13 +64,16 @@ export const ManualLocationTracking = () => {
 
       // Start Android Foreground Service BEFORE watchPosition
       if (isNative()) {
+        console.log('[FGS] Starting foreground service before watchPosition...');
         const fgsStarted = await startForegroundService();
         setBackgroundEnabled(fgsStarted);
         if (!fgsStarted) {
+          console.warn('[FGS] start failed — background tracking will not work');
           toast.warning('Permissão de notificações negada — rastreio não pode rodar em segundo plano', { duration: 6000 });
         }
       }
 
+      console.log('[GPS] Starting watchPosition...');
       const handle = watchPositionSafe(
         (coords) => updateLocation(coords),
         (error) => handleGeolocationError(error)
@@ -88,12 +91,15 @@ export const ManualLocationTracking = () => {
   };
 
   const stopTracking = async () => {
+    console.log('[GPS] Stopping tracking...');
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
+        console.log('[GPS] watch stopped');
       }
     }
     if (isNative()) {
+      console.log('[FGS] Stopping foreground service...');
       await stopForegroundService();
     }
     setWatchId(null);
