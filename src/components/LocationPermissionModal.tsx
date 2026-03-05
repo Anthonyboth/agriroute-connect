@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { MapPin, AlertTriangle, Navigation, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { checkPermissionSafe, requestPermissionSafe, getCurrentPositionSafe } from '@/utils/location';
 
 interface LocationPermissionModalProps {
@@ -37,10 +38,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     try {
       const granted = await requestPermissionSafe();
       if (!granted) {
-        const message = mandatory 
-          ? 'Localização é obrigatória para usar o AgriRoute' 
-          : 'Permissão de localização negada';
-        toast.error(message, { id: 'gps-no-permission' });
+        showGPSToast('NO_PERMISSION');
         if (!mandatory) onClose(false);
         return;
       }
@@ -51,19 +49,15 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
       onClose(true);
     } catch (error: any) {
       console.error('Location error:', error);
-      let message = 'Erro ao acessar localização';
-      
       if (error?.code === 1) {
-        message = mandatory 
-          ? 'Localização é obrigatória para usar o AgriRoute' 
-          : 'Permissão de localização negada';
+        showGPSToast('NO_PERMISSION');
       } else if (error?.code === 2) {
-        message = 'Localização não disponível';
+        showGPSToast('GPS_UNAVAILABLE');
       } else if (error?.code === 3) {
-        message = 'Timeout ao solicitar localização';
+        showGPSToast('GPS_TIMEOUT');
+      } else {
+        showGPSToast('GPS_ERROR');
       }
-      
-      toast.error(message, { id: 'gps-error' });
       if (!mandatory) onClose(false);
     } finally {
       setRequesting(false);

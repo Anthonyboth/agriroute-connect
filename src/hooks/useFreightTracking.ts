@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { useLocationPermission } from './useLocationPermission';
 import { getCurrentPositionSafe, requestPermissionSafe, checkPermissionSafe } from '@/utils/location';
 
@@ -181,7 +182,7 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
         const granted = await requestLocation();
         if (!granted) {
           setTrackingState(prev => ({ ...prev, error: 'Permissão de localização negada' }));
-          toast.error('Permissão de localização negada. Ative a localização nas configurações do dispositivo.', { id: 'gps-no-permission' });
+          showGPSToast('NO_PERMISSION');
           return false;
         }
       }
