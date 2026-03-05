@@ -85,8 +85,6 @@ export async function driverUpdateFreightStatus({
       if (timeoutError.message === 'RPC_TIMEOUT') {
         console.warn('[STATUS-UPDATE] RPC timeout, armazenando para sincronizar...');
 
-        // ✅ Não fazer fallback direto em tabelas legadas (pode dar 403/lock e piorar latência).
-        // Armazenar localmente e sincronizar via fila.
         StatusUpdateQueue.add({
           freightId,
           newStatus: normalizedStatus,
@@ -104,7 +102,39 @@ export async function driverUpdateFreightStatus({
       throw timeoutError;
     }
 
+    // ✅ FIX: Para edge functions, o erro pode conter dados JSON no body
+    // Tentar extrair NOT_ASSIGNED e outros erros conhecidos do response body
     if (error) {
+      let errorCode = '';
+      let errorMessage = error.message || '';
+      
+      // Tentar parsear o body da resposta da edge function
+      try {
+        if (error.context?.body) {
+          const bodyText = await new Response(error.context.body).text();
+          const bodyJson = JSON.parse(bodyText);
+          errorCode = bodyJson?.error || '';
+          errorMessage = bodyJson?.message || errorMessage;
+        } else if (typeof data === 'object' && data?.error) {
+          errorCode = data.error;
+          errorMessage = data.message || errorMessage;
+        }
+      } catch { /* ignore parse errors */ }
+
+      // ✅ NOT_ASSIGNED = motorista não está mais atribuído (desistência processada)
+      // Remover frete do cache e informar o usuário
+      if (errorCode === 'NOT_ASSIGNED' || errorMessage.includes('não está atribuído')) {
+        console.warn('[STATUS-UPDATE] NOT_ASSIGNED - removing freight from cache:', freightId);
+        const { QueryClient } = await import('@tanstack/react-query');
+        // Dispatch event para forçar remoção do cache
+        window.dispatchEvent(new CustomEvent('freight:forceRemoveFromOngoing', { 
+          detail: { freightId } 
+        }));
+        toast.info('Este frete não está mais atribuído a você', {
+          description: 'O frete foi removido da sua lista.'
+        });
+        return false;
+      }
       console.error('[STATUS-UPDATE] RPC error:', {
         error,
         message: error.message,
