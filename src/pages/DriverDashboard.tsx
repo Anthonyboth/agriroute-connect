@@ -2536,13 +2536,16 @@ const DriverDashboard = () => {
           {!isTransportCompany && !isAffiliated && !isLocationEnabled && !isLocationSyncing && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Localização Desativada</AlertTitle>
+              <AlertTitle>{isFreightActive ? '⚠️ Rastreio Obrigatório!' : 'Localização Desativada'}</AlertTitle>
               <AlertDescription>
-                Você não pode aceitar fretes sem localização ativa.
+                {isFreightActive 
+                  ? 'Você tem um frete em andamento! A localização DEVE estar ativa durante toda a viagem. Ative agora para continuar.'
+                  : 'Você não pode aceitar fretes sem localização ativa.'
+                }
                 <Button 
                   variant="link" 
                   onClick={() => setShowLocationManager(true)}
-                  className="p-0 h-auto ml-2 text-destructive-foreground underline"
+                  className="p-0 h-auto ml-2 text-destructive-foreground underline font-bold"
                 >
                   Ativar agora
                 </Button>
