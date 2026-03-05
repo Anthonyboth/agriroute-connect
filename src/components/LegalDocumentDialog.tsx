@@ -216,14 +216,14 @@ export const LegalDocumentDialog: React.FC<LegalDocumentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="max-w-lg max-h-[85vh] p-0 flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5 text-primary" />
             {title}
           </DialogTitle>
         </DialogHeader>
-        <ScrollArea className="px-6 pb-6 max-h-[65vh]">
+        <ScrollArea className="flex-1 min-h-0 px-6 pb-6" style={{ maxHeight: '65vh' }}>
           <div className="space-y-6 pr-4">
             {content.map((section) => (
               <div key={section.title}>
