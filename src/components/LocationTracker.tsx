@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { 
   MapPin, 
   Satellite, 
@@ -167,24 +168,19 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
     let errorMessage = 'Erro desconhecido';
 
     if ('code' in error) {
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          errorMessage = 'Permissão de localização negada';
-          break;
-        case error.POSITION_UNAVAILABLE:
-          errorMessage = 'Localização indisponível';
-          break;
-        case error.TIMEOUT:
-          errorMessage = 'Timeout na obtenção da localização';
-          break;
+      switch ((error as GeolocationPositionError).code) {
+        case 1: errorMessage = 'Permissão negada'; showGPSToast('NO_PERMISSION'); break;
+        case 2: errorMessage = 'Indisponível'; showGPSToast('GPS_UNAVAILABLE'); break;
+        case 3: errorMessage = 'Timeout'; showGPSToast('GPS_TIMEOUT'); break;
+        default: showGPSToast('GPS_ERROR'); break;
       }
     } else {
       errorMessage = error.message;
+      showGPSToast('GPS_ERROR');
     }
 
     setError(errorMessage);
     setIsTracking(false);
-    toast.error(`Erro de localização: ${errorMessage}`, { id: 'gps-error' });
   };
 
   const toggleLocationEnabled = async (enabled: boolean) => {
