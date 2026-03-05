@@ -318,6 +318,11 @@ export const UnifiedTrackingControl = () => {
     return null;
   }
 
+  // Não mostrar controle de rastreamento se não há frete ativo
+  if (!hasActiveFreight) {
+    return null;
+  }
+
   return (
     <>
       {/* Disclosure Modal (Google Play compliance) */}
