@@ -111,12 +111,9 @@ export const startForegroundService = async (): Promise<boolean> => {
       smallIcon: SMALL_ICON,
       notificationChannelId: CHANNEL_ID,
       silent: true,
-      // Note: buttons render on Android but buttonClicked listener is iOS-only per plugin types.
-      // We still add them for visual UX — tapping the notification itself opens the app.
-      buttons: [
-        { title: 'Abrir app', id: 1 },
-        { title: 'Parar rastreio', id: 2 },
-      ],
+      // CRITICAL: Must match AndroidManifest foregroundServiceType="location"
+      // Without this, Android 14+ will crash the foreground service
+      serviceType: 8, // ServiceType.Location = 8
     });
 
     isRunning = true;
@@ -165,10 +162,7 @@ export const updateForegroundNotification = async (body: string): Promise<void> 
       smallIcon: SMALL_ICON,
       notificationChannelId: CHANNEL_ID,
       silent: true,
-      buttons: [
-        { title: 'Abrir app', id: 1 },
-        { title: 'Parar rastreio', id: 2 },
-      ],
+      serviceType: 8, // ServiceType.Location
     });
     lastNotificationUpdate = now;
     console.log('[FGS] Notification updated:', body);
