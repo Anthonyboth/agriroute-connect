@@ -141,7 +141,7 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 let lastToastTime = 0;
-const MIN_TOAST_INTERVAL_MS = 5_000; // 5s minimum between toasts
+const MIN_TOAST_INTERVAL_MS = 8_000; // 8s minimum between toasts
 
 function toast({ ...props }: Toast) {
   const now = Date.now();
