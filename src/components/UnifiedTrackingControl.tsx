@@ -71,6 +71,17 @@ export const UnifiedTrackingControl = () => {
     };
   }, []);
 
+  // Reset hasAutoOpened when active freight changes (new freight accepted or withdrawal)
+  const prevFreightIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeFreightId !== prevFreightIdRef.current) {
+      prevFreightIdRef.current = activeFreightId ?? null;
+      if (activeFreightId && hasAutoOpened) {
+        setHasAutoOpened(false);
+      }
+    }
+  }, [activeFreightId, hasAutoOpened]);
+
   // Auto-abrir disclosure OBRIGATÓRIO quando há frete ativo (sem esperar gesto do usuário)
   useEffect(() => {
     if (
