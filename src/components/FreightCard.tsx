@@ -123,18 +123,33 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   ]);
 
   // Bridge: manter interface legada para unitRateColorClass/unitRateValue
-  const priceDisplay = useMemo(() => ({
-    primaryFormatted: preco.primaryText.replace(preco.suffix, ''),
-    primarySuffix: preco.suffix,
-    primaryLabel: preco.primaryText,
-    secondaryLabel: preco.secondaryText,
-    unitRateColorClass: preco.pricingType === 'PER_TON' 
-      ? (preco.unitValue >= 80 ? 'text-primary' : preco.unitValue >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive')
-      : (preco.unitValue >= 6 ? 'text-primary' : preco.unitValue >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'),
-    unitRateValue: preco.unitValue || null,
-    pricingType: preco.pricingType || 'FIXED',
-    isPricingTypeInvalid: preco.invalid,
-  }), [preco]);
+  // Para PER_VEHICLE, derivar R$/km real (price / distance) para o grid cell
+  const derivedPerKm = useMemo(() => {
+    if (preco.pricingType === 'PER_VEHICLE' && freight.distance_km && freight.distance_km > 0) {
+      return preco.unitValue / freight.distance_km;
+    }
+    return null;
+  }, [preco, freight.distance_km]);
+
+  const priceDisplay = useMemo(() => {
+    // Para o grid cell R$/km: usar derivedPerKm para PER_VEHICLE, unitValue para PER_KM
+    const rateForGrid = preco.pricingType === 'PER_TON' ? preco.unitValue
+      : preco.pricingType === 'PER_KM' ? preco.unitValue
+      : derivedPerKm; // PER_VEHICLE → derived R$/km
+
+    return {
+      primaryFormatted: preco.primaryText.replace(preco.suffix, ''),
+      primarySuffix: preco.suffix,
+      primaryLabel: preco.primaryText,
+      secondaryLabel: preco.secondaryText,
+      unitRateColorClass: preco.pricingType === 'PER_TON' 
+        ? (preco.unitValue >= 80 ? 'text-primary' : preco.unitValue >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive')
+        : ((rateForGrid ?? 0) >= 6 ? 'text-primary' : (rateForGrid ?? 0) >= 4 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'),
+      unitRateValue: rateForGrid ?? null,
+      pricingType: preco.pricingType || 'FIXED',
+      isPricingTypeInvalid: preco.invalid,
+    };
+  }, [preco, derivedPerKm]);
 
   // Cor semântica de rentabilidade (usa hook centralizado)
   const rpmColor = priceDisplay.unitRateColorClass;
@@ -655,9 +670,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               </div>
               <p className={`text-xs font-bold flex items-center justify-center gap-0.5 ${rpmColor}`}>
                 {rpmIcon}
-                {preco.unitValue ? `R$${preco.unitValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                {priceDisplay.unitRateValue != null ? `R$${priceDisplay.unitRateValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
               </p>
-              {preco.unitValue != null && (
+              {priceDisplay.unitRateValue != null && (
                 <span className={`text-[9px] font-medium ${rpmColor}`}>
                   {rpmColor.includes('primary') ? '↑ Boa' : rpmColor.includes('destructive') ? '↓ Baixa' : '→ Média'}
                 </span>
