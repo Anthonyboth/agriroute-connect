@@ -34,15 +34,15 @@ export const useAppStateTracking = (
         if (!isActive && isTrackingRef.current) {
           if (backgroundEnabledRef.current) {
             // Background tracking enabled via FGS — keep tracking alive
-            console.log('[AppState] App foi para background — rastreio continua via Foreground Service');
+            console.log('[AppState] APPSTATE_BACKGROUND — rastreio continua via FGS');
           } else {
             // No FGS — must pause
-            console.log('[AppState] App foi para background — pausando rastreamento (sem FGS)');
+            console.log('[AppState] APPSTATE_BACKGROUND — pausando (sem FGS)');
             onPause();
           }
         }
         if (isActive && isTrackingRef.current) {
-          console.log('[AppState] App voltou ao foreground — rastreio ativo');
+          console.log('[AppState] APPSTATE_FOREGROUND — rastreio ativo');
         }
       });
     };

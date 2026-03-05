@@ -85,7 +85,7 @@ export const startForegroundService = async (): Promise<void> => {
     return;
   }
   if (isRunning) {
-    console.log('[ForegroundService] Já está rodando — ignorando duplicata');
+    console.log('[FGS] FGS_ALREADY_RUNNING — idempotent, sem duplicar notificação');
     return;
   }
 
@@ -114,7 +114,7 @@ export const startForegroundService = async (): Promise<void> => {
 
     isRunning = true;
     lastNotificationUpdate = Date.now();
-    console.log('[ForegroundService] ✅ Iniciado com sucesso — notificação persistente ativa');
+    console.log('[FGS] FGS_START_OK — 1 notificação persistente ativa');
   } catch (err) {
     console.error('[ForegroundService] ❌ Erro ao iniciar:', err);
     // Don't throw — tracking can still work in foreground without FGS
@@ -130,7 +130,7 @@ export const stopForegroundService = async (): Promise<void> => {
   try {
     const { ForegroundService } = await import('@capawesome-team/capacitor-android-foreground-service');
     await ForegroundService.stopForegroundService();
-    console.log('[ForegroundService] ✅ Parado — notificação removida');
+    console.log('[FGS] FGS_STOP_OK — notificação removida');
   } catch (err) {
     console.warn('[ForegroundService] Erro ao parar:', err);
   } finally {
