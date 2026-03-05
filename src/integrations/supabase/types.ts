@@ -15851,7 +15851,7 @@ export type Database = {
         Returns: string
       }
       process_freight_withdrawal: {
-        Args: { driver_profile_id: string; freight_id_param: string }
+        Args: { freight_id_param: string; p_driver_profile_id: string }
         Returns: Json
       }
       process_payout_request: {
