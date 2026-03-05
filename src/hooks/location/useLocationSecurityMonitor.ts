@@ -225,8 +225,16 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
 
     // ✅ Start Android Foreground Service BEFORE geolocation watch
     // This ensures GPS continues working when app is backgrounded/screen locked
+    // If FGS fails (e.g. missing permissions in outdated APK), tracking still works in foreground
     if (isAndroidEnv()) {
-      await startForegroundService();
+      try {
+        const fgsOk = await startForegroundService();
+        if (!fgsOk) {
+          console.warn('[GPS] FGS failed to start — tracking will work in foreground only');
+        }
+      } catch (fgsErr) {
+        console.warn('[GPS] FGS error (non-blocking):', fgsErr);
+      }
     }
 
     if (isCapacitorEnv()) {
