@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { AppSpinner, CenteredSpinner } from "@/components/ui/AppSpinner";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -65,10 +65,10 @@ const RouteRentabilityReport = lazyWithRetry(() =>
   import("@/components/RouteRentabilityReport").then((m) => ({ default: m.RouteRentabilityReport })),
 );
 
+// ✅ Static import - critical for hero section (must render immediately)
+import { CreateFreightWizardModal } from "@/components/freight-wizard";
+
 // ✅ PHASE 3: Lazy load heavy tab/modal components to reduce initial chunk size
-const CreateFreightWizardModal = lazyWithRetry(() =>
-  import("@/components/freight-wizard").then((m) => ({ default: m.CreateFreightWizardModal })),
-);
 const EditFreightModal = lazyWithRetry(() =>
   import("@/components/EditFreightModal").then((m) => ({ default: m.EditFreightModal })),
 );
@@ -2180,57 +2180,69 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-4">
-            <UnifiedChatHub userProfileId={profile?.id || ''} userRole="PRODUTOR" />
+            <Suspense fallback={<ChartLoader />}>
+              <UnifiedChatHub userProfileId={profile?.id || ''} userRole="PRODUTOR" />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <ProducerReportsTab />
+            <Suspense fallback={<ChartLoader />}>
+              <ProducerReportsTab />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
-            <ProducerPaymentsTab
-              externalPayments={externalPayments}
-              freightPayments={[]} // REMOVIDO: produtores não têm permissão RLS
-              paymentLoading={paymentLoading}
-              onConfirmExternalPayment={handleConfirmExternalPayment}
-              onConfirmPaymentMade={confirmPaymentMade}
-              onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
-              currentUserProfile={profile}
-              onRefresh={fetchExternalPayments}
-            />
+            <Suspense fallback={<ChartLoader />}>
+              <ProducerPaymentsTab
+                externalPayments={externalPayments}
+                freightPayments={[]} // REMOVIDO: produtores não têm permissão RLS
+                paymentLoading={paymentLoading}
+                onConfirmExternalPayment={handleConfirmExternalPayment}
+                onConfirmPaymentMade={confirmPaymentMade}
+                onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
+                currentUserProfile={profile}
+                onRefresh={fetchExternalPayments}
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="fiscal" className="space-y-4">
-            <FiscalTab userRole="PRODUTOR" />
+            <Suspense fallback={<ChartLoader />}>
+              <FiscalTab userRole="PRODUTOR" />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
 
-      <EditFreightModal
-        isOpen={editFreightModalOpen}
-        onClose={() => setEditFreightModalOpen(false)}
-        freight={selectedFreight}
-        onSuccess={() => {
-          fetchFreights();
-          setEditFreightModalOpen(false);
-        }}
-      />
+      <Suspense fallback={null}>
+        <EditFreightModal
+          isOpen={editFreightModalOpen}
+          onClose={() => setEditFreightModalOpen(false)}
+          freight={selectedFreight}
+          onSuccess={() => {
+            fetchFreights();
+            setEditFreightModalOpen(false);
+          }}
+        />
+      </Suspense>
 
-      <ProposalCounterModal
-        isOpen={counterProposalModalOpen}
-        onClose={() => setCounterProposalModalOpen(false)}
-        originalProposal={selectedProposal}
-        freightPrice={selectedProposal?.freight_price || 0}
-        freightDistance={selectedProposal?.freight_distance || 0}
-        freightWeight={selectedProposal?.freight_weight || 0}
-        requiredTrucks={selectedProposal?.required_trucks || 1}
-        freightPricingType={selectedProposal?.freight_pricing_type}
-        freightPricePerKm={selectedProposal?.freight_price_per_km}
-        onSuccess={() => {
-          fetchProposals();
-          setCounterProposalModalOpen(false);
-        }}
-      />
+      <Suspense fallback={null}>
+        <ProposalCounterModal
+          isOpen={counterProposalModalOpen}
+          onClose={() => setCounterProposalModalOpen(false)}
+          originalProposal={selectedProposal}
+          freightPrice={selectedProposal?.freight_price || 0}
+          freightDistance={selectedProposal?.freight_distance || 0}
+          freightWeight={selectedProposal?.freight_weight || 0}
+          requiredTrucks={selectedProposal?.required_trucks || 1}
+          freightPricingType={selectedProposal?.freight_pricing_type}
+          freightPricePerKm={selectedProposal?.freight_price_per_km}
+          onSuccess={() => {
+            fetchProposals();
+            setCounterProposalModalOpen(false);
+          }}
+        />
+      </Suspense>
 
       <ConfirmDialog
         isOpen={confirmDialogOpen}
@@ -2249,93 +2261,105 @@ const ProducerDashboard = () => {
           <DialogTitle className="sr-only">Detalhes do Frete</DialogTitle>
           <DialogDescription className="sr-only">Detalhes completos do frete</DialogDescription>
           {selectedFreightDetails && (
-            <FreightDetails
-              freightId={selectedFreightDetails.id}
-              currentUserProfile={profile}
-              initialTab={(location.state as any)?.openChatFreightId ? "chat" : "status"}
-              onClose={() => setSelectedFreightDetails(null)}
-            />
+            <Suspense fallback={<ChartLoader />}>
+              <FreightDetails
+                freightId={selectedFreightDetails.id}
+                currentUserProfile={profile}
+                initialTab={(location.state as any)?.openChatFreightId ? "chat" : "status"}
+                onClose={() => setSelectedFreightDetails(null)}
+              />
+            </Suspense>
           )}
         </DialogContent>
       </Dialog>
 
-      {freightToConfirm && (
-        <DeliveryConfirmationModal
-          freight={{
-            id: freightToConfirm.id,
-            cargo_type: freightToConfirm.cargo_type,
-            origin_address: freightToConfirm.origin_address,
-            destination_address: freightToConfirm.destination_address,
-            status: freightToConfirm.status,
-            updated_at: freightToConfirm.updated_at,
-            metadata: freightToConfirm.metadata,
-            driver: freightToConfirm.profiles
-              ? {
-                  full_name: freightToConfirm.profiles.full_name,
-                  contact_phone: freightToConfirm.profiles.contact_phone || freightToConfirm.profiles.phone,
-                }
-              : undefined,
-            // ✅ P0 FIX: Passar campos de confirmação individual
-            profiles: freightToConfirm.profiles,
-            _isIndividualConfirmation: freightToConfirm._isIndividualConfirmation,
-            _assignmentId: freightToConfirm._assignmentId,
-            driver_id: freightToConfirm.driver_id,
-            price: freightToConfirm.price,
-          }}
-          isOpen={deliveryConfirmationModal}
-          onClose={closeDeliveryConfirmationModal}
-          onConfirm={handleDeliveryConfirmed}
-        />
-      )}
+      <Suspense fallback={null}>
+        {freightToConfirm && (
+          <DeliveryConfirmationModal
+            freight={{
+              id: freightToConfirm.id,
+              cargo_type: freightToConfirm.cargo_type,
+              origin_address: freightToConfirm.origin_address,
+              destination_address: freightToConfirm.destination_address,
+              status: freightToConfirm.status,
+              updated_at: freightToConfirm.updated_at,
+              metadata: freightToConfirm.metadata,
+              driver: freightToConfirm.profiles
+                ? {
+                    full_name: freightToConfirm.profiles.full_name,
+                    contact_phone: freightToConfirm.profiles.contact_phone || freightToConfirm.profiles.phone,
+                  }
+                : undefined,
+              // ✅ P0 FIX: Passar campos de confirmação individual
+              profiles: freightToConfirm.profiles,
+              _isIndividualConfirmation: freightToConfirm._isIndividualConfirmation,
+              _assignmentId: freightToConfirm._assignmentId,
+              driver_id: freightToConfirm.driver_id,
+              price: freightToConfirm.price,
+            }}
+            isOpen={deliveryConfirmationModal}
+            onClose={closeDeliveryConfirmationModal}
+            onConfirm={handleDeliveryConfirmed}
+          />
+        )}
+      </Suspense>
 
       {/* ✅ CORREÇÃO: onClose do ServicesModal agora faz REFRESH forte (inclui FRETE_MOTO) */}
-      <ServicesModal isOpen={servicesModalOpen} onClose={closeServicesModalAndRefresh} />
+      <Suspense fallback={null}>
+        <ServicesModal isOpen={servicesModalOpen} onClose={closeServicesModalAndRefresh} />
+      </Suspense>
 
-      {activeFreightForRating && (
-        <AutoRatingModal
-          isOpen
-          onClose={() => setActiveFreightForRating(null)}
-          freightId={activeFreightForRating.id}
-          userToRate={
-            activeFreightForRating.driver
-              ? {
-                  id: activeFreightForRating.driver.id,
-                  full_name: activeFreightForRating.driver.full_name,
-                  role: "MOTORISTA" as const,
-                }
-              : null
-          }
-          currentUserProfile={profile}
-        />
-      )}
+      <Suspense fallback={null}>
+        {activeFreightForRating && (
+          <AutoRatingModal
+            isOpen
+            onClose={() => setActiveFreightForRating(null)}
+            freightId={activeFreightForRating.id}
+            userToRate={
+              activeFreightForRating.driver
+                ? {
+                    id: activeFreightForRating.driver.id,
+                    full_name: activeFreightForRating.driver.full_name,
+                    role: "MOTORISTA" as const,
+                  }
+                : null
+            }
+            currentUserProfile={profile}
+          />
+        )}
+      </Suspense>
 
       {/* ✅ P0: Service Edit Modal */}
-      {selectedServiceToEdit && (
-        <ServiceEditModal
-          isOpen={serviceEditModalOpen}
-          onClose={() => {
-            setServiceEditModalOpen(false);
-            setSelectedServiceToEdit(null);
-          }}
-          onSuccess={async () => {
-            await Promise.all([fetchServiceRequests(), fetchFreights()]);
-          }}
-          serviceRequest={selectedServiceToEdit}
-        />
-      )}
+      <Suspense fallback={null}>
+        {selectedServiceToEdit && (
+          <ServiceEditModal
+            isOpen={serviceEditModalOpen}
+            onClose={() => {
+              setServiceEditModalOpen(false);
+              setSelectedServiceToEdit(null);
+            }}
+            onSuccess={async () => {
+              await Promise.all([fetchServiceRequests(), fetchFreights()]);
+            }}
+            serviceRequest={selectedServiceToEdit}
+          />
+        )}
+      </Suspense>
 
       {/* ✅ Service Chat Dialog */}
-      {serviceChatOpen && selectedChatServiceRequest && (
-        <ServiceChatDialog
-          isOpen={serviceChatOpen}
-          onClose={() => {
-            setServiceChatOpen(false);
-            setSelectedChatServiceRequest(null);
-          }}
-          serviceRequest={selectedChatServiceRequest}
-          currentUserProfile={profile}
-        />
-      )}
+      <Suspense fallback={null}>
+        {serviceChatOpen && selectedChatServiceRequest && (
+          <ServiceChatDialog
+            isOpen={serviceChatOpen}
+            onClose={() => {
+              setServiceChatOpen(false);
+              setSelectedChatServiceRequest(null);
+            }}
+            serviceRequest={selectedChatServiceRequest}
+            currentUserProfile={profile}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };
