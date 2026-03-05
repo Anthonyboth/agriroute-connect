@@ -45,6 +45,7 @@ import { FloatingSupportButton } from './components/FloatingSupportButton';
 import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
+import { PullToRefresh } from './components/PullToRefresh';
 import { LoopPreventionBoundary } from '@/components/LoopPreventionBoundary';
 import { TutorialProvider } from '@/tutorial';
 import { HostOnlyAdminGate } from '@/components/security/HostOnlyAdminGate';
@@ -978,6 +979,7 @@ const App = () => {
                       <FloatingSupportButton />
                       <SilentCityBootstrap />
                       <SwipeNavigationHandler />
+                      <PullToRefresh />
                       <HostOnlyAdminGate />
                       <main>
                         <Routes>
