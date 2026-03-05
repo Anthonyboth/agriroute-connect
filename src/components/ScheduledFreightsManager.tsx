@@ -312,7 +312,12 @@ export const ScheduledFreightsManager: React.FC<ScheduledFreightsManagerProps> =
   };
 
   const handleCancelFreight = async () => {
-    if (!selectedFreight?.id) return;
+    if (!selectedFreight?.id) {
+      console.warn('[ScheduledFreightsManager] handleCancelFreight: no selectedFreight');
+      return;
+    }
+
+    console.log('[ScheduledFreightsManager] Cancelling freight:', selectedFreight.id);
 
     try {
       const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
@@ -322,6 +327,8 @@ export const ScheduledFreightsManager: React.FC<ScheduledFreightsManagerProps> =
         }
       });
 
+      console.log('[ScheduledFreightsManager] cancel-freight-safe response:', { data, error });
+
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Erro ao cancelar');
 
@@ -329,7 +336,7 @@ export const ScheduledFreightsManager: React.FC<ScheduledFreightsManagerProps> =
       fetchScheduledFreights();
       setCancelDialogOpen(false);
     } catch (error) {
-      console.error('Erro ao cancelar frete:', error);
+      console.error('[ScheduledFreightsManager] Erro ao cancelar frete:', error);
       toast.error('Erro ao cancelar frete');
     }
   };

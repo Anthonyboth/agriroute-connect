@@ -13,7 +13,7 @@ import {
 interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   description: string;
   confirmText?: string;
@@ -31,9 +31,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelText = 'Cancelar',
   variant = 'default'
 }) => {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
+  const handleConfirm = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent Radix auto-close
+    setIsProcessing(true);
+    try {
+      await onConfirm();
+    } catch (err) {
+      console.error('[ConfirmDialog] onConfirm error:', err);
+    } finally {
+      setIsProcessing(false);
+      onClose();
+    }
   };
 
   return (
@@ -46,14 +56,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>
+          <AlertDialogCancel onClick={onClose} disabled={isProcessing}>
             {cancelText}
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm}
+            disabled={isProcessing}
             className={variant === 'destructive' ? 'bg-destructive hover:bg-destructive/90' : ''}
           >
-            {confirmText}
+            {isProcessing ? 'Processando...' : confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
