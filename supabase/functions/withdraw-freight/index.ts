@@ -94,7 +94,7 @@ serve(async (req) => {
     // ✅ Call RPC with USER client so auth.uid() is set inside the function
     const { data: result, error: rpcError } = await userClient.rpc('process_freight_withdrawal', {
       freight_id_param: freightId,
-      driver_profile_id: driverId
+      p_driver_profile_id: driverId
     });
 
     if (rpcError) {
