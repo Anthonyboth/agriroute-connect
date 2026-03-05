@@ -229,10 +229,27 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       return;
     }
     
+    // ✅ Before navigating to a freight, check if it's been cancelled
+    if (data?.freight_id) {
+      const { data: freightCheck } = await supabase
+        .from('freights')
+        .select('status')
+        .eq('id', data.freight_id)
+        .single();
+
+      if (freightCheck?.status === 'CANCELLED') {
+        setCancelledFreightModal({
+          freightId: data.freight_id,
+          reason: data.cancellation_reason,
+          cancelledAt: data.cancelled_at,
+        });
+        return;
+      }
+    }
+
     // Use centralized navigation for all other types
     const navigated = navigateTo(type, data, () => onClose());
     if (!navigated) {
-      // Fallback: just close the notification center
       onClose();
     }
   };
