@@ -29,6 +29,9 @@ import { usePixPayment } from "@/hooks/usePixPayment";
 import { useFiscalDocumentCredits } from "@/hooks/useFiscalDocumentCredits";
 import { AptidaoWizardStep0, StateGuideViewer, MeiCredenciamentoNfeModal } from "@/components/fiscal/education";
 import { extractPaymentRequired } from "@/lib/payment-required";
+import { requiresGta, hasGtaReference, GTA_NFE_WARNING } from "@/lib/gta-utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -102,6 +105,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPrefilled, setHasPrefilled] = useState(false);
   const [freightRecipientLoading, setFreightRecipientLoading] = useState(false);
+  const [freightCargoType, setFreightCargoType] = useState<string | null>(null);
   
   // Estado do modal de erro SEFAZ
   const [sefazError, setSefazError] = useState<{ isOpen: boolean; message: string; response?: any }>({
@@ -218,6 +222,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
             .from('freights')
             .select(`
               producer_id,
+              cargo_type,
               origin_city,
               origin_state,
               origin_address,
@@ -240,6 +245,11 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
             console.warn('[NfeEmissionWizard] Frete não encontrado ou sem produtor:', freightError);
             setFreightRecipientLoading(false);
             return;
+          }
+
+          // ✅ Salvar cargo_type para validação GTA
+          if (freight.cargo_type) {
+            setFreightCargoType(freight.cargo_type);
           }
 
           // Buscar dados do produtor (destinatário)
@@ -481,6 +491,17 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
   // ✅ Executa a emissão após validação e pagamento
   const executeEmission = async () => {
+    // ✅ Validação GTA obrigatória para carga animal
+    if (requiresGta(freightCargoType) && !hasGtaReference(formData.informacoes_adicionais)) {
+      toast.error("Número da GTA obrigatório!", {
+        description: "Para transporte de animais, inclua o nº da GTA no campo 'Informações Adicionais'. Ex: GTA nº 123456",
+        duration: 10000,
+      });
+      setCurrentStep(3);
+      setIsSubmitting(false);
+      return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       toast.error("Sessão inválida", { description: "Faça login novamente." });
@@ -973,13 +994,30 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
             <div>
               <Label htmlFor="informacoes_adicionais">Informações Adicionais</Label>
+              {requiresGta(freightCargoType) && (
+                <Alert variant="destructive" className="my-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    <strong>ATENÇÃO, PRODUTOR RURAL!</strong> A partir de 01/03/2026 a inclusão do número da GTA 
+                    (Guia de Trânsito Animal) na Nota Fiscal é <strong>obrigatória</strong> (regulamentação ACRIMAT). 
+                    Informe o número da GTA neste campo. Ex: <em>"GTA nº 123456"</em>
+                  </AlertDescription>
+                </Alert>
+              )}
               <Textarea
                 id="informacoes_adicionais"
                 value={formData.informacoes_adicionais}
                 onChange={(e) => updateField("informacoes_adicionais", e.target.value)}
-                placeholder="Observações que aparecerão na nota"
+                placeholder={requiresGta(freightCargoType) 
+                  ? "OBRIGATÓRIO: Informe o nº da GTA. Ex: GTA nº 123456" 
+                  : "Observações que aparecerão na nota"}
                 rows={3}
               />
+              {requiresGta(freightCargoType) && !hasGtaReference(formData.informacoes_adicionais) && formData.informacoes_adicionais.length > 0 && (
+                <p className="text-sm text-destructive mt-1">
+                  ⚠️ Número da GTA não detectado. Inclua o número da GTA (ex: "GTA nº 123456").
+                </p>
+              )}
             </div>
           </div>
         );

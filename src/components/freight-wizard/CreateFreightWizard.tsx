@@ -15,7 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Plus, Info, Save, RotateCcw, MapPin, Package, DollarSign, Check, Home } from 'lucide-react';
+import { Plus, Info, Save, RotateCcw, MapPin, Package, DollarSign, Check, Home, AlertTriangle } from 'lucide-react';
+import { requiresGta, GTA_FREIGHT_NOTICE } from '@/lib/gta-utils';
 import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { FreightWizardStep1 } from './FreightWizardStep1';
 import { FreightWizardStep2Address } from './FreightWizardStep2Address';
@@ -667,6 +668,17 @@ export function CreateFreightWizard({
       showSuccess(effectiveGuestMode 
         ? 'Solicitação enviada! Motoristas da região serão notificados.' 
         : 'Frete criado com sucesso!');
+
+      // ✅ Aviso GTA para fretes de gado/animais vivos
+      if (requiresGta(formData.cargo_type)) {
+        setTimeout(() => {
+          toast.warning(GTA_FREIGHT_NOTICE, {
+            duration: 15000,
+            icon: '🐄',
+            description: 'Lembre-se de incluir o número da GTA ao emitir a NF-e deste frete.',
+          });
+        }, 1500);
+      }
       
       clearDraft();
       handleModalClose();
