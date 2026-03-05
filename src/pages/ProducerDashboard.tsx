@@ -2172,7 +2172,7 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            <ProducerHistoryTab />
+            <ProducerHistoryTab onNavigateToTab={setActiveTab} />
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">

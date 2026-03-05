@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 interface FreightHistoryFromDBProps {
   role?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
   companyId?: string;
+  onNavigateToTab?: (tab: string) => void;
 }
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
@@ -81,7 +82,7 @@ function mapHistoryToFreight(item: FreightHistoryItem): any {
   };
 }
 
-export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role, companyId }) => {
+export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role, companyId, onNavigateToTab }) => {
   const { freightHistory, assignmentHistory, isLoading, refetch } = useFreightHistory({ role, companyId });
   const [reopenModalOpen, setReopenModalOpen] = useState(false);
   const [freightToReopen, setFreightToReopen] = useState<any>(null);
@@ -95,8 +96,12 @@ export const FreightHistoryFromDB: React.FC<FreightHistoryFromDBProps> = ({ role
     setReopenModalOpen(false);
     setFreightToReopen(null);
     refetch();
-    toast.success('Frete reaberto com sucesso!');
-  }, [refetch]);
+    toast.success('Frete reaberto com sucesso! Redirecionando para fretes abertos...');
+    // Navegar para aba de fretes abertos após reabrir
+    if (onNavigateToTab) {
+      setTimeout(() => onNavigateToTab('freights-open'), 500);
+    }
+  }, [refetch, onNavigateToTab]);
 
   if (isLoading) {
     return <CenteredSpinner size="lg" />;
