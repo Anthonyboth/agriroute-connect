@@ -40,7 +40,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         const message = mandatory 
           ? 'Localização é obrigatória para usar o AgriRoute' 
           : 'Permissão de localização negada';
-        toast.error(message);
+        toast.error(message, { id: 'gps-no-permission' });
         if (!mandatory) onClose(false);
         return;
       }
@@ -63,7 +63,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         message = 'Timeout ao solicitar localização';
       }
       
-      toast.error(message);
+      toast.error(message, { id: 'gps-error' });
       if (!mandatory) onClose(false);
     } finally {
       setRequesting(false);

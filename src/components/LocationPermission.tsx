@@ -43,7 +43,7 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
       if (!granted) {
         setLocationEnabled(false);
         onPermissionChange(false);
-        toast.error('Permissão de localização negada. Ative em Ajustes > Privacidade > Serviços de Localização.');
+        toast.error('Permissão de localização negada. Ative em Ajustes > Privacidade > Serviços de Localização.', { id: 'gps-no-permission' });
         return;
       }
       
@@ -57,15 +57,15 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
       
       const msg = error?.message || '';
       if (msg.includes('desativados') || msg.toLowerCase().includes('disabled') || msg.toLowerCase().includes('not enabled')) {
-        toast.error('Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.');
+        toast.error('Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.', { id: 'gps-off' });
       } else if (error?.code === 1) {
-        toast.error('Permissão de localização negada. Ative nas configurações do dispositivo.');
+        toast.error('Permissão de localização negada. Ative nas configurações do dispositivo.', { id: 'gps-no-permission' });
       } else if (error?.code === 2) {
-        toast.error('Localização indisponível. Verifique se o GPS está ativado.');
+        toast.error('Localização indisponível. Verifique se o GPS está ativado.', { id: 'gps-unavailable' });
       } else if (error?.code === 3) {
-        toast.error('Tempo limite para obter localização. Tente novamente.');
+        toast.error('Tempo limite para obter localização. Tente novamente.', { id: 'gps-timeout' });
       } else {
-        toast.error('Erro ao obter localização. Verifique as permissões do dispositivo.');
+        toast.error('Erro ao obter localização. Verifique as permissões do dispositivo.', { id: 'gps-error' });
       }
     } finally {
       setChecking(false);

@@ -130,24 +130,27 @@ export const UnifiedTrackingControl = () => {
       switch (code) {
         case 1:
           toast.error('Permissão de localização negada', {
-            description: 'Ative nas configurações do dispositivo.'
+            description: 'Ative nas configurações do dispositivo.',
+            id: 'gps-no-permission',
           });
           break;
         case 2:
           toast.error('Localização indisponível', {
-            description: 'Verifique se o GPS está ativado.'
+            description: 'Verifique se o GPS está ativado.',
+            id: 'gps-unavailable',
           });
           break;
         case 3:
           toast.warning('GPS demorando para responder', {
-            description: 'Se estiver em local fechado, mova-se para uma área aberta e tente novamente.'
+            description: 'Se estiver em local fechado, mova-se para uma área aberta e tente novamente.',
+            id: 'gps-timeout',
           });
           break;
         default:
-          toast.error('Erro ao rastrear localização');
+          toast.error('Erro ao rastrear localização', { id: 'gps-error' });
       }
     } else if (message) {
-      toast.error('Erro ao rastrear localização', { description: message });
+      toast.error('Erro ao rastrear localização', { description: message, id: 'gps-error' });
     }
   };
 
@@ -188,7 +191,7 @@ export const UnifiedTrackingControl = () => {
       if (!hasPermission) {
         const granted = await requestPermissionSafe();
         if (!granted) {
-          toast.error('Permissão de localização negada');
+          toast.error('Permissão de localização negada', { id: 'gps-no-permission' });
           isStartingRef.current = false;
           return;
         }
@@ -212,7 +215,7 @@ export const UnifiedTrackingControl = () => {
           setBackgroundEnabled(fgsStarted);
           if (!fgsStarted) {
             console.warn('[FGS] start failed — background tracking will not work');
-            toast.warning('Permissão de notificações negada — rastreio não funcionará em segundo plano', { duration: 6000 });
+            toast.warning('Permissão de notificações negada — rastreio não funcionará em segundo plano', { duration: 6000, id: 'gps-notif-denied' });
           }
         }
 

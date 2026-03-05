@@ -184,7 +184,7 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
 
     setError(errorMessage);
     setIsTracking(false);
-    toast.error(`Erro de localização: ${errorMessage}`);
+    toast.error(`Erro de localização: ${errorMessage}`, { id: 'gps-error' });
   };
 
   const toggleLocationEnabled = async (enabled: boolean) => {

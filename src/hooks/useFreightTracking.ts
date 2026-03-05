@@ -181,7 +181,7 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
         const granted = await requestLocation();
         if (!granted) {
           setTrackingState(prev => ({ ...prev, error: 'Permissão de localização negada' }));
-          toast.error('Permissão de localização negada. Ative a localização nas configurações do dispositivo.');
+          toast.error('Permissão de localização negada. Ative a localização nas configurações do dispositivo.', { id: 'gps-no-permission' });
           return false;
         }
       }
