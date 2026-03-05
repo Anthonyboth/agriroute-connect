@@ -16,6 +16,7 @@ import { ForumFileUpload } from '../components/ForumFileUpload';
 import { THREAD_TYPE_LABELS } from '../types';
 import { toast } from 'sonner';
 import { checkClientRateLimit, validateForumFile, FORUM_MAX_FILES } from '../utils/sanitize';
+import { reportForumErrorToTelegram } from '../utils/telegramReporter';
 import { runAutoMod, maskPhoneNumbers } from '../utils/automod';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -86,13 +87,24 @@ export default function ForumNewThread() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!boardId) {
+      toast.error('Board não identificado. Volte ao fórum e selecione uma categoria.');
+      reportForumErrorToTelegram({
+        title: '🟡 Fórum - Board ID ausente',
+        message: `Usuário tentou criar tópico sem board_id na URL.\n**Rota**: ${window.location.href}`,
+        source: 'forum_new_thread_validation',
+        severity: 'warn',
+      });
+      return;
+    }
+
     // Validate flair
     if (requiresFlair && !threadType) {
       toast.error('Selecione o tipo (flair) do post.');
       return;
     }
 
-    if (!title.trim() || !body.trim() || !boardId) {
+    if (!title.trim() || !body.trim()) {
       toast.error('Preencha título e conteúdo.');
       return;
     }
@@ -143,8 +155,13 @@ export default function ForumNewThread() {
       });
       toast.success('Tópico criado!');
       navigate(`/forum/topico/${thread.id}`);
-    } catch {
+    } catch (err: any) {
       toast.error('Erro ao criar tópico.');
+      reportForumErrorToTelegram({
+        title: '🔴 Erro no Fórum - Criar Tópico',
+        message: `**Erro**: ${err?.message || 'Desconhecido'}\n**Título**: ${title}\n**Board**: ${boardId}`,
+        source: 'forum_new_thread_submit',
+      });
     }
   };
 
