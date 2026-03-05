@@ -1,32 +1,24 @@
 
 
-# Plano: Corrigir Inconsistências no Fluxo de Fretes — ✅ CONCLUÍDO
+## Problem
 
-## Correções Implementadas
+The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
 
-### 1. ✅ Remover `APPROVED` do Workflow
+## Root Cause
 
-**Arquivos alterados:**
-- `src/security/freightWorkflowGuard.ts` — Removido `APPROVED` do tipo, WORKFLOW_ORDER, STATUS_LABELS_PTBR e ROLE_ALLOWED_TRANSITIONS
-- `src/security/freightActionMatrix.ts` — Removida entrada `APPROVED`, admin agora publica direto para OPEN
-- `src/security/freightActionDispatcher.ts` — Removido de STATUS_ORDER_MAP
-- `src/security/i18nGuard.ts` — Mantido apenas na lista de termos proibidos (detecção de dados legados)
-- `src/lib/freight-status-resolver.ts` — Removido do STATUS_INDEX
-- `src/hooks/useFreightCancellation.ts` — Removido de PRODUCER_ACTIVE_STATUSES
-- `src/hooks/useFreightShareActions.ts` — Removido de OPEN_STATUSES
+The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
 
-**Novo fluxo:** `NEW → OPEN → ACCEPTED → LOADING → LOADED → IN_TRANSIT → DELIVERED_PENDING_CONFIRMATION → DELIVERED → COMPLETED`
+## Plan
 
-### 2. ✅ Eliminar o Pulo de LOADED
+### 1. Replace local hero image files
+- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
 
-**Arquivo alterado:**
-- `supabase/functions/driver-update-trip-progress-fast/index.ts` — Removida exceção `LOADING → IN_TRANSIT`. Tolerância reduzida de 2 para 1 etapa máxima de pulo. LOADED agora é obrigatório para fretes padrão (fluxo simplificado para MOTO/GUINCHO/MUDANÇA já não inclui LOADED).
+### 2. Update the database record
+- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
 
-### 3. ✅ Garantir Persistência no Histórico Após Pagamento Confirmado
+### 3. Update the inline fallback in `index.html`
+- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
 
-**Verificação:** O trigger `record_freight_completion()` já existia e dispara quando `freights.status` muda para `COMPLETED`, inserindo em `operation_history`.
+### Technical Note
+All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
 
-**Gap encontrado e corrigido:** `useDriverPayments.ts` → `confirmReceipt()` apenas atualizava `external_payments.status = 'confirmed'` sem mover o frete para COMPLETED. Agora:
-1. Verifica se todos os pagamentos do frete estão confirmados
-2. Se sim e frete está em DELIVERED, transiciona para COMPLETED (dispara trigger → operation_history)
-3. Persiste snapshot via RPC `save_freight_completion_snapshot`
