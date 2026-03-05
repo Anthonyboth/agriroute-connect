@@ -58,6 +58,25 @@ export default function ForumHome() {
     page,
   });
 
+  // Get first available board for "Create Post" button
+  const firstBoardId = useMemo(() => {
+    if (!categories || categories.length === 0) return '';
+    for (const cat of categories) {
+      if (cat.boards && cat.boards.length > 0) {
+        return cat.boards[0].id;
+      }
+    }
+    return '';
+  }, [categories]);
+
+  const handleNavigateNewThread = () => {
+    if (!firstBoardId) {
+      toast.error('Nenhuma comunidade disponível. Crie uma comunidade primeiro.');
+      return;
+    }
+    navigate(`/forum/novo-topico?board=${firstBoardId}`);
+  };
+
   const threadIds = feed.data?.threads.map(t => t.id) || [];
   const userVotes = useUserVotes('THREAD', threadIds);
   const totalPages = Math.ceil((feed.data?.total || 0) / 20);
@@ -135,7 +154,7 @@ export default function ForumHome() {
       <div className="flex flex-col gap-3 mb-4">
         {/* Actions row */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => navigate('/forum/novo-topico')} size="sm">
+          <Button onClick={handleNavigateNewThread} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Criar Post
           </Button>
           <Button 
@@ -233,7 +252,7 @@ export default function ForumHome() {
             {showSaved ? 'Nenhum post salvo.' : 'Nenhum post encontrado.'}
           </p>
           {!showSaved && (
-            <Button onClick={() => navigate('/forum/novo-topico')}>
+            <Button onClick={handleNavigateNewThread}>
               <Plus className="h-4 w-4 mr-1" /> Criar primeiro post
             </Button>
           )}
