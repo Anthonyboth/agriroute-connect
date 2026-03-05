@@ -135,12 +135,33 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
       const msg = typeof err === 'string' ? err : err?.message ?? '';
       console.warn('[GPS] Error requesting native permissions:', msg);
       
+      // ✅ Detect "Missing permissions in AndroidManifest.xml" — this means the APK
+      // was built without running `npx cap sync` after the latest git pull.
+      // The permissions ARE in our AndroidManifest.xml but weren't merged into the build.
+      if (msg.includes('Missing the following permissions') || msg.includes('AndroidManifest')) {
+        console.error('[GPS] ❌ APK desatualizado — permissões não foram sincronizadas.');
+        console.error('[GPS] Execute: git pull && npx cap sync android && npx cap run android');
+        // Still try the web fallback — some WebView environments support it
+        try {
+          const webPos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: false, timeout: 8000 
+            });
+          });
+          if (webPos?.coords) {
+            console.log('[GPS] ✅ WebView geolocation fallback worked!');
+            return true;
+          }
+        } catch {
+          console.warn('[GPS] WebView geolocation fallback also failed');
+        }
+        return false;
+      }
+      
       if (isLocationServicesDisabledError(err)) {
         console.error('[GPS] ❌ Serviços de localização do SISTEMA estão DESATIVADOS.');
         console.error('[GPS] iOS: Ajustes > Privacidade > Serviços de Localização > ATIVAR');
         console.error('[GPS] Android: Configurações > Localização > ATIVAR');
-        // Don't return false immediately — try getCurrentPosition anyway
-        // On some iOS versions, requestPermissions throws but GPS still works
         try {
           await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
           console.log('[GPS] getCurrentPosition worked despite requestPermissions throwing');
@@ -156,6 +177,20 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
         console.log('[GPS] getCurrentPosition fallback worked despite error in requestPermissions');
         return true;
       } catch {
+        // Last resort: try WebView geolocation API directly
+        try {
+          const webPos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: false, timeout: 8000 
+            });
+          });
+          if (webPos?.coords) {
+            console.log('[GPS] ✅ WebView geolocation final fallback worked!');
+            return true;
+          }
+        } catch {
+          // truly no GPS available
+        }
         return false;
       }
     }
