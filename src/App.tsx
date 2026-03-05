@@ -491,6 +491,17 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   }
 
   if (requiresApproval && !effectivelyApproved) {
+    // ✅ BUG FIX: Se o perfil está incompleto (sem selfie/documento), redirecionar para
+    // /complete-profile em vez de mostrar "Conta Pendente". O usuário precisa terminar
+    // o cadastro antes de poder aguardar aprovação.
+    const profileIncomplete = profile && (!profile.selfie_url || !profile.document_photo_url);
+    if (profileIncomplete) {
+      if (import.meta.env.DEV) {
+        console.log('[ProtectedRoute] Perfil incompleto (sem selfie/documento) → /complete-profile');
+      }
+      return <Navigate to="/complete-profile" replace />;
+    }
+
     const handleGoHome = () => {
       // Fazer logout e ir para página inicial
       signOut();
