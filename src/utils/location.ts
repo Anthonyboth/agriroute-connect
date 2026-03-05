@@ -308,12 +308,34 @@ export const watchPositionSafe = (
   onSuccess: (coords: GeolocationCoordinates) => void,
   onError: (err: any) => void
 ): { clear: () => void } => {
+
+  // Helper: start web/WebView geolocation as fallback
+  const startWebFallback = (): { clear: () => void } => {
+    if (!('geolocation' in navigator)) {
+      onError({ code: 1, message: 'Geolocalização não suportada neste dispositivo.' });
+      return { clear: () => {} };
+    }
+    console.log('[GPS] Using navigator.geolocation (WebView fallback)');
+    const id = navigator.geolocation.watchPosition(
+      (p) => onSuccess(p.coords),
+      onError,
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 }
+    );
+    return { clear: () => navigator.geolocation.clearWatch(id) };
+  };
+
   if (isNative()) {
     let pendingWatchId: string | null = null;
     let wasStoppedBeforeResolve = false;
+    let fallbackHandle: { clear: () => void } | null = null;
 
     const handle = {
       clear: () => {
+        if (fallbackHandle) {
+          fallbackHandle.clear();
+          fallbackHandle = null;
+          return;
+        }
         if (pendingWatchId) {
           Geolocation.clearWatch({ id: pendingWatchId });
           pendingWatchId = null;
@@ -331,7 +353,10 @@ export const watchPositionSafe = (
           return onError({ code: 2, message: 'Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.' });
         }
         if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
-          return onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
+          // Manifest issue — switch to WebView fallback silently
+          console.warn('[GPS] Manifest permission issue in callback — switching to WebView fallback');
+          fallbackHandle = startWebFallback();
+          return;
         }
         return onError(err);
       }
@@ -344,22 +369,21 @@ export const watchPositionSafe = (
         pendingWatchId = null;
       }
     }).catch((err) => {
-      console.warn('[GPS] Erro nativo ao iniciar watchPosition:', err);
+      // Capacitor plugin failed entirely — use WebView fallback instead of reporting error
       const msg = typeof err === 'string' ? err : (err as any)?.message ?? '';
+      console.warn('[GPS] Native watchPosition failed, trying WebView fallback:', msg);
+
       if (isLocationServicesDisabledError(msg)) {
+        // Location services truly off — no fallback will help
         onError({ code: 2, message: 'Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.' });
-      } else if (msg.toLowerCase().includes('missing') && msg.toLowerCase().includes('permission')) {
-        onError({ code: 1, message: 'Permissão de localização necessária. Ative nas configurações do dispositivo.' });
-      } else {
-        onError({ code: 1, message: 'Não foi possível iniciar o rastreamento. Verifique as permissões de localização.' });
+        return;
       }
+
+      // For manifest errors or other plugin failures, try WebView geolocation
+      fallbackHandle = startWebFallback();
     });
     return handle as any;
   }
-  const id = navigator.geolocation.watchPosition(
-    (p) => onSuccess(p.coords),
-    onError,
-    { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 }
-  );
-  return { clear: () => navigator.geolocation.clearWatch(id) } as any;
+
+  return startWebFallback();
 };
