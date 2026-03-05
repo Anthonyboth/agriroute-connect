@@ -598,14 +598,29 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                   >
                     {LABELS.VER_DETALHES}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={onRequestCancel}
-                    className="w-full"
-                  >
-                    {LABELS.CANCELAR}
-                  </Button>
+                  {/* ✅ Só mostra cancelar se status permitir (antes de LOADED) */}
+                  {onRequestCancel && ['NEW', 'OPEN', 'ACCEPTED', 'LOADING'].includes(String(freight.status || '').toUpperCase()) && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={onRequestCancel}
+                      className="w-full"
+                    >
+                      {LABELS.CANCELAR}
+                    </Button>
+                  )}
+                  {/* Após carregamento, mostra aviso em vez de botão */}
+                  {!['NEW', 'OPEN', 'ACCEPTED', 'LOADING', 'COMPLETED', 'CANCELLED'].includes(String(freight.status || '').toUpperCase()) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled
+                      className="w-full text-xs opacity-60"
+                      title="Após o carregamento, entre em contato com o suporte para cancelar"
+                    >
+                      Contate suporte
+                    </Button>
+                  )}
                 </div>
               )}
             </TabsContent>

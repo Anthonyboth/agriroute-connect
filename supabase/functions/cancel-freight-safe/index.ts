@@ -211,15 +211,15 @@ serve(async (req) => {
     const currentStatus = String((freight as any).status || '').toUpperCase();
 
     // 4) Only allow cancellation from safe statuses
-    // CRITICAL: After LOADING/LOADED/IN_TRANSIT, cancellation is NOT allowed.
-    // User must contact support instead.
-    const CANCELLABLE_STATUSES = ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION'];
-    if (!CANCELLABLE_STATUSES.includes(currentStatus)) {
-      console.error('[CANCEL-FREIGHT] BLOCKED - Cannot cancel freight with status:', currentStatus);
+    // CRITICAL: After LOADED, cancellation is NOT allowed for producers.
+    // User must contact support instead. Admin can cancel at any status.
+    const PRODUCER_CANCELLABLE_STATUSES = ['NEW', 'OPEN', 'ACCEPTED', 'LOADING', 'IN_NEGOTIATION'];
+    if (!isAdmin && !PRODUCER_CANCELLABLE_STATUSES.includes(currentStatus)) {
+      console.error('[CANCEL-FREIGHT] BLOCKED - Producer cannot cancel freight with status:', currentStatus);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Não é possível cancelar frete com status "${currentStatus}". Após o carregamento, entre em contato com o suporte.` 
+          error: `Não é possível cancelar frete com status "${currentStatus}". Após o carregamento, entre em contato com o suporte para solicitar o cancelamento.` 
         }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

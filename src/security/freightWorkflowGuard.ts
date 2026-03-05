@@ -249,8 +249,13 @@ export function getUserAllowedActions(
   const allowedTargets = ROLE_ALLOWED_TRANSITIONS[normalizedRole] || [];
 
   const canAdvance = nextStatus !== null && allowedTargets.includes(nextStatus);
-  const canCancel = current !== 'COMPLETED' && current !== 'CANCELLED' &&
-    (normalizedRole === 'ADMIN' || normalizedRole === 'PRODUTOR');
+  // ✅ REGRA DE NEGÓCIO: Após LOADED, produtor NÃO pode cancelar — deve contatar suporte.
+  // Apenas ADMIN pode cancelar em qualquer status.
+  const PRODUCER_CANCELLABLE: FreightWorkflowStatus[] = ['NEW', 'OPEN', 'ACCEPTED', 'LOADING'];
+  const canCancel = current !== 'COMPLETED' && current !== 'CANCELLED' && (
+    normalizedRole === 'ADMIN' || 
+    (normalizedRole === 'PRODUTOR' && PRODUCER_CANCELLABLE.includes(current))
+  );
 
   const actions: string[] = [];
   if (canAdvance && nextStatus) {
