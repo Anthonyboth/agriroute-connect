@@ -142,8 +142,8 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
       // was built without running `npx cap sync` after the latest git pull.
       // The permissions ARE in our AndroidManifest.xml but weren't merged into the build.
       if (msg.includes('Missing the following permissions') || msg.includes('AndroidManifest')) {
-        console.error('[GPS] ❌ APK desatualizado — permissões não foram sincronizadas.');
-        console.error('[GPS] Execute: git pull && npx cap sync android && npx cap run android');
+        console.warn('[GPS] ⚠️ APK desatualizado — permissões não sincronizadas. Execute: npm run build && npx cap sync android');
+        console.warn('[GPS] Usando WebView fallback...');
         // Still try the web fallback — some WebView environments support it
         try {
           const webPos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -162,9 +162,9 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
       }
       
       if (isLocationServicesDisabledError(err)) {
-        console.error('[GPS] ❌ Serviços de localização do SISTEMA estão DESATIVADOS.');
-        console.error('[GPS] iOS: Ajustes > Privacidade > Serviços de Localização > ATIVAR');
-        console.error('[GPS] Android: Configurações > Localização > ATIVAR');
+        console.warn('[GPS] Serviços de localização do SISTEMA estão DESATIVADOS.');
+        console.warn('[GPS] iOS: Ajustes > Privacidade > Serviços de Localização > ATIVAR');
+        console.warn('[GPS] Android: Configurações > Localização > ATIVAR');
         try {
           await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
           console.log('[GPS] getCurrentPosition worked despite requestPermissions throwing');

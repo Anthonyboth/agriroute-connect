@@ -152,8 +152,14 @@ export const startForegroundService = async (): Promise<boolean> => {
     lastNotificationUpdate = Date.now();
     console.log('[FGS] started OK — 1 persistent notification active (id:', NOTIFICATION_ID, ')');
     return true;
-  } catch (err) {
-    console.error('[FGS] ❌ start FAILED:', JSON.stringify(err), err);
+  } catch (err: any) {
+    const msg = typeof err === 'string' ? err : err?.message ?? '';
+    // Known issue: APK not rebuilt after manifest changes — warn instead of error
+    if (msg.includes('WAKE_LOCK') || msg.includes('Missing') || msg.includes('AndroidManifest')) {
+      console.warn('[FGS] ⚠️ APK desatualizado (permissões não sincronizadas). Execute: npm run build && npx cap sync android && cd android && ./gradlew clean');
+    } else {
+      console.warn('[FGS] start failed:', msg);
+    }
     // Don't throw — tracking can still work in foreground without FGS
     return false;
   }
