@@ -225,14 +225,27 @@ export const DriverOngoingTab: React.FC = () => {
       setShowWithdrawalModal(false);
       setSelectedFreightForWithdrawal(null);
 
-      // Force refetch BEFORE showing success to ensure UI updates
-      await queryClient.refetchQueries({ queryKey: ['driver-ongoing-cards'] });
+      // ✅ OPTIMISTIC: Remove freight from cache immediately so UI updates instantly
+      queryClient.setQueryData(
+        ['driver-ongoing-cards', driverProfileId],
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            freights: (old.freights || []).filter((f: any) => f.id !== freightId),
+            assignments: (old.assignments || []).filter((a: any) => a.freight?.id !== freightId),
+          };
+        }
+      );
+
+      toast.success('Desistência processada. O frete está novamente disponível para outros motoristas.');
+
+      // Background refetch to sync with server
+      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
       queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['available-freights'] });
       queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
       queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
-
-      toast.success('Desistência processada. O frete está novamente disponível para outros motoristas.');
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
       toast.error('Erro ao processar desistência. Tente novamente.');
