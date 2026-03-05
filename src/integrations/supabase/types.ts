@@ -14026,17 +14026,26 @@ export type Database = {
           contact_name: string | null
           contact_phone: string | null
           created_at: string | null
+          destination_address: string | null
+          destination_city: string | null
+          destination_lat: number | null
+          destination_lng: number | null
+          destination_state: string | null
           estimated_price: number | null
+          expires_at: string | null
           final_price: number | null
           id: string | null
+          in_progress_at: string | null
           is_emergency: boolean | null
           location_address: string | null
           location_city: string | null
           location_lat: number | null
           location_lng: number | null
           location_state: string | null
+          on_the_way_at: string | null
           preferred_datetime: string | null
           problem_description: string | null
+          prospect_user_id: string | null
           provider_comment: string | null
           provider_id: string | null
           provider_notes: string | null
@@ -14068,17 +14077,26 @@ export type Database = {
           contact_name?: never
           contact_phone?: never
           created_at?: string | null
+          destination_address?: string | null
+          destination_city?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          destination_state?: string | null
           estimated_price?: number | null
+          expires_at?: string | null
           final_price?: number | null
           id?: string | null
+          in_progress_at?: string | null
           is_emergency?: boolean | null
           location_address?: never
           location_city?: string | null
-          location_lat?: never
-          location_lng?: never
+          location_lat?: number | null
+          location_lng?: number | null
           location_state?: string | null
+          on_the_way_at?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
+          prospect_user_id?: string | null
           provider_comment?: string | null
           provider_id?: string | null
           provider_notes?: string | null
@@ -14110,17 +14128,26 @@ export type Database = {
           contact_name?: never
           contact_phone?: never
           created_at?: string | null
+          destination_address?: string | null
+          destination_city?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          destination_state?: string | null
           estimated_price?: number | null
+          expires_at?: string | null
           final_price?: number | null
           id?: string | null
+          in_progress_at?: string | null
           is_emergency?: boolean | null
           location_address?: never
           location_city?: string | null
-          location_lat?: never
-          location_lng?: never
+          location_lat?: number | null
+          location_lng?: number | null
           location_state?: string | null
+          on_the_way_at?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
+          prospect_user_id?: string | null
           provider_comment?: string | null
           provider_id?: string | null
           provider_notes?: string | null
@@ -14176,6 +14203,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "city_hierarchy"
             referencedColumns: ["city_id"]
+          },
+          {
+            foreignKeyName: "service_requests_prospect_user_id_fkey"
+            columns: ["prospect_user_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_users"
+            referencedColumns: ["id"]
           },
         ]
       }
