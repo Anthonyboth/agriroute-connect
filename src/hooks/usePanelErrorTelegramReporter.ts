@@ -203,7 +203,9 @@ export function usePanelErrorTelegramReporter() {
         firstArg.includes('[useErrorMonitoring]') ||
         firstArg.includes('[hmr]') ||
         firstArg.includes('[vite]') ||
-        firstArg.includes('hot update')
+        firstArg.includes('hot update') ||
+        firstArg.toLowerCase().includes('wake_lock') ||
+        firstArg.toLowerCase().includes('foregroundservice')
       ) {
         return;
       }
