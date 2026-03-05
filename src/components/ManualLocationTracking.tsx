@@ -64,8 +64,11 @@ export const ManualLocationTracking = () => {
 
       // Start Android Foreground Service BEFORE watchPosition
       if (isNative()) {
-        await startForegroundService();
-        setBackgroundEnabled(true);
+        const fgsStarted = await startForegroundService();
+        setBackgroundEnabled(fgsStarted);
+        if (!fgsStarted) {
+          toast.warning('Permissão de notificações negada — rastreio não pode rodar em segundo plano', { duration: 6000 });
+        }
       }
 
       const handle = watchPositionSafe(
