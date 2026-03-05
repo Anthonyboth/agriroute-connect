@@ -2201,8 +2201,7 @@ const DriverDashboard = () => {
       }
 
       // Processar via Edge Function para evitar bloqueios de RLS
-      const { data, error } = await (supabase as any).functions.invoke('withdraw-freight', {
-        method: 'POST',
+      const { data, error } = await supabase.functions.invoke('withdraw-freight', {
         body: { freight_id: freightId },
       });
 
