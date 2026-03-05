@@ -54,14 +54,13 @@ serve(async (req) => {
 
     console.log(`[CANCEL-FREIGHT] User ${user.id} cancelling freight ${freight_id}`);
 
-    // 1) Verify caller profile (must be producer or admin)
-    const { data: caller, error: callerErr } = await supabaseAdmin
+    // 1) Verify caller profile (must be producer, admin, or driver) — multi-role safe
+    const { data: profiles, error: callerErr } = await supabaseAdmin
       .from('profiles')
       .select('id, role')
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', user.id);
 
-    if (callerErr || !caller) {
+    if (callerErr || !profiles || profiles.length === 0) {
       console.error('[CANCEL-FREIGHT] Profile not found:', callerErr);
       return new Response(
         JSON.stringify({ success: false, error: 'Perfil não encontrado' }),
@@ -69,6 +68,12 @@ serve(async (req) => {
       );
     }
 
+    // ✅ Multi-role: pick the most relevant profile for this operation
+    const adminProfile = profiles.find((p: any) => String(p.role).toUpperCase() === 'ADMIN');
+    const producerProfile = profiles.find((p: any) => String(p.role).toUpperCase() === 'PRODUTOR');
+    const driverProfile = profiles.find((p: any) => ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(String(p.role).toUpperCase()));
+    
+    const caller = adminProfile || producerProfile || driverProfile || profiles[0];
     const callerRole = String((caller as any).role || '').toUpperCase();
     const callerProfileId = String((caller as any).id);
     const isAdmin = callerRole === 'ADMIN';
