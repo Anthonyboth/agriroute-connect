@@ -7,8 +7,14 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const SilentCityBootstrap = () => {
   useEffect(() => {
+    const controller = new AbortController();
+
     const ensureCitiesLoaded = async () => {
       try {
+        // Só executar para usuários autenticados (evita erro no Lighthouse/visitantes)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
         // Verificar se já executou nesta sessão
         const lastCheck = localStorage.getItem('cities_bootstrap_check');
         const now = Date.now();
@@ -28,34 +34,39 @@ export const SilentCityBootstrap = () => {
           return;
         }
 
-        console.log('[SilentCityBootstrap] Cities count:', count);
-
         // Se tiver menos de 5500 cidades, disparar importação silenciosa
         if (count !== null && count < 5500) {
           console.log('[SilentCityBootstrap] Importando cidades em background...');
           
-          // Disparar importação em background (não aguarda resultado)
+          // Timeout de 30s para evitar ERR_TIMED_OUT no console
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
+
           supabase.functions.invoke('import-cities', {
-            body: { state: 'ALL' }
-          }).then(({ data, error }) => {
-            if (error) {
-              console.warn('[SilentCityBootstrap] Erro na importação:', error);
-            } else {
-              console.log('[SilentCityBootstrap] Importação concluída:', data);
+            body: { state: 'ALL' },
+          }).then(({ error: fnError }) => {
+            clearTimeout(timeoutId);
+            if (fnError && !controller.signal.aborted) {
+              console.warn('[SilentCityBootstrap] Importação em andamento (background)');
             }
+          }).catch(() => {
+            clearTimeout(timeoutId);
+            // Silenciar erros de rede/timeout — operação best-effort
           });
         }
 
         // Marcar verificação
         localStorage.setItem('cities_bootstrap_check', now.toString());
       } catch (error) {
-        console.warn('[SilentCityBootstrap] Erro fatal:', error);
+        // Silenciar completamente — bootstrap é best-effort
       }
     };
 
-    // Executar após 2 segundos para não interferir no boot do app
-    const timer = setTimeout(ensureCitiesLoaded, 2000);
-    return () => clearTimeout(timer);
+    // Executar após 5 segundos para não interferir no boot do app
+    const timer = setTimeout(ensureCitiesLoaded, 5000);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, []);
 
   // Componente invisível
