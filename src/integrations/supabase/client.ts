@@ -261,6 +261,13 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   const originalConsoleError = console.error;
   console.error = (...args: any[]) => {
     const message = args[0]?.toString() || '';
+
+    // Silenciar erros de permissão Android (WAKE_LOCK, ForegroundService) - não são bugs do app
+    const lowerMsg = message.toLowerCase();
+    if (lowerMsg.includes('wake_lock') || lowerMsg.includes('foregroundservice') || lowerMsg.includes('falha ao iniciar')) {
+      originalConsoleError.apply(console, args);
+      return;
+    }
     
     // SECURITY: In production, sanitize console output to prevent sensitive data exposure
     if (import.meta.env.PROD) {
@@ -328,6 +335,10 @@ if (typeof window !== 'undefined' && !isPublicPage) {
       'load failed',
       'failed to fetch',
       'networkerror',
+      'wake_lock',
+      'android.permission.wake_lock',
+      'foregroundservice',
+      'falha ao iniciar',
     ].some(p => lower.includes(p));
   };
 
