@@ -350,3 +350,6 @@ verify_jwt = false
 
 [functions.provision-affiliated-driver]
 verify_jwt = false
+
+[functions.driver-update-trip-progress-fast]
+verify_jwt = false
