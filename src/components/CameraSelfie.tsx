@@ -303,8 +303,11 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       if (mode === 'preview' && capturedBlob) {
         // Live camera capture
         onCapture(capturedBlob, 'CAMERA');
+      } else if (mode === 'fallback' && capturedBlob && fallbackMethod) {
+        // Native camera capture (Capacitor) — capturedBlob set directly, no fallbackFile
+        onCapture(capturedBlob, fallbackMethod);
       } else if (mode === 'fallback' && fallbackFile && fallbackMethod) {
-        // Fallback file input
+        // Fallback file input (web)
         const buf = await fallbackFile.arrayBuffer();
         const blob = new Blob([buf], { type: fallbackFile.type || 'image/jpeg' });
         onCapture(blob, fallbackMethod);
