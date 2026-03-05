@@ -7,10 +7,11 @@ import { Navigation, MapPin, Power, PowerOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, isNative } from '@/utils/location';
-import { startForegroundService, stopForegroundService } from '@/utils/foregroundService';
+import { startForegroundService, stopForegroundService, isForegroundServiceRunning } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
 import { useAppStateTracking } from '@/hooks/useAppStateTracking';
+import { BackgroundTrackingDisclosureModal } from '@/components/BackgroundTrackingDisclosureModal';
 
 export const ManualLocationTracking = () => {
   const { profile } = useAuth();
@@ -19,23 +20,39 @@ export const ManualLocationTracking = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [showDisclosureModal, setShowDisclosureModal] = useState(false);
+  const [backgroundEnabled, setBackgroundEnabled] = useState(true);
 
-  // ✅ Pausar rastreamento quando app vai para background (Play Store compliance)
+  // Background pause handler — only if FGS is NOT running
   const handleBackgroundPause = useCallback(() => {
-    if (watchId) {
+    if (watchId && !isForegroundServiceRunning()) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
       }
       setWatchId(null);
       setIsTracking(false);
+      setBackgroundEnabled(false);
     }
   }, [watchId]);
 
-  useAppStateTracking(isTracking, handleBackgroundPause);
+  useAppStateTracking(isTracking, handleBackgroundPause, backgroundEnabled);
+
+  const handleStartClick = () => {
+    if (!sessionStorage.getItem('tracking_disclosure_accepted')) {
+      setShowDisclosureModal(true);
+    } else {
+      startTracking();
+    }
+  };
+
+  const handleDisclosureAccept = () => {
+    sessionStorage.setItem('tracking_disclosure_accepted', '1');
+    setShowDisclosureModal(false);
+    startTracking();
+  };
 
   const startTracking = async () => {
     try {
-      // Verificar permissão primeiro
       const hasPermission = await checkPermissionSafe();
       if (!hasPermission) {
         const granted = await requestPermissionSafe();
@@ -45,9 +62,10 @@ export const ManualLocationTracking = () => {
         }
       }
 
-      // ✅ Start Android Foreground Service BEFORE watchPosition
+      // Start Android Foreground Service BEFORE watchPosition
       if (isNative()) {
         await startForegroundService();
+        setBackgroundEnabled(true);
       }
 
       const handle = watchPositionSafe(
@@ -58,7 +76,7 @@ export const ManualLocationTracking = () => {
       setWatchId(handle);
       setIsTracking(true);
       toast.success('Rastreamento ativado', {
-        description: 'Sua localização está sendo monitorada.'
+        description: isNative() ? 'Rastreio continua em segundo plano.' : 'Sua localização está sendo monitorada.'
       });
     } catch (error: any) {
       console.error('Erro ao iniciar tracking:', error);
@@ -71,14 +89,13 @@ export const ManualLocationTracking = () => {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
       }
-      // ✅ Stop Android Foreground Service
-      if (isNative()) {
-        await stopForegroundService();
-      }
-      setWatchId(null);
-      setIsTracking(false);
-      toast.info('Rastreamento pausado');
     }
+    if (isNative()) {
+      await stopForegroundService();
+    }
+    setWatchId(null);
+    setIsTracking(false);
+    toast.info('Rastreamento pausado');
   };
 
   const handleGeolocationError = (error: any) => {
@@ -86,15 +103,15 @@ export const ManualLocationTracking = () => {
     
     if (error && error.code) {
       switch (error.code) {
-        case 1: // PERMISSION_DENIED
+        case 1:
           setShowPermissionDialog(true);
           break;
-        case 2: // POSITION_UNAVAILABLE
+        case 2:
           toast.error('Localização indisponível', {
             description: 'Verifique se o GPS está ativado.'
           });
           break;
-        case 3: // TIMEOUT
+        case 3:
           toast.error('Tempo esgotado ao obter localização');
           break;
         default:
@@ -107,7 +124,6 @@ export const ManualLocationTracking = () => {
     if (!profile?.id || !activeFreightId) return;
 
     try {
-      // Atualizar localização no perfil
       await supabase
         .from('profiles')
         .update({
@@ -116,10 +132,6 @@ export const ManualLocationTracking = () => {
           last_gps_update: new Date().toISOString()
         })
         .eq('id', profile.id);
-
-      // ❌ REMOVIDO: Atualização direta na tabela freights
-      // Isso causava erro "Data de coleta deve ser futura" devido ao trigger validate_freight_input
-      // A localização agora é lida de driver_current_locations ou profiles pelo hook useFreightRealtimeLocation
 
       setLastUpdate(new Date());
     } catch (error) {
@@ -133,6 +145,12 @@ export const ManualLocationTracking = () => {
 
   return (
     <>
+    <BackgroundTrackingDisclosureModal
+      open={showDisclosureModal}
+      onAccept={handleDisclosureAccept}
+      onCancel={() => setShowDisclosureModal(false)}
+    />
+
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -167,7 +185,7 @@ export const ManualLocationTracking = () => {
           </div>
           
           <Button
-            onClick={isTracking ? stopTracking : startTracking}
+            onClick={isTracking ? stopTracking : handleStartClick}
             variant={isTracking ? "destructive" : "default"}
             size="sm"
           >

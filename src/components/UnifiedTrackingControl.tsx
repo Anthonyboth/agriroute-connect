@@ -4,13 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, FileWarning } from 'lucide-react';
+import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, FileWarning, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe, isNative } from '@/utils/location';
-import { startForegroundService, stopForegroundService } from '@/utils/foregroundService';
+import { startForegroundService, stopForegroundService, setStopTrackingCallback, isForegroundServiceRunning } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppStateTracking } from '@/hooks/useAppStateTracking';
+import { BackgroundTrackingDisclosureModal } from '@/components/BackgroundTrackingDisclosureModal';
 
 export const UnifiedTrackingControl = () => {
   const { profile } = useAuth();
@@ -22,22 +23,41 @@ export const UnifiedTrackingControl = () => {
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [hasUserGesture, setHasUserGesture] = useState(false);
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+  const [showDisclosureModal, setShowDisclosureModal] = useState(false);
+  const [pendingAutoStart, setPendingAutoStart] = useState(false);
+  const [backgroundEnabled, setBackgroundEnabled] = useState(true);
 
   // Evitar spam de toasts de geolocalização (timeouts são comuns em PWA/indoor)
   const lastGeoErrorRef = useRef<{ code?: number; at: number }>({ at: 0 });
+  // Prevent double start
+  const isStartingRef = useRef(false);
 
-  // ✅ Pausar rastreamento quando app vai para background (Play Store compliance)
+  // Register the stop callback for the FGS notification button
+  useEffect(() => {
+    setStopTrackingCallback(() => {
+      console.log('[UnifiedTrackingControl] Stop requested from notification button');
+      executeStopTracking(true);
+      toast.info('Rastreamento encerrado pela notificação');
+    });
+  }, []);
+
+  // Background pause handler — only called if FGS is NOT running
   const handleBackgroundPause = useCallback(() => {
-    if (watchId) {
+    if (watchId && !isForegroundServiceRunning()) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
       }
       setWatchId(null);
       setIsTracking(false);
+      setBackgroundEnabled(false);
+      toast.info('Rastreamento pausado', {
+        description: 'Foreground Service não disponível. Mantenha o app aberto.',
+        duration: 8000,
+      });
     }
   }, [watchId]);
 
-  useAppStateTracking(isTracking, handleBackgroundPause);
+  useAppStateTracking(isTracking, handleBackgroundPause, backgroundEnabled);
 
   // Registrar user gesture para auto-tracking
   useEffect(() => {
@@ -75,11 +95,17 @@ export const UnifiedTrackingControl = () => {
   useEffect(() => {
     if (!profile?.id) return;
 
-    if (hasActiveFreight && activeFreightId && hasUserGesture && !isTracking) {
-      startTracking(true);
+    if (hasActiveFreight && activeFreightId && hasUserGesture && !isTracking && !isStartingRef.current) {
+      // Show disclosure first if not shown this session
+      if (!sessionStorage.getItem('tracking_disclosure_accepted')) {
+        setPendingAutoStart(true);
+        setShowDisclosureModal(true);
+      } else {
+        executeStartTracking(true);
+      }
     }
 
-    // ✅ Auto-stop: quando motorista reporta entrega, hasActiveFreight → false
+    // Auto-stop: quando motorista reporta entrega, hasActiveFreight → false
     if (!hasActiveFreight && isTracking) {
       console.log('[UnifiedTrackingControl] Frete não mais ativo — parando rastreamento automaticamente');
       executeStopTracking(true);
@@ -87,19 +113,13 @@ export const UnifiedTrackingControl = () => {
         description: 'Entrega reportada — localização não é mais compartilhada.'
       });
     }
-
-    return () => {
-      // Cleanup handled by stopTracking
-    };
   }, [hasActiveFreight, activeFreightId, profile?.id, hasUserGesture, isTracking]);
 
   const handleGeolocationError = (error: any) => {
-    // GeolocationPositionError possui props não-enumeráveis (aparece como {})
     const code = error?.code;
     const message = error?.message;
     console.error('Erro no rastreamento:', { code, message, raw: error });
 
-    // Debounce de 10s para não travar UX com toasts repetidos
     const now = Date.now();
     const last = lastGeoErrorRef.current;
     if (now - last.at < 10_000 && last.code === code) return;
@@ -118,7 +138,6 @@ export const UnifiedTrackingControl = () => {
           });
           break;
         case 3:
-          // Timeout é recuperável: manter tracking e avisar sem bloquear
           toast.warning('GPS demorando para responder', {
             description: 'Se estiver em local fechado, mova-se para uma área aberta e tente novamente.'
           });
@@ -131,8 +150,37 @@ export const UnifiedTrackingControl = () => {
     }
   };
 
-  const startTracking = async (isAuto = false) => {
+  // Handle disclosure modal accept
+  const handleDisclosureAccept = () => {
+    sessionStorage.setItem('tracking_disclosure_accepted', '1');
+    setShowDisclosureModal(false);
+    if (pendingAutoStart) {
+      setPendingAutoStart(false);
+      executeStartTracking(true);
+    } else {
+      executeStartTracking(false);
+    }
+  };
+
+  const handleDisclosureCancel = () => {
+    setShowDisclosureModal(false);
+    setPendingAutoStart(false);
+  };
+
+  // User clicks "Iniciar" button
+  const handleStartClick = () => {
     if (isTracking) return;
+    // Show disclosure if not accepted this session
+    if (!sessionStorage.getItem('tracking_disclosure_accepted')) {
+      setShowDisclosureModal(true);
+    } else {
+      executeStartTracking(false);
+    }
+  };
+
+  const executeStartTracking = async (isAuto = false) => {
+    if (isTracking || isStartingRef.current) return;
+    isStartingRef.current = true;
 
     try {
       const hasPermission = await checkPermissionSafe();
@@ -140,6 +188,7 @@ export const UnifiedTrackingControl = () => {
         const granted = await requestPermissionSafe();
         if (!granted) {
           toast.error('Permissão de localização negada');
+          isStartingRef.current = false;
           return;
         }
       }
@@ -148,17 +197,17 @@ export const UnifiedTrackingControl = () => {
       
       setTimeout(async () => {
         try {
-          // ✅ Primeira leitura com retries/timeout maior (reduz ocorrência de timeout do watchPosition)
+          // First reading
           const initial = await getCurrentPositionSafe(3);
           await updateLocation(initial.coords);
         } catch (e) {
-          // Não bloquear o tracking: o watchPosition pode recuperar depois
           handleGeolocationError(e);
         }
 
-        // ✅ Start Android Foreground Service BEFORE watchPosition
+        // Start Android Foreground Service BEFORE watchPosition
         if (isNative()) {
           await startForegroundService();
+          setBackgroundEnabled(true);
         }
 
         const handle = watchPositionSafe(
@@ -168,20 +217,23 @@ export const UnifiedTrackingControl = () => {
 
         setWatchId(handle);
         setIsTracking(true);
+        isStartingRef.current = false;
 
         if (!isAuto) {
-          toast.success('Rastreamento ativado');
+          toast.success('Rastreamento ativado', {
+            description: isNative() ? 'Rastreio continua em segundo plano.' : undefined
+          });
         }
       }, delay);
 
     } catch (error) {
       console.error('Erro ao iniciar tracking:', error);
       handleGeolocationError(error);
+      isStartingRef.current = false;
     }
   };
 
   const handleStopRequest = () => {
-    // Se tem frete ativo, mostrar modal de penalidade antes
     if (hasActiveFreight) {
       setShowPenaltyModal(true);
       return;
@@ -194,21 +246,21 @@ export const UnifiedTrackingControl = () => {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
       }
-      // ✅ Stop Android Foreground Service
-      if (isNative()) {
-        await stopForegroundService();
-      }
-      setWatchId(null);
-      setIsTracking(false);
-      setShowPenaltyModal(false);
-      if (!silent) {
-        toast.info('Rastreamento pausado');
-      }
+    }
+    // Always try to stop FGS
+    if (isNative()) {
+      await stopForegroundService();
+    }
+    setWatchId(null);
+    setIsTracking(false);
+    setShowPenaltyModal(false);
+    isStartingRef.current = false;
+    if (!silent) {
+      toast.info('Rastreamento pausado');
     }
   };
 
   const confirmStopWithPenalty = () => {
-    // Registrar incidente no banco
     if (profile?.id && activeFreightId) {
       supabase.from('incident_logs').insert({
         freight_id: activeFreightId,
@@ -231,7 +283,6 @@ export const UnifiedTrackingControl = () => {
     try {
       const timestamp = new Date().toISOString();
 
-      // ✅ Persistir na tabela dedicada (fonte principal para mapas)
       await supabase
         .from('driver_current_locations')
         .upsert(
@@ -245,7 +296,6 @@ export const UnifiedTrackingControl = () => {
           { onConflict: 'driver_profile_id' }
         );
 
-      // ✅ Atualizar profiles (fallback)
       await supabase
         .from('profiles')
         .update({
@@ -254,10 +304,6 @@ export const UnifiedTrackingControl = () => {
           last_gps_update: timestamp
         })
         .eq('id', profile.id);
-
-      // ❌ REMOVIDO: Atualização direta na tabela freights
-      // Isso causava erro "Data de coleta deve ser futura" devido ao trigger validate_freight_input
-      // A localização agora é lida de driver_current_locations pelo hook useFreightRealtimeLocation
 
       setLastUpdate(new Date());
     } catch (error) {
@@ -275,6 +321,13 @@ export const UnifiedTrackingControl = () => {
 
   return (
     <>
+      {/* Disclosure Modal (Google Play compliance) */}
+      <BackgroundTrackingDisclosureModal
+        open={showDisclosureModal}
+        onAccept={handleDisclosureAccept}
+        onCancel={handleDisclosureCancel}
+      />
+
       {/* Versão compacta (sempre visível) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-card rounded-lg border mb-4">
         <div 
@@ -305,7 +358,7 @@ export const UnifiedTrackingControl = () => {
           </Badge>
           
           <Button
-            onClick={isTracking ? handleStopRequest : () => startTracking(false)}
+            onClick={isTracking ? handleStopRequest : handleStartClick}
             variant={isTracking ? "destructive" : "default"}
             size="sm"
             className="whitespace-nowrap"
@@ -355,12 +408,12 @@ export const UnifiedTrackingControl = () => {
 
             {/* Informações */}
             <Alert>
-              <Navigation className="h-4 w-4" />
-              <AlertTitle>Rastreamento Ativo (Apenas com App Aberto)</AlertTitle>
+              <Shield className="h-4 w-4" />
+              <AlertTitle>Rastreamento com Segundo Plano</AlertTitle>
               <AlertDescription className="text-xs">
-                Quando você tem um frete ativo, o rastreamento é iniciado automaticamente 
-                para segurança do frete. <strong>Mantenha o app aberto durante a viagem</strong> — 
-                o rastreamento é pausado automaticamente ao minimizar o app.
+                Quando ativo, o rastreamento <strong>continua funcionando</strong> mesmo com o app minimizado
+                ou tela bloqueada, garantindo segurança da carga durante toda a viagem.
+                Uma notificação persistente silenciosa será exibida.
               </AlertDescription>
             </Alert>
 
@@ -368,8 +421,8 @@ export const UnifiedTrackingControl = () => {
               <Info className="h-4 w-4" />
               <AlertTitle>Importante</AlertTitle>
               <AlertDescription className="text-xs">
-                Rastreamento ativo apenas com o app aberto (versão atual). 
-                Se você minimizar o app, o rastreamento será pausado e retomado quando voltar.
+                O rastreamento é encerrado automaticamente ao finalizar a viagem.
+                Nenhum dado é coletado fora do período do frete.
               </AlertDescription>
             </Alert>
 
@@ -381,7 +434,7 @@ export const UnifiedTrackingControl = () => {
 
             {/* Botão de ação */}
             <Button
-              onClick={isTracking ? handleStopRequest : () => startTracking(false)}
+              onClick={isTracking ? handleStopRequest : handleStartClick}
               variant={isTracking ? "destructive" : "default"}
               className="w-full"
             >
