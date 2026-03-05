@@ -262,13 +262,12 @@ export const MyRequestsTab: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('freights')
-        .update({ status: 'CANCELLED' })
-        .eq('id', freightToCancel.id)
-        .eq('producer_id', profile?.id);
+      const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
+        body: { freight_id: freightToCancel.id, reason: 'Cancelado pelo produtor' },
+      });
 
       if (error) throw error;
+      if (!(data as any)?.success) throw new Error((data as any)?.error || 'Erro ao cancelar frete');
 
       toast.success('Frete cancelado com sucesso!');
       setConfirmCancelOpen(false);

@@ -8,7 +8,7 @@ type ToasterProps = React.ComponentProps<typeof Sonner>
  * Prevents notification flooding on the user's screen.
  */
 let lastGlobalToastTime = 0;
-const MIN_TOAST_GAP_MS = 5_000;
+const MIN_TOAST_GAP_MS = 8_000;
 
 function isThrottled(): boolean {
   const now = Date.now();
