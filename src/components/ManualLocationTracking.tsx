@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { Navigation, MapPin, Power, PowerOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
@@ -69,7 +70,7 @@ export const ManualLocationTracking = () => {
         setBackgroundEnabled(fgsStarted);
         if (!fgsStarted) {
           console.warn('[FGS] start failed — background tracking will not work');
-          toast.warning('Permissão de notificações negada — rastreio não pode rodar em segundo plano', { duration: 6000 });
+          showGPSToast('FGS_DENIED');
         }
       }
 
@@ -114,17 +115,11 @@ export const ManualLocationTracking = () => {
       switch (error.code) {
         case 1:
           setShowPermissionDialog(true);
+          showGPSToast('NO_PERMISSION');
           break;
-        case 2:
-          toast.error('Localização indisponível', {
-            description: 'Verifique se o GPS está ativado.'
-          });
-          break;
-        case 3:
-          toast.error('Tempo esgotado ao obter localização');
-          break;
-        default:
-          toast.error('Erro ao rastrear localização');
+        case 2: showGPSToast('GPS_UNAVAILABLE'); break;
+        case 3: showGPSToast('GPS_TIMEOUT'); break;
+        default: showGPSToast('GPS_ERROR'); break;
       }
     }
   };
