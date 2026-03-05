@@ -83,7 +83,7 @@ export const useNotifications = () => {
         }
       );
 
-      const pollInterval = setInterval(fetchUnreadCount, 60000);
+      const pollInterval = setInterval(fetchUnreadCount, 120000);
 
       return () => {
         cleanup();

@@ -644,7 +644,7 @@ const useAuthInternal = () => {
     let debounceTimer: NodeJS.Timeout;
     let retryTimer: NodeJS.Timeout;
     let retryCount = 0;
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = 2;
     let currentChannel: ReturnType<typeof supabase.channel> | null = null;
     let cancelled = false;
 
@@ -696,7 +696,7 @@ const useAuthInternal = () => {
             // ✅ AUTO-RECONNECT com backoff exponencial
             if (retryCount < MAX_RETRIES && !cancelled) {
               retryCount++;
-              const delay = Math.min(2000 * Math.pow(2, retryCount - 1), 30000); // 2s, 4s, 8s, 16s, 30s
+              const delay = Math.min(3000 * Math.pow(2, retryCount - 1), 10000); // 3s, 6s max
               console.log(`[Realtime] Reconectando em ${delay / 1000}s...`);
               clearTimeout(retryTimer);
               retryTimer = setTimeout(() => {
