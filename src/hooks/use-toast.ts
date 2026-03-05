@@ -140,7 +140,17 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+let lastToastTime = 0;
+const MIN_TOAST_INTERVAL_MS = 5_000; // 5s minimum between toasts
+
 function toast({ ...props }: Toast) {
+  const now = Date.now();
+  if (now - lastToastTime < MIN_TOAST_INTERVAL_MS) {
+    console.log('[Toast] Throttled — min 5s between notifications');
+    return { id: '', dismiss: () => {}, update: () => {} };
+  }
+  lastToastTime = now;
+
   const id = genId()
 
   const update = (props: ToasterToast) =>

@@ -1,17 +1,47 @@
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, toast } from "sonner"
+import { Toaster as Sonner, toast as sonnerToast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
+
+/**
+ * Global toast throttle — 5s minimum between any two toasts.
+ * Prevents notification flooding on the user's screen.
+ */
+let lastGlobalToastTime = 0;
+const MIN_TOAST_GAP_MS = 5_000;
+
+function isThrottled(): boolean {
+  const now = Date.now();
+  if (now - lastGlobalToastTime < MIN_TOAST_GAP_MS) {
+    console.log('[Toast] Throttled — min 5s between notifications');
+    return true;
+  }
+  lastGlobalToastTime = now;
+  return false;
+}
+
+type ToastParams = Parameters<typeof sonnerToast>;
+const toast = ((message: ToastParams[0], data?: ToastParams[1]) => {
+  if (isThrottled()) return;
+  return sonnerToast(message, data);
+}) as typeof sonnerToast;
+
+// Proxy all typed methods with throttle
+toast.success = (m: ToastParams[0], d?: ToastParams[1]) => { if (!isThrottled()) return sonnerToast.success(m, d); };
+toast.error = (m: ToastParams[0], d?: ToastParams[1]) => { if (!isThrottled()) return sonnerToast.error(m, d); };
+toast.warning = (m: ToastParams[0], d?: ToastParams[1]) => { if (!isThrottled()) return sonnerToast.warning(m, d); };
+toast.info = (m: ToastParams[0], d?: ToastParams[1]) => { if (!isThrottled()) return sonnerToast.info(m, d); };
+toast.message = (m: ToastParams[0], d?: ToastParams[1]) => { if (!isThrottled()) return sonnerToast.message(m, d); };
+toast.loading = sonnerToast.loading;
+toast.promise = sonnerToast.promise;
+toast.dismiss = sonnerToast.dismiss;
+toast.custom = sonnerToast.custom;
 
 /**
  * Toaster configurado para SEMPRE aparecer acima de todos os elementos.
  * Z-index máximo: 2147483647 (32-bit signed int max)
  * 
- * Isso garante que notificações apareçam sobre:
- * - Modais e Dialogs
- * - Sheets e Drawers  
- * - Popovers e Dropdowns
- * - Qualquer outro elemento com z-index alto
+ * visibleToasts=1 + duration=5000 — no flooding.
  */
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
@@ -24,8 +54,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       expand={false}
       richColors
       closeButton
-      visibleToasts={3}
-      duration={3000}
+      visibleToasts={1}
+      duration={5000}
       icons={{
         success: null,
         error: null,
@@ -45,7 +75,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
           closeButton: "group-[.toast]:bg-background group-[.toast]:border-border",
         },
         style: {
-          // Força z-index máximo inline para garantir sobreposição
           zIndex: 2147483647,
         },
       }}
