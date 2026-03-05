@@ -13630,48 +13630,51 @@ export type Database = {
           amount: number | null
           completed_at: string | null
           created_at: string | null
-          external_transaction_masked: string | null
+          external_transaction_id: string | null
           freight_id: string | null
           id: string | null
+          metadata: Json | null
           payer_id: string | null
           payment_method: string | null
           payment_type: string | null
           receiver_id: string | null
           status: string | null
-          stripe_payment_intent_masked: string | null
-          stripe_session_masked: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           updated_at: string | null
         }
         Insert: {
           amount?: number | null
           completed_at?: string | null
           created_at?: string | null
-          external_transaction_masked?: never
+          external_transaction_id?: never
           freight_id?: string | null
           id?: string | null
+          metadata?: Json | null
           payer_id?: string | null
           payment_method?: string | null
           payment_type?: string | null
           receiver_id?: string | null
           status?: string | null
-          stripe_payment_intent_masked?: never
-          stripe_session_masked?: never
+          stripe_payment_intent_id?: never
+          stripe_session_id?: never
           updated_at?: string | null
         }
         Update: {
           amount?: number | null
           completed_at?: string | null
           created_at?: string | null
-          external_transaction_masked?: never
+          external_transaction_id?: never
           freight_id?: string | null
           id?: string | null
+          metadata?: Json | null
           payer_id?: string | null
           payment_method?: string | null
           payment_type?: string | null
           receiver_id?: string | null
           status?: string | null
-          stripe_payment_intent_masked?: never
-          stripe_session_masked?: never
+          stripe_payment_intent_id?: never
+          stripe_session_id?: never
           updated_at?: string | null
         }
         Relationships: [
