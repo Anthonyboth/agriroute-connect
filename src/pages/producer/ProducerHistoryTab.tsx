@@ -4,7 +4,11 @@ import { FreightHistoryFromDB } from '@/components/history/FreightHistoryFromDB'
 import { ServiceHistoryFromDB } from '@/components/history/ServiceHistoryFromDB';
 import { History, Truck, Wrench } from 'lucide-react';
 
-export const ProducerHistoryTab: React.FC = () => {
+interface ProducerHistoryTabProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export const ProducerHistoryTab: React.FC<ProducerHistoryTabProps> = ({ onNavigateToTab }) => {
   const [activeTab, setActiveTab] = useState<string>('freights');
 
   return (
@@ -22,7 +26,7 @@ export const ProducerHistoryTab: React.FC = () => {
         </TabsList>
 
         <TabsContent value="freights" className="mt-4">
-          <FreightHistoryFromDB role="PRODUTOR" />
+          <FreightHistoryFromDB role="PRODUTOR" onNavigateToTab={onNavigateToTab} />
         </TabsContent>
 
         <TabsContent value="services" className="mt-4">
