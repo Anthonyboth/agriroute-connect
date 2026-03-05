@@ -8,7 +8,7 @@ import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, F
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe, isNative } from '@/utils/location';
-import { startForegroundService, stopForegroundService, setStopTrackingCallback, isForegroundServiceRunning } from '@/utils/foregroundService';
+import { startForegroundService, stopForegroundService, isForegroundServiceRunning } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppStateTracking } from '@/hooks/useAppStateTracking';
 import { BackgroundTrackingDisclosureModal } from '@/components/BackgroundTrackingDisclosureModal';
@@ -32,14 +32,8 @@ export const UnifiedTrackingControl = () => {
   // Prevent double start
   const isStartingRef = useRef(false);
 
-  // Register the stop callback for the FGS notification button
-  useEffect(() => {
-    setStopTrackingCallback(() => {
-      console.log('[UnifiedTrackingControl] Stop requested from notification button');
-      executeStopTracking(true);
-      toast.info('Rastreamento encerrado pela notificação');
-    });
-  }, []);
+  // Note: buttonClicked listener is iOS-only in the plugin.
+  // On Android, tapping the notification opens the app directly.
 
   // Background pause handler — only called if FGS is NOT running
   const handleBackgroundPause = useCallback(() => {
@@ -213,8 +207,11 @@ export const UnifiedTrackingControl = () => {
 
         // Start Android Foreground Service BEFORE watchPosition
         if (isNative()) {
-          await startForegroundService();
-          setBackgroundEnabled(true);
+          const fgsStarted = await startForegroundService();
+          setBackgroundEnabled(fgsStarted);
+          if (!fgsStarted) {
+            toast.warning('Permissão de notificações negada — rastreio não funcionará em segundo plano', { duration: 6000 });
+          }
         }
 
         const handle = watchPositionSafe(

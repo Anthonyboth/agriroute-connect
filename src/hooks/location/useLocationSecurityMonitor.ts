@@ -15,7 +15,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { locationAlertManager } from '@/services/location/locationAlertManager';
-import { startForegroundService, stopForegroundService, updateForegroundNotification, setStopTrackingCallback } from '@/utils/foregroundService';
+import { startForegroundService, stopForegroundService, updateForegroundNotification } from '@/utils/foregroundService';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -226,11 +226,6 @@ export const useLocationSecurityMonitor = (): LocationSecurityMonitorResult => {
     // ✅ Start Android Foreground Service BEFORE geolocation watch
     // This ensures GPS continues working when app is backgrounded/screen locked
     if (isAndroidEnv()) {
-      // Register stop callback so notification "Parar Rastreamento" button works
-      setStopTrackingCallback(() => {
-        console.log('[GPS-Monitor] Stop requested from notification button');
-        stop();
-      });
       await startForegroundService();
     }
 
