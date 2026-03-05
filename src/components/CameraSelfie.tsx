@@ -297,23 +297,28 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
 
   // Confirm and submit
   const confirm = useCallback(async () => {
+    console.log('[CameraSelfie] confirm() called', { mode, hasCapturedBlob: !!capturedBlob, blobSize: capturedBlob?.size, hasFallbackFile: !!fallbackFile, fallbackMethod });
     try {
       setConfirming(true);
 
       if (mode === 'preview' && capturedBlob) {
-        // Live camera capture
-        onCapture(capturedBlob, 'CAMERA');
+        console.log('[CameraSelfie] → preview mode, calling onCapture with blob');
+        await onCapture(capturedBlob, 'CAMERA');
       } else if (mode === 'fallback' && capturedBlob && fallbackMethod) {
-        // Native camera capture (Capacitor) — capturedBlob set directly, no fallbackFile
-        onCapture(capturedBlob, fallbackMethod);
+        console.log('[CameraSelfie] → fallback mode with capturedBlob (native), calling onCapture');
+        await onCapture(capturedBlob, fallbackMethod);
       } else if (mode === 'fallback' && fallbackFile && fallbackMethod) {
-        // Fallback file input (web)
+        console.log('[CameraSelfie] → fallback mode with fallbackFile (web), converting to blob');
         const buf = await fallbackFile.arrayBuffer();
         const blob = new Blob([buf], { type: fallbackFile.type || 'image/jpeg' });
-        onCapture(blob, fallbackMethod);
+        await onCapture(blob, fallbackMethod);
+      } else {
+        console.error('[CameraSelfie] ❌ No matching condition! mode=', mode, 'capturedBlob=', !!capturedBlob, 'fallbackFile=', !!fallbackFile, 'fallbackMethod=', fallbackMethod);
+        toast.error('Erro interno: nenhuma imagem encontrada para enviar. Tente novamente.');
+        return;
       }
 
-      // Clean up
+      // Clean up only after onCapture completes
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (fallbackPreviewUrl) URL.revokeObjectURL(fallbackPreviewUrl);
       stopCamera();
