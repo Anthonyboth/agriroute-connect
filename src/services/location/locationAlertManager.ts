@@ -2,13 +2,10 @@
  * locationAlertManager
  *
  * Gerenciador centralizado de alertas de GPS.
- * Garante:
- *   - Cooldown mínimo de 2 minutos entre alertas
- *   - Não repete alerta se estado não mudou
- *   - Suprime alertas de TIMEOUT (silencioso)
- *   - Não spamma banner se o usuário fechou recentemente
+ * Agora delegando para gpsToastGuard para deduplicação global.
  */
 
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { toast } from 'sonner';
 
 export type LocationAlertType =
@@ -78,40 +75,17 @@ class LocationAlertManager {
 
     switch (type) {
       case 'NO_PERMISSION':
-        toast.error('Permissão de localização negada', {
-          description: 'Ative a permissão de localização nas configurações do dispositivo.',
-          duration: 12000,
-          id: 'gps-no-permission',
-          action: opts?.onAction
-            ? { label: 'Permitir', onClick: opts.onAction }
-            : undefined,
-        });
+        showGPSToast('NO_PERMISSION');
         break;
-
       case 'GPS_OFF':
-        toast.error('GPS desligado', {
-          description: 'Ative o GPS (serviços de localização) nas configurações do dispositivo.',
-          duration: 12000,
-          id: 'gps-off',
-          action: opts?.onAction
-            ? { label: 'Configurações', onClick: opts.onAction }
-            : undefined,
-        });
+        showGPSToast('GPS_OFF');
         break;
-
       case 'LOW_ACCURACY':
-        toast.warning('Sinal GPS fraco', {
-          description: 'Baixa precisão detectada. Tente se mover para um local aberto.',
-          duration: 6000,
-          id: 'gps-low-accuracy',
-        });
+        showGPSToast('GPS_TIMEOUT');
         break;
-
       case 'UNAVAILABLE':
-        // Aviso sutil — sem bloquear
         console.warn('[GPS-Alert] Posição indisponível — tentando novamente silenciosamente');
         break;
-
       case 'RESTORED':
         toast.success('GPS restaurado', {
           description: 'Localização sendo capturada normalmente.',
@@ -119,8 +93,6 @@ class LocationAlertManager {
           id: 'gps-restored',
         });
         break;
-
-      // TIMEOUT → suprimido acima, nunca chega aqui
     }
   }
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { checkPermissionSafe, requestPermissionSafe, getCurrentPositionSafe } from '@/utils/location';
 
 interface LocationPermissionProps {
@@ -43,7 +44,7 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
       if (!granted) {
         setLocationEnabled(false);
         onPermissionChange(false);
-        toast.error('Permissão de localização negada. Ative em Ajustes > Privacidade > Serviços de Localização.', { id: 'gps-no-permission' });
+        showGPSToast('NO_PERMISSION');
         return;
       }
       
@@ -57,11 +58,11 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
       
       const msg = error?.message || '';
       if (msg.includes('desativados') || msg.toLowerCase().includes('disabled') || msg.toLowerCase().includes('not enabled')) {
-        toast.error('Serviços de localização desativados. Ative em Ajustes > Privacidade > Serviços de Localização.', { id: 'gps-off' });
+        showGPSToast('GPS_OFF');
       } else if (error?.code === 1) {
-        toast.error('Permissão de localização negada. Ative nas configurações do dispositivo.', { id: 'gps-no-permission' });
+        showGPSToast('NO_PERMISSION');
       } else if (error?.code === 2) {
-        toast.error('Localização indisponível. Verifique se o GPS está ativado.', { id: 'gps-unavailable' });
+        showGPSToast('GPS_UNAVAILABLE');
       } else if (error?.code === 3) {
         toast.error('Tempo limite para obter localização. Tente novamente.', { id: 'gps-timeout' });
       } else {

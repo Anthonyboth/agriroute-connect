@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, FileWarning, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
@@ -128,29 +129,13 @@ export const UnifiedTrackingControl = () => {
     
     if (code) {
       switch (code) {
-        case 1:
-          toast.error('Permissão de localização negada', {
-            description: 'Ative nas configurações do dispositivo.',
-            id: 'gps-no-permission',
-          });
-          break;
-        case 2:
-          toast.error('Localização indisponível', {
-            description: 'Verifique se o GPS está ativado.',
-            id: 'gps-unavailable',
-          });
-          break;
-        case 3:
-          toast.warning('GPS demorando para responder', {
-            description: 'Se estiver em local fechado, mova-se para uma área aberta e tente novamente.',
-            id: 'gps-timeout',
-          });
-          break;
-        default:
-          toast.error('Erro ao rastrear localização', { id: 'gps-error' });
+        case 1: showGPSToast('NO_PERMISSION'); break;
+        case 2: showGPSToast('GPS_UNAVAILABLE'); break;
+        case 3: showGPSToast('GPS_TIMEOUT'); break;
+        default: showGPSToast('GPS_ERROR'); break;
       }
     } else if (message) {
-      toast.error('Erro ao rastrear localização', { description: message, id: 'gps-error' });
+      showGPSToast('GPS_ERROR');
     }
   };
 
@@ -191,7 +176,7 @@ export const UnifiedTrackingControl = () => {
       if (!hasPermission) {
         const granted = await requestPermissionSafe();
         if (!granted) {
-          toast.error('Permissão de localização negada', { id: 'gps-no-permission' });
+          showGPSToast('NO_PERMISSION');
           isStartingRef.current = false;
           return;
         }
@@ -215,7 +200,7 @@ export const UnifiedTrackingControl = () => {
           setBackgroundEnabled(fgsStarted);
           if (!fgsStarted) {
             console.warn('[FGS] start failed — background tracking will not work');
-            toast.warning('Permissão de notificações negada — rastreio não funcionará em segundo plano', { duration: 6000, id: 'gps-notif-denied' });
+            showGPSToast('FGS_DENIED');
           }
         }
 

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Loader2 } from 'lucide-react';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { toast } from 'sonner';
+import { showGPSToast } from '@/utils/gpsToastGuard';
 import { supabase } from '@/integrations/supabase/client';
 
 interface LocationData {
@@ -40,7 +41,7 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
       if (!hasPermission) {
         const granted = await requestLocation();
         if (!granted) {
-          toast.error('Permissão de localização negada', { id: 'gps-no-permission' });
+          showGPSToast('NO_PERMISSION');
           return;
         }
       }
