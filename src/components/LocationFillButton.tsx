@@ -40,7 +40,7 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
       if (!hasPermission) {
         const granted = await requestLocation();
         if (!granted) {
-          toast.error('Permissão de localização negada');
+          toast.error('Permissão de localização negada', { id: 'gps-no-permission' });
           return;
         }
       }
