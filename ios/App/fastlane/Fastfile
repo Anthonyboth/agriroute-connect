@@ -68,13 +68,13 @@ platform :ios do
   end
 
   desc "Build completo + Upload TestFlight"
-  lane :testflight do
+  lane :ci_testflight do
     build_ios
     upload_testflight
   end
 
   desc "Legacy compatibility"
   lane :beta do
-    testflight
+    ci_testflight
   end
 end
