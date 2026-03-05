@@ -11,14 +11,7 @@ import { Button } from "@/components/ui/button";
 import { HeroActionButton } from "@/components/ui/hero-action-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FreightCard } from "@/components/FreightCard";
-import { CreateFreightWizardModal } from "@/components/freight-wizard";
-import { EditFreightModal } from "@/components/EditFreightModal";
-import { ScheduledFreightsManager } from "@/components/ScheduledFreightsManager";
-import { SubscriptionExpiryNotification } from "@/components/SubscriptionExpiryNotification";
-import { ProposalCounterModal } from "@/components/ProposalCounterModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { FreightDetails } from "@/components/FreightDetails";
-import { DeliveryConfirmationModal } from "@/components/DeliveryConfirmationModal";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,28 +43,13 @@ import {
   Wrench,
   MessageSquare,
 } from "lucide-react";
-import { UrbanFreightCard } from "@/components/freights/UrbanFreightCard";
-import { UnifiedServiceCard } from "@/components/UnifiedServiceCard";
 import { FreightFilters } from "@/components/AdvancedFreightFilters";
 import { useFreightReportData } from "@/hooks/useFreightReportData";
-import { ProducerReportsTab } from "@/pages/producer/ProducerReportsTab";
-import { ProducerPaymentsTab } from "@/pages/producer/ProducerPaymentsTab";
-import { PendingRatingsPanel } from "@/components/PendingRatingsPanel";
-import { ServicesModal } from "@/components/ServicesModal";
-import { ServiceChatDialog } from "@/components/ServiceChatDialog";
-import { ServiceEditModal } from "@/components/service-wizard/ServiceEditModal";
-import { ProducerHistoryTab } from "@/pages/producer/ProducerHistoryTab";
 import { showErrorToast } from "@/lib/error-handler";
-import { SystemAnnouncementsBoard } from "@/components/SystemAnnouncementsBoard";
-import { AutoRatingModal } from "@/components/AutoRatingModal";
-import { UnifiedProposalsWrapper } from "@/components/proposal/UnifiedProposalsWrapper";
-import { UnifiedChatHub } from "@/components/UnifiedChatHub";
 import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
-import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
 import { useHeroBackground } from '@/hooks/useHeroBackground';
 import { usePendingDeliveryConfirmations } from "@/hooks/usePendingDeliveryConfirmations";
 import { usePendingRatingsCount } from "@/hooks/usePendingRatingsCount";
-import { PendingDeliveryConfirmationCard } from "@/components/PendingDeliveryConfirmationCard";
 
 // ✅ PHASE 2: Lazy load chart-heavy components with auto-retry on ChunkLoadError
 const FreightAnalyticsDashboard = lazyWithRetry(() =>
@@ -85,6 +63,74 @@ const PeriodComparisonDashboard = lazyWithRetry(() =>
 );
 const RouteRentabilityReport = lazyWithRetry(() =>
   import("@/components/RouteRentabilityReport").then((m) => ({ default: m.RouteRentabilityReport })),
+);
+
+// ✅ PHASE 3: Lazy load heavy tab/modal components to reduce initial chunk size
+const CreateFreightWizardModal = lazyWithRetry(() =>
+  import("@/components/freight-wizard").then((m) => ({ default: m.CreateFreightWizardModal })),
+);
+const EditFreightModal = lazyWithRetry(() =>
+  import("@/components/EditFreightModal").then((m) => ({ default: m.EditFreightModal })),
+);
+const ScheduledFreightsManager = lazyWithRetry(() =>
+  import("@/components/ScheduledFreightsManager").then((m) => ({ default: m.ScheduledFreightsManager })),
+);
+const SubscriptionExpiryNotification = lazyWithRetry(() =>
+  import("@/components/SubscriptionExpiryNotification").then((m) => ({ default: m.SubscriptionExpiryNotification })),
+);
+const ProposalCounterModal = lazyWithRetry(() =>
+  import("@/components/ProposalCounterModal").then((m) => ({ default: m.ProposalCounterModal })),
+);
+const FreightDetails = lazyWithRetry(() =>
+  import("@/components/FreightDetails").then((m) => ({ default: m.FreightDetails })),
+);
+const DeliveryConfirmationModal = lazyWithRetry(() =>
+  import("@/components/DeliveryConfirmationModal").then((m) => ({ default: m.DeliveryConfirmationModal })),
+);
+const UrbanFreightCard = lazyWithRetry(() =>
+  import("@/components/freights/UrbanFreightCard").then((m) => ({ default: m.UrbanFreightCard })),
+);
+const UnifiedServiceCard = lazyWithRetry(() =>
+  import("@/components/UnifiedServiceCard").then((m) => ({ default: m.UnifiedServiceCard })),
+);
+const ProducerReportsTab = lazyWithRetry(() =>
+  import("@/pages/producer/ProducerReportsTab").then((m) => ({ default: m.ProducerReportsTab })),
+);
+const ProducerPaymentsTab = lazyWithRetry(() =>
+  import("@/pages/producer/ProducerPaymentsTab").then((m) => ({ default: m.ProducerPaymentsTab })),
+);
+const PendingRatingsPanel = lazyWithRetry(() =>
+  import("@/components/PendingRatingsPanel").then((m) => ({ default: m.PendingRatingsPanel })),
+);
+const ServicesModal = lazyWithRetry(() =>
+  import("@/components/ServicesModal").then((m) => ({ default: m.ServicesModal })),
+);
+const ServiceChatDialog = lazyWithRetry(() =>
+  import("@/components/ServiceChatDialog").then((m) => ({ default: m.ServiceChatDialog })),
+);
+const ServiceEditModal = lazyWithRetry(() =>
+  import("@/components/service-wizard/ServiceEditModal").then((m) => ({ default: m.ServiceEditModal })),
+);
+const ProducerHistoryTab = lazyWithRetry(() =>
+  import("@/pages/producer/ProducerHistoryTab").then((m) => ({ default: m.ProducerHistoryTab })),
+);
+const SystemAnnouncementsBoard = lazyWithRetry(() =>
+  import("@/components/SystemAnnouncementsBoard").then((m) => ({ default: m.SystemAnnouncementsBoard })),
+);
+const AutoRatingModal = lazyWithRetry(() =>
+  import("@/components/AutoRatingModal").then((m) => ({ default: m.AutoRatingModal })),
+);
+const UnifiedProposalsWrapper = lazyWithRetry(() =>
+  import("@/components/proposal/UnifiedProposalsWrapper").then((m) => ({ default: m.UnifiedProposalsWrapper })),
+);
+const UnifiedChatHub = lazyWithRetry(() =>
+  import("@/components/UnifiedChatHub").then((m) => ({ default: m.UnifiedChatHub })),
+);
+const FiscalTab = lazyWithRetry(() =>
+  import("@/components/fiscal/tabs/FiscalTab").then((m) => ({ default: m.FiscalTab })),
+);
+const PendingDeliveryConfirmationCard = lazyWithRetry(() =>
+  import("@/components/PendingDeliveryConfirmationCard").then((m) => ({ default: m.PendingDeliveryConfirmationCard })),
 );
 
 // Loading fallback for chart components - SEM TEXTO (padrão global)
