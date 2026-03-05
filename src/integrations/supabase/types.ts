@@ -13329,44 +13329,47 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string | null
+          metadata: Json | null
           provider_id: string | null
           reference_id: string | null
           reference_type: string | null
           status: string | null
-          stripe_payment_intent_id_masked: string | null
-          stripe_payout_id_masked: string | null
+          stripe_payment_intent_id: string | null
+          stripe_payout_id: string | null
           transaction_type: string | null
           updated_at: string | null
         }
         Insert: {
           amount?: number | null
-          balance_after?: never
-          balance_before?: never
+          balance_after?: number | null
+          balance_before?: number | null
           created_at?: string | null
           description?: string | null
           id?: string | null
+          metadata?: Json | null
           provider_id?: string | null
           reference_id?: string | null
           reference_type?: string | null
           status?: string | null
-          stripe_payment_intent_id_masked?: never
-          stripe_payout_id_masked?: never
+          stripe_payment_intent_id?: never
+          stripe_payout_id?: never
           transaction_type?: string | null
           updated_at?: string | null
         }
         Update: {
           amount?: number | null
-          balance_after?: never
-          balance_before?: never
+          balance_after?: number | null
+          balance_before?: number | null
           created_at?: string | null
           description?: string | null
           id?: string | null
+          metadata?: Json | null
           provider_id?: string | null
           reference_id?: string | null
           reference_type?: string | null
           status?: string | null
-          stripe_payment_intent_id_masked?: never
-          stripe_payout_id_masked?: never
+          stripe_payment_intent_id?: never
+          stripe_payout_id?: never
           transaction_type?: string | null
           updated_at?: string | null
         }
