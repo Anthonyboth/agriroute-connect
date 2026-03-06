@@ -389,6 +389,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'withdrawn_freight_appears_in_available_list',
     ],
   },
+
+  // ── BUG #013 ─────────────────────────────────────────────────
+  {
+    id: 'FRT-013',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-withdrawal',
+    bug: 'Desistência do motorista não cancelava o assignment corretamente. A RPC usava freights.driver_id para decidir single/multi-truck, mas após uma withdrawal anterior driver_id=NULL, fazendo a RPC seguir o caminho errado. Resultado: assignment ficava OPEN, frete ficava OPEN com dados inconsistentes, e notificações duplicadas "Frete aceito!" a cada ciclo aceitar/desistir/re-aceitar.',
+    rootCause: 'process_freight_withdrawal verificava freights.driver_id para decidir o caminho (single vs multi-truck). Após uma desistência anterior que já zerou driver_id=NULL, a re-aceitação nem sempre re-setava driver_id antes da próxima desistência, fazendo a RPC tomar o caminho multi-truck e falhar em encontrar o assignment. Além disso, notify_freight_status_change tinha janela de dedup de 5 minutos que não impedia duplicatas em ciclos aceitar/desistir espaçados.',
+    fix: 'RPC refatorada: agora busca PRIMEIRO o assignment do motorista via freight_assignments (ignorando freights.driver_id), depois busca o freight. Janela de dedup de notificações reduzida para 30 segundos. Cleanup global de assignments OPEN órfãos.',
+    files: [
+      'supabase/migrations/*_bug013_withdrawal_assignment_fix.sql',
+    ],
+    rules: [
+      'NUNCA usar freights.driver_id como condição principal para encontrar assignments na desistência. Sempre buscar via freight_assignments diretamente.',
+      'A RPC de withdrawal DEVE fazer FOR UPDATE no assignment E no freight para evitar race conditions.',
+      'Notificações de aceitação devem ter dedup por freight_id com janela curta (30s) para evitar spam em ciclos rápidos de aceitar/desistir.',
+      'Ao cancelar assignments, usar status NOT IN com lista COMPLETA de terminais: CANCELLED, COMPLETED, DELIVERED, WITHDRAWN.',
+    ],
+    keywords: ['withdrawal', 'driver_id', 'assignment', 'OPEN', 'stale', 'notification', 'duplicate', 'dedup', 're-accept'],
+    testCases: [
+      'withdrawal_cancels_assignment_when_driver_id_is_null',
+      're_accept_after_withdrawal_does_not_duplicate_notifications',
+      'withdrawal_finds_assignment_directly_not_via_freight_driver_id',
+      'orphaned_open_assignments_are_cleaned_up',
+    ],
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
