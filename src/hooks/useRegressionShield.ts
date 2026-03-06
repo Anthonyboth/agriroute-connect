@@ -488,6 +488,27 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'smart_matcher_refetches_on_freight_accepted_event',
     ],
   },
+  // ── FRT-016: Double accept-freight-multiple call resets assignment to OPEN ──
+  {
+    id: 'FRT-016',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'accept-freight',
+    bug: 'After FreightCard successfully accepted a freight, DriverDashboard.handleFreightAction called accept-freight-multiple AGAIN, causing a race condition that reset the assignment status from ACCEPTED to OPEN.',
+    rootCause: 'FreightCard calls accept-freight-multiple directly, then calls onAction("accept"). DriverDashboard.handleFreightAction treated "accept" as a request to accept (calling the edge function again) instead of a notification that acceptance was already done.',
+    fix: 'Changed handleFreightAction to treat action="accept" as "already accepted — just refresh data". No second edge function call.',
+    files: ['src/pages/DriverDashboard.tsx'],
+    rules: [
+      'FreightCard owns the accept-freight-multiple call. DriverDashboard MUST NOT call it again.',
+      'onAction("accept") means "acceptance complete, refresh data" — NOT "please accept".',
+      'Assignment status OPEN is NEVER valid — it should always be ACCEPTED on creation.',
+    ],
+    keywords: ['double call', 'OPEN assignment', 'handleFreightAction', 'race condition', 'accept'],
+    testCases: [
+      'accept_creates_assignment_with_accepted_status',
+      'driver_dashboard_does_not_call_edge_function_on_accept_action',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
