@@ -119,7 +119,7 @@ export function usePullToRefresh() {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!isPulling.current) return;
-      if (window.scrollY > 5) {
+      if (window.scrollY > 0) {
         isPulling.current = false;
         hideIndicator();
         return;
