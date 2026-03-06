@@ -46,7 +46,8 @@ export type RuntimeGuardKey =
   | 'gps-watchdog-must-detect-disabled-location'
   | 'native-gps-errors-must-not-trigger-alerts'
   | 'withdrawn-driver-must-not-access-freight-details'
-  | 'available-feed-must-exclude-driver-active-assignments';
+  | 'available-feed-must-exclude-driver-active-assignments'
+  | 'rpc-column-names-must-match-table-schema';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -679,6 +680,34 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'withdrawn_freight_reappears_in_available_tab',
     ],
     runtimeGuard: 'available-feed-must-exclude-driver-active-assignments',
+  },
+
+  // ── BUG #023 — RPC usava nome de coluna inexistente (driver_profile_id em stop_events) ──
+  {
+    id: 'FRT-023',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-withdrawal',
+    bug: 'RPC process_freight_withdrawal retornava 409 "column driver_profile_id does not exist" ao tentar desistir de frete.',
+    rootCause: 'A RPC referenciava "driver_profile_id" na tabela stop_events, mas a coluna real é "driver_id". Erro de mismatch entre o nome usado na RPC e o esquema real da tabela.',
+    fix: 'RPC recriada via CREATE OR REPLACE com DELETE FROM stop_events usando driver_id (nome correto). NOTIFY pgrst reload schema para limpar cache do PostgREST.',
+    files: [
+      'supabase/migrations/*_process_freight_withdrawal.sql',
+      'supabase/functions/withdraw-freight/index.ts',
+    ],
+    rules: [
+      'RPCs que fazem DELETE/UPDATE em tabelas DEVEM usar os nomes de coluna exatos do esquema atual.',
+      'Antes de referenciar uma coluna em RPC, VERIFICAR via information_schema.columns se o nome existe.',
+      'Após qualquer CREATE OR REPLACE de RPC, SEMPRE executar NOTIFY pgrst, reload schema.',
+      'Tabelas de tracking (stop_events, driver_trip_progress) usam "driver_id", NÃO "driver_profile_id".',
+    ],
+    keywords: ['driver_profile_id', 'driver_id', 'stop_events', 'column does not exist', 'RPC', 'schema mismatch', '409'],
+    testCases: [
+      'withdrawal_rpc_uses_correct_column_names_for_stop_events',
+      'withdrawal_rpc_cleans_all_trip_data_without_column_errors',
+      'schema_column_names_match_rpc_references',
+    ],
+    runtimeGuard: 'rpc-column-names-must-match-table-schema',
   },
 ];
 // ═══════════════════════════════════════════════════════════════
