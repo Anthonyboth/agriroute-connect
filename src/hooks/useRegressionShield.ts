@@ -509,6 +509,27 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'driver_dashboard_does_not_call_edge_function_on_accept_action',
     ],
   },
+  // ── FRT-017: Proposal RLS blocks drivers without vehicles ──
+  {
+    id: 'FRT-017',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-proposals',
+    bug: 'Drivers without registered vehicles could not send counter-proposals. RLS INSERT policy on freight_proposals required EXISTS(vehicles) check.',
+    rootCause: 'The INSERT policy required the driver to have a vehicle registered OR a company vehicle assignment OR carrier role. Drivers in onboarding or without vehicles were silently blocked with error 42501.',
+    fix: 'Removed vehicle requirement from freight_proposals INSERT policy. Vehicle check belongs at freight acceptance (accept-freight-multiple), not at proposal stage.',
+    files: ['supabase/migrations/frt017_fix_proposal_rls_remove_vehicle_requirement.sql'],
+    rules: [
+      'freight_proposals INSERT policy MUST NOT require vehicle ownership.',
+      'Vehicle checks belong at acceptance time, not proposal time.',
+      'A driver with role driver/affiliated_driver/carrier can always PROPOSE.',
+    ],
+    keywords: ['42501', 'RLS', 'freight_proposals', 'vehicle', 'contraproposta', 'proposal'],
+    testCases: [
+      'driver_without_vehicle_can_send_proposal',
+      'driver_without_vehicle_can_send_counter_proposal',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
