@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -210,16 +210,32 @@ export const DriverOngoingTab: React.FC = () => {
     setShowWithdrawalModal(true);
   }, []);
 
+  // ✅ Ref guard to prevent double-click race condition
+  const withdrawingRef = useRef(false);
+
   const confirmFreightWithdrawal = useCallback(async () => {
+    // ✅ GUARD: Prevent double-click — ref check is synchronous (no async gap)
+    if (withdrawingRef.current) {
+      console.warn('[DriverOngoingTab] Withdrawal already in progress, ignoring duplicate click');
+      return;
+    }
+    withdrawingRef.current = true;
+
     console.log('[DriverOngoingTab] confirmFreightWithdrawal called', { driverProfileId, selectedFreightForWithdrawal: selectedFreightForWithdrawal?.id });
     if (!driverProfileId || !selectedFreightForWithdrawal) {
       console.warn('[DriverOngoingTab] Missing driverProfileId or selectedFreight, aborting');
+      withdrawingRef.current = false;
       return;
     }
 
     setIsWithdrawing(true);
+
+    // ✅ Close modal IMMEDIATELY to prevent any further clicks
+    const freightId = selectedFreightForWithdrawal.id;
+    setShowWithdrawalModal(false);
+    setSelectedFreightForWithdrawal(null);
+
     try {
-      const freightId = selectedFreightForWithdrawal.id;
       console.log('[DriverOngoingTab] Invoking withdraw-freight for:', freightId);
 
       const { data, error } = await supabase.functions.invoke('withdraw-freight', {
@@ -243,9 +259,6 @@ export const DriverOngoingTab: React.FC = () => {
         toast.error(data.message || 'Erro ao processar desistência.');
         return;
       }
-
-      setShowWithdrawalModal(false);
-      setSelectedFreightForWithdrawal(null);
 
       // ✅ STEP 1: Cancel any in-flight queries to prevent them from overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ['driver-ongoing-cards'] });
@@ -277,12 +290,13 @@ export const DriverOngoingTab: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: ['available-freights'] });
         queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
         queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
-      }, 1000);
+      }, 1500);
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
       toast.error('Erro ao processar desistência. Tente novamente.');
     } finally {
       setIsWithdrawing(false);
+      withdrawingRef.current = false;
     }
   }, [driverProfileId, selectedFreightForWithdrawal, queryClient, refetch]);
 

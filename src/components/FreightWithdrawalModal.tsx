@@ -96,6 +96,7 @@ export const FreightWithdrawalModal: React.FC<FreightWithdrawalModalProps> = ({
             disabled={isLoading}
             onClick={(e) => {
               e.preventDefault();
+              if (isLoading) return; // ✅ Extra guard against rapid clicks
               console.log('[FreightWithdrawalModal] Confirm clicked, calling onConfirm');
               onConfirm();
             }}
