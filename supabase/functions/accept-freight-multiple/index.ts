@@ -137,11 +137,16 @@ serve(async (req) => {
       );
     }
 
-    if (freight.status !== "OPEN") {
+    // ✅ FIX FRT-014: Allow ACCEPTED status when there are still available slots (multi-truck)
+    // Only truly block terminal/in-progress statuses
+    const terminalOrActiveStatuses = ['IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'CANCELLED', 'COMPLETED'];
+    if (terminalOrActiveStatuses.includes(freight.status as string)) {
       const statusMessages: Record<string, string> = {
-        'ACCEPTED': 'This freight has already been fully accepted by other drivers',
         'IN_TRANSIT': 'This freight is already in transit',
+        'LOADING': 'This freight is being loaded',
+        'LOADED': 'This freight has been loaded',
         'DELIVERED': 'This freight has already been delivered',
+        'DELIVERED_PENDING_CONFIRMATION': 'This freight is awaiting delivery confirmation',
         'CANCELLED': 'This freight has been cancelled by the producer',
         'COMPLETED': 'This freight has been completed'
       };
@@ -155,6 +160,9 @@ serve(async (req) => {
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // For ACCEPTED status, we continue — the capacity check below (step 5.1) will
+    // verify if there are actually available slots based on real assignment count
 
     // ================================================
     // 5. PREFLIGHT CHECK: Recarregar frete com dados atualizados
