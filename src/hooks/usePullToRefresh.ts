@@ -101,13 +101,17 @@ export function usePullToRefresh() {
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      // Only trigger when at the very top of the page
-      if (window.scrollY > 5) return;
-      // Block pull-to-refresh when any modal/dialog/sheet is open
+      // Must be at absolute top of page
+      if (window.scrollY > 0) return;
+      // Touch must start near the top of the viewport (intentional gesture)
+      if (e.touches[0].clientY > minStartZone) return;
+      // Block when any modal/dialog/sheet is open
       if (isModalOrOverlayOpen()) return;
-      // Don't trigger inside scrollable containers that aren't at top
+      // Don't trigger inside scrollable containers
       const target = e.target as HTMLElement;
       if (target.closest('[data-no-pull-refresh]')) return;
+      // Don't trigger inside form elements
+      if (target.closest('input, textarea, select, [contenteditable]')) return;
 
       startY.current = e.touches[0].clientY;
       isPulling.current = true;
