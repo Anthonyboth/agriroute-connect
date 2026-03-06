@@ -336,6 +336,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'assignment-open-must-be-in-ongoing-statuses',
   },
+
+  // BUG #011 — Coluna metadata inexistente na tabela notifications (409)
+  {
+    id: 'FRT-011',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-withdrawal',
+    bug: 'Edge function withdraw-freight retornava 409 com erro "column metadata of relation notifications does not exist". Erro persistiu mesmo após adicionar a coluna via migração.',
+    rootCause: 'Duas causas encadeadas: (1) A coluna metadata JSONB não existia na tabela notifications — a RPC process_freight_withdrawal tentava INSERT com campo metadata inexistente. (2) Após adicionar a coluna via ALTER TABLE, o PostgreSQL mantinha o plano de execução cacheado da RPC antiga, que não reconhecia a nova coluna. Era necessário recriar a função (CREATE OR REPLACE) para forçar recompilação do plano.',
+    fix: 'Migração 1: ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS metadata JSONB. Migração 2: CREATE OR REPLACE FUNCTION process_freight_withdrawal(...) para forçar recompilação do plano e reconhecer a nova coluna.',
+    files: [
+      'supabase/migrations/*_add_metadata_to_notifications.sql',
+      'supabase/migrations/*_recreate_process_freight_withdrawal.sql',
+    ],
+    rules: [
+      'Ao adicionar coluna usada por RPC existente, SEMPRE recriar a RPC (CREATE OR REPLACE) na mesma migração ou migração subsequente para forçar recompilação do plano.',
+      'NUNCA assumir que ALTER TABLE será reconhecido automaticamente por RPCs/funções existentes — PostgreSQL cacheia planos de execução.',
+      'Toda INSERT em notifications DEVE incluir o campo metadata (JSONB) — mesmo que NULL.',
+      'Testar RPCs após schema changes executando-as diretamente, não apenas verificando information_schema.',
+    ],
+    keywords: ['metadata', 'notifications', '409', 'cached plan', 'recompilação', 'ALTER TABLE', 'CREATE OR REPLACE', 'column does not exist'],
+    testCases: [
+      'withdrawal_creates_notification_with_metadata',
+      'rpc_recognizes_new_columns_after_migration',
+      'notification_insert_includes_metadata_field',
+    ],
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
