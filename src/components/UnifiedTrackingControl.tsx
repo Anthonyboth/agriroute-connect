@@ -13,6 +13,7 @@ import { startForegroundService, stopForegroundService, isForegroundServiceRunni
 import { supabase } from '@/integrations/supabase/client';
 import { useAppStateTracking } from '@/hooks/useAppStateTracking';
 import { BackgroundTrackingDisclosureModal } from '@/components/BackgroundTrackingDisclosureModal';
+import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
 
 export const UnifiedTrackingControl = () => {
   const { profile } = useAuth();
@@ -27,6 +28,7 @@ export const UnifiedTrackingControl = () => {
   const [showDisclosureModal, setShowDisclosureModal] = useState(false);
   const [pendingAutoStart, setPendingAutoStart] = useState(false);
   const [backgroundEnabled, setBackgroundEnabled] = useState(true);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   // Evitar spam de toasts de geolocalização (timeouts são comuns em PWA/indoor)
   const lastGeoErrorRef = useRef<{ code?: number; at: number }>({ at: 0 });
@@ -187,7 +189,8 @@ export const UnifiedTrackingControl = () => {
       if (!hasPermission) {
         const granted = await requestPermissionSafe();
         if (!granted) {
-          showGPSToast('NO_PERMISSION');
+          console.warn('[GPS] Permission denied (OS-PLUG-GLOC-0003) — showing settings dialog');
+          setShowPermissionDialog(true);
           isStartingRef.current = false;
           return;
         }
@@ -336,6 +339,12 @@ export const UnifiedTrackingControl = () => {
 
   return (
     <>
+      {/* GPS Permission Denied Dialog — guides user to device settings */}
+      <GPSPermissionDeniedDialog 
+        open={showPermissionDialog} 
+        onOpenChange={setShowPermissionDialog} 
+      />
+
       {/* Disclosure Modal (Google Play compliance) */}
       <BackgroundTrackingDisclosureModal
         open={showDisclosureModal}
