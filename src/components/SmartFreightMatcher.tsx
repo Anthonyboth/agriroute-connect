@@ -441,6 +441,19 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     };
   }, [profile?.id, user?.id]);
 
+  // ✅ FIX FRT-015b: Refresh list when freight is accepted (event from FreightCard)
+  useEffect(() => {
+    const handler = () => {
+      setTimeout(() => fetchRef.current(), 1000);
+    };
+    window.addEventListener('freight:accepted', handler);
+    window.addEventListener('service_request:accepted', handler);
+    return () => {
+      window.removeEventListener('freight:accepted', handler);
+      window.removeEventListener('service_request:accepted', handler);
+    };
+  }, []);
+
   // ✅ CRITICAL FIX: Separar fretes rurais (CARGA) de fretes urbanos (GUINCHO, MUDANCA, etc.)
   const URBAN_FREIGHT_TYPES = new Set(['GUINCHO', 'FRETE_MOTO', 'MUDANCA', 'ENTREGA_PACOTES', 'TRANSPORTE_PET', 'FRETE_URBANO']);
 
