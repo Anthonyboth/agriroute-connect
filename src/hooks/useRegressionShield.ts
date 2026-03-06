@@ -46,7 +46,8 @@ export type RuntimeGuardKey =
   | 'gps-watchdog-must-detect-disabled-location'
   | 'native-gps-errors-must-not-trigger-alerts'
   | 'withdrawn-driver-must-not-access-freight-details'
-  | 'available-feed-must-exclude-driver-active-assignments';
+  | 'available-feed-must-exclude-driver-active-assignments'
+  | 'rpc-column-names-must-match-table-schema';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
