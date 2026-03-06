@@ -29,6 +29,8 @@ export const UnifiedTrackingControl = () => {
   const [pendingAutoStart, setPendingAutoStart] = useState(false);
   const [backgroundEnabled, setBackgroundEnabled] = useState(true);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [gpsLost, setGpsLost] = useState(false); // GPS desligado durante rastreio
+  const consecutiveErrorsRef = useRef(0);
 
   // Evitar spam de toasts de geolocalização (timeouts são comuns em PWA/indoor)
   const lastGeoErrorRef = useRef<{ code?: number; at: number }>({ at: 0 });
@@ -132,11 +134,56 @@ export const UnifiedTrackingControl = () => {
 
   const handleGeolocationError = (error: any) => {
     const code = error?.code;
-    const message = error?.message;
+    const message = error?.message || '';
     console.error('Erro no rastreamento:', { code, message, raw: error });
 
     const now = Date.now();
     const last = lastGeoErrorRef.current;
+    
+    // Critical errors: GPS permission revoked (1) or position unavailable (2)
+    if (code === 1 || code === 2) {
+      consecutiveErrorsRef.current++;
+      
+      // After 2+ consecutive critical errors, mark GPS as lost
+      if (consecutiveErrorsRef.current >= 2 && isTracking) {
+        console.warn('[GPS] 🔴 GPS LOST — setting gpsLost=true, stopping tracking state');
+        setGpsLost(true);
+        setIsTracking(false);
+        
+        // Stop the foreground service since we can't track
+        if (isNative()) {
+          stopForegroundService().catch(() => {});
+        }
+        
+        // Log incident for active freight
+        if (profile?.id && activeFreightId) {
+          supabase.from('incident_logs').insert({
+            freight_id: activeFreightId,
+            incident_type: 'GPS_DISABLED',
+            description: 'GPS do dispositivo foi desativado durante frete ativo',
+            user_id: profile.id,
+            severity: 'HIGH',
+            auto_generated: true
+          }).then(() => {
+            console.log('[GPS] Incident logged: GPS disabled during active freight');
+          });
+        }
+        
+        toast.error('⚠️ GPS Desativado!', {
+          description: 'A localização do seu celular foi desligada. Ative o GPS para continuar o rastreamento.',
+          duration: 15000,
+          id: 'gps-lost-critical',
+        });
+        return;
+      }
+    } else {
+      // Timeout (code 3) — don't count as critical
+      if (code !== 3) {
+        consecutiveErrorsRef.current++;
+      }
+    }
+
+    // Deduplicate toast display
     if (now - last.at < 10_000 && last.code === code) return;
     lastGeoErrorRef.current = { code, at: now };
     
@@ -151,6 +198,77 @@ export const UnifiedTrackingControl = () => {
       showGPSToast('GPS_ERROR');
     }
   };
+
+  // GPS Health Check — periodic probe every 15s while tracking is active
+  useEffect(() => {
+    if (!isTracking || gpsLost) return;
+
+    const healthCheckInterval = setInterval(async () => {
+      try {
+        const pos = await getCurrentPositionSafe(1); // 1 retry only
+        if (pos?.coords) {
+          // GPS is working — reset error counter
+          consecutiveErrorsRef.current = 0;
+          if (gpsLost) {
+            setGpsLost(false);
+            toast.success('GPS restaurado', {
+              description: 'Localização sendo capturada normalmente.',
+              duration: 4000,
+              id: 'gps-restored',
+            });
+          }
+        }
+      } catch {
+        consecutiveErrorsRef.current++;
+        console.warn('[GPS-Health] Probe failed, consecutive errors:', consecutiveErrorsRef.current);
+        
+        if (consecutiveErrorsRef.current >= 3 && isTracking) {
+          console.warn('[GPS-Health] 🔴 GPS confirmed LOST after 3 failed probes');
+          setGpsLost(true);
+          setIsTracking(false);
+          
+          if (isNative()) {
+            stopForegroundService().catch(() => {});
+          }
+          
+          toast.error('⚠️ GPS Desativado!', {
+            description: 'A localização do seu celular está desligada. Ative o GPS nas configurações.',
+            duration: 15000,
+            id: 'gps-lost-critical',
+          });
+        }
+      }
+    }, 15_000); // Every 15 seconds
+
+    return () => clearInterval(healthCheckInterval);
+  }, [isTracking, gpsLost]);
+
+  // GPS Recovery Check — when gpsLost, try to recover every 10s
+  useEffect(() => {
+    if (!gpsLost || !hasActiveFreight) return;
+
+    const recoveryInterval = setInterval(async () => {
+      try {
+        const pos = await getCurrentPositionSafe(1);
+        if (pos?.coords) {
+          console.log('[GPS-Recovery] ✅ GPS restored! Restarting tracking...');
+          setGpsLost(false);
+          consecutiveErrorsRef.current = 0;
+          toast.success('GPS restaurado!', {
+            description: 'Reiniciando rastreamento automaticamente.',
+            duration: 5000,
+            id: 'gps-restored',
+          });
+          // Auto-restart tracking
+          executeStartTracking(true);
+        }
+      } catch {
+        // Still lost — keep waiting
+      }
+    }, 10_000);
+
+    return () => clearInterval(recoveryInterval);
+  }, [gpsLost, hasActiveFreight]);
 
   // Handle disclosure modal accept
   const handleDisclosureAccept = () => {
@@ -292,6 +410,10 @@ export const UnifiedTrackingControl = () => {
 
   const updateLocation = async (coords: GeolocationCoordinates) => {
     if (!profile?.id) return;
+    
+    // GPS is working — reset error counter and gpsLost state
+    consecutiveErrorsRef.current = 0;
+    if (gpsLost) setGpsLost(false);
 
     try {
       const timestamp = new Date().toISOString();
@@ -352,8 +474,33 @@ export const UnifiedTrackingControl = () => {
         onCancel={handleDisclosureCancel}
       />
 
+      {/* ALERTA CRÍTICO: GPS desligado durante frete ativo */}
+      {gpsLost && hasActiveFreight && (
+        <Alert variant="destructive" className="mb-4 border-2 border-destructive animate-pulse">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle className="text-base font-bold">⚠️ GPS DESATIVADO!</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p className="text-sm">
+              A localização do seu celular está <strong>desligada</strong>. O rastreamento foi interrompido.
+            </p>
+            <p className="text-sm font-semibold">
+              Ative o GPS nas configurações do dispositivo para continuar.
+            </p>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="mt-2 font-bold"
+              onClick={handleStartClick}
+            >
+              <Power className="h-4 w-4 mr-2" />
+              Tentar Reconectar GPS
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Versão compacta (sempre visível) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-card rounded-lg border mb-4">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border mb-4 ${gpsLost ? 'bg-destructive/10 border-destructive' : 'bg-card'}`}>
         <div 
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={toggleModal}
@@ -361,17 +508,22 @@ export const UnifiedTrackingControl = () => {
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && toggleModal()}
         >
-          <Navigation className={`h-5 w-5 flex-shrink-0 ${isTracking ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
+          <Navigation className={`h-5 w-5 flex-shrink-0 ${isTracking ? 'text-green-500 animate-pulse' : gpsLost ? 'text-destructive' : 'text-muted-foreground'}`} />
           <span className="font-medium text-sm">Rastreamento</span>
           <Info className="h-3 w-3 text-muted-foreground flex-shrink-0" />
         </div>
         
         <div className="flex items-center gap-3 flex-shrink-0">
-          <Badge variant={isTracking ? "default" : "secondary"} className="text-xs whitespace-nowrap">
+          <Badge variant={isTracking ? "default" : gpsLost ? "destructive" : "secondary"} className="text-xs whitespace-nowrap">
             {isTracking ? (
               <>
                 <MapPin className="h-3 w-3 mr-1 animate-pulse" />
                 Ativo
+              </>
+            ) : gpsLost ? (
+              <>
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                GPS Desligado
               </>
             ) : (
               <>
