@@ -467,6 +467,27 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'status_checks_are_consistent',
     ],
   },
+  // ── FRT-015b: "Disponíveis" counter not updating after accepting freight ──
+  {
+    id: 'FRT-015b',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'marketplace-feed',
+    bug: 'After accepting a freight, the "Disponíveis" counter kept showing old count because SmartFreightMatcher had its own internal state that was never refreshed after acceptance.',
+    rootCause: 'SmartFreightMatcher.handleFreightAction called onFreightAction and returned immediately without refetching its own internal compatibleFreights list. The freight:accepted event was only handled by DriverDashboard, not by SmartFreightMatcher.',
+    fix: 'Added freight:accepted event listener in SmartFreightMatcher to trigger fetchCompatibleFreights after 1s delay. Also added delayed refetch in handleFreightAction after calling onFreightAction for accept actions.',
+    files: ['src/components/SmartFreightMatcher.tsx'],
+    rules: [
+      'SmartFreightMatcher MUST refetch its internal list after any accept/withdraw action.',
+      'The freight:accepted event MUST be listened to by SmartFreightMatcher, not just DriverDashboard.',
+      'Counter updates require the SOURCE component to re-query, not just the parent.',
+    ],
+    keywords: ['Disponíveis', 'counter', 'SmartFreightMatcher', 'refetch', 'freight:accepted', 'stale count'],
+    testCases: [
+      'available_count_decreases_after_accept',
+      'smart_matcher_refetches_on_freight_accepted_event',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
