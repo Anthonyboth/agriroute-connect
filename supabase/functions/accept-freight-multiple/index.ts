@@ -186,8 +186,9 @@ serve(async (req) => {
       );
     }
 
-    // Status check
-    if (freightFresh.status !== "OPEN") {
+    // ✅ FIX FRT-015: Allow OPEN and ACCEPTED statuses (multi-truck freights can be ACCEPTED but still have slots)
+    const acceptableStatuses = ['OPEN', 'ACCEPTED'];
+    if (!acceptableStatuses.includes(freightFresh.status as string)) {
       return new Response(
         JSON.stringify({ 
           error: "Freight is no longer available",

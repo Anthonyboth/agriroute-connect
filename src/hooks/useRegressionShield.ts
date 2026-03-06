@@ -445,6 +445,28 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'multi_truck_freight_accepts_after_partial_withdrawal',
     ],
   },
+  // ── FRT-015: Preflight check blocking ACCEPTED status on multi-truck freights ──
+  {
+    id: 'FRT-015',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'accept-freight',
+    bug: 'Preflight check (line 190) required status === OPEN, blocking ACCEPTED multi-truck freights even though the first status gate (line 142) allowed them through.',
+    rootCause: 'Contradição entre duas verificações de status na mesma função: a primeira permitia ACCEPTED, a segunda exigia OPEN. Fretes multi-truck com vagas ficavam impossíveis de aceitar após o primeiro motorista.',
+    fix: 'Alterado preflight para aceitar OPEN e ACCEPTED via array acceptableStatuses.',
+    files: ['supabase/functions/accept-freight-multiple/index.ts'],
+    rules: [
+      'AMBAS as verificações de status no accept-freight-multiple devem ser consistentes.',
+      'O preflight check DEVE permitir status ACCEPTED para fretes multi-truck.',
+      'A verificação real de vagas é feita pela contagem de assignments, NÃO pelo status do frete.',
+    ],
+    keywords: ['preflight', 'ACCEPTED', 'OPEN', 'status check', '409', 'multi-truck', 'accept'],
+    testCases: [
+      'accept_second_truck_on_accepted_freight',
+      'preflight_allows_accepted_status',
+      'status_checks_are_consistent',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
