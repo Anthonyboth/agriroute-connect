@@ -91,9 +91,9 @@ serve(async (req) => {
     const driverId = driverProfile.id;
     console.log('[withdraw-freight] Driver profile:', driverId, 'Freight:', freightId);
 
-    // ✅ Call RPC with adminClient (service_role) to bypass RLS on notifications table
-    // Auth is already validated above (JWT + profile ownership). RPC validates freight ownership internally.
-    const { data: result, error: rpcError } = await adminClient.rpc('process_freight_withdrawal', {
+    // ✅ FRT-008: Call RPC with userClient to preserve auth.uid() context inside the RPC.
+    // The RPC is SECURITY DEFINER, so it already bypasses RLS for notification inserts.
+    const { data: result, error: rpcError } = await userClient.rpc('process_freight_withdrawal', {
       freight_id_param: freightId,
       p_driver_profile_id: driverId
     });
