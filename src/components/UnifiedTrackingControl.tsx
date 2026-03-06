@@ -474,8 +474,33 @@ export const UnifiedTrackingControl = () => {
         onCancel={handleDisclosureCancel}
       />
 
+      {/* ALERTA CRÍTICO: GPS desligado durante frete ativo */}
+      {gpsLost && hasActiveFreight && (
+        <Alert variant="destructive" className="mb-4 border-2 border-destructive animate-pulse">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle className="text-base font-bold">⚠️ GPS DESATIVADO!</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p className="text-sm">
+              A localização do seu celular está <strong>desligada</strong>. O rastreamento foi interrompido.
+            </p>
+            <p className="text-sm font-semibold">
+              Ative o GPS nas configurações do dispositivo para continuar.
+            </p>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="mt-2 font-bold"
+              onClick={handleStartClick}
+            >
+              <Power className="h-4 w-4 mr-2" />
+              Tentar Reconectar GPS
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Versão compacta (sempre visível) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-card rounded-lg border mb-4">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border mb-4 ${gpsLost ? 'bg-destructive/10 border-destructive' : 'bg-card'}`}>
         <div 
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={toggleModal}
@@ -483,17 +508,22 @@ export const UnifiedTrackingControl = () => {
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && toggleModal()}
         >
-          <Navigation className={`h-5 w-5 flex-shrink-0 ${isTracking ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
+          <Navigation className={`h-5 w-5 flex-shrink-0 ${isTracking ? 'text-green-500 animate-pulse' : gpsLost ? 'text-destructive' : 'text-muted-foreground'}`} />
           <span className="font-medium text-sm">Rastreamento</span>
           <Info className="h-3 w-3 text-muted-foreground flex-shrink-0" />
         </div>
         
         <div className="flex items-center gap-3 flex-shrink-0">
-          <Badge variant={isTracking ? "default" : "secondary"} className="text-xs whitespace-nowrap">
+          <Badge variant={isTracking ? "default" : gpsLost ? "destructive" : "secondary"} className="text-xs whitespace-nowrap">
             {isTracking ? (
               <>
                 <MapPin className="h-3 w-3 mr-1 animate-pulse" />
                 Ativo
+              </>
+            ) : gpsLost ? (
+              <>
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                GPS Desligado
               </>
             ) : (
               <>
