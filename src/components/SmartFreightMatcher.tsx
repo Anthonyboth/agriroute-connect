@@ -212,7 +212,27 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         skipCityFilter: hasAdvancedFilters,
       });
 
-      const unifiedFreights: CompatibleFreight[] = (result.freights || []).map((f: any) => ({
+      // ✅ FRT-022: Excluir fretes onde o motorista já possui assignment ativo
+      const { data: activeAssignmentIds } = await supabase
+        .from('freight_assignments')
+        .select('freight_id')
+        .eq('driver_id', profile.id)
+        .in('status', ['OPEN', 'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+
+      const { data: directOngoing } = await supabase
+        .from('freights')
+        .select('id')
+        .eq('driver_id', profile.id)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+
+      const assignedFreightIds = new Set([
+        ...(activeAssignmentIds || []).map((a: any) => a.freight_id),
+        ...(directOngoing || []).map((f: any) => f.id),
+      ]);
+
+      const unifiedFreights: CompatibleFreight[] = (result.freights || [])
+        .filter((f: any) => !assignedFreightIds.has(f.id || f.freight_id))
+        .map((f: any) => ({
         freight_id: f.id || f.freight_id,
         cargo_type: f.cargo_type || '',
         weight: Number(f.weight || 0),
