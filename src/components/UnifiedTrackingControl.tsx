@@ -367,6 +367,7 @@ export const UnifiedTrackingControl = () => {
 
         setWatchId(handle);
         setIsTracking(true);
+        trackingStartTimeRef.current = new Date();
         isStartingRef.current = false;
 
         if (!isAuto) {
