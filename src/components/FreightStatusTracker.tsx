@@ -468,9 +468,9 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="px-6 pb-6">
-          <div className="relative">
-            {/* Progress Line */}
-            <div className="absolute top-5 left-0 right-0 h-0.5 bg-muted mx-8">
+          <div className="relative" style={{ height: '140px' }}>
+            {/* Progress Line - centered vertically */}
+            <div className="absolute left-0 right-0 h-0.5 bg-muted mx-8" style={{ top: '60px' }}>
               <div 
                 className="h-full bg-primary transition-all duration-500 ease-in-out" 
                 style={{ 
@@ -480,17 +480,30 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
             </div>
             
             {/* Status Items */}
-            <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center justify-between relative z-10" style={{ height: '100%' }}>
               {statusFlow.map((status, index) => {
                 const Icon = status.icon;
                 const variant = getStatusVariant(status.key);
                 const isActive = status.key === effectiveCurrentStatus;
                 const isCompleted = variant === 'default';
+                const isLast = index === statusFlow.length - 1;
+                
+                // Zigzag: odd indices (0,2,4) go up, even indices (1,3) go down, last stays centered
+                const yOffset = isLast ? 0 : (index % 2 === 0 ? -30 : 30);
                 
                 return (
-                  <div key={status.key} className="flex flex-col items-center" style={{ flex: index === 0 || index === statusFlow.length - 1 ? '0 0 auto' : '1' }}>
+                  <div 
+                    key={status.key} 
+                    className="flex flex-col items-center" 
+                    style={{ 
+                      flex: index === 0 || isLast ? '0 0 auto' : '1',
+                      transform: `translateY(${yOffset}px)`,
+                      position: 'relative',
+                      top: '40px',
+                    }}
+                  >
                     <div className={`
-                      relative w-10 h-10 rounded-full flex items-center justify-center mb-3 border-2 transition-all duration-300
+                      relative w-10 h-10 rounded-full flex items-center justify-center mb-2 border-2 transition-all duration-300
                       ${isActive 
                         ? 'bg-primary text-primary-foreground border-primary shadow-md scale-110' 
                         : isCompleted
