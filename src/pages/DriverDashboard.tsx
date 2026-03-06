@@ -1923,7 +1923,7 @@ const DriverDashboard = () => {
         return;
       }
 
-      if (action === 'propose' || action === 'accept') {
+      if (action === 'propose') {
         // Buscar proposta existente (se houver)
         const { data: existingProposal, error: existingError } = await supabase
           .from('freight_proposals')
