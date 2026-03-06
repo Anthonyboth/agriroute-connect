@@ -442,8 +442,30 @@ const DriverDashboard = () => {
         debug: import.meta.env.DEV,
       });
 
+      // ✅ FRT-022: Excluir fretes onde o motorista já possui assignment ativo
+      // Isso evita que o frete apareça simultaneamente em "Disponível" e "Em Andamento"
+      const { data: activeAssignmentIds } = await supabase
+        .from('freight_assignments')
+        .select('freight_id')
+        .eq('driver_id', profile.id)
+        .in('status', ['OPEN', 'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+
+      const assignedFreightIds = new Set(
+        (activeAssignmentIds || []).map((a: any) => a.freight_id)
+      );
+
+      // Também excluir fretes diretos (driver_id = profile.id) que já estão em andamento
+      const { data: directOngoing } = await supabase
+        .from('freights')
+        .select('id')
+        .eq('driver_id', profile.id)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION']);
+
+      (directOngoing || []).forEach((f: any) => assignedFreightIds.add(f.id));
+
       const normalizedFreights: Freight[] = (result.freights || [])
         .filter((f: any) => (f.accepted_trucks || 0) < (f.required_trucks || 1))
+        .filter((f: any) => !assignedFreightIds.has(f.id || f.freight_id))
         .map((f: any) => ({
           id: f.id || f.freight_id,
           cargo_type: f.cargo_type,
