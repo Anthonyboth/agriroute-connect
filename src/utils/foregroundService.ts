@@ -139,8 +139,8 @@ export const startForegroundService = async (): Promise<boolean> => {
 
     await ForegroundService.startForegroundService({
       id: NOTIFICATION_ID,
-      title: 'AgriRoute — Rastreio ativo',
-      body: 'Segurança da carga',
+      title: 'AgriRoute',
+      body: 'Rastreio ativo – Segurança da carga',
       smallIcon: SMALL_ICON,
       notificationChannelId: CHANNEL_ID,
       silent: true,
@@ -204,7 +204,7 @@ export const updateForegroundNotification = async (body: string): Promise<void> 
     const { ForegroundService } = await import('@capawesome-team/capacitor-android-foreground-service');
     await ForegroundService.updateForegroundService({
       id: NOTIFICATION_ID,
-      title: 'AgriRoute — Rastreio ativo',
+      title: 'AgriRoute',
       body,
       smallIcon: SMALL_ICON,
       notificationChannelId: CHANNEL_ID,
