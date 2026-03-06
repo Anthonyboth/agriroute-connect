@@ -202,7 +202,8 @@ export const DriverOngoingTab: React.FC = () => {
   // ✅ Withdrawal flow: permite motorista desistir de fretes ACCEPTED/LOADING
   const handleFreightWithdrawal = useCallback((freight: any) => {
     const status = String(freight?.status || '').toUpperCase();
-    if (!['ACCEPTED', 'LOADING'].includes(status)) {
+    // ✅ FRT-008: Incluir OPEN pois accept-freight-multiple cria assignments com status OPEN
+    if (!['OPEN', 'ACCEPTED', 'LOADING'].includes(status)) {
       toast.error('Não é possível desistir do frete neste status.');
       return;
     }

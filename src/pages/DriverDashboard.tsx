@@ -2200,8 +2200,8 @@ const DriverDashboard = () => {
   };
 
   const handleFreightWithdrawal = (freight: Freight) => {
-    // Blindagem adicional: só permitir desistência se ACCEPTED ou LOADING
-    if (!['ACCEPTED','LOADING'].includes(freight.status)) {
+    // ✅ FRT-008: Incluir OPEN pois accept-freight-multiple cria assignments com status OPEN
+    if (!['OPEN', 'ACCEPTED', 'LOADING'].includes(freight.status)) {
       toast.error('Não é possível desistir do frete neste status.');
       return;
     }
