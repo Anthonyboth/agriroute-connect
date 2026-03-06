@@ -9,8 +9,9 @@ export function usePullToRefresh() {
   const startY = useRef(0);
   const isPulling = useRef(false);
   const indicatorRef = useRef<HTMLDivElement | null>(null);
-  const threshold = 120; // px to trigger refresh
-  const maxPull = 160;
+  const threshold = 200; // px to trigger refresh (high = intentional pull only)
+  const maxPull = 240;
+  const minStartZone = 80; // touch must start in top 80px of viewport
 
   const createIndicator = useCallback(() => {
     if (indicatorRef.current) return;
