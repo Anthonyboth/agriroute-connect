@@ -86,9 +86,24 @@ export function usePullToRefresh() {
   useEffect(() => {
     createIndicator();
 
+    const isModalOrOverlayOpen = (): boolean => {
+      // Check for any open dialog/modal/sheet/drawer/popover/dropdown
+      return !!(
+        document.querySelector('[role="dialog"]') ||
+        document.querySelector('[role="alertdialog"]') ||
+        document.querySelector('[data-state="open"][data-radix-popper-content-wrapper]') ||
+        document.querySelector('[data-state="open"].fixed') ||
+        document.querySelector('.vaul-drawer-visible') ||
+        document.querySelector('[data-radix-dialog-overlay]') ||
+        document.querySelector('[data-radix-alert-dialog-overlay]')
+      );
+    };
+
     const onTouchStart = (e: TouchEvent) => {
       // Only trigger when at the very top of the page
       if (window.scrollY > 5) return;
+      // Block pull-to-refresh when any modal/dialog/sheet is open
+      if (isModalOrOverlayOpen()) return;
       // Don't trigger inside scrollable containers that aren't at top
       const target = e.target as HTMLElement;
       if (target.closest('[data-no-pull-refresh]')) return;
