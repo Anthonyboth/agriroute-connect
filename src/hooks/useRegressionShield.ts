@@ -52,10 +52,15 @@ export interface RuntimeGuardContext {
   freightStatus?: string;
   driverId?: string | null;
   assignmentExists?: boolean;
+  assignmentStatus?: string;
   requiredTrucks?: number;
   acceptedTrucks?: number;
   driversAssigned?: string[];
   skipRecalcSet?: boolean;
+  ongoingStatuses?: string[];
+  alreadyAccepted?: boolean;
+  freightIdsInAvailable?: string[];
+  driverActiveFreightIds?: string[];
 }
 
 export class RegressionViolation extends Error {
@@ -673,6 +678,7 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'multi_truck_freight_hidden_from_available_after_driver_accepts',
       'withdrawn_freight_reappears_in_available_tab',
     ],
+    runtimeGuard: 'available-feed-must-exclude-driver-active-assignments',
   },
 ];
 // ═══════════════════════════════════════════════════════════════
