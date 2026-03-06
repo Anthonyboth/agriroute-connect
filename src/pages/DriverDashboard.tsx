@@ -1541,12 +1541,25 @@ const DriverDashboard = () => {
       setActiveTab('history');
       setShowDetails(false);
       setSelectedFreightId(null);
-      // Recarregar dados
       fetchOngoingFreights();
     };
     
+    // ✅ Listener para desistência de frete - limpa estado legado imediatamente
+    const handleWithdrawn = (event: CustomEvent) => {
+      const withdrawnId = event.detail?.freightId;
+      if (withdrawnId) {
+        setOngoingFreights(prev => prev.filter((f: any) => f.id !== withdrawnId));
+      }
+      // Delayed refetch to sync with server
+      setTimeout(() => fetchOngoingFreights(), 1000);
+    };
+    
     window.addEventListener('freight:movedToHistory', handleMovedToHistory);
-    return () => window.removeEventListener('freight:movedToHistory', handleMovedToHistory);
+    window.addEventListener('freight:withdrawn', handleWithdrawn as EventListener);
+    return () => {
+      window.removeEventListener('freight:movedToHistory', handleMovedToHistory);
+      window.removeEventListener('freight:withdrawn', handleWithdrawn as EventListener);
+    };
   }, [fetchOngoingFreights]);
 
   // ✅ Listener para navegação automática para aba "Em Andamento" após aceitar frete

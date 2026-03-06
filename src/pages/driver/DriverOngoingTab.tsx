@@ -247,7 +247,12 @@ export const DriverOngoingTab: React.FC = () => {
       setShowWithdrawalModal(false);
       setSelectedFreightForWithdrawal(null);
 
-      // ✅ OPTIMISTIC: Remove freight from cache immediately so UI updates instantly
+      // ✅ STEP 1: Cancel any in-flight queries to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['driver-ongoing-cards'] });
+      await queryClient.cancelQueries({ queryKey: ['driver-assignments'] });
+      await queryClient.cancelQueries({ queryKey: ['ongoing-freights'] });
+
+      // ✅ STEP 2: OPTIMISTIC - Remove freight from cache immediately so UI updates instantly
       queryClient.setQueryData(
         ['driver-ongoing-cards', driverProfileId],
         (old: any) => {
@@ -262,12 +267,17 @@ export const DriverOngoingTab: React.FC = () => {
 
       toast.success('Desistência processada. O frete está novamente disponível para outros motoristas.');
 
-      // Background refetch to sync with server
-      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
-      queryClient.invalidateQueries({ queryKey: ['available-freights'] });
-      queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
-      queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      // ✅ STEP 3: Dispatch event so DriverDashboard legacy state also updates
+      window.dispatchEvent(new CustomEvent('freight:withdrawn', { detail: { freightId } }));
+
+      // ✅ STEP 4: Delayed refetch to ensure DB transaction is fully committed
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['driver-ongoing-cards'] });
+        queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
+        queryClient.invalidateQueries({ queryKey: ['available-freights'] });
+        queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
+        queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      }, 1000);
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
       toast.error('Erro ao processar desistência. Tente novamente.');
