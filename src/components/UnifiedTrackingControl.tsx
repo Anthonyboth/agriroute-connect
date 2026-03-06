@@ -430,6 +430,61 @@ export const UnifiedTrackingControl = () => {
     toast.warning('Incidente registrado: rastreamento desativado durante frete ativo');
   };
 
+  // Ref para dados do frete (origem/destino) para notificação
+  const freightInfoRef = useRef<{ origin: string; destination: string } | null>(null);
+  const trackingStartTimeRef = useRef<Date | null>(null);
+
+  // Buscar info do frete ativo para exibir na notificação
+  useEffect(() => {
+    if (!activeFreightId) {
+      freightInfoRef.current = null;
+      return;
+    }
+    const fetchFreightInfo = async () => {
+      try {
+        const { data } = await supabase
+          .from('freights')
+          .select('origin_city, destination_city, origin_state, destination_state')
+          .eq('id', activeFreightId)
+          .maybeSingle();
+        if (data) {
+          freightInfoRef.current = {
+            origin: `${data.origin_city || ''}/${data.origin_state || ''}`.replace(/^\/|\/$/g, ''),
+            destination: `${data.destination_city || ''}/${data.destination_state || ''}`.replace(/^\/|\/$/g, ''),
+          };
+        }
+      } catch (e) {
+        console.warn('[Tracking] Falha ao buscar info do frete para notificação:', e);
+      }
+    };
+    fetchFreightInfo();
+  }, [activeFreightId]);
+
+  const buildNotificationBody = useCallback(() => {
+    const info = freightInfoRef.current;
+    const startTime = trackingStartTimeRef.current;
+    const parts: string[] = [];
+
+    if (info?.origin && info?.destination) {
+      parts.push(`📍 ${info.origin} → ${info.destination}`);
+    }
+
+    if (startTime) {
+      const elapsed = Math.floor((Date.now() - startTime.getTime()) / 60000);
+      if (elapsed < 60) {
+        parts.push(`⏱ ${elapsed}min rastreando`);
+      } else {
+        const h = Math.floor(elapsed / 60);
+        const m = elapsed % 60;
+        parts.push(`⏱ ${h}h${m > 0 ? `${m}min` : ''} rastreando`);
+      }
+    }
+
+    return parts.length > 0
+      ? parts.join(' | ')
+      : 'Rastreio ativo – Segurança da carga';
+  }, []);
+
   const updateLocation = async (coords: GeolocationCoordinates) => {
     if (!profile?.id) return;
     
@@ -463,6 +518,12 @@ export const UnifiedTrackingControl = () => {
         .eq('id', profile.id);
 
       setLastUpdate(new Date());
+
+      // Atualizar notificação do Foreground Service com info da viagem
+      if (isNative()) {
+        const body = buildNotificationBody();
+        updateForegroundNotification(body).catch(() => {});
+      }
     } catch (error) {
       console.error('Erro ao atualizar localização:', error);
     }
