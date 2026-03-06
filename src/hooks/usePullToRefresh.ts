@@ -9,8 +9,9 @@ export function usePullToRefresh() {
   const startY = useRef(0);
   const isPulling = useRef(false);
   const indicatorRef = useRef<HTMLDivElement | null>(null);
-  const threshold = 120; // px to trigger refresh
-  const maxPull = 160;
+  const threshold = 200; // px to trigger refresh (high = intentional pull only)
+  const maxPull = 240;
+  const minStartZone = 80; // touch must start in top 80px of viewport
 
   const createIndicator = useCallback(() => {
     if (indicatorRef.current) return;
@@ -100,13 +101,17 @@ export function usePullToRefresh() {
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      // Only trigger when at the very top of the page
-      if (window.scrollY > 5) return;
-      // Block pull-to-refresh when any modal/dialog/sheet is open
+      // Must be at absolute top of page
+      if (window.scrollY > 0) return;
+      // Touch must start near the top of the viewport (intentional gesture)
+      if (e.touches[0].clientY > minStartZone) return;
+      // Block when any modal/dialog/sheet is open
       if (isModalOrOverlayOpen()) return;
-      // Don't trigger inside scrollable containers that aren't at top
+      // Don't trigger inside scrollable containers
       const target = e.target as HTMLElement;
       if (target.closest('[data-no-pull-refresh]')) return;
+      // Don't trigger inside form elements
+      if (target.closest('input, textarea, select, [contenteditable]')) return;
 
       startY.current = e.touches[0].clientY;
       isPulling.current = true;
@@ -114,7 +119,7 @@ export function usePullToRefresh() {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!isPulling.current) return;
-      if (window.scrollY > 5) {
+      if (window.scrollY > 0) {
         isPulling.current = false;
         hideIndicator();
         return;
@@ -129,8 +134,8 @@ export function usePullToRefresh() {
         return;
       }
 
-      if (pullDistance > 10) {
-        // Prevent default scroll to allow our custom pull behavior
+      if (pullDistance > 30) {
+        // Only prevent default after significant intentional pull
         e.preventDefault();
       }
 
