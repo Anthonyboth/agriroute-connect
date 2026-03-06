@@ -1,0 +1,2 @@
+ALTER TABLE public.freight_assignments DROP CONSTRAINT freight_assignments_status_check;
+ALTER TABLE public.freight_assignments ADD CONSTRAINT freight_assignments_status_check CHECK (status = ANY (ARRAY['OPEN','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','WITHDRAWN']));
