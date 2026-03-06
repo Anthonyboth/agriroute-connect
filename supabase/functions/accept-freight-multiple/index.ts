@@ -696,7 +696,33 @@ serve(async (req) => {
       }
     }
 
-    // 11. Notificação do produtor é gerada automaticamente pelo trigger
+    // ================================================
+    // 11. CANCELAR PROPOSTAS PENDENTES DO MOTORISTA PARA ESTE FRETE
+    // ================================================
+    // FRT-018: Quando o motorista aceita pelo valor original, suas propostas
+    // pendentes devem ser automaticamente canceladas.
+    try {
+      const { data: cancelledProposals, error: cancelError } = await supabase
+        .from("freight_proposals")
+        .update({ 
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString(),
+        })
+        .eq("freight_id", freight_id)
+        .eq("driver_id", profile.id)
+        .eq("status", "PENDING")
+        .select("id");
+
+      if (cancelError) {
+        console.error("[PROPOSAL-CANCEL] Error cancelling pending proposals:", cancelError);
+      } else if (cancelledProposals && cancelledProposals.length > 0) {
+        console.log(`[PROPOSAL-CANCEL] Cancelled ${cancelledProposals.length} pending proposals for driver ${profile.id}`);
+      }
+    } catch (err) {
+      console.error("[PROPOSAL-CANCEL] Exception:", err);
+    }
+
+    // 12. Notificação do produtor é gerada automaticamente pelo trigger
     // notify_freight_status_change ao mudar status para ACCEPTED.
     // NÃO inserir manualmente aqui para evitar duplicação.
     const remainingSlots = availableSlots - num_trucks;
