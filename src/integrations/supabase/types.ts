@@ -9187,6 +9187,7 @@ export type Database = {
           data: Json | null
           id: string
           message: string
+          metadata: Json | null
           read: boolean
           title: string
           type: string
@@ -9198,6 +9199,7 @@ export type Database = {
           data?: Json | null
           id?: string
           message: string
+          metadata?: Json | null
           read?: boolean
           title: string
           type?: string
@@ -9209,6 +9211,7 @@ export type Database = {
           data?: Json | null
           id?: string
           message?: string
+          metadata?: Json | null
           read?: boolean
           title?: string
           type?: string
