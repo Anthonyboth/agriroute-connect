@@ -136,6 +136,14 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
       }
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err?.message ?? '';
+      const code = err?.code ?? '';
+      
+      // OS-PLUG-GLOC-0003 = user explicitly denied permission — don't retry
+      if (code === 'OS-PLUG-GLOC-0003' || msg.includes('permission request was denied')) {
+        console.warn('[GPS] Permission explicitly denied by user (OS-PLUG-GLOC-0003)');
+        return false;
+      }
+      
       console.warn('[GPS] Error requesting native permissions:', msg);
       
       // ✅ Detect "Missing permissions in AndroidManifest.xml" — this means the APK
