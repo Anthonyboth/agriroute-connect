@@ -8003,6 +8003,13 @@ export type Database = {
             referencedRelation: "freight_messages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "location_chat_log_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "freight_messages_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       loyalty_points: {
@@ -13633,6 +13640,80 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      freight_messages_secure: {
+        Row: {
+          chat_closed_by: Json | null
+          created_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          freight_id: string | null
+          id: string | null
+          image_url: string | null
+          is_location_request: boolean | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          message: string | null
+          message_type: string | null
+          read_at: string | null
+          request_responded_at: string | null
+          sender_id: string | null
+          target_driver_id: string | null
+          target_vehicle_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_messages_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_driver_id_fkey"
+            columns: ["target_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_driver_id_fkey"
+            columns: ["target_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_vehicle_id_fkey"
+            columns: ["target_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_vehicle_id_fkey"
+            columns: ["target_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       freight_payments_secure: {
         Row: {
