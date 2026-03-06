@@ -33,6 +33,27 @@ export const UnifiedTrackingControl = () => {
   const [gpsLost, setGpsLost] = useState(false); // GPS desligado durante rastreio
   const consecutiveErrorsRef = useRef(0);
 
+  // GPS Watchdog — detecta desativação do GPS fora do app
+  const gpsWatchdog = useGPSWatchdog({
+    profileId: profile?.id,
+    activeFreightId: activeFreightId ?? undefined,
+    isTracking,
+    pollIntervalMs: 10_000,
+    onGPSLost: () => {
+      setGpsLost(true);
+      setIsTracking(false);
+      if (isNative()) {
+        stopForegroundService().catch(() => {});
+      }
+    },
+    onGPSRestored: () => {
+      setGpsLost(false);
+      consecutiveErrorsRef.current = 0;
+      // Auto-restart tracking
+      executeStartTracking(true);
+    },
+  });
+
   // Evitar spam de toasts de geolocalização (timeouts são comuns em PWA/indoor)
   const lastGeoErrorRef = useRef<{ code?: number; at: number }>({ at: 0 });
   // Prevent double start
