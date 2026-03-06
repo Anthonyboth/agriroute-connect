@@ -118,7 +118,7 @@ serve(async (req) => {
           statusCode = 404;
           break;
         case 'INVALID_STATUS':
-          message = 'Não é possível desistir do frete neste status (somente ACCEPTED ou LOADING)';
+          message = 'Não é possível desistir do frete neste status (somente OPEN, ACCEPTED ou LOADING)';
           statusCode = 409;
           break;
         case 'STATUS_REQUIRES_SUPPORT':
