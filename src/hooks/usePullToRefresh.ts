@@ -114,7 +114,7 @@ export function usePullToRefresh() {
       // Touch must start near the top of the viewport (intentional gesture)
       if (e.touches[0].clientY > minStartZone) return;
       // Block when any modal/dialog/sheet is open
-      if (isModalOrOverlayOpen()) return;
+      if (hasAnythingOverMainScreen()) return;
       // Don't trigger inside scrollable containers
       const target = e.target as HTMLElement;
       if (target.closest('[data-no-pull-refresh]')) return;
