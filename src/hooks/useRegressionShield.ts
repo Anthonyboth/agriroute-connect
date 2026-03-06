@@ -648,6 +648,31 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'withdrawn-driver-must-not-access-freight-details',
   },
+
+  // ── FRT-022: Freight appears in both Available and Ongoing tabs simultaneously ──
+  {
+    id: 'FRT-022',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'marketplace-feed',
+    bug: 'Multi-truck freights (accepted_trucks < required_trucks) remained in the Available tab even after the driver accepted and had an active assignment, causing the same freight to appear in both Available and Ongoing tabs.',
+    rootCause: 'get_authoritative_feed RPC returns all OPEN freights with available slots. fetchAvailableFreights did not cross-reference freight_assignments to exclude freights where the current driver already has an active assignment.',
+    fix: 'Added freight_assignments and direct freight (driver_id) queries in fetchAvailableFreights to build an exclusion set. Freights where the driver has any active assignment (OPEN/ACCEPTED/LOADING/LOADED/IN_TRANSIT/DELIVERED_PENDING_CONFIRMATION) are filtered out before rendering in the Available tab.',
+    files: [
+      'src/pages/DriverDashboard.tsx',
+    ],
+    rules: [
+      'fetchAvailableFreights MUST exclude freights where the driver has an active assignment.',
+      'A freight MUST NEVER appear simultaneously in Available and Ongoing tabs for the same driver.',
+      'Any change to the feed RPC or marketplace filters MUST preserve the assignment exclusion logic.',
+    ],
+    keywords: ['available', 'ongoing', 'duplicate', 'multi-truck', 'assignment', 'marketplace', 'feed', 'tabs'],
+    testCases: [
+      'accepted_freight_not_shown_in_available_tab',
+      'multi_truck_freight_hidden_from_available_after_driver_accepts',
+      'withdrawn_freight_reappears_in_available_tab',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
