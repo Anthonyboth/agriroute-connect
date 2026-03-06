@@ -48,8 +48,10 @@ export const FREIGHT_ONGOING_STATUSES_PRODUCER = [
  * Status de assignments que devem aparecer na aba "Em Andamento" do motorista.
  * Inclui PENDING para assignments que ainda precisam ser aceitos.
  * NÃO inclui DELIVERED_PENDING_CONFIRMATION — motorista fica livre após reportar.
+ * ✅ FRT-006: Inclui 'OPEN' pois accept-freight-multiple cria assignments com status OPEN.
  */
 export const ASSIGNMENT_ONGOING_STATUSES = [
+  'OPEN',
   'ACCEPTED',
   'LOADING',
   'LOADED',
