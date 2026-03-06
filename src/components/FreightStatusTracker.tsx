@@ -467,45 +467,36 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
             Progresso da Viagem
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-6 pb-6">
-          <div className="relative" style={{ height: '140px' }}>
-            {/* Progress Line - centered vertically */}
-            <div className="absolute left-0 right-0 h-0.5 bg-muted mx-8" style={{ top: '60px' }}>
+        <CardContent className="px-4 pb-6">
+          <div className="relative pt-2 pb-4">
+            {/* Progress Line */}
+            <div className="absolute left-0 right-0 h-0.5 bg-muted" style={{ top: '22px' }}>
               <div 
-                className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                className="h-full bg-primary transition-all duration-500 ease-in-out rounded-full" 
                 style={{ 
                   width: `${(statusFlow.findIndex(s => s.key === effectiveCurrentStatus) / (statusFlow.length - 1)) * 100}%` 
                 }}
               />
             </div>
             
-            {/* Status Items */}
-            <div className="flex items-center justify-between relative z-10" style={{ height: '100%' }}>
+            {/* Status Items - simple horizontal row */}
+            <div className="flex items-start justify-between relative z-10">
               {statusFlow.map((status, index) => {
                 const Icon = status.icon;
                 const variant = getStatusVariant(status.key);
                 const isActive = status.key === effectiveCurrentStatus;
                 const isCompleted = variant === 'default';
-                const isLast = index === statusFlow.length - 1;
-                
-                // Zigzag: odd indices (0,2,4) go up, even indices (1,3) go down, last stays centered
-                const yOffset = isLast ? 0 : (index % 2 === 0 ? -30 : 30);
                 
                 return (
                   <div 
                     key={status.key} 
-                    className="flex flex-col items-center" 
-                    style={{ 
-                      flex: index === 0 || isLast ? '0 0 auto' : '1',
-                      transform: `translateY(${yOffset}px)`,
-                      position: 'relative',
-                      top: '40px',
-                    }}
+                    className="flex flex-col items-center gap-1.5"
+                    style={{ width: `${100 / statusFlow.length}%` }}
                   >
                     <div className={`
-                      relative w-10 h-10 rounded-full flex items-center justify-center mb-2 border-2 transition-all duration-300
+                      w-11 h-11 rounded-full flex items-center justify-center border-2 transition-all duration-300 shrink-0
                       ${isActive 
-                        ? 'bg-primary text-primary-foreground border-primary shadow-md scale-110' 
+                        ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30 scale-110' 
                         : isCompleted
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'bg-background text-muted-foreground border-muted-foreground/30'
@@ -514,7 +505,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                       <Icon className={`h-4 w-4 ${isActive ? 'animate-pulse' : ''}`} />
                     </div>
                     
-                    <span className={`text-xs font-medium text-center leading-tight max-w-[80px] ${
+                    <span className={`text-[10px] font-medium text-center leading-tight ${
                       isActive 
                         ? 'text-primary font-semibold' 
                         : isCompleted 
@@ -524,9 +515,8 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                       {status.label}
                     </span>
                     
-                    {/* Active indicator */}
                     {isActive && (
-                      <div className="w-1 h-1 bg-primary rounded-full mt-1 animate-pulse" />
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                     )}
                   </div>
                 );
