@@ -246,8 +246,47 @@ export const DriverOngoingTab: React.FC = () => {
       console.log('[DriverOngoingTab] withdraw-freight response:', { data, error });
 
       if (error) {
-        console.error('withdraw-freight error:', error);
-        toast.error('Erro ao processar desistência. Tente novamente.');
+        // FRT-009: Parse real error code/message from edge function response
+        let message = 'Erro ao processar desistência. Tente novamente.';
+        let code = 'UNKNOWN_WITHDRAW_ERROR';
+
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx?.json) {
+            const parsed = await ctx.json();
+            code = parsed?.error || parsed?.code || code;
+            message = parsed?.message || message;
+          } else if (ctx?.text) {
+            const text = await ctx.text();
+            try {
+              const parsed = JSON.parse(text);
+              code = parsed?.error || parsed?.code || code;
+              message = parsed?.message || message;
+            } catch { if (text) message = text; }
+          } else if ((error as any)?.message) {
+            message = (error as any).message;
+          }
+        } catch {
+          if ((error as any)?.message) {
+            message = (error as any).message;
+          }
+        }
+
+        console.error('withdraw-freight failed', { code, message, error });
+
+        if (code === 'NOT_OWNER_OR_NOT_FOUND') {
+          toast.error('Frete não encontrado ou não pertence a você.');
+        } else if (code === 'STATUS_REQUIRES_SUPPORT') {
+          toast.error('Após o carregamento, o cancelamento só pode ser feito pelo suporte/admin.');
+        } else if (code === 'HAS_CHECKINS') {
+          toast.error('Não é possível desistir do frete após o primeiro check-in.');
+        } else if (code === 'INVALID_STATUS') {
+          toast.error('Não é possível desistir do frete neste status.');
+        } else if (code === 'NOT_AUTHENTICATED') {
+          toast.error('Sessão expirada. Faça login novamente.');
+        } else {
+          toast.error(message);
+        }
         return;
       }
 

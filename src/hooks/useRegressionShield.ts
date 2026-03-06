@@ -282,6 +282,34 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'assignment-open-must-be-in-ongoing-statuses',
   },
+
+  // BUG #009 — Frontend engolia erro real da desistência
+  {
+    id: 'FRT-009',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'freight-withdrawal',
+    bug: 'Frontend mostrava toast genérico "Erro ao processar desistência" sem ler o código/mensagem real retornado pela Edge Function withdraw-freight.',
+    rootCause: 'Supabase functions.invoke() coloca o body de respostas non-2xx em error.context, não em error.message. O frontend só lia error.message, perdendo o código de erro real (HAS_CHECKINS, STATUS_REQUIRES_SUPPORT, NOT_OWNER_OR_NOT_FOUND, etc.).',
+    fix: 'Frontend agora lê error.context.json() ou error.context.text() para extrair o código/mensagem reais. Mapeamento de códigos para mensagens amigáveis em PT-BR. Aplicado em DriverOngoingTab.tsx e DriverDashboard.tsx.',
+    files: [
+      'src/pages/driver/DriverOngoingTab.tsx',
+      'src/pages/DriverDashboard.tsx',
+    ],
+    rules: [
+      'NUNCA usar apenas error.message de supabase.functions.invoke() — ler error.context.json() para obter o body real.',
+      'Todo erro de Edge Function deve ser logado com { code, message, details } para diagnóstico.',
+      'Mapeamento de códigos de erro deve existir no frontend para exibir mensagens localizadas.',
+    ],
+    keywords: ['toast', 'erro genérico', 'context', 'non-2xx', 'withdraw', 'desistência', 'error.context', 'mascarar'],
+    testCases: [
+      'withdraw_error_shows_specific_message_not_generic',
+      'withdraw_error_logs_code_and_message',
+      'status_requires_support_shows_correct_toast',
+      'has_checkins_shows_correct_toast',
+    ],
+    runtimeGuard: 'ownership-must-check-driver-id-or-assignment',
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
