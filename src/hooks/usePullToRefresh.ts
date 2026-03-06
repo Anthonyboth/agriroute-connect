@@ -2,16 +2,21 @@ import { useEffect, useRef, useCallback } from 'react';
 
 /**
  * Global pull-to-refresh hook.
- * When user swipes down from the top of the page, triggers a full reload.
- * Works on mobile (touch) and respects scroll position.
+ * VERY strict: only triggers when user deliberately pulls down from
+ * the absolute top of the page with a long intentional gesture.
+ * Will NOT trigger during normal scrolling up/down.
  */
 export function usePullToRefresh() {
   const startY = useRef(0);
+  const startX = useRef(0);
   const isPulling = useRef(false);
+  const gestureRejected = useRef(false);
   const indicatorRef = useRef<HTMLDivElement | null>(null);
-  const threshold = 200; // px to trigger refresh (high = intentional pull only)
-  const maxPull = 240;
-  const minStartZone = 80; // touch must start in top 80px of viewport
+  const threshold = 250; // px needed to trigger refresh — very intentional
+  const maxPull = 300;
+  const minStartZone = 40; // touch must start in top 40px of viewport only
+  const minPullBeforeVisual = 80; // don't show indicator until 80px of pure downward pull
+  const maxHorizontalDrift = 40; // reject if finger drifts > 40px horizontally (it's a scroll)
 
   const createIndicator = useCallback(() => {
     if (indicatorRef.current) return;
@@ -52,8 +57,11 @@ export function usePullToRefresh() {
   const updateIndicator = useCallback((pullDistance: number) => {
     const el = indicatorRef.current;
     if (!el) return;
-    const progress = Math.min(pullDistance / threshold, 1);
-    const translateY = Math.min(pullDistance * 0.5, maxPull * 0.5) - el.offsetHeight;
+    // Only show after minPullBeforeVisual
+    const effectivePull = Math.max(0, pullDistance - minPullBeforeVisual);
+    const effectiveThreshold = threshold - minPullBeforeVisual;
+    const progress = Math.min(effectivePull / effectiveThreshold, 1);
+    const translateY = Math.min(effectivePull * 0.4, maxPull * 0.4) - el.offsetHeight;
     el.style.transform = `translateX(-50%) translateY(${Math.max(translateY, -el.offsetHeight)}px)`;
     el.style.opacity = String(Math.min(progress, 1));
 
@@ -88,8 +96,6 @@ export function usePullToRefresh() {
     createIndicator();
 
     const hasAnythingOverMainScreen = (): boolean => {
-      // Block if ANY overlay, card, modal, sheet, drawer, popover, dropdown,
-      // tooltip, select, or expanded element is visible over the main screen
       return !!(
         document.querySelector('[role="dialog"]') ||
         document.querySelector('[role="alertdialog"]') ||
@@ -104,62 +110,113 @@ export function usePullToRefresh() {
         document.querySelector('[data-sonner-toast]') ||
         document.querySelector('.fixed.inset-0') ||
         document.querySelector('.fixed.bottom-0[class*="z-"]') ||
-        document.querySelector('[data-side][data-align]') // radix floating elements
+        document.querySelector('[data-side][data-align]') ||
+        document.querySelector('[data-expanded="true"]') ||
+        document.querySelector('.sheet-content') ||
+        document.querySelector('[data-vaul-drawer]')
       );
     };
 
+    const isInsideScrollableContainer = (el: HTMLElement): boolean => {
+      let parent = el.parentElement;
+      while (parent && parent !== document.body) {
+        const style = window.getComputedStyle(parent);
+        const overflowY = style.overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
+          // Element is inside a scrollable container that has content to scroll
+          if (parent.scrollTop > 0) return true;
+        }
+        parent = parent.parentElement;
+      }
+      return false;
+    };
+
     const onTouchStart = (e: TouchEvent) => {
-      // Must be at absolute top of page
+      gestureRejected.current = false;
+
+      // STRICT: page must be at absolute top
       if (window.scrollY > 0) return;
-      // Touch must start near the top of the viewport (intentional gesture)
+
+      // STRICT: touch must start in the very top 40px of viewport
       if (e.touches[0].clientY > minStartZone) return;
-      // Block when any modal/dialog/sheet is open
+
+      // Block when ANY overlay is open
       if (hasAnythingOverMainScreen()) return;
-      // Don't trigger inside scrollable containers
+
       const target = e.target as HTMLElement;
+
+      // Don't trigger inside opt-out containers
       if (target.closest('[data-no-pull-refresh]')) return;
+
       // Don't trigger inside form elements
       if (target.closest('input, textarea, select, [contenteditable]')) return;
 
+      // Don't trigger inside scrollable containers that have scrolled
+      if (isInsideScrollableContainer(target)) return;
+
+      // Don't trigger inside nav bars, tabs, or interactive areas at top
+      if (target.closest('nav, [role="tablist"], [role="navigation"], header')) return;
+
       startY.current = e.touches[0].clientY;
+      startX.current = e.touches[0].clientX;
       isPulling.current = true;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!isPulling.current) return;
+      if (!isPulling.current || gestureRejected.current) return;
+
+      // If page scrolled during the gesture, abort
       if (window.scrollY > 0) {
         isPulling.current = false;
+        gestureRejected.current = true;
         hideIndicator();
         return;
       }
 
       const currentY = e.touches[0].clientY;
+      const currentX = e.touches[0].clientX;
       const pullDistance = currentY - startY.current;
+      const horizontalDrift = Math.abs(currentX - startX.current);
 
+      // If pulling UP (scrolling down), reject immediately
       if (pullDistance < 0) {
         isPulling.current = false;
+        gestureRejected.current = true;
         hideIndicator();
         return;
       }
 
-      if (pullDistance > 30) {
-        // Only prevent default after significant intentional pull
-        e.preventDefault();
+      // If finger is drifting horizontally, this is a swipe not a pull-to-refresh
+      if (horizontalDrift > maxHorizontalDrift) {
+        isPulling.current = false;
+        gestureRejected.current = true;
+        hideIndicator();
+        return;
       }
 
-      updateIndicator(pullDistance);
+      // Only prevent default scroll after very significant intentional downward pull
+      if (pullDistance > minPullBeforeVisual) {
+        e.preventDefault();
+        updateIndicator(pullDistance);
+      }
     };
 
     const onTouchEnd = () => {
-      if (!isPulling.current) return;
+      if (!isPulling.current || gestureRejected.current) {
+        isPulling.current = false;
+        gestureRejected.current = false;
+        hideIndicator();
+        return;
+      }
+
       isPulling.current = false;
+      gestureRejected.current = false;
 
       const el = indicatorRef.current;
       if (!el) return;
 
       const opacity = parseFloat(el.style.opacity || '0');
       if (opacity >= 1) {
-        // Threshold reached — refresh
         showRefreshing();
         setTimeout(() => {
           window.location.reload();
