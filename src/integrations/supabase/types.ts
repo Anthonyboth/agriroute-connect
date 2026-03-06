@@ -15031,6 +15031,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_certificate_password: { Args: { cert_id: string }; Returns: string }
       get_company_owner_for_affiliated_driver: {
         Args: { p_company_id: string }
         Returns: {
