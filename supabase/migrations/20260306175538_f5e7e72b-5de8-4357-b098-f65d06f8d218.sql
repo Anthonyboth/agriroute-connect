@@ -1,0 +1,3 @@
+UPDATE freight_assignments SET status = 'ACCEPTED', updated_at = now() WHERE id = '059c7646-5172-4084-b757-ac2f665f458c' AND status = 'OPEN';
+UPDATE freights SET status = 'ACCEPTED', driver_id = 'a22b811e-9ff1-435e-97bf-8d35c079d7ab', accepted_trucks = 1, drivers_assigned = ARRAY['a22b811e-9ff1-435e-97bf-8d35c079d7ab']::uuid[], is_full_booking = true, updated_at = now() WHERE id = 'b925ce19-855f-4db6-b3ea-49cef83a335a' AND status = 'OPEN';
+UPDATE freight_assignments SET status = 'ACCEPTED', updated_at = now() WHERE status = 'OPEN' AND created_at > now() - interval '7 days';
