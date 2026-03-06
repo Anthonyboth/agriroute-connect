@@ -43,7 +43,8 @@ export type RuntimeGuardKey =
   | 'already-accepted-must-not-show-success-toast'
   | 'accept-must-allow-accepted-with-slots'
   | 'gps-permission-denied-must-not-throw'
-  | 'gps-watchdog-must-detect-disabled-location';
+  | 'gps-watchdog-must-detect-disabled-location'
+  | 'native-gps-errors-must-not-trigger-alerts';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
