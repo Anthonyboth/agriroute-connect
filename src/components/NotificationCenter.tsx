@@ -229,7 +229,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       return;
     }
     
-    // ✅ Before navigating to a freight, check if it's been cancelled
+    // ✅ Before navigating to a freight, check if it's been cancelled OR driver has withdrawn
     if (data?.freight_id) {
       const { data: freightCheck } = await supabase
         .from('freights')
@@ -244,6 +244,27 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           cancelledAt: data.cancelled_at,
         });
         return;
+      }
+
+      // ✅ FRT-021: Check if driver has withdrawn from this freight
+      if (profile?.role === 'MOTORISTA' && profile?.id) {
+        const { data: assignment } = await supabase
+          .from('freight_assignments')
+          .select('status')
+          .eq('freight_id', data.freight_id)
+          .eq('driver_id', profile.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (assignment?.status === 'WITHDRAWN' || assignment?.status === 'CANCELLED') {
+          toast({
+            title: 'Frete indisponível',
+            description: 'Você não possui mais vínculo com este frete.',
+            variant: 'destructive',
+          });
+          return;
+        }
       }
     }
 

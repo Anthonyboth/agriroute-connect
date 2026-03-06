@@ -44,7 +44,8 @@ export type RuntimeGuardKey =
   | 'accept-must-allow-accepted-with-slots'
   | 'gps-permission-denied-must-not-throw'
   | 'gps-watchdog-must-detect-disabled-location'
-  | 'native-gps-errors-must-not-trigger-alerts';
+  | 'native-gps-errors-must-not-trigger-alerts'
+  | 'withdrawn-driver-must-not-access-freight-details';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -620,6 +621,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'native_gps_errors_suppressed_in_all_interceptors',
     ],
     runtimeGuard: 'native-gps-errors-must-not-trigger-alerts',
+  },
+
+  // ── FRT-021: Withdrawn driver can navigate to freight via notifications and attempt status update ──
+  {
+    id: 'FRT-021',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'notifications',
+    bug: 'Driver who withdrew from a freight could still navigate to FreightDetails via notification click and attempt to update the freight status, causing "Não foi possível atualizar o status" error.',
+    rootCause: 'NotificationCenter.handleNotificationClick only checked if the freight was CANCELLED, but did not verify the driver\'s assignment status (WITHDRAWN/CANCELLED) before allowing navigation.',
+    fix: 'Added freight_assignments status check in handleNotificationClick. If the driver\'s assignment is WITHDRAWN or CANCELLED, navigation is blocked and a toast message informs the driver they no longer have a link to that freight.',
+    files: [
+      'src/components/NotificationCenter.tsx',
+    ],
+    rules: [
+      'Notification navigation to freight details MUST verify the driver\'s assignment status before redirecting.',
+      'Drivers with WITHDRAWN or CANCELLED assignments MUST be blocked from freight details navigation.',
+      'Any freight-related notification action MUST validate the user\'s current relationship with the freight.',
+    ],
+    keywords: ['notification', 'withdrawn', 'cancelled', 'assignment', 'navigate', 'status update', 'freight_assignments'],
+    testCases: [
+      'withdrawn_driver_cannot_navigate_to_freight_via_notification',
+      'cancelled_assignment_blocks_notification_navigation',
+      'active_driver_can_still_navigate_via_notification',
+    ],
+    runtimeGuard: 'withdrawn-driver-must-not-access-freight-details',
   },
 ];
 // ═══════════════════════════════════════════════════════════════
