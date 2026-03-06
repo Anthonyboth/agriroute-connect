@@ -38,7 +38,9 @@ export type RuntimeGuardKey =
   | 'no-cancel-after-loaded'
   | 'multitruck-withdrawal-must-be-incremental'
   | 'skip-recalc-required-on-sensitive-updates'
-  | 'freight-and-assignment-state-must-match';
+  | 'freight-and-assignment-state-must-match'
+  | 'assignment-open-must-be-in-ongoing-statuses'
+  | 'already-accepted-must-not-show-success-toast';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -198,6 +200,60 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'accept_and_assignment_are_atomic',
     ],
     runtimeGuard: 'freight-and-assignment-state-must-match',
+  },
+
+  // BUG #006 — Frete aceito não aparece na aba "Em Andamento"
+  {
+    id: 'FRT-006',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-ongoing-visibility',
+    bug: 'Frete aceito não aparecia na aba Em Andamento. Motorista aceitava e o card sumia — não ia para Ongoing.',
+    rootCause: 'Edge function accept-freight-multiple cria assignments com status "OPEN", mas ASSIGNMENT_ONGOING_STATUSES e fetchOngoingFreights filtravam apenas ACCEPTED/LOADING/LOADED/IN_TRANSIT. Status OPEN era ignorado em todas as queries.',
+    fix: 'Adicionado "OPEN" a ASSIGNMENT_ONGOING_STATUSES em freightRules.ts e em todas as queries de ongoing (useDriverOngoingCards, fetchOngoingFreights, activeStatuses no handleFreightAction).',
+    files: [
+      'src/constants/freightRules.ts',
+      'src/hooks/useDriverOngoingCards.ts',
+      'src/pages/DriverDashboard.tsx',
+    ],
+    rules: [
+      'ASSIGNMENT_ONGOING_STATUSES DEVE incluir "OPEN" pois accept-freight-multiple cria assignments com esse status.',
+      'Toda query de assignments "em andamento" DEVE usar ASSIGNMENT_ONGOING_STATUSES centralizado, nunca hardcoded.',
+      'Ao adicionar novo status de assignment, atualizar TODAS as queries: useDriverOngoingCards, fetchOngoingFreights, activeStatuses no handleFreightAction.',
+    ],
+    keywords: ['ongoing', 'em andamento', 'OPEN', 'assignment', 'visibility', 'card sumiu', 'não aparece'],
+    testCases: [
+      'accepted_freight_with_open_assignment_shows_in_ongoing',
+      'assignment_open_status_included_in_ongoing_filter',
+      'pre_check_detects_existing_open_assignment',
+    ],
+    runtimeGuard: 'assignment-open-must-be-in-ongoing-statuses',
+  },
+
+  // BUG #007 — Múltiplos toasts de sucesso ao aceitar frete
+  {
+    id: 'FRT-007',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'freight-accept-notifications',
+    bug: 'Ao aceitar frete, múltiplos toasts "Frete aceito com sucesso!" apareciam. Poluição visual extrema.',
+    rootCause: 'Edge function retornava {success: true, already_accepted: true} para aceites duplicados. O código não verificava already_accepted e mostrava toast de sucesso. Além disso, pre-check de assignment não incluía status OPEN, permitindo re-chamada da edge function.',
+    fix: 'Verificar acceptData.already_accepted antes de mostrar toast. Usar toast.info com id único para already_accepted. Adicionar OPEN ao pre-check activeStatuses.',
+    files: [
+      'src/pages/DriverDashboard.tsx',
+    ],
+    rules: [
+      'SEMPRE verificar already_accepted/code=ALREADY_ACCEPTED antes de mostrar toast de sucesso.',
+      'Toasts de aceite DEVEM usar id único (ex: accept-success-{freightId}) para evitar duplicação.',
+      'Pre-check de assignment existente DEVE incluir todos os status não-terminais (incluindo OPEN).',
+    ],
+    keywords: ['toast', 'notificação', 'duplicada', 'already_accepted', 'sucesso', 'spam', 'múltiplos'],
+    testCases: [
+      'already_accepted_shows_info_not_success',
+      'accept_toast_uses_unique_id',
+      'pre_check_prevents_duplicate_edge_function_call',
+    ],
+    runtimeGuard: 'already-accepted-must-not-show-success-toast',
   },
 ];
 
