@@ -134,8 +134,8 @@ export function usePullToRefresh() {
         return;
       }
 
-      if (pullDistance > 10) {
-        // Prevent default scroll to allow our custom pull behavior
+      if (pullDistance > 30) {
+        // Only prevent default after significant intentional pull
         e.preventDefault();
       }
 
