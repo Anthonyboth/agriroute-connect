@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAppStateTracking } from '@/hooks/useAppStateTracking';
 import { BackgroundTrackingDisclosureModal } from '@/components/BackgroundTrackingDisclosureModal';
 import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
+import { useGPSWatchdog } from '@/hooks/useGPSWatchdog';
 
 export const UnifiedTrackingControl = () => {
   const { profile } = useAuth();
