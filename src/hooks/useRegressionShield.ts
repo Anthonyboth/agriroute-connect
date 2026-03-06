@@ -310,6 +310,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'ownership-must-check-driver-id-or-assignment',
   },
+
+  // BUG #010 — "Aguardando motorista" exibido para o próprio motorista atribuído
+  {
+    id: 'FRT-010',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-details-visibility',
+    bug: 'Motorista via FreightDetails via "Aguardando motorista" em vez de ver seu próprio perfil, mesmo tendo assignment ativo no frete.',
+    rootCause: 'FreightDetails.tsx verificava hasActiveAssignment filtrando por status IN (ACCEPTED, LOADING, LOADED, IN_TRANSIT, DELIVERED_PENDING_CONFIRMATION), mas assignments criados por accept-freight-multiple têm status OPEN. Status OPEN não estava na lista, causando isParticipant=false e caindo no fallback "Aguardando motorista".',
+    fix: 'Adicionado "OPEN" ao filtro .in("status") na query de freight_assignments dentro de FreightDetails.tsx.',
+    files: [
+      'src/components/FreightDetails.tsx',
+    ],
+    rules: [
+      'TODA query de freight_assignments que verifica participação DEVE incluir status OPEN.',
+      'Ao usar .in("status", [...]) em freight_assignments, SEMPRE consultar ASSIGNMENT_ONGOING_STATUSES de freightRules.ts.',
+      'Nunca hardcodar listas de status de assignment — usar a constante centralizada.',
+    ],
+    keywords: ['aguardando motorista', 'isParticipant', 'OPEN', 'FreightDetails', 'hasActiveAssignment', 'assignment status'],
+    testCases: [
+      'driver_with_open_assignment_sees_own_profile',
+      'driver_with_open_assignment_is_participant',
+      'freight_details_includes_open_in_assignment_filter',
+    ],
+    runtimeGuard: 'assignment-open-must-be-in-ongoing-statuses',
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════

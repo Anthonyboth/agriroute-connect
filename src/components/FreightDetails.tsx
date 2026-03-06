@@ -322,7 +322,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         .select('*')
         .eq('freight_id', freightId)
         .eq('driver_id', currentUserProfile.id)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
+        .in('status', ['OPEN', 'ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
         .limit(1);
       
       setHasActiveAssignment(!!data && data.length > 0);
