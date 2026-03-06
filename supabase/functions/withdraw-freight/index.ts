@@ -121,6 +121,10 @@ serve(async (req) => {
           message = 'Não é possível desistir do frete neste status (somente ACCEPTED ou LOADING)';
           statusCode = 409;
           break;
+        case 'STATUS_REQUIRES_SUPPORT':
+          message = res?.message || 'Após o carregamento, o cancelamento só pode ser feito pelo suporte/admin.';
+          statusCode = 409;
+          break;
         case 'HAS_CHECKINS':
           message = 'Não é possível desistir do frete após o primeiro check-in.';
           statusCode = 409;

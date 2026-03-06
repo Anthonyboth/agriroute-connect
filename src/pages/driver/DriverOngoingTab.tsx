@@ -255,6 +255,11 @@ export const DriverOngoingTab: React.FC = () => {
         return;
       }
 
+      if (data?.error === 'STATUS_REQUIRES_SUPPORT') {
+        toast.error('Após o carregamento, o cancelamento só pode ser feito pelo suporte/admin. Entre em contato.');
+        return;
+      }
+
       if (data?.error) {
         toast.error(data.message || 'Erro ao processar desistência.');
         return;
