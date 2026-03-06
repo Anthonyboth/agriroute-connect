@@ -1888,6 +1888,19 @@ const DriverDashboard = () => {
     }
 
     try {
+      // ✅ FRT-016: FreightCard already calls accept-freight-multiple directly.
+      // When onAction("accept") fires, the freight is ALREADY accepted.
+      // Just refresh data — do NOT call the edge function again (causes race condition
+      // that resets assignment status from ACCEPTED to OPEN).
+      if (action === 'accept') {
+        console.log('[handleFreightAction] Accept already handled by FreightCard — refreshing data only');
+        fetchOngoingFreights();
+        fetchMyAssignments();
+        fetchAvailableFreights();
+        setActiveTab('ongoing');
+        return;
+      }
+
       // Proposta já foi enviada pelo modal - apenas atualizar dados
       if (action === 'proposal_sent') {
         fetchMyProposals();
