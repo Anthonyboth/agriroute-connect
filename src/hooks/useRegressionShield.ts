@@ -255,6 +255,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'already-accepted-must-not-show-success-toast',
   },
+
+  // BUG #008 — Desistência bloqueada para assignment com status OPEN
+  {
+    id: 'FRT-008',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-withdrawal',
+    bug: 'Motorista não conseguia desistir de frete aceito. Toast "Não é possível desistir do frete neste status." aparecia porque o assignment tinha status OPEN.',
+    rootCause: 'handleFreightWithdrawal em DriverDashboard.tsx e DriverOngoingTab.tsx só permitia desistência nos status ACCEPTED/LOADING, mas accept-freight-multiple cria assignments com status OPEN (FRT-006). O status OPEN não era reconhecido como válido para desistência.',
+    fix: 'Adicionado "OPEN" à lista de status permitidos para desistência em handleFreightWithdrawal (DriverDashboard.tsx e DriverOngoingTab.tsx).',
+    files: [
+      'src/pages/DriverDashboard.tsx',
+      'src/pages/driver/DriverOngoingTab.tsx',
+    ],
+    rules: [
+      'handleFreightWithdrawal DEVE permitir desistência nos status OPEN, ACCEPTED e LOADING.',
+      'Qualquer novo status criado por accept-freight-multiple DEVE ser adicionado a TODAS as validações de status: ongoing filters, withdrawal checks, pre-checks.',
+      'Ao corrigir visibilidade de status (ex: FRT-006), SEMPRE verificar se withdrawal/cancellation também precisa da mesma correção.',
+    ],
+    keywords: ['withdrawal', 'desistência', 'OPEN', 'bloqueada', 'não é possível', 'status', 'handleFreightWithdrawal'],
+    testCases: [
+      'withdrawal_allowed_for_open_status',
+      'withdrawal_allowed_for_accepted_status',
+      'withdrawal_blocked_for_loaded_status',
+    ],
+    runtimeGuard: 'assignment-open-must-be-in-ongoing-statuses',
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
