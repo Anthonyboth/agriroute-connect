@@ -3540,6 +3540,8 @@ export type Database = {
           confirmation_doc: string | null
           confirmed_at: string | null
           created_at: string | null
+          dispute_reason: string | null
+          disputed_at: string | null
           driver_id: string
           freight_id: string
           id: string
@@ -3556,6 +3558,8 @@ export type Database = {
           confirmation_doc?: string | null
           confirmed_at?: string | null
           created_at?: string | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
           driver_id: string
           freight_id: string
           id?: string
@@ -3572,6 +3576,8 @@ export type Database = {
           confirmation_doc?: string | null
           confirmed_at?: string | null
           created_at?: string | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
           driver_id?: string
           freight_id?: string
           id?: string
