@@ -9,7 +9,7 @@ import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, F
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe, getCurrentPositionSafe, isNative } from '@/utils/location';
-import { startForegroundService, stopForegroundService, isForegroundServiceRunning } from '@/utils/foregroundService';
+import { startForegroundService, stopForegroundService, isForegroundServiceRunning, updateForegroundNotification } from '@/utils/foregroundService';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppStateTracking } from '@/hooks/useAppStateTracking';
 import { BackgroundTrackingDisclosureModal } from '@/components/BackgroundTrackingDisclosureModal';
