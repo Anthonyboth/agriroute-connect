@@ -363,6 +363,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'notification_insert_includes_metadata_field',
     ],
   },
+
+  // BUG #012 — Frete OPEN mas com accepted_trucks/drivers_assigned sujos
+  {
+    id: 'FRT-012',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-withdrawal',
+    bug: 'Após desistência, frete ficava status=OPEN mas com accepted_trucks=1 e drivers_assigned preenchido. UI tratava como "totalmente preenchido" e não exibia como disponível.',
+    rootCause: 'A RPC process_freight_withdrawal (single-truck path) fazia UPDATE SET status=OPEN, driver_id=NULL mas NÃO limpava accepted_trucks, drivers_assigned e is_full_booking. O trigger recalc_freight_accepted_trucks era bypassed por skip_recalc=true.',
+    fix: 'RPC agora limpa TODOS os campos: status=OPEN, driver_id=NULL, accepted_trucks=0, drivers_assigned={}, is_full_booking=false. Também reordenada: cancela assignments ANTES de atualizar freight para que triggers vejam estado correto.',
+    files: [
+      'supabase/migrations/*_fix_withdrawal_clear_all_fields.sql',
+    ],
+    rules: [
+      'TODA desistência/cancelamento DEVE zerar accepted_trucks, drivers_assigned e is_full_booking além de status e driver_id.',
+      'Ao usar skip_recalc=true, a RPC DEVE limpar manualmente TODOS os campos que o trigger recalc normalmente limparia.',
+      'Ordem correta na withdrawal: (1) cancelar assignments, (2) cancelar proposals, (3) deletar trip progress, (4) atualizar freight com TODOS os campos limpos, (5) notificação.',
+    ],
+    keywords: ['accepted_trucks', 'drivers_assigned', 'is_full_booking', 'stale', 'disponível', 'fully booked', 'withdrawal', 'OPEN'],
+    testCases: [
+      'withdrawal_clears_accepted_trucks_to_zero',
+      'withdrawal_clears_drivers_assigned_to_empty',
+      'withdrawal_sets_is_full_booking_false',
+      'withdrawn_freight_appears_in_available_list',
+    ],
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
