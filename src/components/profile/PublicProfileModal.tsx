@@ -91,14 +91,21 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   const fetchPublicProfile = async () => {
     setLoading(true);
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles_secure')
-        .select('id, full_name, profile_photo_url, created_at, rating, total_ratings, status')
-        .eq('id', userId)
-        .maybeSingle();
+      // Use RPC to bypass RLS restrictions for cross-user profile viewing
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('get_public_profile', { p_profile_id: userId });
 
-      if (profileError) throw profileError;
-      if (!profileData) { setProfile(null); return; }
+      if (rpcError) {
+        console.error('Erro RPC get_public_profile:', rpcError);
+        throw rpcError;
+      }
+
+      const profileData = rpcResult as any;
+      if (!profileData || profileData.error) {
+        console.warn('Perfil não encontrado via RPC:', profileData?.error || 'null');
+        setProfile(null);
+        return;
+      }
 
       let completedFreights = 0;
       if (userType === 'driver') {
@@ -117,20 +124,16 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
         completedFreights = count || 0;
       }
 
-      const totalRatings = (profileData as any).total_ratings || 0;
-      const averageRating = (profileData as any).rating || 0;
-      const avatarUrl = (profileData as any).profile_photo_url;
-
       setProfile({
-        id: (profileData as any).id,
-        full_name: (profileData as any).full_name,
-        avatar_url: avatarUrl || undefined,
+        id: profileData.id,
+        full_name: profileData.full_name,
+        avatar_url: profileData.profile_photo_url || undefined,
         role: userType === 'driver' ? 'MOTORISTA' : 'PRODUTOR',
-        created_at: (profileData as any).created_at,
+        created_at: profileData.created_at,
         completed_freights: completedFreights,
-        average_rating: averageRating,
-        total_ratings: totalRatings,
-        is_verified: (profileData as any).status === 'APPROVED',
+        average_rating: profileData.rating || 0,
+        total_ratings: profileData.total_ratings || 0,
+        is_verified: profileData.status === 'APPROVED',
       });
     } catch (error) {
       console.error('Erro ao buscar perfil público:', error);
