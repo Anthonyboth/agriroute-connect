@@ -41,7 +41,9 @@ export type RuntimeGuardKey =
   | 'freight-and-assignment-state-must-match'
   | 'assignment-open-must-be-in-ongoing-statuses'
   | 'already-accepted-must-not-show-success-toast'
-  | 'accept-must-allow-accepted-with-slots';
+  | 'accept-must-allow-accepted-with-slots'
+  | 'gps-permission-denied-must-not-throw'
+  | 'gps-watchdog-must-detect-disabled-location';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -529,6 +531,67 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'driver_without_vehicle_can_send_proposal',
       'driver_without_vehicle_can_send_counter_proposal',
     ],
+  },
+
+  // ── FRT-018: GPS permission denied error (OS-PLUG-GLOC-0003) crashing app ──
+  {
+    id: 'FRT-018',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'gps-tracking',
+    bug: 'Capacitor Geolocation plugin threw unhandled error OS-PLUG-GLOC-0003 ("Location permission request was denied") that propagated to console.error and crashed monitoring. Error appeared multiple times on driver dashboard.',
+    rootCause: 'requestPermissionSafe() did not catch the specific OS-PLUG-GLOC-0003 error code from Capacitor. The error was thrown as a native exception and not caught by the generic try/catch because it was structured as {message, code} JSON string.',
+    fix: 'requestPermissionSafe() now catches OS-PLUG-GLOC-0003 specifically and returns false gracefully. GPSPermissionDeniedDialog added to guide user to device settings. UnifiedTrackingControl shows dialog when permission is denied.',
+    files: [
+      'src/utils/location.ts',
+      'src/components/GPSPermissionDeniedDialog.tsx',
+      'src/components/UnifiedTrackingControl.tsx',
+    ],
+    rules: [
+      'requestPermissionSafe() MUST catch OS-PLUG-GLOC-0003 and return false — NEVER throw.',
+      'Permission denied MUST show a dialog guiding user to device settings, not just a toast.',
+      'All Capacitor Geolocation errors with structured {message, code} format MUST be parsed before handling.',
+    ],
+    keywords: ['OS-PLUG-GLOC-0003', 'permission denied', 'GPS', 'Capacitor', 'geolocation', 'crash', 'unhandled'],
+    testCases: [
+      'permission_denied_returns_false_not_throw',
+      'permission_denied_shows_settings_dialog',
+      'os_plug_gloc_0003_is_caught_gracefully',
+    ],
+    runtimeGuard: 'gps-permission-denied-must-not-throw',
+  },
+
+  // ── FRT-019: App não detecta GPS desativado fora do app durante frete ativo ──
+  {
+    id: 'FRT-019',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'gps-tracking',
+    bug: 'Quando o motorista desativava a localização do dispositivo nas configurações do Android (fora do app), o app continuava mostrando "Rastreamento Ativo" sem detectar a perda de GPS. Nenhum incidente era registrado e nenhuma notificação era enviada.',
+    rootCause: 'Não existia mecanismo de polling periódico que verificasse o estado real do GPS do dispositivo durante o rastreamento ativo. O watchPosition do Capacitor simplesmente parava de emitir posições sem disparar erro explícito. O estado isTracking permanecia true indefinidamente.',
+    fix: 'Criado hook useGPSWatchdog (src/hooks/useGPSWatchdog.ts) que faz polling a cada 10s via checkPermissionSafe() + getCurrentPositionSafe(). Após 2-3 falhas consecutivas: (1) marca gpsLost=true, (2) registra incident_logs com última posição, (3) salva última localização em profiles e driver_current_locations, (4) envia notificação persistente via send-notification, (5) para foreground service, (6) exibe alerta crítico na UI. Quando GPS é restaurado, reinicia tracking automaticamente.',
+    files: [
+      'src/hooks/useGPSWatchdog.ts',
+      'src/components/UnifiedTrackingControl.tsx',
+    ],
+    rules: [
+      'SEMPRE usar useGPSWatchdog quando rastreamento está ativo com frete ativo.',
+      'GPS desativado DEVE registrar incident_logs com última posição conhecida.',
+      'GPS desativado DEVE enviar notificação persistente ao motorista via edge function.',
+      'GPS desativado DEVE salvar última localização em profiles E driver_current_locations.',
+      'GPS restaurado DEVE reiniciar rastreamento automaticamente sem intervenção do motorista.',
+      'Polling de saúde do GPS DEVE ocorrer a cada 10s durante rastreamento ativo.',
+    ],
+    keywords: ['GPS', 'desativado', 'watchdog', 'polling', 'localização', 'desligado', 'fora do app', 'rastreamento ativo', 'incident', 'notificação'],
+    testCases: [
+      'gps_disabled_detected_within_30s',
+      'gps_disabled_logs_incident_with_last_position',
+      'gps_disabled_sends_notification_to_driver',
+      'gps_disabled_saves_last_location_to_profiles',
+      'gps_restored_auto_restarts_tracking',
+      'gps_watchdog_only_runs_during_active_freight',
+    ],
+    runtimeGuard: 'gps-watchdog-must-detect-disabled-location',
   },
 ];
 // ═══════════════════════════════════════════════════════════════
