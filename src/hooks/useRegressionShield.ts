@@ -1,43 +1,71 @@
 /**
  * src/hooks/useRegressionShield.ts
- * 
+ *
  * BLINDAGEM DE REGRESSÃO — Biblioteca de bugs corrigidos e suas soluções.
- * 
- * Este hook serve como documentação viva de todos os bugs críticos encontrados
+ *
+ * Este módulo serve como documentação viva de todos os bugs críticos encontrados
  * e corrigidos no AgriRoute. Antes de implementar qualquer mudança relacionada,
  * CONSULTE esta lista para evitar reintroduzir bugs já resolvidos.
- * 
- * Formato de cada entrada:
- * - id: Identificador único do bug
- * - date: Data da correção
- * - severity: 'CRITICAL' | 'HIGH' | 'MEDIUM'
- * - area: Área do sistema afetada
- * - bug: Descrição do bug
- * - rootCause: Causa raiz
- * - fix: O que foi feito para corrigir
- * - files: Arquivos afetados
- * - rules: Regras que NUNCA devem ser violadas
+ *
+ * Features:
+ * - 🧠 AI guard contra regressão (assertNoKnownRegression)
+ * - 🔎 Search inteligente por keyword, área, severidade
+ * - 🧪 Test cases sugeridos por bug
+ * - 🛡 Runtime guards tipados
+ * - 📊 Detecção de bugs similares
  */
+
+export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM';
 
 export interface RegressionEntry {
   id: string;
   date: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+  severity: Severity;
   area: string;
   bug: string;
   rootCause: string;
   fix: string;
   files: string[];
   rules: string[];
+  keywords: string[];
+  testCases: string[];
+  runtimeGuard?: RuntimeGuardKey;
 }
 
-/**
- * REGISTRO DE BUGS CORRIGIDOS — NÃO REMOVA ENTRADAS, APENAS ADICIONE NOVAS.
- */
+/** Typed guard keys — one per known regression pattern */
+export type RuntimeGuardKey =
+  | 'ownership-must-check-driver-id-or-assignment'
+  | 'no-cancel-after-loaded'
+  | 'multitruck-withdrawal-must-be-incremental'
+  | 'skip-recalc-required-on-sensitive-updates'
+  | 'freight-and-assignment-state-must-match';
+
+export interface RuntimeGuardContext {
+  freightStatus?: string;
+  driverId?: string | null;
+  assignmentExists?: boolean;
+  requiredTrucks?: number;
+  acceptedTrucks?: number;
+  driversAssigned?: string[];
+  skipRecalcSet?: boolean;
+}
+
+export class RegressionViolation extends Error {
+  constructor(
+    public bugId: string,
+    public guard: RuntimeGuardKey,
+    message: string,
+  ) {
+    super(`[REGRESSION ${bugId}] ${message}`);
+    this.name = 'RegressionViolation';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGISTRO DE BUGS CORRIGIDOS — NÃO REMOVA ENTRADAS, APENAS ADICIONE NOVAS.
+// ═══════════════════════════════════════════════════════════════
 export const REGRESSION_REGISTRY: RegressionEntry[] = [
-  // ═══════════════════════════════════════════════════════════════
   // BUG #001 — Desistência 404 por estado inconsistente
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'FRT-001',
     date: '2026-03-06',
@@ -54,11 +82,16 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'NUNCA confiar apenas em freights.driver_id para verificar propriedade — sempre ter fallback para freight_assignments.',
       'Queries de propriedade devem usar: WHERE (driver_id = X) OR EXISTS (SELECT 1 FROM freight_assignments WHERE freight_id = F AND driver_profile_id = X AND status = ACCEPTED).',
     ],
+    keywords: ['withdraw', '404', 'NOT_OWNER', 'driver_id', 'assignment', 'ownership'],
+    testCases: [
+      'withdraw_when_driver_id_null_but_assignment_exists',
+      'withdraw_when_driver_id_matches',
+      'withdraw_when_no_assignment_returns_404',
+    ],
+    runtimeGuard: 'ownership-must-check-driver-id-or-assignment',
   },
 
-  // ═══════════════════════════════════════════════════════════════
   // BUG #002 — Cancelamento permitido após carregamento
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'FRT-002',
     date: '2026-03-06',
@@ -78,11 +111,18 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'Validação de status deve existir em 3 camadas: RPC (servidor), Edge Function (middleware), Frontend (UI).',
       'Produtor só cancela diretamente antes de LOADING. Após LOADING, precisa de suporte.',
     ],
+    keywords: ['cancel', 'cancelamento', 'LOADED', 'IN_TRANSIT', 'DELIVERED', 'desistência', 'suporte'],
+    testCases: [
+      'cancel_blocked_when_status_loaded',
+      'cancel_blocked_when_status_in_transit',
+      'cancel_blocked_when_status_delivered_pending',
+      'cancel_allowed_when_status_accepted',
+      'cancel_button_hidden_after_loaded',
+    ],
+    runtimeGuard: 'no-cancel-after-loaded',
   },
 
-  // ═══════════════════════════════════════════════════════════════
   // BUG #003 — Desistência multi-truck zerava todos os motoristas
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'FRT-003',
     date: '2026-03-06',
@@ -99,11 +139,17 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'Verificar required_trucks > 1 antes de decidir se o frete volta para OPEN ou permanece ACCEPTED com menos motoristas.',
       'Sempre usar SET app.skip_recalc = true antes de UPDATE em freights para evitar trigger recalc_freight_accepted_trucks reverter mudanças.',
     ],
+    keywords: ['multitruck', 'multi-truck', 'required_trucks', 'accepted_trucks', 'drivers_assigned', 'array_remove', 'zerar'],
+    testCases: [
+      'multitruck_withdrawal_decrements_by_one',
+      'multitruck_withdrawal_removes_only_withdrawing_driver',
+      'multitruck_returns_open_only_when_zero_accepted',
+      'multitruck_stays_accepted_when_others_remain',
+    ],
+    runtimeGuard: 'multitruck-withdrawal-must-be-incremental',
   },
 
-  // ═══════════════════════════════════════════════════════════════
   // BUG #004 — Trigger recalc revertia status durante operação
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'FRT-004',
     date: '2026-03-06',
@@ -119,11 +165,16 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'SEMPRE usar SET app.skip_recalc = true em RPCs que alteram status/driver_id de freights.',
       'Triggers automáticos NÃO devem competir com lógica de RPCs — usar variável de sessão para bypass.',
     ],
+    keywords: ['trigger', 'recalc', 'skip_recalc', 'revert', 'bypass', 'race condition'],
+    testCases: [
+      'rpc_sets_skip_recalc_before_update',
+      'trigger_skips_when_skip_recalc_set',
+      'trigger_runs_normally_without_skip_recalc',
+    ],
+    runtimeGuard: 'skip-recalc-required-on-sensitive-updates',
   },
 
-  // ═══════════════════════════════════════════════════════════════
   // BUG #005 — Estado inconsistente: OPEN com assignment ACCEPTED
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'FRT-005',
     date: '2026-03-06',
@@ -140,49 +191,195 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'Se freights.driver_id é NULL e existe assignment ACCEPTED, isso é uma inconsistência que deve ser corrigida.',
       'Operações de aceite/desistência devem ser atômicas (dentro de uma única transação).',
     ],
+    keywords: ['inconsistente', 'OPEN', 'ACCEPTED', 'driver_id NULL', 'sync', 'assignment', 'race condition'],
+    testCases: [
+      'detect_freight_open_with_accepted_assignment',
+      'auto_fix_single_truck_inconsistency',
+      'accept_and_assignment_are_atomic',
+    ],
+    runtimeGuard: 'freight-and-assignment-state-must-match',
   },
 ];
 
-/**
- * Hook para consultar a biblioteca de regressão.
- * Use para buscar bugs conhecidos por área, severidade ou palavras-chave.
- */
+// ═══════════════════════════════════════════════════════════════
+// RUNTIME GUARDS — Previnem regressão em tempo de execução
+// ═══════════════════════════════════════════════════════════════
+
+const BLOCKED_CANCEL_STATUSES = ['LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'];
+
+const regressionGuards = {
+  assertOwnershipUsesAssignmentFallback(ctx: RuntimeGuardContext) {
+    if (ctx.driverId === null && !ctx.assignmentExists) {
+      // This is fine — no owner found at all, will return 404 naturally
+      return;
+    }
+    if (ctx.driverId === null && ctx.assignmentExists) {
+      // Assignment exists but driver_id is null — must use fallback
+      console.warn('[RegressionGuard FRT-001] driver_id is NULL but assignment exists — using fallback path');
+    }
+  },
+
+  assertNoCancelAfterLoaded(ctx: RuntimeGuardContext) {
+    if (ctx.freightStatus && BLOCKED_CANCEL_STATUSES.includes(ctx.freightStatus)) {
+      throw new RegressionViolation(
+        'FRT-002',
+        'no-cancel-after-loaded',
+        `Cancelamento bloqueado em status ${ctx.freightStatus}. Requer suporte/admin.`,
+      );
+    }
+  },
+
+  assertMultitruckWithdrawalIsIncremental(ctx: RuntimeGuardContext) {
+    if (
+      ctx.requiredTrucks !== undefined &&
+      ctx.requiredTrucks > 1 &&
+      ctx.acceptedTrucks === 0 &&
+      ctx.driversAssigned?.length === 0
+    ) {
+      throw new RegressionViolation(
+        'FRT-003',
+        'multitruck-withdrawal-must-be-incremental',
+        'Multi-truck freight zerou accepted_trucks e drivers_assigned — use array_remove() e decremento unitário.',
+      );
+    }
+  },
+
+  assertSkipRecalcEnabled(ctx: RuntimeGuardContext) {
+    if (ctx.skipRecalcSet === false) {
+      throw new RegressionViolation(
+        'FRT-004',
+        'skip-recalc-required-on-sensitive-updates',
+        'Operação em freights sem SET app.skip_recalc = true. Trigger pode reverter status.',
+      );
+    }
+  },
+
+  assertFreightAssignmentConsistency(ctx: RuntimeGuardContext) {
+    if (ctx.freightStatus === 'OPEN' && ctx.driverId === null && ctx.assignmentExists) {
+      throw new RegressionViolation(
+        'FRT-005',
+        'freight-and-assignment-state-must-match',
+        'Estado inconsistente: freight OPEN com driver_id NULL mas assignment ACCEPTED existe.',
+      );
+    }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH & DETECTION
+// ═══════════════════════════════════════════════════════════════
+
+function tokenize(text: string): string[] {
+  return text.toLowerCase().split(/[\s,._\-/]+/).filter(t => t.length > 2);
+}
+
+function calculateSimilarity(tokens: string[], entry: RegressionEntry): number {
+  const entryText = [
+    entry.bug, entry.rootCause, entry.fix, entry.area,
+    ...entry.keywords, ...entry.rules,
+  ].join(' ').toLowerCase();
+
+  let matches = 0;
+  for (const token of tokens) {
+    if (entryText.includes(token)) matches++;
+  }
+  return tokens.length > 0 ? matches / tokens.length : 0;
+}
+
+export function searchRegressionLibrary(query: string): RegressionEntry[] {
+  const tokens = tokenize(query);
+  return REGRESSION_REGISTRY
+    .map(entry => ({ entry, score: calculateSimilarity(tokens, entry) }))
+    .filter(({ score }) => score > 0.2)
+    .sort((a, b) => b.score - a.score)
+    .map(({ entry }) => entry);
+}
+
+export function detectSimilarBugs(input: {
+  title?: string;
+  bug: string;
+  rootCause?: string;
+  area?: string;
+  keywords?: string[];
+}): RegressionEntry[] {
+  const joined = [input.title, input.bug, input.rootCause, input.area, ...(input.keywords ?? [])]
+    .filter(Boolean)
+    .join(' ');
+  return searchRegressionLibrary(joined);
+}
+
+export function findRegressionById(id: string): RegressionEntry | undefined {
+  return REGRESSION_REGISTRY.find(e => e.id === id);
+}
+
+function findByArea(area: string): RegressionEntry[] {
+  return REGRESSION_REGISTRY.filter(entry =>
+    entry.area.toLowerCase().includes(area.toLowerCase()),
+  );
+}
+
+function findBySeverity(severity: Severity): RegressionEntry[] {
+  return REGRESSION_REGISTRY.filter(entry => entry.severity === severity);
+}
+
+function getRulesForArea(area: string): string[] {
+  return findByArea(area).flatMap(entry => entry.rules);
+}
+
+function getAllRules(): string[] {
+  return REGRESSION_REGISTRY.flatMap(entry => entry.rules);
+}
+
+function getSuggestedTests(areaOrKeyword: string): string[] {
+  const byArea = findByArea(areaOrKeyword);
+  const bySearch = searchRegressionLibrary(areaOrKeyword);
+  const combined = [...new Set([...byArea, ...bySearch])];
+  return combined.flatMap(entry => entry.testCases);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RUNTIME GUARD ENTRY POINT
+// ═══════════════════════════════════════════════════════════════
+
+export function assertNoKnownRegression(
+  guard: RuntimeGuardKey,
+  context: RuntimeGuardContext,
+): void {
+  switch (guard) {
+    case 'ownership-must-check-driver-id-or-assignment':
+      regressionGuards.assertOwnershipUsesAssignmentFallback(context);
+      return;
+    case 'no-cancel-after-loaded':
+      regressionGuards.assertNoCancelAfterLoaded(context);
+      return;
+    case 'multitruck-withdrawal-must-be-incremental':
+      regressionGuards.assertMultitruckWithdrawalIsIncremental(context);
+      return;
+    case 'skip-recalc-required-on-sensitive-updates':
+      regressionGuards.assertSkipRecalcEnabled(context);
+      return;
+    case 'freight-and-assignment-state-must-match':
+      regressionGuards.assertFreightAssignmentConsistency(context);
+      return;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HOOK — Interface principal para componentes React
+// ═══════════════════════════════════════════════════════════════
+
 export function useRegressionShield() {
-  const findByArea = (area: string): RegressionEntry[] => {
-    return REGRESSION_REGISTRY.filter(entry =>
-      entry.area.toLowerCase().includes(area.toLowerCase())
-    );
-  };
-
-  const findBySeverity = (severity: RegressionEntry['severity']): RegressionEntry[] => {
-    return REGRESSION_REGISTRY.filter(entry => entry.severity === severity);
-  };
-
-  const findByKeyword = (keyword: string): RegressionEntry[] => {
-    const kw = keyword.toLowerCase();
-    return REGRESSION_REGISTRY.filter(entry =>
-      entry.bug.toLowerCase().includes(kw) ||
-      entry.rootCause.toLowerCase().includes(kw) ||
-      entry.fix.toLowerCase().includes(kw) ||
-      entry.rules.some(r => r.toLowerCase().includes(kw))
-    );
-  };
-
-  const getRulesForArea = (area: string): string[] => {
-    return findByArea(area).flatMap(entry => entry.rules);
-  };
-
-  const getAllRules = (): string[] => {
-    return REGRESSION_REGISTRY.flatMap(entry => entry.rules);
-  };
-
   return {
     registry: REGRESSION_REGISTRY,
+    findById: findRegressionById,
     findByArea,
     findBySeverity,
-    findByKeyword,
+    search: searchRegressionLibrary,
+    detectSimilarBugs,
     getRulesForArea,
     getAllRules,
+    getSuggestedTests,
+    assertNoKnownRegression,
     totalBugs: REGRESSION_REGISTRY.length,
     criticalBugs: REGRESSION_REGISTRY.filter(e => e.severity === 'CRITICAL').length,
   };
