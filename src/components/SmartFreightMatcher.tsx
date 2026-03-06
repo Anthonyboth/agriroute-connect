@@ -285,6 +285,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
       onFreightAction(freightId, action);
+      // ✅ FIX FRT-015b: Refetch internal list after accept to update "Disponíveis" counter
+      if (action === 'accept' || action === 'proposal_sent') {
+        setTimeout(() => fetchCompatibleFreights(), 1500);
+      }
       return;
     }
 
