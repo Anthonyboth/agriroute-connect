@@ -670,7 +670,7 @@ const DriverDashboard = () => {
           accepted_at
         `)
         .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+        .in('status', ['OPEN', 'ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('accepted_at', { ascending: false })
         .limit(100);
 
@@ -2004,8 +2004,8 @@ const DriverDashboard = () => {
             console.warn('[handleFreightAction] Não foi possível validar solicitante, prosseguindo...');
           }
 
-          // ✅ CORREÇÃO: Verificar TODOS os status de assignment (incluindo DELIVERED_PENDING_CONFIRMATION)
-          const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'] as const;
+          // ✅ FRT-006: Verificar TODOS os status de assignment (incluindo OPEN e DELIVERED_PENDING_CONFIRMATION)
+          const activeStatuses = ['OPEN', 'ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'] as const;
 
           // 1) Verificar se já existe atribuição ativa para ESTE frete (evita 409)
           let assignmentQuery = supabase
@@ -2153,13 +2153,22 @@ const DriverDashboard = () => {
             return;
           }
 
-          toast.success(
-            freight.service_type === 'GUINCHO'
-              ? 'Chamado aceito com sucesso!'
-              : freight.service_type === 'MUDANCA'
-              ? 'Orçamento enviado com sucesso!'
-              : 'Frete aceito com sucesso!'
-          );
+          // ✅ FRT-007: Se já aceito (idempotente), mostrar info ao invés de sucesso duplicado
+          if (acceptData?.already_accepted || acceptData?.code === 'ALREADY_ACCEPTED') {
+            toast.info('Você já aceitou este frete', {
+              description: 'Abrindo seus fretes em andamento…',
+              id: `already-accepted-${freightId}`,
+            });
+          } else {
+            toast.success(
+              freight.service_type === 'GUINCHO'
+                ? 'Chamado aceito com sucesso!'
+                : freight.service_type === 'MUDANCA'
+                ? 'Orçamento enviado com sucesso!'
+                : 'Frete aceito com sucesso!',
+              { id: `accept-success-${freightId}` }
+            );
+          }
 
           // ✅ INVALIDAR CACHE DO REACT QUERY para forçar refetch imediato
           queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
