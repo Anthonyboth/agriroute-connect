@@ -87,16 +87,24 @@ export function usePullToRefresh() {
   useEffect(() => {
     createIndicator();
 
-    const isModalOrOverlayOpen = (): boolean => {
-      // Check for any open dialog/modal/sheet/drawer/popover/dropdown
+    const hasAnythingOverMainScreen = (): boolean => {
+      // Block if ANY overlay, card, modal, sheet, drawer, popover, dropdown,
+      // tooltip, select, or expanded element is visible over the main screen
       return !!(
         document.querySelector('[role="dialog"]') ||
         document.querySelector('[role="alertdialog"]') ||
-        document.querySelector('[data-state="open"][data-radix-popper-content-wrapper]') ||
-        document.querySelector('[data-state="open"].fixed') ||
-        document.querySelector('.vaul-drawer-visible') ||
+        document.querySelector('[role="listbox"]') ||
+        document.querySelector('[role="menu"]') ||
+        document.querySelector('[role="tooltip"]') ||
+        document.querySelector('[data-state="open"]') ||
+        document.querySelector('[data-radix-popper-content-wrapper]') ||
         document.querySelector('[data-radix-dialog-overlay]') ||
-        document.querySelector('[data-radix-alert-dialog-overlay]')
+        document.querySelector('[data-radix-alert-dialog-overlay]') ||
+        document.querySelector('.vaul-drawer-visible') ||
+        document.querySelector('[data-sonner-toast]') ||
+        document.querySelector('.fixed.inset-0') ||
+        document.querySelector('.fixed.bottom-0[class*="z-"]') ||
+        document.querySelector('[data-side][data-align]') // radix floating elements
       );
     };
 
