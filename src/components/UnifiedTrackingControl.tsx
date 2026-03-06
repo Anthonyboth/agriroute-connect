@@ -410,6 +410,10 @@ export const UnifiedTrackingControl = () => {
 
   const updateLocation = async (coords: GeolocationCoordinates) => {
     if (!profile?.id) return;
+    
+    // GPS is working — reset error counter and gpsLost state
+    consecutiveErrorsRef.current = 0;
+    if (gpsLost) setGpsLost(false);
 
     try {
       const timestamp = new Date().toISOString();
