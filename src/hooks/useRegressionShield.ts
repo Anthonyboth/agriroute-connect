@@ -40,7 +40,8 @@ export type RuntimeGuardKey =
   | 'skip-recalc-required-on-sensitive-updates'
   | 'freight-and-assignment-state-must-match'
   | 'assignment-open-must-be-in-ongoing-statuses'
-  | 'already-accepted-must-not-show-success-toast';
+  | 'already-accepted-must-not-show-success-toast'
+  | 'accept-must-allow-accepted-with-slots';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -416,8 +417,35 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'orphaned_open_assignments_are_cleaned_up',
     ],
   },
-];
 
+  // ── BUG #014 ─────────────────────────────────────────────────
+  {
+    id: 'FRT-014',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-acceptance',
+    bug: 'accept-freight-multiple retornava 409 "Freight not available" para fretes com status ACCEPTED que ainda tinham vagas disponíveis (multi-truck). Além disso, recalc_freight_accepted_trucks não excluía status WITHDRAWN da contagem de assignments ativos, mantendo fretes em ACCEPTED mesmo após todos os motoristas desistirem.',
+    rootCause: 'Duas falhas combinadas: (1) accept-freight-multiple bloqueava QUALQUER status !== OPEN, incluindo ACCEPTED com vagas disponíveis em fretes multi-truck. (2) recalc_freight_accepted_trucks e sync_freight_status_on_assignment_update excluíam apenas CANCELLED/REJECTED da contagem ativa, mas NÃO WITHDRAWN — assignments desistidos eram contados como ativos, impedindo o retorno a OPEN.',
+    fix: 'Edge function agora permite ACCEPTED quando há slots disponíveis (verificado via contagem real de assignments). Trigger recalc e sync atualizados para excluir WITHDRAWN da contagem ativa. Cleanup global de fretes ACCEPTED sem assignments reais.',
+    files: [
+      'supabase/functions/accept-freight-multiple/index.ts',
+      'supabase/migrations/*_frt014_accept_withdrawn_fix.sql',
+    ],
+    rules: [
+      'accept-freight-multiple NUNCA deve bloquear status ACCEPTED — deve verificar vagas via contagem real de assignments.',
+      'TODA contagem de assignments ativos DEVE excluir CANCELLED, REJECTED e WITHDRAWN.',
+      'O status WITHDRAWN é terminal e equivalente a CANCELLED para fins de contagem.',
+      'Fretes multi-truck com vagas disponíveis devem SEMPRE ser aceitos, independente do status global do frete.',
+    ],
+    keywords: ['accept', 'ACCEPTED', 'WITHDRAWN', 'recalc', 'slots', 'multi-truck', '409', 'not available', 'capacity'],
+    testCases: [
+      'accept_freight_with_accepted_status_and_available_slots',
+      'withdrawn_assignments_not_counted_as_active',
+      'recalc_reverts_to_open_when_all_withdrawn',
+      'multi_truck_freight_accepts_after_partial_withdrawal',
+    ],
+  },
+];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
 // ═══════════════════════════════════════════════════════════════
