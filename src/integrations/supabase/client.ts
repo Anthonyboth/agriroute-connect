@@ -262,10 +262,19 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   console.error = (...args: any[]) => {
     const message = args[0]?.toString() || '';
 
-    // Silenciar erros de permissão Android (WAKE_LOCK, ForegroundService) - não são bugs do app
+    // Silenciar erros nativos Capacitor que não são bugs do app
     const lowerMsg = message.toLowerCase();
-    if (lowerMsg.includes('wake_lock') || lowerMsg.includes('foregroundservice') || lowerMsg.includes('falha ao iniciar')) {
-      originalConsoleError.apply(console, args);
+    const isNativePermissionNoise = 
+      lowerMsg.includes('wake_lock') || 
+      lowerMsg.includes('foregroundservice') || 
+      lowerMsg.includes('falha ao iniciar') ||
+      lowerMsg.includes('os-plug-gloc') ||
+      lowerMsg.includes('location services are not enabled') ||
+      lowerMsg.includes('location permission') ||
+      lowerMsg.includes('location services');
+    if (isNativePermissionNoise) {
+      // Downgrade to warn — not a bug, just native GPS status
+      console.warn('[GPS-Native]', ...args);
       return;
     }
     

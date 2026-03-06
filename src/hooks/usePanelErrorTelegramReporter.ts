@@ -78,6 +78,11 @@ export function usePanelErrorTelegramReporter() {
       'senha incorretos',
       'Invalid login credentials',
       'invalid_credentials',
+      // Capacitor GPS native errors — handled by app, not bugs
+      'OS-PLUG-GLOC',
+      'Location services are not enabled',
+      'location permission',
+      'location services',
     ];
 
     const shouldIgnore = (msg: string): boolean => {
