@@ -593,6 +593,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'gps-watchdog-must-detect-disabled-location',
   },
+
+  // ── FRT-020: OS-PLUG-GLOC-0007 error triggers monitor bot false alarm ──
+  {
+    id: 'FRT-020',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'gps-tracking',
+    bug: 'Capacitor native bridge logged OS-PLUG-GLOC-0007 ("Location services are not enabled") directly to console.error via logFromNative, bypassing app error handling. This triggered the Telegram Monitor Bot with false alarms even though the app handled the error correctly.',
+    rootCause: 'The console.error interceptors in supabase/client.ts and usePanelErrorTelegramReporter.ts did not filter Capacitor GPS native status errors (OS-PLUG-GLOC-*). Only WAKE_LOCK and ForegroundService errors were suppressed.',
+    fix: 'Added OS-PLUG-GLOC, "Location services are not enabled", and "location permission" patterns to both console.error interceptors. supabase/client.ts now downgrades these to console.warn. usePanelErrorTelegramReporter.ts IGNORED_PATTERNS now includes these patterns to prevent Telegram alerts.',
+    files: [
+      'src/integrations/supabase/client.ts',
+      'src/hooks/usePanelErrorTelegramReporter.ts',
+    ],
+    rules: [
+      'ALL Capacitor Geolocation native errors (OS-PLUG-GLOC-*) MUST be suppressed from console.error interceptors.',
+      'Native GPS status errors MUST be downgraded to console.warn, NEVER trigger monitor bot.',
+      'New Capacitor plugin error codes MUST be added to suppression lists when discovered.',
+    ],
+    keywords: ['OS-PLUG-GLOC-0007', 'Location services', 'console.error', 'logFromNative', 'monitor bot', 'false alarm', 'Telegram'],
+    testCases: [
+      'gloc_0007_does_not_trigger_telegram_alert',
+      'gloc_0007_downgraded_to_console_warn',
+      'native_gps_errors_suppressed_in_all_interceptors',
+    ],
+    runtimeGuard: 'native-gps-errors-must-not-trigger-alerts',
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
