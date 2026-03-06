@@ -41,7 +41,9 @@ export type RuntimeGuardKey =
   | 'freight-and-assignment-state-must-match'
   | 'assignment-open-must-be-in-ongoing-statuses'
   | 'already-accepted-must-not-show-success-toast'
-  | 'accept-must-allow-accepted-with-slots';
+  | 'accept-must-allow-accepted-with-slots'
+  | 'gps-permission-denied-must-not-throw'
+  | 'gps-watchdog-must-detect-disabled-location';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
