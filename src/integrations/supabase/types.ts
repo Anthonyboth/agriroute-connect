@@ -15436,6 +15436,7 @@ export type Database = {
           service_types: string[]
         }[]
       }
+      get_public_profile: { Args: { p_profile_id: string }; Returns: Json }
       get_public_service_requests: {
         Args: never
         Returns: {
