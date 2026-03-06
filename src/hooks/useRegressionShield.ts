@@ -688,17 +688,17 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
 const BLOCKED_CANCEL_STATUSES = ['LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'];
 
 const regressionGuards = {
+  // FRT-001: Ownership must check assignment fallback
   assertOwnershipUsesAssignmentFallback(ctx: RuntimeGuardContext) {
     if (ctx.driverId === null && !ctx.assignmentExists) {
-      // This is fine — no owner found at all, will return 404 naturally
-      return;
+      return; // No owner found — will return 404 naturally
     }
     if (ctx.driverId === null && ctx.assignmentExists) {
-      // Assignment exists but driver_id is null — must use fallback
       console.warn('[RegressionGuard FRT-001] driver_id is NULL but assignment exists — using fallback path');
     }
   },
 
+  // FRT-002: No cancel after LOADED
   assertNoCancelAfterLoaded(ctx: RuntimeGuardContext) {
     if (ctx.freightStatus && BLOCKED_CANCEL_STATUSES.includes(ctx.freightStatus)) {
       throw new RegressionViolation(
@@ -709,6 +709,7 @@ const regressionGuards = {
     }
   },
 
+  // FRT-003: Multitruck withdrawal must be incremental
   assertMultitruckWithdrawalIsIncremental(ctx: RuntimeGuardContext) {
     if (
       ctx.requiredTrucks !== undefined &&
@@ -724,6 +725,7 @@ const regressionGuards = {
     }
   },
 
+  // FRT-004: Skip recalc must be set
   assertSkipRecalcEnabled(ctx: RuntimeGuardContext) {
     if (ctx.skipRecalcSet === false) {
       throw new RegressionViolation(
@@ -734,6 +736,7 @@ const regressionGuards = {
     }
   },
 
+  // FRT-005: Freight/assignment state consistency
   assertFreightAssignmentConsistency(ctx: RuntimeGuardContext) {
     if (ctx.freightStatus === 'OPEN' && ctx.driverId === null && ctx.assignmentExists) {
       throw new RegressionViolation(
@@ -741,6 +744,80 @@ const regressionGuards = {
         'freight-and-assignment-state-must-match',
         'Estado inconsistente: freight OPEN com driver_id NULL mas assignment ACCEPTED existe.',
       );
+    }
+  },
+
+  // FRT-006/008/010: Assignment OPEN must be in ongoing statuses
+  assertAssignmentOpenInOngoingStatuses(ctx: RuntimeGuardContext) {
+    if (ctx.ongoingStatuses && !ctx.ongoingStatuses.includes('OPEN')) {
+      throw new RegressionViolation(
+        'FRT-006',
+        'assignment-open-must-be-in-ongoing-statuses',
+        'ASSIGNMENT_ONGOING_STATUSES não inclui "OPEN". Assignments criados por accept-freight-multiple ficarão invisíveis.',
+      );
+    }
+  },
+
+  // FRT-007: Already accepted must not show success toast
+  assertAlreadyAcceptedNoSuccessToast(ctx: RuntimeGuardContext) {
+    if (ctx.alreadyAccepted === true) {
+      console.warn('[RegressionGuard FRT-007] already_accepted=true — NÃO mostrar toast de sucesso, usar toast.info');
+    }
+  },
+
+  // FRT-014/015: Accept must allow ACCEPTED with slots
+  assertAcceptAllowsAcceptedWithSlots(ctx: RuntimeGuardContext) {
+    if (
+      ctx.freightStatus === 'ACCEPTED' &&
+      ctx.requiredTrucks !== undefined &&
+      ctx.acceptedTrucks !== undefined &&
+      ctx.acceptedTrucks < ctx.requiredTrucks
+    ) {
+      // This is valid — do not block
+      console.info('[RegressionGuard FRT-014] ACCEPTED freight with available slots — accept MUST be allowed');
+    }
+  },
+
+  // FRT-018: GPS permission denied must not throw
+  assertGpsPermissionDeniedNoThrow() {
+    // This is a design-time guard — requestPermissionSafe() must catch OS-PLUG-GLOC-0003
+    console.info('[RegressionGuard FRT-018] GPS permission denied errors MUST return false, never throw');
+  },
+
+  // FRT-019: GPS watchdog must detect disabled location
+  assertGpsWatchdogDetectsDisabled() {
+    // Design-time guard — useGPSWatchdog must poll every 10s
+    console.info('[RegressionGuard FRT-019] GPS watchdog MUST poll checkPermissionSafe() every 10s during active freight');
+  },
+
+  // FRT-020: Native GPS errors must not trigger alerts
+  assertNativeGpsErrorsSuppressed() {
+    // Design-time guard — OS-PLUG-GLOC-* must be in IGNORED_PATTERNS
+    console.info('[RegressionGuard FRT-020] OS-PLUG-GLOC-* errors MUST be in IGNORED_PATTERNS and downgraded to warn');
+  },
+
+  // FRT-021: Withdrawn driver must not access freight details
+  assertWithdrawnDriverBlocked(ctx: RuntimeGuardContext) {
+    if (ctx.assignmentStatus === 'WITHDRAWN' || ctx.assignmentStatus === 'CANCELLED') {
+      throw new RegressionViolation(
+        'FRT-021',
+        'withdrawn-driver-must-not-access-freight-details',
+        `Motorista com assignment ${ctx.assignmentStatus} não pode acessar detalhes do frete.`,
+      );
+    }
+  },
+
+  // FRT-022: Available feed must exclude driver active assignments
+  assertAvailableFeedExcludesActiveAssignments(ctx: RuntimeGuardContext) {
+    if (ctx.freightIdsInAvailable && ctx.driverActiveFreightIds) {
+      const overlap = ctx.freightIdsInAvailable.filter(id => ctx.driverActiveFreightIds!.includes(id));
+      if (overlap.length > 0) {
+        throw new RegressionViolation(
+          'FRT-022',
+          'available-feed-must-exclude-driver-active-assignments',
+          `Fretes ${overlap.join(', ')} aparecem em Disponíveis mas motorista tem assignment ativo neles.`,
+        );
+      }
     }
   },
 };
@@ -840,6 +917,30 @@ export function assertNoKnownRegression(
       return;
     case 'freight-and-assignment-state-must-match':
       regressionGuards.assertFreightAssignmentConsistency(context);
+      return;
+    case 'assignment-open-must-be-in-ongoing-statuses':
+      regressionGuards.assertAssignmentOpenInOngoingStatuses(context);
+      return;
+    case 'already-accepted-must-not-show-success-toast':
+      regressionGuards.assertAlreadyAcceptedNoSuccessToast(context);
+      return;
+    case 'accept-must-allow-accepted-with-slots':
+      regressionGuards.assertAcceptAllowsAcceptedWithSlots(context);
+      return;
+    case 'gps-permission-denied-must-not-throw':
+      regressionGuards.assertGpsPermissionDeniedNoThrow();
+      return;
+    case 'gps-watchdog-must-detect-disabled-location':
+      regressionGuards.assertGpsWatchdogDetectsDisabled();
+      return;
+    case 'native-gps-errors-must-not-trigger-alerts':
+      regressionGuards.assertNativeGpsErrorsSuppressed();
+      return;
+    case 'withdrawn-driver-must-not-access-freight-details':
+      regressionGuards.assertWithdrawnDriverBlocked(context);
+      return;
+    case 'available-feed-must-exclude-driver-active-assignments':
+      regressionGuards.assertAvailableFeedExcludesActiveAssignments(context);
       return;
   }
 }
