@@ -44,7 +44,8 @@ export type RuntimeGuardKey =
   | 'accept-must-allow-accepted-with-slots'
   | 'gps-permission-denied-must-not-throw'
   | 'gps-watchdog-must-detect-disabled-location'
-  | 'native-gps-errors-must-not-trigger-alerts';
+  | 'native-gps-errors-must-not-trigger-alerts'
+  | 'withdrawn-driver-must-not-access-freight-details';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
