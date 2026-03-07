@@ -166,21 +166,22 @@ const EmptyState: React.FC<{ icon: React.ReactNode; title: string; description: 
   </div>
 );
 
+/* 60% primary green metric — used for saldo/crédito/recebíveis */
 const MetricBox: React.FC<{ label: string; value: string; sub?: string; accent?: boolean; warn?: boolean }> = ({ label, value, sub, accent, warn }) => (
-  <div className="rounded-lg bg-muted/40 p-3 border border-border/40">
+  <div className={`rounded-lg p-3 border ${accent ? 'bg-primary/[0.06] border-primary/20' : 'bg-card border-border/40'}`}>
     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-    <p className={`text-xl font-bold tracking-tight ${accent ? 'text-primary' : warn ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>{value}</p>
+    <p className={`text-xl font-bold tracking-tight ${accent ? 'text-primary' : warn ? 'text-warning' : 'text-foreground'}`}>{value}</p>
     {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
   </div>
 );
 
-/* ─── Intro Cards ─── */
+/* ─── Intro Cards (30% zone — bg-card with subtle primary accents) ─── */
 
 const ProducerIntroCard: React.FC = () => (
   <Card className="shadow-sm border-border/50 overflow-hidden">
-    <CardHeader className="pb-2 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
+    <CardHeader className="pb-2 bg-gradient-to-r from-primary/[0.06] to-transparent">
       <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-blue-500/10 p-2"><Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
+        <div className="rounded-lg bg-primary/10 p-2"><Truck className="h-5 w-5 text-primary" /></div>
         <div>
           <CardTitle className="text-base font-semibold">Pagamentos de Frete</CardTitle>
           <CardDescription className="text-xs">Gerencie pagamentos dos seus fretes como embarcador</CardDescription>
@@ -206,9 +207,9 @@ const ProducerIntroCard: React.FC = () => (
 
 const CarrierIntroCard: React.FC = () => (
   <Card className="shadow-sm border-border/50 overflow-hidden">
-    <CardHeader className="pb-2 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
+    <CardHeader className="pb-2 bg-gradient-to-r from-primary/[0.06] to-transparent">
       <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-blue-500/10 p-2"><Users className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
+        <div className="rounded-lg bg-primary/10 p-2"><Users className="h-5 w-5 text-primary" /></div>
         <div>
           <CardTitle className="text-base font-semibold">Repasses a Motoristas</CardTitle>
           <CardDescription className="text-xs">Gerencie repasses aos motoristas afiliados</CardDescription>
@@ -234,9 +235,9 @@ const CarrierIntroCard: React.FC = () => (
 
 const AffiliatedDriverIntroCard: React.FC = () => (
   <Card className="shadow-sm border-border/50 overflow-hidden">
-    <CardHeader className="pb-2 bg-gradient-to-r from-orange-500/[0.04] to-transparent">
+    <CardHeader className="pb-2 bg-gradient-to-r from-accent/[0.08] to-transparent">
       <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-orange-500/10 p-2"><Users className="h-5 w-5 text-orange-600 dark:text-orange-400" /></div>
+        <div className="rounded-lg bg-accent/10 p-2"><Users className="h-5 w-5 text-accent" /></div>
         <div>
           <CardTitle className="text-base font-semibold">Finanças Pessoais</CardTitle>
           <CardDescription className="text-xs">Seu crédito e recebíveis são pessoais e independentes da transportadora</CardDescription>
@@ -244,8 +245,8 @@ const AffiliatedDriverIntroCard: React.FC = () => (
       </div>
     </CardHeader>
     <CardContent className="pt-4">
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20 mb-4">
-        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/[0.08] border border-warning/20 mb-4">
+        <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
         <div className="text-[11px] text-muted-foreground space-y-0.5">
           <p className="font-medium text-foreground text-xs">Regras do motorista afiliado</p>
           <p>Seu crédito é pessoal — a transportadora não tem acesso.</p>
@@ -263,9 +264,9 @@ const AffiliatedDriverIntroCard: React.FC = () => (
 
 const ServiceProviderIntroCard: React.FC = () => (
   <Card className="shadow-sm border-border/50 overflow-hidden">
-    <CardHeader className="pb-2 bg-gradient-to-r from-violet-500/[0.04] to-transparent">
+    <CardHeader className="pb-2 bg-gradient-to-r from-primary/[0.06] to-transparent">
       <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-violet-500/10 p-2"><Wrench className="h-5 w-5 text-violet-600 dark:text-violet-400" /></div>
+        <div className="rounded-lg bg-primary/10 p-2"><Wrench className="h-5 w-5 text-primary" /></div>
         <div>
           <CardTitle className="text-base font-semibold">Finanças de Serviços</CardTitle>
           <CardDescription className="text-xs">Gerencie pagamentos por serviços prestados na plataforma</CardDescription>
@@ -289,7 +290,7 @@ const ServiceProviderIntroCard: React.FC = () => (
   </Card>
 );
 
-/* ─── Module: Credit ─── */
+/* ─── Module: Credit (60% primary zone) ─── */
 
 const CreditSection: React.FC<{
   creditAccount: any; creditLoading: boolean;
@@ -302,11 +303,11 @@ const CreditSection: React.FC<{
   const nextInstallment = pendingInstallments[0] || null;
 
   return (
-    <Card className="shadow-sm border-border/50 overflow-hidden">
-      <CardHeader className="pb-2 bg-gradient-to-r from-primary/[0.04] to-transparent">
+    <Card className="shadow-sm border-primary/20 overflow-hidden">
+      <CardHeader className="pb-2 bg-gradient-to-r from-primary/[0.08] to-primary/[0.02]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-primary/10 p-2"><CreditCard className="h-5 w-5 text-primary" /></div>
+            <div className="rounded-lg bg-primary/15 p-2"><CreditCard className="h-5 w-5 text-primary" /></div>
             <div>
               <CardTitle className="text-base font-semibold">{config.creditLabel}</CardTitle>
               <CardDescription className="text-xs">{config.creditDescription}</CardDescription>
@@ -328,7 +329,7 @@ const CreditSection: React.FC<{
             <div className="space-y-1.5">
               <div className="flex justify-between text-[11px] text-muted-foreground">
                 <span>Utilização do limite</span>
-                <span className={creditUsagePercent > 80 ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>{creditUsagePercent}%</span>
+                <span className={creditUsagePercent > 80 ? 'text-warning font-medium' : ''}>{creditUsagePercent}%</span>
               </div>
               <Progress value={creditUsagePercent} className="h-2" />
             </div>
@@ -336,7 +337,7 @@ const CreditSection: React.FC<{
             {/* Use cases */}
             <div className="flex flex-wrap gap-1.5">
               {config.creditUseCases.map(uc => (
-                <Badge key={uc} variant="outline" className="text-[10px] font-normal">{uc}</Badge>
+                <Badge key={uc} variant="outline" className="text-[10px] font-normal border-primary/20 text-primary">{uc}</Badge>
               ))}
             </div>
 
@@ -361,20 +362,21 @@ const CreditSection: React.FC<{
             )}
 
             {config.key === 'MOTORISTA_AFILIADO' && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-500/[0.06] border border-orange-500/20">
-                <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/[0.08] border border-accent/20">
+                <Shield className="h-4 w-4 text-accent mt-0.5 shrink-0" />
                 <p className="text-[11px] text-muted-foreground">Este crédito é exclusivamente pessoal. Fretes da transportadora não são elegíveis como garantia.</p>
               </div>
             )}
 
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {paidInstallments.length} pagas</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-primary" /> {paidInstallments.length} pagas</span>
               {overdueInstallments.length > 0 && <span className="flex items-center gap-1 text-destructive"><AlertTriangle className="h-3 w-3" /> {overdueInstallments.length} vencidas</span>}
             </div>
 
             <Separator />
+            {/* 10% accent zone — primary CTAs */}
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="text-xs gap-1.5" onClick={() => handleNotImplemented(config.creditPrimaryAction.label)}>
+              <Button size="sm" className="text-xs gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => handleNotImplemented(config.creditPrimaryAction.label)}>
                 {config.creditPrimaryAction.icon} {config.creditPrimaryAction.label}
               </Button>
               {config.creditSecondaryActions.map(a => (
@@ -389,7 +391,7 @@ const CreditSection: React.FC<{
         ) : (
           <EmptyState icon={<CreditCard className="h-8 w-8 text-muted-foreground/50" />} title="Crédito não solicitado" description={`Solicite sua linha de crédito para operações como ${config.label}.`}>
             <div className="flex gap-2">
-              <Button size="sm" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Solicitar crédito')}><CreditCard className="h-3.5 w-3.5" /> Solicitar Crédito</Button>
+              <Button size="sm" className="text-xs gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => handleNotImplemented('Solicitar crédito')}><CreditCard className="h-3.5 w-3.5" /> Solicitar Crédito</Button>
               <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular crédito')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
             </div>
           </EmptyState>
@@ -399,7 +401,7 @@ const CreditSection: React.FC<{
   );
 };
 
-/* ─── Module: Advances ─── */
+/* ─── Module: Advances (60% primary for values, 30% card bg) ─── */
 
 const AdvanceSection: React.FC<{
   receivables: any[]; eligibleReceivables: any[];
@@ -411,9 +413,9 @@ const AdvanceSection: React.FC<{
 
   return (
     <Card className="shadow-sm border-border/50 overflow-hidden">
-      <CardHeader className="pb-2 bg-gradient-to-r from-emerald-500/[0.04] to-transparent">
+      <CardHeader className="pb-2 bg-gradient-to-r from-primary/[0.06] to-transparent">
         <div className="flex items-center gap-2.5">
-          <div className="rounded-lg bg-emerald-500/10 p-2"><TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /></div>
+          <div className="rounded-lg bg-primary/10 p-2"><TrendingUp className="h-5 w-5 text-primary" /></div>
           <div>
             <CardTitle className="text-base font-semibold">Antecipação de Recebíveis</CardTitle>
             <CardDescription className="text-xs">
@@ -439,8 +441,8 @@ const AdvanceSection: React.FC<{
             </div>
 
             {config.advanceLabel && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20">
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/[0.08] border border-warning/20">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                 <p className="text-[11px] text-muted-foreground">{config.advanceLabel}</p>
               </div>
             )}
@@ -454,7 +456,7 @@ const AdvanceSection: React.FC<{
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recentes</p>
                 {advances.slice(0, 4).map((adv) => (
-                  <div key={adv.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-muted/20 text-sm">
+                  <div key={adv.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-card text-sm">
                     <div>
                       <span className="font-semibold">{formatBRL(adv.net_amount)}</span>
                       <span className="text-[11px] text-muted-foreground ml-2">Taxa: {formatBRL(adv.fee_amount)}</span>
@@ -468,8 +470,9 @@ const AdvanceSection: React.FC<{
             )}
 
             <Separator />
+            {/* 10% accent — primary CTA */}
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="text-xs gap-1.5" disabled={totalEligible <= 0} onClick={() => handleNotImplemented('Antecipar')}><Zap className="h-3.5 w-3.5" /> Antecipar Agora</Button>
+              <Button size="sm" className="text-xs gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90" disabled={totalEligible <= 0} onClick={() => handleNotImplemented('Antecipar')}><Zap className="h-3.5 w-3.5" /> Antecipar Agora</Button>
               <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular antecipação')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
               <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Ver elegíveis')}><FileText className="h-3.5 w-3.5" /> Elegíveis</Button>
               <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico')}><History className="h-3.5 w-3.5" /> Histórico</Button>
@@ -494,7 +497,7 @@ const AdvanceSection: React.FC<{
   );
 };
 
-/* ─── Module: Installments ─── */
+/* ─── Module: Installments (30% zone — card bg, accent for pay CTA) ─── */
 
 const InstallmentsSection: React.FC<{
   creditLoading: boolean; installments: any[];
@@ -505,10 +508,10 @@ const InstallmentsSection: React.FC<{
 
   return (
     <Card className="shadow-sm border-border/50 overflow-hidden">
-      <CardHeader className="pb-2 bg-gradient-to-r from-amber-500/[0.04] to-transparent">
+      <CardHeader className="pb-2 bg-gradient-to-r from-warning/[0.06] to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-amber-500/10 p-2"><Receipt className="h-5 w-5 text-amber-600 dark:text-amber-400" /></div>
+            <div className="rounded-lg bg-warning/10 p-2"><Receipt className="h-5 w-5 text-warning" /></div>
             <div>
               <CardTitle className="text-base font-semibold">Parcelas e Cobranças</CardTitle>
               <CardDescription className="text-xs">
@@ -531,8 +534,8 @@ const InstallmentsSection: React.FC<{
             </div>
 
             {config.showAutoDiscount && pendingInstallments.length > 0 && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20">
-                <Percent className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/[0.08] border border-warning/20">
+                <Percent className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                 <div className="text-[11px] text-muted-foreground">
                   <p className="font-medium text-foreground text-xs">Desconto automático ativo</p>
                   <p>{config.autoDiscountDescription || 'Parcelas vencidas são descontadas automaticamente dos repasses recebidos.'}</p>
@@ -550,7 +553,7 @@ const InstallmentsSection: React.FC<{
 
             <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
               {pendingInstallments.map((inst) => (
-                <div key={inst.id} className={`flex items-center justify-between p-2.5 rounded-lg border text-sm ${inst.status === 'overdue' ? 'border-destructive/30 bg-destructive/[0.03]' : 'border-border/50 bg-muted/20'}`}>
+                <div key={inst.id} className={`flex items-center justify-between p-2.5 rounded-lg border text-sm ${inst.status === 'overdue' ? 'border-destructive/30 bg-destructive/[0.03]' : 'border-border/50 bg-card'}`}>
                   <div className="flex items-center gap-2">
                     <CalendarClock className={`h-3.5 w-3.5 ${inst.status === 'overdue' ? 'text-destructive' : 'text-muted-foreground'}`} />
                     <div>
@@ -568,7 +571,7 @@ const InstallmentsSection: React.FC<{
 
             <Separator />
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Pagar parcela')}><CircleDollarSign className="h-3.5 w-3.5" /> Pagar Agora</Button>
+              <Button size="sm" className="text-xs gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => handleNotImplemented('Pagar parcela')}><CircleDollarSign className="h-3.5 w-3.5" /> Pagar Agora</Button>
               <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Detalhamento')}><FileText className="h-3.5 w-3.5" /> Detalhamento</Button>
             </div>
           </div>
@@ -580,7 +583,7 @@ const InstallmentsSection: React.FC<{
   );
 };
 
-/* ─── Module: Disputes ─── */
+/* ─── Module: Disputes (30% card zone, destructive for alerts) ─── */
 
 const DisputesSection: React.FC<{
   disputes: any[]; openCount: number; disputeLoading: boolean;
@@ -590,10 +593,10 @@ const DisputesSection: React.FC<{
 
   return (
     <Card className="shadow-sm border-border/50 overflow-hidden">
-      <CardHeader className="pb-2 bg-gradient-to-r from-red-500/[0.04] to-transparent">
+      <CardHeader className="pb-2 bg-gradient-to-r from-destructive/[0.04] to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-red-500/10 p-2"><ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
+            <div className="rounded-lg bg-destructive/10 p-2"><ShieldAlert className="h-5 w-5 text-destructive" /></div>
             <div>
               <CardTitle className="text-base font-semibold">Disputas Financeiras</CardTitle>
               <CardDescription className="text-xs">Contestações e mediações de valores</CardDescription>
@@ -612,7 +615,7 @@ const DisputesSection: React.FC<{
             </div>
             <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
               {disputes.slice(0, 6).map((d) => (
-                <div key={d.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-muted/20 text-sm">
+                <div key={d.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-card text-sm">
                   <div className="flex items-center gap-2 min-w-0">
                     <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
@@ -645,7 +648,7 @@ const DisputesSection: React.FC<{
   );
 };
 
-/* ─── Module: History ─── */
+/* ─── Module: History (30% zone — white/card bg, muted filters) ─── */
 
 const HistorySection: React.FC<{
   installments: any[]; advances: any[]; config: RoleConfig;
@@ -665,7 +668,7 @@ const HistorySection: React.FC<{
 
   if (historyFilter === 'all' || historyFilter === 'credit') {
     installments.filter(i => i.status === 'paid').forEach(i => {
-      items.push({ id: `inst-${i.id}`, label: `Parcela ${i.installment_number} paga`, value: -i.amount, date: i.paid_at || i.due_date, type: 'Crédito', status: 'Pago', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500" /> });
+      items.push({ id: `inst-${i.id}`, label: `Parcela ${i.installment_number} paga`, value: -i.amount, date: i.paid_at || i.due_date, type: 'Crédito', status: 'Pago', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-primary" /> });
     });
   }
   if ((historyFilter === 'all' || historyFilter === 'advance') && config.hasAdvances) {
@@ -688,7 +691,7 @@ const HistorySection: React.FC<{
       </CardHeader>
       <CardContent className="pt-3">
         <Tabs defaultValue="all" onValueChange={setHistoryFilter}>
-          <TabsList className={`w-full grid h-8 mb-4`} style={{ gridTemplateColumns: `repeat(${filterTabs.length}, 1fr)` }}>
+          <TabsList className="w-full grid h-8 mb-4" style={{ gridTemplateColumns: `repeat(${filterTabs.length}, 1fr)` }}>
             {filterTabs.map(t => (
               <TabsTrigger key={t.value} value={t.value} className="text-[11px]">{t.label}</TabsTrigger>
             ))}
@@ -713,7 +716,7 @@ const HistorySection: React.FC<{
                         </div>
                       </div>
                     </div>
-                    <span className={`font-bold text-xs ${item.value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                    <span className={`font-bold text-xs ${item.value >= 0 ? 'text-primary' : 'text-foreground'}`}>
                       {item.value >= 0 ? '+' : ''}{formatBRL(Math.abs(item.value))}
                     </span>
                   </div>
@@ -743,7 +746,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
       {/* Role-specific intro card */}
       {config.introCard}
 
-      {/* 1. Credit - all roles */}
+      {/* 1. Credit — 60% primary green zone */}
       <CreditSection
         creditAccount={creditAccount}
         creditLoading={creditLoading}
@@ -753,7 +756,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
         config={config}
       />
 
-      {/* 2. Advances - not for PRODUTOR */}
+      {/* 2. Advances — not for PRODUTOR */}
       {config.hasAdvances && (
         <AdvanceSection
           receivables={receivables}
@@ -765,7 +768,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
         />
       )}
 
-      {/* 3. Installments */}
+      {/* 3. Installments — 30% neutral zone */}
       <InstallmentsSection
         creditLoading={creditLoading}
         installments={installments}
@@ -777,10 +780,10 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
       {/* 4. Disputes */}
       <DisputesSection disputes={disputes} openCount={openCount} disputeLoading={disputeLoading} />
 
-      {/* 5. History */}
+      {/* 5. History — 30% neutral zone */}
       <HistorySection installments={installments} advances={advances} config={config} />
 
-      {/* Legacy content - secondary */}
+      {/* Legacy content — secondary */}
       {legacyContent && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center gap-2 text-muted-foreground">
