@@ -368,8 +368,9 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={(e) => {
@@ -377,41 +378,36 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   onReject(proposal.id);
                 }}
                 disabled={loadingAction.proposalId === proposal.id}
-                className="h-10 w-full justify-center rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm"
+                className="h-9 w-full justify-center rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm transition-all duration-200 font-medium text-xs"
                 data-testid="reject-counter-proposal-button"
               >
                 {loadingAction.proposalId === proposal.id && loadingAction.action === 'reject' ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Rejeitando...
-                  </>
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Rejeitar contraproposta
+                    <XCircle className="h-4 w-4 mr-1 shrink-0" />
+                    <span className="truncate">Rejeitar</span>
                   </>
                 )}
               </Button>
 
               <Button
+                type="button"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   onAccept(proposal);
                 }}
                 disabled={!canAccept || loadingAction.proposalId === proposal.id}
-                className="h-10 w-full justify-center rounded-xl shadow-sm transition-all duration-200 font-medium text-xs sm:text-sm"
+                className="h-9 w-full justify-center rounded-xl shadow-sm transition-all duration-200 font-medium text-xs"
                 data-testid="accept-counter-proposal-button"
               >
                 {loadingAction.proposalId === proposal.id && loadingAction.action === 'accept' ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Aceitando...
-                  </>
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    {!canAccept ? 'Sem vagas' : 'Aceitar contraproposta'}
+                    <CheckCircle className="h-4 w-4 mr-1 shrink-0" />
+                    <span className="truncate">{!canAccept ? 'Sem vagas' : 'Aceitar'}</span>
                   </>
                 )}
               </Button>
