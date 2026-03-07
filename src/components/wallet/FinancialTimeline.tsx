@@ -200,10 +200,10 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
                                 <p className="text-[11px] text-muted-foreground">
                                   {tx.created_at ? format(new Date(tx.created_at), 'HH:mm', { locale: ptBR }) : '—'}
                                 </p>
-                                {tx.reference_type === 'freight' && tx.reference_id && (
+                                {tx.metadata?.freight_id && (
                                   <button
                                     type="button"
-                                    onClick={() => setReceiptFreightId(tx.reference_id!)}
+                                    onClick={() => setReceiptFreightId(tx.metadata.freight_id)}
                                     className="text-[10px] text-primary hover:underline font-medium"
                                   >
                                     Ver comprovante
