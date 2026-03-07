@@ -808,7 +808,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
   const { creditAccount, installments, pendingInstallments, totalPending, loading: creditLoading, refetch: refetchCredit } = useCredit();
   const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading, refetch: refetchAdvance } = useReceivableAdvance();
   const { disputes, openCount, loading: disputeLoading, openDispute } = useDisputes();
-  const { wallet } = useWallet();
+  const { wallet, transactions: walletTransactions } = useWallet();
 
   const config = getRoleConfig(role, isAffiliated);
 
