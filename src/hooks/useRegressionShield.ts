@@ -761,6 +761,260 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'duplicate_proposal_does_not_show_critical_error',
     ],
   },
+
+  // ── FRT-026: SafeAuthModal production black screen (createPortal failure) ──
+  {
+    id: 'FRT-026',
+    date: '2026-03-04',
+    severity: 'CRITICAL',
+    area: 'auth-modal',
+    bug: 'Botão "Cadastrar-se" na Landing page causava tela preta em produção. Modal de autenticação não renderizava — overlay aparecia mas conteúdo ficava vazio.',
+    rootCause: 'Dialog/Portal do Radix falhava silenciosamente em produção. useEffect notificava mount ANTES do DOM ser pintado. Overlay ficava preso sem conteúdo visível. Timeouts muito agressivos para conexões lentas.',
+    fix: 'Criado SafeAuthModal com 3 níveis de fallback: (1) Radix Dialog normal, (2) Radix FallbackAuthModal, (3) InlineFallbackModal sem Portal/Dialog. Em produção, usa inline diretamente. Verificação DOM REAL com data-attribute após 2 RAFs. Timeouts tolerantes (1.5s, 3s, 5s). Detecção de conexão lenta.',
+    files: [
+      'src/components/SafeAuthModal.tsx',
+      'src/components/AuthModal.tsx',
+      'src/pages/Landing.tsx',
+    ],
+    rules: [
+      'NUNCA usar createPortal para modais críticos em produção — Radix Dialog/Portal pode falhar silenciosamente.',
+      'SafeAuthModal DEVE ter fallback inline (sem Portal) que funciona mesmo quando Radix falha.',
+      'Em produção (IS_PRODUCTION_DOMAIN), SEMPRE usar inline fallback imediatamente — não esperar timeout.',
+      'Verificação de renderização DEVE usar data-attributes no DOM real, não estado React.',
+      'Overlay/backdrop NUNCA deve ficar travado — implementar cleanup em todos os caminhos de erro.',
+    ],
+    keywords: ['tela preta', 'black screen', 'createPortal', 'SafeAuthModal', 'Radix', 'Dialog', 'Portal', 'cadastrar', 'produção', 'overlay'],
+    testCases: [
+      'auth_modal_renders_in_production_without_portal',
+      'auth_modal_fallback_activates_on_slow_connection',
+      'overlay_never_stays_stuck_without_content',
+      'inline_fallback_renders_same_auth_form',
+    ],
+  },
+
+  // ── FRT-027: guest_requests overly permissive SELECT policy ──
+  {
+    id: 'FRT-027',
+    date: '2026-03-04',
+    severity: 'CRITICAL',
+    area: 'rls-policies',
+    bug: 'Qualquer usuário autenticado conseguia ler TODOS os guest_requests, expondo telefone, nome e dados de contato de prospects.',
+    rootCause: 'Política guest_requests_select_auth permitia SELECT para qualquer authenticated sem filtro de ownership ou role. Políticas redundantes sobrepostas usando role "public" (que inclui anon).',
+    fix: 'DROP da política permissiva. Recriadas políticas limpas: anon INSERT com validação de campos, authenticated INSERT com validação, anon SELECT deny explícito. Mantida política existente de admin/assigned provider para SELECT.',
+    files: [
+      'supabase/migrations/20260304023828_*.sql',
+    ],
+    rules: [
+      'NUNCA criar política SELECT sem filtro de ownership ou role para tabelas com dados de contato.',
+      'Políticas de SELECT para dados sensíveis DEVEM restringir a owner, admin ou provider atribuído.',
+      'Ao usar role "public" em políticas, lembrar que inclui "anon" — preferir "authenticated" ou "anon" explicitamente.',
+      'Auditar políticas sobrepostas antes de criar novas — remover redundâncias.',
+    ],
+    keywords: ['guest_requests', 'SELECT', 'permissive', 'contato', 'telefone', 'RLS', 'exposição', 'authenticated'],
+    testCases: [
+      'random_authenticated_user_cannot_read_guest_requests',
+      'admin_can_read_guest_requests',
+      'assigned_provider_can_read_own_guest_requests',
+      'anon_cannot_select_guest_requests',
+    ],
+  },
+
+  // ── FRT-028: get_my_profile_id_for_pii missing hardening ──
+  {
+    id: 'FRT-028',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'security-functions',
+    bug: 'Função get_my_profile_id_for_pii() não tinha search_path fixo, não verificava auth.uid() NULL, e era executável por anon.',
+    rootCause: 'Função SECURITY DEFINER sem SET search_path = public era vulnerável a search_path hijacking. Sem verificação explícita de auth.uid() NULL, retornava NULL silenciosamente para chamadas não-autenticadas. EXECUTE não estava revogado de PUBLIC/anon.',
+    fix: 'CREATE OR REPLACE com: SET search_path = public, verificação explícita de auth.uid() IS NULL com RAISE EXCEPTION, REVOKE EXECUTE de PUBLIC e anon, GRANT apenas para authenticated.',
+    files: [
+      'supabase/migrations/20260306195742_*.sql',
+    ],
+    rules: [
+      'TODA função SECURITY DEFINER DEVE ter SET search_path = public.',
+      'Funções que usam auth.uid() DEVEM verificar NULL explicitamente e levantar exceção.',
+      'REVOKE EXECUTE FROM PUBLIC e anon para funções que acessam dados sensíveis.',
+      'GRANT EXECUTE apenas para roles que realmente precisam (authenticated, service_role).',
+    ],
+    keywords: ['get_my_profile_id_for_pii', 'search_path', 'REVOKE', 'SECURITY DEFINER', 'anon', 'hardening'],
+    testCases: [
+      'pii_function_has_search_path_set',
+      'pii_function_rejects_unauthenticated_calls',
+      'anon_cannot_execute_pii_function',
+    ],
+  },
+
+  // ── FRT-029: update_updated_at_column missing search_path ──
+  {
+    id: 'FRT-029',
+    date: '2026-03-06',
+    severity: 'MEDIUM',
+    area: 'security-functions',
+    bug: 'Trigger function update_updated_at_column() não tinha SET search_path, vulnerável a search_path hijacking.',
+    rootCause: 'Função de trigger usada em dezenas de tabelas não tinha search_path fixo. Embora seja uma função simples (NEW.updated_at = now()), sem search_path fixo um atacante com permissão CREATE SCHEMA poderia interceptar a resolução de now().',
+    fix: 'CREATE OR REPLACE com SET search_path = public.',
+    files: [
+      'supabase/migrations/20260306181601_*.sql',
+    ],
+    rules: [
+      'TODA função de trigger DEVE ter SET search_path = public, mesmo as simples.',
+      'Ao criar/alterar funções, SEMPRE incluir search_path — não é opcional.',
+    ],
+    keywords: ['update_updated_at_column', 'search_path', 'trigger', 'hijacking'],
+    testCases: [
+      'updated_at_trigger_has_search_path',
+    ],
+  },
+
+  // ── FRT-030: recalc_freight_accepted_trucks not reverting to OPEN with 0 assignments ──
+  {
+    id: 'FRT-030',
+    date: '2026-03-06',
+    severity: 'CRITICAL',
+    area: 'freight-trigger-interference',
+    bug: 'Quando todos os motoristas desistiam de um frete, recalc_freight_accepted_trucks mantinha status ACCEPTED em vez de reverter para OPEN. Frete ficava "fantasma" — ACCEPTED sem nenhum assignment ativo.',
+    rootCause: 'Trigger não tratava o caso de actual_count = 0 quando o frete já estava ACCEPTED. A lógica só cobria "fully booked" e "partially filled", ignorando "empty after all withdrew".',
+    fix: 'Adicionado bloco explícito: ELSIF COALESCE(actual_count, 0) = 0 THEN new_status = OPEN para fretes em ACCEPTED/OPEN/IN_NEGOTIATION. Também excluído WITHDRAWN da contagem de assignments ativos.',
+    files: [
+      'supabase/migrations/20260306124423_*.sql',
+    ],
+    rules: [
+      'recalc_freight_accepted_trucks DEVE tratar explicitamente o caso de 0 assignments ativos → OPEN.',
+      'Contagem de assignments ativos DEVE excluir CANCELLED, REJECTED e WITHDRAWN.',
+      'Ao corrigir triggers, testar com: 0 assignments, 1 assignment, N assignments, todos WITHDRAWN.',
+    ],
+    keywords: ['recalc', 'accepted_trucks', '0 assignments', 'ACCEPTED', 'OPEN', 'fantasma', 'revert', 'WITHDRAWN'],
+    testCases: [
+      'recalc_reverts_to_open_when_zero_active_assignments',
+      'recalc_excludes_withdrawn_from_count',
+      'freight_not_stuck_accepted_after_all_withdrawals',
+    ],
+  },
+
+  // ── FRT-031: OPEN assignments not auto-fixed to ACCEPTED ──
+  {
+    id: 'FRT-031',
+    date: '2026-03-06',
+    severity: 'HIGH',
+    area: 'freight-data-integrity',
+    bug: 'Assignments criados com status OPEN não eram automaticamente corrigidos para ACCEPTED, causando inconsistências em cadeia (FRT-006, FRT-008, FRT-010, FRT-016).',
+    rootCause: 'accept-freight-multiple criava assignments com status OPEN ao invés de ACCEPTED. Migração de data fix necessária para corrigir assignments existentes.',
+    fix: 'Migração de correção: UPDATE freight_assignments SET status = ACCEPTED WHERE status = OPEN AND created_at > now() - interval 7 days. Também corrigiu freights correspondentes com driver_id, accepted_trucks e drivers_assigned.',
+    files: [
+      'supabase/migrations/20260306175538_*.sql',
+    ],
+    rules: [
+      'Assignments DEVEM ser criados com status ACCEPTED, NUNCA OPEN.',
+      'Data fix migrations devem ser criadas quando inconsistências são detectadas.',
+      'Ao corrigir assignments, SEMPRE sincronizar freights correspondentes (driver_id, accepted_trucks, drivers_assigned).',
+    ],
+    keywords: ['OPEN assignment', 'ACCEPTED', 'data fix', 'migration', 'inconsistência', 'sync'],
+    testCases: [
+      'new_assignments_created_with_accepted_status',
+      'no_open_assignments_exist_after_migration',
+    ],
+  },
+
+  // ── FRT-032: Fiscal certificate status 'certificate_uploaded' not recognized ──
+  {
+    id: 'FRT-032',
+    date: '2026-03-05',
+    severity: 'HIGH',
+    area: 'fiscal-module',
+    bug: 'Após upload de certificado digital via Edge Function, o status ficava como "certificate_uploaded" mas FiscalTab.tsx não reconhecia esse status, mostrando "Configure seu emissor fiscal" mesmo com certificado válido.',
+    rootCause: 'FiscalTab.tsx verificava apenas status === "ACTIVE" e sefaz_status === "validated". Edge Function definia status "certificate_uploaded" após upload bem-sucedido, que não era reconhecido pela UI.',
+    fix: 'Adicionado "certificate_uploaded" à lista de status que indicam certificado presente. Também incluído case-insensitive check para "active"/"ACTIVE".',
+    files: [
+      'src/components/fiscal/tabs/FiscalTab.tsx',
+      'src/components/fiscal/tabs/FiscalIssuerSetup.tsx',
+    ],
+    rules: [
+      'TODA verificação de status fiscal DEVE incluir todos os status possíveis: ACTIVE, active, certificate_uploaded.',
+      'Ao adicionar novos status em Edge Functions, ATUALIZAR IMEDIATAMENTE os checks na UI.',
+      'Status checks devem ser case-insensitive ou normalizados para evitar mismatches.',
+    ],
+    keywords: ['certificate_uploaded', 'fiscal', 'certificado', 'status', 'FiscalTab', 'emissor', 'hasCertificate'],
+    testCases: [
+      'certificate_uploaded_status_recognized_as_valid',
+      'fiscal_tab_shows_correct_state_after_upload',
+    ],
+  },
+
+  // ── FRT-033: SubscriptionContext infinite loop from user object reference ──
+  {
+    id: 'FRT-033',
+    date: '2026-03-05',
+    severity: 'CRITICAL',
+    area: 'subscription-context',
+    bug: 'SubscriptionContext causava loop infinito de re-renders e queries ao Supabase. App ficava extremamente lento e eventualmente travava.',
+    rootCause: 'useEffect dependia do objeto user completo. Supabase Auth recria o objeto user a cada tick/revalidação mesmo quando os dados são idênticos. Isso causava re-execução contínua do useEffect, que fazia novas queries, que atualizavam state, causando mais re-renders.',
+    fix: 'Usar useRef para armazenar user?.id e comparar. useEffect só executa quando user?.id realmente muda, não quando o objeto é recriado.',
+    files: [
+      'src/contexts/SubscriptionContext.tsx',
+    ],
+    rules: [
+      'NUNCA usar o objeto user do Supabase Auth como dependência de useEffect — usar user?.id.',
+      'Objetos que são recriados frequentemente (auth state, query results) DEVEM ser comparados por valor, não referência.',
+      'useRef para IDs estáveis + comparação explícita evita loops de re-render.',
+    ],
+    keywords: ['infinite loop', 'useEffect', 'user', 'SubscriptionContext', 'rerender', 're-render', 'travando', 'lento'],
+    testCases: [
+      'subscription_context_does_not_requery_on_same_user_id',
+      'subscription_context_updates_on_user_change',
+      'no_infinite_loop_on_auth_state_change',
+    ],
+  },
+
+  // ── FRT-034: processar-cadastro-motorista missing rate limiting and validation ──
+  {
+    id: 'FRT-034',
+    date: '2026-03-04',
+    severity: 'HIGH',
+    area: 'edge-function-security',
+    bug: 'Edge function processar-cadastro-motorista não tinha rate limiting nem validação de input com Zod. Qualquer requisição com token era processada sem limites.',
+    rootCause: 'Função original foi criada sem camadas de segurança defensiva. Sem rate limiting, um atacante poderia fazer brute-force de tokens de convite. Sem Zod validation, inputs malformados poderiam causar erros inesperados.',
+    fix: 'Adicionado rate limiting por IP (3/min), Zod schema validation para todos os campos de input, CORS headers padronizados, mensagens de erro genéricas (sem detalhes internos), validação de formato UUID para token.',
+    files: [
+      'supabase/functions/processar-cadastro-motorista/index.ts',
+    ],
+    rules: [
+      'TODA Edge Function DEVE ter rate limiting por IP.',
+      'TODA Edge Function DEVE validar input com Zod schema.',
+      'Mensagens de erro NUNCA devem expor detalhes internos (stack trace, nomes de tabela, etc).',
+      'Tokens/IDs de input DEVEM ser validados como UUID antes de queries ao banco.',
+    ],
+    keywords: ['processar-cadastro-motorista', 'rate limiting', 'Zod', 'validation', 'brute force', 'token'],
+    testCases: [
+      'rate_limited_after_3_requests_per_minute',
+      'invalid_token_format_rejected_before_db_query',
+      'error_messages_do_not_expose_internals',
+    ],
+  },
+
+  // ── FRT-035: delete-user-account getUser() → getClaims() migration ──
+  {
+    id: 'FRT-035',
+    date: '2026-03-04',
+    severity: 'HIGH',
+    area: 'edge-function-security',
+    bug: 'Edge function delete-user-account usava getUser() com service_role key para validar auth, o que era incompatível com signing-keys e menos seguro.',
+    rootCause: 'getUser() com service_role faz uma query ao banco auth.users — mais lento e bypassa validação JWT. Deveria usar getClaims() com anon key que valida o JWT localmente via signing keys.',
+    fix: 'Migrado para getClaims() com anon key. CORS headers atualizados para compatibilidade com plataforma.',
+    files: [
+      'supabase/functions/delete-user-account/index.ts',
+    ],
+    rules: [
+      'Edge Functions DEVEM usar getClaims() ou getUser() com anon key para validar auth — NUNCA service_role para auth validation.',
+      'getClaims() é preferível: valida JWT localmente, mais rápido, compatível com signing-keys.',
+      'service_role DEVE ser usado apenas para operações administrativas APÓS a autenticação ser confirmada.',
+    ],
+    keywords: ['getUser', 'getClaims', 'service_role', 'anon key', 'signing-keys', 'delete-user-account', 'JWT'],
+    testCases: [
+      'auth_validated_via_claims_not_service_role',
+      'unauthenticated_request_rejected_with_401',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
