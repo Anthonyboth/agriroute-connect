@@ -581,7 +581,19 @@ const InstallmentsSection: React.FC<{
             </div>
           </div>
         ) : (
-          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Utilize crédito de transporte para gerar parcelas. Vencimentos e status de pagamento ficam visíveis nesta seção." />
+          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Utilize crédito de transporte para gerar parcelas.">
+            <div className="w-full max-w-sm">
+              <div className="rounded-lg bg-muted/40 border border-border/40 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Exemplo de parcelas</p>
+                <div className="space-y-1.5 text-[11px] text-muted-foreground">
+                  <div className="flex justify-between"><span>Crédito de R$ 500,00</span><span className="font-medium text-foreground">3x de R$ 175,23</span></div>
+                  <div className="flex justify-between"><span>Crédito de R$ 1.000,00</span><span className="font-medium text-foreground">6x de R$ 179,60</span></div>
+                  <div className="flex justify-between"><span>Crédito de R$ 2.000,00</span><span className="font-medium text-foreground">12x de R$ 192,89</span></div>
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">Taxa: 2,9% a.m. • Simulações ilustrativas</p>
+              </div>
+            </div>
+          </EmptyState>
         )}
       </CardContent>
     </Card>
