@@ -91,7 +91,8 @@ export const AdvanceSimulatorModal: React.FC<AdvanceSimulatorModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+    <Dialog open={open && !riskFlowOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
@@ -194,6 +195,14 @@ export const AdvanceSimulatorModal: React.FC<AdvanceSimulatorModalProps> = ({
               <p>Ao confirmar, a antecipação será analisada. O valor líquido é creditado na carteira após aprovação.</p>
             </div>
 
+            {/* Security badge */}
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+              <p className="text-[10px] text-muted-foreground">
+                Antecipações são protegidas por análise de risco em tempo real.
+              </p>
+            </div>
+
             <DialogFooter className="gap-2">
               <Button variant="outline" size="sm" onClick={handleClose} disabled={loading}>Cancelar</Button>
               {step === 'simulate' ? (
@@ -210,5 +219,17 @@ export const AdvanceSimulatorModal: React.FC<AdvanceSimulatorModalProps> = ({
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Risk confirmation flow */}
+    <RiskConfirmationFlow
+      open={riskFlowOpen}
+      onClose={() => setRiskFlowOpen(false)}
+      operationType="advance"
+      amount={simulation.requested}
+      operationLabel="Antecipação de Recebíveis"
+      operationPayload={{ requested: simulation.requested, fee: simulation.fee, net: simulation.net }}
+      onConfirmed={handleRiskConfirmed}
+    />
+  </>
   );
 };
