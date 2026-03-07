@@ -42,7 +42,7 @@ export const AdvanceSimulatorModal: React.FC<AdvanceSimulatorModalProps> = ({
     return { requested, fee, net };
   }, [totalEligible, percentage]);
 
-  const handleConfirm = async () => {
+  const executeAdvance = async () => {
     if (!walletId) {
       toast.error('Carteira não encontrada');
       return;
@@ -74,6 +74,15 @@ export const AdvanceSimulatorModal: React.FC<AdvanceSimulatorModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirm = () => {
+    setRiskFlowOpen(true);
+  };
+
+  const handleRiskConfirmed = async () => {
+    setRiskFlowOpen(false);
+    await executeAdvance();
   };
 
   const handleClose = () => {
