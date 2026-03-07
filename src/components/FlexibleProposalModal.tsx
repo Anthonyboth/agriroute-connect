@@ -194,6 +194,11 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
       onSuccess?.();
 
     } catch (error: any) {
+      if (error?.code === '23505') {
+        toast.error('Você já enviou uma proposta para este frete.');
+        onClose();
+        return;
+      }
       showErrorToast(toast, 'Erro ao enviar proposta', error);
     } finally {
       setLoading(false);
