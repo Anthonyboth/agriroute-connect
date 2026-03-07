@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wallet, CreditCard } from 'lucide-react';
 import { SmartFinancialCard } from './SmartFinancialCard';
 import { EscrowFlowCard } from './EscrowFlowCard';
+import { PaymentOrdersCard } from './PaymentOrdersCard';
 import { FinancialTimeline } from './FinancialTimeline';
 import { FinancialNotifications } from './FinancialNotifications';
 import { WalletDepositModal } from './WalletDepositModal';
@@ -14,6 +15,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useWalletActions } from '@/hooks/useWalletActions';
 import { useCredit } from '@/hooks/useCredit';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
+import { usePaymentOrders } from '@/hooks/usePaymentOrders';
 import { toast } from 'sonner';
 
 interface WalletTabProps {
@@ -34,6 +36,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({
   const { deposit, withdraw, loading: actionLoading } = useWalletActions(refetch);
   const { creditAccount, pendingInstallments, totalPending, installments } = useCredit();
   const { totalEligible, eligibleReceivables } = useReceivableAdvance();
+  const { orders, payouts, escrowTotal, releasedTotal, blockedTotal, loading: ordersLoading } = usePaymentOrders();
 
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -87,6 +90,15 @@ export const WalletTab: React.FC<WalletTabProps> = ({
 
           {/* Escrow Flow States */}
           <EscrowFlowCard wallet={wallet} />
+
+          {/* Payment Orders & Split */}
+          <PaymentOrdersCard
+            orders={orders}
+            payouts={payouts}
+            escrowTotal={escrowTotal}
+            releasedTotal={releasedTotal}
+            loading={ordersLoading}
+          />
 
           {/* Financial Timeline */}
           <FinancialTimeline

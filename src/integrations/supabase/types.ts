@@ -9714,6 +9714,125 @@ export type Database = {
           },
         ]
       }
+      payment_orders: {
+        Row: {
+          advance_deduction: number
+          blocked_amount: number
+          contestation_window_ends_at: string | null
+          created_at: string
+          credit_deduction: number
+          executor_id: string | null
+          financial_owner_id: string
+          freight_id: string | null
+          gross_amount: number
+          id: string
+          metadata: Json | null
+          net_amount: number
+          operation_owner_type: string
+          payer_profile_id: string
+          platform_fee_amount: number
+          released_amount: number
+          reserved_amount: number
+          status_financial: Database["public"]["Enums"]["payment_order_fin_status"]
+          status_operational: Database["public"]["Enums"]["payment_order_op_status"]
+          updated_at: string
+        }
+        Insert: {
+          advance_deduction?: number
+          blocked_amount?: number
+          contestation_window_ends_at?: string | null
+          created_at?: string
+          credit_deduction?: number
+          executor_id?: string | null
+          financial_owner_id: string
+          freight_id?: string | null
+          gross_amount: number
+          id?: string
+          metadata?: Json | null
+          net_amount?: number
+          operation_owner_type: string
+          payer_profile_id: string
+          platform_fee_amount?: number
+          released_amount?: number
+          reserved_amount?: number
+          status_financial?: Database["public"]["Enums"]["payment_order_fin_status"]
+          status_operational?: Database["public"]["Enums"]["payment_order_op_status"]
+          updated_at?: string
+        }
+        Update: {
+          advance_deduction?: number
+          blocked_amount?: number
+          contestation_window_ends_at?: string | null
+          created_at?: string
+          credit_deduction?: number
+          executor_id?: string | null
+          financial_owner_id?: string
+          freight_id?: string | null
+          gross_amount?: number
+          id?: string
+          metadata?: Json | null
+          net_amount?: number
+          operation_owner_type?: string
+          payer_profile_id?: string
+          platform_fee_amount?: number
+          released_amount?: number
+          reserved_amount?: number
+          status_financial?: Database["public"]["Enums"]["payment_order_fin_status"]
+          status_operational?: Database["public"]["Enums"]["payment_order_op_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_orders_executor_id_fkey"
+            columns: ["executor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_orders_executor_id_fkey"
+            columns: ["executor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_orders_financial_owner_id_fkey"
+            columns: ["financial_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_orders_financial_owner_id_fkey"
+            columns: ["financial_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_orders_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_orders_payer_profile_id_fkey"
+            columns: ["payer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_orders_payer_profile_id_fkey"
+            columns: ["payer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_paid: number | null
@@ -9809,6 +9928,96 @@ export type Database = {
           },
         ]
       }
+      payouts: {
+        Row: {
+          advance_deduction: number
+          completed_at: string | null
+          created_at: string
+          credit_deduction: number
+          description: string | null
+          gross_amount: number
+          id: string
+          metadata: Json | null
+          net_amount: number
+          payment_order_id: string | null
+          recipient_profile_id: string
+          recipient_wallet_id: string
+          source_wallet_id: string
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          advance_deduction?: number
+          completed_at?: string | null
+          created_at?: string
+          credit_deduction?: number
+          description?: string | null
+          gross_amount: number
+          id?: string
+          metadata?: Json | null
+          net_amount: number
+          payment_order_id?: string | null
+          recipient_profile_id: string
+          recipient_wallet_id: string
+          source_wallet_id: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          advance_deduction?: number
+          completed_at?: string | null
+          created_at?: string
+          credit_deduction?: number
+          description?: string | null
+          gross_amount?: number
+          id?: string
+          metadata?: Json | null
+          net_amount?: number
+          payment_order_id?: string | null
+          recipient_profile_id?: string
+          recipient_wallet_id?: string
+          source_wallet_id?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_payment_order_id_fkey"
+            columns: ["payment_order_id"]
+            isOneToOne: false
+            referencedRelation: "payment_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_recipient_profile_id_fkey"
+            columns: ["recipient_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_recipient_profile_id_fkey"
+            columns: ["recipient_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_recipient_wallet_id_fkey"
+            columns: ["recipient_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_source_wallet_id_fkey"
+            columns: ["source_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_metrics: {
         Row: {
           created_at: string
@@ -9880,6 +10089,51 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      platform_revenue: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          fee_type: string
+          freight_id: string | null
+          id: string
+          payment_order_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          fee_type?: string
+          freight_id?: string | null
+          id?: string
+          payment_order_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          fee_type?: string
+          freight_id?: string | null
+          id?: string
+          payment_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_revenue_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_revenue_payment_order_id_fkey"
+            columns: ["payment_order_id"]
+            isOneToOne: false
+            referencedRelation: "payment_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       premium_subscriptions: {
         Row: {
@@ -15548,6 +15802,28 @@ export type Database = {
         }
         Returns: Json
       }
+      create_driver_payout: {
+        Args: {
+          p_amount: number
+          p_carrier_profile_id: string
+          p_description?: string
+          p_driver_profile_id: string
+          p_payment_order_id?: string
+        }
+        Returns: string
+      }
+      create_payment_order: {
+        Args: {
+          p_executor_id: string
+          p_financial_owner_id: string
+          p_freight_id: string
+          p_gross_amount: number
+          p_operation_owner_type: string
+          p_payer_profile_id: string
+          p_platform_fee_pct?: number
+        }
+        Returns: string
+      }
       current_profile_id: { Args: never; Returns: string }
       decrypt_document: {
         Args: { encrypted_doc: string; original_doc: string }
@@ -15620,6 +15896,10 @@ export type Database = {
           match_score: number
           match_type: string
         }[]
+      }
+      execute_freight_split: {
+        Args: { p_payment_order_id: string }
+        Returns: Json
       }
       execute_service_matching: {
         Args: {
@@ -17368,6 +17648,24 @@ export type Database = {
       mdfe_tipo_proprietario: "PROPRIO" | "TERCEIRO"
       operation_owner_type: "driver" | "carrier"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
+      payment_order_fin_status:
+        | "pending_payment"
+        | "paid_reserved"
+        | "processing_split"
+        | "partially_released"
+        | "fully_released"
+        | "blocked"
+        | "refunded"
+        | "cancelled"
+      payment_order_op_status:
+        | "pending_collection"
+        | "collected"
+        | "in_transit"
+        | "delivered_pending"
+        | "delivered"
+        | "completed"
+        | "cancelled"
+        | "disputed"
       payout_status:
         | "pending_review"
         | "approved"
@@ -17693,6 +17991,26 @@ export const Constants = {
       mdfe_tipo_proprietario: ["PROPRIO", "TERCEIRO"],
       operation_owner_type: ["driver", "carrier"],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
+      payment_order_fin_status: [
+        "pending_payment",
+        "paid_reserved",
+        "processing_split",
+        "partially_released",
+        "fully_released",
+        "blocked",
+        "refunded",
+        "cancelled",
+      ],
+      payment_order_op_status: [
+        "pending_collection",
+        "collected",
+        "in_transit",
+        "delivered_pending",
+        "delivered",
+        "completed",
+        "cancelled",
+        "disputed",
+      ],
       payout_status: [
         "pending_review",
         "approved",
