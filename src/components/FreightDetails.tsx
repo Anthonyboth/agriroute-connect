@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield, Building2 } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield, Building2, Receipt } from 'lucide-react';
 import { FreightChat } from './LazyComponents';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
@@ -38,6 +38,7 @@ import { AntifraudPanel } from './antifraude';
 import { useDashboardIntegrityGuard } from '@/hooks/useDashboardIntegrityGuard';
 import { useRequesterStatus } from '@/hooks/useRequesterStatus';
 import { useFreightParticipants } from '@/hooks/useFreightParticipants';
+import { FreightFinancialReceipt } from './wallet/FreightFinancialReceipt';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -67,6 +68,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [advances, setAdvances] = useState<any[]>([]);
   const [movingToHistory, setMovingToHistory] = useState(false);
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
   const [cteModalOpen, setCteModalOpen] = useState(false);
   const [locationModalState, setLocationModalState] = useState<{
@@ -527,6 +529,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(freight.status)}
+              {['DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'].includes(freight.status) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setReceiptOpen(true)}
+                  className="text-xs gap-1"
+                >
+                  <Receipt className="h-3.5 w-3.5" />
+                  Comprovante
+                </Button>
+              )}
               {freight.status === 'DELIVERED' && (isProducer || currentUserProfile?.role === 'ADMIN') && (
                 <Button 
                   size="sm" 
@@ -1508,6 +1521,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           currentStatus={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.assignmentStatus}
         />
       )}
+      {/* COFA Receipt Modal */}
+      <FreightFinancialReceipt
+        freightId={freightId}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+      />
     </div>
   );
 };

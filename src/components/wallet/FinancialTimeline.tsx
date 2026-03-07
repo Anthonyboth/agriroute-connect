@@ -12,6 +12,7 @@ import {
 import type { WalletTransaction } from '@/hooks/useWallet';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { FreightFinancialReceipt } from './FreightFinancialReceipt';
 
 interface FinancialTimelineProps {
   transactions: WalletTransaction[];
@@ -92,6 +93,7 @@ function groupByDate(txs: WalletTransaction[]): GroupedTransactions[] {
 
 export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactions, loading, onRefresh }) => {
   const [filter, setFilter] = useState('all');
+  const [receiptFreightId, setReceiptFreightId] = useState<string | null>(null);
 
   const filtered = filter === 'all'
     ? transactions
@@ -194,9 +196,20 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
                             <div className="min-w-0">
                               <p className="text-sm font-medium">{TX_LABEL[tx.transaction_type] || tx.transaction_type}</p>
                               <p className="text-xs text-muted-foreground truncate max-w-[200px]">{tx.description || '—'}</p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {tx.created_at ? format(new Date(tx.created_at), 'HH:mm', { locale: ptBR }) : '—'}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-[11px] text-muted-foreground">
+                                  {tx.created_at ? format(new Date(tx.created_at), 'HH:mm', { locale: ptBR }) : '—'}
+                                </p>
+                                {tx.metadata?.freight_id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setReceiptFreightId(tx.metadata.freight_id)}
+                                    className="text-[10px] text-primary hover:underline font-medium"
+                                  >
+                                    Ver comprovante
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center gap-2.5 shrink-0">
                               <Badge variant={statusCfg.variant} className="text-[10px] px-1.5 py-0">
@@ -217,6 +230,15 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
           </ScrollArea>
         )}
       </CardContent>
+
+      {/* COFA Receipt Modal */}
+      {receiptFreightId && (
+        <FreightFinancialReceipt
+          freightId={receiptFreightId}
+          open={!!receiptFreightId}
+          onOpenChange={(open) => !open && setReceiptFreightId(null)}
+        />
+      )}
     </Card>
   );
 };
