@@ -13,6 +13,7 @@ import {
   BarChart3, CalendarClock, Shield, Users, Truck, Wrench, Fuel
 } from 'lucide-react';
 import { useCredit } from '@/hooks/useCredit';
+import { useTrustScore, type TrustScoreData, type TrustFactor } from '@/hooks/useTrustScore';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
 import { useDisputes } from '@/hooks/useDisputes';
 import { useWallet, type WalletTransaction } from '@/hooks/useWallet';
@@ -809,6 +810,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
   const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading, refetch: refetchAdvance } = useReceivableAdvance();
   const { disputes, openCount, loading: disputeLoading, openDispute } = useDisputes();
   const { wallet, transactions: walletTransactions } = useWallet();
+  const { trustScore, trustScoreLoading } = useTrustScore();
 
   const config = getRoleConfig(role, isAffiliated);
 
@@ -936,6 +938,8 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
         onSimulateCredit={() => setCreditSimOpen(true)}
         onPayInstallment={() => setPayInstallmentOpen(true)}
         onShowRules={handleShowRules}
+        trustScore={trustScore}
+        trustScoreLoading={trustScoreLoading}
       />
 
       {/* Advances */}
