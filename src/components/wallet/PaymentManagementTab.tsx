@@ -456,6 +456,26 @@ const AdvanceSection: React.FC<{
             description={`Complete ${config.key === 'PRESTADOR' ? 'serviços' : 'fretes'} confirmados para ter recebíveis elegíveis para antecipação.`}
           >
             <div className="space-y-3 w-full max-w-sm">
+              {/* Eligibility progress */}
+              <div className="rounded-lg bg-primary/[0.04] border border-primary/15 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Progresso para elegibilidade</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="text-center p-2 rounded-md bg-muted/50">
+                    <p className="text-lg font-bold text-primary">{receivables.length}</p>
+                    <p className="text-[10px] text-muted-foreground">{config.key === 'PRESTADOR' ? 'Serviços concluídos' : 'Fretes concluídos'}</p>
+                  </div>
+                  <div className="text-center p-2 rounded-md bg-muted/50">
+                    <p className="text-lg font-bold text-foreground">{config.key === 'PRODUTOR' ? 3 : 5}</p>
+                    <p className="text-[10px] text-muted-foreground">Necessários</p>
+                  </div>
+                </div>
+                <Progress value={Math.min((receivables.length / (config.key === 'PRODUTOR' ? 3 : 5)) * 100, 100)} className="h-1.5" />
+                <p className="text-[10px] text-muted-foreground text-center">
+                  {receivables.length >= (config.key === 'PRODUTOR' ? 3 : 5) 
+                    ? 'Critério de fretes atingido! Aguarde confirmação de entrega.'
+                    : `Faltam ${Math.max((config.key === 'PRODUTOR' ? 3 : 5) - receivables.length, 0)} ${config.key === 'PRESTADOR' ? 'serviços' : 'fretes'} para elegibilidade`}
+                </p>
+              </div>
               <EligibilityCard
                 title="Como funciona a antecipação?"
                 rules={config.advanceEligibilityRules || [
