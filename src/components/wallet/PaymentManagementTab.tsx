@@ -910,11 +910,13 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
         </div>
       )}
 
-      {/* Modals — wired to real actions */}
+      {/* Modals — wired to real DB actions */}
       <CreditSimulatorModal
         open={creditSimOpen}
         onClose={() => setCreditSimOpen(false)}
         creditLimit={creditAccount?.available_limit || 5000}
+        creditAccountId={creditAccount?.id}
+        onSuccess={() => { refetchCredit(); refetchAdvance(); }}
       />
       {config.hasAdvances && (
         <AdvanceSimulatorModal
@@ -922,6 +924,8 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
           onClose={() => setAdvanceSimOpen(false)}
           totalEligible={totalEligible}
           eligibleCount={eligibleReceivables.length}
+          walletId={wallet?.id}
+          onSuccess={() => { refetchAdvance(); }}
         />
       )}
       <OpenDisputeModal
