@@ -2800,7 +2800,7 @@ const DriverDashboard = () => {
                     proposal.freight && proposal.id ? (
                       <div 
                         key={proposal.id} 
-                        className="relative cursor-pointer rounded-xl border bg-card shadow-sm overflow-hidden"
+                        className="relative cursor-pointer rounded-xl border bg-card shadow-sm"
                         role="button"
                         tabIndex={0}
                         onClick={() => setProposalDetailsModal({ open: true, proposal })}
