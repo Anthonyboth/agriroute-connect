@@ -4,3 +4,8 @@ export { WalletStatement } from './WalletStatement';
 export { WalletDepositModal } from './WalletDepositModal';
 export { WalletWithdrawModal } from './WalletWithdrawModal';
 export { PaymentManagementTab } from './PaymentManagementTab';
+export { SmartFinancialCard } from './SmartFinancialCard';
+export { FinancialTimeline } from './FinancialTimeline';
+export { FinancialNotifications } from './FinancialNotifications';
+export { CreditSimulatorModal } from './CreditSimulatorModal';
+export { AdvanceSimulatorModal } from './AdvanceSimulatorModal';
