@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wallet, CreditCard } from 'lucide-react';
 import { SmartFinancialCard } from './SmartFinancialCard';
+import { EscrowFlowCard } from './EscrowFlowCard';
 import { FinancialTimeline } from './FinancialTimeline';
 import { FinancialNotifications } from './FinancialNotifications';
 import { WalletDepositModal } from './WalletDepositModal';
