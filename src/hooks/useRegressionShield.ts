@@ -1015,6 +1015,35 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'unauthenticated_request_rejected_with_401',
     ],
   },
+
+  // ── FRT-036: toast.error for 23505 duplicate triggers monitor bot false alarm ──
+  {
+    id: 'FRT-036',
+    date: '2026-03-07',
+    severity: 'HIGH',
+    area: 'error-monitoring',
+    bug: 'Erro 23505 (proposta/atribuição duplicada) usava toast.error que era interceptado pelo usePanelErrorTelegramReporter, disparando alerta falso no Monitor Bot do Telegram. Mensagem "Você já enviou uma proposta para este serviço" aparecia como erro crítico.',
+    rootCause: 'ServiceProposalModal, FlexibleProposalModal, ProposalModal e ShareFreightToDriver usavam toast.error ou variant "destructive" para erros 23505. O interceptor de toast.error no usePanelErrorTelegramReporter captura QUALQUER toast.error e envia ao Telegram como erro real.',
+    fix: 'Trocado toast.error por toast.info (com id único para dedup) em todos os 4 componentes. ProposalModal: removido variant "destructive". Erro 23505 é validação esperada, não erro de sistema.',
+    files: [
+      'src/components/ServiceProposalModal.tsx',
+      'src/components/FlexibleProposalModal.tsx',
+      'src/components/ProposalModal.tsx',
+      'src/components/ShareFreightToDriver.tsx',
+    ],
+    rules: [
+      'Erro 23505 (duplicate key) NUNCA deve usar toast.error — SEMPRE toast.info ou toast() sem variant destructive.',
+      'toast.error é interceptado pelo Monitor Bot — usar APENAS para erros reais de sistema.',
+      'Erros de validação esperados (duplicata, conflito) DEVEM usar toast.info com id único.',
+      'Ao tratar 23505, adicionar id ao toast (ex: { id: "duplicate-proposal" }) para evitar toasts duplicados.',
+    ],
+    keywords: ['toast.error', 'toast.info', '23505', 'duplicate', 'monitor bot', 'Telegram', 'falso alarme', 'proposta', 'interceptor'],
+    testCases: [
+      'duplicate_proposal_uses_toast_info_not_error',
+      'duplicate_proposal_does_not_trigger_telegram_alert',
+      'toast_id_prevents_duplicate_notifications',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução

@@ -287,7 +287,7 @@ const [pricePerKm, setPricePerKm] = useState('');
 
     } catch (error: any) {
       if (error?.code === '23505') {
-        toast.error('Você já enviou uma proposta para este serviço.');
+        toast.info('Você já enviou uma proposta para este serviço.', { id: 'duplicate-proposal' });
         onClose();
         return;
       }

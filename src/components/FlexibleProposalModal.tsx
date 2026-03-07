@@ -195,7 +195,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
     } catch (error: any) {
       if (error?.code === '23505') {
-        toast.error('Você já enviou uma proposta para este frete.');
+        toast.info('Você já enviou uma proposta para este frete.', { id: 'duplicate-proposal' });
         onClose();
         return;
       }
