@@ -709,6 +709,58 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'rpc-column-names-must-match-table-schema',
   },
+
+  // ── FRT-024: RLS dynamic_credit_limits missing INSERT/UPDATE policies ──
+  {
+    id: 'FRT-024',
+    date: '2026-03-07',
+    severity: 'CRITICAL',
+    area: 'rls-policies',
+    bug: 'Edge function ou hook de crédito dinâmico retornava 42501 ao tentar INSERT/UPDATE em dynamic_credit_limits. Motorista não conseguia recalcular crédito.',
+    rootCause: 'Tabela dynamic_credit_limits tinha RLS habilitado mas sem políticas de INSERT ou UPDATE para role authenticated. SELECT existia mas INSERT/UPDATE não.',
+    fix: 'Migração adicionando políticas SELECT, INSERT e UPDATE com escopo profile_id = (SELECT id FROM profiles WHERE user_id = auth.uid()).',
+    files: [
+      'supabase/migrations/20260307130330_*.sql',
+    ],
+    rules: [
+      'Toda tabela com RLS DEVE ter políticas explícitas para TODAS as operações necessárias (SELECT, INSERT, UPDATE, DELETE).',
+      'Ao criar tabela com RLS, NUNCA esquecer de adicionar políticas — RLS sem políticas = acesso negado para tudo.',
+      'Políticas de INSERT/UPDATE devem usar get_my_profile_id() ou subconsulta a profiles com auth.uid().',
+    ],
+    keywords: ['42501', 'RLS', 'dynamic_credit_limits', 'INSERT', 'UPDATE', 'policy missing', 'crédito dinâmico'],
+    testCases: [
+      'driver_can_insert_dynamic_credit_limit',
+      'driver_can_update_own_dynamic_credit_limit',
+      'driver_cannot_update_other_user_credit_limit',
+    ],
+  },
+
+  // ── FRT-025: Duplicate key on freight_proposals (23505) ──
+  {
+    id: 'FRT-025',
+    date: '2026-03-07',
+    severity: 'HIGH',
+    area: 'freight-proposals',
+    bug: 'Enviar proposta duas vezes (double-click ou re-envio) causava erro 23505 "duplicate key value violates unique constraint" com toast de erro genérico assustando o usuário.',
+    rootCause: 'Modais de proposta (ProposalModal, FlexibleProposalModal, ServiceProposalModal) não tratavam erro 23505 especificamente. O catch genérico mostrava toast de erro crítico.',
+    fix: 'Tratamento específico de error.code === "23505" nos 3 modais com toast amigável "Proposta já enviada" e fechamento do modal.',
+    files: [
+      'src/components/ProposalModal.tsx',
+      'src/components/FlexibleProposalModal.tsx',
+      'src/components/ServiceProposalModal.tsx',
+    ],
+    rules: [
+      'TODA operação de INSERT com unique constraint DEVE tratar erro 23505 com mensagem amigável.',
+      'Erro 23505 NUNCA deve mostrar toast de erro genérico — sempre usar mensagem contextual (ex: "Proposta já enviada", "Avaliação já registrada").',
+      'Considerar desabilitar botão após primeiro clique para prevenir double-submit.',
+    ],
+    keywords: ['23505', 'duplicate key', 'unique constraint', 'proposta', 'double click', 'ProposalModal', 'toast'],
+    testCases: [
+      'duplicate_proposal_shows_friendly_message',
+      'duplicate_proposal_closes_modal',
+      'duplicate_proposal_does_not_show_critical_error',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
