@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield, Building2 } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield, Building2, Receipt } from 'lucide-react';
 import { FreightChat } from './LazyComponents';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
@@ -38,6 +38,7 @@ import { AntifraudPanel } from './antifraude';
 import { useDashboardIntegrityGuard } from '@/hooks/useDashboardIntegrityGuard';
 import { useRequesterStatus } from '@/hooks/useRequesterStatus';
 import { useFreightParticipants } from '@/hooks/useFreightParticipants';
+import { FreightFinancialReceipt } from './wallet/FreightFinancialReceipt';
 
 interface FreightDetailsProps {
   freightId: string;
