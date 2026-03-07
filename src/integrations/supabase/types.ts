@@ -65,6 +65,36 @@ export type Database = {
           },
         ]
       }
+      admin_financial_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       admin_password_reset_limits: {
         Row: {
           admin_profile_id: string
@@ -2002,6 +2032,159 @@ export type Database = {
             columns: ["usado_por"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_accounts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          available_limit: number | null
+          created_at: string
+          credit_limit: number
+          id: string
+          profile_id: string
+          status: Database["public"]["Enums"]["credit_account_status"]
+          updated_at: string
+          used_amount: number
+          wallet_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          available_limit?: number | null
+          created_at?: string
+          credit_limit?: number
+          id?: string
+          profile_id: string
+          status?: Database["public"]["Enums"]["credit_account_status"]
+          updated_at?: string
+          used_amount?: number
+          wallet_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          available_limit?: number | null
+          created_at?: string
+          credit_limit?: number
+          id?: string
+          profile_id?: string
+          status?: Database["public"]["Enums"]["credit_account_status"]
+          updated_at?: string
+          used_amount?: number
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_accounts_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_installments: {
+        Row: {
+          amount: number
+          credit_transaction_id: string
+          due_date: string
+          id: string
+          installment_number: number
+          paid_amount: number | null
+          paid_at: string | null
+          status: Database["public"]["Enums"]["installment_status"]
+        }
+        Insert: {
+          amount: number
+          credit_transaction_id: string
+          due_date: string
+          id?: string
+          installment_number: number
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["installment_status"]
+        }
+        Update: {
+          amount?: number
+          credit_transaction_id?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["installment_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_installments_credit_transaction_id_fkey"
+            columns: ["credit_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "credit_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_account_id: string
+          description: string | null
+          freight_id: string | null
+          id: string
+          installments: number | null
+          transaction_type: Database["public"]["Enums"]["credit_tx_type"]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_account_id: string
+          description?: string | null
+          freight_id?: string | null
+          id?: string
+          installments?: number | null
+          transaction_type: Database["public"]["Enums"]["credit_tx_type"]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_account_id?: string
+          description?: string | null
+          freight_id?: string | null
+          id?: string
+          installments?: number | null
+          transaction_type?: Database["public"]["Enums"]["credit_tx_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "credit_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
             referencedColumns: ["id"]
           },
         ]
@@ -6386,6 +6569,60 @@ export type Database = {
           },
         ]
       }
+      freight_receivables: {
+        Row: {
+          committed_amount: number
+          created_at: string
+          freight_id: string
+          id: string
+          liquidated_amount: number
+          owner_type: Database["public"]["Enums"]["operation_owner_type"]
+          owner_wallet_id: string
+          status: Database["public"]["Enums"]["receivable_status"]
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          committed_amount?: number
+          created_at?: string
+          freight_id: string
+          id?: string
+          liquidated_amount?: number
+          owner_type: Database["public"]["Enums"]["operation_owner_type"]
+          owner_wallet_id: string
+          status?: Database["public"]["Enums"]["receivable_status"]
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          committed_amount?: number
+          created_at?: string
+          freight_id?: string
+          id?: string
+          liquidated_amount?: number
+          owner_type?: Database["public"]["Enums"]["operation_owner_type"]
+          owner_wallet_id?: string
+          status?: Database["public"]["Enums"]["receivable_status"]
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_receivables_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_receivables_owner_wallet_id_fkey"
+            columns: ["owner_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_route_history: {
         Row: {
           accuracy: number | null
@@ -6801,9 +7038,11 @@ export type Database = {
           eta_average_speed_kmh: number | null
           eta_calculated_at: string | null
           eta_remaining_distance_km: number | null
+          executor_driver_id: string | null
           expires_at: string | null
           extra_fees: number | null
           extra_fees_description: string | null
+          financial_owner_id: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
           guest_contact_document: string | null
@@ -6821,6 +7060,9 @@ export type Database = {
           min_driver_rating: number | null
           minimum_antt_price: number | null
           offline_minutes: number | null
+          operation_owner_type:
+            | Database["public"]["Enums"]["operation_owner_type"]
+            | null
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
@@ -6922,9 +7164,11 @@ export type Database = {
           eta_average_speed_kmh?: number | null
           eta_calculated_at?: string | null
           eta_remaining_distance_km?: number | null
+          executor_driver_id?: string | null
           expires_at?: string | null
           extra_fees?: number | null
           extra_fees_description?: string | null
+          financial_owner_id?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
           guest_contact_document?: string | null
@@ -6942,6 +7186,9 @@ export type Database = {
           min_driver_rating?: number | null
           minimum_antt_price?: number | null
           offline_minutes?: number | null
+          operation_owner_type?:
+            | Database["public"]["Enums"]["operation_owner_type"]
+            | null
           origin_address: string
           origin_city?: string | null
           origin_city_id?: string | null
@@ -7043,9 +7290,11 @@ export type Database = {
           eta_average_speed_kmh?: number | null
           eta_calculated_at?: string | null
           eta_remaining_distance_km?: number | null
+          executor_driver_id?: string | null
           expires_at?: string | null
           extra_fees?: number | null
           extra_fees_description?: string | null
+          financial_owner_id?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
           guest_contact_document?: string | null
@@ -7063,6 +7312,9 @@ export type Database = {
           min_driver_rating?: number | null
           minimum_antt_price?: number | null
           offline_minutes?: number | null
+          operation_owner_type?:
+            | Database["public"]["Enums"]["operation_owner_type"]
+            | null
           origin_address?: string
           origin_city?: string | null
           origin_city_id?: string | null
@@ -7157,6 +7409,34 @@ export type Database = {
           {
             foreignKeyName: "freights_driver_id_fkey"
             columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_executor_driver_id_fkey"
+            columns: ["executor_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_executor_driver_id_fkey"
+            columns: ["executor_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_financial_owner_id_fkey"
+            columns: ["financial_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_financial_owner_id_fkey"
+            columns: ["financial_owner_id"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
@@ -7830,6 +8110,56 @@ export type Database = {
             columns: ["livestock_compliance_id"]
             isOneToOne: false
             referencedRelation: "livestock_freight_compliance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_entries: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string | null
+          entry_type: string
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          entry_type: string
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          entry_type?: string
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
         ]
@@ -9429,6 +9759,56 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_orders: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          pix_key: string
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"]
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          pix_key: string
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"]
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          pix_key?: string
+          pix_key_type?: Database["public"]["Enums"]["pix_key_type"]
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_orders_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_metrics: {
         Row: {
           created_at: string
@@ -10394,6 +10774,125 @@ export type Database = {
           rater_user_id?: string
           rating?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      receivable_advance_allocations: {
+        Row: {
+          advance_id: string
+          allocated_amount: number
+          created_at: string
+          id: string
+          receivable_id: string
+          settled_amount: number | null
+          status: string
+        }
+        Insert: {
+          advance_id: string
+          allocated_amount: number
+          created_at?: string
+          id?: string
+          receivable_id: string
+          settled_amount?: number | null
+          status?: string
+        }
+        Update: {
+          advance_id?: string
+          allocated_amount?: number
+          created_at?: string
+          id?: string
+          receivable_id?: string
+          settled_amount?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivable_advance_allocations_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivable_advance_allocations_receivable_id_fkey"
+            columns: ["receivable_id"]
+            isOneToOne: false
+            referencedRelation: "freight_receivables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receivable_advances: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          fee_amount: number
+          id: string
+          net_amount: number
+          status: Database["public"]["Enums"]["advance_status"]
+          total_requested: number
+          updated_at: string
+          wallet_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          net_amount: number
+          status?: Database["public"]["Enums"]["advance_status"]
+          total_requested: number
+          updated_at?: string
+          wallet_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          net_amount?: number
+          status?: Database["public"]["Enums"]["advance_status"]
+          total_requested?: number
+          updated_at?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivable_advances_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_runs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          inconsistencies_found: number
+          run_date: string
+          status: string
+          total_wallets: number
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          inconsistencies_found?: number
+          run_date?: string
+          status?: string
+          total_wallets?: number
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          inconsistencies_found?: number
+          run_date?: string
+          status?: string
+          total_wallets?: number
         }
         Relationships: []
       }
@@ -13278,6 +13777,321 @@ export type Database = {
           },
         ]
       }
+      wallet_dispute_evidence: {
+        Row: {
+          created_at: string
+          description: string | null
+          dispute_id: string
+          evidence_type: string
+          file_url: string | null
+          id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          dispute_id: string
+          evidence_type?: string
+          file_url?: string | null
+          id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          dispute_id?: string
+          evidence_type?: string
+          file_url?: string | null
+          id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_dispute_evidence_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_dispute_evidence_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_dispute_evidence_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_disputes: {
+        Row: {
+          amount: number
+          created_at: string
+          dispute_type: string
+          freight_id: string | null
+          id: string
+          opened_by: string | null
+          reason: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["dispute_status"]
+          wallet_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          dispute_type: string
+          freight_id?: string | null
+          id?: string
+          opened_by?: string | null
+          reason?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"]
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          dispute_type?: string
+          freight_id?: string | null
+          id?: string
+          opened_by?: string | null
+          reason?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"]
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_disputes_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_disputes_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_risk_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          profile_id: string
+          reviewed_by: string | null
+          severity: Database["public"]["Enums"]["risk_severity"]
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          reviewed_by?: string | null
+          severity?: Database["public"]["Enums"]["risk_severity"]
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          reviewed_by?: string | null
+          severity?: Database["public"]["Enums"]["risk_severity"]
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_risk_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_risk_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          pix_key: string | null
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"] | null
+          status: Database["public"]["Enums"]["wallet_transaction_status"]
+          transaction_type: Database["public"]["Enums"]["wallet_transaction_type"]
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          pix_key?: string | null
+          pix_key_type?: Database["public"]["Enums"]["pix_key_type"] | null
+          status?: Database["public"]["Enums"]["wallet_transaction_status"]
+          transaction_type: Database["public"]["Enums"]["wallet_transaction_type"]
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          pix_key?: string | null
+          pix_key_type?: Database["public"]["Enums"]["pix_key_type"] | null
+          status?: Database["public"]["Enums"]["wallet_transaction_status"]
+          transaction_type?: Database["public"]["Enums"]["wallet_transaction_type"]
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          available_balance: number
+          blocked_balance: number
+          created_at: string
+          id: string
+          pending_balance: number
+          profile_id: string
+          reserved_balance: number
+          status: Database["public"]["Enums"]["wallet_status"]
+          updated_at: string
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Insert: {
+          available_balance?: number
+          blocked_balance?: number
+          created_at?: string
+          id?: string
+          pending_balance?: number
+          profile_id: string
+          reserved_balance?: number
+          status?: Database["public"]["Enums"]["wallet_status"]
+          updated_at?: string
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Update: {
+          available_balance?: number
+          blocked_balance?: number
+          created_at?: string
+          id?: string
+          pending_balance?: number
+          profile_id?: string
+          reserved_balance?: number
+          status?: Database["public"]["Enums"]["wallet_status"]
+          updated_at?: string
+          wallet_type?: Database["public"]["Enums"]["wallet_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zip_code_cache: {
         Row: {
           city_id: string | null
@@ -14796,6 +15610,7 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
+      ensure_wallet_exists: { Args: { p_profile_id: string }; Returns: string }
       execute_freight_matching: {
         Args: { freight_uuid: string }
         Returns: {
@@ -16162,9 +16977,11 @@ export type Database = {
           eta_average_speed_kmh: number | null
           eta_calculated_at: string | null
           eta_remaining_distance_km: number | null
+          executor_driver_id: string | null
           expires_at: string | null
           extra_fees: number | null
           extra_fees_description: string | null
+          financial_owner_id: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
           guest_contact_document: string | null
@@ -16182,6 +16999,9 @@ export type Database = {
           min_driver_rating: number | null
           minimum_antt_price: number | null
           offline_minutes: number | null
+          operation_owner_type:
+            | Database["public"]["Enums"]["operation_owner_type"]
+            | null
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
@@ -16292,9 +17112,11 @@ export type Database = {
           eta_average_speed_kmh: number | null
           eta_calculated_at: string | null
           eta_remaining_distance_km: number | null
+          executor_driver_id: string | null
           expires_at: string | null
           extra_fees: number | null
           extra_fees_description: string | null
+          financial_owner_id: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
           guest_contact_document: string | null
@@ -16312,6 +17134,9 @@ export type Database = {
           min_driver_rating: number | null
           minimum_antt_price: number | null
           offline_minutes: number | null
+          operation_owner_type:
+            | Database["public"]["Enums"]["operation_owner_type"]
+            | null
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
@@ -16412,8 +17237,37 @@ export type Database = {
           validation_status: string
         }[]
       }
+      wallet_deposit: {
+        Args: { p_amount: number; p_description?: string; p_profile_id: string }
+        Returns: string
+      }
+      wallet_transfer: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_from_profile_id: string
+          p_to_profile_id: string
+        }
+        Returns: string
+      }
+      wallet_withdraw: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_pix_key: string
+          p_pix_key_type: Database["public"]["Enums"]["pix_key_type"]
+          p_profile_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
+      advance_status:
+        | "pending"
+        | "approved"
+        | "disbursed"
+        | "settled"
+        | "rejected"
       app_role:
         | "admin"
         | "driver"
@@ -16421,6 +17275,13 @@ export type Database = {
         | "service_provider"
         | "carrier"
         | "affiliated_driver"
+      credit_account_status:
+        | "active"
+        | "blocked"
+        | "pending_approval"
+        | "suspended"
+      credit_tx_type: "use" | "payment" | "auto_deduction" | "refund"
+      dispute_status: "open" | "under_review" | "resolved" | "rejected"
       freight_service_type:
         | "FRETE_MOTO"
         | "CARGA"
@@ -16445,6 +17306,7 @@ export type Database = {
         | "LOADED"
         | "DELIVERED_PENDING_CONFIRMATION"
         | "COMPLETED"
+      installment_status: "pending" | "paid" | "overdue" | "auto_deducted"
       livestock_species_enum:
         | "bovinos"
         | "suinos"
@@ -16467,7 +17329,16 @@ export type Database = {
         | "PROCESSANDO_CANCELAMENTO"
         | "REJEITADO"
       mdfe_tipo_proprietario: "PROPRIO" | "TERCEIRO"
+      operation_owner_type: "driver" | "carrier"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
+      payout_status:
+        | "pending_review"
+        | "approved"
+        | "processing"
+        | "completed"
+        | "rejected"
+        | "failed"
+      pix_key_type: "cpf" | "cnpj" | "email" | "phone" | "random"
       plan_type: "free" | "essential" | "professional"
       provider_service_type:
         | "AGRONOMO"
@@ -16486,6 +17357,14 @@ export type Database = {
         | "CONSULTORIA_RURAL"
         | "VETERINARIO"
         | "OUTROS"
+      receivable_status:
+        | "eligible"
+        | "partially_committed"
+        | "fully_committed"
+        | "liquidated"
+        | "cancelled"
+        | "disputed"
+      risk_severity: "low" | "medium" | "high" | "critical"
       sanitary_compliance_status_enum:
         | "PENDING"
         | "COMPLIANT"
@@ -16552,6 +17431,28 @@ export type Database = {
         | "CARRETA_GADO"
         | "CARRETA_REFRIGERADA"
         | "PRANCHA"
+      wallet_status: "active" | "blocked" | "under_review"
+      wallet_transaction_status:
+        | "pending"
+        | "completed"
+        | "failed"
+        | "cancelled"
+        | "under_review"
+      wallet_transaction_type:
+        | "deposit"
+        | "withdrawal"
+        | "transfer_in"
+        | "transfer_out"
+        | "payment"
+        | "payout"
+        | "refund"
+        | "fee"
+        | "credit_use"
+        | "advance"
+        | "auto_deduction"
+        | "reserve"
+        | "release"
+      wallet_type: "PRODUTOR" | "MOTORISTA" | "TRANSPORTADORA" | "PRESTADOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -16679,6 +17580,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      advance_status: [
+        "pending",
+        "approved",
+        "disbursed",
+        "settled",
+        "rejected",
+      ],
       app_role: [
         "admin",
         "driver",
@@ -16687,6 +17595,14 @@ export const Constants = {
         "carrier",
         "affiliated_driver",
       ],
+      credit_account_status: [
+        "active",
+        "blocked",
+        "pending_approval",
+        "suspended",
+      ],
+      credit_tx_type: ["use", "payment", "auto_deduction", "refund"],
+      dispute_status: ["open", "under_review", "resolved", "rejected"],
       freight_service_type: [
         "FRETE_MOTO",
         "CARGA",
@@ -16713,6 +17629,7 @@ export const Constants = {
         "DELIVERED_PENDING_CONFIRMATION",
         "COMPLETED",
       ],
+      installment_status: ["pending", "paid", "overdue", "auto_deducted"],
       livestock_species_enum: [
         "bovinos",
         "suinos",
@@ -16737,7 +17654,17 @@ export const Constants = {
         "REJEITADO",
       ],
       mdfe_tipo_proprietario: ["PROPRIO", "TERCEIRO"],
+      operation_owner_type: ["driver", "carrier"],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
+      payout_status: [
+        "pending_review",
+        "approved",
+        "processing",
+        "completed",
+        "rejected",
+        "failed",
+      ],
+      pix_key_type: ["cpf", "cnpj", "email", "phone", "random"],
       plan_type: ["free", "essential", "professional"],
       provider_service_type: [
         "AGRONOMO",
@@ -16757,6 +17684,15 @@ export const Constants = {
         "VETERINARIO",
         "OUTROS",
       ],
+      receivable_status: [
+        "eligible",
+        "partially_committed",
+        "fully_committed",
+        "liquidated",
+        "cancelled",
+        "disputed",
+      ],
+      risk_severity: ["low", "medium", "high", "critical"],
       sanitary_compliance_status_enum: [
         "PENDING",
         "COMPLIANT",
@@ -16829,6 +17765,30 @@ export const Constants = {
         "CARRETA_REFRIGERADA",
         "PRANCHA",
       ],
+      wallet_status: ["active", "blocked", "under_review"],
+      wallet_transaction_status: [
+        "pending",
+        "completed",
+        "failed",
+        "cancelled",
+        "under_review",
+      ],
+      wallet_transaction_type: [
+        "deposit",
+        "withdrawal",
+        "transfer_in",
+        "transfer_out",
+        "payment",
+        "payout",
+        "refund",
+        "fee",
+        "credit_use",
+        "advance",
+        "auto_deduction",
+        "reserve",
+        "release",
+      ],
+      wallet_type: ["PRODUTOR", "MOTORISTA", "TRANSPORTADORA", "PRESTADOR"],
     },
   },
 } as const
