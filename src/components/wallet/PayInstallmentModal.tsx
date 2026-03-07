@@ -57,12 +57,31 @@ export const PayInstallmentModal: React.FC<PayInstallmentModalProps> = ({
 
   const handlePay = async () => {
     setLoading(true);
-    // Simulate — in production this would call an RPC
-    await new Promise(r => setTimeout(r, 1000));
-    toast.info('Pagamento de parcela — RPC de backend necessária para processar. Em desenvolvimento.');
-    setLoading(false);
-    setSelectedIds(new Set());
-    onClose();
+    try {
+      // Mark selected installments as paid via direct update
+      for (const id of selectedIds) {
+        const inst = pendingInstallments.find(i => i.id === id);
+        if (!inst) continue;
+        const remaining = inst.amount - inst.paid_amount;
+        const { error } = await supabase
+          .from('credit_installments')
+          .update({
+            paid_amount: inst.amount,
+            paid_at: new Date().toISOString(),
+            status: 'paid' as any,
+          })
+          .eq('id', id);
+        if (error) throw error;
+      }
+      toast.success(`${selectedIds.size} parcela(s) paga(s) com sucesso!`);
+    } catch (err: any) {
+      console.error('Pay installment error:', err);
+      toast.error(err.message || 'Erro ao pagar parcela');
+    } finally {
+      setLoading(false);
+      setSelectedIds(new Set());
+      onClose();
+    }
   };
 
   return (
