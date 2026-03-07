@@ -970,7 +970,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
       />
 
       {/* History */}
-      <HistorySection installments={installments} advances={advances} config={config} walletTransactions={wallet ? (transactions as WalletTransaction[]) : []} />
+      <HistorySection installments={installments} advances={advances} config={config} walletTransactions={walletTransactions} />
 
       {/* Legacy content */}
       {legacyContent && (
