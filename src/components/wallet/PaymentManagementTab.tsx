@@ -677,7 +677,8 @@ const DisputesSection: React.FC<{
 
 const HistorySection: React.FC<{
   installments: any[]; advances: any[]; config: RoleConfig;
-}> = ({ installments, advances, config }) => {
+  walletTransactions?: WalletTransaction[];
+}> = ({ installments, advances, config, walletTransactions = [] }) => {
   const [historyFilter, setHistoryFilter] = useState('all');
 
   const filterTabs = [
@@ -685,6 +686,7 @@ const HistorySection: React.FC<{
     { value: 'credit', label: 'Crédito' },
     ...(config.hasAdvances ? [{ value: 'advance', label: 'Antecipações' }] : []),
     { value: 'transfer', label: 'Repasses' },
+    { value: 'wallet', label: 'Carteira' },
     { value: 'fees', label: 'Taxas' },
   ];
 
@@ -701,6 +703,46 @@ const HistorySection: React.FC<{
       items.push({ id: `adv-${a.id}`, label: 'Antecipação recebida', value: a.net_amount, date: a.created_at, type: 'Antecipação', status: a.status === 'settled' ? 'Quitada' : 'Ativa', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> });
     });
   }
+
+  // Wallet transactions (deposits, withdrawals, escrow, splits, releases)
+  const walletTypeMap: Record<string, { label: string; type: string; icon: React.ReactNode }> = {
+    deposit: { label: 'Depósito', type: 'Carteira', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> },
+    withdrawal: { label: 'Saque Pix', type: 'Carteira', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" /> },
+    escrow_reserve: { label: 'Reserva escrow', type: 'Carteira', icon: <Clock className="h-3.5 w-3.5 text-warning" /> },
+    freight_liquidation: { label: 'Liquidação de frete', type: 'Repasse', icon: <Truck className="h-3.5 w-3.5 text-primary" /> },
+    payout: { label: 'Repasse de frete', type: 'Repasse', icon: <Truck className="h-3.5 w-3.5 text-primary" /> },
+    block: { label: 'Bloqueio de fundos', type: 'Carteira', icon: <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> },
+    unblock: { label: 'Desbloqueio de fundos', type: 'Carteira', icon: <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> },
+    transfer_in: { label: 'Transferência recebida', type: 'Carteira', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> },
+    transfer_out: { label: 'Transferência enviada', type: 'Carteira', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" /> },
+    fee: { label: 'Taxa da plataforma', type: 'Taxa', icon: <Receipt className="h-3.5 w-3.5 text-destructive" /> },
+    refund: { label: 'Reembolso', type: 'Carteira', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> },
+  };
+
+  const positiveWalletTypes = ['deposit', 'transfer_in', 'refund', 'unblock', 'freight_liquidation'];
+  const walletFilterMap: Record<string, string[]> = {
+    wallet: ['deposit', 'withdrawal', 'escrow_reserve', 'block', 'unblock', 'transfer_in', 'transfer_out', 'refund'],
+    transfer: ['payout', 'freight_liquidation'],
+    fees: ['fee'],
+  };
+
+  if (historyFilter === 'all' || walletFilterMap[historyFilter]) {
+    const allowedTypes = historyFilter === 'all' ? null : walletFilterMap[historyFilter];
+    walletTransactions
+      .filter(tx => tx.status === 'completed' || tx.status === 'reserved')
+      .filter(tx => !allowedTypes || allowedTypes.includes(tx.transaction_type))
+      .forEach(tx => {
+        const cfg = walletTypeMap[tx.transaction_type];
+        if (!cfg) return;
+        const isPositive = positiveWalletTypes.includes(tx.transaction_type);
+        items.push({
+          id: `wtx-${tx.id}`, label: tx.description || cfg.label, value: isPositive ? tx.amount : -tx.amount,
+          date: tx.completed_at || tx.created_at, type: cfg.type, status: tx.status === 'completed' ? 'Concluído' : 'Reservado',
+          icon: cfg.icon,
+        });
+      });
+  }
+
   items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
@@ -710,7 +752,7 @@ const HistorySection: React.FC<{
           <div className="rounded-lg bg-muted p-2"><History className="h-5 w-5 text-muted-foreground" /></div>
           <div>
             <CardTitle className="text-base font-semibold">Histórico Financeiro</CardTitle>
-            <CardDescription className="text-xs">Eventos financeiros de crédito e antecipação</CardDescription>
+            <CardDescription className="text-xs">Eventos financeiros completos — crédito, antecipação, carteira e repasses</CardDescription>
           </div>
         </div>
       </CardHeader>
