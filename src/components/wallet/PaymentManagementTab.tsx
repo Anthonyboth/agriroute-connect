@@ -561,7 +561,7 @@ const InstallmentsSection: React.FC<{
             </div>
           </div>
         ) : (
-          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Quando utilizar crédito de transporte, parcelas e faturas aparecerão aqui com vencimentos e status de pagamento." />
+          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Utilize crédito de transporte para gerar parcelas. Vencimentos e status de pagamento ficam visíveis nesta seção." />
         )}
       </CardContent>
     </Card>
@@ -629,7 +629,7 @@ const DisputesSection: React.FC<{
           <EmptyState
             icon={<ShieldAlert className="h-8 w-8 text-muted-foreground/50" />}
             title="Nenhuma disputa"
-            description="Contestações de valores ou operações aparecerão aqui. Use quando identificar cobranças indevidas ou pagamentos incorretos."
+            description="Conteste cobranças indevidas, pagamentos incorretos ou valores divergentes abrindo uma disputa financeira."
           >
             <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={onOpenDispute}>
               <ShieldAlert className="h-3.5 w-3.5" /> Abrir Disputa
@@ -695,7 +695,7 @@ const HistorySection: React.FC<{
                 <History className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm font-medium mb-1">Nenhum evento para este filtro</p>
                 <p className="text-xs text-muted-foreground max-w-[240px] mx-auto">
-                  Eventos de crédito, antecipação, repasses e taxas aparecerão aqui à medida que operações forem realizadas.
+                  Realize operações de crédito, antecipação ou pagamento para gerar eventos no histórico financeiro.
                 </p>
               </div>
             ) : (
