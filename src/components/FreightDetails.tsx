@@ -68,6 +68,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [advances, setAdvances] = useState<any[]>([]);
   const [movingToHistory, setMovingToHistory] = useState(false);
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
   const [cteModalOpen, setCteModalOpen] = useState(false);
   const [locationModalState, setLocationModalState] = useState<{
