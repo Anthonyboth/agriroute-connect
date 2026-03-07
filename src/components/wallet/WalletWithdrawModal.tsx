@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowUpFromLine, AlertTriangle } from 'lucide-react';
+import { ArrowUpFromLine, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { RiskConfirmationFlow } from './RiskConfirmationFlow';
 
 interface WalletWithdrawModalProps {
   open: boolean;
@@ -26,47 +27,43 @@ export const WalletWithdrawModal: React.FC<WalletWithdrawModalProps> = ({
   const [amount, setAmount] = useState('');
   const [pixKey, setPixKey] = useState('');
   const [pixKeyType, setPixKeyType] = useState('cpf');
-  const [confirmed, setConfirmed] = useState(false);
+  const [riskFlowOpen, setRiskFlowOpen] = useState(false);
 
   const numericAmount = parseFloat(amount.replace(',', '.')) || 0;
   const isValid = numericAmount > 0 && numericAmount <= availableBalance && pixKey.trim().length > 0;
 
-  const handleSubmit = async () => {
-    if (!confirmed) {
-      setConfirmed(true);
-      return;
-    }
+  const handleContinue = () => {
+    if (!isValid) return;
+    setRiskFlowOpen(true);
+  };
 
-    try {
-      await onWithdraw(numericAmount, pixKey, pixKeyType);
-      setAmount('');
-      setPixKey('');
-      setConfirmed(false);
-      onClose();
-    } catch {
-      setConfirmed(false);
-    }
+  const handleRiskConfirmed = async () => {
+    await onWithdraw(numericAmount, pixKey, pixKeyType);
+    setAmount('');
+    setPixKey('');
+    setRiskFlowOpen(false);
+    onClose();
   };
 
   const handleClose = () => {
-    setConfirmed(false);
+    setRiskFlowOpen(false);
     onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ArrowUpFromLine className="h-5 w-5 text-primary" />
-            Sacar via Pix
-          </DialogTitle>
-          <DialogDescription>
-            Saldo disponível: <strong>{formatBRL(availableBalance)}</strong>
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open && !riskFlowOpen} onOpenChange={(v) => !v && handleClose()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowUpFromLine className="h-5 w-5 text-primary" />
+              Sacar via Pix
+            </DialogTitle>
+            <DialogDescription>
+              Saldo disponível: <strong>{formatBRL(availableBalance)}</strong>
+            </DialogDescription>
+          </DialogHeader>
 
-        {!confirmed ? (
           <div className="space-y-4 py-2">
             <div>
               <Label htmlFor="withdraw-amount">Valor do saque (R$)</Label>
@@ -105,31 +102,41 @@ export const WalletWithdrawModal: React.FC<WalletWithdrawModalProps> = ({
                 onChange={(e) => setPixKey(e.target.value)}
               />
             </div>
-          </div>
-        ) : (
-          <Alert className="border-warning/50 bg-warning/5">
-            <AlertTriangle className="h-4 w-4 text-warning" />
-            <AlertDescription className="text-sm">
-              Confirme o saque de <strong>{formatBRL(numericAmount)}</strong> para a chave Pix <strong>{pixKey}</strong>.
-              Este valor será debitado do seu saldo disponível.
-            </AlertDescription>
-          </Alert>
-        )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
-            {confirmed ? 'Voltar' : 'Cancelar'}
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={loading || !isValid}
-            variant={confirmed ? 'destructive' : 'default'}
-            className="gap-2"
-          >
-            {loading ? 'Processando...' : confirmed ? 'Confirmar Saque' : 'Continuar'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {/* Security badge */}
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+              <p className="text-[10px] text-muted-foreground">
+                Operações financeiras são protegidas por análise de risco em tempo real.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleContinue} 
+              disabled={loading || !isValid}
+              className="gap-2"
+            >
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Risk confirmation flow */}
+      <RiskConfirmationFlow
+        open={riskFlowOpen}
+        onClose={() => { setRiskFlowOpen(false); }}
+        operationType="withdrawal"
+        amount={numericAmount}
+        operationLabel="Saque via Pix"
+        operationPayload={{ pixKey, pixKeyType, amount: numericAmount }}
+        onConfirmed={handleRiskConfirmed}
+      />
+    </>
   );
 };

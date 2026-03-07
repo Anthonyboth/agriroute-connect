@@ -15,3 +15,5 @@ export { PayInstallmentModal } from './PayInstallmentModal';
 export { OperationalPaymentsCard } from './OperationalPaymentsCard';
 export { OperationalPaymentModal } from './OperationalPaymentModal';
 export { IncentiveBonusCard } from './IncentiveBonusCard';
+export { FinancialPinModal } from './FinancialPinModal';
+export { RiskConfirmationFlow } from './RiskConfirmationFlow';
