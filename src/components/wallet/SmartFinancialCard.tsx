@@ -133,18 +133,33 @@ export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Recebíveis</p>
               <p className="text-lg font-bold text-primary mt-0.5">{formatBRL(totalReceivable)}</p>
               <div className="mt-1.5"><Progress value={barReceivable} className="h-1.5" /></div>
+              {totalReceivable > 0 && (
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Elegível: <strong className="text-primary">{formatBRL(totalReceivable * 0.8)}</strong>
+                </p>
+              )}
             </div>
           )}
           <div className="rounded-lg p-3 bg-accent/[0.06] border border-accent/15">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Crédito</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Crédito disponível</p>
             <p className="text-lg font-bold text-accent mt-0.5">{formatBRL(creditAvailable)}</p>
             <div className="mt-1.5"><Progress value={barCredit} className="h-1.5" /></div>
           </div>
-          <div className="rounded-lg p-3 bg-muted/60 border border-border/40">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Saldo</p>
-            <p className="text-lg font-bold text-foreground mt-0.5">{formatBRL(available)}</p>
-            <div className="mt-1.5"><Progress value={barAvailable} className="h-1.5" /></div>
-          </div>
+          {escrowTotal > 0 ? (
+            <div className="rounded-lg p-3 bg-warning/[0.06] border border-warning/15">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Em Escrow</p>
+              <p className="text-lg font-bold text-warning mt-0.5">{formatBRL(escrowTotal)}</p>
+              <div className="mt-1.5"><Progress value={100} className="h-1.5" /></div>
+              <p className="text-[9px] text-muted-foreground mt-1">Aguardando liberação</p>
+            </div>
+          ) : (
+            <div className="rounded-lg p-3 bg-muted/60 border border-border/40">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Em Escrow</p>
+              <p className="text-lg font-bold text-foreground mt-0.5">{formatBRL(0)}</p>
+              <div className="mt-1.5"><Progress value={0} className="h-1.5" /></div>
+              <p className="text-[9px] text-muted-foreground mt-1">Nenhum frete retido</p>
+            </div>
+          )}
         </div>
 
         {/* Secondary balances */}

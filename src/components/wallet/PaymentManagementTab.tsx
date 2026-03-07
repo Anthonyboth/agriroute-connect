@@ -273,9 +273,20 @@ const TrustScoreCard: React.FC<{ trustScore: TrustScoreData; compact?: boolean }
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="space-y-1">
-        <Progress value={trustScore.score} className="h-2.5" />
+      {/* Visual score bar */}
+      <div className="space-y-1.5">
+        <div className="flex gap-0.5 h-3 rounded-full overflow-hidden">
+          {Array.from({ length: 10 }).map((_, i) => {
+            const filled = i < Math.round(trustScore.score / 10);
+            const segColor = i < 5 ? 'bg-destructive' : i < 7 ? 'bg-warning' : 'bg-primary';
+            return (
+              <div
+                key={i}
+                className={`flex-1 rounded-sm transition-all ${filled ? segColor : 'bg-muted/60'}`}
+              />
+            );
+          })}
+        </div>
         <div className="flex justify-between text-[9px] text-muted-foreground">
           <span>0</span><span>50</span><span>70</span><span>85</span><span>100</span>
         </div>
