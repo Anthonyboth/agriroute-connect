@@ -91,6 +91,15 @@ export const WalletTab: React.FC<WalletTabProps> = ({
           {/* Escrow Flow States */}
           <EscrowFlowCard wallet={wallet} />
 
+          {/* Payment Orders & Split */}
+          <PaymentOrdersCard
+            orders={orders}
+            payouts={payouts}
+            escrowTotal={escrowTotal}
+            releasedTotal={releasedTotal}
+            loading={ordersLoading}
+          />
+
           {/* Financial Timeline */}
           <FinancialTimeline
             transactions={transactions}
