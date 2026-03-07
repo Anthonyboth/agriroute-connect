@@ -15,7 +15,7 @@ import {
 import { useCredit } from '@/hooks/useCredit';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
 import { useDisputes } from '@/hooks/useDisputes';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet, type WalletTransaction } from '@/hooks/useWallet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
