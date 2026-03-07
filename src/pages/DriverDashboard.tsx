@@ -3053,8 +3053,8 @@ const DriverDashboard = () => {
                   ) : (
                     <DriverPaymentsTab
                       pendingPayments={pendingPayments}
-                      handleConfirmPayment={handleConfirmPayment}
-                      handleDisputePayment={handleDisputePayment}
+                      onConfirmPayment={handleConfirmPayment}
+                      onDisputePayment={handleDisputePayment}
                     />
                   )}
                 </SafeListWrapper>
@@ -3064,7 +3064,7 @@ const DriverDashboard = () => {
                 <WalletTab
                   role="MOTORISTA"
                   isAffiliated={isAff}
-                  affiliatedCompanyId={companyDriver?.company_id}
+                  affiliatedCompanyId={companyId || undefined}
                   legacyPaymentContent={legacyPaymentContent}
                 />
               );
