@@ -10,7 +10,7 @@ import {
   Clock, CheckCircle2, AlertTriangle, XCircle, Info,
   ArrowDownCircle, ArrowUpCircle, Percent, FileText,
   CircleDollarSign, History, Zap, HelpCircle,
-  BarChart3, CalendarClock, Shield, Users, Truck
+  BarChart3, CalendarClock, Shield, Users, Truck, Wrench, Fuel
 } from 'lucide-react';
 import { useCredit } from '@/hooks/useCredit';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
@@ -28,8 +28,123 @@ interface PaymentManagementTabProps {
   legacyContent?: React.ReactNode;
 }
 
+type RoleKey = 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'TRANSPORTADORA' | 'PRESTADOR';
+
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+const handleNotImplemented = (action: string) => {
+  toast.info(`${action} — funcionalidade em desenvolvimento`);
+};
+
+/* ─── Role Config ─── */
+
+interface RoleConfig {
+  key: RoleKey;
+  label: string;
+  creditLabel: string;
+  creditDescription: string;
+  creditUseCases: string[];
+  creditPrimaryAction: { label: string; icon: React.ReactNode };
+  creditSecondaryActions: { label: string; icon: React.ReactNode }[];
+  hasAdvances: boolean;
+  advanceLabel?: string;
+  showAutoDiscount: boolean;
+  autoDiscountDescription?: string;
+  introCard?: React.ReactNode;
+}
+
+const getRoleConfig = (role: string, isAffiliated: boolean): RoleConfig => {
+  if (role === 'PRODUTOR') {
+    return {
+      key: 'PRODUTOR',
+      label: 'Embarcador',
+      creditLabel: 'Crédito de Transporte',
+      creditDescription: 'Use crédito para contratar fretes e serviços com pagamento parcelado',
+      creditUseCases: ['Contratar fretes', 'Contratar serviços', 'Pagamento parcelado'],
+      creditPrimaryAction: { label: 'Contratar com Crédito', icon: <Truck className="h-3.5 w-3.5" /> },
+      creditSecondaryActions: [
+        { label: 'Pagar Parcela', icon: <CircleDollarSign className="h-3.5 w-3.5" /> },
+        { label: 'Ver Faturas', icon: <FileText className="h-3.5 w-3.5" /> },
+      ],
+      hasAdvances: false,
+      showAutoDiscount: false,
+      introCard: <ProducerIntroCard />,
+    };
+  }
+  if (role === 'MOTORISTA' && isAffiliated) {
+    return {
+      key: 'MOTORISTA_AFILIADO',
+      label: 'Motorista Afiliado',
+      creditLabel: 'Crédito Pessoal',
+      creditDescription: 'Seu crédito é pessoal e independente da transportadora',
+      creditUseCases: ['Combustível', 'Pedágio', 'Custos operacionais'],
+      creditPrimaryAction: { label: 'Usar Crédito', icon: <Fuel className="h-3.5 w-3.5" /> },
+      creditSecondaryActions: [
+        { label: 'Ver Parcelas', icon: <Receipt className="h-3.5 w-3.5" /> },
+        { label: 'Pagar Parcela', icon: <CircleDollarSign className="h-3.5 w-3.5" /> },
+      ],
+      hasAdvances: true,
+      advanceLabel: 'Antecipe apenas recebíveis pessoais. Fretes da transportadora não podem ser usados como garantia.',
+      showAutoDiscount: true,
+      autoDiscountDescription: 'Ao receber repasse da transportadora, parcelas de crédito são descontadas automaticamente do valor antes da liberação.',
+      introCard: <AffiliatedDriverIntroCard />,
+    };
+  }
+  if (role === 'MOTORISTA') {
+    return {
+      key: 'MOTORISTA',
+      label: 'Motorista',
+      creditLabel: 'Crédito de Transporte',
+      creditDescription: 'Use crédito para combustível, pedágio e custos operacionais',
+      creditUseCases: ['Combustível', 'Pedágio', 'Serviços', 'Custos operacionais'],
+      creditPrimaryAction: { label: 'Usar Crédito', icon: <Fuel className="h-3.5 w-3.5" /> },
+      creditSecondaryActions: [
+        { label: 'Ver Parcelas', icon: <Receipt className="h-3.5 w-3.5" /> },
+        { label: 'Pagar Parcela', icon: <CircleDollarSign className="h-3.5 w-3.5" /> },
+      ],
+      hasAdvances: true,
+      showAutoDiscount: true,
+      autoDiscountDescription: 'Parcelas vencidas são descontadas automaticamente dos repasses recebidos.',
+    };
+  }
+  if (role === 'TRANSPORTADORA') {
+    return {
+      key: 'TRANSPORTADORA',
+      label: 'Transportadora',
+      creditLabel: 'Crédito Empresarial',
+      creditDescription: 'Linha de crédito corporativa para operações de frete e fluxo de caixa',
+      creditUseCases: ['Pagar fretes', 'Pagar serviços', 'Fluxo de caixa'],
+      creditPrimaryAction: { label: 'Usar Crédito', icon: <CreditCard className="h-3.5 w-3.5" /> },
+      creditSecondaryActions: [
+        { label: 'Simular Crédito', icon: <BarChart3 className="h-3.5 w-3.5" /> },
+        { label: 'Ver Parcelas', icon: <Receipt className="h-3.5 w-3.5" /> },
+      ],
+      hasAdvances: true,
+      showAutoDiscount: false,
+      introCard: <CarrierIntroCard />,
+    };
+  }
+  // PRESTADOR
+  return {
+    key: 'PRESTADOR',
+    label: 'Prestador de Serviços',
+    creditLabel: 'Crédito de Transporte',
+    creditDescription: 'Use crédito para equipamentos e despesas operacionais',
+    creditUseCases: ['Equipamentos', 'Despesas operacionais', 'Serviços na plataforma'],
+    creditPrimaryAction: { label: 'Usar Crédito', icon: <Wrench className="h-3.5 w-3.5" /> },
+    creditSecondaryActions: [
+      { label: 'Ver Parcelas', icon: <Receipt className="h-3.5 w-3.5" /> },
+      { label: 'Simular Crédito', icon: <BarChart3 className="h-3.5 w-3.5" /> },
+    ],
+    hasAdvances: true,
+    advanceLabel: 'Antecipe recebíveis de serviços confirmados.',
+    showAutoDiscount: false,
+    introCard: <ServiceProviderIntroCard />,
+  };
+};
+
+/* ─── Shared UI Components ─── */
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -59,17 +174,128 @@ const MetricBox: React.FC<{ label: string; value: string; sub?: string; accent?:
   </div>
 );
 
-const handleNotImplemented = (action: string) => {
-  toast.info(`${action} — funcionalidade em desenvolvimento`);
-};
+/* ─── Intro Cards ─── */
 
-/* ─────────────── ROLE-SPECIFIC SECTIONS ─────────────── */
+const ProducerIntroCard: React.FC = () => (
+  <Card className="shadow-sm border-border/50 overflow-hidden">
+    <CardHeader className="pb-2 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
+      <div className="flex items-center gap-2.5">
+        <div className="rounded-lg bg-blue-500/10 p-2"><Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
+        <div>
+          <CardTitle className="text-base font-semibold">Pagamentos de Frete</CardTitle>
+          <CardDescription className="text-xs">Gerencie pagamentos dos seus fretes como embarcador</CardDescription>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent className="pt-4">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 mb-4">
+        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+        <div className="text-[11px] text-muted-foreground space-y-0.5">
+          <p>Ao criar fretes, os valores são reservados da sua carteira.</p>
+          <p>Após confirmação de entrega, o valor é liberado ao motorista/transportadora.</p>
+          <p>Você pode usar <strong>crédito de transporte</strong> para pagamento parcelado.</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Ver fretes pendentes')}><FileText className="h-3.5 w-3.5" /> Fretes Pendentes</Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Ver pagamentos')}><CircleDollarSign className="h-3.5 w-3.5" /> Pagamentos Realizados</Button>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const CarrierIntroCard: React.FC = () => (
+  <Card className="shadow-sm border-border/50 overflow-hidden">
+    <CardHeader className="pb-2 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
+      <div className="flex items-center gap-2.5">
+        <div className="rounded-lg bg-blue-500/10 p-2"><Users className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
+        <div>
+          <CardTitle className="text-base font-semibold">Repasses a Motoristas</CardTitle>
+          <CardDescription className="text-xs">Gerencie repasses aos motoristas afiliados</CardDescription>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent className="pt-4">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 mb-4">
+        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+        <div className="text-[11px] text-muted-foreground space-y-0.5">
+          <p>Como transportadora, você recebe o valor do frete e repassa ao motorista.</p>
+          <p>Parcelas de crédito do motorista são descontadas automaticamente no repasse.</p>
+          <p>Você tem controle total sobre antecipações e saques da empresa.</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Repasses pendentes')}><ArrowUpCircle className="h-3.5 w-3.5" /> Repasses Pendentes</Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico de repasses')}><History className="h-3.5 w-3.5" /> Histórico</Button>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const AffiliatedDriverIntroCard: React.FC = () => (
+  <Card className="shadow-sm border-border/50 overflow-hidden">
+    <CardHeader className="pb-2 bg-gradient-to-r from-orange-500/[0.04] to-transparent">
+      <div className="flex items-center gap-2.5">
+        <div className="rounded-lg bg-orange-500/10 p-2"><Users className="h-5 w-5 text-orange-600 dark:text-orange-400" /></div>
+        <div>
+          <CardTitle className="text-base font-semibold">Finanças Pessoais</CardTitle>
+          <CardDescription className="text-xs">Seu crédito e recebíveis são pessoais e independentes da transportadora</CardDescription>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent className="pt-4">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20 mb-4">
+        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+        <div className="text-[11px] text-muted-foreground space-y-0.5">
+          <p className="font-medium text-foreground text-xs">Regras do motorista afiliado</p>
+          <p>Seu crédito é pessoal — a transportadora não tem acesso.</p>
+          <p>Fretes da transportadora <strong>não</strong> podem ser usados como garantia de crédito.</p>
+          <p>Ao receber repasses, parcelas de crédito são descontadas automaticamente.</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Repasses recebidos')}><ArrowDownCircle className="h-3.5 w-3.5" /> Repasses Recebidos</Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Descontos automáticos')}><Percent className="h-3.5 w-3.5" /> Descontos</Button>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ServiceProviderIntroCard: React.FC = () => (
+  <Card className="shadow-sm border-border/50 overflow-hidden">
+    <CardHeader className="pb-2 bg-gradient-to-r from-violet-500/[0.04] to-transparent">
+      <div className="flex items-center gap-2.5">
+        <div className="rounded-lg bg-violet-500/10 p-2"><Wrench className="h-5 w-5 text-violet-600 dark:text-violet-400" /></div>
+        <div>
+          <CardTitle className="text-base font-semibold">Finanças de Serviços</CardTitle>
+          <CardDescription className="text-xs">Gerencie pagamentos por serviços prestados na plataforma</CardDescription>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent className="pt-4">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 mb-4">
+        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+        <div className="text-[11px] text-muted-foreground space-y-0.5">
+          <p>Receba por serviços prestados diretamente na carteira.</p>
+          <p>Use crédito para equipamentos e despesas operacionais.</p>
+          <p>Antecipe recebíveis de serviços confirmados.</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Serviços pendentes')}><FileText className="h-3.5 w-3.5" /> Serviços Pendentes</Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Pagamentos')}><CircleDollarSign className="h-3.5 w-3.5" /> Pagamentos Recebidos</Button>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+/* ─── Module: Credit ─── */
 
 const CreditSection: React.FC<{
   creditAccount: any; creditLoading: boolean;
   installments: any[]; pendingInstallments: any[];
-  totalPending: number; roleLabel: string;
-}> = ({ creditAccount, creditLoading, installments, pendingInstallments, totalPending, roleLabel }) => {
+  totalPending: number; config: RoleConfig;
+}> = ({ creditAccount, creditLoading, installments, pendingInstallments, totalPending, config }) => {
   const creditUsagePercent = creditAccount ? Math.round((creditAccount.used_amount / (creditAccount.credit_limit || 1)) * 100) : 0;
   const paidInstallments = installments.filter(i => i.status === 'paid');
   const overdueInstallments = pendingInstallments.filter(i => i.status === 'overdue');
@@ -82,8 +308,8 @@ const CreditSection: React.FC<{
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-primary/10 p-2"><CreditCard className="h-5 w-5 text-primary" /></div>
             <div>
-              <CardTitle className="text-base font-semibold">Crédito de Transporte</CardTitle>
-              <CardDescription className="text-xs">Linha de crédito para operações de frete</CardDescription>
+              <CardTitle className="text-base font-semibold">{config.creditLabel}</CardTitle>
+              <CardDescription className="text-xs">{config.creditDescription}</CardDescription>
             </div>
           </div>
           {creditAccount && <StatusBadge status={creditAccount.status} />}
@@ -106,6 +332,14 @@ const CreditSection: React.FC<{
               </div>
               <Progress value={creditUsagePercent} className="h-2" />
             </div>
+
+            {/* Use cases */}
+            <div className="flex flex-wrap gap-1.5">
+              {config.creditUseCases.map(uc => (
+                <Badge key={uc} variant="outline" className="text-[10px] font-normal">{uc}</Badge>
+              ))}
+            </div>
+
             {nextInstallment && (
               <div className={`flex items-center justify-between p-3 rounded-lg border ${nextInstallment.status === 'overdue' ? 'border-destructive/40 bg-destructive/[0.04]' : 'border-border/60 bg-muted/30'}`}>
                 <div className="flex items-center gap-2">
@@ -118,28 +352,45 @@ const CreditSection: React.FC<{
                 <span className="text-sm font-bold">{formatBRL(nextInstallment.amount - nextInstallment.paid_amount)}</span>
               </div>
             )}
+
             {creditAccount.status === 'blocked' && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/[0.06] border border-destructive/20">
                 <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">Crédito bloqueado. Entre em contato com o suporte.</p>
+                <p className="text-xs text-muted-foreground">Crédito bloqueado. Entre em contato com o suporte para verificar o motivo.</p>
               </div>
             )}
+
+            {config.key === 'MOTORISTA_AFILIADO' && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-500/[0.06] border border-orange-500/20">
+                <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-muted-foreground">Este crédito é exclusivamente pessoal. Fretes da transportadora não são elegíveis como garantia.</p>
+              </div>
+            )}
+
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {paidInstallments.length} pagas</span>
               {overdueInstallments.length > 0 && <span className="flex items-center gap-1 text-destructive"><AlertTriangle className="h-3 w-3" /> {overdueInstallments.length} vencidas</span>}
             </div>
+
             <Separator />
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular crédito')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico')}><History className="h-3.5 w-3.5" /> Histórico</Button>
-              <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Regras')}><HelpCircle className="h-3.5 w-3.5" /> Regras</Button>
+              <Button size="sm" className="text-xs gap-1.5" onClick={() => handleNotImplemented(config.creditPrimaryAction.label)}>
+                {config.creditPrimaryAction.icon} {config.creditPrimaryAction.label}
+              </Button>
+              {config.creditSecondaryActions.map(a => (
+                <Button key={a.label} size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented(a.label)}>
+                  {a.icon} {a.label}
+                </Button>
+              ))}
+              <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico de crédito')}><History className="h-3.5 w-3.5" /> Histórico</Button>
+              <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Entender regras')}><HelpCircle className="h-3.5 w-3.5" /> Regras</Button>
             </div>
           </div>
         ) : (
-          <EmptyState icon={<CreditCard className="h-8 w-8 text-muted-foreground/50" />} title="Crédito não solicitado" description={`Solicite sua linha de crédito para operações de frete como ${roleLabel}.`}>
+          <EmptyState icon={<CreditCard className="h-8 w-8 text-muted-foreground/50" />} title="Crédito não solicitado" description={`Solicite sua linha de crédito para operações como ${config.label}.`}>
             <div className="flex gap-2">
               <Button size="sm" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Solicitar crédito')}><CreditCard className="h-3.5 w-3.5" /> Solicitar Crédito</Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular crédito')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
             </div>
           </EmptyState>
         )}
@@ -148,11 +399,13 @@ const CreditSection: React.FC<{
   );
 };
 
+/* ─── Module: Advances ─── */
+
 const AdvanceSection: React.FC<{
   receivables: any[]; eligibleReceivables: any[];
   totalEligible: number; advances: any[];
-  advanceLoading: boolean; roleLabel: string;
-}> = ({ receivables, eligibleReceivables, totalEligible, advances, advanceLoading, roleLabel }) => {
+  advanceLoading: boolean; config: RoleConfig;
+}> = ({ receivables, eligibleReceivables, totalEligible, advances, advanceLoading, config }) => {
   const totalReceivable = receivables.reduce((s, r) => s + r.total_amount, 0);
   const activeAdvances = advances.filter(a => a.status === 'disbursed');
 
@@ -163,7 +416,11 @@ const AdvanceSection: React.FC<{
           <div className="rounded-lg bg-emerald-500/10 p-2"><TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /></div>
           <div>
             <CardTitle className="text-base font-semibold">Antecipação de Recebíveis</CardTitle>
-            <CardDescription className="text-xs">Receba antecipado seus fretes confirmados</CardDescription>
+            <CardDescription className="text-xs">
+              {config.key === 'TRANSPORTADORA' ? 'Antecipe recebíveis dos fretes da empresa' :
+               config.key === 'PRESTADOR' ? 'Antecipe recebíveis de serviços confirmados' :
+               'Receba antecipado seus fretes confirmados'}
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -173,17 +430,26 @@ const AdvanceSection: React.FC<{
         ) : totalReceivable > 0 || advances.length > 0 ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <MetricBox label="Total a Receber" value={formatBRL(totalReceivable)} sub={`${receivables.length} fretes`} />
-              <MetricBox label="Elegível p/ Antecipação" value={formatBRL(totalEligible)} accent sub={`${eligibleReceivables.length} fretes`} />
+              <MetricBox label="Total a Receber" value={formatBRL(totalReceivable)} sub={`${receivables.length} ${config.key === 'PRESTADOR' ? 'serviços' : 'fretes'}`} />
+              <MetricBox label="Elegível p/ Antecipação" value={formatBRL(totalEligible)} accent sub={`${eligibleReceivables.length} elegíveis`} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <MetricBox label="Disponível (até 80%)" value={formatBRL(totalEligible * 0.8)} sub="Percentual máximo" />
               <MetricBox label="Antecipações Ativas" value={String(activeAdvances.length)} sub={activeAdvances.length > 0 ? formatBRL(activeAdvances.reduce((s, a) => s + a.net_amount, 0)) : 'Nenhuma ativa'} />
             </div>
+
+            {config.advanceLabel && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-muted-foreground">{config.advanceLabel}</p>
+              </div>
+            )}
+
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40">
               <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <p className="text-[11px] text-muted-foreground"><strong>Critérios:</strong> Fretes confirmados, sem disputas e sem bloqueios.</p>
+              <p className="text-[11px] text-muted-foreground"><strong>Critérios:</strong> {config.key === 'PRESTADOR' ? 'Serviços confirmados' : 'Fretes confirmados'}, sem disputas e sem bloqueios. Somente o dono financeiro pode antecipar.</p>
             </div>
+
             {advances.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recentes</p>
@@ -200,21 +466,22 @@ const AdvanceSection: React.FC<{
                 ))}
               </div>
             )}
+
             <Separator />
             <div className="flex flex-wrap gap-2">
               <Button size="sm" className="text-xs gap-1.5" disabled={totalEligible <= 0} onClick={() => handleNotImplemented('Antecipar')}><Zap className="h-3.5 w-3.5" /> Antecipar Agora</Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Fretes elegíveis')}><FileText className="h-3.5 w-3.5" /> Elegíveis</Button>
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Simular antecipação')}><BarChart3 className="h-3.5 w-3.5" /> Simular</Button>
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Ver elegíveis')}><FileText className="h-3.5 w-3.5" /> Elegíveis</Button>
               <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico')}><History className="h-3.5 w-3.5" /> Histórico</Button>
             </div>
           </div>
         ) : (
-          <EmptyState icon={<Banknote className="h-8 w-8 text-muted-foreground/50" />} title="Nenhum recebível disponível" description="Complete fretes confirmados para ter recebíveis elegíveis para antecipação.">
+          <EmptyState icon={<Banknote className="h-8 w-8 text-muted-foreground/50" />} title="Nenhum recebível disponível" description={`Complete ${config.key === 'PRESTADOR' ? 'serviços' : 'fretes'} confirmados para ter recebíveis elegíveis para antecipação.`}>
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 text-left w-full max-w-sm">
               <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <div className="text-[11px] text-muted-foreground space-y-1">
                 <p className="font-medium text-foreground text-xs">Como funciona?</p>
-                <p>1. Complete fretes e aguarde confirmação</p>
+                <p>1. Complete {config.key === 'PRESTADOR' ? 'serviços' : 'fretes'} e aguarde confirmação</p>
                 <p>2. O valor entra como recebível elegível</p>
                 <p>3. Solicite antecipação de até 80%</p>
                 <p>4. Receba na carteira com taxa reduzida</p>
@@ -227,11 +494,13 @@ const AdvanceSection: React.FC<{
   );
 };
 
+/* ─── Module: Installments ─── */
+
 const InstallmentsSection: React.FC<{
   creditLoading: boolean; installments: any[];
   pendingInstallments: any[]; totalPending: number;
-  showAutoDiscount: boolean;
-}> = ({ creditLoading, installments, pendingInstallments, totalPending, showAutoDiscount }) => {
+  config: RoleConfig;
+}> = ({ creditLoading, installments, pendingInstallments, totalPending, config }) => {
   const paidInstallments = installments.filter(i => i.status === 'paid');
 
   return (
@@ -241,9 +510,11 @@ const InstallmentsSection: React.FC<{
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-amber-500/10 p-2"><Receipt className="h-5 w-5 text-amber-600 dark:text-amber-400" /></div>
             <div>
-              <CardTitle className="text-base font-semibold">Parcelas e Descontos</CardTitle>
+              <CardTitle className="text-base font-semibold">Parcelas e Cobranças</CardTitle>
               <CardDescription className="text-xs">
-                {showAutoDiscount ? 'Parcelas do crédito e descontos automáticos nos repasses' : 'Parcelas do crédito de transporte'}
+                {config.showAutoDiscount ? 'Parcelas do crédito e descontos automáticos nos repasses' :
+                 config.key === 'PRODUTOR' ? 'Faturas e parcelas de crédito de transporte' :
+                 'Parcelas do crédito de transporte'}
               </CardDescription>
             </div>
           </div>
@@ -258,15 +529,25 @@ const InstallmentsSection: React.FC<{
               <MetricBox label="Pagas" value={String(paidInstallments.length)} />
               <MetricBox label="Pendentes" value={String(pendingInstallments.length)} />
             </div>
-            {showAutoDiscount && pendingInstallments.length > 0 && (
+
+            {config.showAutoDiscount && pendingInstallments.length > 0 && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20">
                 <Percent className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                 <div className="text-[11px] text-muted-foreground">
                   <p className="font-medium text-foreground text-xs">Desconto automático ativo</p>
-                  <p>Parcelas vencidas são descontadas automaticamente dos repasses recebidos.</p>
+                  <p>{config.autoDiscountDescription || 'Parcelas vencidas são descontadas automaticamente dos repasses recebidos.'}</p>
+                  {config.key === 'MOTORISTA_AFILIADO' && (
+                    <div className="mt-2 space-y-0.5 text-[10px]">
+                      <p className="text-foreground font-medium">Exemplo de repasse:</p>
+                      <p>Repasse bruto: R$ 2.000,00</p>
+                      <p>(-) Parcela crédito: R$ 350,00</p>
+                      <p className="text-primary font-semibold">= Líquido liberado: R$ 1.650,00</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
+
             <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
               {pendingInstallments.map((inst) => (
                 <div key={inst.id} className={`flex items-center justify-between p-2.5 rounded-lg border text-sm ${inst.status === 'overdue' ? 'border-destructive/30 bg-destructive/[0.03]' : 'border-border/50 bg-muted/20'}`}>
@@ -284,6 +565,7 @@ const InstallmentsSection: React.FC<{
                 </div>
               ))}
             </div>
+
             <Separator />
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Pagar parcela')}><CircleDollarSign className="h-3.5 w-3.5" /> Pagar Agora</Button>
@@ -291,12 +573,14 @@ const InstallmentsSection: React.FC<{
             </div>
           </div>
         ) : (
-          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Quando utilizar crédito de transporte, parcelas aparecerão aqui." />
+          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Quando utilizar crédito de transporte, parcelas e faturas aparecerão aqui." />
         )}
       </CardContent>
     </Card>
   );
 };
+
+/* ─── Module: Disputes ─── */
 
 const DisputesSection: React.FC<{
   disputes: any[]; openCount: number; disputeLoading: boolean;
@@ -348,11 +632,11 @@ const DisputesSection: React.FC<{
             <Separator />
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Abrir disputa')}><ShieldAlert className="h-3.5 w-3.5" /> Abrir Disputa</Button>
-              <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico')}><History className="h-3.5 w-3.5" /> Histórico</Button>
+              <Button size="sm" variant="ghost" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico disputas')}><History className="h-3.5 w-3.5" /> Histórico</Button>
             </div>
           </div>
         ) : (
-          <EmptyState icon={<ShieldAlert className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma disputa" description="Contestações de valores ou fretes aparecerão aqui.">
+          <EmptyState icon={<ShieldAlert className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma disputa" description="Contestações de valores ou fretes aparecerão aqui quando necessário.">
             <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Abrir disputa')}><ShieldAlert className="h-3.5 w-3.5" /> Abrir Disputa</Button>
           </EmptyState>
         )}
@@ -361,22 +645,32 @@ const DisputesSection: React.FC<{
   );
 };
 
+/* ─── Module: History ─── */
+
 const HistorySection: React.FC<{
-  installments: any[]; advances: any[];
-}> = ({ installments, advances }) => {
+  installments: any[]; advances: any[]; config: RoleConfig;
+}> = ({ installments, advances, config }) => {
   const [historyFilter, setHistoryFilter] = useState('all');
 
-  type HistoryItem = { id: string; label: string; value: number; date: string; icon: React.ReactNode };
+  const filterTabs = [
+    { value: 'all', label: 'Todos' },
+    { value: 'credit', label: 'Crédito' },
+    ...(config.hasAdvances ? [{ value: 'advance', label: 'Antecipações' }] : []),
+    { value: 'transfer', label: 'Repasses' },
+    { value: 'fees', label: 'Taxas' },
+  ];
+
+  type HistoryItem = { id: string; label: string; value: number; date: string; type: string; status: string; icon: React.ReactNode };
   const items: HistoryItem[] = [];
 
   if (historyFilter === 'all' || historyFilter === 'credit') {
     installments.filter(i => i.status === 'paid').forEach(i => {
-      items.push({ id: `inst-${i.id}`, label: `Parcela ${i.installment_number} paga`, value: -i.amount, date: i.paid_at || i.due_date, icon: <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500" /> });
+      items.push({ id: `inst-${i.id}`, label: `Parcela ${i.installment_number} paga`, value: -i.amount, date: i.paid_at || i.due_date, type: 'Crédito', status: 'Pago', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500" /> });
     });
   }
-  if (historyFilter === 'all' || historyFilter === 'advance') {
+  if ((historyFilter === 'all' || historyFilter === 'advance') && config.hasAdvances) {
     advances.filter(a => a.status === 'disbursed' || a.status === 'settled').forEach(a => {
-      items.push({ id: `adv-${a.id}`, label: 'Antecipação recebida', value: a.net_amount, date: a.created_at, icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> });
+      items.push({ id: `adv-${a.id}`, label: 'Antecipação recebida', value: a.net_amount, date: a.created_at, type: 'Antecipação', status: a.status === 'settled' ? 'Quitada' : 'Ativa', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> });
     });
   }
   items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -388,17 +682,16 @@ const HistorySection: React.FC<{
           <div className="rounded-lg bg-muted p-2"><History className="h-5 w-5 text-muted-foreground" /></div>
           <div>
             <CardTitle className="text-base font-semibold">Histórico Financeiro</CardTitle>
-            <CardDescription className="text-xs">Eventos financeiros da sua conta</CardDescription>
+            <CardDescription className="text-xs">Todos os eventos financeiros da sua conta</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-3">
         <Tabs defaultValue="all" onValueChange={setHistoryFilter}>
-          <TabsList className="w-full grid grid-cols-4 h-8 mb-4">
-            <TabsTrigger value="all" className="text-[11px]">Todos</TabsTrigger>
-            <TabsTrigger value="credit" className="text-[11px]">Crédito</TabsTrigger>
-            <TabsTrigger value="advance" className="text-[11px]">Antecipações</TabsTrigger>
-            <TabsTrigger value="transfer" className="text-[11px]">Repasses</TabsTrigger>
+          <TabsList className={`w-full grid h-8 mb-4`} style={{ gridTemplateColumns: `repeat(${filterTabs.length}, 1fr)` }}>
+            {filterTabs.map(t => (
+              <TabsTrigger key={t.value} value={t.value} className="text-[11px]">{t.label}</TabsTrigger>
+            ))}
           </TabsList>
           <TabsContent value={historyFilter}>
             {items.length === 0 ? (
@@ -409,12 +702,15 @@ const HistorySection: React.FC<{
             ) : (
               <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
                 {items.slice(0, 20).map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors text-sm">
+                  <div key={item.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/40 transition-colors text-sm">
                     <div className="flex items-center gap-2 min-w-0">
                       {item.icon}
                       <div className="min-w-0">
                         <p className="text-xs font-medium truncate">{item.label}</p>
-                        <p className="text-[11px] text-muted-foreground">{format(new Date(item.date), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[11px] text-muted-foreground">{format(new Date(item.date), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+                          <Badge variant="outline" className="text-[9px] px-1 py-0">{item.type}</Badge>
+                        </div>
                       </div>
                     </div>
                     <span className={`font-bold text-xs ${item.value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
@@ -431,122 +727,58 @@ const HistorySection: React.FC<{
   );
 };
 
-/* ─── ROLE-SPECIFIC INTRO CARDS ─── */
-
-const ProducerFreightPaymentCard: React.FC = () => (
-  <Card className="shadow-sm border-border/50 overflow-hidden">
-    <CardHeader className="pb-2 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
-      <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-blue-500/10 p-2"><Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
-        <div>
-          <CardTitle className="text-base font-semibold">Pagamentos de Frete</CardTitle>
-          <CardDescription className="text-xs">Gerencie pagamentos dos seus fretes como embarcador</CardDescription>
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent className="pt-4">
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 mb-4">
-        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-        <div className="text-[11px] text-muted-foreground space-y-0.5">
-          <p>Ao criar fretes, os valores são reservados da sua carteira.</p>
-          <p>Após confirmação de entrega, o valor é liberado ao motorista/transportadora.</p>
-          <p>Você pode usar <strong>crédito de transporte</strong> para pagamento parcelado.</p>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Ver fretes pendentes')}><FileText className="h-3.5 w-3.5" /> Fretes Pendentes</Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Ver pagamentos')}><CircleDollarSign className="h-3.5 w-3.5" /> Pagamentos Realizados</Button>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const CarrierRepassCard: React.FC = () => (
-  <Card className="shadow-sm border-border/50 overflow-hidden">
-    <CardHeader className="pb-2 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
-      <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-blue-500/10 p-2"><Users className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
-        <div>
-          <CardTitle className="text-base font-semibold">Repasses a Motoristas</CardTitle>
-          <CardDescription className="text-xs">Gerencie repasses aos motoristas afiliados</CardDescription>
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent className="pt-4">
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 mb-4">
-        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-        <div className="text-[11px] text-muted-foreground space-y-0.5">
-          <p>Como transportadora, você recebe o valor do frete e repassa ao motorista.</p>
-          <p>Parcelas de crédito do motorista são descontadas automaticamente no repasse.</p>
-          <p>Você tem controle total sobre antecipações e saques da empresa.</p>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Repasses pendentes')}><ArrowUpCircle className="h-3.5 w-3.5" /> Repasses Pendentes</Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => handleNotImplemented('Histórico de repasses')}><History className="h-3.5 w-3.5" /> Histórico</Button>
-      </div>
-    </CardContent>
-  </Card>
-);
-
 /* ─── MAIN COMPONENT ─── */
 
 export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
-  role, isAffiliated, affiliatedCompanyId, walletId, legacyContent
+  role, isAffiliated = false, affiliatedCompanyId, walletId, legacyContent
 }) => {
   const { creditAccount, installments, pendingInstallments, totalPending, loading: creditLoading } = useCredit();
   const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading } = useReceivableAdvance();
   const { disputes, openCount, loading: disputeLoading } = useDisputes();
 
-  const showAdvances = !(isAffiliated && role === 'MOTORISTA');
-  const isDriver = role === 'MOTORISTA';
-  const isProducer = role === 'PRODUTOR';
-  const isCarrier = role === 'TRANSPORTADORA';
-
-  const roleLabel = isDriver ? 'Motorista' : isProducer ? 'Embarcador' : isCarrier ? 'Transportadora' : 'Prestador';
+  const config = getRoleConfig(role, isAffiliated);
 
   return (
     <div className="space-y-5">
       {/* Role-specific intro card */}
-      {isProducer && <ProducerFreightPaymentCard />}
-      {isCarrier && <CarrierRepassCard />}
+      {config.introCard}
 
-      {/* Credit - all roles */}
+      {/* 1. Credit - all roles */}
       <CreditSection
         creditAccount={creditAccount}
         creditLoading={creditLoading}
         installments={installments}
         pendingInstallments={pendingInstallments}
         totalPending={totalPending}
-        roleLabel={roleLabel}
+        config={config}
       />
 
-      {/* Advances - conditional */}
-      {showAdvances && (
+      {/* 2. Advances - not for PRODUTOR */}
+      {config.hasAdvances && (
         <AdvanceSection
           receivables={receivables}
           eligibleReceivables={eligibleReceivables}
           totalEligible={totalEligible}
           advances={advances}
           advanceLoading={advanceLoading}
-          roleLabel={roleLabel}
+          config={config}
         />
       )}
 
-      {/* Installments */}
+      {/* 3. Installments */}
       <InstallmentsSection
         creditLoading={creditLoading}
         installments={installments}
         pendingInstallments={pendingInstallments}
         totalPending={totalPending}
-        showAutoDiscount={isDriver}
+        config={config}
       />
 
-      {/* Disputes */}
+      {/* 4. Disputes */}
       <DisputesSection disputes={disputes} openCount={openCount} disputeLoading={disputeLoading} />
 
-      {/* History */}
-      <HistorySection installments={installments} advances={advances} />
+      {/* 5. History */}
+      <HistorySection installments={installments} advances={advances} config={config} />
 
       {/* Legacy content - secondary */}
       {legacyContent && (
