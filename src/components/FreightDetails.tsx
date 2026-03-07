@@ -529,6 +529,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(freight.status)}
+              {['DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'].includes(freight.status) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setReceiptOpen(true)}
+                  className="text-xs gap-1"
+                >
+                  <Receipt className="h-3.5 w-3.5" />
+                  Comprovante
+                </Button>
+              )}
               {freight.status === 'DELIVERED' && (isProducer || currentUserProfile?.role === 'ADMIN') && (
                 <Button 
                   size="sm" 
