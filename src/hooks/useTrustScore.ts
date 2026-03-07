@@ -78,9 +78,9 @@ export const useTrustScore = () => {
       // Fetch cancelled count
       const { count: cancelledCount } = await supabase
         .from('freights')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .or(`producer_id.eq.${profile.id},driver_id.eq.${profile.id}`)
-        .eq('status', 'CANCELLED');
+        .eq('status', 'CANCELLED' as any);
 
       // Fetch average rating
       const { data: ratingData } = await supabase
