@@ -10,3 +10,5 @@ export { FinancialTimeline } from './FinancialTimeline';
 export { FinancialNotifications } from './FinancialNotifications';
 export { CreditSimulatorModal } from './CreditSimulatorModal';
 export { AdvanceSimulatorModal } from './AdvanceSimulatorModal';
+export { OpenDisputeModal } from './OpenDisputeModal';
+export { PayInstallmentModal } from './PayInstallmentModal';
