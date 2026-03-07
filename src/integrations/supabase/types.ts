@@ -1126,6 +1126,109 @@ export type Database = {
           },
         ]
       }
+      autopay_logs: {
+        Row: {
+          amount: number
+          created_at: string
+          deduction_type: string
+          id: string
+          installment_id: string | null
+          profile_id: string
+          source_transaction_id: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          deduction_type: string
+          id?: string
+          installment_id?: string | null
+          profile_id: string
+          source_transaction_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deduction_type?: string
+          id?: string
+          installment_id?: string | null
+          profile_id?: string
+          source_transaction_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopay_logs_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "credit_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autopay_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autopay_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autopay_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          max_auto_deduct_percent: number
+          pay_credit_installments: boolean
+          pay_platform_fees: boolean
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_auto_deduct_percent?: number
+          pay_credit_installments?: boolean
+          pay_platform_fees?: boolean
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_auto_deduct_percent?: number
+          pay_credit_installments?: boolean
+          pay_platform_fees?: boolean
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopay_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autopay_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badge_types: {
         Row: {
           category: string
@@ -3384,6 +3487,60 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      dynamic_credit_limits: {
+        Row: {
+          created_at: string
+          dynamic_limit: number
+          id: string
+          last_calculated_at: string
+          locked_receivable_ids: string[] | null
+          profile_id: string
+          receivables_total: number
+          status: string
+          updated_at: string
+          utilization_percent: number
+        }
+        Insert: {
+          created_at?: string
+          dynamic_limit?: number
+          id?: string
+          last_calculated_at?: string
+          locked_receivable_ids?: string[] | null
+          profile_id: string
+          receivables_total?: number
+          status?: string
+          updated_at?: string
+          utilization_percent?: number
+        }
+        Update: {
+          created_at?: string
+          dynamic_limit?: number
+          id?: string
+          last_calculated_at?: string
+          locked_receivable_ids?: string[] | null
+          profile_id?: string
+          receivables_total?: number
+          status?: string
+          updated_at?: string
+          utilization_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_credit_limits_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dynamic_credit_limits_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       edge_function_health: {
         Row: {
