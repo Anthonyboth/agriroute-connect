@@ -5,6 +5,7 @@ export { WalletDepositModal } from './WalletDepositModal';
 export { WalletWithdrawModal } from './WalletWithdrawModal';
 export { PaymentManagementTab } from './PaymentManagementTab';
 export { SmartFinancialCard } from './SmartFinancialCard';
+export { EscrowFlowCard } from './EscrowFlowCard';
 export { FinancialTimeline } from './FinancialTimeline';
 export { FinancialNotifications } from './FinancialNotifications';
 export { CreditSimulatorModal } from './CreditSimulatorModal';
