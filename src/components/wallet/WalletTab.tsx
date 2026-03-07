@@ -7,6 +7,7 @@ import { PaymentOrdersCard } from './PaymentOrdersCard';
 import { FinancialTimeline } from './FinancialTimeline';
 import { FinancialNotifications } from './FinancialNotifications';
 import { OperationalPaymentsCard } from './OperationalPaymentsCard';
+import { IncentiveBonusCard } from './IncentiveBonusCard';
 import { WalletDepositModal } from './WalletDepositModal';
 import { WalletWithdrawModal } from './WalletWithdrawModal';
 import { CreditSimulatorModal } from './CreditSimulatorModal';
@@ -111,6 +112,9 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             escrowTotal={escrowTotal}
             releasedTotal={releasedTotal}
           />
+
+          {/* Incentive Bonuses */}
+          <IncentiveBonusCard role={role} />
 
           {/* Escrow Flow States */}
           <EscrowFlowCard wallet={wallet} />
