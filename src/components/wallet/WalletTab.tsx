@@ -36,6 +36,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({
   const { deposit, withdraw, loading: actionLoading } = useWalletActions(refetch);
   const { creditAccount, pendingInstallments, totalPending, installments } = useCredit();
   const { totalEligible, eligibleReceivables } = useReceivableAdvance();
+  const { orders, payouts, escrowTotal, releasedTotal, blockedTotal, loading: ordersLoading } = usePaymentOrders();
 
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
