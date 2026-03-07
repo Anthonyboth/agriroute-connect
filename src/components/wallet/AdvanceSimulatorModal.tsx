@@ -7,9 +7,10 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Zap, TrendingUp, AlertTriangle, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { RiskConfirmationFlow } from './RiskConfirmationFlow';
 
 interface AdvanceSimulatorModalProps {
   open: boolean;
@@ -31,7 +32,8 @@ export const AdvanceSimulatorModal: React.FC<AdvanceSimulatorModalProps> = ({
 }) => {
   const [percentage, setPercentage] = useState(80);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'simulate' | 'confirm' | 'done'>('simulate');
+  const [step, setStep] = useState<'simulate' | 'confirm' | 'risk' | 'done'>('simulate');
+  const [riskFlowOpen, setRiskFlowOpen] = useState(false);
 
   const simulation = useMemo(() => {
     const requested = totalEligible * (percentage / 100);
