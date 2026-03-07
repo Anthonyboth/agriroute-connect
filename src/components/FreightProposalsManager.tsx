@@ -310,16 +310,18 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
 
   const filterProposalsByStatus = (status: string) => {
     const filtered = filteredProposals;
-    if (status === 'pending') return filtered.filter(p => p.status === 'PENDING' && canAcceptProposal(p));
-    if (status === 'counter_proposed') return filtered.filter(p => p.status === 'COUNTER_PROPOSED' && canAcceptProposal(p));
+    // FRT-037: Mostrar TODAS as propostas pendentes/contrapropostas na aba, 
+    // sem filtrar por canAcceptProposal. O botão de aceitar fica desabilitado se não puder aceitar.
+    if (status === 'pending') return filtered.filter(p => p.status === 'PENDING');
+    if (status === 'counter_proposed') return filtered.filter(p => p.status === 'COUNTER_PROPOSED');
     if (status === 'accepted') return filtered.filter(p => p.status === 'ACCEPTED');
     if (status === 'rejected') return filtered.filter(p => p.status === 'REJECTED');
     return filtered;
   };
 
-  // Contadores seguem exatamente a mesma regra dos cards ativos
-  const pendingCount = proposals.filter(p => p.status === 'PENDING' && canAcceptProposal(p)).length;
-  const counterProposedCount = proposals.filter(p => p.status === 'COUNTER_PROPOSED' && canAcceptProposal(p)).length;
+  // FRT-037: Contadores mostram TODAS as propostas pendentes, não apenas as que podem ser aceitas
+  const pendingCount = proposals.filter(p => p.status === 'PENDING').length;
+  const counterProposedCount = proposals.filter(p => p.status === 'COUNTER_PROPOSED').length;
   const acceptedCount = proposals.filter(p => p.status === 'ACCEPTED').length;
   const rejectedCount = proposals.filter(p => p.status === 'REJECTED').length;
 
