@@ -854,9 +854,9 @@ const HistorySection: React.FC<{
       </CardHeader>
       <CardContent className="pt-3">
         <Tabs defaultValue="all" onValueChange={setHistoryFilter}>
-          <TabsList className="w-full grid h-8 mb-4" style={{ gridTemplateColumns: `repeat(${filterTabs.length}, 1fr)` }}>
+          <TabsList className="w-full h-auto flex flex-wrap gap-1 bg-muted/60 p-1 rounded-lg mb-4">
             {filterTabs.map(t => (
-              <TabsTrigger key={t.value} value={t.value} className="text-[11px]">{t.label}</TabsTrigger>
+              <TabsTrigger key={t.value} value={t.value} className="flex-1 min-w-[80px] text-xs px-2.5 py-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">{t.label}</TabsTrigger>
             ))}
           </TabsList>
           <TabsContent value={historyFilter}>
