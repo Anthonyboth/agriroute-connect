@@ -398,6 +398,11 @@ const CreditSection: React.FC<{
               </div>
             )}
 
+            {/* Trust Score (compact) in active credit */}
+            {trustScore && !trustScoreLoading && (
+              <TrustScoreCard trustScore={trustScore} compact />
+            )}
+
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-primary" /> {paidInstallments.length} pagas</span>
               {overdueInstallments.length > 0 && <span className="flex items-center gap-1 text-destructive"><AlertTriangle className="h-3 w-3" /> {overdueInstallments.length} vencidas</span>}
@@ -428,6 +433,22 @@ const CreditSection: React.FC<{
             description={`Solicite sua linha de crédito para operações como ${config.label}. Comece simulando os valores e parcelas.`}
           >
             <div className="space-y-3 w-full max-w-sm">
+              {/* Trust Score (full) in empty credit */}
+              {trustScore && !trustScoreLoading ? (
+                <TrustScoreCard trustScore={trustScore} />
+              ) : trustScoreLoading ? (
+                <Skeleton className="h-32 w-full rounded-lg" />
+              ) : null}
+
+              {/* Pre-approved estimate */}
+              {trustScore && trustScore.status === 'eligible' && trustScore.estimatedLimit > 0 && (
+                <div className="rounded-lg bg-primary/[0.06] border border-primary/20 p-3 text-center space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Crédito estimado disponível</p>
+                  <p className="text-xl font-bold text-primary">{formatBRL(trustScore.estimatedLimit)}</p>
+                  <p className="text-[10px] text-muted-foreground">Solicite para liberar agora</p>
+                </div>
+              )}
+
               <div className="flex gap-2 justify-center">
                 <Button size="sm" className="text-xs gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90" onClick={onSimulateCredit}>
                   <CreditCard className="h-3.5 w-3.5" /> Solicitar Crédito
