@@ -216,7 +216,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       onProposalSent?.();
     } catch (error: any) {
       if (error?.code === '23505') {
-        toast({ title: "Proposta já enviada", description: "Você já enviou uma proposta para este frete.", variant: "destructive" });
+        toast({ title: "Proposta já enviada", description: "Você já enviou uma proposta para este frete." });
         setOpen(false);
         return;
       }
