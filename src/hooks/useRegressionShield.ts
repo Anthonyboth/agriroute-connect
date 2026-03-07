@@ -1167,6 +1167,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'driver_dashboard_renders_without_reference_errors',
     ],
   },
+  // ── FRT-042: Form validation toast.error triggers Monitor Bot false alarms ──
+  {
+    id: 'FRT-042',
+    date: '2026-03-07',
+    severity: 'HIGH',
+    area: 'error-monitoring',
+    bug: 'Validações de campo obrigatório em CompleteProfile e DriverPayoutModal usavam toast.error, disparando alertas CRITICAL falsos no Monitor Bot do Telegram.',
+    rootCause: 'toast.error é interceptado pelo usePanelErrorTelegramReporter como erro real de sistema. Validações de formulário (campo vazio, CPF inválido, CNH vencida, selfie ausente) são comportamento esperado, não erros.',
+    fix: 'Trocado toast.error por toast() (neutro) com id único para dedup em todas as validações de formulário: missing fields, invalid document, missing docs, CNH validation, missing selfie.',
+    files: [
+      'src/pages/CompleteProfile.tsx',
+      'src/components/DriverPayoutModal.tsx',
+    ],
+    rules: [
+      'Validações de formulário (campo obrigatório, formato inválido) DEVEM usar toast() ou toast.info — NUNCA toast.error.',
+      'toast.error é RESERVADO para erros reais de sistema (falha de rede, erro de banco, crash).',
+      'Sempre adicionar id ao toast de validação para evitar duplicatas (ex: { id: "missing-fields" }).',
+      'Extensão do FRT-036: aplica-se a TODOS os formulários, não apenas propostas.',
+    ],
+    keywords: ['toast.error', 'toast', 'validação', 'campo obrigatório', 'CompleteProfile', 'DriverPayoutModal', 'monitor bot', 'falso alarme', 'preencha'],
+    testCases: [
+      'form_validation_uses_neutral_toast_not_error',
+      'missing_field_toast_does_not_trigger_telegram',
+      'system_errors_still_use_toast_error',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
