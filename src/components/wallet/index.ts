@@ -12,3 +12,5 @@ export { CreditSimulatorModal } from './CreditSimulatorModal';
 export { AdvanceSimulatorModal } from './AdvanceSimulatorModal';
 export { OpenDisputeModal } from './OpenDisputeModal';
 export { PayInstallmentModal } from './PayInstallmentModal';
+export { OperationalPaymentsCard } from './OperationalPaymentsCard';
+export { OperationalPaymentModal } from './OperationalPaymentModal';
