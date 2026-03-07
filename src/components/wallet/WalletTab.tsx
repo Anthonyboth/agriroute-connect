@@ -74,7 +74,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             overdueInstallments={overdueInstallments}
             totalPendingAmount={totalPending}
             onAdvance={() => setAdvanceSimOpen(true)}
-            onPayInstallment={() => toast.info('Pagamento de parcela — em desenvolvimento')}
+            onPayInstallment={() => toast.info('Acesse a aba Gestão de Pagamentos para pagar parcelas')}
             role={role}
           />
 

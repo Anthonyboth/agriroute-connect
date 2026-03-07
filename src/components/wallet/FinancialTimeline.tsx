@@ -145,7 +145,7 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
             <p className="text-xs text-muted-foreground max-w-[280px] mb-4">
               {filter !== 'all' 
                 ? `Não há transações do tipo "${TX_LABEL[filter] || filter}". Tente outro filtro ou aguarde novas movimentações.`
-                : 'Suas movimentações financeiras aparecerão aqui assim que você realizar depósitos, saques, pagamentos ou receber fretes.'
+                : 'Realize depósitos, saques, pagamentos ou receba fretes para gerar movimentações financeiras.'
               }
             </p>
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 text-left max-w-sm">
