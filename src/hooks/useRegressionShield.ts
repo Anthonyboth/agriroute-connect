@@ -1069,6 +1069,55 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'accept_button_disabled_when_cannot_accept',
     ],
   },
+  {
+    id: 'FRT-038',
+    date: '2026-03-07',
+    severity: 'CRITICAL',
+    area: 'proposals',
+    bug: 'Motorista não conseguia re-enviar proposta de FRETE após cancelar a anterior. Erro 23505 (unique constraint violation) ao inserir nova proposta.',
+    rootCause: 'Existia um UNIQUE constraint incondicional (freight_proposals_freight_id_driver_id_key) que impedia qualquer inserção duplicada de (freight_id, driver_id), mesmo quando a proposta anterior estava CANCELLED ou REJECTED. O partial index idx_unique_active_proposal já cobria o cenário correto.',
+    fix: 'Removido o UNIQUE constraint freight_proposals_freight_id_driver_id_key via migração. O partial index idx_unique_active_proposal (WHERE status IN PENDING, ACCEPTED) já garante que só exista uma proposta ativa por par freight_id/driver_id. Frontend atualizado para verificar apenas status ativos (PENDING, ACCEPTED, COUNTER_PROPOSED) antes de inserir.',
+    files: [
+      'src/components/ServiceProposalModal.tsx',
+      'supabase/migrations/20260307140331_c9b43e6f-2eef-4fa2-b28b-153ca8b1baf5.sql',
+    ],
+    rules: [
+      'NUNCA usar UNIQUE constraint incondicional em freight_proposals(freight_id, driver_id) — usar PARTIAL INDEX com WHERE status IN (PENDING, ACCEPTED).',
+      'Verificação de duplicata no frontend DEVE filtrar por status ativos (PENDING, ACCEPTED, COUNTER_PROPOSED), não por existência absoluta.',
+      'Propostas CANCELLED e REJECTED NÃO devem bloquear re-envio.',
+    ],
+    keywords: ['unique constraint', '23505', 'freight_proposals', 're-enviar', 'cancelar', 'CANCELLED', 'partial index', 'duplicate'],
+    testCases: [
+      'driver_can_resubmit_proposal_after_cancel',
+      'driver_cannot_have_two_pending_proposals_same_freight',
+      'cancelled_proposal_does_not_block_new_insert',
+    ],
+  },
+  {
+    id: 'FRT-039',
+    date: '2026-03-07',
+    severity: 'HIGH',
+    area: 'proposals',
+    bug: 'AI confundia FRETES com SERVIÇOS ao diagnosticar e corrigir bugs de propostas. Adicionou código de propostas de serviço (service_request_proposals) quando o problema era com propostas de FRETE (freight_proposals).',
+    rootCause: 'O componente de proposta de frete se chama ServiceProposalModal.tsx, causando confusão semântica. A edge function driver-proposals retorna ambos tipos, e a AI não distinguiu corretamente qual tabela estava envolvida.',
+    fix: 'Esclarecido que ServiceProposalModal.tsx é usado para FRETES (insere em freight_proposals). A separação frete vs serviço é rigorosa: freight_proposals para fretes rurais, service_request_proposals para serviços urbanos.',
+    files: [
+      'src/components/ServiceProposalModal.tsx',
+      'supabase/functions/driver-proposals/index.ts',
+    ],
+    rules: [
+      'ServiceProposalModal.tsx é para FRETES — insere em freight_proposals. NUNCA confundir com service_request_proposals.',
+      'Fretes rurais (CARGA) usam freight_proposals. Serviços urbanos (GUINCHO, MUDANCA, FRETE_MOTO, ENTREGA_PACOTES, TRANSPORTE_PET) usam service_request_proposals.',
+      'NUNCA misturar propostas de frete com propostas de serviço nas mesmas abas ou contadores.',
+      'A aba "Propostas Feitas" do motorista DEVE manter seções separadas: "Propostas de Frete" e "Propostas de Serviço".',
+    ],
+    keywords: ['ServiceProposalModal', 'freight_proposals', 'service_request_proposals', 'confusão', 'frete', 'serviço', 'separação'],
+    testCases: [
+      'service_proposal_modal_inserts_into_freight_proposals',
+      'freight_and_service_proposals_rendered_separately',
+      'service_types_never_in_freight_proposals_tab',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
