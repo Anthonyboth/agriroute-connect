@@ -15,7 +15,7 @@ import {
 import { useCredit } from '@/hooks/useCredit';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
 import { useDisputes } from '@/hooks/useDisputes';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet, type WalletTransaction } from '@/hooks/useWallet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -456,6 +456,26 @@ const AdvanceSection: React.FC<{
             description={`Complete ${config.key === 'PRESTADOR' ? 'serviços' : 'fretes'} confirmados para ter recebíveis elegíveis para antecipação.`}
           >
             <div className="space-y-3 w-full max-w-sm">
+              {/* Eligibility progress */}
+              <div className="rounded-lg bg-primary/[0.04] border border-primary/15 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Progresso para elegibilidade</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="text-center p-2 rounded-md bg-muted/50">
+                    <p className="text-lg font-bold text-primary">{receivables.length}</p>
+                    <p className="text-[10px] text-muted-foreground">{config.key === 'PRESTADOR' ? 'Serviços concluídos' : 'Fretes concluídos'}</p>
+                  </div>
+                  <div className="text-center p-2 rounded-md bg-muted/50">
+                    <p className="text-lg font-bold text-foreground">{config.key === 'PRODUTOR' ? 3 : 5}</p>
+                    <p className="text-[10px] text-muted-foreground">Necessários</p>
+                  </div>
+                </div>
+                <Progress value={Math.min((receivables.length / (config.key === 'PRODUTOR' ? 3 : 5)) * 100, 100)} className="h-1.5" />
+                <p className="text-[10px] text-muted-foreground text-center">
+                  {receivables.length >= (config.key === 'PRODUTOR' ? 3 : 5) 
+                    ? 'Critério de fretes atingido! Aguarde confirmação de entrega.'
+                    : `Faltam ${Math.max((config.key === 'PRODUTOR' ? 3 : 5) - receivables.length, 0)} ${config.key === 'PRESTADOR' ? 'serviços' : 'fretes'} para elegibilidade`}
+                </p>
+              </div>
               <EligibilityCard
                 title="Como funciona a antecipação?"
                 rules={config.advanceEligibilityRules || [
@@ -561,7 +581,19 @@ const InstallmentsSection: React.FC<{
             </div>
           </div>
         ) : (
-          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Utilize crédito de transporte para gerar parcelas. Vencimentos e status de pagamento ficam visíveis nesta seção." />
+          <EmptyState icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />} title="Nenhuma parcela ativa" description="Utilize crédito de transporte para gerar parcelas.">
+            <div className="w-full max-w-sm">
+              <div className="rounded-lg bg-muted/40 border border-border/40 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Exemplo de parcelas</p>
+                <div className="space-y-1.5 text-[11px] text-muted-foreground">
+                  <div className="flex justify-between"><span>Crédito de R$ 500,00</span><span className="font-medium text-foreground">3x de R$ 175,23</span></div>
+                  <div className="flex justify-between"><span>Crédito de R$ 1.000,00</span><span className="font-medium text-foreground">6x de R$ 179,60</span></div>
+                  <div className="flex justify-between"><span>Crédito de R$ 2.000,00</span><span className="font-medium text-foreground">12x de R$ 192,89</span></div>
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">Taxa: 2,9% a.m. • Simulações ilustrativas</p>
+              </div>
+            </div>
+          </EmptyState>
         )}
       </CardContent>
     </Card>
@@ -645,7 +677,8 @@ const DisputesSection: React.FC<{
 
 const HistorySection: React.FC<{
   installments: any[]; advances: any[]; config: RoleConfig;
-}> = ({ installments, advances, config }) => {
+  walletTransactions?: WalletTransaction[];
+}> = ({ installments, advances, config, walletTransactions = [] }) => {
   const [historyFilter, setHistoryFilter] = useState('all');
 
   const filterTabs = [
@@ -653,6 +686,7 @@ const HistorySection: React.FC<{
     { value: 'credit', label: 'Crédito' },
     ...(config.hasAdvances ? [{ value: 'advance', label: 'Antecipações' }] : []),
     { value: 'transfer', label: 'Repasses' },
+    { value: 'wallet', label: 'Carteira' },
     { value: 'fees', label: 'Taxas' },
   ];
 
@@ -669,6 +703,46 @@ const HistorySection: React.FC<{
       items.push({ id: `adv-${a.id}`, label: 'Antecipação recebida', value: a.net_amount, date: a.created_at, type: 'Antecipação', status: a.status === 'settled' ? 'Quitada' : 'Ativa', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> });
     });
   }
+
+  // Wallet transactions (deposits, withdrawals, escrow, splits, releases)
+  const walletTypeMap: Record<string, { label: string; type: string; icon: React.ReactNode }> = {
+    deposit: { label: 'Depósito', type: 'Carteira', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> },
+    withdrawal: { label: 'Saque Pix', type: 'Carteira', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" /> },
+    escrow_reserve: { label: 'Reserva escrow', type: 'Carteira', icon: <Clock className="h-3.5 w-3.5 text-warning" /> },
+    freight_liquidation: { label: 'Liquidação de frete', type: 'Repasse', icon: <Truck className="h-3.5 w-3.5 text-primary" /> },
+    payout: { label: 'Repasse de frete', type: 'Repasse', icon: <Truck className="h-3.5 w-3.5 text-primary" /> },
+    block: { label: 'Bloqueio de fundos', type: 'Carteira', icon: <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> },
+    unblock: { label: 'Desbloqueio de fundos', type: 'Carteira', icon: <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> },
+    transfer_in: { label: 'Transferência recebida', type: 'Carteira', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> },
+    transfer_out: { label: 'Transferência enviada', type: 'Carteira', icon: <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" /> },
+    fee: { label: 'Taxa da plataforma', type: 'Taxa', icon: <Receipt className="h-3.5 w-3.5 text-destructive" /> },
+    refund: { label: 'Reembolso', type: 'Carteira', icon: <ArrowDownCircle className="h-3.5 w-3.5 text-primary" /> },
+  };
+
+  const positiveWalletTypes = ['deposit', 'transfer_in', 'refund', 'unblock', 'freight_liquidation'];
+  const walletFilterMap: Record<string, string[]> = {
+    wallet: ['deposit', 'withdrawal', 'escrow_reserve', 'block', 'unblock', 'transfer_in', 'transfer_out', 'refund'],
+    transfer: ['payout', 'freight_liquidation'],
+    fees: ['fee'],
+  };
+
+  if (historyFilter === 'all' || walletFilterMap[historyFilter]) {
+    const allowedTypes = historyFilter === 'all' ? null : walletFilterMap[historyFilter];
+    walletTransactions
+      .filter(tx => tx.status === 'completed' || tx.status === 'reserved')
+      .filter(tx => !allowedTypes || allowedTypes.includes(tx.transaction_type))
+      .forEach(tx => {
+        const cfg = walletTypeMap[tx.transaction_type];
+        if (!cfg) return;
+        const isPositive = positiveWalletTypes.includes(tx.transaction_type);
+        items.push({
+          id: `wtx-${tx.id}`, label: tx.description || cfg.label, value: isPositive ? tx.amount : -tx.amount,
+          date: tx.completed_at || tx.created_at, type: cfg.type, status: tx.status === 'completed' ? 'Concluído' : 'Reservado',
+          icon: cfg.icon,
+        });
+      });
+  }
+
   items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
@@ -678,7 +752,7 @@ const HistorySection: React.FC<{
           <div className="rounded-lg bg-muted p-2"><History className="h-5 w-5 text-muted-foreground" /></div>
           <div>
             <CardTitle className="text-base font-semibold">Histórico Financeiro</CardTitle>
-            <CardDescription className="text-xs">Eventos financeiros de crédito e antecipação</CardDescription>
+            <CardDescription className="text-xs">Eventos financeiros completos — crédito, antecipação, carteira e repasses</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -734,7 +808,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
   const { creditAccount, installments, pendingInstallments, totalPending, loading: creditLoading, refetch: refetchCredit } = useCredit();
   const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading, refetch: refetchAdvance } = useReceivableAdvance();
   const { disputes, openCount, loading: disputeLoading, openDispute } = useDisputes();
-  const { wallet } = useWallet();
+  const { wallet, transactions: walletTransactions } = useWallet();
 
   const config = getRoleConfig(role, isAffiliated);
 
@@ -896,7 +970,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
       />
 
       {/* History */}
-      <HistorySection installments={installments} advances={advances} config={config} />
+      <HistorySection installments={installments} advances={advances} config={config} walletTransactions={walletTransactions} />
 
       {/* Legacy content */}
       {legacyContent && (
