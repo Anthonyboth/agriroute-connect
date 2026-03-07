@@ -731,8 +731,8 @@ const HistorySection: React.FC<{
 export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
   role, isAffiliated = false, affiliatedCompanyId, walletId, legacyContent
 }) => {
-  const { creditAccount, installments, pendingInstallments, totalPending, loading: creditLoading } = useCredit();
-  const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading } = useReceivableAdvance();
+  const { creditAccount, installments, pendingInstallments, totalPending, loading: creditLoading, refetch: refetchCredit } = useCredit();
+  const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading, refetch: refetchAdvance } = useReceivableAdvance();
   const { disputes, openCount, loading: disputeLoading, openDispute } = useDisputes();
   const { wallet } = useWallet();
 
