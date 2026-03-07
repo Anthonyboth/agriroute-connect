@@ -47,6 +47,9 @@ export const WalletTab: React.FC<WalletTabProps> = ({
   const totalReceivable = eligibleReceivables.reduce((s, r) => s + (r.total_amount - r.committed_amount), 0);
   const overdueInstallments = pendingInstallments.filter(i => i.status === 'overdue').length;
 
+  // Role-based: produtores não devem ver antecipação
+  const canAdvance = role !== 'PRODUTOR';
+
   return (
     <div className="space-y-4">
       <Tabs defaultValue="wallet" className="w-full">
@@ -72,6 +75,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             totalPendingAmount={totalPending}
             onAdvance={() => setAdvanceSimOpen(true)}
             onPayInstallment={() => toast.info('Pagamento de parcela — em desenvolvimento')}
+            role={role}
           />
 
           {/* Smart Financial Card */}
@@ -86,6 +90,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             onUseCredit={() => setCreditSimOpen(true)}
             onAdvance={() => setAdvanceSimOpen(true)}
             role={role}
+            isAffiliated={isAffiliated}
           />
 
           {/* Escrow Flow States */}
@@ -138,12 +143,14 @@ export const WalletTab: React.FC<WalletTabProps> = ({
         onClose={() => setCreditSimOpen(false)}
         creditLimit={creditAvailable}
       />
-      <AdvanceSimulatorModal
-        open={advanceSimOpen}
-        onClose={() => setAdvanceSimOpen(false)}
-        totalEligible={totalEligible}
-        eligibleCount={eligibleReceivables.length}
-      />
+      {canAdvance && (
+        <AdvanceSimulatorModal
+          open={advanceSimOpen}
+          onClose={() => setAdvanceSimOpen(false)}
+          totalEligible={totalEligible}
+          eligibleCount={eligibleReceivables.length}
+        />
+      )}
     </div>
   );
 };

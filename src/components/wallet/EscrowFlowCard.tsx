@@ -1,9 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowDown, ArrowRight, Lock, CheckCircle2, ShieldAlert, 
-  Clock, Banknote
+  ArrowRight, Lock, CheckCircle2, ShieldAlert, 
+  Clock, Banknote, Info
 } from 'lucide-react';
 import type { WalletData } from '@/hooks/useWallet';
 
@@ -28,9 +27,9 @@ export const EscrowFlowCard: React.FC<EscrowFlowCardProps> = ({ wallet }) => {
       label: 'Pendente',
       value: pending,
       icon: Clock,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-      borderColor: 'border-amber-200 dark:border-amber-800',
+      color: 'text-warning',
+      bgColor: 'bg-warning/[0.06]',
+      borderColor: 'border-warning/20',
       description: 'Aguardando confirmação',
     },
     {
@@ -38,7 +37,7 @@ export const EscrowFlowCard: React.FC<EscrowFlowCardProps> = ({ wallet }) => {
       value: reserved,
       icon: Lock,
       color: 'text-primary',
-      bgColor: 'bg-primary/5',
+      bgColor: 'bg-primary/[0.06]',
       borderColor: 'border-primary/20',
       description: 'Fretes em andamento',
     },
@@ -47,7 +46,7 @@ export const EscrowFlowCard: React.FC<EscrowFlowCardProps> = ({ wallet }) => {
       value: blocked,
       icon: ShieldAlert,
       color: 'text-destructive',
-      bgColor: 'bg-destructive/5',
+      bgColor: 'bg-destructive/[0.06]',
       borderColor: 'border-destructive/20',
       description: 'Disputas / Revisão',
     },
@@ -55,9 +54,9 @@ export const EscrowFlowCard: React.FC<EscrowFlowCardProps> = ({ wallet }) => {
       label: 'Disponível',
       value: available,
       icon: CheckCircle2,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-      borderColor: 'border-emerald-200 dark:border-emerald-800',
+      color: 'text-primary',
+      bgColor: 'bg-primary/[0.06]',
+      borderColor: 'border-primary/20',
       description: 'Livre para uso',
     },
   ];
@@ -100,7 +99,7 @@ export const EscrowFlowCard: React.FC<EscrowFlowCardProps> = ({ wallet }) => {
                   {/* Percentage bar */}
                   <div className="mt-1.5 h-1 bg-muted/30 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${state.color.replace('text-', 'bg-')}/30`}
+                      className="h-full rounded-full bg-primary/30"
                       style={{ width: `${Math.max(pct, 5)}%` }}
                     />
                   </div>
@@ -112,7 +111,8 @@ export const EscrowFlowCard: React.FC<EscrowFlowCardProps> = ({ wallet }) => {
         </div>
 
         {/* Flow description */}
-        <div className="mt-3 p-2.5 bg-muted/30 rounded-lg">
+        <div className="mt-3 p-2.5 bg-muted/30 rounded-lg flex items-start gap-2">
+          <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
           <p className="text-[10px] text-muted-foreground leading-relaxed">
             <strong>Fluxo escrow:</strong> Pagamentos de frete entram como <em>Reservado</em> → após confirmação de entrega, o sistema deduz antecipações e parcelas de crédito → saldo restante vai para <em>Disponível</em>.
           </p>

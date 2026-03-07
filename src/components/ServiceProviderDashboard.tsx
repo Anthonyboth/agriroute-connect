@@ -65,6 +65,7 @@ import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
+import { WalletTab } from '@/components/wallet/WalletTab';
 import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
@@ -1303,7 +1304,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Banknote className="h-3.5 w-3.5 mr-1" />
-                Saldo
+                Carteira
               </TabsTrigger>
               <TabsTrigger 
                 value="ratings" 
@@ -1678,7 +1679,10 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="payouts" className="space-y-4">
-            <ServiceProviderPayouts providerId={getProviderProfileId() || ''} />
+            <WalletTab
+              role="PRESTADOR"
+              legacyPaymentContent={<ServiceProviderPayouts providerId={getProviderProfileId() || ''} />}
+            />
           </TabsContent>
 
           <TabsContent value="ratings" className="space-y-6">

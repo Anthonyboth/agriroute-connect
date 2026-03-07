@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   RefreshCw, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight,
   CreditCard, Banknote, Receipt, FileText, Zap, ShieldAlert,
-  Truck, Clock
+  Truck, Clock, Info, CircleDollarSign
 } from 'lucide-react';
 import type { WalletTransaction } from '@/hooks/useWallet';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
@@ -43,12 +43,12 @@ const TX_LABEL: Record<string, string> = {
   payment: 'Pagamento',
   payout: 'Repasse de frete',
   refund: 'Reembolso',
-  fee: 'Taxa',
+  fee: 'Taxa da plataforma',
   credit_use: 'Uso de crédito',
   advance: 'Antecipação de frete',
   auto_deduction: 'Desconto automático',
-  reserve: 'Reserva',
-  release: 'Liberação',
+  reserve: 'Reserva escrow',
+  release: 'Liberação de saldo',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -124,6 +124,9 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
                 <SelectItem value="advance">Antecipações</SelectItem>
                 <SelectItem value="payment">Pagamentos</SelectItem>
                 <SelectItem value="auto_deduction">Descontos</SelectItem>
+                <SelectItem value="reserve">Reservas</SelectItem>
+                <SelectItem value="release">Liberações</SelectItem>
+                <SelectItem value="fee">Taxas</SelectItem>
               </SelectContent>
             </Select>
             <Button size="sm" variant="ghost" onClick={onRefresh} disabled={loading} className="h-8 w-8 p-0">
@@ -134,9 +137,28 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
       </CardHeader>
       <CardContent>
         {grouped.length === 0 ? (
-          <div className="text-center py-12">
-            <Receipt className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Nenhuma transação encontrada</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="rounded-full bg-muted/60 p-4 mb-4">
+              <Receipt className="h-8 w-8 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">Nenhuma transação encontrada</p>
+            <p className="text-xs text-muted-foreground max-w-[280px] mb-4">
+              {filter !== 'all' 
+                ? `Não há transações do tipo "${TX_LABEL[filter] || filter}". Tente outro filtro ou aguarde novas movimentações.`
+                : 'Suas movimentações financeiras aparecerão aqui assim que você realizar depósitos, saques, pagamentos ou receber fretes.'
+              }
+            </p>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40 text-left max-w-sm">
+              <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="text-[11px] text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground text-xs">O que aparece aqui?</p>
+                <p>• Depósitos e saques via Pix</p>
+                <p>• Pagamentos e recebimentos de frete</p>
+                <p>• Reservas escrow e liberações</p>
+                <p>• Descontos automáticos de crédito</p>
+                <p>• Antecipações de recebíveis</p>
+              </div>
+            </div>
           </div>
         ) : (
           <ScrollArea className="max-h-[500px]">
@@ -163,7 +185,7 @@ export const FinancialTimeline: React.FC<FinancialTimelineProps> = ({ transactio
                       return (
                         <div key={tx.id} className="relative flex items-start gap-3 py-2.5">
                           {/* Timeline dot */}
-                          <div className={`absolute -left-6 top-3 rounded-full border-2 border-background p-1 bg-muted`}>
+                          <div className="absolute -left-6 top-3 rounded-full border-2 border-background p-1 bg-muted">
                             <Icon className={`h-3 w-3 ${cfg.color}`} />
                           </div>
 

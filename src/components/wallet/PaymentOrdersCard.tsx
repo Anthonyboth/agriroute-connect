@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  ArrowRight, Lock, CheckCircle2, Clock, AlertTriangle,
-  Truck, Split, Banknote, ArrowDown
+  ArrowRight, Lock, CheckCircle2, Clock, 
+  Truck, Banknote, ArrowDown, Info, Split
 } from 'lucide-react';
 import type { PaymentOrder, Payout } from '@/hooks/usePaymentOrders';
 
@@ -52,19 +52,19 @@ export const PaymentOrdersCard: React.FC<PaymentOrdersCardProps> = ({
       <CardContent className="pb-4 space-y-4">
         {/* Summary metrics */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-lg p-2.5 bg-primary/5 border border-primary/15">
+          <div className="rounded-lg p-2.5 bg-primary/[0.06] border border-primary/15">
             <div className="flex items-center gap-1 mb-0.5">
               <Lock className="h-3 w-3 text-primary" />
               <span className="text-[10px] font-medium text-muted-foreground">Em Escrow</span>
             </div>
             <p className="text-sm font-bold text-primary">{formatBRL(escrowTotal)}</p>
           </div>
-          <div className="rounded-lg p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="rounded-lg p-2.5 bg-primary/[0.04] border border-primary/10">
             <div className="flex items-center gap-1 mb-0.5">
-              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+              <CheckCircle2 className="h-3 w-3 text-primary" />
               <span className="text-[10px] font-medium text-muted-foreground">Liberado</span>
             </div>
-            <p className="text-sm font-bold text-emerald-600">{formatBRL(releasedTotal)}</p>
+            <p className="text-sm font-bold text-primary">{formatBRL(releasedTotal)}</p>
           </div>
           <div className="rounded-lg p-2.5 bg-muted/40 border border-border/40">
             <div className="flex items-center gap-1 mb-0.5">
@@ -77,12 +77,20 @@ export const PaymentOrdersCard: React.FC<PaymentOrdersCardProps> = ({
 
         {/* Orders list */}
         {activeOrders.length === 0 ? (
-          <div className="text-center py-4">
-            <Truck className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Nenhuma ordem de pagamento ativa</p>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Ordens são criadas automaticamente quando fretes são pagos
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="rounded-full bg-muted/60 p-3 mb-3">
+              <Truck className="h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">Nenhuma ordem ativa</p>
+            <p className="text-xs text-muted-foreground max-w-[260px] mb-3">
+              Ordens de pagamento são criadas automaticamente quando fretes são aceitos e pagos pelo embarcador.
             </p>
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 border border-border/40 text-left max-w-xs">
+              <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-[10px] text-muted-foreground">
+                O fluxo é: <strong>Pagamento → Escrow → Entrega → Split → Liberação</strong>. Cada etapa é registrada no ledger.
+              </p>
+            </div>
           </div>
         ) : (
           <ScrollArea className="max-h-[240px]">
@@ -108,25 +116,25 @@ export const PaymentOrdersCard: React.FC<PaymentOrdersCardProps> = ({
                     {order.advance_deduction > 0 && (
                       <>
                         <ArrowRight className="h-2.5 w-2.5" />
-                        <span className="text-amber-600">-{formatBRL(order.advance_deduction)} antec.</span>
+                        <span className="text-warning">-{formatBRL(order.advance_deduction)} antec.</span>
                       </>
                     )}
                     {order.credit_deduction > 0 && (
                       <>
                         <ArrowRight className="h-2.5 w-2.5" />
-                        <span className="text-blue-600">-{formatBRL(order.credit_deduction)} créd.</span>
+                        <span className="text-accent">-{formatBRL(order.credit_deduction)} créd.</span>
                       </>
                     )}
                     {order.net_amount > 0 && (
                       <>
                         <ArrowRight className="h-2.5 w-2.5" />
-                        <span className="font-semibold text-emerald-600">{formatBRL(order.net_amount)} líquido</span>
+                        <span className="font-semibold text-primary">{formatBRL(order.net_amount)} líquido</span>
                       </>
                     )}
                   </div>
                   
                   <p className="text-[9px] text-muted-foreground mt-1">
-                    {new Date(order.created_at).toLocaleDateString('pt-BR')} · {order.operation_owner_type}
+                    {new Date(order.created_at).toLocaleDateString('pt-BR')} · {order.operation_owner_type === 'carrier' ? 'Transportadora' : order.operation_owner_type === 'driver' ? 'Motorista' : order.operation_owner_type}
                   </p>
                 </div>
               ))}
@@ -144,7 +152,7 @@ export const PaymentOrdersCard: React.FC<PaymentOrdersCardProps> = ({
               {payouts.slice(0, 5).map(p => (
                 <div key={p.id} className="flex items-center justify-between text-xs px-2 py-1.5 bg-muted/30 rounded">
                   <div className="flex items-center gap-1.5">
-                    <ArrowDown className="h-3 w-3 text-emerald-500" />
+                    <ArrowDown className="h-3 w-3 text-primary" />
                     <span>{formatBRL(p.gross_amount)}</span>
                     {(p.credit_deduction > 0 || p.advance_deduction > 0) && (
                       <span className="text-[10px] text-muted-foreground">
@@ -153,7 +161,7 @@ export const PaymentOrdersCard: React.FC<PaymentOrdersCardProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="font-semibold text-emerald-600">{formatBRL(p.net_amount)}</span>
+                  <span className="font-semibold text-primary">{formatBRL(p.net_amount)}</span>
                 </div>
               ))}
             </div>
