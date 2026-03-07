@@ -22,12 +22,13 @@ interface FinancialNotificationsProps {
   totalPendingAmount: number;
   onAdvance: () => void;
   onPayInstallment: () => void;
+  role?: string;
 }
 
 export const FinancialNotifications: React.FC<FinancialNotificationsProps> = ({
   availableBalance, totalReceivable, creditAvailable,
   pendingInstallments, overdueInstallments, totalPendingAmount,
-  onAdvance, onPayInstallment
+  onAdvance, onPayInstallment, role
 }) => {
   const [dismissed, setDismissed] = React.useState<Set<string>>(new Set());
 
@@ -36,7 +37,8 @@ export const FinancialNotifications: React.FC<FinancialNotificationsProps> = ({
 
   const notifications: Notification[] = [];
 
-  if (totalReceivable > 500) {
+  // Only show advance notification for non-PRODUTOR roles
+  if (totalReceivable > 500 && role !== 'PRODUTOR') {
     notifications.push({
       id: 'advance-available',
       icon: <Zap className="h-4 w-4 text-accent" />,
