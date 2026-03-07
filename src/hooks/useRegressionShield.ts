@@ -1044,6 +1044,31 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'toast_id_prevents_duplicate_notifications',
     ],
   },
+
+  // ── FRT-037: Propostas pendentes invisíveis para o produtor ──
+  {
+    id: 'FRT-037',
+    date: '2026-03-07',
+    severity: 'CRITICAL',
+    area: 'proposals',
+    bug: 'Propostas de motoristas com status PENDING não apareciam na aba "Pendentes" do produtor. O produtor via "Nenhuma proposta pendente" mesmo com propostas existentes no banco.',
+    rootCause: 'filterProposalsByStatus() e os contadores usavam canAcceptProposal() como gate para exibir propostas PENDING e COUNTER_PROPOSED. canAcceptProposal() retorna false quando freight.accepted_trucks >= required_trucks ou freight.status != OPEN, escondendo propostas válidas da UI.',
+    fix: 'Removido canAcceptProposal() como filtro de exibição nas abas Pendentes e Contrapropostas. canAcceptProposal() agora é usado APENAS para desabilitar o botão de aceitar (disabled prop). Todas as propostas PENDING são sempre visíveis.',
+    files: [
+      'src/components/FreightProposalsManager.tsx',
+    ],
+    rules: [
+      'canAcceptProposal() NUNCA deve ser usado como filtro de exibição em filterProposalsByStatus() — APENAS para desabilitar botões.',
+      'Propostas PENDING e COUNTER_PROPOSED DEVEM sempre ser visíveis nas respectivas abas, independente do estado do frete.',
+      'Contadores de propostas (pendingCount, counterProposedCount) DEVEM contar TODAS as propostas no status, sem filtro adicional.',
+    ],
+    keywords: ['canAcceptProposal', 'filterProposalsByStatus', 'pendingCount', 'PENDING', 'proposals', 'produtor', 'FreightProposalsManager', 'invisível'],
+    testCases: [
+      'pending_proposals_visible_even_when_freight_full',
+      'counter_proposed_visible_when_freight_not_open',
+      'accept_button_disabled_when_cannot_accept',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
