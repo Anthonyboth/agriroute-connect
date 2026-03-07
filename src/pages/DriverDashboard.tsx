@@ -2972,6 +2972,9 @@ const DriverDashboard = () => {
                   )}
                 </SafeListWrapper>
               </div>
+              </div>
+              )}
+              </div>
             ) : (
               <div className="text-center py-12 space-y-6">
                 <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center">
