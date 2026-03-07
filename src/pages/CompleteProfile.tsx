@@ -320,13 +320,13 @@ const CompleteProfile = () => {
         const message = missing.length === 1 
           ? `Por favor, preencha o campo: ${missing[0]}`
           : `Por favor, preencha os campos: ${missing.join(', ')}`;
-        toast.error(message);
+        toast(message, { id: 'missing-fields' });
         return;
       }
       
       // Validar CPF/CNPJ
       if (!validateDocument(profileData.cpf_cnpj)) {
-        toast.error('CPF/CNPJ inválido. Verifique os dados informados.');
+        toast('CPF/CNPJ inválido. Verifique os dados informados.', { id: 'invalid-document' });
         return;
       }
       
@@ -339,7 +339,7 @@ const CompleteProfile = () => {
       const missing = getMissingForStep(registrationMode, 'documentos_basicos', state);
       
       if (missing.length > 0) {
-        toast.error(`Por favor, envie: ${missing.join(', ')}`);
+        toast(`Por favor, envie: ${missing.join(', ')}`, { id: 'missing-docs' });
         return;
       }
       
@@ -359,7 +359,7 @@ const CompleteProfile = () => {
       const missing = getMissingForStep(registrationMode, 'documentos_e_veiculos', state);
       
       if (missing.length > 0) {
-        toast.error(`Por favor, envie: ${missing.join(', ')}`);
+        toast(`Por favor, envie: ${missing.join(', ')}`, { id: 'missing-driver-docs' });
         return;
       }
       
@@ -368,7 +368,7 @@ const CompleteProfile = () => {
       // Validar vencimento de CNH
       const cnhValidation = validateCNHExpiry(registrationMode, profileData.cnh_expiry_date);
       if (!cnhValidation.valid) {
-        toast.error(cnhValidation.message!);
+        toast(cnhValidation.message!, { id: 'cnh-validation' });
         return;
       }
       if (cnhValidation.message) {
@@ -386,7 +386,7 @@ const CompleteProfile = () => {
 
     // Validação final de selfie
     if (!documentUrls.selfie) {
-      toast.error('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.');
+      toast('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.', { id: 'missing-selfie' });
       console.error('❌ Selfie ausente na finalização');
       return;
     }

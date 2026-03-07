@@ -77,7 +77,7 @@ export function DriverPayoutModal({ isOpen, onClose, availableBalance, driverId 
       const message = missingFields.length === 1 
         ? `Por favor, preencha o campo: ${fieldList}`
         : `Por favor, preencha os campos: ${fieldList}`;
-      toast.error(message);
+      toast(message, { id: 'missing-payout-fields' });
       return;
     }
 
