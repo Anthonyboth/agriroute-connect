@@ -142,7 +142,7 @@ serve(async (req) => {
         service_request:service_requests!inner(
           id, service_type, problem_description, location_address, location_city, location_state,
           urgency, status, estimated_price, contact_name, preferred_datetime, created_at,
-          client:profiles!service_requests_client_id_fkey(id, full_name, role)
+          client:profiles!fk_service_requests_client(id, full_name, role)
         )
       `)
       .eq("proposer_id", driverId)
