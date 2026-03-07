@@ -3031,10 +3031,8 @@ const DriverDashboard = () => {
 
           <TabsContent value="payments" className="space-y-4">
             {activeTab === 'payments' && (() => {
-              const { WalletTab } = require('@/components/wallet');
               const isAff = isCompanyDriver || isAffiliated;
               
-              // Build legacy content for non-affiliated drivers
               const legacyPaymentContent = !isAff ? (
                 <SafeListWrapper>
                   <div className="flex justify-between items-center">

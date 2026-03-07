@@ -1312,24 +1312,21 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
-            {(() => {
-              const { WalletTab } = require('@/components/wallet');
-              return (
-                <WalletTab
-                  role="TRANSPORTADORA"
-                  legacyPaymentContent={
-                    <div className="space-y-8">
-                      <Suspense fallback={<ChartLoader />}>
-                        <CompanyExternalPaymentsPanel />
-                      </Suspense>
-                      <Suspense fallback={<ChartLoader />}>
-                        <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
-                      </Suspense>
-                    </div>
-                  }
-                />
-              );
-            })()}
+            <Suspense fallback={<ChartLoader />}>
+              <LazyWalletTab
+                role="TRANSPORTADORA"
+                legacyPaymentContent={
+                  <div className="space-y-8">
+                    <Suspense fallback={<ChartLoader />}>
+                      <CompanyExternalPaymentsPanel />
+                    </Suspense>
+                    <Suspense fallback={<ChartLoader />}>
+                      <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
+                    </Suspense>
+                  </div>
+                }
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="cities" className="mt-6">
