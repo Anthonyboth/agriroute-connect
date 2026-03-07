@@ -47,6 +47,16 @@ export const WalletTab: React.FC<WalletTabProps> = ({
   const totalReceivable = eligibleReceivables.reduce((s, r) => s + (r.total_amount - r.committed_amount), 0);
   const overdueInstallments = pendingInstallments.filter(i => i.status === 'overdue').length;
 
+  // Recently released: completed transactions from last 24h
+  const recentlyReleasedAmount = transactions
+    .filter(tx => {
+      if (tx.transaction_type !== 'freight_credit' && tx.transaction_type !== 'release') return false;
+      if (tx.status !== 'completed') return false;
+      const txDate = new Date(tx.created_at);
+      return (Date.now() - txDate.getTime()) < 24 * 60 * 60 * 1000;
+    })
+    .reduce((s, tx) => s + tx.amount, 0);
+
   // Role-based: produtores não devem ver antecipação
   const canAdvance = role !== 'PRODUTOR';
 
