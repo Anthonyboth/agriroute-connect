@@ -162,6 +162,7 @@ const DriverDashboard = () => {
   const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
+  const [myServiceProposals, setMyServiceProposals] = useState<any[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
   const [ongoingFreights, setOngoingFreights] = useState<Freight[]>([]);
   const [acceptedServiceRequests, setAcceptedServiceRequests] = useState<any[]>([]);
@@ -549,6 +550,10 @@ const DriverDashboard = () => {
       });
       
       if (isMountedRef.current) setMyProposals(proposalsWithRegisteredProducer);
+      
+      // ✅ Service proposals from edge function
+      const svcProposals = (data?.serviceProposals as any[]) || [];
+      if (isMountedRef.current) setMyServiceProposals(svcProposals);
       
       // ✅ Não sobrescrever ongoingFreights aqui.
       // A fonte autoritativa para "Em Andamento" é fetchOngoingFreights(),
