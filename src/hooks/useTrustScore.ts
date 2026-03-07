@@ -68,24 +68,24 @@ export const useTrustScore = () => {
     setLoading(true);
 
     try {
-      // Fetch freight count
-      const { count: freightCount } = await supabase
+      // Fetch freight count (completed)
+      const { count: freightCount } = await (supabase
         .from('freights')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true }) as any)
         .or(`producer_id.eq.${profile.id},driver_id.eq.${profile.id}`)
         .eq('status', 'COMPLETED');
 
       // Fetch cancelled count
-      const { count: cancelledCount } = await supabase
+      const { count: cancelledCount } = await (supabase
         .from('freights')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true }) as any)
         .or(`producer_id.eq.${profile.id},driver_id.eq.${profile.id}`)
-        .eq('status', 'CANCELLED' as any);
+        .eq('status', 'CANCELLED');
 
       // Fetch average rating
-      const { data: ratingData } = await supabase
+      const { data: ratingData } = await (supabase
         .from('freight_ratings')
-        .select('rating')
+        .select('rating') as any)
         .eq('rated_profile_id', profile.id);
 
       const avgRating = ratingData && ratingData.length > 0
