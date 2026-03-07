@@ -1118,6 +1118,55 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'service_types_never_in_freight_proposals_tab',
     ],
   },
+  // ── FRT-040: Counter proposal card buttons stacking/overlapping on mobile ──
+  {
+    id: 'FRT-040',
+    date: '2026-03-07',
+    severity: 'HIGH',
+    area: 'driver-dashboard-ui',
+    bug: 'Card de contraproposta no DriverDashboard tinha botões (Aceitar/Negociar/Recusar) empilhados verticalmente e o botão Aceitar cobria os outros no mobile.',
+    rootCause: 'Botões usavam grid-cols-1 sm:grid-cols-2 com sm:col-span-2 lg:col-span-1 no botão Aceitar, causando empilhamento no mobile e tamanho desproporcional no tablet. Classe gradient-primary aplicava color:white!important e estilos inconsistentes.',
+    fix: 'Grid fixo grid-cols-3 gap-2 sem breakpoints. Removido gradient-primary e sm:col-span-2. Todos os botões com h-9 w-full text-xs font-medium rounded-xl justify-center. Ícones com shrink-0, texto com truncate.',
+    files: [
+      'src/pages/DriverDashboard.tsx',
+    ],
+    rules: [
+      'Botões de ação em cards de proposta DEVEM usar grid-cols-3 fixo, NUNCA breakpoints responsivos que causam empilhamento.',
+      'NUNCA usar gradient-primary em botões de ação — causa inconsistências de tamanho e cor.',
+      'NUNCA usar col-span-2 em botões de ação de proposta — todos devem ter mesmo tamanho.',
+      'Botões devem ter h-9, text-xs, truncate no label, e shrink-0 nos ícones.',
+    ],
+    keywords: ['grid-cols-3', 'gradient-primary', 'col-span-2', 'empilhamento', 'botões', 'contraproposta', 'DriverDashboard', 'mobile', 'overflow-hidden'],
+    testCases: [
+      'counter_proposal_buttons_side_by_side_on_mobile',
+      'accept_button_same_size_as_others',
+      'no_gradient_primary_on_action_buttons',
+    ],
+  },
+
+  // ── FRT-041: XCircle import missing crashes DriverDashboard ──
+  {
+    id: 'FRT-041',
+    date: '2026-03-07',
+    severity: 'CRITICAL',
+    area: 'driver-dashboard-ui',
+    bug: 'DriverDashboard crashava com "XCircle is not defined" ao adicionar ícone XCircle nos botões de contraproposta sem importar o ícone.',
+    rootCause: 'Ao refatorar os botões de contraproposta (FRT-040), o ícone XCircle foi adicionado ao JSX mas não foi incluído no import de lucide-react. Build passava mas runtime falhava.',
+    fix: 'Adicionado XCircle ao import existente de lucide-react na linha 28 do DriverDashboard.tsx.',
+    files: [
+      'src/pages/DriverDashboard.tsx',
+    ],
+    rules: [
+      'Ao adicionar ícones Lucide no JSX, SEMPRE verificar se estão no import de lucide-react.',
+      'Testar runtime após adicionar novos ícones — build pode não detectar referências faltantes em componentes grandes.',
+      'NUNCA confiar que build success = runtime success para componentes com muitos imports.',
+    ],
+    keywords: ['XCircle', 'lucide-react', 'import', 'not defined', 'crash', 'DriverDashboard', 'ReferenceError'],
+    testCases: [
+      'all_lucide_icons_in_jsx_are_imported',
+      'driver_dashboard_renders_without_reference_errors',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
