@@ -278,7 +278,7 @@ const CompanyDashboard = () => {
       }
 
       setActiveTab('payments');
-      toast.info('Entrega confirmada. Vá em "Pagamentos" para confirmar o pagamento ao motorista.');
+      toast.info('Entrega confirmada. Vá em "Carteira" para confirmar o pagamento ao motorista.');
     }
 
     refetchActiveFreights();
