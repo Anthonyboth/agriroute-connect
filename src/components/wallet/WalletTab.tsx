@@ -85,7 +85,13 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             totalPendingAmount={totalPending}
             onAdvance={() => setAdvanceSimOpen(true)}
             onPayInstallment={() => toast.info('Acesse a aba Gestão de Pagamentos para pagar parcelas')}
+            onWithdraw={() => setWithdrawOpen(true)}
+            onUseCredit={() => setCreditSimOpen(true)}
             role={role}
+            escrowTotal={escrowTotal}
+            releasedTotal={releasedTotal}
+            recentlyReleasedAmount={recentlyReleasedAmount}
+            installments={installments}
           />
 
           {/* Smart Financial Card */}
