@@ -87,7 +87,7 @@ serve(async (req) => {
 
     const driverId: string = profile.id as string;
 
-    // Fetch driver proposals (bypasses RLS with service role)
+    // Fetch driver freight proposals (bypasses RLS with service role)
     const { data: proposals, error: propErr } = await supabase
       .from("freight_proposals")
       .select("*")
@@ -132,6 +132,36 @@ serve(async (req) => {
         freight: freightById.get(p.freight_id) || null,
       }))
       .filter((p: any) => Boolean(p.freight?.producer?.id));
+
+    // ✅ Fetch service proposals made by this driver
+    logStep("Buscando propostas de serviço");
+    const { data: serviceProposals, error: svcPropErr } = await supabase
+      .from("service_request_proposals")
+      .select(`
+        *,
+        service_request:service_requests!inner(
+          id, service_type, problem_description, location_address, location_city, location_state,
+          urgency, status, estimated_price, contact_name, preferred_datetime, created_at,
+          client:profiles!service_requests_client_id_fkey(id, full_name, role)
+        )
+      `)
+      .eq("proposer_id", driverId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (svcPropErr) {
+      logStep("Erro ao buscar propostas de serviço (não crítico)", { error: svcPropErr.message });
+    }
+
+    const enrichedServiceProposals = (serviceProposals ?? []).map((sp: any) => ({
+      ...sp,
+      _type: "service", // marker to distinguish from freight proposals on frontend
+    }));
+
+    logStep("Propostas encontradas", { 
+      freight: enrichedProposals.length, 
+      service: enrichedServiceProposals.length 
+    });
 
     // Compute ongoing freights from accepted proposals or by driver_id
     const acceptedFreightIds = new Set(
@@ -188,7 +218,12 @@ serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ success: true, proposals: enrichedProposals, ongoingFreights }),
+      JSON.stringify({ 
+        success: true, 
+        proposals: enrichedProposals, 
+        serviceProposals: enrichedServiceProposals,
+        ongoingFreights 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

@@ -162,6 +162,7 @@ const DriverDashboard = () => {
   const { pendingRatingsCount } = usePendingRatingsCount(profile?.id);
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
+  const [myServiceProposals, setMyServiceProposals] = useState<any[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
   const [ongoingFreights, setOngoingFreights] = useState<Freight[]>([]);
   const [acceptedServiceRequests, setAcceptedServiceRequests] = useState<any[]>([]);
@@ -549,6 +550,10 @@ const DriverDashboard = () => {
       });
       
       if (isMountedRef.current) setMyProposals(proposalsWithRegisteredProducer);
+      
+      // ✅ Service proposals from edge function
+      const svcProposals = (data?.serviceProposals as any[]) || [];
+      if (isMountedRef.current) setMyServiceProposals(svcProposals);
       
       // ✅ Não sobrescrever ongoingFreights aqui.
       // A fonte autoritativa para "Em Andamento" é fetchOngoingFreights(),
@@ -2723,10 +2728,72 @@ const DriverDashboard = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
-                {(() => { const active = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && p.freight && (p.freight.status || '').toUpperCase() === 'OPEN' && (((p.freight as any).required_trucks ?? 1) - ((p.freight as any).accepted_trucks ?? 0)) > 0); return `${active.length} proposta${active.length !== 1 ? 's' : ''}`; })()}
+                {(() => { 
+                  const activeFreight = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && p.freight && (p.freight.status || '').toUpperCase() === 'OPEN' && (((p.freight as any).required_trucks ?? 1) - ((p.freight as any).accepted_trucks ?? 0)) > 0); 
+                  const activeService = myServiceProposals.filter((sp: any) => sp.status === 'pending' || sp.status === 'PENDING');
+                  const total = activeFreight.length + activeService.length;
+                  return `${total} proposta${total !== 1 ? 's' : ''}`; 
+                })()}
               </Badge>
             </div>
-            {myProposals.some(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') ? (
+            {(myProposals.some(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') || myServiceProposals.length > 0) ? (
+              <div className="space-y-6">
+              {/* === Propostas de Serviço === */}
+              {myServiceProposals.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-base font-medium flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-primary" />
+                    Propostas de Serviço ({myServiceProposals.length})
+                  </h4>
+                  <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                    {myServiceProposals.map((sp: any) => (
+                      <Card key={sp.id} className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                            <p className="font-medium text-sm">{sp.service_request?.service_type || 'Serviço'}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{sp.service_request?.problem_description}</p>
+                          </div>
+                          <Badge variant={sp.status === 'accepted' ? 'default' : sp.status === 'rejected' ? 'destructive' : 'secondary'} className="text-xs shrink-0">
+                            {sp.status === 'accepted' ? '✅ Aceita' : sp.status === 'rejected' ? '❌ Rejeitada' : '⏳ Pendente'}
+                          </Badge>
+                        </div>
+                        {sp.service_request?.location_city && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {sp.service_request.location_city}{sp.service_request.location_state ? ` - ${sp.service_request.location_state}` : ''}
+                          </p>
+                        )}
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="text-sm font-medium">Sua proposta:</span>
+                          <span className="text-lg font-bold text-primary">
+                            R$ {sp.proposed_price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                          <span>Solicitante: {sp.service_request?.client?.full_name || sp.service_request?.contact_name || 'Cliente'}</span>
+                          <span>{new Date(sp.created_at).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                        {sp.message && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs text-muted-foreground">Mensagem:</p>
+                            <p className="text-sm">{sp.message}</p>
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* === Propostas de Frete === */}
+              {myProposals.some(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && (
+              <div className="space-y-3">
+              {myServiceProposals.length > 0 && (
+                <h4 className="text-base font-medium flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-primary" />
+                  Propostas de Frete
+                </h4>
+              )}
               <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando propostas...</div>}>
                   {myProposals.filter(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED').map((proposal) => 
@@ -2904,6 +2971,9 @@ const DriverDashboard = () => {
                     ) : null
                   )}
                 </SafeListWrapper>
+              </div>
+              </div>
+              )}
               </div>
             ) : (
               <div className="text-center py-12 space-y-6">
