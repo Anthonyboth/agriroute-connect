@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Wallet, ArrowDownToLine, ArrowUpFromLine, CreditCard, Zap,
-  TrendingUp, ShieldAlert, AlertTriangle
+  TrendingUp, ShieldAlert, AlertTriangle, Truck, Receipt
 } from 'lucide-react';
 import type { WalletData } from '@/hooks/useWallet';
 
@@ -20,6 +20,7 @@ interface SmartFinancialCardProps {
   onUseCredit: () => void;
   onAdvance: () => void;
   role: string;
+  isAffiliated?: boolean;
 }
 
 const formatBRL = (value: number) =>
@@ -27,7 +28,7 @@ const formatBRL = (value: number) =>
 
 export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
   wallet, loading, error, creditAvailable, totalReceivable,
-  onDeposit, onWithdraw, onUseCredit, onAdvance, role
+  onDeposit, onWithdraw, onUseCredit, onAdvance, role, isAffiliated = false
 }) => {
   if (loading) {
     return (
@@ -49,9 +50,12 @@ export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
   if (error && !wallet) {
     return (
       <Card className="border-destructive/30">
-        <CardContent className="flex items-center gap-3 py-6">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <p className="text-sm text-destructive">{error}</p>
+        <CardContent className="flex flex-col items-center gap-3 py-8">
+          <AlertTriangle className="h-8 w-8 text-destructive/60" />
+          <p className="text-sm text-destructive font-medium">{error}</p>
+          <p className="text-xs text-muted-foreground text-center max-w-[260px]">
+            Verifique sua conexão e tente novamente. Se o problema persistir, entre em contato com o suporte.
+          </p>
         </CardContent>
       </Card>
     );
@@ -61,7 +65,6 @@ export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
   const pending = wallet?.pending_balance || 0;
   const reserved = wallet?.reserved_balance || 0;
   const blocked = wallet?.blocked_balance || 0;
-  const total = available + pending + reserved + blocked;
 
   // For visual bars — normalized to max of all three
   const maxBar = Math.max(totalReceivable, creditAvailable, available, 1);
@@ -70,6 +73,17 @@ export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
   const barAvailable = (available / maxBar) * 100;
 
   const isBlocked = wallet?.status === 'blocked';
+
+  // Role-based visibility
+  const canAdvance = role !== 'PRODUTOR'; // Produtores não antecipam
+  const canWithdraw = role !== 'PRODUTOR'; // Produtores focam em pagar fretes
+  const showReceivables = role !== 'PRODUTOR'; // Produtores não têm recebíveis
+
+  // Role-specific labels
+  const depositLabel = role === 'PRODUTOR' ? 'Adicionar Saldo' : 'Adicionar';
+  const withdrawLabel = 'Sacar Pix';
+  const primaryCTALabel = role === 'PRODUTOR' ? 'Pagar Frete' : 'Usar Crédito';
+  const primaryCTAIcon = role === 'PRODUTOR' ? <Truck className="h-3.5 w-3.5" /> : <CreditCard className="h-3.5 w-3.5" />;
 
   return (
     <Card className="shadow-md border-primary/20 overflow-hidden">
@@ -95,12 +109,14 @@ export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
 
       <CardContent className="pt-4 pb-5 space-y-5">
         {/* Three key metrics */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg p-3 bg-primary/[0.06] border border-primary/15">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Recebíveis</p>
-            <p className="text-lg font-bold text-primary mt-0.5">{formatBRL(totalReceivable)}</p>
-            <div className="mt-1.5"><Progress value={barReceivable} className="h-1.5" /></div>
-          </div>
+        <div className={`grid gap-3 ${showReceivables ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {showReceivables && (
+            <div className="rounded-lg p-3 bg-primary/[0.06] border border-primary/15">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Recebíveis</p>
+              <p className="text-lg font-bold text-primary mt-0.5">{formatBRL(totalReceivable)}</p>
+              <div className="mt-1.5"><Progress value={barReceivable} className="h-1.5" /></div>
+            </div>
+          )}
           <div className="rounded-lg p-3 bg-accent/[0.06] border border-accent/15">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Crédito</p>
             <p className="text-lg font-bold text-accent mt-0.5">{formatBRL(creditAvailable)}</p>
@@ -122,37 +138,51 @@ export const SmartFinancialCard: React.FC<SmartFinancialCardProps> = ({
           </div>
         )}
 
+        {/* Affiliated driver warning */}
+        {isAffiliated && (
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-warning/[0.08] border border-warning/20">
+            <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
+            <p className="text-[11px] text-muted-foreground">
+              Motorista afiliado — você gerencia apenas seu saldo pessoal. Valores da transportadora não aparecem aqui.
+            </p>
+          </div>
+        )}
+
         {/* Quick actions — 10% accent zone for primary CTAs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className={`grid gap-2 ${canAdvance ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
           <Button onClick={onDeposit} size="sm" className="text-xs gap-1.5 h-9">
-            <ArrowDownToLine className="h-3.5 w-3.5" /> Adicionar
+            <ArrowDownToLine className="h-3.5 w-3.5" /> {depositLabel}
           </Button>
-          <Button
-            onClick={onWithdraw}
-            size="sm"
-            variant="outline"
-            className="text-xs gap-1.5 h-9"
-            disabled={!wallet || available <= 0 || isBlocked}
-          >
-            <ArrowUpFromLine className="h-3.5 w-3.5" /> Sacar Pix
-          </Button>
+          {canWithdraw && (
+            <Button
+              onClick={onWithdraw}
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1.5 h-9"
+              disabled={!wallet || available <= 0 || isBlocked}
+            >
+              <ArrowUpFromLine className="h-3.5 w-3.5" /> {withdrawLabel}
+            </Button>
+          )}
           <Button
             onClick={onUseCredit}
             size="sm"
             className="text-xs gap-1.5 h-9 bg-accent text-accent-foreground hover:bg-accent/90"
             disabled={creditAvailable <= 0}
           >
-            <CreditCard className="h-3.5 w-3.5" /> Usar Crédito
+            {primaryCTAIcon} {primaryCTALabel}
           </Button>
-          <Button
-            onClick={onAdvance}
-            size="sm"
-            variant="outline"
-            className="text-xs gap-1.5 h-9"
-            disabled={totalReceivable <= 0}
-          >
-            <Zap className="h-3.5 w-3.5" /> Antecipar
-          </Button>
+          {canAdvance && (
+            <Button
+              onClick={onAdvance}
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1.5 h-9"
+              disabled={totalReceivable <= 0}
+            >
+              <Zap className="h-3.5 w-3.5" /> Antecipar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
