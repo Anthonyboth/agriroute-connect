@@ -56,6 +56,7 @@ import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFe
 import { useDriverOngoingCards } from '@/hooks/useDriverOngoingCards';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { useMyRequestsCount } from '@/hooks/useMyRequestsCount';
+import { WalletTab } from '@/components/wallet/WalletTab';
 
 // Sub-components refatorados
 import { 

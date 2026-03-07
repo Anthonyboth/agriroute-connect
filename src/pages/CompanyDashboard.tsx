@@ -92,6 +92,7 @@ const CompanyDriverPerformanceDashboard = lazyWithRetry(() => import('@/componen
 const CompanyFinancialDashboard = lazyWithRetry(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
 const CompanyExternalPaymentsPanel = lazyWithRetry(() => import('@/components/CompanyExternalPaymentsPanel').then(m => ({ default: m.CompanyExternalPaymentsPanel })));
 const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
+const LazyWalletTab = lazyWithRetry(() => import('@/components/wallet/WalletTab').then(m => ({ default: m.WalletTab })));
 
 // Loading fallback for chart components - SEM TEXTO (padrão global)
 const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
