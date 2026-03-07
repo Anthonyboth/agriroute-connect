@@ -2867,78 +2867,8 @@ const DriverDashboard = () => {
                             : `R$ ${driverTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
                           
                           return (
-                            <div className={`p-3 border-t ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
-                              {/* Valor do motorista */}
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium">Sua Proposta:</span>
-                                <span className={`text-lg font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground' : 'text-primary'}`}>
-                                  {driverDisplayValue}
-                                </span>
-                              </div>
-
-                              {/* Contraproposta do produtor */}
-                              {proposal.status === 'COUNTER_PROPOSED' && (
-                                <div className="mb-2 p-2 bg-orange-100/50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
-                                      💰 Contraproposta:
-                                    </span>
-                                    <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                                      {counterUnit && counterUnitLabel
-                                        ? `R$ ${counterUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${counterUnitLabel}`
-                                        : counterTotal 
-                                          ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
-                                          : 'Ver detalhes'}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    de {matchingCounterOffer?.sender?.full_name || 'Produtor'} • {matchingCounterOffer ? new Date(matchingCounterOffer.created_at).toLocaleDateString('pt-BR') : ''}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Botões de ação para contraproposta - 3 opções */}
-                              {proposal.status === 'COUNTER_PROPOSED' && (
-                                <div className="flex gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
-                                  <Button
-                                    size="sm"
-                                    className="flex-1 gradient-primary text-xs"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (matchingCounterOffer) {
-                                        handleAcceptCounterOffer(matchingCounterOffer.id, proposal.freight_id);
-                                      }
-                                    }}
-                                  >
-                                    Aceitar
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="flex-1 text-xs"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDriverCounterProposal(proposal);
-                                    }}
-                                  >
-                                    Negociar
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (matchingCounterOffer) {
-                                        handleRejectCounterOffer(matchingCounterOffer.id);
-                                      }
-                                    }}
-                                  >
-                                    Recusar
-                                  </Button>
-                                </div>
-                              )}
-                          
+                            <div className={`p-4 border-t space-y-3 ${proposal.status === 'COUNTER_PROPOSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20' : 'bg-gradient-to-r from-card to-secondary/10'}`}>
+                              {/* Status + Data */}
                               <div className="flex justify-between items-center">
                                 <Badge 
                                   variant={
@@ -2952,15 +2882,89 @@ const DriverDashboard = () => {
                                    proposal.status === 'COUNTER_PROPOSED' ? '🔄 Em Negociação' :
                                    proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
                                 </Badge>
-                                
                                 <span className="text-xs text-muted-foreground">
                                   Enviada {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
                                 </span>
                               </div>
-                          
+
+                              {/* Sua Proposta */}
+                              <div className="flex justify-between items-center py-1">
+                                <span className="text-sm font-medium text-muted-foreground">Sua Proposta:</span>
+                                <span className={`text-base font-bold ${proposal.status === 'COUNTER_PROPOSED' ? 'line-through text-muted-foreground/60' : 'text-primary'}`}>
+                                  {driverDisplayValue}
+                                </span>
+                              </div>
+
+                              {/* Contraproposta do produtor */}
+                              {proposal.status === 'COUNTER_PROPOSED' && (
+                                <div className="rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-100/60 dark:bg-orange-900/30 p-3 space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                                      💰 Contraproposta
+                                    </span>
+                                    <span className="text-base font-bold text-orange-600 dark:text-orange-400">
+                                      {counterUnit && counterUnitLabel
+                                        ? `R$ ${counterUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${counterUnitLabel}`
+                                        : counterTotal 
+                                          ? `R$ ${counterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                                          : 'Ver detalhes'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-orange-600/70 dark:text-orange-400/70">
+                                    de {matchingCounterOffer?.sender?.full_name || 'Produtor'} • {matchingCounterOffer ? new Date(matchingCounterOffer.created_at).toLocaleDateString('pt-BR') : ''}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Botões de ação para contraproposta */}
+                              {proposal.status === 'COUNTER_PROPOSED' && (
+                                <div className="grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    className="gradient-primary text-xs h-9"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (matchingCounterOffer) {
+                                        handleAcceptCounterOffer(matchingCounterOffer.id, proposal.freight_id);
+                                      }
+                                    }}
+                                  >
+                                    Aceitar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    variant="secondary"
+                                    className="text-xs h-9"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDriverCounterProposal(proposal);
+                                    }}
+                                  >
+                                    Negociar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                    className="text-xs h-9 text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (matchingCounterOffer) {
+                                        handleRejectCounterOffer(matchingCounterOffer.id);
+                                      }
+                                    }}
+                                  >
+                                    Recusar
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Mensagem (apenas para PENDING) */}
                               {proposal.message && proposal.status !== 'COUNTER_PROPOSED' && (
-                                <div className="mt-3 pt-3 border-t">
-                                  <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
+                                <div className="pt-2 border-t border-border/50">
+                                  <p className="text-xs text-muted-foreground mb-0.5">Mensagem:</p>
                                   <p className="text-sm">{proposal.message}</p>
                                 </div>
                               )}
