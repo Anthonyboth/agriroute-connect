@@ -2728,7 +2728,12 @@ const DriverDashboard = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
-                {(() => { const active = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && p.freight && (p.freight.status || '').toUpperCase() === 'OPEN' && (((p.freight as any).required_trucks ?? 1) - ((p.freight as any).accepted_trucks ?? 0)) > 0); return `${active.length} proposta${active.length !== 1 ? 's' : ''}`; })()}
+                {(() => { 
+                  const activeFreight = myProposals.filter(p => (p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') && p.freight && (p.freight.status || '').toUpperCase() === 'OPEN' && (((p.freight as any).required_trucks ?? 1) - ((p.freight as any).accepted_trucks ?? 0)) > 0); 
+                  const activeService = myServiceProposals.filter((sp: any) => sp.status === 'pending' || sp.status === 'PENDING');
+                  const total = activeFreight.length + activeService.length;
+                  return `${total} proposta${total !== 1 ? 's' : ''}`; 
+                })()}
               </Badge>
             </div>
             {myProposals.some(p => p.status === 'PENDING' || p.status === 'COUNTER_PROPOSED') ? (
