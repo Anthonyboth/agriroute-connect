@@ -7,6 +7,9 @@ import { PaymentOrdersCard } from './PaymentOrdersCard';
 import { FinancialTimeline } from './FinancialTimeline';
 import { FinancialNotifications } from './FinancialNotifications';
 import { OperationalPaymentsCard } from './OperationalPaymentsCard';
+import { CashflowForecastCard } from './CashflowForecastCard';
+import { AutopayCard } from './AutopayCard';
+import { DynamicCreditCard } from './DynamicCreditCard';
 import { IncentiveBonusCard } from './IncentiveBonusCard';
 import { WalletDepositModal } from './WalletDepositModal';
 import { WalletWithdrawModal } from './WalletWithdrawModal';
@@ -113,8 +116,17 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             releasedTotal={releasedTotal}
           />
 
+          {/* Cashflow Forecast */}
+          <CashflowForecastCard />
+
           {/* Incentive Bonuses */}
           <IncentiveBonusCard role={role} />
+
+          {/* Autopay + Dynamic Credit */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AutopayCard />
+            <DynamicCreditCard />
+          </div>
 
           {/* Escrow Flow States */}
           <EscrowFlowCard wallet={wallet} />
