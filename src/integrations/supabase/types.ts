@@ -2543,6 +2543,76 @@ export type Database = {
           },
         ]
       }
+      driver_bonus_progress: {
+        Row: {
+          bonus_amount: number
+          campaign_id: string
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          current_count: number
+          driver_profile_id: string
+          freight_ids: string[] | null
+          id: string
+          is_claimed: boolean
+          is_completed: boolean
+          required_count: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_amount?: number
+          campaign_id: string
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_count?: number
+          driver_profile_id: string
+          freight_ids?: string[] | null
+          id?: string
+          is_claimed?: boolean
+          is_completed?: boolean
+          required_count?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_amount?: number
+          campaign_id?: string
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_count?: number
+          driver_profile_id?: string
+          freight_ids?: string[] | null
+          id?: string
+          is_claimed?: boolean
+          is_completed?: boolean
+          required_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_bonus_progress_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "incentive_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_bonus_progress_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_bonus_progress_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_checkins: {
         Row: {
           checked_at: string
@@ -7941,6 +8011,107 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: []
+      }
+      incentive_campaigns: {
+        Row: {
+          bonus_amount: number
+          bonus_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          incentive_type: string
+          is_active: boolean
+          max_claims_per_driver: number | null
+          min_trust_score: number | null
+          name: string
+          required_count: number | null
+          spent_budget: number
+          starts_at: string
+          target_region_city_id: string | null
+          target_region_name: string | null
+          time_slot_end: string | null
+          time_slot_start: string | null
+          total_budget: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_amount?: number
+          bonus_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          incentive_type: string
+          is_active?: boolean
+          max_claims_per_driver?: number | null
+          min_trust_score?: number | null
+          name: string
+          required_count?: number | null
+          spent_budget?: number
+          starts_at?: string
+          target_region_city_id?: string | null
+          target_region_name?: string | null
+          time_slot_end?: string | null
+          time_slot_start?: string | null
+          total_budget?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_amount?: number
+          bonus_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          incentive_type?: string
+          is_active?: boolean
+          max_claims_per_driver?: number | null
+          min_trust_score?: number | null
+          name?: string
+          required_count?: number | null
+          spent_budget?: number
+          starts_at?: string
+          target_region_city_id?: string | null
+          target_region_name?: string | null
+          time_slot_end?: string | null
+          time_slot_start?: string | null
+          total_budget?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incentive_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incentive_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incentive_campaigns_target_region_city_id_fkey"
+            columns: ["target_region_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incentive_campaigns_target_region_city_id_fkey"
+            columns: ["target_region_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+        ]
       }
       incident_logs: {
         Row: {

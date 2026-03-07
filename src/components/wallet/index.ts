@@ -14,3 +14,4 @@ export { OpenDisputeModal } from './OpenDisputeModal';
 export { PayInstallmentModal } from './PayInstallmentModal';
 export { OperationalPaymentsCard } from './OperationalPaymentsCard';
 export { OperationalPaymentModal } from './OperationalPaymentModal';
+export { IncentiveBonusCard } from './IncentiveBonusCard';
