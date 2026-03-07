@@ -103,7 +103,7 @@ export const useWallet = () => {
         .limit(50);
 
       if (filter && filter !== 'all') {
-        query = query.eq('transaction_type', filter);
+        query = query.eq('transaction_type', filter as any);
       }
 
       const { data, error: txErr } = await query;

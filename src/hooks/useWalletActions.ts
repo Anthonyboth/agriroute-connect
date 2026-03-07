@@ -49,7 +49,7 @@ export const useWalletActions = (onSuccess?: () => void) => {
         p_profile_id: profile.id,
         p_amount: amount,
         p_pix_key: pixKey,
-        p_pix_key_type: pixKeyType,
+        p_pix_key_type: pixKeyType as any,
         p_description: description || 'Saque via Pix'
       });
 
