@@ -1521,6 +1521,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           currentStatus={multiDriversLocations.find(d => d.driverId === locationModalState.driverId)?.assignmentStatus}
         />
       )}
+      {/* COFA Receipt Modal */}
+      <FreightFinancialReceipt
+        freightId={freightId}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+      />
     </div>
   );
 };
