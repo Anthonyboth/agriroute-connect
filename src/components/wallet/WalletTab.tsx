@@ -6,6 +6,7 @@ import { EscrowFlowCard } from './EscrowFlowCard';
 import { PaymentOrdersCard } from './PaymentOrdersCard';
 import { FinancialTimeline } from './FinancialTimeline';
 import { FinancialNotifications } from './FinancialNotifications';
+import { OperationalPaymentsCard } from './OperationalPaymentsCard';
 import { WalletDepositModal } from './WalletDepositModal';
 import { WalletWithdrawModal } from './WalletWithdrawModal';
 import { CreditSimulatorModal } from './CreditSimulatorModal';
@@ -121,6 +122,13 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             escrowTotal={escrowTotal}
             releasedTotal={releasedTotal}
             loading={ordersLoading}
+          />
+
+          {/* Operational Payments */}
+          <OperationalPaymentsCard
+            availableBalance={wallet?.available_balance || 0}
+            creditAvailable={creditAvailable}
+            role={role}
           />
 
           {/* Financial Timeline */}
