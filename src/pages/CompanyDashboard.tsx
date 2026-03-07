@@ -92,6 +92,7 @@ const CompanyDriverPerformanceDashboard = lazyWithRetry(() => import('@/componen
 const CompanyFinancialDashboard = lazyWithRetry(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
 const CompanyExternalPaymentsPanel = lazyWithRetry(() => import('@/components/CompanyExternalPaymentsPanel').then(m => ({ default: m.CompanyExternalPaymentsPanel })));
 const CompanyReportsTab = lazyWithRetry(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
+const LazyWalletTab = lazyWithRetry(() => import('@/components/wallet/WalletTab').then(m => ({ default: m.WalletTab })));
 
 // Loading fallback for chart components - SEM TEXTO (padrão global)
 const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
@@ -127,7 +128,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: nu
     icon: ShieldCheck,
     badge: pendingDeliveryCount > 0 ? pendingDeliveryCount : undefined
   },
-  { value: 'payments', label: 'Pagamentos', shortLabel: 'Pagamentos', icon: DollarSign, badge: undefined },
+  { value: 'payments', label: 'Carteira', shortLabel: 'Carteira', icon: DollarSign, badge: undefined },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cidades', icon: MapPin, badge: undefined },
   { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: ratingsCount > 0 ? ratingsCount : undefined },
   { value: 'history', label: 'Histórico', shortLabel: 'Histórico', icon: Clock, badge: undefined },
@@ -277,7 +278,7 @@ const CompanyDashboard = () => {
       }
 
       setActiveTab('payments');
-      toast.info('Entrega confirmada. Vá em "Pagamentos" para confirmar o pagamento ao motorista.');
+      toast.info('Entrega confirmada. Vá em "Carteira" para confirmar o pagamento ao motorista.');
     }
 
     refetchActiveFreights();
@@ -1311,16 +1312,21 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
-            <div className="space-y-8">
-              {/* Pagamentos externos dos motoristas afiliados */}
-              <Suspense fallback={<ChartLoader />}>
-                <CompanyExternalPaymentsPanel />
-              </Suspense>
-              {/* Dashboard financeiro consolidado */}
-              <Suspense fallback={<ChartLoader />}>
-                <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
-              </Suspense>
-            </div>
+            <Suspense fallback={<ChartLoader />}>
+              <LazyWalletTab
+                role="TRANSPORTADORA"
+                legacyPaymentContent={
+                  <div className="space-y-8">
+                    <Suspense fallback={<ChartLoader />}>
+                      <CompanyExternalPaymentsPanel />
+                    </Suspense>
+                    <Suspense fallback={<ChartLoader />}>
+                      <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
+                    </Suspense>
+                  </div>
+                }
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="cities" className="mt-6">

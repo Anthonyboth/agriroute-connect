@@ -56,6 +56,7 @@ import { useGuaranteedMarketplaceFeed } from '@/hooks/useGuaranteedMarketplaceFe
 import { useDriverOngoingCards } from '@/hooks/useDriverOngoingCards';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { useMyRequestsCount } from '@/hooks/useMyRequestsCount';
+import { WalletTab } from '@/components/wallet/WalletTab';
 
 // Sub-components refatorados
 import { 
@@ -2526,26 +2527,17 @@ const DriverDashboard = () => {
                 <span className="hidden sm:inline" translate="no">Meus Veículos</span>
                 <span className="sm:hidden" translate="no">Veículos</span>
               </TabsTrigger>
-              {/* Tabs de pagamentos e saldo - apenas para motoristas não afiliados */}
-              {!isCompanyDriver && !isAffiliated && (
-                <>
-                  <TabsTrigger 
-                    value="payments" 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    <DollarSign className="h-3.5 w-3.5 mr-1" />
-                    <span translate="no">Pagamentos</span>
-                    <TabBadge count={pendingPayments.filter(p => p.status === 'paid_by_producer').length} />
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="advances" 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    <Banknote className="h-3.5 w-3.5 mr-1" />
-                    <span translate="no">Saldo</span>
-                  </TabsTrigger>
-                </>
-              )}
+              {/* Carteira - visível para todos os motoristas */}
+              <TabsTrigger 
+                value="payments" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <DollarSign className="h-3.5 w-3.5 mr-1" />
+                <span translate="no">Carteira</span>
+                {!isCompanyDriver && !isAffiliated && (
+                  <TabBadge count={pendingPayments.filter(p => p.status === 'paid_by_producer').length} />
+                )}
+              </TabsTrigger>
               <TabsTrigger 
                 value="ratings" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -3038,153 +3030,44 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
-            {activeTab === 'payments' && (<SafeListWrapper>
-              <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Pagamentos Pendentes</h3>
-              <Badge variant="secondary" className="text-sm font-medium">
-                {pendingPayments.length} pendente{pendingPayments.length !== 1 ? 's' : ''}
-              </Badge>
-            </div>
-
-            {pendingPayments.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                    Nenhum pagamento pendente
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Quando um produtor informar um pagamento, aparecerá aqui para confirmação
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando pagamentos...</div>}>
-                  {pendingPayments && pendingPayments.length > 0 && pendingPayments.map((payment) => {
-                    const isProposed = payment.status === 'proposed';
-                    const isPaidByProducer = payment.status === 'paid_by_producer';
-                    
-                    return (
-                    <Card 
-                      key={payment.id} 
-                      className={`border-l-4 ${
-                        isPaidByProducer 
-                          ? 'border-l-green-500 bg-green-50/50 dark:bg-green-900/10' 
-                          : 'border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10'
-                      }`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-semibold text-lg">
-                                {isPaidByProducer ? '💰 Pagamento Disponível' : '📋 Pagamento Proposto'}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                Frete: {payment.freight?.cargo_type}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {payment.freight?.origin_city}/{payment.freight?.origin_state} → {payment.freight?.destination_city}/{payment.freight?.destination_state}
-                              </p>
-                            </div>
-                            <Badge 
-                              variant="secondary" 
-                              className={
-                                isPaidByProducer
-                                  ? 'bg-green-100 text-green-800 border-green-300'
-                                  : 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                              }
-                            >
-                              {isPaidByProducer ? 'Produtor Pagou' : 'Aguardando Pagamento'}
-                            </Badge>
-                          </div>
-
-                          <div className="bg-white/60 dark:bg-gray-800/60 p-3 rounded-lg border">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {isPaidByProducer ? 'Valor pago pelo produtor:' : 'Valor proposto:'}
-                                </p>
-                                <p className={`text-2xl font-bold ${isPaidByProducer ? 'text-green-600' : 'text-yellow-600'}`}>
-                                  {(() => {
-                                    if (payment.freight) {
-                                      const pd = precoPreenchidoDoFrete(payment.freight.id, {
-                                        price: payment.freight.price || 0,
-                                        pricing_type: payment.freight.pricing_type,
-                                        price_per_km: payment.freight.price_per_km,
-                                        price_per_ton: payment.freight.price_per_ton,
-                                        required_trucks: payment.freight.required_trucks,
-                                        weight: payment.freight.weight,
-                                        distance_km: payment.freight.distance_km,
-                                      }, { unitOnly: true });
-                                      return pd.primaryText;
-                                    }
-                                    return 'Preço indisponível';
-                                  })()}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">Produtor:</p>
-                                <p className="text-sm font-medium">{payment.producer?.full_name}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Ações: só mostrar "Confirmar Recebimento" se produtor já pagou */}
-                          {isPaidByProducer ? (
-                            <div className="flex gap-2">
-                              <Button 
-                                className="gradient-primary flex-1"
-                                onClick={() => handleConfirmPayment({
-                                  id: payment.id,
-                                  freight_id: payment.freight_id,
-                                  producer_id: payment.producer_id
-                                })}
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Confirmar Recebimento
-                              </Button>
-                              <Button 
-                                variant="outline"
-                                onClick={() => handleDisputePayment(payment.id)}
-                              >
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                Contestar
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-lg">
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                ⏳ O produtor ainda não confirmou o pagamento. Você será notificado quando o pagamento for efetuado.
-                              </p>
-                            </div>
-                          )}
-
-                          {payment.payment_method && (
-                            <p className="text-xs text-muted-foreground">
-                              Método: {payment.payment_method === 'PIX' ? '💳 PIX' : 
-                                      payment.payment_method === 'TED' ? '🏦 TED' : 
-                                      payment.payment_method === 'MONEY' ? '💵 Dinheiro' : payment.payment_method}
-                              {payment.created_at && ` • ${new Date(payment.created_at).toLocaleDateString('pt-BR')}`}
-                            </p>
-                          )}
-
-                          {payment.notes && (
-                            <div className="bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded text-xs">
-                              <p className="font-medium mb-1">Observações:</p>
-                              <p className="text-muted-foreground">{payment.notes}</p>
-                            </div>
-                          )}
-                        </div>
+            {activeTab === 'payments' && (() => {
+              const isAff = isCompanyDriver || isAffiliated;
+              
+              const legacyPaymentContent = !isAff ? (
+                <SafeListWrapper>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Pagamentos Pendentes</h3>
+                    <Badge variant="secondary" className="text-sm font-medium">
+                      {pendingPayments.length} pendente{pendingPayments.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  {pendingPayments.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                        <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground mb-2">Nenhum pagamento pendente</h3>
+                        <p className="text-muted-foreground mb-4">Quando um produtor informar um pagamento, aparecerá aqui para confirmação</p>
                       </CardContent>
                     </Card>
-                    );
-                  })}
+                  ) : (
+                    <DriverPaymentsTab
+                      pendingPayments={pendingPayments}
+                      onConfirmPayment={handleConfirmPayment}
+                      onDisputePayment={handleDisputePayment}
+                    />
+                  )}
                 </SafeListWrapper>
-              </div>
-            )}
-            </SafeListWrapper>)}
+              ) : null;
+
+              return (
+                <WalletTab
+                  role="MOTORISTA"
+                  isAffiliated={isAff}
+                  affiliatedCompanyId={companyId || undefined}
+                  legacyPaymentContent={legacyPaymentContent}
+                />
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="advances" className="space-y-4">
