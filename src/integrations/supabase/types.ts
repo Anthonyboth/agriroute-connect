@@ -15798,6 +15798,23 @@ export type Database = {
       forum_get_my_profile_id: { Args: never; Returns: string }
       forum_is_admin: { Args: never; Returns: boolean }
       forum_is_banned: { Args: { p_user_id: string }; Returns: boolean }
+      freight_escrow_liquidate: {
+        Args: {
+          p_description?: string
+          p_freight_id: string
+          p_receiver_profile_id: string
+        }
+        Returns: Json
+      }
+      freight_escrow_reserve: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_freight_id: string
+          p_payer_profile_id: string
+        }
+        Returns: string
+      }
       generate_admin_report: {
         Args: {
           p_period_end: string
@@ -17237,6 +17254,16 @@ export type Database = {
           validation_status: string
         }[]
       }
+      wallet_block_funds: {
+        Args: {
+          p_amount: number
+          p_profile_id: string
+          p_reason: string
+          p_reference_id?: string
+          p_reference_type?: string
+        }
+        Returns: string
+      }
       wallet_deposit: {
         Args: { p_amount: number; p_description?: string; p_profile_id: string }
         Returns: string
@@ -17247,6 +17274,16 @@ export type Database = {
           p_description?: string
           p_from_profile_id: string
           p_to_profile_id: string
+        }
+        Returns: string
+      }
+      wallet_unblock_funds: {
+        Args: {
+          p_amount: number
+          p_profile_id: string
+          p_reason: string
+          p_reference_id?: string
+          p_reference_type?: string
         }
         Returns: string
       }
