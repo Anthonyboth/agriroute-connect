@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wallet, CreditCard } from 'lucide-react';
 import { SmartFinancialCard } from './SmartFinancialCard';
 import { EscrowFlowCard } from './EscrowFlowCard';
+import { PaymentOrdersCard } from './PaymentOrdersCard';
 import { FinancialTimeline } from './FinancialTimeline';
 import { FinancialNotifications } from './FinancialNotifications';
 import { WalletDepositModal } from './WalletDepositModal';
@@ -14,6 +15,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useWalletActions } from '@/hooks/useWalletActions';
 import { useCredit } from '@/hooks/useCredit';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
+import { usePaymentOrders } from '@/hooks/usePaymentOrders';
 import { toast } from 'sonner';
 
 interface WalletTabProps {
