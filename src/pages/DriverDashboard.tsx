@@ -2918,11 +2918,11 @@ const DriverDashboard = () => {
 
                               {/* Botões de ação para contraproposta */}
                               {proposal.status === 'COUNTER_PROPOSED' && (
-                                <div className="grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="grid grid-cols-3 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                                   <Button
                                     size="sm"
                                     type="button"
-                                    className="gradient-primary text-xs h-9"
+                                    className="h-9 w-full text-xs font-medium rounded-xl justify-center"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (matchingCounterOffer) {
@@ -2930,25 +2930,27 @@ const DriverDashboard = () => {
                                       }
                                     }}
                                   >
-                                    Aceitar
+                                    <CheckCircle className="h-3.5 w-3.5 mr-1 shrink-0" />
+                                    <span className="truncate">Aceitar</span>
                                   </Button>
                                   <Button
                                     size="sm"
                                     type="button"
                                     variant="secondary"
-                                    className="text-xs h-9"
+                                    className="h-9 w-full text-xs font-medium rounded-xl justify-center"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDriverCounterProposal(proposal);
                                     }}
                                   >
-                                    Negociar
+                                    <MessageSquare className="h-3.5 w-3.5 mr-1 shrink-0" />
+                                    <span className="truncate">Negociar</span>
                                   </Button>
                                   <Button
                                     size="sm"
                                     type="button"
                                     variant="outline"
-                                    className="text-xs h-9 text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    className="h-9 w-full text-xs font-medium rounded-xl justify-center text-destructive border-destructive/30 hover:bg-destructive/10"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (matchingCounterOffer) {
@@ -2956,7 +2958,8 @@ const DriverDashboard = () => {
                                       }
                                     }}
                                   >
-                                    Recusar
+                                    <XCircle className="h-3.5 w-3.5 mr-1 shrink-0" />
+                                    <span className="truncate">Recusar</span>
                                   </Button>
                                 </div>
                               )}
