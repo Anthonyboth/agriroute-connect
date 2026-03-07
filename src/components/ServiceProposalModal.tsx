@@ -208,17 +208,18 @@ const [pricePerKm, setPricePerKm] = useState('');
         return;
       }
       
-      // Evitar múltiplas propostas para o mesmo frete
+      // Evitar múltiplas propostas ativas para o mesmo frete
       const { data: existingProposal, error: proposalCheckError } = await supabase
         .from('freight_proposals')
         .select('status')
         .eq('freight_id', freight.id)
         .eq('driver_id', profileId)
+        .in('status', ['PENDING', 'ACCEPTED', 'COUNTER_PROPOSED'])
         .maybeSingle();
       if (proposalCheckError) throw proposalCheckError;
       
       if (existingProposal) {
-        if (existingProposal.status === 'PENDING') {
+        if (existingProposal.status === 'PENDING' || existingProposal.status === 'COUNTER_PROPOSED') {
           toast.info('Você já enviou uma proposta para este frete.');
           onClose();
           return;
@@ -287,7 +288,7 @@ const [pricePerKm, setPricePerKm] = useState('');
 
     } catch (error: any) {
       if (error?.code === '23505') {
-        toast.info('Você já enviou uma proposta para este serviço.', { id: 'duplicate-proposal' });
+        toast.info('Você já enviou uma proposta para este frete.', { id: 'duplicate-proposal' });
         onClose();
         return;
       }
