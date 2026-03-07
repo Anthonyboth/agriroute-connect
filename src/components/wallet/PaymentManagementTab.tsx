@@ -13,6 +13,7 @@ import {
   BarChart3, CalendarClock, Shield, Users, Truck, Wrench, Fuel
 } from 'lucide-react';
 import { useCredit } from '@/hooks/useCredit';
+import { useTrustScore, type TrustScoreData, type TrustFactor } from '@/hooks/useTrustScore';
 import { useReceivableAdvance } from '@/hooks/useReceivableAdvance';
 import { useDisputes } from '@/hooks/useDisputes';
 import { useWallet, type WalletTransaction } from '@/hooks/useWallet';
@@ -245,6 +246,78 @@ const IntroCard: React.FC<{
 
 /* ─── Credit Section ─── */
 
+const TrustScoreCard: React.FC<{ trustScore: TrustScoreData; compact?: boolean }> = ({ trustScore, compact }) => {
+  const scoreColor = trustScore.score >= 70 ? 'text-primary' : trustScore.score >= 50 ? 'text-warning' : 'text-destructive';
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    not_eligible: { label: 'Não elegível', color: 'text-muted-foreground' },
+    eligible: { label: 'Elegível para crédito', color: 'text-primary' },
+    requested: { label: 'Crédito solicitado', color: 'text-warning' },
+    approved: { label: 'Crédito aprovado', color: 'text-primary' },
+    blocked: { label: 'Crédito bloqueado', color: 'text-destructive' },
+  };
+  const st = statusLabels[trustScore.status] || statusLabels.not_eligible;
+  const categoryLabels: Record<string, string> = { operational: 'Operacional', financial: 'Financeiro', behavioral: 'Comportamento' };
+
+  return (
+    <div className="rounded-lg border border-primary/15 bg-primary/[0.03] p-3 space-y-3">
+      {/* Score header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium text-foreground">Score de Confiabilidade</p>
+          <p className={`text-2xl font-bold ${scoreColor}`}>{trustScore.score}%</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Limite estimado</p>
+          <p className="text-sm font-bold text-foreground">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trustScore.estimatedLimit)}</p>
+          <p className={`text-[10px] font-medium ${st.color}`}>{st.label}</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="space-y-1">
+        <Progress value={trustScore.score} className="h-2.5" />
+        <div className="flex justify-between text-[9px] text-muted-foreground">
+          <span>0</span><span>50</span><span>70</span><span>85</span><span>100</span>
+        </div>
+      </div>
+
+      {!compact && (
+        <>
+          {/* Factor breakdown */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Indicadores</p>
+            {trustScore.factors.map(f => (
+              <div key={f.id} className="flex items-center gap-2 text-[11px]">
+                <span className="text-muted-foreground w-24 truncate">{f.label}</span>
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${f.value >= 70 ? 'bg-primary' : f.value >= 40 ? 'bg-warning' : 'bg-destructive'}`}
+                    style={{ width: `${f.value}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground w-16 text-right truncate">{f.detail}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Tips */}
+          {trustScore.tips.length > 0 && trustScore.score < 85 && (
+            <div className="rounded-md bg-muted/50 p-2 space-y-1">
+              <p className="text-[10px] font-medium text-foreground">Para aumentar seu limite:</p>
+              {trustScore.tips.map((tip, i) => (
+                <p key={i} className="text-[10px] text-muted-foreground flex items-start gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                  {tip}
+                </p>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 const CreditSection: React.FC<{
   creditAccount: any; creditLoading: boolean;
   installments: any[]; pendingInstallments: any[];
@@ -252,7 +325,9 @@ const CreditSection: React.FC<{
   onSimulateCredit: () => void;
   onPayInstallment: () => void;
   onShowRules: () => void;
-}> = ({ creditAccount, creditLoading, installments, pendingInstallments, totalPending, config, onSimulateCredit, onPayInstallment, onShowRules }) => {
+  trustScore: TrustScoreData | null;
+  trustScoreLoading: boolean;
+}> = ({ creditAccount, creditLoading, installments, pendingInstallments, totalPending, config, onSimulateCredit, onPayInstallment, onShowRules, trustScore, trustScoreLoading }) => {
   const creditUsagePercent = creditAccount ? Math.round((creditAccount.used_amount / (creditAccount.credit_limit || 1)) * 100) : 0;
   const paidInstallments = installments.filter(i => i.status === 'paid');
   const overdueInstallments = pendingInstallments.filter(i => i.status === 'overdue');
@@ -323,6 +398,11 @@ const CreditSection: React.FC<{
               </div>
             )}
 
+            {/* Trust Score (compact) in active credit */}
+            {trustScore && !trustScoreLoading && (
+              <TrustScoreCard trustScore={trustScore} compact />
+            )}
+
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-primary" /> {paidInstallments.length} pagas</span>
               {overdueInstallments.length > 0 && <span className="flex items-center gap-1 text-destructive"><AlertTriangle className="h-3 w-3" /> {overdueInstallments.length} vencidas</span>}
@@ -353,6 +433,22 @@ const CreditSection: React.FC<{
             description={`Solicite sua linha de crédito para operações como ${config.label}. Comece simulando os valores e parcelas.`}
           >
             <div className="space-y-3 w-full max-w-sm">
+              {/* Trust Score (full) in empty credit */}
+              {trustScore && !trustScoreLoading ? (
+                <TrustScoreCard trustScore={trustScore} />
+              ) : trustScoreLoading ? (
+                <Skeleton className="h-32 w-full rounded-lg" />
+              ) : null}
+
+              {/* Pre-approved estimate */}
+              {trustScore && trustScore.status === 'eligible' && trustScore.estimatedLimit > 0 && (
+                <div className="rounded-lg bg-primary/[0.06] border border-primary/20 p-3 text-center space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Crédito estimado disponível</p>
+                  <p className="text-xl font-bold text-primary">{formatBRL(trustScore.estimatedLimit)}</p>
+                  <p className="text-[10px] text-muted-foreground">Solicite para liberar agora</p>
+                </div>
+              )}
+
               <div className="flex gap-2 justify-center">
                 <Button size="sm" className="text-xs gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90" onClick={onSimulateCredit}>
                   <CreditCard className="h-3.5 w-3.5" /> Solicitar Crédito
@@ -809,6 +905,7 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
   const { receivables, eligibleReceivables, totalEligible, advances, loading: advanceLoading, refetch: refetchAdvance } = useReceivableAdvance();
   const { disputes, openCount, loading: disputeLoading, openDispute } = useDisputes();
   const { wallet, transactions: walletTransactions } = useWallet();
+  const { trustScore, trustScoreLoading } = useTrustScore();
 
   const config = getRoleConfig(role, isAffiliated);
 
@@ -936,6 +1033,8 @@ export const PaymentManagementTab: React.FC<PaymentManagementTabProps> = ({
         onSimulateCredit={() => setCreditSimOpen(true)}
         onPayInstallment={() => setPayInstallmentOpen(true)}
         onShowRules={handleShowRules}
+        trustScore={trustScore}
+        trustScoreLoading={trustScoreLoading}
       />
 
       {/* Advances */}
