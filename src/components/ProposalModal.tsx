@@ -215,6 +215,11 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       
       onProposalSent?.();
     } catch (error: any) {
+      if (error?.code === '23505') {
+        toast({ title: "Proposta já enviada", description: "Você já enviou uma proposta para este frete.", variant: "destructive" });
+        setOpen(false);
+        return;
+      }
       console.error('Error sending proposal:', error);
       showErrorToast(toast, 'Erro ao enviar proposta', error);
     } finally {

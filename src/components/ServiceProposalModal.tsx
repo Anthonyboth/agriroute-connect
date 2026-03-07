@@ -286,6 +286,11 @@ const [pricePerKm, setPricePerKm] = useState('');
       resetForm();
 
     } catch (error: any) {
+      if (error?.code === '23505') {
+        toast.error('Você já enviou uma proposta para este serviço.');
+        onClose();
+        return;
+      }
       console.error('Erro ao enviar proposta:', error);
       showErrorToast(toast, 'Erro ao enviar proposta', error);
     } finally {
