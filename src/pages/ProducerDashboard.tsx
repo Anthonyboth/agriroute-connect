@@ -99,6 +99,9 @@ const ProducerReportsTab = lazyWithRetry(() =>
 const ProducerPaymentsTab = lazyWithRetry(() =>
   import("@/pages/producer/ProducerPaymentsTab").then((m) => ({ default: m.ProducerPaymentsTab })),
 );
+const LazyWalletTab = lazyWithRetry(() =>
+  import("@/components/wallet/WalletTab").then((m) => ({ default: m.WalletTab })),
+);
 const PendingRatingsPanel = lazyWithRetry(() =>
   import("@/components/PendingRatingsPanel").then((m) => ({ default: m.PendingRatingsPanel })),
 );
@@ -2193,26 +2196,21 @@ const ProducerDashboard = () => {
 
           <TabsContent value="payments" className="space-y-4">
             <Suspense fallback={<ChartLoader />}>
-              {(() => {
-                const { WalletTab } = require('@/components/wallet');
-                return (
-                  <WalletTab
-                    role="PRODUTOR"
-                    legacyPaymentContent={
-                      <ProducerPaymentsTab
-                        externalPayments={externalPayments}
-                        freightPayments={[]}
-                        paymentLoading={paymentLoading}
-                        onConfirmExternalPayment={handleConfirmExternalPayment}
-                        onConfirmPaymentMade={confirmPaymentMade}
-                        onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
-                        currentUserProfile={profile}
-                        onRefresh={fetchExternalPayments}
-                      />
-                    }
+              <LazyWalletTab
+                role="PRODUTOR"
+                legacyPaymentContent={
+                  <ProducerPaymentsTab
+                    externalPayments={externalPayments}
+                    freightPayments={[]}
+                    paymentLoading={paymentLoading}
+                    onConfirmExternalPayment={handleConfirmExternalPayment}
+                    onConfirmPaymentMade={confirmPaymentMade}
+                    onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
+                    currentUserProfile={profile}
+                    onRefresh={fetchExternalPayments}
                   />
-                );
-              })()}
+                }
+              />
             </Suspense>
           </TabsContent>
 
