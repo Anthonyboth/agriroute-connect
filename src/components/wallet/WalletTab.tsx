@@ -91,6 +91,8 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             onAdvance={() => setAdvanceSimOpen(true)}
             role={role}
             isAffiliated={isAffiliated}
+            escrowTotal={escrowTotal}
+            releasedTotal={releasedTotal}
           />
 
           {/* Escrow Flow States */}
