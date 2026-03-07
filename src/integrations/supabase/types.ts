@@ -15802,6 +15802,28 @@ export type Database = {
         }
         Returns: Json
       }
+      create_driver_payout: {
+        Args: {
+          p_amount: number
+          p_carrier_profile_id: string
+          p_description?: string
+          p_driver_profile_id: string
+          p_payment_order_id?: string
+        }
+        Returns: string
+      }
+      create_payment_order: {
+        Args: {
+          p_executor_id: string
+          p_financial_owner_id: string
+          p_freight_id: string
+          p_gross_amount: number
+          p_operation_owner_type: string
+          p_payer_profile_id: string
+          p_platform_fee_pct?: number
+        }
+        Returns: string
+      }
       current_profile_id: { Args: never; Returns: string }
       decrypt_document: {
         Args: { encrypted_doc: string; original_doc: string }
@@ -15874,6 +15896,10 @@ export type Database = {
           match_score: number
           match_type: string
         }[]
+      }
+      execute_freight_split: {
+        Args: { p_payment_order_id: string }
+        Returns: Json
       }
       execute_service_matching: {
         Args: {
