@@ -1234,6 +1234,90 @@ export type Database = {
           },
         ]
       }
+      blocked_operations: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          operation_payload: Json
+          operation_type: Database["public"]["Enums"]["risk_operation_type"]
+          profile_id: string
+          reason: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          risk_factors: Json
+          risk_log_id: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          operation_payload?: Json
+          operation_type: Database["public"]["Enums"]["risk_operation_type"]
+          profile_id: string
+          reason: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_factors?: Json
+          risk_log_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          operation_payload?: Json
+          operation_type?: Database["public"]["Enums"]["risk_operation_type"]
+          profile_id?: string
+          reason?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_factors?: Json
+          risk_log_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_operations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_operations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_operations_risk_log_id_fkey"
+            columns: ["risk_log_id"]
+            isOneToOne: false
+            referencedRelation: "operation_risk_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_typing_indicators: {
         Row: {
           company_id: string
@@ -3916,6 +4000,51 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      financial_pins: {
+        Row: {
+          created_at: string
+          failed_attempts: number
+          id: string
+          locked_until: string | null
+          pin_hash: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          failed_attempts?: number
+          id?: string
+          locked_until?: string | null
+          pin_hash: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          failed_attempts?: number
+          id?: string
+          locked_until?: string | null
+          pin_hash?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_pins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_pins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_transactions: {
         Row: {
@@ -9885,6 +10014,92 @@ export type Database = {
           },
         ]
       }
+      operation_risk_logs: {
+        Row: {
+          amount: number | null
+          confirmation_method: string | null
+          created_at: string
+          device_fingerprint: string | null
+          id: string
+          ip_address: unknown
+          operation_type: Database["public"]["Enums"]["risk_operation_type"]
+          profile_id: string
+          result: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_factors: Json
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          user_agent: string | null
+        }
+        Insert: {
+          amount?: number | null
+          confirmation_method?: string | null
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: unknown
+          operation_type: Database["public"]["Enums"]["risk_operation_type"]
+          profile_id: string
+          result?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_factors?: Json
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          user_agent?: string | null
+        }
+        Update: {
+          amount?: number | null
+          confirmation_method?: string | null
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: unknown
+          operation_type?: Database["public"]["Enums"]["risk_operation_type"]
+          profile_id?: string
+          result?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_factors?: Json
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_risk_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_risk_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_risk_logs_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_risk_logs_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_orders: {
         Row: {
           advance_deduction: number
@@ -11753,6 +11968,51 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      security_cooldown_events: {
+        Row: {
+          cooldown_until: string
+          created_at: string
+          device_fingerprint: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          profile_id: string
+        }
+        Insert: {
+          cooldown_until: string
+          created_at?: string
+          device_fingerprint?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          profile_id: string
+        }
+        Update: {
+          cooldown_until?: string
+          created_at?: string
+          device_fingerprint?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_cooldown_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_cooldown_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_definer_audit: {
         Row: {
@@ -15763,6 +16023,14 @@ export type Database = {
           status: string
         }[]
       }
+      assess_operation_risk: {
+        Args: {
+          p_amount?: number
+          p_operation_type: Database["public"]["Enums"]["risk_operation_type"]
+          p_profile_id: string
+        }
+        Returns: Json
+      }
       assign_freight_to_affiliated_driver: {
         Args: {
           p_driver_profile_id: string
@@ -16275,6 +16543,24 @@ export type Database = {
         Returns: string
       }
       generate_invite_code: { Args: never; Returns: string }
+      get_active_cooldowns: {
+        Args: { p_profile_id: string }
+        Returns: {
+          cooldown_until: string
+          created_at: string
+          device_fingerprint: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          profile_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "security_cooldown_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_admin_role: { Args: never; Returns: string }
       get_affiliated_driver_profile: {
         Args: { p_company_id: string; p_driver_profile_id: string }
@@ -17870,6 +18156,15 @@ export type Database = {
         | "liquidated"
         | "cancelled"
         | "disputed"
+      risk_level: "low" | "medium" | "high" | "blocked"
+      risk_operation_type:
+        | "withdrawal"
+        | "advance"
+        | "credit_use"
+        | "pix_key_change"
+        | "high_payout"
+        | "admin_financial_action"
+        | "transfer"
       risk_severity: "low" | "medium" | "high" | "critical"
       sanitary_compliance_status_enum:
         | "PENDING"
@@ -18217,6 +18512,16 @@ export const Constants = {
         "liquidated",
         "cancelled",
         "disputed",
+      ],
+      risk_level: ["low", "medium", "high", "blocked"],
+      risk_operation_type: [
+        "withdrawal",
+        "advance",
+        "credit_use",
+        "pix_key_change",
+        "high_payout",
+        "admin_financial_action",
+        "transfer",
       ],
       risk_severity: ["low", "medium", "high", "critical"],
       sanitary_compliance_status_enum: [
