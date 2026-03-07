@@ -1644,7 +1644,7 @@ const ProducerDashboard = () => {
                 data-tutorial="tab-payments"
               >
                 <CreditCard className="h-3.5 w-3.5 mr-1" />
-                Pagamentos
+                Carteira
                 <TabBadge count={statistics.pendingPayments} />
               </TabsTrigger>
 
@@ -2193,16 +2193,26 @@ const ProducerDashboard = () => {
 
           <TabsContent value="payments" className="space-y-4">
             <Suspense fallback={<ChartLoader />}>
-              <ProducerPaymentsTab
-                externalPayments={externalPayments}
-                freightPayments={[]} // REMOVIDO: produtores não têm permissão RLS
-                paymentLoading={paymentLoading}
-                onConfirmExternalPayment={handleConfirmExternalPayment}
-                onConfirmPaymentMade={confirmPaymentMade}
-                onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
-                currentUserProfile={profile}
-                onRefresh={fetchExternalPayments}
-              />
+              {(() => {
+                const { WalletTab } = require('@/components/wallet');
+                return (
+                  <WalletTab
+                    role="PRODUTOR"
+                    legacyPaymentContent={
+                      <ProducerPaymentsTab
+                        externalPayments={externalPayments}
+                        freightPayments={[]}
+                        paymentLoading={paymentLoading}
+                        onConfirmExternalPayment={handleConfirmExternalPayment}
+                        onConfirmPaymentMade={confirmPaymentMade}
+                        onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
+                        currentUserProfile={profile}
+                        onRefresh={fetchExternalPayments}
+                      />
+                    }
+                  />
+                );
+              })()}
             </Suspense>
           </TabsContent>
 
