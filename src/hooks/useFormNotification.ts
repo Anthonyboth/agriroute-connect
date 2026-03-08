@@ -72,8 +72,9 @@ export function useFormNotification() {
     // Dismiss any existing toasts first
     toast.dismiss();
 
-    // Exibe notificação com configuração para máximo z-index
-    const toastFn = type === 'error' ? toast.error : type === 'warning' ? toast.warning : toast.info;
+    // FRT-042: Validações usam toast neutro para não disparar o Monitor Bot
+    // toast.error é reservado para falhas de sistema reais
+    const toastFn = type === 'warning' ? toast.warning : toast.info;
     
     toastFn(message, {
       description,
@@ -214,7 +215,8 @@ export function useFormNotification() {
 export const formNotification = {
   error: (problem: string, solution: string) => {
     toast.dismiss();
-    toast.error(problem, {
+    // FRT-042: toast neutro para validações, evita falso positivo no Monitor Bot
+    toast(problem, {
       description: `✅ ${solution}`,
       duration: 6000,
       position: 'top-center',
