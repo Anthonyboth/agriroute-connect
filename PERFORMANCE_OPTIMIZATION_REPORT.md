@@ -50,9 +50,9 @@ Link: </assets/index.css>; rel=preload; as=style
 - Service Worker - sem cache (atualizações imediatas)
 - Manifests - 24h cache (balance entre fresh e performance)
 
-**Ganho esperado:**
-- **Redução de 50-80% em requests** em visitas de retorno
-- **Navegação instantânea** para usuários recorrentes
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~50-80% menos requests** em visitas de retorno
+- **Navegação potencialmente mais rápida** para usuários recorrentes
 
 ### 3.4 **Lazy Loading já Implementado**
 **Localização:** `src/pages/Landing.tsx`
