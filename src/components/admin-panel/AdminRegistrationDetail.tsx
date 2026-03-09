@@ -542,13 +542,99 @@ const AdminRegistrationDetail = () => {
 
           {/* TAB: Documentos */}
           <TabsContent value="documentos" className="space-y-4">
+            {/* Checklist de Documentos Obrigatórios por Perfil */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Checklist de Documentos — {ROLE_LABELS[profile.role] || profile.role}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const isDriver = profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO';
+                  const requiredDocs = [
+                    { key: 'selfie_url', label: 'Selfie de Verificação', icon: Camera, required: true },
+                    { key: 'document_photo_url', label: 'Documento (Frente)', icon: CreditCard, required: true },
+                    { key: 'cnh_photo_url', label: 'CNH', icon: FileText, required: isDriver },
+                    { key: 'address_proof_url', label: 'Comprovante de Endereço', icon: MapPin, required: isDriver },
+                  ];
+                  const missingRequired = requiredDocs.filter(d => d.required && !profile[d.key]);
+                  const hasAllRequired = missingRequired.length === 0;
+
+                  return (
+                    <div className="space-y-3">
+                      {profile.status === 'APPROVED' && !hasAllRequired && (
+                        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-destructive">⚠️ Perfil aprovado sem documentos obrigatórios</p>
+                            <p className="text-xs text-destructive/80 mt-0.5">
+                              Faltam: {missingRequired.map(d => d.label).join(', ')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {requiredDocs.map(({ key, label, icon: Icon, required }) => {
+                          const hasDoc = !!profile[key];
+                          return (
+                            <div
+                              key={key}
+                              className={`flex items-center gap-2 p-2 rounded-md border text-sm ${
+                                hasDoc
+                                  ? 'bg-success/10 border-success/30 text-success'
+                                  : required
+                                  ? 'bg-destructive/5 border-destructive/20 text-destructive'
+                                  : 'bg-muted/50 border-border text-muted-foreground'
+                              }`}
+                            >
+                              {hasDoc ? (
+                                <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                              ) : (
+                                <XCircle className="h-4 w-4 flex-shrink-0" />
+                              )}
+                              <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="flex-1">{label}</span>
+                              {required && !hasDoc && (
+                                <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Obrigatório</Badge>
+                              )}
+                              {!required && !hasDoc && (
+                                <Badge variant="outline" className="text-[10px]">Opcional</Badge>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <div className={`h-2 flex-1 rounded-full ${hasAllRequired ? 'bg-success' : 'bg-destructive/30'}`}>
+                          <div
+                            className="h-full bg-success rounded-full transition-all"
+                            style={{ width: `${(requiredDocs.filter(d => d.required && !!profile[d.key]).length / requiredDocs.filter(d => d.required).length) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {requiredDocs.filter(d => d.required && !!profile[d.key]).length}/{requiredDocs.filter(d => d.required).length} obrigatórios
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Documentos Enviados - Grid visual */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Documentos Enviados ({existingDocs.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 {existingDocs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Nenhum documento enviado</p>
+                  <div className="text-center py-8 space-y-2">
+                    <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                    <p className="text-sm text-muted-foreground">Nenhum documento enviado</p>
+                    <p className="text-xs text-muted-foreground/60">O usuário ainda não fez upload de nenhum arquivo</p>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {existingDocs.map(({ key, label, icon: Icon }) => (
