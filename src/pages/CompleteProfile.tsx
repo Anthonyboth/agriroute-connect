@@ -1111,20 +1111,23 @@ const CompleteProfile = () => {
                       autoStart
                       onCapture={async (blob, uploadMethod) => {
                           try {
+                            console.log('[CompleteProfile] onCapture chamado:', { blobSize: blob.size, blobType: blob.type, uploadMethod });
                             toast.loading('Enviando selfie...', { id: 'selfie-upload' });
 
                             const result = await uploadSelfieWithInstrumentation({ blob, uploadMethod });
 
-                            if (!result.success && result.error) {
+                            console.log('[CompleteProfile] Upload result:', { success: result.success, hasSignedUrl: !!result.signedUrl, hasError: !!result.error });
+
+                            if (!result.success) {
                               // Exibir erro real ao usuário
-                              const errorMsg = result.error.status
+                              const errorMsg = result.error?.status
                                 ? `${result.error.message} (${result.error.status})`
-                                : result.error.message;
+                                : result.error?.message || 'Erro desconhecido ao enviar selfie.';
 
                               toast.error(errorMsg, { id: 'selfie-upload' });
 
                               // Se sessão expirou, redirecionar para login
-                              if (result.error.code === 'SESSION_EXPIRED') {
+                              if (result.error?.code === 'SESSION_EXPIRED') {
                                 setTimeout(() => {
                                   localStorage.setItem('redirect_after_login', window.location.pathname);
                                   window.location.href = '/auth';
@@ -1133,8 +1136,19 @@ const CompleteProfile = () => {
                               return;
                             }
 
+                            // Guard: success must include a signedUrl
+                            if (!result.signedUrl) {
+                              console.error('[CompleteProfile] Upload retornou success=true mas signedUrl está vazio!', result);
+                              toast.error('Selfie enviada, mas houve um erro ao gerar o link. Tente novamente.', { id: 'selfie-upload' });
+                              return;
+                            }
+
                             // Sucesso - atualizar estado
-                            setDocumentUrls(prev => ({ ...prev, selfie: result.signedUrl || '' }));
+                            setDocumentUrls(prev => {
+                              const updated = { ...prev, selfie: result.signedUrl! };
+                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado:', result.signedUrl!.substring(0, 60) + '...');
+                              return updated;
+                            });
                             toast.success(
                               `✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`,
                               { id: 'selfie-upload' }
