@@ -151,7 +151,7 @@ const ServiceProviderDashboard = lazyWithRetry(() => import("./pages/ServiceProv
   }
 });
 const NfeDashboard = lazyWithRetry(() => import("./pages/NfeDashboard"), { retries: 3 });
-const InspectionView = lazy(() => import("./pages/InspectionView"));
+const InspectionView = lazyWithRetry(() => import("./pages/InspectionView"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
