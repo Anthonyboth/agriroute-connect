@@ -303,6 +303,15 @@ const CompleteProfile = () => {
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
+    // FRT-045 debug: log selfie state to diagnose iPhone/Capacitor issues
+    console.log('[CompleteProfile] handleSaveAndContinue called', {
+      currentStep,
+      registrationMode,
+      selfieUrl: documentUrls.selfie ? `${documentUrls.selfie.substring(0, 60)}...` : '(empty)',
+      documentPhotoUrl: documentUrls.document_photo ? '✅ set' : '(empty)',
+      cnhUrl: documentUrls.cnh ? '✅ set' : '(empty)',
+    });
+
     const state = {
       profileData,
       documentUrls,
@@ -386,8 +395,11 @@ const CompleteProfile = () => {
 
     // Validação final de selfie
     if (!documentUrls.selfie) {
+      console.warn('[CompleteProfile] ❌ Selfie ausente na finalização. documentUrls:', JSON.stringify({
+        selfie: documentUrls.selfie || '(empty)',
+        document_photo: documentUrls.document_photo ? '✅' : '(empty)',
+      }));
       toast('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.', { id: 'missing-selfie' });
-      console.error('❌ Selfie ausente na finalização');
       return;
     }
 
