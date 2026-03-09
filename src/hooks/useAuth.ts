@@ -59,6 +59,7 @@ export interface UserProfile {
   base_lng?: number;
   current_city_name?: string;
   current_state?: string;
+  force_password_change?: boolean;
 }
 
 // NOTE: Internal implementation. Use the exported `useAuth()` hook (context consumer) instead.
