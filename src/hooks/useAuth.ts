@@ -209,7 +209,8 @@ const useAuthInternal = () => {
               background_check_status, rating_locked,
               last_gps_update, current_location_lat, current_location_lng,
               base_lat, base_lng, current_city_name, current_state,
-              selfie_url, location_enabled, farm_name
+              selfie_url, location_enabled, farm_name,
+              force_password_change
             `)
             .eq('user_id', userId);
           
