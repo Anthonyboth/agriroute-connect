@@ -74,16 +74,16 @@ const LazyStatsSection = () => {
 };
 
 // Lazy load modals - only load when user opens them
-const MudancaModal = lazy(() => import('@/components/MudancaModal'));
-const GuestServiceModal = lazy(() => import('@/components/GuestServiceModal'));
-const HowItWorksModal = lazy(() => import('@/components/HowItWorksModal'));
-const FreightTransportModal = lazy(() => import('@/components/FreightTransportModal').then(m => ({ default: m.FreightTransportModal })));
-const ServicesModal = lazy(() => import('@/components/ServicesModal').then(m => ({ default: m.ServicesModal })));
-const ServiceRequestModal = lazy(() => import('@/components/ServiceRequestModal'));
-const ReportModal = lazy(() => import('@/components/ReportModal'));
+const MudancaModal = lazyWithRetry(() => import('@/components/MudancaModal'));
+const GuestServiceModal = lazyWithRetry(() => import('@/components/GuestServiceModal'));
+const HowItWorksModal = lazyWithRetry(() => import('@/components/HowItWorksModal'));
+const FreightTransportModal = lazyWithRetry(() => import('@/components/FreightTransportModal').then(m => ({ default: m.FreightTransportModal })));
+const ServicesModal = lazyWithRetry(() => import('@/components/ServicesModal').then(m => ({ default: m.ServicesModal })));
+const ServiceRequestModal = lazyWithRetry(() => import('@/components/ServiceRequestModal'));
+const ReportModal = lazyWithRetry(() => import('@/components/ReportModal'));
 
 // ContactSupportModal lazy-loaded - only needed on user click
-const ContactSupportModal = lazy(() => import('@/components/contact/ContactSupportModal').then(m => ({ default: m.ContactSupportModal })));
+const ContactSupportModal = lazyWithRetry(() => import('@/components/contact/ContactSupportModal').then(m => ({ default: m.ContactSupportModal })));
 
 // Lazy load icons - only import what's needed
 import Truck from 'lucide-react/dist/esm/icons/truck';

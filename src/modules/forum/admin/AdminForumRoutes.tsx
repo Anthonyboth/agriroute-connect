@@ -1,15 +1,16 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 
-const AdminForumCategories = lazy(() => import('./pages/AdminForumCategories'));
-const AdminForumBoards = lazy(() => import('./pages/AdminForumBoards'));
-const AdminForumThreads = lazy(() => import('./pages/AdminForumThreads'));
-const AdminForumPosts = lazy(() => import('./pages/AdminForumPosts'));
-const AdminForumReports = lazy(() => import('./pages/AdminForumReports'));
-const AdminForumBans = lazy(() => import('./pages/AdminForumBans'));
-const AdminForumLogs = lazy(() => import('./pages/AdminForumLogs'));
+const AdminForumCategories = lazyWithRetry(() => import('./pages/AdminForumCategories'));
+const AdminForumBoards = lazyWithRetry(() => import('./pages/AdminForumBoards'));
+const AdminForumThreads = lazyWithRetry(() => import('./pages/AdminForumThreads'));
+const AdminForumPosts = lazyWithRetry(() => import('./pages/AdminForumPosts'));
+const AdminForumReports = lazyWithRetry(() => import('./pages/AdminForumReports'));
+const AdminForumBans = lazyWithRetry(() => import('./pages/AdminForumBans'));
+const AdminForumLogs = lazyWithRetry(() => import('./pages/AdminForumLogs'));
 
 const tabs = [
   { value: 'categorias', label: 'Categorias', path: '' },

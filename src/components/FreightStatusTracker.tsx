@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 // ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
-const FreightRealtimeMap = lazy(() => 
+const FreightRealtimeMap = lazyWithRetry(() => 
   import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
     default: module.FreightRealtimeMapMapLibre 
   }))

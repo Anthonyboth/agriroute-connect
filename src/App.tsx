@@ -13,12 +13,12 @@ import { RatingProvider } from "@/contexts/RatingContext";
 import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
 // GlobalRatingModals deferred - uses Radix Dialog which pulls ui-vendor chunk (50KB)
 // Only needed after authentication, not on landing page
-const GlobalRatingModals = lazy(() => import("@/components/GlobalRatingModals").then(m => ({ default: m.GlobalRatingModals })));
+const GlobalRatingModals = lazyWithRetry(() => import("@/components/GlobalRatingModals").then(m => ({ default: m.GlobalRatingModals })));
 // Toaster deferred to avoid pulling ui-vendor (Radix Toast) on landing page
-const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const LazyToaster = lazyWithRetry(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 
 // Sonner deferred to avoid loading sonner package on landing page
-const LazySonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const LazySonner = lazyWithRetry(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";

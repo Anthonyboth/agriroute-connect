@@ -1,12 +1,13 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FEATURE_FORUM } from './config';
 import { ComponentLoader } from '@/components/LazyComponents';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 
-const ForumHome = lazy(() => import('./pages/ForumHome'));
-const ForumBoardPage = lazy(() => import('./pages/ForumBoardPage'));
-const ForumThreadPage = lazy(() => import('./pages/ForumThreadPage'));
-const ForumNewThread = lazy(() => import('./pages/ForumNewThread'));
+const ForumHome = lazyWithRetry(() => import('./pages/ForumHome'));
+const ForumBoardPage = lazyWithRetry(() => import('./pages/ForumBoardPage'));
+const ForumThreadPage = lazyWithRetry(() => import('./pages/ForumThreadPage'));
+const ForumNewThread = lazyWithRetry(() => import('./pages/ForumNewThread'));
 
 export function ForumRoutes() {
   if (!FEATURE_FORUM) {

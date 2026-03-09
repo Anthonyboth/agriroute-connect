@@ -35,14 +35,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { differenceInDays, differenceInHours } from 'date-fns';
 
 // Lazy load do mapa MapLibre para performance (100% gratuito, sem Google Maps)
-const FreightRealtimeMap = lazy(() => 
+const FreightRealtimeMap = lazyWithRetry(() => 
   import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
     default: module.FreightRealtimeMapMapLibre 
   }))
 );
 
 // ✅ Lazy load do mapa multi-motorista para fretes multi-carreta
-const MultiDriverMap = lazy(() => 
+const MultiDriverMap = lazyWithRetry(() => 
   import('@/components/freight/MultiDriverMapMapLibre').then(module => ({ 
     default: module.MultiDriverMapMapLibre 
   }))
