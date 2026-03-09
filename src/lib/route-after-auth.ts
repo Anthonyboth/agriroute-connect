@@ -20,6 +20,7 @@ export interface ProfileForRouting {
   status: string;
   selfie_url: string | null;
   document_photo_url: string | null;
+  force_password_change?: boolean;
 }
 
 /**
@@ -32,7 +33,7 @@ export async function waitForProfile(userId: string, targetProfileId?: string): 
   for (let i = 0; i < delays.length; i++) {
     let query = supabase
       .from('profiles')
-      .select('id, role, status, selfie_url, document_photo_url')
+      .select('id, role, status, selfie_url, document_photo_url, force_password_change')
       .eq('user_id', userId);
 
     // Se temos um profileId específico, buscar exatamente esse
@@ -54,6 +55,7 @@ export async function waitForProfile(userId: string, targetProfileId?: string): 
         status: profile.status || 'PENDING',
         selfie_url: profile.selfie_url,
         document_photo_url: profile.document_photo_url,
+        force_password_change: profile.force_password_change ?? false,
       };
     }
 
@@ -88,6 +90,11 @@ function isProfileComplete(profile: ProfileForRouting): boolean {
  * - Caso contrário => dashboard por role
  */
 export async function resolvePostAuthRoute(profile: ProfileForRouting): Promise<string> {
+  // Gate 0: Senha temporária do admin — força troca antes de qualquer coisa
+  if (profile.force_password_change) {
+    return '/force-change-password';
+  }
+
   // Gate 1: Perfil incompleto — sempre força /complete-profile
   if (!isProfileComplete(profile)) {
     return '/complete-profile';

@@ -87,6 +87,7 @@ if (typeof window !== 'undefined' && 'connection' in navigator) {
 // ✅ Using lazyWithRetry for critical auth pages to handle network/cache failures after deploys
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const ForceChangePassword = lazyWithRetry(() => import("./pages/ForceChangePassword"));
 const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
 const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
 const ProfileEdit = lazyWithRetry(() => import("./pages/ProfileEdit"));
@@ -794,6 +795,11 @@ const RedirectIfAuthed = () => {
     return <AuthLoader message="Finalizando..." />; // aguardando resolução do perfil
   }
   
+  // ✅ GATE 0: Força troca de senha se admin resetou
+  if (profile?.force_password_change) {
+    return <Navigate to="/force-change-password" replace />;
+  }
+
   // ✅ LACUNA 5 CORRIGIDA: Validar redirect_after_login contra os painéis permitidos do perfil
   // Evita redirecionar para um painel de outra sessão/role anterior
   const after = localStorage.getItem('redirect_after_login');
@@ -988,6 +994,7 @@ const App = () => {
                         <Route path="/auth" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><Auth /></Suspense>} />
                         <Route path="/admin-login" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><AdminLogin /></Suspense>} />
                         <Route path="/reset-password" element={<Suspense fallback={<AppLoader variant="inline" />}><ResetPassword /></Suspense>} />
+                        <Route path="/force-change-password" element={<ProtectedRoute requiresAuth><Suspense fallback={<AppLoader variant="inline" />}><ForceChangePassword /></Suspense></ProtectedRoute>} />
                         <Route path="/confirm-email" element={<Suspense fallback={<AppLoader variant="inline" />}><ConfirmEmail /></Suspense>} />
                         <Route 
                           path="/complete-profile" 
