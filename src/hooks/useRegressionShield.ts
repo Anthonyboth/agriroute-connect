@@ -48,7 +48,8 @@ export type RuntimeGuardKey =
   | 'withdrawn-driver-must-not-access-freight-details'
   | 'available-feed-must-exclude-driver-active-assignments'
   | 'rpc-column-names-must-match-table-schema'
-  | 'lazy-imports-must-use-lazyWithRetry';
+  | 'lazy-imports-must-use-lazyWithRetry'
+  | 'validation-toasts-must-be-neutral';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -1230,6 +1231,35 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'error_boundary_shows_recovery_ui_for_chunk_errors',
     ],
     runtimeGuard: 'lazy-imports-must-use-lazyWithRetry',
+  },
+
+  // ── FRT-045: Form validation toasts reported as critical errors by Monitor Bot ──
+  {
+    id: 'FRT-045',
+    date: '2026-03-09',
+    severity: 'MEDIUM',
+    area: 'monitoring-false-positives',
+    bug: 'Validações de formulário (senha fraca, selfie ausente) eram reportadas ao Telegram como erros críticos porque Auth.tsx usava toast.error() e useFormState.ts usava variant destructive para mensagens de validação.',
+    rootCause: 'toast.error() e variant destructive são interceptados pelo usePanelErrorTelegramReporter como erros do sistema. Validações de formulário não são erros — são feedback esperado ao usuário.',
+    fix: 'Trocado toast.error() por toast() neutro em Auth.tsx, removido variant destructive em useFormState.ts, adicionados padrões de validação ao IGNORED_PATTERNS do reporter.',
+    files: [
+      'src/pages/Auth.tsx',
+      'src/hooks/useFormState.ts',
+      'src/hooks/usePanelErrorTelegramReporter.ts',
+    ],
+    rules: [
+      'NUNCA usar toast.error() ou variant destructive para validação de formulário (regra FRT-042)',
+      'Mensagens de validação DEVEM usar toast() neutro com id único',
+      'IGNORED_PATTERNS do reporter DEVE incluir padrões de validação comuns',
+      'toast.error() é EXCLUSIVO para falhas críticas de sistema ou rede',
+    ],
+    keywords: ['toast.error', 'destructive', 'validação', 'monitor bot', 'falso positivo', 'form validation'],
+    testCases: [
+      'signup_password_validation_does_not_trigger_telegram_alert',
+      'missing_selfie_validation_does_not_trigger_telegram_alert',
+      'form_validation_uses_neutral_toast_not_destructive',
+    ],
+    runtimeGuard: 'validation-toasts-must-be-neutral',
   },
 ];
 // ═══════════════════════════════════════════════════════════════

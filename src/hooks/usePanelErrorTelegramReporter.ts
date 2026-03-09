@@ -83,6 +83,10 @@ export function usePanelErrorTelegramReporter() {
       'Location services are not enabled',
       'location permission',
       'location services',
+      // FRT-045: Form validation messages are NOT errors
+      'Erro de validação',
+      'Por favor, envie',
+      'Por favor, corrija',
     ];
 
     const shouldIgnore = (msg: string): boolean => {

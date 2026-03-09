@@ -207,7 +207,7 @@ const Auth = () => {
     });
     
     if (validation.success === false) {
-      toast.error(`Erro de validação: ${validation.errors.join(', ')}`);
+      toast(`Erro de validação: ${validation.errors.join(', ')}`);
       setLoading(false);
       return;
     }
