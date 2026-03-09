@@ -8,7 +8,8 @@
  * ✅ REDESIGN: Alinhado com o visual do FreightCard (dot-line, 3-col grid, service icon header).
  */
 
-import React, { useState, lazy, Suspense, useMemo, useRef } from 'react';
+import React, { useState, Suspense, useMemo, useRef } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { resolveUiPriceMode } from '@/lib/precoUI';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
