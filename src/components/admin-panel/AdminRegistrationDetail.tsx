@@ -858,7 +858,30 @@ const AdminRegistrationDetail = () => {
               {dialogAction === 'UNBLOCK' && '🔓 Desbloquear Usuário'}
             </DialogTitle>
             <DialogDescription>
-              {dialogAction === 'APPROVE' && `Confirma a aprovação de ${profile.full_name}?`}
+              {dialogAction === 'APPROVE' && (() => {
+                const isDriver = profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO';
+                const requiredKeys = ['selfie_url', 'document_photo_url', ...(isDriver ? ['cnh_photo_url', 'address_proof_url'] : [])];
+                const missingLabels: Record<string, string> = { selfie_url: 'Selfie', document_photo_url: 'Documento', cnh_photo_url: 'CNH', address_proof_url: 'Comprovante de Endereço' };
+                const missing = requiredKeys.filter(k => !profile[k]);
+                if (missing.length > 0) {
+                  return (
+                    <div className="space-y-2">
+                      <span>Confirma a aprovação de {profile.full_name}?</span>
+                      <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-destructive">⚠️ Documentos obrigatórios ausentes!</p>
+                          <p className="text-xs text-destructive/80 mt-0.5">
+                            Faltam: {missing.map(k => missingLabels[k]).join(', ')}
+                          </p>
+                          <p className="text-xs text-destructive/60 mt-1">A aprovação será registrada, mas o perfil ficará sem validação documental completa.</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return `Confirma a aprovação de ${profile.full_name}?`;
+              })()}
               {dialogAction === 'REJECT' && 'Informe o motivo da reprovação.'}
               {dialogAction === 'NEEDS_FIX' && 'Descreva o que o usuário precisa corrigir.'}
               {dialogAction === 'BLOCK' && `Informe o motivo do bloqueio de ${profile.full_name}.`}
