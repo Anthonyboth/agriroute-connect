@@ -257,7 +257,6 @@ export function useForm<T extends Record<string, any>>(
         toast({
           title: 'Erro de validação',
           description: 'Por favor, corrija os erros no formulário',
-          variant: 'destructive',
         });
       }
       return;
