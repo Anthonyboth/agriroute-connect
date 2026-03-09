@@ -48,6 +48,24 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     navigator.mediaDevices && 
     typeof navigator.mediaDevices.getUserMedia === 'function';
 
+  /**
+   * Converte data URL para Blob de forma robusta (sem usar fetch).
+   * No iOS WKWebView, fetch(dataUrl) pode falhar silenciosamente para payloads grandes.
+   */
+  const dataUrlToBlob = useCallback((dataUrl: string): Blob => {
+    const [meta, base64Data] = dataUrl.split(',');
+    const mimeMatch = meta.match(/^data:(.*?);/);
+    const mimeType = mimeMatch?.[1] || 'image/jpeg';
+
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    return new Blob([bytes], { type: mimeType });
+  }, []);
+
   // ========== CAPACITOR NATIVE CAMERA ==========
   const takeNativePhoto = useCallback(async (source: 'camera' | 'gallery') => {
     try {
@@ -76,9 +94,18 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         return;
       }
 
-      // Convert data URL to blob
-      const response = await fetch(image.dataUrl);
-      const blob = await response.blob();
+      // Convert data URL to blob using manual conversion (robust on iOS WKWebView)
+      const blob = dataUrlToBlob(image.dataUrl);
+
+      if (!blob || blob.size === 0) {
+        console.error('[CameraSelfie] Blob vazio após conversão da dataUrl');
+        toast.error('Erro ao processar imagem capturada. Tente novamente.');
+        return;
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('[CameraSelfie] Native photo captured:', { size: blob.size, type: blob.type, source });
+      }
 
       const url = URL.createObjectURL(blob);
       setCapturedBlob(blob);
@@ -95,7 +122,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     } finally {
       setStarting(false);
     }
-  }, []);
+  }, [dataUrlToBlob]);
 
   // Stop camera and release resources
   const stopCamera = useCallback(() => {
