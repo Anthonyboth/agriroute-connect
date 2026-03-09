@@ -39,15 +39,18 @@ workflows:
           gem uninstall bundler -aIx || true
           gem install bundler -v 2.5.23
           bundle _2.5.23_ -v
+          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
+          bundle _2.5.23_ install
+
+      - name: Install CocoaPods via Bundler 2
+        script: |
+          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
+          cd ios/App
+          bundle _2.5.23_ exec pod install
 
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
-
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
 
       - name: Set up code signing
         script: |
