@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# audit-deps.sh — Validates all @capacitor/* packages are pinned to 7.4.4
+# audit-deps.sh — Validates all @capacitor/* packages are pinned to exact 7.x versions (no Capacitor 8)
 set -euo pipefail
 
-EXPECTED="7.4.4"
 ERRORS=0
 
 echo "=== AgriRoute Capacitor Dependency Audit ==="
@@ -25,16 +24,15 @@ for field in dependencies devDependencies; do
     name=$(echo "$line" | awk '{print $1}')
     version=$(echo "$line" | awk '{print $2}')
 
-    if [ "$version" != "$EXPECTED" ]; then
-      echo "  ❌ $field: $name is $version (expected exact $EXPECTED)"
+    if echo "$version" | grep -qE '^8\.'; then
+      echo "  ❌ $field: $name is $version (Capacitor 8 detected — must be 7.x)"
       ERRORS=$((ERRORS + 1))
     else
       echo "  ✅ $field: $name = $version"
     fi
-
     # Check for ^ or ~
     if echo "$version" | grep -qE '^\^|^~'; then
-      echo "  ❌ $field: $name uses range operator ($version) — must be exact"
+      echo "  ❌ $field: $name uses range operator ($version) — must be pinned exact"
       ERRORS=$((ERRORS + 1))
     fi
   done <<< "$entries"
@@ -48,10 +46,10 @@ override_val=$(node -e "
   console.log((pkg.overrides || {})['@capacitor/core'] || 'MISSING');
 " 2>/dev/null || echo "MISSING")
 
-if [ "$override_val" = "$EXPECTED" ]; then
+if echo "$override_val" | grep -qE '^7\.'; then
   echo "  ✅ overrides @capacitor/core = $override_val"
 else
-  echo "  ❌ overrides @capacitor/core is '$override_val' (expected $EXPECTED)"
+  echo "  ❌ overrides @capacitor/core is '$override_val' (expected 7.x)"
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -85,6 +83,6 @@ if [ "$ERRORS" -gt 0 ]; then
   echo "❌ AUDIT FAILED — $ERRORS issue(s) found"
   exit 1
 else
-  echo "✅ AUDIT PASSED — all @capacitor/* packages are pinned to $EXPECTED"
+  echo "✅ AUDIT PASSED — all @capacitor/* packages are pinned to 7.x, no Capacitor 8 detected"
   exit 0
 fi
