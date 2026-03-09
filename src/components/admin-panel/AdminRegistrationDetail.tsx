@@ -436,6 +436,62 @@ const AdminRegistrationDetail = () => {
                 </CardContent>
               </Card>
 
+              {/* Acesso e Senha */}
+              <Card className="shadow-sm border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Key className="h-4 w-4 text-primary" /> Acesso e Senha
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <InfoRow label="E-mail de acesso" value={profile.email} icon={<Mail className="h-3.5 w-3.5" />} />
+                  <InfoRow label="Último login" value={profile.last_sign_in_at ? format(new Date(profile.last_sign_in_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—'} icon={<Clock className="h-3.5 w-3.5" />} />
+                  
+                  <Separator className="my-2" />
+
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="new-password" className="text-sm font-medium">Nova Senha</Label>
+                      <PasswordInput
+                        id="new-password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={resettingPassword}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="reset-reason" className="text-sm font-medium">Motivo (opcional)</Label>
+                      <Textarea
+                        id="reset-reason"
+                        placeholder="Ex: Solicitação via WhatsApp"
+                        value={resetReason}
+                        onChange={(e) => setResetReason(e.target.value)}
+                        rows={2}
+                        disabled={resettingPassword}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => {
+                        if (!newPassword || newPassword.length < 6) {
+                          toast.error('A senha deve ter no mínimo 6 caracteres');
+                          return;
+                        }
+                        setResetDialogOpen(true);
+                      }}
+                      disabled={resettingPassword || !newPassword}
+                      className="w-full"
+                      variant="destructive"
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      {resettingPassword ? 'Redefinindo...' : 'Redefinir Senha'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Farm Info (Producer) */}
               {(profile.role === 'PRODUTOR' || profile.farm_name) && (
                 <Card className="shadow-sm">
