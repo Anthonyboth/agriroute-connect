@@ -1194,6 +1194,43 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'system_errors_still_use_toast_error',
     ],
   },
+
+  // ── FRT-044: ChunkLoadError on landing page crashes app for iPhone/Safari users ──
+  {
+    id: 'FRT-044',
+    date: '2026-03-09',
+    severity: 'CRITICAL',
+    area: 'lazy-loading-chunk-recovery',
+    bug: 'Usuários iPhone/Safari viam tela branca na página inicial (/) porque React.lazy() falhava ao carregar chunks JS após deploy. O ErrorBoundary capturava "Importing a module script failed" mas não recuperava automaticamente.',
+    rootCause: 'Múltiplos arquivos (Landing.tsx, App.tsx, AdminPanelV2.tsx, FreightStatusTracker.tsx, FreightInProgressCard.tsx, ForumRoutes.tsx, AdminForumRoutes.tsx) usavam React.lazy() nativo ao invés de lazyWithRetry() que já existia no projeto. Após deploy, chunks antigos eram invalidados e Safari não conseguia carregar os novos por cache/CDN/ServiceWorker desatualizado.',
+    fix: 'Substituído TODOS os React.lazy() por lazyWithRetry() em todos os arquivos. lazyWithRetry limpa caches, faz retry automático com delay e recarrega a página como último recurso. Adicionado auto-reload no ErrorBoundary para chunk errors com proteção anti-loop.',
+    files: [
+      'src/pages/Landing.tsx',
+      'src/App.tsx',
+      'src/pages/AdminPanelV2.tsx',
+      'src/components/FreightStatusTracker.tsx',
+      'src/components/FreightInProgressCard.tsx',
+      'src/modules/forum/ForumRoutes.tsx',
+      'src/modules/forum/admin/AdminForumRoutes.tsx',
+      'src/components/ErrorBoundary.tsx',
+      'src/lib/lazyWithRetry.ts',
+    ],
+    rules: [
+      'NUNCA usar React.lazy() diretamente — SEMPRE usar lazyWithRetry() de @/lib/lazyWithRetry',
+      'Todo import dinâmico DEVE ter mecanismo de retry e cache-busting',
+      'ErrorBoundary DEVE tentar auto-reload uma vez para chunk errors antes de mostrar erro',
+      'Página inicial (/) NUNCA pode ficar em tela branca — é a primeira impressão do usuário',
+      'Testar após cada deploy em Safari/iPhone modo anônimo para validar chunks',
+    ],
+    keywords: ['lazy', 'chunk', 'import', 'module script failed', 'ChunkLoadError', 'Safari', 'iPhone', 'cache', 'deploy', 'tela branca', 'lazyWithRetry'],
+    testCases: [
+      'all_lazy_imports_use_lazyWithRetry_not_native_lazy',
+      'chunk_error_triggers_auto_reload_once',
+      'landing_page_loads_after_deploy_on_safari',
+      'error_boundary_shows_recovery_ui_for_chunk_errors',
+    ],
+    runtimeGuard: 'lazy-imports-must-use-lazyWithRetry',
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
