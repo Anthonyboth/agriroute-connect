@@ -83,6 +83,6 @@ if [ "$ERRORS" -gt 0 ]; then
   echo "❌ AUDIT FAILED — $ERRORS issue(s) found"
   exit 1
 else
-  echo "✅ AUDIT PASSED — all @capacitor/* packages are pinned to $EXPECTED"
+  echo "✅ AUDIT PASSED — all @capacitor/* packages are pinned to 7.x, no Capacitor 8 detected"
   exit 0
 fi
