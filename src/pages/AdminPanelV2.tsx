@@ -3,7 +3,8 @@
  * Acessível somente por admins cadastrados diretamente no banco.
  * Rota: /admin-v2/*
  */
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
