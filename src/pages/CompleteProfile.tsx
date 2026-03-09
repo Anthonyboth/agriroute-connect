@@ -133,6 +133,20 @@ const CompleteProfile = () => {
       return;
     }
 
+    // ✅ GUARD IMEDIATO: Usuário APPROVED nunca deve ficar nesta página
+    if (profile && profile.status === 'APPROVED') {
+      const dashboardPath = isDriver
+        ? '/dashboard/driver'
+        : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
+          ? '/dashboard/company'
+          : (profile.role as any) === 'PRESTADOR_SERVICOS'
+            ? '/dashboard/service-provider'
+            : '/dashboard/producer';
+      console.log('[CompleteProfile] Usuário APPROVED detectado no useEffect — redirecionando para:', dashboardPath);
+      navigate(dashboardPath, { replace: true });
+      return;
+    }
+
     // Inicializar dados do formulário apenas uma vez para evitar reset durante revalidações do perfil
     if (profile && !didInitRef.current) {
       // Buscar dados completos via profiles_secure (contorna CLS para o próprio dono)
