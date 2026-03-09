@@ -81,6 +81,12 @@ const AdminRegistrationDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [validationSubmitting, setValidationSubmitting] = useState<string | null>(null);
 
+  // Password reset state
+  const [newPassword, setNewPassword] = useState('');
+  const [resetReason, setResetReason] = useState('');
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+
   const fetchDetail = async () => {
     if (!id) return;
     setLoading(true);
