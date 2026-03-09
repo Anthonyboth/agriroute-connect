@@ -1,6 +1,6 @@
 workflows:
   ios-release-testflight:
-    name: iOS Release to TestFlight
+    name: iOS Release Build (IPA Only)
     max_build_duration: 60
     environment:
       xcode: latest
@@ -58,13 +58,12 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     
+    # REMOVED: publishing block with auth: integration
+    # Reason: requires workflow-level "integrations: app_store_connect" config
+    # which was not defined. Re-add when integration is configured in Codemagic UI.
+    # See: https://docs.codemagic.io/yaml-publishing/app-store-connect/
+    
     publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
-        
       email:
         recipients:
           - dev@agriroute.com
