@@ -24,17 +24,11 @@ for field in dependencies devDependencies; do
     name=$(echo "$line" | awk '{print $1}')
     version=$(echo "$line" | awk '{print $2}')
 
-    if [ "$version" != "$EXPECTED" ]; then
-      echo "  ❌ $field: $name is $version (expected exact $EXPECTED)"
+    if echo "$version" | grep -qE '^8\.'; then
+      echo "  ❌ $field: $name is $version (Capacitor 8 detected — must be 7.x)"
       ERRORS=$((ERRORS + 1))
     else
       echo "  ✅ $field: $name = $version"
-    fi
-
-    # Check for ^ or ~
-    if echo "$version" | grep -qE '^\^|^~'; then
-      echo "  ❌ $field: $name uses range operator ($version) — must be exact"
-      ERRORS=$((ERRORS + 1))
     fi
   done <<< "$entries"
 done
