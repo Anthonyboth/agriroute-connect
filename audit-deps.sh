@@ -30,6 +30,11 @@ for field in dependencies devDependencies; do
     else
       echo "  ✅ $field: $name = $version"
     fi
+    # Check for ^ or ~
+    if echo "$version" | grep -qE '^\^|^~'; then
+      echo "  ❌ $field: $name uses range operator ($version) — must be pinned exact"
+      ERRORS=$((ERRORS + 1))
+    fi
   done <<< "$entries"
 done
 
