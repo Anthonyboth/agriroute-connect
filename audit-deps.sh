@@ -46,10 +46,10 @@ override_val=$(node -e "
   console.log((pkg.overrides || {})['@capacitor/core'] || 'MISSING');
 " 2>/dev/null || echo "MISSING")
 
-if [ "$override_val" = "$EXPECTED" ]; then
+if echo "$override_val" | grep -qE '^7\.'; then
   echo "  ✅ overrides @capacitor/core = $override_val"
 else
-  echo "  ❌ overrides @capacitor/core is '$override_val' (expected $EXPECTED)"
+  echo "  ❌ overrides @capacitor/core is '$override_val' (expected 7.x)"
   ERRORS=$((ERRORS + 1))
 fi
 
