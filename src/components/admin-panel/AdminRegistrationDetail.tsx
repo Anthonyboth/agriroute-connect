@@ -161,6 +161,47 @@ const AdminRegistrationDetail = () => {
     setDialogOpen(true);
   };
 
+  const handlePasswordReset = async () => {
+    if (!profile?.email) {
+      toast.error('E-mail do usuário não encontrado');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: {
+          user_email: profile.email,
+          new_password: newPassword,
+          reset_reason: resetReason || 'Redefinição via painel admin',
+        },
+      });
+
+      if (error) {
+        const errorMsg = (error as any)?.context?.json
+          ? (await (error as any).context.json())?.error
+          : error.message;
+        throw new Error(errorMsg || 'Erro ao redefinir senha');
+      }
+
+      if (result && !result.success) {
+        throw new Error(result.error || 'Erro ao redefinir senha');
+      }
+
+      toast.success(`Senha de ${profile.email} redefinida com sucesso`);
+      setNewPassword('');
+      setResetReason('');
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao redefinir senha');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   if (loading) return <div className="flex-1 flex items-center justify-center"><AppSpinner /></div>;
   if (!data?.profile) return <div className="flex-1 flex items-center justify-center"><p>Cadastro não encontrado</p></div>;
 
