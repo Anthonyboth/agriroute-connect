@@ -227,9 +227,9 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
 - Tree-shaking agressivo com `moduleSideEffects: 'no-external'`
 - Cada chunk carrega apenas código necessário
 
-**Ganho esperado:**
-- **Redução de 10-15% no JavaScript total**
-- **Paralização de downloads** (HTTP/2)
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~10-15% de redução no JavaScript total**
+- **Paralelização de downloads** (HTTP/2)
 
 ---
 
