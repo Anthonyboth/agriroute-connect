@@ -133,6 +133,20 @@ const CompleteProfile = () => {
       return;
     }
 
+    // ✅ GUARD IMEDIATO: Usuário APPROVED nunca deve ficar nesta página
+    if (profile && profile.status === 'APPROVED') {
+      const dashboardPath = isDriver
+        ? '/dashboard/driver'
+        : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
+          ? '/dashboard/company'
+          : (profile.role as any) === 'PRESTADOR_SERVICOS'
+            ? '/dashboard/service-provider'
+            : '/dashboard/producer';
+      console.log('[CompleteProfile] Usuário APPROVED detectado no useEffect — redirecionando para:', dashboardPath);
+      navigate(dashboardPath, { replace: true });
+      return;
+    }
+
     // Inicializar dados do formulário apenas uma vez para evitar reset durante revalidações do perfil
     if (profile && !didInitRef.current) {
       // Buscar dados completos via profiles_secure (contorna CLS para o próprio dono)
@@ -217,18 +231,7 @@ const CompleteProfile = () => {
         setProfileData(prev => ({ ...prev, fixed_address: savedAddress }));
       }
 
-      // Redirect if profile is already APPROVED - never force re-registration
-      if (profile.status === 'APPROVED') {
-        const dashboardPath = isDriver
-          ? '/dashboard/driver'
-          : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
-            ? '/dashboard/company'
-            : (profile.role as any) === 'PRESTADOR_SERVICOS'
-              ? '/dashboard/service-provider'
-              : '/dashboard/producer';
-        navigate(dashboardPath);
-        return;
-      }
+      // APPROVED check já tratado acima no useEffect (guard imediato)
 
       // Redirect if profile is fully complete (even if pending approval)
       const hasCompletedProfile = profile.selfie_url && profile.document_photo_url && 
@@ -302,6 +305,20 @@ const CompleteProfile = () => {
 
   const handleSaveAndContinue = async () => {
     if (!profile) return;
+
+    // ✅ GUARD: Usuário APROVADO jamais deve ser bloqueado por documentos — redirecionar imediatamente
+    if (profile.status === 'APPROVED') {
+      console.log('[CompleteProfile] handleSaveAndContinue: usuário APPROVED — redirecionando ao dashboard');
+      const dashboardPath = isDriver
+        ? '/dashboard/driver'
+        : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
+          ? '/dashboard/company'
+          : (profile.role as any) === 'PRESTADOR_SERVICOS'
+            ? '/dashboard/service-provider'
+            : '/dashboard/producer';
+      navigate(dashboardPath);
+      return;
+    }
 
     // FRT-045 debug: log selfie state to diagnose iPhone/Capacitor issues
     console.log('[CompleteProfile] handleSaveAndContinue called', {
