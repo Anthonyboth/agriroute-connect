@@ -28,6 +28,21 @@ class ErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(error: Error): State {
     const isChunk = isChunkLoadError(error);
+    
+    // FRT-044: Auto-reload once for chunk errors before showing UI
+    if (isChunk) {
+      const key = 'agriroute_chunk_reload_attempted';
+      const lastAttempt = sessionStorage.getItem(key);
+      const now = Date.now();
+      // Only auto-reload if we haven't tried in the last 30 seconds (anti-loop)
+      if (!lastAttempt || (now - parseInt(lastAttempt, 10)) > 30000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+        // Return error state in case reload doesn't happen immediately
+        return { hasError: true, error, isChunkError: isChunk };
+      }
+    }
+    
     return { hasError: true, error, isChunkError: isChunk };
   }
 
