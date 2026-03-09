@@ -143,6 +143,17 @@ serve(async (req) => {
       throw new Error('Erro ao atualizar senha: ' + updateError.message);
     }
 
+    // Marcar force_password_change = true em todos os perfis do usuário
+    const { error: flagError } = await supabaseClient
+      .from('profiles')
+      .update({ force_password_change: true })
+      .eq('user_id', userToReset.id);
+
+    if (flagError) {
+      console.error('[admin-reset-password] Erro ao marcar force_password_change:', flagError);
+      // Não falhar a operação por causa disso, senha já foi alterada
+    }
+
     // 🔒 SEGURANÇA 3: Registrar no audit log com IP e User Agent
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const userAgent = req.headers.get('user-agent') || 'unknown';

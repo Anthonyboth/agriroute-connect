@@ -989,6 +989,7 @@ const App = () => {
                         <Route path="/auth" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><Auth /></Suspense>} />
                         <Route path="/admin-login" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><AdminLogin /></Suspense>} />
                         <Route path="/reset-password" element={<Suspense fallback={<AppLoader variant="inline" />}><ResetPassword /></Suspense>} />
+                        <Route path="/force-change-password" element={<ProtectedRoute requiresAuth><Suspense fallback={<AppLoader variant="inline" />}><ForceChangePassword /></Suspense></ProtectedRoute>} />
                         <Route path="/confirm-email" element={<Suspense fallback={<AppLoader variant="inline" />}><ConfirmEmail /></Suspense>} />
                         <Route 
                           path="/complete-profile" 
