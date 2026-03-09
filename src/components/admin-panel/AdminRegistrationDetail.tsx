@@ -13,8 +13,13 @@ import {
   ArrowLeft, CheckCircle, XCircle, AlertTriangle, FileText, Clock, User,
   Phone, CreditCard, MapPin, Menu, Truck, Star, Shield, DollarSign, Package,
   Camera, Mail, CalendarDays, Building2, Award, Fuel, Navigation, Eye,
-  Globe, Hash, Activity, BadgeCheck, Map, UserCheck, Wallet,
+  Globe, Hash, Activity, BadgeCheck, Map, UserCheck, Wallet, Key,
 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { PasswordInput } from '@/components/ui/password-input';
+import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SignedStorageImage } from '@/components/ui/signed-storage-image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -75,6 +80,12 @@ const AdminRegistrationDetail = () => {
   const [internalNotes, setInternalNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [validationSubmitting, setValidationSubmitting] = useState<string | null>(null);
+
+  // Password reset state
+  const [newPassword, setNewPassword] = useState('');
+  const [resetReason, setResetReason] = useState('');
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -148,6 +159,47 @@ const AdminRegistrationDetail = () => {
   const openDialog = (action: 'APPROVE' | 'REJECT' | 'NEEDS_FIX' | 'BLOCK' | 'UNBLOCK') => {
     setDialogAction(action);
     setDialogOpen(true);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!profile?.email) {
+      toast.error('E-mail do usuário não encontrado');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: {
+          user_email: profile.email,
+          new_password: newPassword,
+          reset_reason: resetReason || 'Redefinição via painel admin',
+        },
+      });
+
+      if (error) {
+        const errorMsg = (error as any)?.context?.json
+          ? (await (error as any).context.json())?.error
+          : error.message;
+        throw new Error(errorMsg || 'Erro ao redefinir senha');
+      }
+
+      if (result && !result.success) {
+        throw new Error(result.error || 'Erro ao redefinir senha');
+      }
+
+      toast.success(`Senha de ${profile.email} redefinida com sucesso`);
+      setNewPassword('');
+      setResetReason('');
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao redefinir senha');
+    } finally {
+      setResettingPassword(false);
+    }
   };
 
   if (loading) return <div className="flex-1 flex items-center justify-center"><AppSpinner /></div>;
@@ -381,6 +433,62 @@ const AdminRegistrationDetail = () => {
                   <Separator className="my-2" />
                   <InfoRow label="Contato Emergência" value={profile.emergency_contact_name} />
                   <InfoRow label="Tel. Emergência" value={profile.emergency_contact_phone} icon={<Phone className="h-3.5 w-3.5" />} />
+                </CardContent>
+              </Card>
+
+              {/* Acesso e Senha */}
+              <Card className="shadow-sm border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Key className="h-4 w-4 text-primary" /> Acesso e Senha
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <InfoRow label="E-mail de acesso" value={profile.email} icon={<Mail className="h-3.5 w-3.5" />} />
+                  <InfoRow label="Último login" value={profile.last_sign_in_at ? format(new Date(profile.last_sign_in_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—'} icon={<Clock className="h-3.5 w-3.5" />} />
+                  
+                  <Separator className="my-2" />
+
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="new-password" className="text-sm font-medium">Nova Senha</Label>
+                      <PasswordInput
+                        id="new-password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={resettingPassword}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="reset-reason" className="text-sm font-medium">Motivo (opcional)</Label>
+                      <Textarea
+                        id="reset-reason"
+                        placeholder="Ex: Solicitação via WhatsApp"
+                        value={resetReason}
+                        onChange={(e) => setResetReason(e.target.value)}
+                        rows={2}
+                        disabled={resettingPassword}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => {
+                        if (!newPassword || newPassword.length < 6) {
+                          toast.error('A senha deve ter no mínimo 6 caracteres');
+                          return;
+                        }
+                        setResetDialogOpen(true);
+                      }}
+                      disabled={resettingPassword || !newPassword}
+                      className="w-full"
+                      variant="destructive"
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      {resettingPassword ? 'Redefinindo...' : 'Redefinir Senha'}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -953,6 +1061,29 @@ const AdminRegistrationDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Password Reset Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar redefinição de senha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a redefinir a senha do usuário <strong>{profile.email}</strong>. 
+              Esta ação será registrada no audit log. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resettingPassword}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePasswordReset}
+              disabled={resettingPassword}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {resettingPassword ? 'Redefinindo...' : 'Confirmar Redefinição'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
