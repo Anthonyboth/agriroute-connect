@@ -45,6 +45,7 @@ import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 import { FloatingSupportButton } from './components/FloatingSupportButton';
 import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
+import { MobileAppDownloadPopup } from './components/MobileAppDownloadPopup';
 import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
 import { PullToRefresh } from './components/PullToRefresh';
 import { LoopPreventionBoundary } from '@/components/LoopPreventionBoundary';
