@@ -196,9 +196,9 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
 - **Greedy Patterns**: dialog, modal, toast, dropdown, tabs, accordion, button, badge, alert, etc.
 - **Preservação**: keyframes, variables, fontFace
 
-**Ganho esperado:**
-- **Redução de 15-20% no CSS final** (de ~21KB para ~17KB)
-- **FCP melhora em ~100-150ms**
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~15-20% de redução no CSS final** (de ~21KB para ~17KB)
+- **Estimativa: FCP ~100-150ms**
 
 ---
 
