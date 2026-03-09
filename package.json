@@ -90,7 +90,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^5.1.1",
     "vaul": "^0.9.9",
-    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-pwa": "0.19.8",
     "vitest": "^4.0.18",
     "zod": "^3.25.76"
   },
