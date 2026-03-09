@@ -34,6 +34,12 @@ workflows:
         script: |
           npm run build
 
+      - name: Pin Bundler 2 for fastlane
+        script: |
+          gem uninstall bundler -aIx || true
+          gem install bundler -v 2.5.23
+          bundle _2.5.23_ -v
+
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
