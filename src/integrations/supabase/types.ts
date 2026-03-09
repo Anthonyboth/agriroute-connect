@@ -10873,6 +10873,7 @@ export type Database = {
           farm_lng: number | null
           farm_name: string | null
           fixed_address: string | null
+          force_password_change: boolean
           full_name: string
           id: string
           invoice_number: string | null
@@ -10955,6 +10956,7 @@ export type Database = {
           farm_lng?: number | null
           farm_name?: string | null
           fixed_address?: string | null
+          force_password_change?: boolean
           full_name: string
           id?: string
           invoice_number?: string | null
@@ -11037,6 +11039,7 @@ export type Database = {
           farm_lng?: number | null
           farm_name?: string | null
           fixed_address?: string | null
+          force_password_change?: boolean
           full_name?: string
           id?: string
           invoice_number?: string | null
