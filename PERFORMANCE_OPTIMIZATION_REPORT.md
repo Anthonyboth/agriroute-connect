@@ -19,8 +19,8 @@
 - `js.stripe.com` / `api.stripe.com` - dns-prefetch
 - `wa.me` - dns-prefetch (botão WhatsApp)
 
-**Ganho esperado:**
-- **Redução de 100-300ms** em conexões com serviços externos
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~100-300ms** de redução em conexões com serviços externos
 - **Zero impacto no bundle** - apenas hints para o browser
 
 ### 3.2 **HTTP/2 Server Push via Link Headers**
