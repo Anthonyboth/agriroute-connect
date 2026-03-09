@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# audit-deps.sh — Validates all @capacitor/* packages are pinned to 7.4.4
+# audit-deps.sh — Validates all @capacitor/* packages are pinned to exact 7.x versions (no Capacitor 8)
 set -euo pipefail
 
-EXPECTED="7.4.4"
 ERRORS=0
 
 echo "=== AgriRoute Capacitor Dependency Audit ==="
