@@ -1,0 +1,44 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Capacitor version check
+        run: bash ./audit-deps.sh
+
+      - name: npm audit (high/critical)
+        run: npm audit --audit-level=high || true
+        # Allow failure — reports only. Remove "|| true" to hard-fail on vulns.
+
+      # --- Future integrations (placeholders) ---
+      # To add Semgrep SAST:
+      #   1. Create SEMGREP_APP_TOKEN secret
+      #   2. Add: uses: returntocorp/semgrep-action@v1
+      #
+      # To add Snyk SCA:
+      #   1. Create SNYK_TOKEN secret
+      #   2. Add: uses: snyk/actions/node@master
+      #
+      # To add TruffleHog secret scanning:
+      #   1. Add: uses: trufflesecurity/trufflehog@v3

@@ -19,8 +19,8 @@
 - `js.stripe.com` / `api.stripe.com` - dns-prefetch
 - `wa.me` - dns-prefetch (botão WhatsApp)
 
-**Ganho esperado:**
-- **Redução de 100-300ms** em conexões com serviços externos
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~100-300ms** de redução em conexões com serviços externos
 - **Zero impacto no bundle** - apenas hints para o browser
 
 ### 3.2 **HTTP/2 Server Push via Link Headers**
@@ -37,9 +37,9 @@ Link: </hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp
 Link: </assets/index.css>; rel=preload; as=style
 ```
 
-**Ganho esperado:**
-- **FCP melhora em 200-400ms** (recursos críticos carregam em paralelo)
-- **LCP melhora em 300-500ms** (hero image inicia download antes)
+**Ganho estimado (não medido em produção):**
+- **Estimativa: FCP ~200-400ms** (recursos críticos carregam em paralelo)
+- **Estimativa: LCP ~300-500ms** (hero image inicia download antes)
 
 ### 3.3 **Cache Headers Expandidos**
 **Localização:** `netlify.toml`
@@ -50,9 +50,9 @@ Link: </assets/index.css>; rel=preload; as=style
 - Service Worker - sem cache (atualizações imediatas)
 - Manifests - 24h cache (balance entre fresh e performance)
 
-**Ganho esperado:**
-- **Redução de 50-80% em requests** em visitas de retorno
-- **Navegação instantânea** para usuários recorrentes
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~50-80% menos requests** em visitas de retorno
+- **Navegação potencialmente mais rápida** para usuários recorrentes
 
 ### 3.4 **Lazy Loading já Implementado**
 **Localização:** `src/pages/Landing.tsx`
@@ -110,10 +110,10 @@ Link: </assets/index.css>; rel=preload; as=style
 - `CompanyDriverPerformanceDashboard` (usa BarChart, RadarChart)
 - `CompanyFinancialDashboard` (usa LineChart, BarChart, PieChart)
 
-**Ganho esperado:**
-- **Redução de 95KB+ no bundle inicial da landing page**
-- **FCP melhora em ~500-800ms** (charts-vendor não carrega mais)
-- **LCP melhora em ~300-500ms**
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~95KB+ de redução** no bundle inicial da landing page
+- **Estimativa: FCP ~500-800ms** (charts-vendor não carrega mais)
+- **Estimativa: LCP ~300-500ms**
 
 ### 2.2 **Estrutura de Code Splitting**
 
@@ -196,9 +196,9 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
 - **Greedy Patterns**: dialog, modal, toast, dropdown, tabs, accordion, button, badge, alert, etc.
 - **Preservação**: keyframes, variables, fontFace
 
-**Ganho esperado:**
-- **Redução de 15-20% no CSS final** (de ~21KB para ~17KB)
-- **FCP melhora em ~100-150ms**
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~15-20% de redução no CSS final** (de ~21KB para ~17KB)
+- **Estimativa: FCP ~100-150ms**
 
 ---
 
@@ -213,8 +213,8 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
   - Modo "Save Data" ativado
   - Dispositivos móveis com data saver
 
-**Ganho esperado:**
-- **Navegação 30-50% mais rápida** para dashboards
+**Ganho estimado (não medido em produção):**
+- **Estimativa: navegação ~30-50% mais rápida** para dashboards
 - Zero impacto negativo em conexões lentas
 
 ---
@@ -227,9 +227,9 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
 - Tree-shaking agressivo com `moduleSideEffects: 'no-external'`
 - Cada chunk carrega apenas código necessário
 
-**Ganho esperado:**
-- **Redução de 10-15% no JavaScript total**
-- **Paralização de downloads** (HTTP/2)
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~10-15% de redução no JavaScript total**
+- **Paralelização de downloads** (HTTP/2)
 
 ---
 
@@ -347,17 +347,17 @@ treeshake: {
 
 ## 📈 MÉTRICAS DE SUCESSO
 
-### Baseline (Antes):
+### Baseline (Antes — valores de referência do Lighthouse local):
 - **FCP:** 3.5s
 - **LCP:** 4.4s  
 - **CSS:** 20.9KB
 - **JS não utilizado:** 305KB
 
-### Meta (Após Fase 1):
-- **FCP:** 3.0s ⬇️ (-14%)
-- **LCP:** 4.1s ⬇️ (-7%)
-- **CSS:** 17.5KB ⬇️ (-16%)
-- **JS não utilizado:** 270KB ⬇️ (-11%)
+### Meta Estimada (Após Fase 1 — ainda não medido em produção):
+- **FCP:** ~3.0s ⬇️ (estimativa: -14%)
+- **LCP:** ~4.1s ⬇️ (estimativa: -7%)
+- **CSS:** ~17.5KB ⬇️ (estimativa: -16%)
+- **JS não utilizado:** ~270KB ⬇️ (estimativa: -11%)
 
 ---
 
@@ -462,10 +462,10 @@ treeshake: {
 ❌ Critical CSS extraction (causou build failure - linhas 47-75 vite.config.ts)  
 ❌ Code splitting agressivo (alto risco de quebrar UX)  
 
-**Expectativa de Ganho:**
-- **FCP:** -14% (3.5s → 3.0s)
-- **Bundle Size:** -15% CSS, -11% JS
-- **User Experience:** Zero impacto negativo
+**Expectativa de Ganho (estimativas, não medições reais):**
+- **FCP:** estimativa de -14% (3.5s → 3.0s)
+- **Bundle Size:** estimativa de -15% CSS, -11% JS
+- **User Experience:** Zero impacto negativo esperado
 
 **Tempo de Rollback:** 5-10 minutos
 
