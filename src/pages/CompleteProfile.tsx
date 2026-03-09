@@ -395,8 +395,11 @@ const CompleteProfile = () => {
 
     // Validação final de selfie
     if (!documentUrls.selfie) {
+      console.warn('[CompleteProfile] ❌ Selfie ausente na finalização. documentUrls:', JSON.stringify({
+        selfie: documentUrls.selfie || '(empty)',
+        document_photo: documentUrls.document_photo ? '✅' : '(empty)',
+      }));
       toast('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.', { id: 'missing-selfie' });
-      console.error('❌ Selfie ausente na finalização');
       return;
     }
 
