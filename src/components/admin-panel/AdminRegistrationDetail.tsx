@@ -13,8 +13,13 @@ import {
   ArrowLeft, CheckCircle, XCircle, AlertTriangle, FileText, Clock, User,
   Phone, CreditCard, MapPin, Menu, Truck, Star, Shield, DollarSign, Package,
   Camera, Mail, CalendarDays, Building2, Award, Fuel, Navigation, Eye,
-  Globe, Hash, Activity, BadgeCheck, Map, UserCheck, Wallet,
+  Globe, Hash, Activity, BadgeCheck, Map, UserCheck, Wallet, Key,
 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { PasswordInput } from '@/components/ui/password-input';
+import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SignedStorageImage } from '@/components/ui/signed-storage-image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
