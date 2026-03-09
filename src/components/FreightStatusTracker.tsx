@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 // ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
-const FreightRealtimeMap = lazy(() => 
+const FreightRealtimeMap = lazyWithRetry(() => 
   import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
     default: module.FreightRealtimeMapMapLibre 
   }))

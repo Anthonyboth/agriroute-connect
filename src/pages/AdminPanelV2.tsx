@@ -3,7 +3,8 @@
  * Acessível somente por admins cadastrados diretamente no banco.
  * Rota: /admin-v2/*
  */
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -14,22 +15,22 @@ import { AdminSidebar } from '@/components/admin-panel/AdminSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 // Lazy load admin sub-pages
-const AdminDashboard = lazy(() => import('@/components/admin-panel/AdminDashboard'));
-const AdminRegistrations = lazy(() => import('@/components/admin-panel/AdminRegistrations'));
-const AdminRegistrationDetail = lazy(() => import('@/components/admin-panel/AdminRegistrationDetail'));
-const AdminAuditLogs = lazy(() => import('@/components/admin-panel/AdminAuditLogs'));
-const AdminUsersManager = lazy(() => import('@/components/admin-panel/AdminUsersManager'));
-const AdminSettingsPage = lazy(() => import('@/components/admin-panel/AdminSettingsPage'));
-const AdminFreights = lazy(() => import('@/components/admin-panel/AdminFreights'));
-const AdminFreightDetail = lazy(() => import('@/components/admin-panel/AdminFreightDetail'));
-const AdminRiskManagement = lazy(() => import('@/components/admin-panel/AdminRiskManagement'));
-const AdminReports = lazy(() => import('@/components/admin-panel/AdminReports'));
-const AdminAnnouncements = lazy(() => import('@/components/admin-panel/AdminAnnouncements'));
-const AdminFinancial = lazy(() => import('@/components/admin-panel/AdminFinancial'));
-const AdminVehicles = lazy(() => import('@/components/admin-panel/AdminVehicles'));
-const AdminCompanies = lazy(() => import('@/components/admin-panel/AdminCompanies'));
-const AdminServices = lazy(() => import('@/components/admin-panel/AdminServices'));
-const AdminNotifications = lazy(() => import('@/components/admin-panel/AdminNotifications'));
+const AdminDashboard = lazyWithRetry(() => import('@/components/admin-panel/AdminDashboard'));
+const AdminRegistrations = lazyWithRetry(() => import('@/components/admin-panel/AdminRegistrations'));
+const AdminRegistrationDetail = lazyWithRetry(() => import('@/components/admin-panel/AdminRegistrationDetail'));
+const AdminAuditLogs = lazyWithRetry(() => import('@/components/admin-panel/AdminAuditLogs'));
+const AdminUsersManager = lazyWithRetry(() => import('@/components/admin-panel/AdminUsersManager'));
+const AdminSettingsPage = lazyWithRetry(() => import('@/components/admin-panel/AdminSettingsPage'));
+const AdminFreights = lazyWithRetry(() => import('@/components/admin-panel/AdminFreights'));
+const AdminFreightDetail = lazyWithRetry(() => import('@/components/admin-panel/AdminFreightDetail'));
+const AdminRiskManagement = lazyWithRetry(() => import('@/components/admin-panel/AdminRiskManagement'));
+const AdminReports = lazyWithRetry(() => import('@/components/admin-panel/AdminReports'));
+const AdminAnnouncements = lazyWithRetry(() => import('@/components/admin-panel/AdminAnnouncements'));
+const AdminFinancial = lazyWithRetry(() => import('@/components/admin-panel/AdminFinancial'));
+const AdminVehicles = lazyWithRetry(() => import('@/components/admin-panel/AdminVehicles'));
+const AdminCompanies = lazyWithRetry(() => import('@/components/admin-panel/AdminCompanies'));
+const AdminServices = lazyWithRetry(() => import('@/components/admin-panel/AdminServices'));
+const AdminNotifications = lazyWithRetry(() => import('@/components/admin-panel/AdminNotifications'));
 
 // ✅ FORUM ADMIN MODULE (isolated)
 import { AdminForumRoutes } from '@/modules/forum/admin/AdminForumRoutes';

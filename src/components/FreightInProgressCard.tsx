@@ -8,7 +8,8 @@
  * ✅ REDESIGN: Alinhado com o visual do FreightCard (dot-line, 3-col grid, service icon header).
  */
 
-import React, { useState, lazy, Suspense, useMemo, useRef } from 'react';
+import React, { useState, Suspense, useMemo, useRef } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { precoPreenchidoDoFrete } from '@/lib/precoPreenchido';
 import { resolveUiPriceMode } from '@/lib/precoUI';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
@@ -34,14 +35,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { differenceInDays, differenceInHours } from 'date-fns';
 
 // Lazy load do mapa MapLibre para performance (100% gratuito, sem Google Maps)
-const FreightRealtimeMap = lazy(() => 
+const FreightRealtimeMap = lazyWithRetry(() => 
   import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
     default: module.FreightRealtimeMapMapLibre 
   }))
 );
 
 // ✅ Lazy load do mapa multi-motorista para fretes multi-carreta
-const MultiDriverMap = lazy(() => 
+const MultiDriverMap = lazyWithRetry(() => 
   import('@/components/freight/MultiDriverMapMapLibre').then(module => ({ 
     default: module.MultiDriverMapMapLibre 
   }))

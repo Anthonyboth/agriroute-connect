@@ -1,5 +1,6 @@
 // TooltipProvider deferred to avoid pulling ui-vendor chunk on landing page
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -12,12 +13,12 @@ import { RatingProvider } from "@/contexts/RatingContext";
 import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
 // GlobalRatingModals deferred - uses Radix Dialog which pulls ui-vendor chunk (50KB)
 // Only needed after authentication, not on landing page
-const GlobalRatingModals = lazy(() => import("@/components/GlobalRatingModals").then(m => ({ default: m.GlobalRatingModals })));
+const GlobalRatingModals = lazyWithRetry(() => import("@/components/GlobalRatingModals").then(m => ({ default: m.GlobalRatingModals })));
 // Toaster deferred to avoid pulling ui-vendor (Radix Toast) on landing page
-const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const LazyToaster = lazyWithRetry(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 
 // Sonner deferred to avoid loading sonner package on landing page
-const LazySonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const LazySonner = lazyWithRetry(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -80,8 +81,7 @@ if (typeof window !== 'undefined' && 'connection' in navigator) {
   }
 }
 
-// Import lazyWithRetry for robust module loading
-import { lazyWithRetry } from '@/utils/lazyWithRetry';
+// lazyWithRetry already imported at top of file
 
 // Lazy load all page components except Landing (needed for initial render)
 // ✅ Using lazyWithRetry for critical auth pages to handle network/cache failures after deploys
@@ -89,34 +89,34 @@ const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
 const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
-const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
-const ServiceProviderRegistration = lazy(() => import("./pages/ServiceProviderRegistration"));
-const Services = lazy(() => import("./pages/Services"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const About = lazy(() => import("./pages/About"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
-const Cookies = lazy(() => import("./pages/Cookies"));
-const Status = lazy(() => import("./pages/Status"));
-const TransportCompanyRegistration = lazy(() => import("./pages/TransportCompanyRegistration"));
-const Careers = lazy(() => import("./pages/Careers"));
-const Help = lazy(() => import("./pages/Help"));
-const Subscription = lazy(() => import("./pages/Subscription"));
-const Plans = lazy(() => import("./pages/Plans"));
-const SystemTest = lazy(() => import("./pages/SystemTest"));
-const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
-const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
-const DriverInviteSignup = lazy(() => import("./pages/DriverInviteSignup"));
-const PressPage = lazy(() => import("./pages/Press"));
-const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
-const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
-const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
-const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
+const ProfileEdit = lazyWithRetry(() => import("./pages/ProfileEdit"));
+const ServiceProviderRegistration = lazyWithRetry(() => import("./pages/ServiceProviderRegistration"));
+const Services = lazyWithRetry(() => import("./pages/Services"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const About = lazyWithRetry(() => import("./pages/About"));
+const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
+const Terms = lazyWithRetry(() => import("./pages/Terms"));
+const Cookies = lazyWithRetry(() => import("./pages/Cookies"));
+const Status = lazyWithRetry(() => import("./pages/Status"));
+const TransportCompanyRegistration = lazyWithRetry(() => import("./pages/TransportCompanyRegistration"));
+const Careers = lazyWithRetry(() => import("./pages/Careers"));
+const Help = lazyWithRetry(() => import("./pages/Help"));
+const Subscription = lazyWithRetry(() => import("./pages/Subscription"));
+const Plans = lazyWithRetry(() => import("./pages/Plans"));
+const SystemTest = lazyWithRetry(() => import("./pages/SystemTest"));
+const PaymentSuccess = lazyWithRetry(() => import("./pages/PaymentSuccess"));
+const PaymentCancel = lazyWithRetry(() => import("./pages/PaymentCancel"));
+const DriverInviteSignup = lazyWithRetry(() => import("./pages/DriverInviteSignup"));
+const PressPage = lazyWithRetry(() => import("./pages/Press"));
+const ServicePaymentSuccess = lazyWithRetry(() => import("./pages/ServicePaymentSuccess"));
+const ServicePaymentCancel = lazyWithRetry(() => import("./pages/ServicePaymentCancel"));
+const CompanyInviteAccept = lazyWithRetry(() => import("./pages/CompanyInviteAccept"));
+const AffiliateSignup = lazyWithRetry(() => import("./pages/AffiliateSignup"));
 const AdminPanel = lazyWithRetry(() => import("./pages/AdminPanel"), { retries: 3 });
 const AdminPanelV2 = lazyWithRetry(() => import("./pages/AdminPanelV2"), { retries: 3 });
 const AdminLogin = lazyWithRetry(() => import("./pages/AdminLogin"), { retries: 3 });
-const AdminAnnouncementsManager = lazy(() => import("./pages/AdminAnnouncementsManager"));
-const AdminMaintenancePanel = lazy(() => import("./pages/AdminMaintenancePanel"));
+const AdminAnnouncementsManager = lazyWithRetry(() => import("./pages/AdminAnnouncementsManager"));
+const AdminMaintenancePanel = lazyWithRetry(() => import("./pages/AdminMaintenancePanel"));
 
 // ✅ FORUM MODULE (isolated)
 import { ForumRoutes } from '@/modules/forum/ForumRoutes';
@@ -151,7 +151,7 @@ const ServiceProviderDashboard = lazyWithRetry(() => import("./pages/ServiceProv
   }
 });
 const NfeDashboard = lazyWithRetry(() => import("./pages/NfeDashboard"), { retries: 3 });
-const InspectionView = lazy(() => import("./pages/InspectionView"));
+const InspectionView = lazyWithRetry(() => import("./pages/InspectionView"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
@@ -1167,7 +1167,7 @@ const App = () => {
                         <Route path="/cadastro-motorista" element={<Suspense fallback={<ComponentLoader />}><DriverInviteSignup /></Suspense>} />
                         <Route path="/cadastro-motorista-afiliado" element={
                           <Suspense fallback={<ComponentLoader />}> 
-                            {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
+                            {React.createElement(lazyWithRetry(() => import('./pages/AffiliatedDriverSignup')))}
                           </Suspense>
                         } />
                         {/* Página pública de fiscalização via QR Code */}
