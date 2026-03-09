@@ -303,6 +303,15 @@ const CompleteProfile = () => {
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
+    // FRT-045 debug: log selfie state to diagnose iPhone/Capacitor issues
+    console.log('[CompleteProfile] handleSaveAndContinue called', {
+      currentStep,
+      registrationMode,
+      selfieUrl: documentUrls.selfie ? `${documentUrls.selfie.substring(0, 60)}...` : '(empty)',
+      documentPhotoUrl: documentUrls.document_photo ? '✅ set' : '(empty)',
+      cnhUrl: documentUrls.cnh ? '✅ set' : '(empty)',
+    });
+
     const state = {
       profileData,
       documentUrls,
