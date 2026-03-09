@@ -47,7 +47,8 @@ export type RuntimeGuardKey =
   | 'native-gps-errors-must-not-trigger-alerts'
   | 'withdrawn-driver-must-not-access-freight-details'
   | 'available-feed-must-exclude-driver-active-assignments'
-  | 'rpc-column-names-must-match-table-schema';
+  | 'rpc-column-names-must-match-table-schema'
+  | 'lazy-imports-must-use-lazyWithRetry';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
