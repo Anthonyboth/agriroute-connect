@@ -1,72 +1,62 @@
 workflows:
   ios-release-testflight:
-    name: iOS Release Build (IPA Only)
-    max_build_duration: 60
+    name: iOS Release to TestFlight
+
+    integrations:
+      app_store_connect: "Anthony Both"
+
     environment:
       xcode: latest
-      node: 20.x
-      groups:
-        - app_store_credentials
+      node: 20.9.0
       vars:
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+
     scripts:
+      - name: Show tool versions
+        script: |
+          node -v
+          npm -v
+          xcodebuild -version
+
       - name: Install dependencies
         script: |
           npm ci
-      
-      - name: Audit Capacitor versions
+
+      - name: Audit Capacitor dependencies
         script: |
-          bash ./audit-deps.sh
-      
+          chmod +x audit-deps.sh
+          ./audit-deps.sh
+
       - name: Build web app
         script: |
           npm run build
-      
-      - name: Sync Capacitor
+
+      - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
-      
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files \
-            $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-      
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
-      
-      - name: Set up code signing settings
-        script: |
-          xcode-project use-profiles
-      
-      - name: Increment build number
+
+      - name: Install CocoaPods
         script: |
           cd ios/App
-          agvtool new-version -all $(($BUILD_NUMBER + 1))
-      
-      - name: Build IPA for App Store
+          pod install
+
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App \
-            --archive-flags="-destination 'generic/platform=iOS'" \
-            --export-options-plist ios/App/exportOptions.plist
-    
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-    
-    # REMOVED: publishing block with auth: integration
-    # Reason: requires workflow-level "integrations: app_store_connect" config
-    # which was not defined. Re-add when integration is configured in Codemagic UI.
-    # See: https://docs.codemagic.io/yaml-publishing/app-store-connect/
-    
+
     publishing:
-      email:
-        recipients:
-          - dev@agriroute.com
-        notify:
-          success: true
-          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
