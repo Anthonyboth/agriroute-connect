@@ -33,7 +33,7 @@ export async function waitForProfile(userId: string, targetProfileId?: string): 
   for (let i = 0; i < delays.length; i++) {
     let query = supabase
       .from('profiles')
-      .select('id, role, status, selfie_url, document_photo_url')
+      .select('id, role, status, selfie_url, document_photo_url, force_password_change')
       .eq('user_id', userId);
 
     // Se temos um profileId específico, buscar exatamente esse
