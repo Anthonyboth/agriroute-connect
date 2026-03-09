@@ -90,6 +90,11 @@ function isProfileComplete(profile: ProfileForRouting): boolean {
  * - Caso contrário => dashboard por role
  */
 export async function resolvePostAuthRoute(profile: ProfileForRouting): Promise<string> {
+  // Gate 0: Senha temporária do admin — força troca antes de qualquer coisa
+  if (profile.force_password_change) {
+    return '/force-change-password';
+  }
+
   // Gate 1: Perfil incompleto — sempre força /complete-profile
   if (!isProfileComplete(profile)) {
     return '/complete-profile';
