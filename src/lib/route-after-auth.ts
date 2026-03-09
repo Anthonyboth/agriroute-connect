@@ -55,6 +55,7 @@ export async function waitForProfile(userId: string, targetProfileId?: string): 
         status: profile.status || 'PENDING',
         selfie_url: profile.selfie_url,
         document_photo_url: profile.document_photo_url,
+        force_password_change: profile.force_password_change ?? false,
       };
     }
 
