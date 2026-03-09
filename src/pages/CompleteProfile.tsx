@@ -303,6 +303,20 @@ const CompleteProfile = () => {
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
+    // ✅ GUARD: Usuário APROVADO jamais deve ser bloqueado por documentos — redirecionar imediatamente
+    if (profile.status === 'APPROVED') {
+      console.log('[CompleteProfile] handleSaveAndContinue: usuário APPROVED — redirecionando ao dashboard');
+      const dashboardPath = isDriver
+        ? '/dashboard/driver'
+        : (profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA' || isTransportCompany)
+          ? '/dashboard/company'
+          : (profile.role as any) === 'PRESTADOR_SERVICOS'
+            ? '/dashboard/service-provider'
+            : '/dashboard/producer';
+      navigate(dashboardPath);
+      return;
+    }
+
     // FRT-045 debug: log selfie state to diagnose iPhone/Capacitor issues
     console.log('[CompleteProfile] handleSaveAndContinue called', {
       currentStep,
