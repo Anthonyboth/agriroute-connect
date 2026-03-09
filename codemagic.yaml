@@ -6,10 +6,12 @@ workflows:
       app_store_connect: "Anthony Both"
 
     environment:
-      xcode: latest
+      xcode: 26.2
       node: 20.9.0
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
-        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
 
@@ -36,10 +38,9 @@ workflows:
 
       - name: Pin Bundler 2 for fastlane
         script: |
-          gem uninstall bundler -aIx || true
           gem install bundler -v 2.5.23
-          bundle _2.5.23_ -v
           export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
+          bundle _2.5.23_ -v
           bundle _2.5.23_ install
 
       - name: Sync Capacitor iOS
