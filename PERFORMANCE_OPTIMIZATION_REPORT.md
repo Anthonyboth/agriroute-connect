@@ -37,9 +37,9 @@ Link: </hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp
 Link: </assets/index.css>; rel=preload; as=style
 ```
 
-**Ganho esperado:**
-- **FCP melhora em 200-400ms** (recursos críticos carregam em paralelo)
-- **LCP melhora em 300-500ms** (hero image inicia download antes)
+**Ganho estimado (não medido em produção):**
+- **Estimativa: FCP ~200-400ms** (recursos críticos carregam em paralelo)
+- **Estimativa: LCP ~300-500ms** (hero image inicia download antes)
 
 ### 3.3 **Cache Headers Expandidos**
 **Localização:** `netlify.toml`
