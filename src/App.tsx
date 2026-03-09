@@ -1167,7 +1167,7 @@ const App = () => {
                         <Route path="/cadastro-motorista" element={<Suspense fallback={<ComponentLoader />}><DriverInviteSignup /></Suspense>} />
                         <Route path="/cadastro-motorista-afiliado" element={
                           <Suspense fallback={<ComponentLoader />}> 
-                            {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
+                            {React.createElement(lazyWithRetry(() => import('./pages/AffiliatedDriverSignup')))}
                           </Suspense>
                         } />
                         {/* Página pública de fiscalização via QR Code */}
