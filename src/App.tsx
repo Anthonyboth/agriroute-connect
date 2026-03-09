@@ -1196,6 +1196,7 @@ const App = () => {
             <Suspense fallback={null}><GlobalRatingModals /></Suspense>
             <PermissionPrompts />
             <PreviewFreshBuildBanner />
+            <MobileAppDownloadPopup />
             <Suspense fallback={null}><LazyToaster /></Suspense>
             <Suspense fallback={null}><LazySonner /></Suspense>
             
