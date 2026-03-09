@@ -87,6 +87,7 @@ if (typeof window !== 'undefined' && 'connection' in navigator) {
 // ✅ Using lazyWithRetry for critical auth pages to handle network/cache failures after deploys
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const ForceChangePassword = lazyWithRetry(() => import("./pages/ForceChangePassword"));
 const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
 const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
 const ProfileEdit = lazyWithRetry(() => import("./pages/ProfileEdit"));
