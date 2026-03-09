@@ -42,15 +42,15 @@ workflows:
           export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
           bundle _2.5.23_ install
 
+      - name: Sync Capacitor iOS
+        script: |
+          npx cap sync ios
+
       - name: Install CocoaPods via Bundler 2
         script: |
           export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
           cd ios/App
           bundle _2.5.23_ exec pod install
-
-      - name: Sync Capacitor iOS
-        script: |
-          npx cap sync ios
 
       - name: Set up code signing
         script: |
