@@ -213,8 +213,8 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
   - Modo "Save Data" ativado
   - Dispositivos móveis com data saver
 
-**Ganho esperado:**
-- **Navegação 30-50% mais rápida** para dashboards
+**Ganho estimado (não medido em produção):**
+- **Estimativa: navegação ~30-50% mais rápida** para dashboards
 - Zero impacto negativo em conexões lentas
 
 ---
