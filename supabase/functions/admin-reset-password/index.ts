@@ -161,30 +161,34 @@ serve(async (req) => {
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const userAgent = req.headers.get('user-agent') || 'unknown';
 
-    if (adminProfile) {
-      await supabaseClient.from('audit_logs').insert({
-        user_id: adminProfile.id,
-        table_name: 'auth.users',
-        operation: 'PASSWORD_RESET_BY_ADMIN',
-        new_data: {
-          target_user_email: user_email,
-          target_user_id: userToReset.id,
-          reset_reason: reset_reason || 'Solicitação via WhatsApp',
-          admin_action: true,
-          admin_id: user.id,
-          security_metadata: {
-            ip_address: clientIP,
-            user_agent: userAgent,
-            timestamp: new Date().toISOString(),
-            rate_limit_status: rateLimitCheck
-          }
-        },
-        ip_address: clientIP,
-        user_agent: userAgent,
-        timestamp: new Date().toISOString()
-      });
+    // Sempre registrar audit log (usar adminIdentifier como fallback)
+    await supabaseClient.from('audit_logs').insert({
+      user_id: adminIdentifier,
+      table_name: 'auth.users',
+      operation: 'PASSWORD_RESET_BY_ADMIN',
+      new_data: {
+        target_user_email: user_email,
+        target_user_id: userToReset.id,
+        reset_reason: reset_reason || 'Solicitação via WhatsApp',
+        admin_action: true,
+        admin_id: user.id,
+        admin_has_profile: !!adminProfile,
+        security_metadata: {
+          ip_address: clientIP,
+          user_agent: userAgent,
+          timestamp: new Date().toISOString(),
+          rate_limit_status: rateLimitCheck
+        }
+      },
+      ip_address: clientIP,
+      user_agent: userAgent,
+      timestamp: new Date().toISOString()
+    }).then(({ error }) => {
+      if (error) console.error('[admin-reset-password] Audit log error:', error);
+    });
 
-      // 🔒 SEGURANÇA 4: Detectar atividade suspeita (5+ resets/hora)
+    // 🔒 SEGURANÇA 4: Detectar atividade suspeita (só se tem profile)
+    if (adminProfile) {
       await supabaseClient.rpc('detect_suspicious_admin_activity', {
         p_admin_profile_id: adminProfile.id,
         p_activity_type: 'PASSWORD_RESET',
