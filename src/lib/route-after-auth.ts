@@ -20,6 +20,7 @@ export interface ProfileForRouting {
   status: string;
   selfie_url: string | null;
   document_photo_url: string | null;
+  force_password_change?: boolean;
 }
 
 /**
