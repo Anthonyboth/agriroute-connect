@@ -366,7 +366,7 @@ export function useResilientLogin() {
       
       const { data: fullProfile } = await supabase
         .from('profiles')
-        .select('id, role, status, selfie_url, document_photo_url')
+        .select('id, role, status, selfie_url, document_photo_url, force_password_change')
         .eq('id', targetProfile.id)
         .single();
 
@@ -381,6 +381,7 @@ export function useResilientLogin() {
           status: fullProfile.status || 'PENDING',
           selfie_url: fullProfile.selfie_url,
           document_photo_url: fullProfile.document_photo_url,
+          force_password_change: fullProfile.force_password_change ?? false,
         });
       } else {
         // ⛔ NEVER route to dashboard without security gates — safe fallback only
@@ -444,7 +445,7 @@ export function useResilientLogin() {
     // ✅ CRITICAL FIX: Buscar perfil completo e aplicar gates de segurança
     const { data: fullProfile } = await supabase
       .from('profiles')
-      .select('id, role, status, selfie_url, document_photo_url')
+      .select('id, role, status, selfie_url, document_photo_url, force_password_change')
       .eq('id', profile.id)
       .single();
 
@@ -457,6 +458,7 @@ export function useResilientLogin() {
         status: fullProfile.status || 'PENDING',
         selfie_url: fullProfile.selfie_url,
         document_photo_url: fullProfile.document_photo_url,
+        force_password_change: fullProfile.force_password_change ?? false,
       });
     } else {
       // ⛔ NEVER route to dashboard without security gates — safe fallback only
