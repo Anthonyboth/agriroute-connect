@@ -1,5 +1,6 @@
 // TooltipProvider deferred to avoid pulling ui-vendor chunk on landing page
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
