@@ -1061,6 +1061,29 @@ const AdminRegistrationDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Password Reset Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar redefinição de senha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a redefinir a senha do usuário <strong>{profile.email}</strong>. 
+              Esta ação será registrada no audit log. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resettingPassword}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePasswordReset}
+              disabled={resettingPassword}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {resettingPassword ? 'Redefinindo...' : 'Confirmar Redefinição'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
