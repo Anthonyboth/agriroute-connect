@@ -110,10 +110,10 @@ Link: </assets/index.css>; rel=preload; as=style
 - `CompanyDriverPerformanceDashboard` (usa BarChart, RadarChart)
 - `CompanyFinancialDashboard` (usa LineChart, BarChart, PieChart)
 
-**Ganho esperado:**
-- **Redução de 95KB+ no bundle inicial da landing page**
-- **FCP melhora em ~500-800ms** (charts-vendor não carrega mais)
-- **LCP melhora em ~300-500ms**
+**Ganho estimado (não medido em produção):**
+- **Estimativa: ~95KB+ de redução** no bundle inicial da landing page
+- **Estimativa: FCP ~500-800ms** (charts-vendor não carrega mais)
+- **Estimativa: LCP ~300-500ms**
 
 ### 2.2 **Estrutura de Code Splitting**
 
