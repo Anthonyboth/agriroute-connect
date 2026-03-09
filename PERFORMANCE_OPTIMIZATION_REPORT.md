@@ -462,10 +462,10 @@ treeshake: {
 ❌ Critical CSS extraction (causou build failure - linhas 47-75 vite.config.ts)  
 ❌ Code splitting agressivo (alto risco de quebrar UX)  
 
-**Expectativa de Ganho:**
-- **FCP:** -14% (3.5s → 3.0s)
-- **Bundle Size:** -15% CSS, -11% JS
-- **User Experience:** Zero impacto negativo
+**Expectativa de Ganho (estimativas, não medições reais):**
+- **FCP:** estimativa de -14% (3.5s → 3.0s)
+- **Bundle Size:** estimativa de -15% CSS, -11% JS
+- **User Experience:** Zero impacto negativo esperado
 
 **Tempo de Rollback:** 5-10 minutos
 
