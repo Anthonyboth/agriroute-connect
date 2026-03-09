@@ -347,17 +347,17 @@ treeshake: {
 
 ## 📈 MÉTRICAS DE SUCESSO
 
-### Baseline (Antes):
+### Baseline (Antes — valores de referência do Lighthouse local):
 - **FCP:** 3.5s
 - **LCP:** 4.4s  
 - **CSS:** 20.9KB
 - **JS não utilizado:** 305KB
 
-### Meta (Após Fase 1):
-- **FCP:** 3.0s ⬇️ (-14%)
-- **LCP:** 4.1s ⬇️ (-7%)
-- **CSS:** 17.5KB ⬇️ (-16%)
-- **JS não utilizado:** 270KB ⬇️ (-11%)
+### Meta Estimada (Após Fase 1 — ainda não medido em produção):
+- **FCP:** ~3.0s ⬇️ (estimativa: -14%)
+- **LCP:** ~4.1s ⬇️ (estimativa: -7%)
+- **CSS:** ~17.5KB ⬇️ (estimativa: -16%)
+- **JS não utilizado:** ~270KB ⬇️ (estimativa: -11%)
 
 ---
 

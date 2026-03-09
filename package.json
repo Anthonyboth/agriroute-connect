@@ -112,5 +112,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19"
+  },
+  "overrides": {
+    "@capacitor/core": "7.4.4"
   }
 }
