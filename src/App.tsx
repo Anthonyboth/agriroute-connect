@@ -81,8 +81,7 @@ if (typeof window !== 'undefined' && 'connection' in navigator) {
   }
 }
 
-// Import lazyWithRetry for robust module loading
-import { lazyWithRetry } from '@/utils/lazyWithRetry';
+// lazyWithRetry already imported at top of file
 
 // Lazy load all page components except Landing (needed for initial render)
 // ✅ Using lazyWithRetry for critical auth pages to handle network/cache failures after deploys
