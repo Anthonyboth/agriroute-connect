@@ -795,6 +795,11 @@ const RedirectIfAuthed = () => {
     return <AuthLoader message="Finalizando..." />; // aguardando resolução do perfil
   }
   
+  // ✅ GATE 0: Força troca de senha se admin resetou
+  if (profile?.force_password_change) {
+    return <Navigate to="/force-change-password" replace />;
+  }
+
   // ✅ LACUNA 5 CORRIGIDA: Validar redirect_after_login contra os painéis permitidos do perfil
   // Evita redirecionar para um painel de outra sessão/role anterior
   const after = localStorage.getItem('redirect_after_login');
