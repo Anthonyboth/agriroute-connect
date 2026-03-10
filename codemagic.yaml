@@ -30,12 +30,13 @@ workflows:
         script: |
           node -v
           npm -v
-          xcodebuild -version
           ruby -v
           gem -v
+          xcodebuild -version
 
-      - name: Install Bundler 2.x (Fastlane compatibility)
+      - name: Install Bundler 2.x
         script: |
+          gem uninstall bundler -a -x || true
           gem install bundler -v 2.5.23 --no-document
           bundle _2.5.23_ -v
 
@@ -56,19 +57,15 @@ workflows:
         script: |
           cd ios/App
           rm -rf Pods Podfile.lock
-          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
-          bundle _2.5.23_ install
           pod repo update
-          bundle _2.5.23_ exec pod install
+          pod install
 
       - name: Force iPhone only
         script: |
-          # Info.plist - force UIDeviceFamily = [1]
           /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
 
-          # project.pbxproj - force TARGETED_DEVICE_FAMILY = 1
           sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
           sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
           sed -i '' 's/TARGETED_DEVICE_FAMILY = "2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
@@ -76,13 +73,15 @@ workflows:
           echo "UIDeviceFamily:"
           /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
 
-      - name: Set version and build number (no agvtool)
+      - name: Set version and build number
         script: |
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
-          echo "Version: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' ios/App/App/Info.plist)"
-          echo "Build: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' ios/App/App/Info.plist)"
+          echo "Version:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
+          echo "Build:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
 
       - name: Set up code signing
         script: |
