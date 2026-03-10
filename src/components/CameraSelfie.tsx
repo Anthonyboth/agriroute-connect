@@ -90,6 +90,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       });
 
       if (!image.dataUrl) {
+        console.error('[CameraSelfie] Native camera returned no dataUrl');
         toast.error('Erro ao capturar imagem.');
         return;
       }
@@ -103,9 +104,13 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         return;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[CameraSelfie] Native photo captured:', { size: blob.size, type: blob.type, source });
-      }
+      // FRT-048: Production logging for diagnostics
+      console.log('[CameraSelfie] Native photo captured:', {
+        size: blob.size,
+        type: blob.type,
+        source,
+        platform: Capacitor.getPlatform(),
+      });
 
       const url = URL.createObjectURL(blob);
       setCapturedBlob(blob);
