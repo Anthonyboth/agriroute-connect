@@ -81,9 +81,19 @@ export class AutomaticApprovalService {
       const isDriver = ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role);
       const isAutoApproveRole = ['PRODUTOR', 'TRANSPORTADORA'].includes(profile.role);
 
-      // PRODUTOR e TRANSPORTADORA são aprovados automaticamente sem validação rigorosa
+      // PRODUTOR e TRANSPORTADORA são aprovados automaticamente, MAS
+      // somente se selfie e documento já foram enviados (obrigatórios para todos)
       if (isAutoApproveRole) {
-        devLog(`🚀 Auto-aprovação direta para role: ${profile.role}`);
+        // ✅ GUARD: Exigir selfie e documento antes de auto-aprovar
+        if (!profile.selfie_url || !profile.document_photo_url) {
+          devLog(`⏳ Auto-aprovação bloqueada para ${profile.role}: faltam documentos obrigatórios (selfie: ${!!profile.selfie_url}, documento: ${!!profile.document_photo_url})`);
+          return {
+            approved: false,
+            validationResults: { documents_missing: { isValid: false, confidence: 0 } },
+            finalScore: 0
+          };
+        }
+        devLog(`🚀 Auto-aprovação direta para role: ${profile.role} (selfie ✅, documento ✅)`);
         
         // Atualizar status do profile para APPROVED
         const { error: profileUpdateError } = await supabase
