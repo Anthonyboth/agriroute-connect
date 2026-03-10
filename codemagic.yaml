@@ -57,10 +57,14 @@ workflows:
         script: |
           xcode-project use-profiles
 
+      - name: Set app version
+        script: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 148" ios/App/App/Info.plist
+
       - name: Increment build number
         script: |
           cd ios/App
-          agvtool new-version -all $BUILD_NUMBER
+          agvtool new-version -all 7
 
       - name: Build IPA
         script: |
