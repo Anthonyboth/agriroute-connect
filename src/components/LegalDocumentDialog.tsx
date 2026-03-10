@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { FileText, Shield, X } from 'lucide-react';
+import { FileText, Shield } from 'lucide-react';
 
 type DocumentType = 'terms' | 'privacy';
 
