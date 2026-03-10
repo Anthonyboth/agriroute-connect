@@ -403,8 +403,22 @@ export const SecurityCompleteProfile: React.FC = () => {
                 <Label>Foto Selfie *</Label>
                 {profile.selfie_url && <CheckCircle className="w-4 h-4 text-green-600" />}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('Selfie uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  // FRT-047: Actually persist selfie URL to profile
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ selfie_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('Selfie salva com sucesso!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar selfie:', err);
+                    toast.error('Erro ao salvar selfie. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*']}
                 maxSize={5}
                 currentFile={profile.selfie_url}
