@@ -10,50 +10,47 @@ workflows:
       cocoapods: default
 
     scripts:
-      - name: Fix Bundler for Fastlane
+      - name: Force correct Bundler
         script: |
           gem uninstall bundler -a -x || true
           gem install bundler -v 2.5.23 --no-document
-          bundler _2.5.23_ -v
+          gem cleanup
+          bundle _2.5.23_ config set path 'vendor/bundle'
 
-      - name: Install npm dependencies
+      - name: Install Node dependencies
         script: |
           rm -f package-lock.json
           npm install
 
-      - name: Build web app
+      - name: Build Web
         script: |
           npm run build
 
-      - name: Sync Capacitor iOS
+      - name: Capacitor Sync
         script: |
           npx cap sync ios
 
-      - name: Clean and install CocoaPods
+      - name: Install CocoaPods
         script: |
           cd ios/App
-          rm -rf Pods
-          rm -f Podfile.lock
+          rm -rf Pods Podfile.lock
+          pod repo update
+          pod install
 
-          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
-
-          bundler _2.5.23_ install
-          bundler _2.5.23_ exec pod repo update
-          bundler _2.5.23_ exec pod install
-
-      - name: Force iPhone only
+      - name: Force iPhone Only
         script: |
-          /usr/libexec/PlistBuddy -c "Set :UIDeviceFamily:0 1" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily:1" ios/App/App/Info.plist || true
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = "1"/g' ios/App/App.xcodeproj/project.pbxproj || true
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
 
-      - name: Set version and build number
+      - name: Set Version
         script: |
           BUILD_NUMBER=$(date +%s)
+
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
-      - name: Configure code signing
+      - name: Code Signing
         script: |
           xcode-project use-profiles
 
@@ -66,7 +63,8 @@ workflows:
           -archivePath build/App.xcarchive \
           archive
 
-          xcodebuild -exportArchive \
+          xcodebuild \
+          -exportArchive \
           -archivePath build/App.xcarchive \
           -exportOptionsPlist ios/App/exportOptions.plist \
           -exportPath build
