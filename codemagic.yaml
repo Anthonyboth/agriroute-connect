@@ -1,46 +1,20 @@
 workflows:
-  ios-release-testflight:
-    name: iOS Release to TestFlight
-    max_build_duration: 120
+  ios-release:
+    name: iOS Release
+    max_build_duration: 60
     instance_type: mac_mini_m2
 
-    integrations:
-      app_store_connect: "Anthony Both"
-
     environment:
-      xcode: 26.2
       node: 20
-
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
-
-      vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
-        XCODE_SCHEME: "App"
-
-    cache:
-      cache_paths:
-        - ~/.npm
-        - ~/.cocoapods
-        - ~/Library/Caches/CocoaPods
+      xcode: latest
+      cocoapods: default
 
     scripts:
-      - name: Show tool versions
-        script: |
-          node -v
-          npm -v
-          ruby -v
-          gem -v
-          xcodebuild -version
-
       - name: Fix Bundler for Fastlane
         script: |
           gem uninstall bundler -a -x || true
           gem install bundler -v 2.5.23 --no-document
-          rbenv rehash
-          export PATH="$HOME/.rbenv/shims:$PATH"
-          bundler -v
+          bundler _2.5.23_ -v
 
       - name: Install npm dependencies
         script: |
@@ -58,48 +32,52 @@ workflows:
       - name: Clean and install CocoaPods
         script: |
           cd ios/App
-          rm -rf Pods Podfile.lock
-          pod repo update
-          pod install
+          rm -rf Pods
+          rm -f Podfile.lock
+
+          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
+
+          bundler _2.5.23_ install
+          bundler _2.5.23_ exec pod repo update
+          bundler _2.5.23_ exec pod install
 
       - name: Force iPhone only
         script: |
-          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :UIDeviceFamily:0 1" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily:1" ios/App/App/Info.plist || true
 
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = "2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
-
-          echo "UIDeviceFamily:"
-          /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = "1"/g' ios/App/App.xcodeproj/project.pbxproj || true
 
       - name: Set version and build number
         script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
+          BUILD_NUMBER=$(date +%s)
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
-          echo "Version:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
-          echo "Build:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
-
-      - name: Set up code signing
+      - name: Configure code signing
         script: |
           xcode-project use-profiles
 
       - name: Build IPA
         script: |
-          xcode-project build-ipa \
-            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+          xcodebuild \
+          -workspace ios/App/App.xcworkspace \
+          -scheme App \
+          -configuration Release \
+          -archivePath build/App.xcarchive \
+          archive
+
+          xcodebuild -exportArchive \
+          -archivePath build/App.xcarchive \
+          -exportOptionsPlist ios/App/exportOptions.plist \
+          -exportPath build
 
     artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
+      - build/*.ipa
 
     publishing:
       app_store_connect:
-        auth: integration
-        submit_to_testflight: true
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
