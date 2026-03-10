@@ -1159,17 +1159,17 @@ const CompleteProfile = () => {
                               return;
                             }
 
-                            // Guard: success must include a signedUrl
-                            if (!result.signedUrl) {
-                              console.error('[CompleteProfile] Upload retornou success=true mas signedUrl está vazio!', result);
-                              toast.error('Selfie enviada, mas houve um erro ao gerar o link. Tente novamente.', { id: 'selfie-upload' });
+                            // Persistir SEMPRE path relativo; signed URL é só preview imediato
+                            if (!result.filePath) {
+                              console.error('[CompleteProfile] Upload retornou success=true mas filePath está vazio!', result);
+                              toast.error('Selfie enviada, mas houve um erro ao salvar o caminho. Tente novamente.', { id: 'selfie-upload' });
                               return;
                             }
 
-                            // Sucesso - atualizar estado
+                            setSelfiePreviewUrl(result.signedUrl || '');
                             setDocumentUrls(prev => {
-                              const updated = { ...prev, selfie: result.signedUrl! };
-                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado:', result.signedUrl!.substring(0, 60) + '...');
+                              const updated = { ...prev, selfie: result.filePath! };
+                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado com path relativo:', result.filePath);
                               return updated;
                             });
                             toast.success(

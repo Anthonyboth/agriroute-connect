@@ -30,7 +30,7 @@ export async function uploadSelfieWithInstrumentation({
   
   console.log('[SELFIE-UPLOAD] === INICIANDO UPLOAD ===');
   console.log('[SELFIE-UPLOAD] Blob size:', blob.size, 'bytes');
-  console.log('[SELFIE-UPLOAD] Blob type:', blob.type);
+  console.log('[SELFIE-UPLOAD] Blob type:', blob.type || '(empty)');
   console.log('[SELFIE-UPLOAD] Upload method:', uploadMethod);
   console.log('[SELFIE-UPLOAD] Platform:', typeof window !== 'undefined' ? navigator.userAgent.substring(0, 80) : 'unknown');
 
