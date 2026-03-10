@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { FileText, Shield, X } from 'lucide-react';
+import { FileText, Shield } from 'lucide-react';
 
 type DocumentType = 'terms' | 'privacy';
 
@@ -216,15 +215,18 @@ export const LegalDocumentDialog: React.FC<LegalDocumentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] p-0 flex flex-col">
+      <DialogContent className="max-w-lg max-h-[85vh] p-0 flex flex-col overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5 text-primary" />
             {title}
           </DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 min-h-0 px-6 pb-6" style={{ maxHeight: '65vh' }}>
-          <div className="space-y-6 pr-4">
+        <div
+          className="flex-1 min-h-0 px-6 pb-6 overflow-y-auto overscroll-contain"
+          style={{ maxHeight: '65vh', WebkitOverflowScrolling: 'touch' }}
+        >
+          <div className="space-y-6 pr-1">
             {content.map((section) => (
               <div key={section.title}>
                 <h3 className="font-semibold text-foreground mb-2">{section.title}</h3>
@@ -239,8 +241,8 @@ export const LegalDocumentDialog: React.FC<LegalDocumentDialogProps> = ({
               </div>
             ))}
           </div>
-        </ScrollArea>
-        <div className="px-6 pb-4 border-t pt-3">
+        </div>
+        <div className="px-6 pb-4 border-t pt-3 flex-shrink-0">
           <Button
             variant="outline"
             className="w-full"
