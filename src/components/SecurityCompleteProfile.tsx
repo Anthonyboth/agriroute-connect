@@ -460,8 +460,21 @@ export const SecurityCompleteProfile: React.FC = () => {
                 {profile.cnh_photo_url && <CheckCircle className="w-4 h-4 text-green-600" />}
                 {getStatusBadge(getValidationStatus('cnh'))}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('CNH uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ cnh_photo_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('CNH salva com sucesso!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar CNH:', err);
+                    toast.error('Erro ao salvar CNH. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*']}
                 maxSize={5}
                 currentFile={profile.cnh_photo_url}
