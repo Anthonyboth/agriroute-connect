@@ -404,8 +404,8 @@ const AffiliatedDriverSignup = () => {
             uploadMethod: selfieMethodPending || 'CAMERA',
           });
           
-          if (result.success && result.signedUrl) {
-            selfieUrl = result.signedUrl;
+           if (result.success && result.filePath) {
+            selfieUrl = result.filePath; // FRT-046: Store relative path, NOT signed URL
             if (import.meta.env.DEV) console.log('✅ Selfie uploaded successfully');
           } else if (result.error) {
             console.error('⚠️ Erro ao fazer upload da selfie:', result.error);
