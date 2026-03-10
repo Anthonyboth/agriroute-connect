@@ -124,6 +124,10 @@ const CompleteProfile = () => {
   const [legalDialogType, setLegalDialogType] = useState<'terms' | 'privacy' | null>(null);
   const didInitRef = useRef(false);
 
+  const isLegacySelfieUrl = documentUrls.selfie.startsWith('http://') || documentUrls.selfie.startsWith('https://');
+  const { url: resolvedSelfieUrl } = useSignedImageUrl(isLegacySelfieUrl ? null : documentUrls.selfie);
+  const selfieDisplayUrl = selfiePreviewUrl || (isLegacySelfieUrl ? documentUrls.selfie : resolvedSelfieUrl || '');
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate('/auth');
