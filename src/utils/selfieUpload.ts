@@ -30,7 +30,7 @@ export async function uploadSelfieWithInstrumentation({
   
   console.log('[SELFIE-UPLOAD] === INICIANDO UPLOAD ===');
   console.log('[SELFIE-UPLOAD] Blob size:', blob.size, 'bytes');
-  console.log('[SELFIE-UPLOAD] Blob type:', blob.type);
+  console.log('[SELFIE-UPLOAD] Blob type:', blob.type || '(empty)');
   console.log('[SELFIE-UPLOAD] Upload method:', uploadMethod);
   console.log('[SELFIE-UPLOAD] Platform:', typeof window !== 'undefined' ? navigator.userAgent.substring(0, 80) : 'unknown');
 
@@ -43,9 +43,28 @@ export async function uploadSelfieWithInstrumentation({
     };
   }
 
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-  if (blob.type && !allowedMimes.includes(blob.type)) {
-    console.warn('[SELFIE-UPLOAD] MIME type incomum:', blob.type, '— tentando continuar como image/jpeg');
+  const normalizeMime = (inputMime?: string) => {
+    const normalized = (inputMime || '').toLowerCase().trim();
+    if (!normalized || normalized === 'application/octet-stream' || normalized === 'binary/octet-stream' || normalized === 'image/*') {
+      return 'image/jpeg';
+    }
+    if (normalized === 'image/heic' || normalized === 'image/heif') return normalized;
+    if (normalized.startsWith('image/')) return normalized;
+    return 'image/jpeg';
+  };
+
+  const rawMime = blob.type;
+  const mime = normalizeMime(rawMime);
+  const extMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+  };
+
+  if (rawMime !== mime) {
+    console.warn('[SELFIE-UPLOAD] MIME normalizado:', { original: rawMime || '(empty)', normalized: mime });
   }
 
   try {
@@ -82,9 +101,8 @@ export async function uploadSelfieWithInstrumentation({
 
     devLog('[SELFIE-UPLOAD] Usuário autenticado:', user.id);
 
-    const mime = blob.type || 'image/jpeg';
-    const extFromMime = (mime.split('/')[1] || 'jpg').toLowerCase();
-    const safeExt = extFromMime === 'jpeg' ? 'jpg' : extFromMime;
+    const extFromMime = extMap[mime] || 'jpg';
+    const safeExt = extFromMime;
     const filePath = `selfies/${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
     
     devLog('[SELFIE-UPLOAD] Destino: bucket=identity-selfies, path=', filePath);

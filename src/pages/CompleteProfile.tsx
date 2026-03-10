@@ -26,6 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
 import { LegalDocumentDialog } from '@/components/LegalDocumentDialog';
 import { uploadSelfieWithInstrumentation } from '@/utils/selfieUpload';
 import { 
@@ -115,12 +116,17 @@ const CompleteProfile = () => {
   });
   
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState('');
   // platePhotos removido - veículos são cadastrados após o cadastro pessoal na aba Veículos
   const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
   const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
   const [legalDialogType, setLegalDialogType] = useState<'terms' | 'privacy' | null>(null);
   const didInitRef = useRef(false);
+
+  const isLegacySelfieUrl = documentUrls.selfie.startsWith('http://') || documentUrls.selfie.startsWith('https://');
+  const { url: resolvedSelfieUrl } = useSignedImageUrl(isLegacySelfieUrl ? null : documentUrls.selfie);
+  const selfieDisplayUrl = selfiePreviewUrl || (isLegacySelfieUrl ? documentUrls.selfie : resolvedSelfieUrl || '');
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -1100,7 +1106,7 @@ const CompleteProfile = () => {
                       </div>
                       <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-green-500">
                         <img 
-                          src={documentUrls.selfie} 
+                          src={selfieDisplayUrl || documentUrls.selfie} 
                           alt="Selfie Preview" 
                           className="w-full h-full object-cover"
                         />
@@ -1153,17 +1159,17 @@ const CompleteProfile = () => {
                               return;
                             }
 
-                            // Guard: success must include a signedUrl
-                            if (!result.signedUrl) {
-                              console.error('[CompleteProfile] Upload retornou success=true mas signedUrl está vazio!', result);
-                              toast.error('Selfie enviada, mas houve um erro ao gerar o link. Tente novamente.', { id: 'selfie-upload' });
+                            // Persistir SEMPRE path relativo; signed URL é só preview imediato
+                            if (!result.filePath) {
+                              console.error('[CompleteProfile] Upload retornou success=true mas filePath está vazio!', result);
+                              toast.error('Selfie enviada, mas houve um erro ao salvar o caminho. Tente novamente.', { id: 'selfie-upload' });
                               return;
                             }
 
-                            // Sucesso - atualizar estado
+                            setSelfiePreviewUrl(result.signedUrl || '');
                             setDocumentUrls(prev => {
-                              const updated = { ...prev, selfie: result.signedUrl! };
-                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado:', result.signedUrl!.substring(0, 60) + '...');
+                              const updated = { ...prev, selfie: result.filePath! };
+                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado com path relativo:', result.filePath);
                               return updated;
                             });
                             toast.success(
