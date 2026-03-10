@@ -1371,6 +1371,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'button_disabled_during_upload',
     ],
   },
+
+  // ── FRT-050: CompleteProfile persisted temporary signed URL instead of relative path ──
+  {
+    id: 'FRT-050',
+    date: '2026-03-10',
+    severity: 'CRITICAL',
+    area: 'selfie-upload-persistence',
+    bug: 'No fluxo CompleteProfile, após upload da selfie, o estado era atualizado com result.signedUrl (temporário) e esse valor era salvo em profiles.selfie_url, causando expiração e perda de visualização futura.',
+    rootCause: 'Callback de onCapture persistia signedUrl no documentUrls.selfie, enquanto a persistência correta exige filePath relativo. O preview imediato e a persistência estavam acoplados no mesmo campo.',
+    fix: 'CompleteProfile agora salva apenas result.filePath no estado/persistência e mantém preview imediato com result.signedUrl em estado separado. Render usa useSignedImageUrl para resolver paths relativos e mantém compatibilidade com URLs legadas http/https.',
+    files: [
+      'src/pages/CompleteProfile.tsx',
+      'src/hooks/useSignedImageUrl.ts',
+    ],
+    rules: [
+      'SEMPRE persistir paths relativos no banco; nunca signed URLs temporárias.',
+      'Separar preview imediato (signed URL) da persistência (filePath).',
+      'Render de documentos deve suportar ambos: legado http/https e novo path relativo.',
+    ],
+    keywords: ['CompleteProfile', 'signedUrl', 'filePath', 'selfie_url', 'relative path', 'legacy URL', 'useSignedImageUrl'],
+    testCases: [
+      'complete_profile_persists_relative_path_not_signed_url',
+      'complete_profile_shows_immediate_preview_after_capture',
+      'legacy_signed_url_still_renders_in_complete_profile',
+      'relative_path_renders_via_useSignedImageUrl',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
