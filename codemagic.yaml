@@ -47,6 +47,10 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Generate iOS app icon from resources
+        script: |
+          npx @capacitor/assets generate --ios --iconOnly --iconBackgroundColor '#FFFFFF'
+
       - name: Install CocoaPods via Bundler 2
         script: |
           export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
