@@ -45,6 +45,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>O AgriRoute precisa acessar sua câmera para tirar selfie de verificação e fotografar documentos como CNH e comprovante de endereço.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
