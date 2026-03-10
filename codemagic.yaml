@@ -57,20 +57,23 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Force iPhone only and set version/build
+      - name: Enforce iPhone only and set version/build
         script: |
+          # Safety net: force UIDeviceFamily=1 (project already has it, this is a CI guard)
           /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 150" ios/App/App/Info.plist
-          BUILD_ID=$(date +%s)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_ID" ios/App/App/Info.plist
-          echo "Final UIDeviceFamily:"
-          /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
-          echo "Final CFBundleShortVersionString:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
-          echo "Final CFBundleVersion:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
+          # Set marketing version and build number
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1" ios/App/App/Info.plist
+          # Also patch pbxproj as extra safety
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
+          echo "=== Verification ==="
+          echo "UIDeviceFamily:" && /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
+          echo "Version:" && /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
+          echo "Build:" && /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
+          echo "TARGETED_DEVICE_FAMILY in pbxproj:" && grep "TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj
 
       - name: Build IPA
         script: |
