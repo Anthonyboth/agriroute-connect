@@ -44,7 +44,8 @@ workflows:
 
       - name: Install npm dependencies
         script: |
-          npm ci
+          rm -f package-lock.json
+          npm install
 
       - name: Build web app
         script: |
