@@ -1,6 +1,6 @@
 workflows:
-  ios-release:
-    name: iOS Release
+  ios-release-testflight:
+    name: iOS Release TestFlight
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -45,13 +45,11 @@ workflows:
         script: |
           /usr/libexec/PlistBuddy -c "Set :UIDeviceFamily:0 1" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily:1" ios/App/App/Info.plist || true
-
           sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = "1"/g' ios/App/App.xcodeproj/project.pbxproj || true
 
       - name: Set version and build number
         script: |
           BUILD_NUMBER=$(date +%s)
-
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
