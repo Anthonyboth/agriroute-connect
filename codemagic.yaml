@@ -76,6 +76,11 @@ workflows:
           echo "=== Verification ==="
           grep -c "DEVELOPMENT_TEAM = 4YULT95XAK" App.xcodeproj/project.pbxproj || true
 
+      - name: Setup App Store Connect API Key
+        script: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+
       - name: Build IPA
         script: |
           xcodebuild \
@@ -83,6 +88,9 @@ workflows:
           -scheme App \
           -configuration Release \
           -archivePath build/App.xcarchive \
+          -authenticationKeyPath ~/".appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" \
+          -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
+          -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
           -allowProvisioningUpdates \
           DEVELOPMENT_TEAM=4YULT95XAK \
           CODE_SIGN_STYLE=Automatic \
@@ -92,7 +100,11 @@ workflows:
           -exportArchive \
           -archivePath build/App.xcarchive \
           -exportOptionsPlist ios/App/exportOptions.plist \
-          -exportPath build
+          -exportPath build \
+          -authenticationKeyPath ~/".appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" \
+          -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
+          -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
+          -allowProvisioningUpdates
 
     artifacts:
       - build/*.ipa
