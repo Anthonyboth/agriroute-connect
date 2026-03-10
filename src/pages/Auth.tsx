@@ -89,6 +89,9 @@ const Auth = () => {
   const [showProfileSelector, setShowProfileSelector] = useState(false);
   const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
 
+  // ✅ FRT-053: Ref para garantir que signupStep só é resetado na montagem inicial
+  const initialSyncDoneRef = React.useRef(false);
+
   // ✅ CRITICAL: Sync URL mode to active tab state on mount and URL changes
   useEffect(() => {
     const mode = parseModeFromUrl(searchParams);
@@ -112,8 +115,9 @@ const Auth = () => {
       }
       setRole(effectiveRole);
       
-      // If role is provided and we're in signup mode, show role-selection with card pre-selected
-      if (mode === 'signup') {
+      // ✅ FRT-053: Só resetar signupStep para role-selection na PRIMEIRA execução.
+      // Em execuções subsequentes (re-renders), NÃO resetar — o usuário pode já ter avançado.
+      if (!initialSyncDoneRef.current && mode === 'signup') {
         if (effectiveRole === 'MOTORISTA_AFILIADO') {
           // Redirect to affiliate signup page
           window.location.href = '/cadastro-motorista-afiliado';
@@ -123,6 +127,8 @@ const Auth = () => {
         setSignupStep('role-selection');
       }
     }
+    
+    initialSyncDoneRef.current = true;
   }, [searchParams]);
 
   // ✅ CRITICAL: Update URL when tab changes (single source of truth)
