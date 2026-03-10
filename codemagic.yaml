@@ -47,9 +47,9 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Generate iOS app icon from resources
+      - name: Fix iOS marketing app icon
         script: |
-          npx @capacitor/assets generate --ios --iconOnly --iconBackgroundColor '#FFFFFF'
+          cp resources/icon.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
 
       - name: Install CocoaPods via Bundler 2
         script: |
