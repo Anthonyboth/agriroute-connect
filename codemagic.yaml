@@ -9,14 +9,23 @@ workflows:
       xcode: latest
       cocoapods: default
 
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/.cocoapods
+        - $HOME/Library/Caches/CocoaPods
+
     scripts:
-      - name: Setup Bundler
+      - name: Setup Bundler and Gems
         script: |
           gem install bundler -v 2.5.23 --no-document
           bundle _2.5.23_ config set path vendor/bundle
+          cd ios/App
+          bundle _2.5.23_ install
 
       - name: Install Node Dependencies
         script: |
+          rm -f package-lock.json
           npm install
 
       - name: Build Web
@@ -27,24 +36,24 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Install CocoaPods
+      - name: Clean and Reinstall CocoaPods
         script: |
           cd ios/App
           rm -rf Pods Podfile.lock
           pod repo update
-          pod install
+          bundle _2.5.23_ exec pod install
 
       - name: Force iPhone Only
         script: |
           /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1, 2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
 
       - name: Set Version
         script: |
-          BUILD_NUMBER=$(date +%s)
-
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
       - name: Code Signing
