@@ -1131,6 +1131,16 @@ const App = () => {
                             </Suspense>
                           </ProtectedRoute>
                         } />
+                        <Route 
+                          path="/awaiting-approval" 
+                          element={
+                            <ProtectedRoute requiresAuth>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <AwaitingApproval />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
                         <Route path="/cadastro-prestador" element={<Navigate to="/complete-profile" replace />} />
                         <Route 
                           path="/cadastro-transportadora" 
