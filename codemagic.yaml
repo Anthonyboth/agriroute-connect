@@ -1,19 +1,29 @@
 workflows:
   ios-release-testflight:
     name: iOS Release to TestFlight
+    max_build_duration: 120
+    instance_type: mac_mini_m2
 
     integrations:
       app_store_connect: "Anthony Both"
 
     environment:
       xcode: 26.2
-      node: 20.9.0
+      node: 20
+
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
+
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+
+    cache:
+      cache_paths:
+        - ~/.npm
+        - ~/.cocoapods
+        - ~/Library/Caches/CocoaPods
 
     scripts:
       - name: Show tool versions
@@ -22,63 +32,57 @@ workflows:
           npm -v
           xcodebuild -version
 
-      - name: Install dependencies
+      - name: Clean install dependencies
         script: |
           rm -f package-lock.json
           npm install
-
-      - name: Audit Capacitor dependencies
-        script: |
-          chmod +x audit-deps.sh
-          ./audit-deps.sh
 
       - name: Build web app
         script: |
           npm run build
 
-      - name: Pin Bundler 2 for fastlane
-        script: |
-          gem install bundler -v 2.5.23
-          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
-          bundle _2.5.23_ -v
-          bundle _2.5.23_ install
-
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
 
-      - name: Install CocoaPods via Bundler 2
+      - name: Force iPhone only (remove iPad permanently)
         script: |
-          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
+
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
+
+      - name: Install CocoaPods
+        script: |
           cd ios/App
-          bundle _2.5.23_ exec pod install
+          pod install
+
+      - name: Configure automatic build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $BUILD_NUMBER
+
+      - name: Set app version
+        script: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
+
+      - name: Verify versions before build
+        script: |
+          echo "Version:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
+          echo "Build:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
 
       - name: Set up code signing
         script: |
           xcode-project use-profiles
 
-      - name: Enforce iPhone only and set version/build
-        script: |
-          # Safety net: force UIDeviceFamily=1 (project already has it, this is a CI guard)
-          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
-          # Set marketing version and build number
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1" ios/App/App/Info.plist
-          # Also patch pbxproj as extra safety
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
-          echo "=== Verification ==="
-          echo "UIDeviceFamily:" && /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
-          echo "Version:" && /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
-          echo "Build:" && /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
-          echo "TARGETED_DEVICE_FAMILY in pbxproj:" && grep "TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj
-
       - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
 
     artifacts:
