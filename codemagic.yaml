@@ -31,8 +31,15 @@ workflows:
           node -v
           npm -v
           xcodebuild -version
+          ruby -v
+          gem -v
 
-      - name: Clean install dependencies
+      - name: Install Bundler 2.x (Fastlane compatibility)
+        script: |
+          gem install bundler -v 2.5.23 --no-document
+          bundle _2.5.23_ -v
+
+      - name: Install npm dependencies
         script: |
           rm -f package-lock.json
           npm install
@@ -45,35 +52,37 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Force iPhone only (remove iPad permanently)
+      - name: Clean and install CocoaPods
         script: |
+          cd ios/App
+          rm -rf Pods Podfile.lock
+          export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
+          bundle _2.5.23_ install
+          pod repo update
+          bundle _2.5.23_ exec pod install
+
+      - name: Force iPhone only
+        script: |
+          # Info.plist - force UIDeviceFamily = [1]
           /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
 
+          # project.pbxproj - force TARGETED_DEVICE_FAMILY = 1
           sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
           sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
 
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
+          echo "UIDeviceFamily:"
+          /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
 
-      - name: Configure automatic build number
-        script: |
-          cd ios/App
-          agvtool new-version -all $BUILD_NUMBER
-
-      - name: Set app version
+      - name: Set version and build number (no agvtool)
         script: |
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
-      - name: Verify versions before build
-        script: |
-          echo "Version:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
-          echo "Build:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
+          echo "Version: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' ios/App/App/Info.plist)"
+          echo "Build: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' ios/App/App/Info.plist)"
 
       - name: Set up code signing
         script: |
@@ -82,7 +91,7 @@ workflows:
       - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
 
     artifacts:
