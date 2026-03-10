@@ -431,8 +431,21 @@ export const SecurityCompleteProfile: React.FC = () => {
                 {profile.document_photo_url && <CheckCircle className="w-4 h-4 text-green-600" />}
                 {getStatusBadge(getValidationStatus('document'))}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('Document uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ document_photo_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('Documento salvo com sucesso!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar documento:', err);
+                    toast.error('Erro ao salvar documento. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*']}
                 maxSize={5}
                 currentFile={profile.document_photo_url}
