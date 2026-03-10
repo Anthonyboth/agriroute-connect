@@ -47,10 +47,6 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Fix iOS marketing app icon
-        script: |
-          cp resources/icon.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
-
       - name: Install CocoaPods via Bundler 2
         script: |
           export BUNDLE_GEMFILE="$CM_BUILD_DIR/ios/App/Gemfile"
@@ -61,14 +57,14 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Set app version
+      - name: Set version and build automatically
         script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 148" ios/App/App/Info.plist
-
-      - name: Increment build number
-        script: |
-          cd ios/App
-          agvtool new-version -all 7
+          echo "Codemagic build number: $BUILD_NUMBER"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 149" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
+          echo "Final version:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
 
       - name: Build IPA
         script: |
