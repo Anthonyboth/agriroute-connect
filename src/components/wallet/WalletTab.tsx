@@ -62,8 +62,19 @@ export const WalletTab: React.FC<WalletTabProps> = ({
     })
     .reduce((s, tx) => s + tx.amount, 0);
 
-  // Role-based: produtores não devem ver antecipação
-  const canAdvance = role !== 'PRODUTOR';
+  // ── Regras de visibilidade por papel ──
+  // Motorista afiliado: apenas crédito de transporte (valores gerenciados pela transportadora)
+  const isAffiliatedDriver = role === 'MOTORISTA' && isAffiliated;
+  
+  // Produtores não devem ver antecipação
+  const canAdvance = role !== 'PRODUTOR' && !isAffiliatedDriver;
+  
+  // Afiliados não podem depositar/sacar (gerenciado pela transportadora)
+  const canDeposit = !isAffiliatedDriver;
+  const canWithdraw = !isAffiliatedDriver;
+  
+  // Afiliados não veem escrow, payment orders, cashflow, operational payments
+  const showFullWallet = !isAffiliatedDriver;
 
   return (
     <div className="space-y-4">
@@ -71,7 +82,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="wallet" className="gap-2">
             <Wallet className="h-4 w-4" />
-            Carteira AgriRoute
+            {isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}
           </TabsTrigger>
           <TabsTrigger value="management" className="gap-2">
             <CreditCard className="h-4 w-4" />
@@ -83,71 +94,84 @@ export const WalletTab: React.FC<WalletTabProps> = ({
           {/* Smart Notifications */}
           <FinancialNotifications
             availableBalance={wallet?.available_balance || 0}
-            totalReceivable={totalReceivable}
+            totalReceivable={isAffiliatedDriver ? 0 : totalReceivable}
             creditAvailable={creditAvailable}
             pendingInstallments={pendingInstallments.length}
             overdueInstallments={overdueInstallments}
             totalPendingAmount={totalPending}
-            onAdvance={() => setAdvanceSimOpen(true)}
+            onAdvance={canAdvance ? () => setAdvanceSimOpen(true) : undefined}
             onPayInstallment={() => toast.info('Acesse a aba Gestão de Pagamentos para pagar parcelas')}
-            onWithdraw={() => setWithdrawOpen(true)}
+            onWithdraw={canWithdraw ? () => setWithdrawOpen(true) : undefined}
             onUseCredit={() => setCreditSimOpen(true)}
             role={role}
-            escrowTotal={escrowTotal}
-            releasedTotal={releasedTotal}
-            recentlyReleasedAmount={recentlyReleasedAmount}
+            escrowTotal={showFullWallet ? escrowTotal : 0}
+            releasedTotal={showFullWallet ? releasedTotal : 0}
+            recentlyReleasedAmount={showFullWallet ? recentlyReleasedAmount : 0}
             installments={installments}
           />
 
-          {/* Smart Financial Card */}
+          {/* Smart Financial Card — afiliados veem versão reduzida */}
           <SmartFinancialCard
             wallet={wallet}
             loading={loading}
             error={error}
             creditAvailable={creditAvailable}
-            totalReceivable={totalReceivable}
-            onDeposit={() => setDepositOpen(true)}
-            onWithdraw={() => setWithdrawOpen(true)}
+            totalReceivable={isAffiliatedDriver ? 0 : totalReceivable}
+            onDeposit={canDeposit ? () => setDepositOpen(true) : () => toast.info('Depósitos são gerenciados pela sua transportadora')}
+            onWithdraw={canWithdraw ? () => setWithdrawOpen(true) : () => toast.info('Saques são gerenciados pela sua transportadora')}
             onUseCredit={() => setCreditSimOpen(true)}
-            onAdvance={() => setAdvanceSimOpen(true)}
+            onAdvance={canAdvance ? () => setAdvanceSimOpen(true) : () => toast.info('Antecipações são gerenciadas pela sua transportadora')}
             role={role}
             isAffiliated={isAffiliated}
-            escrowTotal={escrowTotal}
-            releasedTotal={releasedTotal}
+            escrowTotal={showFullWallet ? escrowTotal : 0}
+            releasedTotal={showFullWallet ? releasedTotal : 0}
           />
 
-          {/* Cashflow Forecast */}
-          <CashflowForecastCard />
+          {/* Componentes completos — apenas para não-afiliados */}
+          {showFullWallet && (
+            <>
+              {/* Cashflow Forecast */}
+              <CashflowForecastCard />
 
-          {/* Incentive Bonuses */}
-          <IncentiveBonusCard role={role} />
+              {/* Incentive Bonuses */}
+              <IncentiveBonusCard role={role} />
 
-          {/* Autopay + Dynamic Credit */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <AutopayCard />
-            <DynamicCreditCard />
-          </div>
+              {/* Autopay + Dynamic Credit */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AutopayCard />
+                <DynamicCreditCard />
+              </div>
 
-          {/* Escrow Flow States */}
-          <EscrowFlowCard wallet={wallet} />
+              {/* Escrow Flow States */}
+              <EscrowFlowCard wallet={wallet} />
 
-          {/* Payment Orders & Split */}
-          <PaymentOrdersCard
-            orders={orders}
-            payouts={payouts}
-            escrowTotal={escrowTotal}
-            releasedTotal={releasedTotal}
-            loading={ordersLoading}
-          />
+              {/* Payment Orders & Split */}
+              <PaymentOrdersCard
+                orders={orders}
+                payouts={payouts}
+                escrowTotal={escrowTotal}
+                releasedTotal={releasedTotal}
+                loading={ordersLoading}
+              />
 
-          {/* Operational Payments */}
-          <OperationalPaymentsCard
-            availableBalance={wallet?.available_balance || 0}
-            creditAvailable={creditAvailable}
-            role={role}
-          />
+              {/* Operational Payments */}
+              <OperationalPaymentsCard
+                availableBalance={wallet?.available_balance || 0}
+                creditAvailable={creditAvailable}
+                role={role}
+              />
+            </>
+          )}
 
-          {/* Financial Timeline */}
+          {/* Afiliados veem apenas crédito dinâmico e autopay */}
+          {isAffiliatedDriver && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <AutopayCard />
+              <DynamicCreditCard />
+            </div>
+          )}
+
+          {/* Financial Timeline — todos veem, mas filtrado */}
           <FinancialTimeline
             transactions={transactions}
             loading={loading}
@@ -166,20 +190,24 @@ export const WalletTab: React.FC<WalletTabProps> = ({
         </TabsContent>
       </Tabs>
 
-      {/* Modals */}
-      <WalletDepositModal
-        open={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        onDeposit={deposit}
-        loading={actionLoading}
-      />
-      <WalletWithdrawModal
-        open={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        onWithdraw={withdraw}
-        loading={actionLoading}
-        availableBalance={wallet?.available_balance || 0}
-      />
+      {/* Modals — condicionais por papel */}
+      {canDeposit && (
+        <WalletDepositModal
+          open={depositOpen}
+          onClose={() => setDepositOpen(false)}
+          onDeposit={deposit}
+          loading={actionLoading}
+        />
+      )}
+      {canWithdraw && (
+        <WalletWithdrawModal
+          open={withdrawOpen}
+          onClose={() => setWithdrawOpen(false)}
+          onWithdraw={withdraw}
+          loading={actionLoading}
+          availableBalance={wallet?.available_balance || 0}
+        />
+      )}
       <CreditSimulatorModal
         open={creditSimOpen}
         onClose={() => setCreditSimOpen(false)}
