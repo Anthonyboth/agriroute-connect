@@ -711,12 +711,12 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Refazer
               </Button>
-              <Button
+               <Button
                 type="button"
                 onClick={confirm}
                 size="lg"
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={confirming}
+                disabled={confirming || !hasValidImage}
               >
                 <Check className="mr-2 h-4 w-4" />
                 {confirming ? 'Confirmando...' : 'Confirmar'}
