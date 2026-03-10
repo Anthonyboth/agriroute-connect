@@ -34,16 +34,17 @@ workflows:
           gem -v
           xcodebuild -version
 
-      - name: Install Bundler 2.x
+      - name: Fix Bundler for Fastlane
         script: |
           gem uninstall bundler -a -x || true
           gem install bundler -v 2.5.23 --no-document
-          bundle _2.5.23_ -v
+          rbenv rehash
+          export PATH="$HOME/.rbenv/shims:$PATH"
+          bundler -v
 
       - name: Install npm dependencies
         script: |
-          rm -f package-lock.json
-          npm install
+          npm ci
 
       - name: Build web app
         script: |
