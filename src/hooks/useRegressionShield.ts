@@ -1398,6 +1398,59 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'relative_path_renders_via_useSignedImageUrl',
     ],
   },
+
+  // ── FRT-051: /awaiting-approval route missing + stale status in resolvePostAuthRoute ──
+  {
+    id: 'FRT-051',
+    date: '2026-03-10',
+    severity: 'CRITICAL',
+    area: 'post-auth-routing',
+    bug: 'resolvePostAuthRoute retornava "/awaiting-approval" para MOTORISTA não-aprovado, mas essa rota NUNCA foi definida no App.tsx. Resultado: tela branca/404. Além disso, CompleteProfile passava profile.status LOCAL (pré-aprovação) para resolvePostAuthRoute, ignorando a atualização feita pelo AutomaticApprovalService no banco.',
+    rootCause: '1) Rota /awaiting-approval nunca registrada no router. 2) profile.status local não reflete o status atualizado pelo auto-approval no DB. 3) Toast dizia "Você já pode acessar" mesmo quando aprovação falhou.',
+    fix: 'Criado src/pages/AwaitingApproval.tsx com tela dedicada + rota em App.tsx. CompleteProfile agora usa freshStatus (baseado em approvalResult) ao chamar resolvePostAuthRoute. Toast corrigido para "Seus documentos estão em análise".',
+    files: [
+      'src/pages/AwaitingApproval.tsx',
+      'src/App.tsx',
+      'src/pages/CompleteProfile.tsx',
+    ],
+    rules: [
+      'Toda rota retornada por resolvePostAuthRoute DEVE existir no router do App.tsx.',
+      'Após auto-approval, usar o resultado da aprovação (approved/not) para decidir o status, NÃO o profile local.',
+      'Toast de status deve refletir a realidade: se não aprovado, NÃO dizer "você já pode acessar".',
+    ],
+    keywords: ['awaiting-approval', 'resolvePostAuthRoute', 'route missing', 'stale status', 'CompleteProfile', 'auto-approval', 'toast misleading'],
+    testCases: [
+      'motorista_not_approved_sees_awaiting_approval_page',
+      'produtor_auto_approved_goes_to_dashboard',
+      'awaiting_approval_route_exists_in_router',
+      'fresh_status_used_after_auto_approval',
+    ],
+  },
+
+  // ── FRT-052: DocumentUpload sem opção câmera/galeria ──
+  {
+    id: 'FRT-052',
+    date: '2026-03-10',
+    severity: 'HIGH',
+    area: 'document-upload',
+    bug: 'DocumentUpload.tsx usava um único <input type="file"> sem capture attribute, impedindo que o usuário escolhesse entre abrir a câmera ou selecionar da galeria no mobile.',
+    rootCause: 'Input de arquivo genérico sem botões separados para câmera (capture="environment") e galeria (sem capture). Em iOS/Android, o comportamento padrão varia por dispositivo.',
+    fix: 'Substituído por dois botões: "Abrir Câmera" (input com capture="environment") e "Galeria" (input sem capture). Ambos usam refs separadas.',
+    files: [
+      'src/components/DocumentUpload.tsx',
+    ],
+    rules: [
+      'Upload de documentos DEVE sempre oferecer opção explícita de câmera E galeria.',
+      'Input com capture="environment" para câmera traseira, input sem capture para galeria.',
+      'Nunca usar um único input genérico para upload de documentos em mobile.',
+    ],
+    keywords: ['DocumentUpload', 'capture', 'camera', 'galeria', 'gallery', 'mobile', 'file input'],
+    testCases: [
+      'document_upload_shows_camera_and_gallery_buttons',
+      'camera_button_opens_camera_on_mobile',
+      'gallery_button_opens_file_picker',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
