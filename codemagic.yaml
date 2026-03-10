@@ -1,8 +1,8 @@
 workflows:
   ios-release-testflight:
     name: iOS Release TestFlight
-    max_build_duration: 60
     instance_type: mac_mini_m2
+    max_build_duration: 60
 
     environment:
       node: 20
@@ -10,16 +10,13 @@ workflows:
       cocoapods: default
 
     scripts:
-      - name: Force correct Bundler
+      - name: Setup Bundler
         script: |
-          gem uninstall bundler -a -x || true
           gem install bundler -v 2.5.23 --no-document
-          gem cleanup
-          bundle _2.5.23_ config set path 'vendor/bundle'
+          bundle _2.5.23_ config set path vendor/bundle
 
-      - name: Install Node dependencies
+      - name: Install Node Dependencies
         script: |
-          rm -f package-lock.json
           npm install
 
       - name: Build Web
