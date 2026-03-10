@@ -1106,7 +1106,7 @@ const CompleteProfile = () => {
                       </div>
                       <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-green-500">
                         <img 
-                          src={documentUrls.selfie} 
+                          src={selfieDisplayUrl || documentUrls.selfie} 
                           alt="Selfie Preview" 
                           className="w-full h-full object-cover"
                         />
