@@ -116,6 +116,7 @@ const CompleteProfile = () => {
   });
   
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState('');
   // platePhotos removido - veículos são cadastrados após o cadastro pessoal na aba Veículos
   const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
   const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
