@@ -100,6 +100,18 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     }
   };
 
+  // Ref para input de câmera separado
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+  const galleryInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCameraCapture = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleGallerySelect = () => {
+    galleryInputRef.current?.click();
+  };
+
   return (
     <div className="space-y-2">
       <Label htmlFor={fileType}>
@@ -107,43 +119,59 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       </Label>
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center space-x-2">
-            <Input
-              id={fileType}
-              type="file"
-              accept={accept}
-              onChange={handleFileUpload}
-              disabled={uploading || uploaded}
-              className="hidden"
-            />
-            <Label
-              htmlFor={fileType}
-              className={`flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md cursor-pointer transition-colors ${
-                uploaded
-                  ? 'border-green-300 bg-green-50 text-green-700'
-                  : uploading
-                  ? 'border-blue-300 bg-blue-50 text-blue-700'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-            >
-              {uploading ? (
-                <>
-                  <InlineSpinner />
-                  Enviando...
-                </>
-              ) : uploaded ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  {fileName}
-                </>
-              ) : (
-                <>
-                  <Camera className="h-4 w-4 mr-2" />
-                  Clique para enviar {label.toLowerCase()}
-                </>
-              )}
-            </Label>
-          </div>
+          {/* Inputs ocultos: um para câmera, outro para galeria */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileUpload}
+            disabled={uploading || uploaded}
+            className="hidden"
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept={accept}
+            onChange={handleFileUpload}
+            disabled={uploading || uploaded}
+            className="hidden"
+          />
+
+          {uploading ? (
+            <div className="flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md border-blue-300 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300">
+              <InlineSpinner />
+              Enviando...
+            </div>
+          ) : uploaded ? (
+            <div className="flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md border-green-300 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300">
+              <Check className="h-4 w-4 mr-2" />
+              {fileName}
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={handleCameraCapture}
+                disabled={uploading || uploaded}
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Abrir Câmera
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={handleGallerySelect}
+                disabled={uploading || uploaded}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Galeria
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

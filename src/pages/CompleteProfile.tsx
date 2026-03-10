@@ -515,20 +515,24 @@ const CompleteProfile = () => {
       if (import.meta.env.DEV) console.log('🤖 Iniciando aprovação automática...');
       const approvalResult = await AutomaticApprovalService.triggerApprovalProcess(profile.id);
       
+      // ✅ FRT-051: Buscar status ATUALIZADO do banco após aprovação automática
+      // O profile local ainda tem o status antigo (PENDING) — precisamos do status real
+      const freshStatus = approvalResult?.approved ? 'APPROVED' : (profile.status || 'PENDING');
+      
       if (approvalResult?.approved) {
         if (import.meta.env.DEV) console.log('✅ Perfil aprovado automaticamente!');
         toast.success('Perfil completado e aprovado! Bem-vindo(a) ao AgriRoute Connect.');
       } else {
         if (import.meta.env.DEV) console.log('⏳ Perfil em análise manual');
-        toast.success('Perfil completado! Você já pode acessar a plataforma.');
+        toast('Perfil completado! Seus documentos estão em análise.', { id: 'profile-pending' });
       }
       
       // ✅ GATE UNIVERSAL: resolvePostAuthRoute decide destino
-      // Garante que MOTORISTA não-aprovado vai para /awaiting-approval
+      // Usa freshStatus (pós-aprovação) em vez do profile.status local (pré-aprovação)
       const destination = await resolvePostAuthRoute({
         id: profile.id,
         role: profile.role || 'PRODUTOR',
-        status: profile.status || 'PENDING',
+        status: freshStatus,
         selfie_url: documentUrls.selfie || profile.selfie_url || null,
         document_photo_url: documentUrls.document_photo || profile.document_photo_url || null,
       });
