@@ -131,10 +131,14 @@ export async function uploadSelfieWithInstrumentation({
 
     devLog('[SELFIE-UPLOAD] Signed URL gerada com sucesso');
 
+    // FRT-046: Return relative path for DB storage, signedUrl only for immediate preview
+    const relativeFilePath = `identity-selfies/${filePath}`;
+    console.log('[SELFIE-UPLOAD] ✅ Upload completo. Relative path:', relativeFilePath);
+
     return {
       success: true,
       signedUrl: signedUrlData.signedUrl,
-      filePath,
+      filePath: relativeFilePath,
     };
   } catch (error: any) {
     console.error('[SELFIE-UPLOAD] Erro inesperado:', error);

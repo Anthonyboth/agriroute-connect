@@ -487,8 +487,21 @@ export const SecurityCompleteProfile: React.FC = () => {
                 <Label>Comprovante de Endereço *</Label>
                 {profile.address_proof_url && <CheckCircle className="w-4 h-4 text-green-600" />}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('Address proof uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ address_proof_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('Comprovante de endereço salvo!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar comprovante:', err);
+                    toast.error('Erro ao salvar comprovante. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*', 'application/pdf']}
                 maxSize={5}
                 currentFile={profile.address_proof_url}
