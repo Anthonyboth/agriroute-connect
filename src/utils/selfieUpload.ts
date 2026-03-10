@@ -101,9 +101,8 @@ export async function uploadSelfieWithInstrumentation({
 
     devLog('[SELFIE-UPLOAD] Usuário autenticado:', user.id);
 
-    const mime = blob.type || 'image/jpeg';
-    const extFromMime = (mime.split('/')[1] || 'jpg').toLowerCase();
-    const safeExt = extFromMime === 'jpeg' ? 'jpg' : extFromMime;
+    const extFromMime = extMap[mime] || 'jpg';
+    const safeExt = extFromMime;
     const filePath = `selfies/${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
     
     devLog('[SELFIE-UPLOAD] Destino: bucket=identity-selfies, path=', filePath);
