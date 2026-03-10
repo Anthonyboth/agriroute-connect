@@ -1451,6 +1451,31 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'gallery_button_opens_file_picker',
     ],
   },
+
+  // ── FRT-053: Signup step reset loop — useEffect resets signupStep on every searchParams change ──
+  {
+    id: 'FRT-053',
+    date: '2026-03-10',
+    severity: 'HIGH',
+    area: 'auth-signup-flow',
+    bug: 'Ao selecionar tipo de cadastro e clicar "Continuar", a tela piscava e voltava para a seleção de tipo. O usuário precisava selecionar duas vezes.',
+    rootCause: 'useEffect em Auth.tsx com dependência [searchParams] executava setSignupStep("role-selection") em TODA re-execução, não apenas na montagem inicial. Qualquer re-render que tocasse searchParams resetava o step do wizard.',
+    fix: 'Adicionado initialSyncDoneRef para garantir que setSignupStep("role-selection") só execute na PRIMEIRA execução do effect. Re-execuções subsequentes apenas sincronizam activeTab e role, sem resetar o step.',
+    files: [
+      'src/pages/Auth.tsx',
+    ],
+    rules: [
+      'useEffect com setSignupStep/setCurrentStep em wizards deve usar ref guard para evitar resets em re-execuções.',
+      'searchParams do React Router pode gerar nova referência em re-renders — nunca confiar em estabilidade referencial.',
+      'Wizard steps NUNCA devem ser resetados por side-effects de URL — apenas por ação explícita do usuário (botão "Voltar").',
+    ],
+    keywords: ['signupStep', 'role-selection', 'useEffect', 'searchParams', 'wizard reset', 'flash', 'Auth.tsx', 'double selection'],
+    testCases: [
+      'signup_step_does_not_reset_after_continue',
+      'role_selection_persists_through_rerender',
+      'driver_type_step_accessible_without_flash',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
