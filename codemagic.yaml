@@ -74,10 +74,6 @@ workflows:
           echo "=== Verification ==="
           grep -c "DEVELOPMENT_TEAM = 4YULT95XAK" App.xcodeproj/project.pbxproj || true
 
-      - name: Code Signing
-        script: |
-          xcode-project use-profiles
-
       - name: Build IPA
         script: |
           xcodebuild \
