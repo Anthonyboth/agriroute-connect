@@ -56,6 +56,24 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
+      - name: Inject Code Signing Settings
+        script: |
+          cd ios/App
+          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' App.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 4YULT95XAK;/g' App.xcodeproj/project.pbxproj
+          # Ensure DEVELOPMENT_TEAM is set in all build configurations
+          ruby -e '
+            path = "App.xcodeproj/project.pbxproj"
+            content = File.read(path)
+            unless content.include?("DEVELOPMENT_TEAM = 4YULT95XAK")
+              content.gsub!(/buildSettings = \{/) { |m| "#{m}\n\t\t\t\tDEVELOPMENT_TEAM = 4YULT95XAK;" }
+            end
+            content.gsub!(/CODE_SIGN_STYLE = .*;/, "CODE_SIGN_STYLE = Automatic;")
+            File.write(path, content)
+          '
+          echo "=== Verification ==="
+          grep -c "DEVELOPMENT_TEAM = 4YULT95XAK" App.xcodeproj/project.pbxproj || true
+
       - name: Code Signing
         script: |
           xcode-project use-profiles
@@ -67,6 +85,9 @@ workflows:
           -scheme App \
           -configuration Release \
           -archivePath build/App.xcarchive \
+          -allowProvisioningUpdates \
+          DEVELOPMENT_TEAM=4YULT95XAK \
+          CODE_SIGN_STYLE=Automatic \
           archive
 
           xcodebuild \
