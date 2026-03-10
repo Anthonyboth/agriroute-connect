@@ -8,6 +8,8 @@ workflows:
       node: 20
       xcode: latest
       cocoapods: default
+      groups:
+        - appstore_credentials
 
     cache:
       cache_paths:
