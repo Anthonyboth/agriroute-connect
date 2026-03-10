@@ -25,7 +25,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, XCircle, ClipboardList, Inbox, Send } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, XCircle, ClipboardList, Inbox, Send, CreditCard } from 'lucide-react';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
@@ -2537,7 +2537,7 @@ const DriverDashboard = () => {
                 value="payments" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <DollarSign className="h-3.5 w-3.5 mr-1" />
+                <CreditCard className="h-3.5 w-3.5 mr-1" />
                 <span translate="no">Carteira</span>
                 {!isCompanyDriver && !isAffiliated && (
                   <TabBadge count={pendingPayments.filter(p => p.status === 'paid_by_producer').length} />

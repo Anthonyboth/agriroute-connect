@@ -16,6 +16,7 @@ import {
   Navigation,
   MapPin,
   DollarSign,
+  CreditCard,
   
   Building2,
   Link2,
@@ -128,7 +129,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number, ratingsCount: nu
     icon: ShieldCheck,
     badge: pendingDeliveryCount > 0 ? pendingDeliveryCount : undefined
   },
-  { value: 'payments', label: 'Carteira', shortLabel: 'Carteira', icon: DollarSign, badge: undefined },
+  { value: 'payments', label: 'Carteira', shortLabel: 'Carteira', icon: CreditCard, badge: undefined },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cidades', icon: MapPin, badge: undefined },
   { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: ratingsCount > 0 ? ratingsCount : undefined },
   { value: 'history', label: 'Histórico', shortLabel: 'Histórico', icon: Clock, badge: undefined },
