@@ -1261,6 +1261,116 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'validation-toasts-must-be-neutral',
   },
+
+  // ── FRT-046: selfieUpload.ts stored signed URLs in DB instead of relative paths ──
+  {
+    id: 'FRT-046',
+    date: '2026-03-10',
+    severity: 'CRITICAL',
+    area: 'selfie-upload-storage',
+    bug: 'uploadSelfieWithInstrumentation() retornava signed URL (temporária, expira) como valor principal. CompleteProfile.tsx e AffiliatedDriverSignup.tsx salvavam essa URL no banco em selfie_url, document_photo_url, etc. Após expiração, selfies/documentos desapareciam.',
+    rootCause: 'selfieUpload.ts retornava signedUrl como valor principal para salvar no banco. AffiliatedDriverSignup.uploadDocument() gerava signed URLs de 24h e salvava no banco. O padrão correto (usado por authUploadHelper.ts) é salvar relative paths e resolver via StorageImage/useSignedImageUrl.',
+    fix: 'selfieUpload.ts agora retorna filePath (relative path) como valor principal. AffiliatedDriverSignup.uploadDocument() retorna relative path sem gerar signed URL. CompleteProfile.tsx usa result.filePath. Validação de payload (blob não-nulo, size > 0, MIME) adicionada antes do upload.',
+    files: [
+      'src/utils/selfieUpload.ts',
+      'src/pages/CompleteProfile.tsx',
+      'src/pages/AffiliatedDriverSignup.tsx',
+    ],
+    rules: [
+      'NUNCA salvar signed URLs no banco de dados — SEMPRE salvar relative paths (ex: identity-selfies/selfies/userId/file.jpg).',
+      'Signed URLs são EXCLUSIVAMENTE para preview imediato na UI.',
+      'O padrão oficial é: upload → retornar relative path → salvar no banco → StorageImage/useSignedImageUrl resolve em tempo de renderização.',
+      'Validar blob (existe, size > 0, MIME type válido) ANTES de iniciar qualquer upload.',
+    ],
+    keywords: ['signed URL', 'signedUrl', 'relative path', 'filePath', 'selfie_url', 'expirada', 'desapareceu', 'selfieUpload', 'uploadDocument'],
+    testCases: [
+      'selfie_upload_returns_relative_path_not_signed_url',
+      'db_stores_relative_path_format',
+      'storage_image_resolves_relative_path_to_signed_url',
+      'legacy_signed_urls_still_render_correctly',
+      'empty_blob_upload_blocked_with_error',
+    ],
+  },
+
+  // ── FRT-047: SecurityCompleteProfile discarded upload results ──
+  {
+    id: 'FRT-047',
+    date: '2026-03-10',
+    severity: 'CRITICAL',
+    area: 'selfie-upload-persistence',
+    bug: 'SecurityCompleteProfile.tsx usava console.log como callback de onUploadComplete para selfie, documento, CNH e comprovante de endereço. Os uploads completavam com sucesso mas o resultado era descartado — nunca salvo no perfil.',
+    rootCause: 'Callback onUploadComplete era (url) => console.log("Selfie uploaded:", url) em todos os 4 DocumentUpload components. Nenhum update no banco era feito.',
+    fix: 'Callbacks agora fazem supabase.from("profiles").update({ campo: url }).eq("id", profile.id) para cada tipo de documento. Toast de sucesso/erro adicionado. calculateCompletion() chamado após sucesso.',
+    files: [
+      'src/components/SecurityCompleteProfile.tsx',
+    ],
+    rules: [
+      'NUNCA usar console.log como callback de upload — SEMPRE persistir o resultado no banco.',
+      'Todo onUploadComplete em DocumentUpload DEVE fazer update no profiles com o campo correto.',
+      'Após salvar documento, SEMPRE recalcular completionPercentage.',
+    ],
+    keywords: ['SecurityCompleteProfile', 'onUploadComplete', 'console.log', 'descartado', 'não salva', 'selfie', 'documento', 'CNH'],
+    testCases: [
+      'selfie_upload_persisted_to_profiles_table',
+      'document_upload_persisted_to_profiles_table',
+      'cnh_upload_persisted_to_profiles_table',
+      'address_proof_upload_persisted_to_profiles_table',
+      'completion_percentage_updates_after_upload',
+    ],
+  },
+
+  // ── FRT-048: CameraSelfie lacked production logging and payload validation ──
+  {
+    id: 'FRT-048',
+    date: '2026-03-10',
+    severity: 'HIGH',
+    area: 'selfie-capture-diagnostics',
+    bug: 'CameraSelfie.tsx só logava em DEV mode (import.meta.env.DEV). Em produção, falhas no iPhone eram impossíveis de diagnosticar. Confirm button habilitava com fallbackPreviewUrl mesmo se blob/file não existisse (race condition).',
+    rootCause: 'Logs de captura condicionados a import.meta.env.DEV. hasPreview usava apenas fallbackPreviewUrl para habilitar botão de confirmar, sem verificar se blob/file real existia. Confirm() não validava blob antes de chamar onCapture.',
+    fix: 'Logs de captura e confirmação sempre ativos (não DEV-only). hasValidImage computed verifica blob.size > 0 ou file.size > 0. Confirm button desabilitado quando !hasValidImage. Confirm() valida blob antes de enviar e loga sourceBranch, size, type, platform.',
+    files: [
+      'src/components/CameraSelfie.tsx',
+    ],
+    rules: [
+      'Logs de diagnóstico de captura de selfie DEVEM estar sempre ativos (não DEV-only) para debug em produção.',
+      'Botão de confirmar DEVE ser desabilitado quando hasValidImage é false (blob/file nulo ou size === 0).',
+      'Confirm() DEVE validar blob antes de chamar onCapture — NUNCA enviar null/undefined/empty.',
+      'Logs DEVEM incluir: sourceBranch, size, type, platform (Capacitor.getPlatform()).',
+    ],
+    keywords: ['CameraSelfie', 'hasValidImage', 'confirm', 'blob', 'production logging', 'diagnóstico', 'iPhone', 'iOS'],
+    testCases: [
+      'confirm_blocked_when_no_valid_image',
+      'confirm_logs_source_branch_and_size',
+      'native_capture_logs_platform_and_mime',
+      'fallback_file_converted_to_blob_before_upload',
+    ],
+  },
+
+  // ── FRT-049: Duplicate selfie submit on rapid taps ──
+  {
+    id: 'FRT-049',
+    date: '2026-03-10',
+    severity: 'HIGH',
+    area: 'selfie-capture-ux',
+    bug: 'Toques rápidos no botão "Confirmar" da selfie podiam disparar múltiplos uploads simultâneos, causando duplicação de arquivos no storage e race conditions no estado.',
+    rootCause: 'Confirm() não verificava if (confirming) return antes de setar setConfirming(true). O botão era desabilitado via disabled={confirming} mas React state updates são assíncronas — múltiplos cliques antes do re-render passavam.',
+    fix: 'Adicionado if (confirming) return como primeira linha de confirm(). confirming adicionado ao array de dependências do useCallback. Botões de confirmar usam disabled={confirming || !hasValidImage}.',
+    files: [
+      'src/components/CameraSelfie.tsx',
+    ],
+    rules: [
+      'SEMPRE verificar flag de loading/confirming como primeira linha de handlers de submit — ANTES de setar o estado.',
+      'Botões de confirm/upload DEVEM usar disabled={isProcessing || !hasValidData} para dupla proteção (UI + lógica).',
+      'Retry após erro DEVE resetar flag corretamente via finally block.',
+    ],
+    keywords: ['duplicate submit', 'confirming', 'rapid tap', 'múltiplos uploads', 'race condition', 'selfie', 'CameraSelfie'],
+    testCases: [
+      'rapid_taps_produce_single_upload',
+      'confirm_ignored_while_confirming_true',
+      'retry_works_after_failed_upload',
+      'button_disabled_during_upload',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
