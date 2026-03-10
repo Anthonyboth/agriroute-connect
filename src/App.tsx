@@ -91,6 +91,7 @@ const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const ForceChangePassword = lazyWithRetry(() => import("./pages/ForceChangePassword"));
 const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
 const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
+const AwaitingApproval = lazyWithRetry(() => import("./pages/AwaitingApproval"));
 const ProfileEdit = lazyWithRetry(() => import("./pages/ProfileEdit"));
 const ServiceProviderRegistration = lazyWithRetry(() => import("./pages/ServiceProviderRegistration"));
 const Services = lazyWithRetry(() => import("./pages/Services"));
