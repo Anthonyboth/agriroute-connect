@@ -26,6 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useSignedImageUrl } from '@/hooks/useSignedImageUrl';
 import { LegalDocumentDialog } from '@/components/LegalDocumentDialog';
 import { uploadSelfieWithInstrumentation } from '@/utils/selfieUpload';
 import { 

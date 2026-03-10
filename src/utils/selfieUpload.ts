@@ -43,9 +43,28 @@ export async function uploadSelfieWithInstrumentation({
     };
   }
 
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-  if (blob.type && !allowedMimes.includes(blob.type)) {
-    console.warn('[SELFIE-UPLOAD] MIME type incomum:', blob.type, '— tentando continuar como image/jpeg');
+  const normalizeMime = (inputMime?: string) => {
+    const normalized = (inputMime || '').toLowerCase().trim();
+    if (!normalized || normalized === 'application/octet-stream' || normalized === 'binary/octet-stream' || normalized === 'image/*') {
+      return 'image/jpeg';
+    }
+    if (normalized === 'image/heic' || normalized === 'image/heif') return normalized;
+    if (normalized.startsWith('image/')) return normalized;
+    return 'image/jpeg';
+  };
+
+  const rawMime = blob.type;
+  const mime = normalizeMime(rawMime);
+  const extMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+  };
+
+  if (rawMime !== mime) {
+    console.warn('[SELFIE-UPLOAD] MIME normalizado:', { original: rawMime || '(empty)', normalized: mime });
   }
 
   try {
