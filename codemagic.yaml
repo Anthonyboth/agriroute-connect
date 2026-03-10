@@ -57,13 +57,19 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Set version and build automatically
+      - name: Force iPhone only and set version/build
         script: |
-          echo "Codemagic build number: $BUILD_NUMBER"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 149" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
-          echo "Final version:"
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 150" ios/App/App/Info.plist
+          BUILD_ID=$(date +%s)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_ID" ios/App/App/Info.plist
+          echo "Final UIDeviceFamily:"
+          /usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" ios/App/App/Info.plist
+          echo "Final CFBundleShortVersionString:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/App/App/Info.plist
+          echo "Final CFBundleVersion:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/App/App/Info.plist
 
       - name: Build IPA
