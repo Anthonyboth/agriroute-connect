@@ -51,6 +51,7 @@ import {
   EyeOff,
   X,
   Banknote,
+  CreditCard,
   Shield,
   Users,
   Navigation,

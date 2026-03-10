@@ -16,6 +16,7 @@ import {
   Navigation,
   MapPin,
   DollarSign,
+  CreditCard,
   
   Building2,
   Link2,

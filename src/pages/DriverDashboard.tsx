@@ -25,7 +25,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, XCircle, ClipboardList, Inbox, Send } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, XCircle, ClipboardList, Inbox, Send, CreditCard } from 'lucide-react';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
