@@ -90,6 +90,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       });
 
       if (!image.dataUrl) {
+        console.error('[CameraSelfie] Native camera returned no dataUrl');
         toast.error('Erro ao capturar imagem.');
         return;
       }
@@ -103,9 +104,13 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         return;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[CameraSelfie] Native photo captured:', { size: blob.size, type: blob.type, source });
-      }
+      // FRT-048: Production logging for diagnostics
+      console.log('[CameraSelfie] Native photo captured:', {
+        size: blob.size,
+        type: blob.type,
+        source,
+        platform: Capacitor.getPlatform(),
+      });
 
       const url = URL.createObjectURL(blob);
       setCapturedBlob(blob);
@@ -322,35 +327,63 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     }
   }, [mode, previewUrl, fallbackPreviewUrl, startCamera]);
 
+  // FRT-048: Compute hasValidImage to guard confirm button
+  const hasValidImage = !!(
+    (mode === 'preview' && capturedBlob && capturedBlob.size > 0) ||
+    (mode === 'fallback' && ((capturedBlob && capturedBlob.size > 0) || (fallbackFile && fallbackFile.size > 0)))
+  );
+
   // Confirm and submit
   const confirm = useCallback(async () => {
+    // FRT-049: Prevent duplicate submits
+    if (confirming) return;
+
     try {
       setConfirming(true);
 
+      let blobToSend: Blob | null = null;
+      let sourceBranch = 'unknown';
+
       if (mode === 'preview' && capturedBlob) {
-        await onCapture(capturedBlob, 'CAMERA');
+        blobToSend = capturedBlob;
+        sourceBranch = 'stream-capture';
       } else if (mode === 'fallback' && capturedBlob && fallbackMethod) {
-        await onCapture(capturedBlob, fallbackMethod);
+        blobToSend = capturedBlob;
+        sourceBranch = 'native-blob';
       } else if (mode === 'fallback' && fallbackFile && fallbackMethod) {
         const buf = await fallbackFile.arrayBuffer();
-        const blob = new Blob([buf], { type: fallbackFile.type || 'image/jpeg' });
-        await onCapture(blob, fallbackMethod);
-      } else {
+        blobToSend = new Blob([buf], { type: fallbackFile.type || 'image/jpeg' });
+        sourceBranch = 'fallback-file';
+      }
+
+      // FRT-048: Validate payload before sending
+      if (!blobToSend || blobToSend.size === 0) {
+        console.error('[CameraSelfie] Confirm bloqueado: blob inválido. Source:', sourceBranch);
         toast.error('Erro interno: nenhuma imagem encontrada para enviar. Tente novamente.');
         return;
       }
+
+      console.log('[CameraSelfie] Confirmando selfie:', {
+        sourceBranch,
+        size: blobToSend.size,
+        type: blobToSend.type,
+        method: fallbackMethod || 'CAMERA',
+        platform: Capacitor.getPlatform(),
+      });
+
+      await onCapture(blobToSend, fallbackMethod || 'CAMERA');
 
       // Clean up only after onCapture completes
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (fallbackPreviewUrl) URL.revokeObjectURL(fallbackPreviewUrl);
       stopCamera();
     } catch (e) {
-      console.error('❌ Error confirming selfie:', e);
+      console.error('[CameraSelfie] Erro ao confirmar selfie:', e);
       toast.error('Erro ao confirmar selfie. Tente novamente.');
     } finally {
       setConfirming(false);
     }
-  }, [mode, capturedBlob, fallbackFile, fallbackMethod, onCapture, previewUrl, fallbackPreviewUrl, stopCamera]);
+  }, [mode, capturedBlob, fallbackFile, fallbackMethod, onCapture, previewUrl, fallbackPreviewUrl, stopCamera, confirming]);
 
   // Handle fallback file input (camera native)
   const onFallbackSelfieChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -657,12 +690,12 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Refazer
               </Button>
-              <Button
+               <Button
                 type="button"
                 onClick={confirm}
                 size="lg"
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={confirming}
+                disabled={confirming || !hasValidImage}
               >
                 <Check className="mr-2 h-4 w-4" />
                 {confirming ? 'Confirmando...' : 'Confirmar'}
@@ -678,12 +711,12 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Refazer
               </Button>
-              <Button
+               <Button
                 type="button"
                 onClick={confirm}
                 size="lg"
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={confirming}
+                disabled={confirming || !hasValidImage}
               >
                 <Check className="mr-2 h-4 w-4" />
                 {confirming ? 'Confirmando...' : 'Confirmar'}

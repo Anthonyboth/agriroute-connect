@@ -403,8 +403,22 @@ export const SecurityCompleteProfile: React.FC = () => {
                 <Label>Foto Selfie *</Label>
                 {profile.selfie_url && <CheckCircle className="w-4 h-4 text-green-600" />}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('Selfie uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  // FRT-047: Actually persist selfie URL to profile
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ selfie_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('Selfie salva com sucesso!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar selfie:', err);
+                    toast.error('Erro ao salvar selfie. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*']}
                 maxSize={5}
                 currentFile={profile.selfie_url}
@@ -417,8 +431,21 @@ export const SecurityCompleteProfile: React.FC = () => {
                 {profile.document_photo_url && <CheckCircle className="w-4 h-4 text-green-600" />}
                 {getStatusBadge(getValidationStatus('document'))}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('Document uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ document_photo_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('Documento salvo com sucesso!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar documento:', err);
+                    toast.error('Erro ao salvar documento. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*']}
                 maxSize={5}
                 currentFile={profile.document_photo_url}
@@ -433,8 +460,21 @@ export const SecurityCompleteProfile: React.FC = () => {
                 {profile.cnh_photo_url && <CheckCircle className="w-4 h-4 text-green-600" />}
                 {getStatusBadge(getValidationStatus('cnh'))}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('CNH uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ cnh_photo_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('CNH salva com sucesso!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar CNH:', err);
+                    toast.error('Erro ao salvar CNH. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*']}
                 maxSize={5}
                 currentFile={profile.cnh_photo_url}
@@ -447,8 +487,21 @@ export const SecurityCompleteProfile: React.FC = () => {
                 <Label>Comprovante de Endereço *</Label>
                 {profile.address_proof_url && <CheckCircle className="w-4 h-4 text-green-600" />}
               </div>
-              <DocumentUpload
-                onUploadComplete={(url) => console.log('Address proof uploaded:', url)}
+               <DocumentUpload
+                onUploadComplete={async (url) => {
+                  try {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ address_proof_url: url })
+                      .eq('id', profile.id);
+                    if (error) throw error;
+                    toast.success('Comprovante de endereço salvo!');
+                    calculateCompletion();
+                  } catch (err) {
+                    console.error('[SecurityCompleteProfile] Erro ao salvar comprovante:', err);
+                    toast.error('Erro ao salvar comprovante. Tente novamente.');
+                  }
+                }}
                 acceptedTypes={['image/*', 'application/pdf']}
                 maxSize={5}
                 currentFile={profile.address_proof_url}

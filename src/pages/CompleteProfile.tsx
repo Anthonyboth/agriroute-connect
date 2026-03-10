@@ -443,7 +443,7 @@ const CompleteProfile = () => {
         phone: profileData.phone,
         cpf_cnpj: profileData.cpf_cnpj,
         fixed_address: profileData.fixed_address,
-        selfie_url: documentUrls.selfie,
+        selfie_url: documentUrls.selfie, // FRT-046: Now stores relative path from selfieUpload
         document_photo_url: documentUrls.document_photo,
         address_proof_url: documentUrls.address_proof,
         location_enabled: locationEnabled,

@@ -28,10 +28,25 @@ export async function uploadSelfieWithInstrumentation({
   uploadMethod,
 }: SelfieUploadParams): Promise<SelfieUploadResult> {
   
-  devLog('[SELFIE-UPLOAD] === INICIANDO UPLOAD ===');
-  devLog('[SELFIE-UPLOAD] Blob size:', blob.size, 'bytes');
-  devLog('[SELFIE-UPLOAD] Blob type:', blob.type);
-  devLog('[SELFIE-UPLOAD] Upload method:', uploadMethod);
+  console.log('[SELFIE-UPLOAD] === INICIANDO UPLOAD ===');
+  console.log('[SELFIE-UPLOAD] Blob size:', blob.size, 'bytes');
+  console.log('[SELFIE-UPLOAD] Blob type:', blob.type);
+  console.log('[SELFIE-UPLOAD] Upload method:', uploadMethod);
+  console.log('[SELFIE-UPLOAD] Platform:', typeof window !== 'undefined' ? navigator.userAgent.substring(0, 80) : 'unknown');
+
+  // FRT-046: Validate payload before upload
+  if (!blob || blob.size === 0) {
+    console.error('[SELFIE-UPLOAD] BLOQUEADO: blob nulo ou vazio');
+    return {
+      success: false,
+      error: { stage: 'upload', code: 'EMPTY_BLOB', message: 'Imagem vazia ou inválida. Tente capturar novamente.' },
+    };
+  }
+
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  if (blob.type && !allowedMimes.includes(blob.type)) {
+    console.warn('[SELFIE-UPLOAD] MIME type incomum:', blob.type, '— tentando continuar como image/jpeg');
+  }
 
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -116,10 +131,14 @@ export async function uploadSelfieWithInstrumentation({
 
     devLog('[SELFIE-UPLOAD] Signed URL gerada com sucesso');
 
+    // FRT-046: Return relative path for DB storage, signedUrl only for immediate preview
+    const relativeFilePath = `identity-selfies/${filePath}`;
+    console.log('[SELFIE-UPLOAD] ✅ Upload completo. Relative path:', relativeFilePath);
+
     return {
       success: true,
       signedUrl: signedUrlData.signedUrl,
-      filePath,
+      filePath: relativeFilePath,
     };
   } catch (error: any) {
     console.error('[SELFIE-UPLOAD] Erro inesperado:', error);

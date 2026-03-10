@@ -404,8 +404,8 @@ const AffiliatedDriverSignup = () => {
             uploadMethod: selfieMethodPending || 'CAMERA',
           });
           
-          if (result.success && result.signedUrl) {
-            selfieUrl = result.signedUrl;
+           if (result.success && result.filePath) {
+            selfieUrl = result.filePath; // FRT-046: Store relative path, NOT signed URL
             if (import.meta.env.DEV) console.log('✅ Selfie uploaded successfully');
           } else if (result.error) {
             console.error('⚠️ Erro ao fazer upload da selfie:', result.error);
@@ -438,18 +438,10 @@ const AffiliatedDriverSignup = () => {
             return '';
           }
           
-          // Generate signed URL (bucket is private)
-          const { data: signedData, error: signError } = await supabase.storage
-            .from('profile-photos')
-            .createSignedUrl(fileName, 86400); // 24h
-
-          if (signError || !signedData?.signedUrl) {
-            console.error(`⚠️ Erro ao gerar signed URL para ${fileType}:`, signError);
-            return '';
-          }
-          
-          if (import.meta.env.DEV) console.log(`✅ ${fileType} uploaded`);
-          return signedData.signedUrl;
+           // FRT-046: Return relative path for DB storage, NOT signed URL
+          const relativePath = `profile-photos/${fileName}`;
+          console.log(`[AffiliatedDriverSignup] ✅ ${fileType} uploaded. Path: ${relativePath}`);
+          return relativePath;
         } catch (err) {
           console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, err);
           return '';
