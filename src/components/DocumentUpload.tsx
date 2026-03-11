@@ -43,8 +43,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const [uploaded, setUploaded] = useState(!!currentFile);
   const [fileName, setFileName] = useState('');
 
-  const platform = Capacitor.getPlatform();
-  const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
+  const isNative = Capacitor.isNativePlatform();
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const {

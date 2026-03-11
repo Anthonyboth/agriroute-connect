@@ -1637,6 +1637,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'document_gallery_button_still_opens_file_picker',
     ],
   },
+
+  // ── FRT-061: Mobile web era tratado como nativo e disparava fallback web da câmera para galeria ──
+  {
+    id: 'FRT-061',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'document-upload-platform-detection',
+    bug: 'No cadastro, "Abrir Câmera" de documento ainda podia abrir a galeria em Android/iOS quando executado no navegador móvel.',
+    rootCause: 'DocumentUpload/DocumentUploadLocal tratavam platform "ios/android" como nativo mesmo fora do container Capacitor, acionando Camera.getPhoto web fallback em vez do fluxo getUserMedia dedicado.',
+    fix: 'Detecção nativa restrita a Capacitor.isNativePlatform(). Em web mobile, o botão "Abrir Câmera" permanece no fluxo getUserMedia; em app nativo, segue CameraSource.Camera.',
+    files: [
+      'src/components/DocumentUpload.tsx',
+      'src/components/DocumentUploadLocal.tsx',
+      'src/hooks/useRegressionShield.ts',
+    ],
+    rules: [
+      'Nunca inferir ambiente nativo apenas por platform string; exigir Capacitor.isNativePlatform().',
+      'Fluxo de câmera de documento em web mobile deve permanecer em getUserMedia quando não houver container nativo.',
+      'Em iOS/Android nativo, usar Camera.getPhoto({ source: CameraSource.Camera }) para captura direta.',
+    ],
+    keywords: ['FRT-061', 'isNativePlatform', 'getPlatform', 'mobile web', 'camera', 'galeria'],
+    testCases: [
+      'mobile_web_complete_profile_document_camera_does_not_call_capacitor_camera_plugin',
+      'native_android_document_camera_uses_capcamera_source_camera',
+      'native_ios_document_camera_uses_capcamera_source_camera',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
