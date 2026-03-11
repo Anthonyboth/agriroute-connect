@@ -518,18 +518,6 @@ const Landing: React.FC = () => {
       </Suspense>
 
 
-      {/* AuthModal - lazy loaded */}
-      {authModal && (
-        <Suspense fallback={null}>
-          <AuthModal
-            isOpen={authModal}
-            onClose={() => setAuthModal(false)}
-            initialTab="signup"
-            renderMode="inline"
-          />
-        </Suspense>
-      )}
-
     </div>
   );
 };
