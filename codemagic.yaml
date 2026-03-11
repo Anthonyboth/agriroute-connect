@@ -1,82 +1,82 @@
 workflows:
   ios-release-testflight:
-    name: iOS Release to TestFlight
+    name: ios-release-testflight
     instance_type: mac_mini_m2
     max_build_duration: 60
-    integrations:
-      app_store_connect: codemagic
 
     environment:
-      xcode: 26.2
-      node: 20.9.0
-      groups:
-        - app_store_credentials
+      node: 20
+      xcode: latest
+      cocoapods: default
+
       vars:
-        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        BUNDLE_PATH: vendor/bundle
 
     scripts:
-      - name: Install dependencies
+      - name: Install Bundler
         script: |
-          rm -f package-lock.json
+          gem install bundler -v 2.5.23 --no-document
+
+      - name: Install Ruby Gems
+        script: |
+          bundle install
+
+      - name: Install Node Dependencies
+        script: |
           npm install
 
-      - name: Validate iOS icon assets
-        script: |
-          test -f resources/icon.png
-          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
-          grep -q '"filename" : "AppIcon-512@2x.png"' ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
-          echo "✅ Ícones validados"
-
-      - name: Build web app
+      - name: Build Web
         script: |
           npm run build
 
-      - name: Sync Capacitor
+      - name: Capacitor Sync
         script: |
           npx cap sync ios
 
-      - name: Fetch signing files
+      - name: Install CocoaPods
         script: |
-          app-store-connect fetch-signing-files \
-            $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
+          cd ios/App
+          rm -rf Pods Podfile.lock
+          pod repo update
+          pod install
 
-      - name: Add certificates to keychain
+      - name: Force iPhone Only
         script: |
-          keychain add-certificates
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
 
-      - name: Set up code signing settings
+      - name: Set Build Version
+        script: |
+          BUILD_NUMBER=$(date +%s)
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
+
+      - name: Code Signing
         script: |
           xcode-project use-profiles
 
-      - name: Set version (plist)
+      - name: Build IPA
         script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive
 
-      - name: Build IPA for App Store
-        script: |
-          xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App \
-            --archive-flags="-destination 'generic/platform=iOS'" \
-            --export-options-plist ios/App/exportOptions.plist
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ios/App/exportOptions.plist \
+            -exportPath build
 
     artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
+      - build/*.ipa
 
     publishing:
       app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
-
-      email:
-        recipients:
-          - dev@agriroute.com
-        notify:
-          success: true
-          failure: true
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
