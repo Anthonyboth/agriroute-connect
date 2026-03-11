@@ -8,7 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource, CameraDirection } from '@capacitor/camera';
 
 interface CameraSelfieProps {
-  onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => void;
+  onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => Promise<void> | void;
   onCancel?: () => void;
   autoStart?: boolean;
 }
