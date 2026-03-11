@@ -594,29 +594,29 @@ const Auth = () => {
             <TabsContent value="signup">
               <div className="space-y-4">
                 {/* Step 1: Seleção de Role */}
-                {/* ✅ P0 FIX: Seleção de role via CARDS (removido dropdown/select) */}
                 {signupStep === 'role-selection' && (
-                  <RoleSelectionCards
-                    selectedRole={role === 'MOTORISTA_AFILIADO' ? null : role}
-                    onRoleSelect={(selectedRole) => {
-                      setRole(selectedRole);
-                      setDriverType(null);
+                  <div className="animate-fade-in">
+                    <RoleSelectionCards
+                      selectedRole={role === 'MOTORISTA_AFILIADO' ? null : role}
+                      onRoleSelect={(selectedRole) => {
+                        setRole(selectedRole);
+                        setDriverType(null);
 
-                      // ✅ UX FIX: avanço imediato no primeiro clique (sem precisar clicar em "Continuar")
-                      if (selectedRole === 'MOTORISTA') {
-                        setSignupStep('driver-type');
-                      } else if (selectedRole === 'TRANSPORTADORA') {
-                        setDriverType('TRANSPORTADORA');
-                        setSignupStep('form');
-                      } else {
-                        setSignupStep('form');
-                      }
-                    }}
-                    onContinue={() => {}}
-                    showContinueButton={false}
-                    title="Escolha o tipo de conta"
-                    description="Selecione o perfil que melhor se encaixa com você"
-                  />
+                        if (selectedRole === 'MOTORISTA') {
+                          setSignupStep('driver-type');
+                        } else if (selectedRole === 'TRANSPORTADORA') {
+                          setDriverType('TRANSPORTADORA');
+                          setSignupStep('form');
+                        } else {
+                          setSignupStep('form');
+                        }
+                      }}
+                      onContinue={() => {}}
+                      showContinueButton={false}
+                      title="Escolha o tipo de conta"
+                      description="Selecione o perfil que melhor se encaixa com você"
+                    />
+                  </div>
                 )}
 
                 {/* Step 2: Apenas para MOTORISTA — Autônomo ou Afiliado */}
