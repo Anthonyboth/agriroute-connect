@@ -5,65 +5,32 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.agriroute.app # ALTERE PARA O MESMO DO capacitor.config.ts
+        bundle_identifier: app.adoravel.f2dbc20153194f90a3cc8dd215bbebba
       vars:
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
-        APP_STORE_CONNECT_KEY_IDENTIFIER: SEU_KEY_ID_AQUI
+        APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR # KEY ID encontrado
         APP_STORE_CONNECT_PRIVATE_KEY: |
           -----BEGIN PRIVATE KEY-----
-          COLE_AQUI_SUA_CHAVE_PRIVADA_COMPLETA_DO_ARQUIVO_P8
+          MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv5WLsj3roOV3zWQ3
+          XLf/urSEb/YScSsxBhKWYRpGDcihRANCAASi8X/qcRwcfBFuspm/jRnUHD8HPqXP
+          vx9dZC5M7KmuHZandSxTXaIpJe9lQY9M/eC40twqnaf3Ga7xDmdsL8Nb
           -----END PRIVATE KEY-----
-        BUNDLE_ID: "com.agriroute.app" # MESMO VALOR DO capacitor.config.ts
+        BUNDLE_ID: "app.adoravel.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
       groups:
         - app_store_connect
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
     scripts:
-      - name: Install Node dependencies
+      - name: Setup Ionic/Capacitor
         script: |
           npm install
-          npm install -g @ionic/cli native-run cordova-res
-
-      - name: Build web assets
-        script: |
+          npm install -g @ionic/cli
           ionic build --prod
-
-      - name: Sync with Capacitor
-        script: |
           npx cap sync ios
 
-      - name: Configure for iPhone only
+      - name: Configure iPhone only
         script: |
-          echo "Configurando app para iPhone apenas..."
-
-          # Modificar o Info.plist para iPhone apenas
-          INFO_PLIST="ios/App/App/Info.plist"
-
-          if [ -f "$INFO_PLIST" ]; then
-            # Remover suporte a iPad
-            /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily:1" "$INFO_PLIST" 2>/dev/null || true
-            /usr/libexec/PlistBuddy -c "Set :UIDeviceFamily:0 integer 1" "$INFO_PLIST" 2>/dev/null || true
-            
-            # Remover orientações específicas do iPad
-            /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "$INFO_PLIST" 2>/dev/null || true
-            
-            echo "✅ App configurado para iPhone apenas"
-          else
-            echo "⚠️ Info.plist não encontrado em $INFO_PLIST"
-          fi
-
-      - name: Set build version
-        script: |
-          cd ios/App
-          agvtool new-marketing-version $(date +"%Y.%m.%d")
-          agvtool new-version -all $(git rev-list --count HEAD)
-          cd ../..
+          plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
+          plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
       - name: Fetch signing files
         script: |
@@ -74,28 +41,17 @@ workflows:
             --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
             --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY
 
-      - name: Add certificates to keychain
-        script: |
-          keychain initialize
-          app-store-connect decode-certificate \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY
-
-      - name: Build iOS app
+      - name: Build IPA
         script: |
           cd ios/App
           xcode-project build-ipa \
             --workspace "App.xcworkspace" \
             --scheme "App" \
-            --config "Release" \
-            --destination "generic/platform=iOS"
-          cd ../..
+            --config "Release"
 
     artifacts:
+      - build/ios/ipa/*.ipa
       - ios/App/build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - ios/App/build/ios/archive/*.xcarchive
 
     publishing:
       app_store_connect:
@@ -103,10 +59,3 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         submit_to_testflight: true
-
-      email:
-        recipients:
-          - anthony_pva@hotmail.com
-        notify:
-          success: true
-          failure: true
