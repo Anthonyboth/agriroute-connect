@@ -113,7 +113,6 @@ const Landing: React.FC = () => {
     isOpen: false,
   });
   const [contactModal, setContactModal] = useState(false);
-  const [authModal, setAuthModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS') => {
