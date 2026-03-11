@@ -9,13 +9,13 @@ import { BecomeCompanyModal } from './BecomeCompanyModal';
 interface HowItWorksModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
+  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS';
   onProceed?: () => void;
 }
 
 const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, userType, onProceed }) => {
   const navigate = useNavigate();
-  const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA'>(userType);
+  const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS'>(userType);
 
   // Sincronizar viewType quando userType muda (ex: reabrir modal com tipo diferente)
   useEffect(() => {
