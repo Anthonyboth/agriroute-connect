@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { compressImage } from '@/utils/imageProcessing';
 
 interface UseWebDocumentCameraOptions {
   facingMode?: 'environment' | 'user';
