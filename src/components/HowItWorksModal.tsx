@@ -416,7 +416,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : viewType === 'TRANSPORTADORA' ? (
                 <>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
                     <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
