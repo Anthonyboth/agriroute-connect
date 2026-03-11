@@ -3,19 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Building2, FileCheck, UserPlus, Package, Users2, BarChart3 } from 'lucide-react';
+import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Building2, FileCheck, UserPlus, Package, Users2, BarChart3, Wrench, Star, Headphones, BadgeCheck } from 'lucide-react';
 import { BecomeCompanyModal } from './BecomeCompanyModal';
 
 interface HowItWorksModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
+  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS';
   onProceed?: () => void;
 }
 
 const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, userType, onProceed }) => {
   const navigate = useNavigate();
-  const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA'>(userType);
+  const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS'>(userType);
 
   // Sincronizar viewType quando userType muda (ex: reabrir modal com tipo diferente)
   useEffect(() => {
@@ -23,6 +23,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
   }, [userType]);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const isProducer = viewType === 'PRODUTOR';
+  const isPrestador = viewType === 'PRESTADOR_SERVICOS';
 
   const producerSteps = [
     {
@@ -133,8 +134,42 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
     }
   ];
 
+  const prestadorSteps = [
+    {
+      icon: Users,
+      title: "1. Cadastre-se",
+      description: "Crie sua conta e informe os serviços que você oferece"
+    },
+    {
+      icon: FileCheck,
+      title: "2. Validação do Perfil",
+      description: "Nossa equipe valida seus dados e habilidades profissionais"
+    },
+    {
+      icon: Wrench,
+      title: "3. Configure seus Serviços",
+      description: "Defina preços, áreas de atuação e disponibilidade"
+    },
+    {
+      icon: MapPin,
+      title: "4. Receba Solicitações",
+      description: "Clientes encontram você pela região e tipo de serviço"
+    },
+    {
+      icon: CheckCircle,
+      title: "5. Execute o Serviço",
+      description: "Realize o trabalho com qualidade e registre no app"
+    },
+    {
+      icon: DollarSign,
+      title: "6. Receba o Pagamento",
+      description: "Pagamento seguro e rápido após conclusão do serviço"
+    }
+  ];
+
   const steps = viewType === 'PRODUTOR' ? producerSteps : 
                 viewType === 'TRANSPORTADORA' ? transportadoraSteps : 
+                viewType === 'PRESTADOR_SERVICOS' ? prestadorSteps :
                 driverSteps;
 
   return (
@@ -145,6 +180,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <DialogTitle className="text-2xl font-bold text-center mb-2">
               {viewType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 
                viewType === 'TRANSPORTADORA' ? 'Como Funciona para Transportadoras' :
+               viewType === 'PRESTADOR_SERVICOS' ? 'Como Funciona para Prestadores' :
                'Como Funciona para Motoristas'}
             </DialogTitle>
             <DialogDescription className="text-center text-lg">
@@ -152,6 +188,8 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                 ? 'Conecte sua produção ao destino de forma simples e segura'
                 : viewType === 'TRANSPORTADORA'
                 ? 'Gerencie sua frota e motoristas com eficiência e tecnologia'
+                : viewType === 'PRESTADOR_SERVICOS'
+                ? 'Ofereça seus serviços e conquiste clientes na plataforma'
                 : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
               }
             </DialogDescription>
@@ -186,11 +224,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                  {viewType === 'PRODUTOR' ? '🌾' : viewType === 'TRANSPORTADORA' ? '🏢' : '🚛'}
+                  {viewType === 'PRODUTOR' ? '🌾' : viewType === 'TRANSPORTADORA' ? '🏢' : viewType === 'PRESTADOR_SERVICOS' ? '🔧' : '🚛'}
                 </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   {viewType === 'PRODUTOR' ? 'Fluxo do Produtor' : 
                    viewType === 'TRANSPORTADORA' ? 'Fluxo da Transportadora' :
+                   viewType === 'PRESTADOR_SERVICOS' ? 'Fluxo do Prestador' :
                    'Fluxo do Motorista'}
                 </h3>
               </div>
@@ -287,9 +326,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           <CardHeader className="relative z-10">
             <CardTitle className="text-center text-xl">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
-                <span className="text-2xl">{isProducer ? '🌟' : '⚡'}</span>
+                <span className="text-2xl">{isProducer ? '🌟' : isPrestador ? '🔧' : '⚡'}</span>
                 <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold">
-                  {isProducer ? 'Vantagens para Produtores' : 'Vantagens para Motoristas'}
+                  {viewType === 'PRODUTOR' ? 'Vantagens para Produtores' : 
+                   viewType === 'TRANSPORTADORA' ? 'Vantagens para Transportadoras' :
+                   viewType === 'PRESTADOR_SERVICOS' ? 'Vantagens para Prestadores' :
+                   'Vantagens para Motoristas'}
                 </span>
               </div>
             </CardTitle>
@@ -374,7 +416,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : viewType === 'TRANSPORTADORA' ? (
                 <>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
                     <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
@@ -431,7 +473,46 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
-              )}
+              ) : viewType === 'PRESTADOR_SERVICOS' ? (
+                <>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Visibilidade</h4>
+                      <p className="text-sm text-muted-foreground">Seu serviço alcança produtores e motoristas da região</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Pagamento Seguro</h4>
+                      <p className="text-sm text-muted-foreground">Receba com segurança após cada serviço concluído</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Flexibilidade</h4>
+                      <p className="text-sm text-muted-foreground">Defina seus horários, preços e área de atuação</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Avaliações</h4>
+                      <p className="text-sm text-muted-foreground">Construa reputação e atraia mais clientes</p>
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -447,10 +528,11 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             }}
           >
             <span className="mr-3">
-              {viewType === 'PRODUTOR' ? '🌾' : viewType === 'MOTORISTA' ? '🚛' : '🏢'}
+              {viewType === 'PRODUTOR' ? '🌾' : viewType === 'MOTORISTA' ? '🚛' : viewType === 'PRESTADOR_SERVICOS' ? '🔧' : '🏢'}
             </span>
             {viewType === 'PRODUTOR' ? 'Começar como Produtor' : 
              viewType === 'MOTORISTA' ? 'Começar como Motorista' :
+             viewType === 'PRESTADOR_SERVICOS' ? 'Começar como Prestador' :
              'Cadastrar Minha Transportadora'}
             <span className="ml-3">→</span>
           </Button>

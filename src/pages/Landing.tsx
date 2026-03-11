@@ -95,6 +95,7 @@ import Leaf from 'lucide-react/dist/esm/icons/leaf';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
+import Building2 from 'lucide-react/dist/esm/icons/building-2';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
 
 const Landing: React.FC = () => {
@@ -110,14 +111,14 @@ const Landing: React.FC = () => {
   const [freightTransportModal, setFreightTransportModal] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<any | null>(null);
-  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' }>({
+  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS' }>({
     isOpen: false,
   });
   const [contactModal, setContactModal] = useState(false);
   const [authModal, setAuthModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
 
-  const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
+  const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS') => {
     setHowItWorksModal({ isOpen: true, userType });
   };
 
@@ -301,6 +302,26 @@ const Landing: React.FC = () => {
               >
                 <Truck className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Motorista
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+              </Button>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mt-3 md:mt-4">
+              <Button 
+                size="lg"
+                onClick={() => handleGetStarted('TRANSPORTADORA')}
+                className="bg-warning text-warning-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:opacity-90"
+              >
+                <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
+                Sou Transportadora
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+              </Button>
+              <Button 
+                size="lg"
+                onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
+                className="bg-destructive text-destructive-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:opacity-90"
+              >
+                <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
+                Sou Prestador
                 <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
               </Button>
             </div>
