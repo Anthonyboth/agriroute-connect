@@ -169,6 +169,10 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       await processSelectedFile(capturedFile);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Não foi possível capturar a foto.';
+      if (message === 'camera_warming_up') {
+        toast('Inicializando câmera, aguarde...', { id: 'camera-warmup' });
+        return;
+      }
       toast.error(message);
     }
   }, [captureWebCameraPhoto, closeWebCamera, fileType, processSelectedFile]);
