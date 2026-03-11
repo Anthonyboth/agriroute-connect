@@ -5,17 +5,17 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: app.adoravel.f2dbc20153194f90a3cc8dd215bbebba
+        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba # ATUALIZADO
       vars:
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
-        APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR # KEY ID encontrado
+        APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR
         APP_STORE_CONNECT_PRIVATE_KEY: |
           -----BEGIN PRIVATE KEY-----
           MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv5WLsj3roOV3zWQ3
           XLf/urSEb/YScSsxBhKWYRpGDcihRANCAASi8X/qcRwcfBFuspm/jRnUHD8HPqXP
           vx9dZC5M7KmuHZandSxTXaIpJe9lQY9M/eC40twqnaf3Ga7xDmdsL8Nb
           -----END PRIVATE KEY-----
-        BUNDLE_ID: "app.adoravel.f2dbc20153194f90a3cc8dd215bbebba"
+        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" # ATUALIZADO
         NODE_VERSION: "18"
       groups:
         - app_store_connect
