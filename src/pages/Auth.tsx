@@ -689,7 +689,7 @@ const Auth = () => {
 
                 {/* Step 3: Formulário de Cadastro */}
                 {signupStep === 'form' && (
-                  <form onSubmit={handleSignUp} className="space-y-4" autoComplete="on">
+                  <form onSubmit={handleSignUp} className="animate-fade-in space-y-4" autoComplete="on">
                     <div className="flex items-center gap-2 mb-2">
                       <Button
                         type="button"
