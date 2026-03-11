@@ -1266,7 +1266,10 @@ const CompleteProfile = () => {
                       label="Comprovante de Endereço *"
                       fileType="address"
                       bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, address_proof: url }))}
+                      onUploadComplete={(url) => {
+                        updateDocumentUrls({ address_proof: url });
+                        void persistDocumentField('address_proof_url', url);
+                      }}
                       required
                       accept="image/*,application/pdf"
                     />
