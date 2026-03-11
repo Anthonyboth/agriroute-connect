@@ -150,7 +150,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   const handleRemove = () => {
     setHasFile(false);
     setFileName('');
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    
     if (galleryInputRef.current) galleryInputRef.current.value = '';
     onFileSelect(new Blob([]), '');
   };
