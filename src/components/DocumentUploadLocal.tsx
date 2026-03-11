@@ -164,16 +164,6 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       </Label>
       <Card className={isComplete ? 'border-primary/40' : ''}>
         <CardContent className="p-4 space-y-3">
-          <input
-            ref={cameraInputRef}
-            id={`${fileType}-camera`}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileChange}
-            disabled={processing}
-            className="hidden"
-          />
 
           <input
             ref={galleryInputRef}
