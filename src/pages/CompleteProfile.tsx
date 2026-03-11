@@ -52,6 +52,16 @@ interface AddressData {
   complemento: string;
 }
 
+interface DocumentUrlsState {
+  selfie: string;
+  document_photo: string;
+  cnh: string;
+  truck_documents: string;
+  truck_photo: string;
+  license_plate: string;
+  address_proof: string;
+}
+
 const CompleteProfile = () => {
   const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user, refreshProfile } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
@@ -75,7 +85,7 @@ const CompleteProfile = () => {
   const isAutonomousDriver = registrationMode === 'MOTORISTA_AUTONOMO';
   const isAffiliatedDriver = registrationMode === 'MOTORISTA_AFILIADO';
   const isDriver = isAutonomousDriver || isAffiliatedDriver;
-  const [documentUrls, setDocumentUrls] = useState({
+  const [documentUrls, setDocumentUrls] = useState<DocumentUrlsState>({
     selfie: '',
     document_photo: '',
     cnh: '',
