@@ -236,15 +236,16 @@ const CompleteProfile = () => {
       };
       
       // Inicializar com dados disponíveis do useAuth (pode estar incompleto por CLS)
-      setDocumentUrls({
-        selfie: profile.selfie_url || '',
-        document_photo: profile.document_photo_url || '',
-        cnh: profile.cnh_photo_url || '',
-        truck_documents: profile.truck_documents_url || '',
-        truck_photo: profile.truck_photo_url || '',
-        license_plate: profile.license_plate_photo_url || '',
-        address_proof: profile.address_proof_url || ''
-      });
+      updateDocumentUrls((prev) => ({
+        ...prev,
+        selfie: prev.selfie || profile.selfie_url || '',
+        document_photo: prev.document_photo || profile.document_photo_url || '',
+        cnh: prev.cnh || profile.cnh_photo_url || '',
+        truck_documents: prev.truck_documents || profile.truck_documents_url || '',
+        truck_photo: prev.truck_photo || profile.truck_photo_url || '',
+        license_plate: prev.license_plate || profile.license_plate_photo_url || '',
+        address_proof: prev.address_proof || profile.address_proof_url || '',
+      }));
       
       setLocationEnabled(profile.location_enabled || false);
       
