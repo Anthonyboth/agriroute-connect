@@ -53,6 +53,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
   const takeNativePhoto = useCallback(async (source: 'camera' | 'gallery') => {
     try {
       setStarting(true);
+      console.log('[CameraSelfie] takeNativePhoto called:', { source, platform: Capacitor.getPlatform() });
 
       // CRITICAL: chamada direta no handler de clique (sem awaits antes)
       const image = await CapCamera.getPhoto({
@@ -66,42 +67,69 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         height: 720,
       });
 
+      console.log('[CameraSelfie] CapCamera.getPhoto returned:', { 
+        hasDataUrl: !!image.dataUrl, 
+        format: image.format,
+        dataUrlLength: image.dataUrl?.length || 0 
+      });
+
       if (!image.dataUrl) {
         console.error('[CameraSelfie] Native camera returned no dataUrl');
-        toast.error('Erro ao capturar imagem.');
+        toast.error('Erro ao capturar imagem. Tente novamente.');
         return;
       }
 
-      // Conversão manual robusta para iOS WKWebView
-      const blob = dataUrlToBlob(image.dataUrl);
+      // Conversão manual robusta para iOS WKWebView (não usar fetch para dataUrls)
+      let blob: Blob;
+      try {
+        blob = dataUrlToBlob(image.dataUrl);
+      } catch (convErr) {
+        console.error('[CameraSelfie] dataUrlToBlob failed:', convErr);
+        toast.error('Erro ao processar imagem. Tente novamente.');
+        return;
+      }
 
       if (!blob || blob.size === 0) {
         console.error('[CameraSelfie] Blob vazio após conversão da dataUrl');
-        toast.error('Erro ao processar imagem capturada. Tente novamente.');
+        toast.error('Imagem capturada está vazia. Tente novamente.');
         return;
       }
 
-      console.log('[CameraSelfie] Native photo captured:', {
+      console.log('[CameraSelfie] Native photo blob ready:', {
         size: blob.size,
         type: blob.type,
         source,
-        platform: Capacitor.getPlatform(),
       });
 
       // Envio imediato em nativo para evitar perda por falta de confirmação manual
-      await onCapture(blob, source === 'camera' ? 'CAMERA' : 'GALLERY');
-      stopCamera();
-    } catch (error: any) {
-      // User cancelled - not an error
-      if (error?.message?.includes('User cancelled') || error?.message?.includes('cancelled')) {
+      try {
+        await onCapture(blob, source === 'camera' ? 'CAMERA' : 'GALLERY');
+        console.log('[CameraSelfie] ✅ onCapture completed successfully');
+      } catch (uploadErr) {
+        console.error('[CameraSelfie] ❌ onCapture threw error:', uploadErr);
+        // Don't swallow this - the parent's onCapture should handle its own errors
+        // but if it throws, show a toast here too
+        toast.error('Falha ao enviar imagem. Tente novamente.');
         return;
       }
-      console.error('❌ Native camera error:', error);
+      stopCamera();
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      // User cancelled - not an error (Capacitor uses "User cancelled" or "cancelled")
+      const isCancellation = msg === 'User cancelled photos app' || 
+                              msg === 'User cancelled' || 
+                              msg.includes('User cancelled') ||
+                              (msg.toLowerCase() === 'cancelled');
+      if (isCancellation) {
+        console.log('[CameraSelfie] User cancelled native camera');
+        return;
+      }
+      console.error('❌ [CameraSelfie] Native camera error:', { message: msg, name: error?.name, code: error?.code });
       toast.error('Erro ao acessar câmera. Tente novamente.');
     } finally {
       setStarting(false);
     }
-  }, [onCapture]);
+  }, [onCapture, stopCamera]);
 
   // Stop camera and release resources
   const stopCamera = useCallback(() => {

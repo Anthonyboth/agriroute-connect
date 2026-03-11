@@ -131,6 +131,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     }
 
     try {
+      console.log('[DocumentUpload] Opening native camera for:', fileType);
       const image = await CapCamera.getPhoto({
         quality: 90,
         allowEditing: false,
@@ -147,7 +148,15 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
         return;
       }
 
-      const blob = dataUrlToBlob(image.dataUrl);
+      let blob: Blob;
+      try {
+        blob = dataUrlToBlob(image.dataUrl);
+      } catch (convErr) {
+        console.error('[DocumentUpload] dataUrlToBlob failed:', convErr);
+        toast.error('Erro ao processar imagem. Tente novamente.');
+        return;
+      }
+
       if (!blob.size) {
         toast.error('Imagem inválida. Tente novamente.');
         return;
@@ -157,10 +166,16 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       const ext = getFileExtensionFromMime(mime);
       const nativeFile = new File([blob], `${fileType}_${Date.now()}.${ext}`, { type: mime });
 
+      console.log('[DocumentUpload] Native file created:', { size: nativeFile.size, type: mime, fileType });
       await processFileUpload(nativeFile);
     } catch (error: any) {
-      if (error?.message?.includes('cancel') || error?.message?.includes('User cancelled')) return;
-      console.error('[DocumentUpload] Native camera error:', error);
+      const msg = error?.message || String(error);
+      const isCancellation = msg === 'User cancelled photos app' || 
+                              msg === 'User cancelled' || 
+                              msg.includes('User cancelled') ||
+                              (msg.toLowerCase() === 'cancelled');
+      if (isCancellation) return;
+      console.error('[DocumentUpload] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
   }, [fileType, isNative, processFileUpload]);
