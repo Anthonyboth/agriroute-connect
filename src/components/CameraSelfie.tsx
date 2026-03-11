@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource, CameraDirection } from '@capacitor/camera';
 import { dataUrlToBlob } from '@/utils/imageDataUrl';
+import { compressImage, getCameraUri, uriToBlob } from '@/utils/imageProcessing';
 
 interface CameraSelfieProps {
   onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => Promise<void> | void;
