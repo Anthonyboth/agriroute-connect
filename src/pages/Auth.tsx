@@ -59,7 +59,6 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<SignupRole>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -71,13 +70,21 @@ const Auth = () => {
   // ✅ CRITICAL: Read mode and role from URL query params
   const urlMode = parseModeFromUrl(searchParams);
   const urlRole = parseRoleFromUrl(searchParams.get('role'));
-  
+
+  const [role, setRole] = useState<SignupRole>(() => urlRole ?? 'PRODUTOR');
+
   // ✅ Controlled active tab synced to URL
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>(urlMode);
 
-  // Estados para fluxo multi-step de cadastro
-  const [signupStep, setSignupStep] = useState<'role-selection' | 'driver-type' | 'form'>('role-selection');
-  const [driverType, setDriverType] = useState<'MOTORISTA' | 'TRANSPORTADORA' | null>(null);
+  // Estados para fluxo multi-step de cadastro (inicializados pelo role da URL para evitar flicker)
+  const [signupStep, setSignupStep] = useState<'role-selection' | 'driver-type' | 'form'>(() => {
+    if (urlMode !== 'signup' || !urlRole || urlRole === 'MOTORISTA_AFILIADO') return 'role-selection';
+    if (urlRole === 'MOTORISTA') return 'driver-type';
+    return 'form';
+  });
+  const [driverType, setDriverType] = useState<'MOTORISTA' | 'TRANSPORTADORA' | null>(() =>
+    urlRole === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : null
+  );
   
   // Estados extras para transportadora
   const [companyName, setCompanyName] = useState('');
