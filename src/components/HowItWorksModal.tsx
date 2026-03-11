@@ -23,6 +23,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
   }, [userType]);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const isProducer = viewType === 'PRODUTOR';
+  const isPrestador = viewType === 'PRESTADOR_SERVICOS';
 
   const producerSteps = [
     {
