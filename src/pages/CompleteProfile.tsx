@@ -455,7 +455,7 @@ const CompleteProfile = () => {
     }
   };
 
-  const finalizeProfile = async () => {
+  const finalizeProfile = async (docsOverride?: DocumentUrlsState) => {
     if (import.meta.env.DEV) console.log('🚀 Iniciando finalização do perfil...', { profileData, documentUrls });
 
     // Validação final de selfie
