@@ -467,7 +467,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         )}
         
         {/* Warning quando digitou cidade mas não selecionou */}
-        {!error && searchTerm && inputType === 'city' && value?.city && !value?.id && (
+        {!error && searchTerm && inputType === 'city' && !value?.id && searchTerm.trim().length >= 2 && (
           <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
             Selecione uma cidade da lista
