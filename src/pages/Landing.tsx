@@ -1,6 +1,6 @@
 // Sprint 1: Performance optimization - removed dead carousel code
 // P0 HOTFIX: Restaurado SafeAuthModal para cadastro com seleção por cards
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 // MobileMenu lazy-loaded - uses Radix Sheet, defer to avoid ui-vendor chunk on initial load
 const MobileMenu = lazyWithRetry(() => import('@/components/MobileMenu').then(m => ({ default: m.MobileMenu })));
-// AuthModal lazy-loaded - only needed on user click
-const AuthModal = lazyWithRetry(() => import('@/components/AuthModal'));
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -115,7 +113,6 @@ const Landing: React.FC = () => {
     isOpen: false,
   });
   const [contactModal, setContactModal] = useState(false);
-  const [authModal, setAuthModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS') => {
@@ -125,6 +122,11 @@ const Landing: React.FC = () => {
   const closeHowItWorksModal = () => {
     setHowItWorksModal({ isOpen: false });
   };
+
+  const handleOpenSignup = useCallback(() => {
+    sessionStorage.removeItem('pending_signup_role');
+    navigate('/auth?mode=signup');
+  }, [navigate]);
 
   const handleProceedToDashboard = () => {
     const userType = howItWorksModal.userType;
@@ -216,7 +218,7 @@ const Landing: React.FC = () => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setAuthModal(true);
+                handleOpenSignup();
               }}
               className="hidden md:flex gradient-primary text-primary-foreground font-medium"
             > 
@@ -240,7 +242,7 @@ const Landing: React.FC = () => {
             }>
               <MobileMenu 
                 onContactClick={() => setContactModal(true)}
-                onSignupClick={() => setAuthModal(true)}
+                onSignupClick={handleOpenSignup}
               />
             </Suspense>
           </div>
@@ -520,18 +522,6 @@ const Landing: React.FC = () => {
         />
       </Suspense>
 
-
-      {/* AuthModal - lazy loaded */}
-      {authModal && (
-        <Suspense fallback={null}>
-          <AuthModal
-            isOpen={authModal}
-            onClose={() => setAuthModal(false)}
-            initialTab="signup"
-            renderMode="inline"
-          />
-        </Suspense>
-      )}
 
     </div>
   );

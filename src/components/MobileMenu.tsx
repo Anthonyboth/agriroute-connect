@@ -55,10 +55,7 @@ export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
     e.preventDefault();
     e.stopPropagation();
     setOpen(false);
-    // Pequeno delay para garantir que o Sheet feche antes de abrir o modal
-    setTimeout(() => {
-      onSignupClick();
-    }, 100);
+    onSignupClick();
   }, [onSignupClick]);
 
   return (
