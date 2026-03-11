@@ -1530,6 +1530,36 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'document_fields_persist_incrementally_after_each_upload',
     ],
   },
+
+  // ── FRT-057: Native camera capture needed strict user-gesture calls and immediate state commitment ──
+  {
+    id: 'FRT-057',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'native-camera-capture-registration',
+    bug: 'Em iOS/Android (Capacitor), usuários conseguiam avançar no cadastro sem que selfie/documento fossem efetivamente comprometidos no estado final, gerando toasts repetidos de documento faltante e perda de cadastro.',
+    rootCause: 'Parte das capturas dependia de fluxo indireto (input/file click proxy ou confirmação manual adicional), aumentando risco de perda de contexto de gesto do usuário e abandono antes do commit definitivo da selfie.',
+    fix: 'Padronizada captura nativa por chamada direta de Camera.getPhoto no clique do botão em DocumentUpload/DocumentUploadLocal e envio imediato da selfie no CameraSelfie nativo (sem etapa extra de confirmação), com conversão robusta dataUrl→Blob e tratamento de cancelamento.',
+    files: [
+      'src/components/CameraSelfie.tsx',
+      'src/components/DocumentUpload.tsx',
+      'src/components/DocumentUploadLocal.tsx',
+      'src/utils/imageDataUrl.ts',
+      'codemagic.yaml',
+      'codemagic-testflight.yaml',
+    ],
+    rules: [
+      'Em ambiente Capacitor, captura de câmera DEVE ser iniciada diretamente no handler de clique do usuário.',
+      'Selfie de cadastro em fluxo nativo DEVE comprometer estado/upload imediatamente após retorno da câmera.',
+      'Uploads de documentos devem oferecer rota estável para câmera e galeria em iOS e Android.',
+    ],
+    keywords: ['FRT-057', 'Camera.getPhoto', 'Capacitor', 'iOS', 'Android', 'selfie', 'documento', 'cadastro', 'gesture'],
+    testCases: [
+      'ios_complete_profile_selfie_native_capture_commits_without_extra_confirm',
+      'android_complete_profile_document_camera_upload_updates_state',
+      'affiliated_signup_document_capture_native_camera_and_gallery_work',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução

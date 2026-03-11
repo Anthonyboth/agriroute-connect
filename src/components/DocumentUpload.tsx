@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, Check, X, Camera } from 'lucide-react';
+import { Upload, Check, Camera } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Camera as CapCamera, CameraDirection, CameraResultType, CameraSource } from '@capacitor/camera';
 import { validateImageQuality } from '@/utils/imageValidator';
 import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
 import { InlineSpinner } from '@/components/ui/AppSpinner';
+import { dataUrlToBlob, getFileExtensionFromMime } from '@/utils/imageDataUrl';
 
 interface DocumentUploadProps {
   onUploadComplete: (url: string) => void;
@@ -36,60 +38,75 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   enableQualityCheck = true
 }) => {
   const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
+  const [uploaded, setUploaded] = useState(!!currentFile);
   const [fileName, setFileName] = useState('');
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const isNative = Capacitor.isNativePlatform();
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (currentFile) {
+      setUploaded(true);
+    }
+  }, [currentFile]);
+
+  const isAcceptedType = useCallback(
+    (file: File) => {
+      if (!acceptedTypes.length) return true;
+
+      return acceptedTypes.some((accepted) => {
+        if (accepted === '*/*') return true;
+        if (accepted.endsWith('/*')) {
+          const prefix = accepted.replace('/*', '/');
+          return file.type.startsWith(prefix);
+        }
+        return file.type === accepted;
+      });
+    },
+    [acceptedTypes]
+  );
+
+  const processFileUpload = useCallback(async (file: File) => {
     if (!file) return;
 
-    if (import.meta.env.DEV) console.log('📤 Iniciando upload...', { fileName: file.name, bucketName, fileType });
-    
-    // Validação de qualidade de imagem (se habilitado)
+    if (!isAcceptedType(file)) {
+      toast.error('Tipo de arquivo não permitido.');
+      return;
+    }
+
     if (enableQualityCheck && file.type.startsWith('image/')) {
       const validationResult = await validateImageQuality(file);
-      
       if (!validationResult.valid) {
         toast.error(`Qualidade insuficiente: ${validationResult.reason}`);
-        event.target.value = '';
         return;
       }
     }
-    
+
     setUploading(true);
+
     try {
-      // Extrair extensão do arquivo
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      
-      if (import.meta.env.DEV) console.log('🔐 Chamando uploadWithAuthRetry com retry automático...');
-      
-      // Usar upload com retry de autenticação (gera fileName internamente)
+      const fileExt = file.name.split('.').pop() || getFileExtensionFromMime(file.type);
+
       const result = await uploadWithAuthRetry({
         file,
         bucketName,
         fileType,
-        fileExt
+        fileExt,
       });
-      
+
       if ('error' in result) {
-        if (result.error === 'AUTH_EXPIRED') {
-          if (import.meta.env.DEV) console.log('🔄 Sessão expirada, redirecionando...');
-          return; // Já está redirecionando para login
-        }
-        console.error('❌ Erro no upload:', result.error);
+        if (result.error === 'AUTH_EXPIRED') return;
         throw new Error(result.error);
       }
-      
-      if (import.meta.env.DEV) console.log('✅ Upload concluído com sucesso!');
+
       setUploaded(true);
       setFileName(file.name);
       onUploadComplete(result.publicUrl);
       toast.success(`${label} enviado com sucesso!`);
-      
     } catch (error) {
-      console.error('❌ Erro fatal no upload:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      
       if (errorMessage.includes('autenticad')) {
         toast.error('Sessão expirada. Por favor, faça login novamente.');
       } else {
@@ -98,28 +115,67 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     } finally {
       setUploading(false);
     }
-  };
+  }, [bucketName, enableQualityCheck, fileType, isAcceptedType, label, onUploadComplete]);
 
-  // Ref para input de câmera separado
-  const cameraInputRef = React.useRef<HTMLInputElement>(null);
-  const galleryInputRef = React.useRef<HTMLInputElement>(null);
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await processFileUpload(file);
+  }, [processFileUpload]);
 
-  const handleCameraCapture = () => {
-    cameraInputRef.current?.click();
-  };
+  const handleNativeCameraCapture = useCallback(async () => {
+    if (!isNative) {
+      cameraInputRef.current?.click();
+      return;
+    }
 
-  const handleGallerySelect = () => {
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+        direction: CameraDirection.Rear,
+        correctOrientation: true,
+        width: 1920,
+        height: 1080,
+      });
+
+      if (!image.dataUrl) {
+        toast.error('Não foi possível capturar a imagem.');
+        return;
+      }
+
+      const blob = dataUrlToBlob(image.dataUrl);
+      if (!blob.size) {
+        toast.error('Imagem inválida. Tente novamente.');
+        return;
+      }
+
+      const mime = blob.type || 'image/jpeg';
+      const ext = getFileExtensionFromMime(mime);
+      const nativeFile = new File([blob], `${fileType}_${Date.now()}.${ext}`, { type: mime });
+
+      await processFileUpload(nativeFile);
+    } catch (error: any) {
+      if (error?.message?.includes('cancel') || error?.message?.includes('User cancelled')) return;
+      console.error('[DocumentUpload] Native camera error:', error);
+      toast.error('Erro ao abrir câmera. Tente novamente.');
+    }
+  }, [fileType, isNative, processFileUpload]);
+
+  const handleGallerySelect = useCallback(() => {
     galleryInputRef.current?.click();
-  };
+  }, []);
 
   return (
     <div className="space-y-2">
       <Label htmlFor={fileType}>
-        {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span className="text-destructive">*</span>}
       </Label>
       <Card>
         <CardContent className="p-4">
-          {/* Inputs ocultos: um para câmera, outro para galeria */}
           <input
             ref={cameraInputRef}
             type="file"
@@ -139,14 +195,14 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           />
 
           {uploading ? (
-            <div className="flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md border-blue-300 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300">
+            <div className="flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md border-primary/30 bg-primary/10 text-foreground">
               <InlineSpinner />
               Enviando...
             </div>
           ) : uploaded ? (
-            <div className="flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md border-green-300 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300">
+            <div className="flex items-center justify-center w-full p-3 border-2 border-dashed rounded-md border-primary/40 bg-primary/10 text-foreground">
               <Check className="h-4 w-4 mr-2" />
-              {fileName}
+              {fileName || 'Documento enviado'}
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2">
@@ -154,7 +210,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                 type="button"
                 variant="outline"
                 className="flex-1"
-                onClick={handleCameraCapture}
+                onClick={handleNativeCameraCapture}
                 disabled={uploading || uploaded}
               >
                 <Camera className="h-4 w-4 mr-2" />

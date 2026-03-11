@@ -6,6 +6,7 @@ import { Camera, RotateCcw, Check, X, Upload, AlertTriangle, Loader2 } from 'luc
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource, CameraDirection } from '@capacitor/camera';
+import { dataUrlToBlob } from '@/utils/imageDataUrl';
 
 interface CameraSelfieProps {
   onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => Promise<void> | void;
@@ -48,42 +49,18 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     navigator.mediaDevices && 
     typeof navigator.mediaDevices.getUserMedia === 'function';
 
-  /**
-   * Converte data URL para Blob de forma robusta (sem usar fetch).
-   * No iOS WKWebView, fetch(dataUrl) pode falhar silenciosamente para payloads grandes.
-   */
-  const dataUrlToBlob = useCallback((dataUrl: string): Blob => {
-    const [meta, base64Data] = dataUrl.split(',');
-    const mimeMatch = meta.match(/^data:(.*?);/);
-    const mimeType = mimeMatch?.[1] || 'image/jpeg';
-
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    return new Blob([bytes], { type: mimeType });
-  }, []);
-
   // ========== CAPACITOR NATIVE CAMERA ==========
   const takeNativePhoto = useCallback(async (source: 'camera' | 'gallery') => {
     try {
       setStarting(true);
-      
-      // Request permissions first
-      const perms = await CapCamera.requestPermissions({ permissions: ['camera', 'photos'] });
-      if (perms.camera === 'denied') {
-        toast.error('Permissão de câmera negada. Vá em Configurações > Apps > AgriRoute e permita o acesso à câmera.');
-        return;
-      }
 
+      // CRITICAL: chamada direta no handler de clique (sem awaits antes)
       const image = await CapCamera.getPhoto({
         quality: 90,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
         source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos,
-        direction: CameraDirection.Front,
+        ...(source === 'camera' ? { direction: CameraDirection.Front } : {}),
         correctOrientation: true,
         width: 1280,
         height: 720,
@@ -95,7 +72,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         return;
       }
 
-      // Convert data URL to blob using manual conversion (robust on iOS WKWebView)
+      // Conversão manual robusta para iOS WKWebView
       const blob = dataUrlToBlob(image.dataUrl);
 
       if (!blob || blob.size === 0) {
@@ -104,7 +81,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         return;
       }
 
-      // FRT-048: Production logging for diagnostics
       console.log('[CameraSelfie] Native photo captured:', {
         size: blob.size,
         type: blob.type,
@@ -112,11 +88,9 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         platform: Capacitor.getPlatform(),
       });
 
-      const url = URL.createObjectURL(blob);
-      setCapturedBlob(blob);
-      setFallbackPreviewUrl(url);
-      setFallbackMethod(source === 'camera' ? 'CAMERA' : 'GALLERY');
-      setMode('fallback');
+      // Envio imediato em nativo para evitar perda por falta de confirmação manual
+      await onCapture(blob, source === 'camera' ? 'CAMERA' : 'GALLERY');
+      stopCamera();
     } catch (error: any) {
       // User cancelled - not an error
       if (error?.message?.includes('User cancelled') || error?.message?.includes('cancelled')) {
@@ -127,7 +101,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     } finally {
       setStarting(false);
     }
-  }, [dataUrlToBlob]);
+  }, [onCapture]);
 
   // Stop camera and release resources
   const stopCamera = useCallback(() => {
