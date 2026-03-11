@@ -120,6 +120,7 @@ export function useWebDocumentCamera({
     let isCancelled = false;
     let animationFrameId: number | null = null;
     let fallbackTimeoutId: number | null = null;
+    let readyPollIntervalId: number | null = null;
     let attachedVideoElement: HTMLVideoElement | null = null;
 
     const markReady = () => {
@@ -127,6 +128,11 @@ export function useWebDocumentCamera({
       console.log('[Camera] Video stream ready');
       setIsVideoReady(true);
       isVideoReadyRef.current = true;
+
+      if (readyPollIntervalId !== null) {
+        window.clearInterval(readyPollIntervalId);
+        readyPollIntervalId = null;
+      }
     };
 
     const attachStreamToVideo = () => {
@@ -149,14 +155,14 @@ export function useWebDocumentCamera({
       videoElement.addEventListener('playing', markReady, { once: true });
 
       // If browser already has enough buffered data, mark as ready immediately
-      if (videoElement.readyState >= 2) {
+      if (videoElement.readyState >= 2 || videoElement.videoWidth > 0) {
         markReady();
       }
 
       void videoElement
         .play()
         .then(() => {
-          if (videoElement.readyState >= 2) {
+          if (videoElement.readyState >= 2 || videoElement.videoWidth > 0) {
             markReady();
           }
         })
@@ -164,12 +170,18 @@ export function useWebDocumentCamera({
           setErrorMessage('Toque novamente em "Abrir Câmera" para ativar o vídeo.');
         });
 
-      // Fallback: some WebViews update readyState before firing expected events
-      fallbackTimeoutId = window.setTimeout(() => {
-        if (!isVideoReadyRef.current && videoElement.readyState >= 2) {
+      // Fallback: some WebViews update dimensions/readyState without firing expected events
+      readyPollIntervalId = window.setInterval(() => {
+        if (videoElement.readyState >= 2 || videoElement.videoWidth > 0) {
           markReady();
         }
-      }, 350);
+      }, 120);
+
+      fallbackTimeoutId = window.setTimeout(() => {
+        if (!isVideoReadyRef.current && (videoElement.readyState >= 2 || videoElement.videoWidth > 0)) {
+          markReady();
+        }
+      }, 700);
     };
 
     attachStreamToVideo();
