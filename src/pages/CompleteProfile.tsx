@@ -366,18 +366,20 @@ const CompleteProfile = () => {
       return;
     }
 
-    // FRT-045 debug: log selfie state to diagnose iPhone/Capacitor issues
+    const effectiveDocumentUrls = documentUrlsRef.current;
+
+    // FRT-056 debug: usa snapshot em ref para evitar race de setState no clique em Continuar
     console.log('[CompleteProfile] handleSaveAndContinue called', {
       currentStep,
       registrationMode,
-      selfieUrl: documentUrls.selfie ? `${documentUrls.selfie.substring(0, 60)}...` : '(empty)',
-      documentPhotoUrl: documentUrls.document_photo ? '✅ set' : '(empty)',
-      cnhUrl: documentUrls.cnh ? '✅ set' : '(empty)',
+      selfieUrl: effectiveDocumentUrls.selfie ? `${effectiveDocumentUrls.selfie.substring(0, 60)}...` : '(empty)',
+      documentPhotoUrl: effectiveDocumentUrls.document_photo ? '✅ set' : '(empty)',
+      cnhUrl: effectiveDocumentUrls.cnh ? '✅ set' : '(empty)',
     });
 
     const state = {
       profileData,
-      documentUrls,
+      documentUrls: effectiveDocumentUrls,
       platePhotos: [], // Removido - veículos são adicionados após o cadastro
       vehicles: [], // Veículos agora são adicionados após o cadastro
       skipVehicleRegistration: true, // Sempre pular cadastro de veículos durante registro
