@@ -285,7 +285,7 @@ const Landing: React.FC = () => {
           
           {/* Main Action Buttons - Stack vertically on mobile, horizontal on desktop */}
            <div className="max-w-3xl mx-auto px-4">
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRODUTOR')}
