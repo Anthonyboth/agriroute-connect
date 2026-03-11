@@ -134,8 +134,42 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
     }
   ];
 
+  const prestadorSteps = [
+    {
+      icon: Users,
+      title: "1. Cadastre-se",
+      description: "Crie sua conta e informe os serviços que você oferece"
+    },
+    {
+      icon: FileCheck,
+      title: "2. Validação do Perfil",
+      description: "Nossa equipe valida seus dados e habilidades profissionais"
+    },
+    {
+      icon: Wrench,
+      title: "3. Configure seus Serviços",
+      description: "Defina preços, áreas de atuação e disponibilidade"
+    },
+    {
+      icon: MapPin,
+      title: "4. Receba Solicitações",
+      description: "Clientes encontram você pela região e tipo de serviço"
+    },
+    {
+      icon: CheckCircle,
+      title: "5. Execute o Serviço",
+      description: "Realize o trabalho com qualidade e registre no app"
+    },
+    {
+      icon: DollarSign,
+      title: "6. Receba o Pagamento",
+      description: "Pagamento seguro e rápido após conclusão do serviço"
+    }
+  ];
+
   const steps = viewType === 'PRODUTOR' ? producerSteps : 
                 viewType === 'TRANSPORTADORA' ? transportadoraSteps : 
+                viewType === 'PRESTADOR_SERVICOS' ? prestadorSteps :
                 driverSteps;
 
   return (
