@@ -18,6 +18,12 @@ workflows:
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
 
     scripts:
+      - name: Install Bundler 2.x
+        script: |
+          gem install bundler:2.5.23
+          cd ios/App
+          bundle install
+
       - name: Install dependencies
         script: |
           npm install
@@ -33,7 +39,7 @@ workflows:
       - name: Install Pods
         script: |
           cd ios/App
-          pod install
+          bundle exec pod install
 
       - name: Set up App Store Connect API Key
         script: |
