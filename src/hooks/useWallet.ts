@@ -74,7 +74,7 @@ export const useWallet = () => {
         .from('wallets')
         .select('*')
         .eq('profile_id', profile.id)
-        .single();
+        .maybeSingle();
 
       if (walletErr) {
         console.error('Error fetching wallet:', walletErr);
