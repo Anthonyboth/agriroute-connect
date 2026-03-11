@@ -512,7 +512,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </CardContent>
         </Card>
