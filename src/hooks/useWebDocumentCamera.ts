@@ -108,34 +108,86 @@ export function useWebDocumentCamera({
     }
   }, [facingMode, height, isSupported, stopStream, width]);
 
-  // Attach video stream and listen for readiness events
+  // Attach video stream and listen for readiness events (with delayed-mount resilience)
   useEffect(() => {
-    if (!isOpen || !streamRef.current || !videoRef.current) {
+    if (!isOpen || !streamRef.current) {
       return;
     }
 
-    const videoElement = videoRef.current;
-    videoElement.srcObject = streamRef.current;
+    let isCancelled = false;
+    let animationFrameId: number | null = null;
+    let fallbackTimeoutId: number | null = null;
+    let attachedVideoElement: HTMLVideoElement | null = null;
 
     const markReady = () => {
+      if (isCancelled || isVideoReadyRef.current) return;
       console.log('[Camera] Video stream ready');
       setIsVideoReady(true);
       isVideoReadyRef.current = true;
     };
 
-    // Listen to multiple events to cover all browsers
-    videoElement.addEventListener('loadeddata', markReady, { once: true });
-    videoElement.addEventListener('canplay', markReady, { once: true });
-    videoElement.addEventListener('playing', markReady, { once: true });
+    const attachStreamToVideo = () => {
+      if (isCancelled) return;
 
-    void videoElement.play().catch(() => {
-      setErrorMessage('Toque novamente em "Abrir Câmera" para ativar o vídeo.');
-    });
+      const videoElement = videoRef.current;
+      if (!videoElement) {
+        // Dialog/portal can mount one frame later on mobile; retry on next frame
+        animationFrameId = window.requestAnimationFrame(attachStreamToVideo);
+        return;
+      }
+
+      attachedVideoElement = videoElement;
+      videoElement.srcObject = streamRef.current;
+
+      // Listen to multiple events to cover all browsers/webviews
+      videoElement.addEventListener('loadedmetadata', markReady, { once: true });
+      videoElement.addEventListener('loadeddata', markReady, { once: true });
+      videoElement.addEventListener('canplay', markReady, { once: true });
+      videoElement.addEventListener('playing', markReady, { once: true });
+
+      // If browser already has enough buffered data, mark as ready immediately
+      if (videoElement.readyState >= 2) {
+        markReady();
+      }
+
+      void videoElement
+        .play()
+        .then(() => {
+          if (videoElement.readyState >= 2) {
+            markReady();
+          }
+        })
+        .catch(() => {
+          setErrorMessage('Toque novamente em "Abrir Câmera" para ativar o vídeo.');
+        });
+
+      // Fallback: some WebViews update readyState before firing expected events
+      fallbackTimeoutId = window.setTimeout(() => {
+        if (!isVideoReadyRef.current && videoElement.readyState >= 2) {
+          markReady();
+        }
+      }, 350);
+    };
+
+    attachStreamToVideo();
 
     return () => {
-      videoElement.removeEventListener('loadeddata', markReady);
-      videoElement.removeEventListener('canplay', markReady);
-      videoElement.removeEventListener('playing', markReady);
+      isCancelled = true;
+
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+
+      if (fallbackTimeoutId !== null) {
+        window.clearTimeout(fallbackTimeoutId);
+      }
+
+      if (attachedVideoElement) {
+        attachedVideoElement.removeEventListener('loadedmetadata', markReady);
+        attachedVideoElement.removeEventListener('loadeddata', markReady);
+        attachedVideoElement.removeEventListener('canplay', markReady);
+        attachedVideoElement.removeEventListener('playing', markReady);
+      }
     };
   }, [isOpen, streamVersion]);
 
