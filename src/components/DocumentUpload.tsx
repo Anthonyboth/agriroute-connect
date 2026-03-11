@@ -47,7 +47,17 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputId = useId();
+  const {
+    videoRef: webCameraVideoRef,
+    isSupported: isWebCameraSupported,
+    isOpen: isWebCameraOpen,
+    isStarting: isWebCameraStarting,
+    isCapturing: isWebCameraCapturing,
+    errorMessage: webCameraErrorMessage,
+    openCamera: openWebCamera,
+    closeCamera: closeWebCamera,
+    capturePhoto: captureWebCameraPhoto,
+  } = useWebDocumentCamera({ facingMode: 'environment' });
 
   useEffect(() => {
     if (currentFile) {
