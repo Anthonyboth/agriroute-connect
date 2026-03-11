@@ -38,7 +38,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('base_city_name, base_state, service_radius_km, base_lat, base_lng')
+          .select('base_city_id, base_city_name, base_state, service_radius_km, base_lat, base_lng')
           .eq('user_id', user.id)
           .single();
 
