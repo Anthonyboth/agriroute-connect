@@ -1592,14 +1592,14 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     area: 'document-upload-camera-trigger',
     bug: 'Nos fluxos de cadastro em web mobile, tocar em "Abrir Câmera" podia abrir a galeria em vez da câmera para documentos.',
     rootCause: 'DocumentUpload/DocumentUploadLocal acionavam input[capture] via ref.click() programático. Em iOS Safari/WebView, esse padrão pode perder o contexto de gesto direto e cair no seletor de galeria.',
-    fix: 'No web, o botão "Abrir Câmera" agora usa input file sobreposto dentro de <label> (gesture direto). No nativo (iOS/Android), mantém Camera.getPhoto com source Camera para captura direta.',
+    fix: 'No web, o botão "Abrir Câmera" agora usa input file dedicado com capture="environment" vinculado por htmlFor/label (gesture direto). No nativo (iOS/Android), mantém Camera.getPhoto com source Camera para captura direta.',
     files: [
       'src/components/DocumentUpload.tsx',
       'src/components/DocumentUploadLocal.tsx',
     ],
     rules: [
       'Para web mobile, inputs com capture NÃO devem ser disparados por ref.click() programático quando o objetivo é forçar câmera.',
-      'Usar interação direta do usuário (label/input overlay) para preservar gesture context no iOS.',
+      'Usar interação direta do usuário (label/htmlFor) para preservar gesture context no iOS.',
       'Em iOS/Android nativo, captura de documento deve usar Camera.getPhoto({ source: CameraSource.Camera }).',
     ],
     keywords: ['FRT-059', 'Abrir Câmera', 'iOS', 'Safari', 'WebView', 'capture', 'ref.click', 'galeria', 'cadastro'],
@@ -1607,6 +1607,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'web_mobile_document_camera_button_uses_direct_input_gesture',
       'ios_native_document_camera_still_uses_capacitor_camera_source_camera',
       'affiliated_signup_document_camera_button_does_not_fall_back_to_gallery_unintentionally',
+    ],
+  },
+
+  // ── FRT-060: Hidden overlay input caused unstable camera behavior in some mobile browsers ──
+  {
+    id: 'FRT-060',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'document-upload-mobile-web-camera-ux',
+    bug: 'Mesmo após separar câmera/galeria, alguns dispositivos móveis ainda abriam a galeria ao tocar em "Abrir Câmera" em uploads de documento.',
+    rootCause: 'Estratégia com input absoluto transparente sobre o botão apresentou comportamento inconsistente entre Android Chrome e iOS Safari/WKWebView.',
+    fix: 'Padronizado trigger de câmera web para input sr-only + botão com label/htmlFor explícito, mantendo o gesto do usuário e removendo overlay absoluto.',
+    files: [
+      'src/components/DocumentUpload.tsx',
+      'src/components/DocumentUploadLocal.tsx',
+      'src/hooks/useRegressionShield.ts',
+    ],
+    rules: [
+      'Evitar overlay absoluto transparente para input capture em fluxos críticos de câmera mobile.',
+      'Preferir vínculo explícito label/htmlFor para acionamento previsível do input de câmera no web mobile.',
+      'Aplicar o mesmo padrão em todos os componentes de upload usados no onboarding.',
+    ],
+    keywords: ['FRT-060', 'camera', 'mobile web', 'ios', 'android', 'htmlFor', 'label', 'cadastro'],
+    testCases: [
+      'complete_profile_document_camera_label_for_opens_capture_input',
+      'affiliated_signup_document_camera_label_for_opens_capture_input',
+      'service_provider_document_camera_button_uses_same_behavior_via_document_upload',
     ],
   },
 ];
