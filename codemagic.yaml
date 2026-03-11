@@ -5,8 +5,8 @@ workflows:
     max_build_duration: 60
 
     environment:
-      node: 20
-      xcode: latest
+      node: 20.9.0
+      xcode: 26.2
       cocoapods: default
       groups:
         - appstore_credentials
@@ -29,6 +29,13 @@ workflows:
         script: |
           rm -f package-lock.json
           npm install
+
+      - name: Validate mobile assets (icons)
+        script: |
+          test -f resources/icon.png
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+          grep -q '"filename" : "AppIcon-512@2x.png"' ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
+          echo "✅ Ícones mobile validados"
 
       - name: Build Web
         script: |
@@ -63,7 +70,6 @@ workflows:
           cd ios/App
           sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' App.xcodeproj/project.pbxproj
           sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 4YULT95XAK;/g' App.xcodeproj/project.pbxproj
-          # Ensure DEVELOPMENT_TEAM is set in all build configurations
           ruby -e '
             path = "App.xcodeproj/project.pbxproj"
             content = File.read(path)
