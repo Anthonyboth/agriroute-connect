@@ -456,13 +456,15 @@ const CompleteProfile = () => {
   };
 
   const finalizeProfile = async (docsOverride?: DocumentUrlsState) => {
-    if (import.meta.env.DEV) console.log('🚀 Iniciando finalização do perfil...', { profileData, documentUrls });
+    const effectiveDocumentUrls = docsOverride ?? documentUrlsRef.current;
+
+    if (import.meta.env.DEV) console.log('🚀 Iniciando finalização do perfil...', { profileData, documentUrls: effectiveDocumentUrls });
 
     // Validação final de selfie
-    if (!documentUrls.selfie) {
+    if (!effectiveDocumentUrls.selfie) {
       console.warn('[CompleteProfile] ❌ Selfie ausente na finalização. documentUrls:', JSON.stringify({
-        selfie: documentUrls.selfie || '(empty)',
-        document_photo: documentUrls.document_photo ? '✅' : '(empty)',
+        selfie: effectiveDocumentUrls.selfie || '(empty)',
+        document_photo: effectiveDocumentUrls.document_photo ? '✅' : '(empty)',
       }));
       toast('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.', { id: 'missing-selfie' });
       return;
@@ -491,9 +493,9 @@ const CompleteProfile = () => {
         phone: profileData.phone,
         cpf_cnpj: profileData.cpf_cnpj,
         fixed_address: profileData.fixed_address,
-        selfie_url: documentUrls.selfie, // FRT-046: Now stores relative path from selfieUpload
-        document_photo_url: documentUrls.document_photo,
-        address_proof_url: documentUrls.address_proof,
+        selfie_url: effectiveDocumentUrls.selfie, // FRT-046: Now stores relative path from selfieUpload
+        document_photo_url: effectiveDocumentUrls.document_photo,
+        address_proof_url: effectiveDocumentUrls.address_proof,
         location_enabled: locationEnabled,
         metadata: {
         ...((profile as any).metadata || {}),
@@ -519,10 +521,10 @@ const CompleteProfile = () => {
           rntrc: profileData.rntrc || null,
           cnh_category: (profileData as any).cnh_category || null,
           cnh_expiry_date: profileData.cnh_expiry_date || null,
-          cnh_photo_url: documentUrls.cnh || null,
-          truck_documents_url: documentUrls.truck_documents || null,
-          truck_photo_url: documentUrls.truck_photo || null,
-          license_plate_photo_url: documentUrls.license_plate || null,
+          cnh_photo_url: effectiveDocumentUrls.cnh || null,
+          truck_documents_url: effectiveDocumentUrls.truck_documents || null,
+          truck_photo_url: effectiveDocumentUrls.truck_photo || null,
+          license_plate_photo_url: effectiveDocumentUrls.license_plate || null,
           antt_number: profileData.antt_number || null,
           cooperative: profileData.cooperative || null,
         };
