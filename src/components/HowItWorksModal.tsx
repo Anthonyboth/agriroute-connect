@@ -195,27 +195,6 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             </DialogDescription>
           </DialogHeader>
 
-          {/* Toggle buttons for Motorista/Transportadora */}
-          {userType === 'MOTORISTA' && (
-            <div className="flex justify-center gap-3 mb-6 px-4">
-              <Button
-                variant={viewType === 'MOTORISTA' ? 'default' : 'outline'}
-                onClick={() => setViewType('MOTORISTA')}
-                className="flex-1 max-w-[200px]"
-              >
-                <Truck className="mr-2 h-4 w-4" />
-                Sou Motorista
-              </Button>
-              <Button
-                variant={viewType === 'TRANSPORTADORA' ? 'default' : 'outline'}
-                onClick={() => setViewType('TRANSPORTADORA')}
-                className="flex-1 max-w-[200px]"
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                Transportadora
-              </Button>
-            </div>
-          )}
 
         {/* Fluxograma Visual Aprimorado */}
         <div className="my-8">
