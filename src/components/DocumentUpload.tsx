@@ -287,6 +287,50 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isWebCameraOpen} onOpenChange={(open) => !open && closeWebCamera()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Capturar documento</DialogTitle>
+            <DialogDescription>
+              Posicione o documento no enquadramento e toque em “Capturar”.
+            </DialogDescription>
+          </DialogHeader>
+
+          {webCameraErrorMessage ? (
+            <p className="text-sm text-destructive">{webCameraErrorMessage}</p>
+          ) : null}
+
+          <div className="overflow-hidden rounded-md border bg-muted">
+            <video
+              ref={webCameraVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full aspect-[4/3] object-cover"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={closeWebCamera}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleCaptureWebCamera}
+              disabled={uploading || isWebCameraStarting || isWebCameraCapturing}
+            >
+              {isWebCameraCapturing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4 mr-2" />
+              )}
+              Capturar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
