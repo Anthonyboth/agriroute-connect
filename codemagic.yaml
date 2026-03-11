@@ -1,93 +1,91 @@
 workflows:
   ios-release-testflight:
-    name: ios-release-testflight
-    instance_type: mac_mini_m2
+    name: iOS Release to TestFlight
     max_build_duration: 60
-
     environment:
-      node: 20
-      xcode: latest
-      cocoapods: default
-      groups:
-        - app_store_connect
-      vars:
-        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
-
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
-
+        bundle_identifier: com.seu.bundle.id
+      vars:
+        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
+        APP_STORE_CONNECT_KEY_IDENTIFIER: SEU_KEY_ID_AQUI
+        APP_STORE_CONNECT_PRIVATE_KEY: |
+          -----BEGIN PRIVATE KEY-----
+          COLE_AQUI_SUA_CHAVE_PRIVADA_COMPLETA_DO_ARQUIVO_P8
+          -----END PRIVATE KEY-----
+        BUNDLE_ID: "com.seu.bundle.id"
+        XCODE_WORKSPACE: "SeuWorkspace.xcworkspace"
+        XCODE_SCHEME: "SeuScheme"
+      groups:
+        - app_store_connect
     scripts:
-      - name: Install Bundler 2.x
-        script: |
-          gem install bundler:2.5.23
-          cd ios/App
-          bundle install
-
       - name: Install dependencies
         script: |
-          npm install
+          # Instalar dependências do CocoaPods se necessário
+          # pod install --repo-update
 
-      - name: Build Web
+      - name: Set up code signing
         script: |
-          npm run build
-
-      - name: Capacitor Sync
-        script: |
-          npx cap sync ios
-
-      - name: Install Pods
-        script: |
-          cd ios/App
-          bundle exec pod install
-
-      - name: Set up App Store Connect API Key
-        script: |
-          mkdir -p ~/.appstoreconnect/private_keys/
-          echo "$APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
+          echo "Configurando code signing..."
 
       - name: Fetch signing files
         script: |
-          app-store-connect fetch-signing-files \
-            $BUNDLE_ID \
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
             --type IOS_APP_STORE \
-            --create
+            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY
 
       - name: Add certificates to keychain
         script: |
-          keychain add-certificates
+          keychain initialize
 
-      - name: Apply Code Signing
+      - name: Apply code signing
         script: |
-          xcode-project use-profiles
+          app-store-connect decode-certificate \
+            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
+            --certificate @env:APP_STORE_CONNECT_CERTIFICATE
 
-      - name: Set version
+      - name: Set build version
         script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 151" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
+          agvtool new-marketing-version $(date +"%Y.%m.%d")
+          agvtool new-version -all $(git rev-list --count HEAD)
 
       - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
+        # Opcional: distribuir para grupos específicos do TestFlight
+        # beta_groups:
+        #   - "Grupo de Testadores Internos"
+        #   - "Grupo de Testadores Externos"
 
       email:
         recipients:
-          - dev@agriroute.com
+          - seu-email@exemplo.com
+        notify:
+          success: true
+          failure: true
+
+      slack:
+        channel: "#seu-canal"
+        notify_on_build_start: true
         notify:
           success: true
           failure: true
