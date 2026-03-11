@@ -1215,11 +1215,9 @@ const CompleteProfile = () => {
                             }
 
                             setSelfiePreviewUrl(result.signedUrl || '');
-                            setDocumentUrls(prev => {
-                              const updated = { ...prev, selfie: result.filePath! };
-                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado com path relativo:', result.filePath);
-                              return updated;
-                            });
+                            updateDocumentUrls({ selfie: result.filePath! });
+                            void persistDocumentField('selfie_url', result.filePath!);
+                            console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado com path relativo:', result.filePath);
                             toast.success(
                               `✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`,
                               { id: 'selfie-upload' }
