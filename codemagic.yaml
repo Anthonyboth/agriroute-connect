@@ -12,55 +12,35 @@ workflows:
       groups:
         - app_store_connect
 
+      vars:
+        APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
+        APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
+
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
 
     scripts:
       - name: Install Bundler
-        script: |
-          gem install bundler -v 2.5.23 --no-document
+        script: gem install bundler -v 2.5.23 --no-document
 
-      - name: Install Ruby Gems
-        script: |
-          cd ios/App
-          bundle install || true
-
-      - name: Install Node Dependencies
-        script: |
-          npm install
+      - name: Install Node
+        script: npm install
 
       - name: Build Web
-        script: |
-          npm run build
+        script: npm run build
 
       - name: Capacitor Sync
-        script: |
-          npx cap sync ios
+        script: npx cap sync ios
 
-      - name: Install CocoaPods
+      - name: Install Pods
         script: |
           cd ios/App
-          rm -rf Pods Podfile.lock
-          pod repo update
           pod install
 
-      - name: Force iPhone Only
-        script: |
-          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
-
       - name: Apply Code Signing
-        script: |
-          xcode-project use-profiles
-
-      - name: Set Build Version
-        script: |
-          BUILD_NUMBER=$(date +%s)
-
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
+        script: xcode-project use-profiles
 
       - name: Build IPA
         script: |
@@ -70,7 +50,6 @@ workflows:
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
 
     publishing:
       app_store_connect:
