@@ -515,10 +515,8 @@ const Auth = () => {
     }
   };
 
-  // Mostrar loading enquanto verifica sessão
-  if (isCheckingSession) {
-    return <AppSpinner fullscreen />;
-  }
+  // ✅ UX FIX: Não bloqueia o render com spinner fullscreen.
+  // O check de sessão roda em background — se houver sessão, RedirectIfAuthed cuida do redirect.
 
   return (
     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background px-6 py-10 md:px-8 md:py-16 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
