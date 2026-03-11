@@ -174,7 +174,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       console.error('[DocumentUpload] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
-  }, [fileType, isNative, processFileUpload]);
+  }, [fileType, processFileUpload]);
 
   const handleGallerySelect = useCallback(() => {
     galleryInputRef.current?.click();

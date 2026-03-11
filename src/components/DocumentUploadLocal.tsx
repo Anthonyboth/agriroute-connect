@@ -141,7 +141,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       console.error('[DocumentUploadLocal] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
-  }, [fileType, isNative, processSelectedFile]);
+  }, [fileType, processSelectedFile]);
 
   const handleGallerySelect = useCallback(() => {
     galleryInputRef.current?.click();
