@@ -200,7 +200,17 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
 
     if (type === 'empty') {
       setCities([]);
+      setShowDropdown(false);
       setValidationStatus('none');
+      return;
+    }
+
+    // Se já existe seleção válida e input está igual ao valor selecionado,
+    // não reabre dropdown nem dispara nova busca (evita flicker).
+    if (type === 'city' && isConfirmedSelection) {
+      setCities([]);
+      setShowDropdown(false);
+      setValidationStatus('valid');
       return;
     }
 
@@ -220,7 +230,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchTerm]);
+  }, [searchTerm, isConfirmedSelection]);
 
   // Fechar dropdown quando clicar fora
   useEffect(() => {
