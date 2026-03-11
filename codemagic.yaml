@@ -9,7 +9,7 @@ workflows:
       xcode: latest
       cocoapods: default
       groups:
-        - app_store_credentials
+        - app_store_connect
       vars:
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
 
@@ -38,7 +38,7 @@ workflows:
       - name: Set up App Store Connect API Key
         script: |
           mkdir -p ~/.appstoreconnect/private_keys/
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
+          echo "$APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
 
       - name: Fetch signing files
         script: |
@@ -72,7 +72,7 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        api_key: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
