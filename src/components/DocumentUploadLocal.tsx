@@ -296,14 +296,16 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
               type="button"
               className="flex-1"
               onClick={handleCaptureWebCamera}
-              disabled={processing || isWebCameraStarting || isWebCameraCapturing}
+              disabled={processing || isWebCameraStarting || isWebCameraCapturing || !isWebCameraReady}
             >
               {isWebCameraCapturing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : !isWebCameraReady ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Camera className="h-4 w-4 mr-2" />
               )}
-              Capturar
+              {isWebCameraReady ? 'Capturar' : 'Inicializando...'}
             </Button>
           </div>
         </DialogContent>
