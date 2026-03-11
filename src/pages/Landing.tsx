@@ -10,8 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 // MobileMenu lazy-loaded - uses Radix Sheet, defer to avoid ui-vendor chunk on initial load
 const MobileMenu = lazyWithRetry(() => import('@/components/MobileMenu').then(m => ({ default: m.MobileMenu })));
-// AuthModal lazy-loaded - only needed on user click
-const AuthModal = lazyWithRetry(() => import('@/components/AuthModal'));
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
