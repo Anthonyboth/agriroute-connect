@@ -1255,7 +1255,10 @@ const CompleteProfile = () => {
                       label="Foto do Verso da CNH *"
                       fileType="cnh"
                       bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
+                      onUploadComplete={(url) => {
+                        updateDocumentUrls({ cnh: url });
+                        void persistDocumentField('cnh_photo_url', url);
+                      }}
                       required
                     />
 
