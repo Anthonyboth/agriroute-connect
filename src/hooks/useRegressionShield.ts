@@ -1504,6 +1504,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'smart_location_manager_saves_base_city_id',
     ],
   },
+
+  // ── FRT-056: iOS/Capacitor selfie uploaded but step validation still said "Por favor, envie: Selfie" ──
+  {
+    id: 'FRT-056',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'complete-profile-selfie-race',
+    bug: 'No fluxo /complete-profile (principalmente iOS/Capacitor), usuários capturavam selfie com sucesso mas ao clicar em Continuar recebiam "Por favor, envie: Selfie" e perdiam o cadastro em andamento.',
+    rootCause: 'Race condition entre setState assíncrono dos documentos e clique imediato em Continuar, com leitura de estado stale em handleSaveAndContinue. Em paralelo, hidratação assíncrona de profiles_secure podia sobrescrever documentos recém-capturados com valores vazios.',
+    fix: 'CompleteProfile passou a usar snapshot em ref (documentUrlsRef) para validação/finalização, merge defensivo na hidratação (nunca sobrescrever valor local já preenchido com vazio do backend) e persistência incremental de selfie/documentos no perfil assim que cada upload termina.',
+    files: [
+      'src/pages/CompleteProfile.tsx',
+      'src/components/CameraSelfie.tsx',
+    ],
+    rules: [
+      'Fluxos críticos de upload NÃO devem depender apenas de setState para validação imediata no próximo clique.',
+      'Hidratações assíncronas de backend devem preservar valores locais já preenchidos pelo usuário.',
+      'Após upload concluído, persistir documento de forma incremental para evitar perda de progresso em mobile/webview.',
+    ],
+    keywords: ['complete-profile', 'selfie', 'iOS', 'Capacitor', 'race condition', 'stale state', 'documentUrlsRef', 'upload incremental'],
+    testCases: [
+      'ios_selfie_capture_then_immediate_continue_does_not_fail_validation',
+      'late_secure_profile_fetch_does_not_clear_recent_uploaded_selfie',
+      'document_fields_persist_incrementally_after_each_upload',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
