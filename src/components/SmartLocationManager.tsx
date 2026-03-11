@@ -89,6 +89,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
       const { error } = await supabase
         .from('profiles')
         .update({
+          base_city_id: city.id,
           base_city_name: city.city,
           base_state: city.state,
           service_radius_km: radius,
