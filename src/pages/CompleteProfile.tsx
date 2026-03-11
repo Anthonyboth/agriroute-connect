@@ -424,7 +424,7 @@ const CompleteProfile = () => {
       }
       
       // Demais perfis finalizam no passo 2
-      await finalizeProfile();
+      await finalizeProfile(effectiveDocumentUrls);
       return;
     }
     
