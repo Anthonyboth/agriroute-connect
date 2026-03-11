@@ -187,7 +187,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
           <div className="flex gap-3 pt-4">
             <Button
               onClick={handleSaveLocation}
-              disabled={!city.city || !city.state || isSaving}
+              disabled={!city.city || !city.state || !city.id || isSaving}
               className="flex-1"
             >
               {isSaving ? (
