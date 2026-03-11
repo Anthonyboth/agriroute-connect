@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Building2, FileCheck, UserPlus, Package, Users2, BarChart3 } from 'lucide-react';
+import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Building2, FileCheck, UserPlus, Package, Users2, BarChart3, Wrench, Star, Headphones, BadgeCheck } from 'lucide-react';
 import { BecomeCompanyModal } from './BecomeCompanyModal';
 
 interface HowItWorksModalProps {
