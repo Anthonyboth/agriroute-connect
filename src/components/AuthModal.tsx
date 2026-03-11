@@ -223,7 +223,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
                         ? 'ring-2 ring-primary bg-primary/5 shadow-md'
                         : 'hover:bg-muted/50 hover:shadow-sm'
                     }`}
-                    onClick={() => handleSignupRoleSelect(role.value as CardSelectableRole)}
+                    onClick={() => handleProceedToSignup(role.value as CardSelectableRole)}
                   >
                     <CardContent className="flex flex-col items-center justify-center p-4 text-center">
                       <div
