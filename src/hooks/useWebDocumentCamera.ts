@@ -85,6 +85,9 @@ export function useWebDocumentCamera({
     isVideoReadyRef.current = false;
     setErrorMessage(null);
 
+    // Ensure previous tracks are fully closed before opening a new capture session
+    stopStream();
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
