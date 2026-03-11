@@ -133,6 +133,34 @@ const CompleteProfile = () => {
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
   const [legalDialogType, setLegalDialogType] = useState<'terms' | 'privacy' | null>(null);
   const didInitRef = useRef(false);
+  const documentUrlsRef = useRef<DocumentUrlsState>(documentUrls);
+
+  const updateDocumentUrls = useCallback(
+    (next: Partial<DocumentUrlsState> | ((prev: DocumentUrlsState) => DocumentUrlsState)) => {
+      setDocumentUrls((prev) => {
+        const updated = typeof next === 'function' ? next(prev) : { ...prev, ...next };
+        documentUrlsRef.current = updated;
+        return updated;
+      });
+    },
+    []
+  );
+
+  const persistDocumentField = useCallback(
+    async (field: 'selfie_url' | 'document_photo_url' | 'cnh_photo_url' | 'address_proof_url', value: string) => {
+      if (!profile?.user_id || !value) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [field]: value })
+        .eq('user_id', profile.user_id);
+
+      if (error) {
+        console.warn(`[CompleteProfile] Falha ao persistir ${field} em rascunho:`, error.message);
+      }
+    },
+    [profile?.user_id]
+  );
 
   const isLegacySelfieUrl = documentUrls.selfie.startsWith('http://') || documentUrls.selfie.startsWith('https://');
   const { url: resolvedSelfieUrl } = useSignedImageUrl(isLegacySelfieUrl ? null : documentUrls.selfie);
