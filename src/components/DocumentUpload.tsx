@@ -53,6 +53,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     isOpen: isWebCameraOpen,
     isStarting: isWebCameraStarting,
     isCapturing: isWebCameraCapturing,
+    isVideoReady: isWebCameraReady,
     errorMessage: webCameraErrorMessage,
     openCamera: openWebCamera,
     closeCamera: closeWebCamera,
