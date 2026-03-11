@@ -528,10 +528,11 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             }}
           >
             <span className="mr-3">
-              {viewType === 'PRODUTOR' ? '🌾' : viewType === 'MOTORISTA' ? '🚛' : '🏢'}
+              {viewType === 'PRODUTOR' ? '🌾' : viewType === 'MOTORISTA' ? '🚛' : viewType === 'PRESTADOR_SERVICOS' ? '🔧' : '🏢'}
             </span>
             {viewType === 'PRODUTOR' ? 'Começar como Produtor' : 
              viewType === 'MOTORISTA' ? 'Começar como Motorista' :
+             viewType === 'PRESTADOR_SERVICOS' ? 'Começar como Prestador' :
              'Cadastrar Minha Transportadora'}
             <span className="ml-3">→</span>
           </Button>
