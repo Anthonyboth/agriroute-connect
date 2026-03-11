@@ -92,10 +92,6 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   }, [processSelectedFile]);
 
   const handleNativeCameraCapture = useCallback(async () => {
-    if (!isNative) {
-      cameraInputRef.current?.click();
-      return;
-    }
 
     try {
       console.log('[DocumentUploadLocal] Opening native camera for:', fileType);
