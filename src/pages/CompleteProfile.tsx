@@ -1241,7 +1241,10 @@ const CompleteProfile = () => {
                   label={isDriver ? "Foto da Frente da CNH *" : "Foto do Documento (RG/CNH) *"}
                   fileType="document"
                   bucketName="profile-photos"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, document_photo: url }))}
+                  onUploadComplete={(url) => {
+                    updateDocumentUrls({ document_photo: url });
+                    void persistDocumentField('document_photo_url', url);
+                  }}
                   required
                 />
 
