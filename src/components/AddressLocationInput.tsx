@@ -255,7 +255,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
     }
     
     setSearchTerm(inputValue);
-    setShowDropdown(type === 'city');
+    setShowDropdown(false);
     setSelectedIndex(-1);
     setValidationStatus('none');
   };
