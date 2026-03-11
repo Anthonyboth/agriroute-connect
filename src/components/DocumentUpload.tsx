@@ -11,6 +11,7 @@ import { validateImageQuality } from '@/utils/imageValidator';
 import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
 import { InlineSpinner } from '@/components/ui/AppSpinner';
 import { dataUrlToBlob, getFileExtensionFromMime } from '@/utils/imageDataUrl';
+import { processCameraImage, getCameraUri } from '@/utils/imageProcessing';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useWebDocumentCamera } from '@/hooks/useWebDocumentCamera';
 

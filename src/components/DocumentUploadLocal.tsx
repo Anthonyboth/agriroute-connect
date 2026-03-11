@@ -14,6 +14,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraDirection, CameraResultType, CameraSource } from '@capacitor/camera';
 import { validateImageQuality } from '@/utils/imageValidator';
 import { dataUrlToBlob, getFileExtensionFromMime } from '@/utils/imageDataUrl';
+import { processCameraImage, getCameraUri } from '@/utils/imageProcessing';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useWebDocumentCamera } from '@/hooks/useWebDocumentCamera';
 
