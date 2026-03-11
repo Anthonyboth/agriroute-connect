@@ -326,9 +326,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           <CardHeader className="relative z-10">
             <CardTitle className="text-center text-xl">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
-                <span className="text-2xl">{isProducer ? '🌟' : '⚡'}</span>
+                <span className="text-2xl">{isProducer ? '🌟' : isPrestador ? '🔧' : '⚡'}</span>
                 <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold">
-                  {isProducer ? 'Vantagens para Produtores' : 'Vantagens para Motoristas'}
+                  {viewType === 'PRODUTOR' ? 'Vantagens para Produtores' : 
+                   viewType === 'TRANSPORTADORA' ? 'Vantagens para Transportadoras' :
+                   viewType === 'PRESTADOR_SERVICOS' ? 'Vantagens para Prestadores' :
+                   'Vantagens para Motoristas'}
                 </span>
               </div>
             </CardTitle>
