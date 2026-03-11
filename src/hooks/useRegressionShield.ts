@@ -1560,6 +1560,29 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'affiliated_signup_document_capture_native_camera_and_gallery_work',
     ],
   },
+
+  // ── FRT-058: Camera upload errors silently swallowed by overly broad cancel detection ──
+  {
+    id: 'FRT-058',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'onboarding/camera',
+    bug: 'Selfie e documento apareciam como não enviados mesmo após captura nativa no iOS. Validação bloqueava cadastro com "Por favor, envie: Selfie".',
+    rootCause: 'Três causas: (1) Cancel detection usava includes("cancel") engolindo erros reais. (2) DocumentUpload sem currentFile perdia estado visual entre steps. (3) dataUrlToBlob podia lançar exceção não capturada.',
+    fix: 'Cancel detection refinada para mensagens exatas do Capacitor. currentFile prop passado a todos DocumentUpload. dataUrlToBlob em try/catch individual.',
+    files: ['src/components/CameraSelfie.tsx', 'src/components/DocumentUpload.tsx', 'src/components/DocumentUploadLocal.tsx', 'src/pages/CompleteProfile.tsx'],
+    rules: [
+      'Cancel detection DEVE verificar mensagens exatas, NUNCA includes("cancel") genérico.',
+      'DocumentUpload DEVE receber currentFile quando valor já existe no estado pai.',
+      'dataUrlToBlob DEVE estar em try/catch individual com toast específico.',
+    ],
+    keywords: ['FRT-058', 'cancel', 'selfie', 'currentFile', 'dataUrlToBlob', 'DocumentUpload', 'iOS', 'cadastro'],
+    testCases: [
+      'ios_selfie_capture_native_updates_documentUrls',
+      'document_upload_shows_uploaded_state_between_steps',
+      'native_camera_error_not_silently_swallowed',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução

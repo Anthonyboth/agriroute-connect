@@ -1241,6 +1241,7 @@ const CompleteProfile = () => {
                   label={isDriver ? "Foto da Frente da CNH *" : "Foto do Documento (RG/CNH) *"}
                   fileType="document"
                   bucketName="profile-photos"
+                  currentFile={documentUrls.document_photo || undefined}
                   onUploadComplete={(url) => {
                     updateDocumentUrls({ document_photo: url });
                     void persistDocumentField('document_photo_url', url);
@@ -1255,6 +1256,7 @@ const CompleteProfile = () => {
                       label="Foto do Verso da CNH *"
                       fileType="cnh"
                       bucketName="driver-documents"
+                      currentFile={documentUrls.cnh || undefined}
                       onUploadComplete={(url) => {
                         updateDocumentUrls({ cnh: url });
                         void persistDocumentField('cnh_photo_url', url);
@@ -1266,6 +1268,7 @@ const CompleteProfile = () => {
                       label="Comprovante de Endereço *"
                       fileType="address"
                       bucketName="driver-documents"
+                      currentFile={documentUrls.address_proof || undefined}
                       onUploadComplete={(url) => {
                         updateDocumentUrls({ address_proof: url });
                         void persistDocumentField('address_proof_url', url);
