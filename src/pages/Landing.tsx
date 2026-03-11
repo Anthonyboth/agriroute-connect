@@ -309,7 +309,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('TRANSPORTADORA')}
-                className="bg-warning text-warning-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:opacity-90"
+                className="bg-[hsl(45,90%,50%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(45,90%,43%)]"
               >
                 <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Transportadora
@@ -318,7 +318,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
-                className="bg-[hsl(210,80%,45%)] text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(210,80%,38%)]"
+                className="bg-[hsl(210,70%,58%)] text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(210,70%,50%)]"
               >
                 <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Prestador
