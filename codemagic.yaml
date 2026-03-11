@@ -9,6 +9,10 @@ workflows:
       xcode: latest
       cocoapods: default
 
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
+
     scripts:
       - name: Install Bundler
         script: |
@@ -17,7 +21,7 @@ workflows:
       - name: Install Ruby Gems
         script: |
           cd ios/App
-          bundle install
+          bundle install || true
 
       - name: Install Node Dependencies
         script: |
@@ -44,6 +48,10 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/App/App/Info.plist
 
+      - name: Apply Code Signing
+        script: |
+          xcode-project use-profiles
+
       - name: Set Build Version
         script: |
           BUILD_NUMBER=$(date +%s)
@@ -51,27 +59,15 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.151" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
 
-      - name: Code Signing
-        script: |
-          xcode-project use-profiles
-
       - name: Build IPA
         script: |
-          xcodebuild \
-            -workspace ios/App/App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath build/App.xcarchive \
-            archive
-
-          xcodebuild \
-            -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportOptionsPlist ios/App/exportOptions.plist \
-            -exportPath build
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
 
     artifacts:
-      - build/*.ipa
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
 
     publishing:
       app_store_connect:
