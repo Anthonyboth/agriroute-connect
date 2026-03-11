@@ -40,9 +40,9 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   const [fileName, setFileName] = useState('');
   const [hasFile, setHasFile] = useState(!!currentPreview);
 
-  const isNative = Capacitor.isNativePlatform();
+  const platform = Capacitor.getPlatform();
+  const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -92,10 +92,6 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   }, [processSelectedFile]);
 
   const handleNativeCameraCapture = useCallback(async () => {
-    if (!isNative) {
-      cameraInputRef.current?.click();
-      return;
-    }
 
     try {
       console.log('[DocumentUploadLocal] Opening native camera for:', fileType);
@@ -145,7 +141,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       console.error('[DocumentUploadLocal] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
-  }, [fileType, isNative, processSelectedFile]);
+  }, [fileType, processSelectedFile]);
 
   const handleGallerySelect = useCallback(() => {
     galleryInputRef.current?.click();
@@ -154,7 +150,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   const handleRemove = () => {
     setHasFile(false);
     setFileName('');
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    
     if (galleryInputRef.current) galleryInputRef.current.value = '';
     onFileSelect(new Blob([]), '');
   };
@@ -168,16 +164,6 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       </Label>
       <Card className={isComplete ? 'border-primary/40' : ''}>
         <CardContent className="p-4 space-y-3">
-          <input
-            ref={cameraInputRef}
-            id={`${fileType}-camera`}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileChange}
-            disabled={processing}
-            className="hidden"
-          />
 
           <input
             ref={galleryInputRef}
@@ -207,16 +193,37 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={handleNativeCameraCapture}
-                disabled={processing}
-              >
-                {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
-                Abrir Câmera
-              </Button>
+              {isNative ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleNativeCameraCapture}
+                  disabled={processing}
+                >
+                  {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                  Abrir Câmera
+                </Button>
+              ) : (
+                <label className="relative flex-1 cursor-pointer">
+                  <input
+                    id={`${fileType}-camera-web`}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    disabled={processing}
+                    className="absolute inset-0 h-full w-full opacity-[0.01] cursor-pointer"
+                    aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
+                  />
+                  <Button asChild type="button" variant="outline" className="w-full pointer-events-none">
+                    <span>
+                      {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                      Abrir Câmera
+                    </span>
+                  </Button>
+                </label>
+              )}
               <Button
                 type="button"
                 variant="outline"

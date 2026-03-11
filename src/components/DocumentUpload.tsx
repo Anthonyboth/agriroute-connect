@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+
 import { toast } from 'sonner';
 import { Upload, Check, Camera } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -41,9 +41,9 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const [uploaded, setUploaded] = useState(!!currentFile);
   const [fileName, setFileName] = useState('');
 
-  const isNative = Capacitor.isNativePlatform();
+  const platform = Capacitor.getPlatform();
+  const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -125,10 +125,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   }, [processFileUpload]);
 
   const handleNativeCameraCapture = useCallback(async () => {
-    if (!isNative) {
-      cameraInputRef.current?.click();
-      return;
-    }
 
     try {
       console.log('[DocumentUpload] Opening native camera for:', fileType);
@@ -178,7 +174,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       console.error('[DocumentUpload] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
-  }, [fileType, isNative, processFileUpload]);
+  }, [fileType, processFileUpload]);
 
   const handleGallerySelect = useCallback(() => {
     galleryInputRef.current?.click();
@@ -191,15 +187,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       </Label>
       <Card>
         <CardContent className="p-4">
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileUpload}
-            disabled={uploading || uploaded}
-            className="hidden"
-          />
           <input
             ref={galleryInputRef}
             type="file"
@@ -221,16 +208,36 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={handleNativeCameraCapture}
-                disabled={uploading || uploaded}
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Abrir Câmera
-              </Button>
+              {isNative ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleNativeCameraCapture}
+                  disabled={uploading || uploaded}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Abrir Câmera
+                </Button>
+              ) : (
+                <label className="relative flex-1 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileUpload}
+                    disabled={uploading || uploaded}
+                    className="absolute inset-0 h-full w-full opacity-[0.01] cursor-pointer"
+                    aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
+                  />
+                  <Button asChild type="button" variant="outline" className="w-full pointer-events-none">
+                    <span>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Abrir Câmera
+                    </span>
+                  </Button>
+                </label>
+              )}
               <Button
                 type="button"
                 variant="outline"

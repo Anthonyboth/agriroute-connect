@@ -1583,6 +1583,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'native_camera_error_not_silently_swallowed',
     ],
   },
+
+  // ── FRT-059: "Abrir Câmera" no web mobile acionava galeria por clique programático em input capture ──
+  {
+    id: 'FRT-059',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'document-upload-camera-trigger',
+    bug: 'Nos fluxos de cadastro em web mobile, tocar em "Abrir Câmera" podia abrir a galeria em vez da câmera para documentos.',
+    rootCause: 'DocumentUpload/DocumentUploadLocal acionavam input[capture] via ref.click() programático. Em iOS Safari/WebView, esse padrão pode perder o contexto de gesto direto e cair no seletor de galeria.',
+    fix: 'No web, o botão "Abrir Câmera" agora usa input file sobreposto dentro de <label> (gesture direto). No nativo (iOS/Android), mantém Camera.getPhoto com source Camera para captura direta.',
+    files: [
+      'src/components/DocumentUpload.tsx',
+      'src/components/DocumentUploadLocal.tsx',
+    ],
+    rules: [
+      'Para web mobile, inputs com capture NÃO devem ser disparados por ref.click() programático quando o objetivo é forçar câmera.',
+      'Usar interação direta do usuário (label/input overlay) para preservar gesture context no iOS.',
+      'Em iOS/Android nativo, captura de documento deve usar Camera.getPhoto({ source: CameraSource.Camera }).',
+    ],
+    keywords: ['FRT-059', 'Abrir Câmera', 'iOS', 'Safari', 'WebView', 'capture', 'ref.click', 'galeria', 'cadastro'],
+    testCases: [
+      'web_mobile_document_camera_button_uses_direct_input_gesture',
+      'ios_native_document_camera_still_uses_capacitor_camera_source_camera',
+      'affiliated_signup_document_camera_button_does_not_fall_back_to_gallery_unintentionally',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
