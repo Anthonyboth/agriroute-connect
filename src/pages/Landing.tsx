@@ -1,6 +1,6 @@
 // Sprint 1: Performance optimization - removed dead carousel code
 // P0 HOTFIX: Restaurado SafeAuthModal para cadastro com seleção por cards
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
