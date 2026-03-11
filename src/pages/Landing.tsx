@@ -218,7 +218,7 @@ const Landing: React.FC = () => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                navigate('/auth?mode=signup');
+                handleOpenSignup();
               }}
               className="hidden md:flex gradient-primary text-primary-foreground font-medium"
             > 
