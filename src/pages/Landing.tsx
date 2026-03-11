@@ -95,6 +95,7 @@ import Leaf from 'lucide-react/dist/esm/icons/leaf';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
+import Building2 from 'lucide-react/dist/esm/icons/building-2';
 import { useHeroBackground } from '@/hooks/useHeroBackground';
 
 const Landing: React.FC = () => {
