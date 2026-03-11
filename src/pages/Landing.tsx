@@ -284,12 +284,12 @@ const Landing: React.FC = () => {
           </h1>
           
           {/* Main Action Buttons - Stack vertically on mobile, horizontal on desktop */}
-          <div className="max-w-3xl mx-auto px-4">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
+           <div className="max-w-3xl mx-auto px-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRODUTOR')}
-                className="bg-[hsl(145,62%,53%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-glow hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(145,62%,45%)]"
+                className="bg-[hsl(145,62%,53%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-glow hover:scale-105 transition-bounce hover:bg-[hsl(145,62%,45%)] w-full"
               >
                 <Users className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Produtor
@@ -298,18 +298,16 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('MOTORISTA')}
-                className="bg-[hsl(22,100%,63%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(22,100%,55%)]"
+                className="bg-[hsl(22,100%,63%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce hover:bg-[hsl(22,100%,55%)] w-full"
               >
                 <Truck className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Motorista
                 <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
               </Button>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mt-3 md:mt-4">
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('TRANSPORTADORA')}
-                className="bg-[hsl(43,100%,70%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(43,100%,60%)]"
+                className="bg-[hsl(43,100%,70%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce hover:bg-[hsl(43,100%,60%)] w-full"
               >
                 <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Transportadora
@@ -318,7 +316,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
-                className="bg-[hsl(202,100%,60%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(202,100%,50%)]"
+                className="bg-[hsl(202,100%,60%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce hover:bg-[hsl(202,100%,50%)] w-full"
               >
                 <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Prestador
