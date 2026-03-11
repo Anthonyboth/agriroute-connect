@@ -206,24 +206,24 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
                   Abrir Câmera
                 </Button>
               ) : (
-                <label className="relative flex-1 cursor-pointer">
+                <>
                   <input
-                    id={`${fileType}-camera-web`}
+                    id={cameraInputId}
                     type="file"
                     accept="image/*"
                     capture="environment"
                     onChange={handleFileChange}
                     disabled={processing}
-                    className="absolute inset-0 h-full w-full opacity-[0.01] cursor-pointer"
+                    className="sr-only"
                     aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
                   />
-                  <Button asChild type="button" variant="outline" className="w-full pointer-events-none">
-                    <span>
+                  <Button asChild type="button" variant="outline" className="flex-1">
+                    <label htmlFor={cameraInputId} className="cursor-pointer">
                       {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
                       Abrir Câmera
-                    </span>
+                    </label>
                   </Button>
-                </label>
+                </>
               )}
               <Button
                 type="button"
