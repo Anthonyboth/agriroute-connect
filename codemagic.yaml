@@ -9,30 +9,22 @@ workflows:
       xcode: latest
       cocoapods: default
 
-      groups:
-        - app_store_connect
-
-      vars:
-        APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
-        APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
-
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
 
     scripts:
-      - name: Install Bundler
-        script: gem install bundler -v 2.5.23 --no-document
-
-      - name: Install Node
-        script: npm install
+      - name: Install dependencies
+        script: |
+          npm install
 
       - name: Build Web
-        script: npm run build
+        script: |
+          npm run build
 
       - name: Capacitor Sync
-        script: npx cap sync ios
+        script: |
+          npx cap sync ios
 
       - name: Install Pods
         script: |
@@ -40,7 +32,8 @@ workflows:
           pod install
 
       - name: Apply Code Signing
-        script: xcode-project use-profiles
+        script: |
+          xcode-project use-profiles
 
       - name: Build IPA
         script: |
@@ -53,7 +46,4 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key:
-          key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-          private_key: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
+        integration: app_store_connect
