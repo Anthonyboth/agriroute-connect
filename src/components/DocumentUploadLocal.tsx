@@ -4,7 +4,7 @@
  * Armazena blobs localmente (em memória) para upload após autenticação.
  */
 
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +14,8 @@ import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraDirection, CameraResultType, CameraSource } from '@capacitor/camera';
 import { validateImageQuality } from '@/utils/imageValidator';
 import { dataUrlToBlob, getFileExtensionFromMime } from '@/utils/imageDataUrl';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useWebDocumentCamera } from '@/hooks/useWebDocumentCamera';
 
 interface DocumentUploadLocalProps {
   onFileSelect: (blob: Blob, previewUrl: string) => void;
