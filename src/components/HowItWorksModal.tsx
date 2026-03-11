@@ -473,6 +473,45 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
+              ) : viewType === 'PRESTADOR_SERVICOS' ? (
+                <>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Visibilidade</h4>
+                      <p className="text-sm text-muted-foreground">Seu serviço alcança produtores e motoristas da região</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Pagamento Seguro</h4>
+                      <p className="text-sm text-muted-foreground">Receba com segurança após cada serviço concluído</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Flexibilidade</h4>
+                      <p className="text-sm text-muted-foreground">Defina seus horários, preços e área de atuação</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Avaliações</h4>
+                      <p className="text-sm text-muted-foreground">Construa reputação e atraia mais clientes</p>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </CardContent>
