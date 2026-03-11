@@ -237,7 +237,7 @@ const Landing: React.FC = () => {
             }>
               <MobileMenu 
                 onContactClick={() => setContactModal(true)}
-                onSignupClick={() => setAuthModal(true)}
+                onSignupClick={() => navigate('/auth?mode=signup')}
               />
             </Suspense>
           </div>
