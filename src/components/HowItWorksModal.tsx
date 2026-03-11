@@ -180,6 +180,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <DialogTitle className="text-2xl font-bold text-center mb-2">
               {viewType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 
                viewType === 'TRANSPORTADORA' ? 'Como Funciona para Transportadoras' :
+               viewType === 'PRESTADOR_SERVICOS' ? 'Como Funciona para Prestadores' :
                'Como Funciona para Motoristas'}
             </DialogTitle>
             <DialogDescription className="text-center text-lg">
@@ -187,6 +188,8 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                 ? 'Conecte sua produção ao destino de forma simples e segura'
                 : viewType === 'TRANSPORTADORA'
                 ? 'Gerencie sua frota e motoristas com eficiência e tecnologia'
+                : viewType === 'PRESTADOR_SERVICOS'
+                ? 'Ofereça seus serviços e conquiste clientes na plataforma'
                 : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
               }
             </DialogDescription>
