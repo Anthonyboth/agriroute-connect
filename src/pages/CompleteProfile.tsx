@@ -301,7 +301,7 @@ const CompleteProfile = () => {
       // Evita reidratação em atualizações subsequentes do perfil
       didInitRef.current = true;
     }
-  }, [profile, authLoading, isAuthenticated, navigate]);
+  }, [profile, authLoading, isAuthenticated, navigate, updateDocumentUrls]);
 
   // Função para construir endereço completo
   const buildFullAddress = () => {
