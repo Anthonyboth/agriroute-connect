@@ -318,7 +318,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
-                className="bg-[hsl(210,70%,58%)] text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(210,70%,50%)]"
+                className="bg-[hsl(200,100%,65%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(200,100%,55%)]"
               >
                 <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Prestador
