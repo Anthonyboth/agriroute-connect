@@ -305,6 +305,26 @@ const Landing: React.FC = () => {
                 <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
               </Button>
             </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mt-3 md:mt-4">
+              <Button 
+                size="lg"
+                onClick={() => handleGetStarted('TRANSPORTADORA')}
+                className="bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))] text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:opacity-90"
+              >
+                <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
+                Sou Transportadora
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+              </Button>
+              <Button 
+                size="lg"
+                onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
+                className="bg-[hsl(var(--destructive))] text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:opacity-90"
+              >
+                <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
+                Sou Prestador
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+              </Button>
+            </div>
             <div className="mt-3 md:mt-4 flex justify-center">
               <Button 
                 variant="outline"
