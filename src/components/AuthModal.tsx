@@ -243,7 +243,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
           <Separator />
 
           <Button
-            onClick={handleProceedToSignup}
+            onClick={() => handleProceedToSignup()}
             disabled={!selectedRole}
             className="w-full gradient-primary text-primary-foreground"
           >
