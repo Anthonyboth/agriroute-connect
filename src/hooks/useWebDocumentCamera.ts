@@ -140,7 +140,11 @@ export function useWebDocumentCamera({
           throw new Error('A captura retornou uma imagem vazia.');
         }
 
-        return new File([blob], `${fileNamePrefix}_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        // Compress through the unified pipeline
+        const compressed = await compressImage(blob, { maxWidth: 1280, quality: 0.8 });
+        console.log('[Camera] Web capture compressed:', { from: blob.size, to: compressed.size });
+
+        return new File([compressed], `${fileNamePrefix}_${Date.now()}.jpg`, { type: 'image/jpeg' });
       } finally {
         setIsCapturing(false);
       }
