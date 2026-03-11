@@ -9,9 +9,6 @@ workflows:
       xcode: latest
       cocoapods: default
 
-      vars:
-        BUNDLE_PATH: vendor/bundle
-
     scripts:
       - name: Install Bundler
         script: |
@@ -19,6 +16,7 @@ workflows:
 
       - name: Install Ruby Gems
         script: |
+          cd ios/App
           bundle install
 
       - name: Install Node Dependencies
