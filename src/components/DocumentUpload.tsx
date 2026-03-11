@@ -11,6 +11,7 @@ import { validateImageQuality } from '@/utils/imageValidator';
 import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
 import { InlineSpinner } from '@/components/ui/AppSpinner';
 import { dataUrlToBlob, getFileExtensionFromMime } from '@/utils/imageDataUrl';
+import { processCameraImage, getCameraUri } from '@/utils/imageProcessing';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useWebDocumentCamera } from '@/hooks/useWebDocumentCamera';
 
@@ -137,13 +138,12 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   }, [processFileUpload]);
 
   const handleNativeCameraCapture = useCallback(async () => {
-
     try {
-      console.log('[DocumentUpload] Opening native camera for:', fileType);
+      console.log('[Camera] Opening native camera for:', fileType);
       const image = await CapCamera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: CameraResultType.DataUrl,
+        resultType: CameraResultType.Uri,
         source: CameraSource.Camera,
         direction: CameraDirection.Rear,
         correctOrientation: true,
@@ -151,31 +151,20 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
         height: 1080,
       });
 
-      if (!image.dataUrl) {
-        toast.error('Não foi possível capturar a imagem.');
-        return;
-      }
+      const uri = getCameraUri(image);
+      console.log('[Camera] Got URI, processing image...');
 
-      let blob: Blob;
-      try {
-        blob = dataUrlToBlob(image.dataUrl);
-      } catch (convErr) {
-        console.error('[DocumentUpload] dataUrlToBlob failed:', convErr);
-        toast.error('Erro ao processar imagem. Tente novamente.');
-        return;
-      }
+      const processed = await processCameraImage(uri, fileType, {
+        maxWidth: 1280,
+        quality: 0.8,
+      });
 
-      if (!blob.size) {
-        toast.error('Imagem inválida. Tente novamente.');
-        return;
-      }
-
-      const mime = blob.type || 'image/jpeg';
-      const ext = getFileExtensionFromMime(mime);
-      const nativeFile = new File([blob], `${fileType}_${Date.now()}.${ext}`, { type: mime });
-
-      console.log('[DocumentUpload] Native file created:', { size: nativeFile.size, type: mime, fileType });
-      await processFileUpload(nativeFile);
+      console.log('[StorageUpload] Native file ready:', {
+        size: processed.file.size,
+        type: processed.file.type,
+        fileType,
+      });
+      await processFileUpload(processed.file);
     } catch (error: any) {
       const msg = error?.message || String(error);
       const isCancellation = msg === 'User cancelled photos app' || 
@@ -183,7 +172,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                               msg.includes('User cancelled') ||
                               (msg.toLowerCase() === 'cancelled');
       if (isCancellation) return;
-      console.error('[DocumentUpload] Native camera error:', { message: msg, fileType });
+      console.error('[Camera] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
   }, [fileType, processFileUpload]);

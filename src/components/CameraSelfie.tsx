@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource, CameraDirection } from '@capacitor/camera';
 import { dataUrlToBlob } from '@/utils/imageDataUrl';
+import { compressImage, getCameraUri, uriToBlob } from '@/utils/imageProcessing';
 
 interface CameraSelfieProps {
   onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => Promise<void> | void;
@@ -73,7 +74,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       const image = await CapCamera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: CameraResultType.DataUrl,
+        resultType: CameraResultType.Uri,
         source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos,
         ...(source === 'camera' ? { direction: CameraDirection.Front } : {}),
         correctOrientation: true,
@@ -81,35 +82,25 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         height: 720,
       });
 
-      console.log('[CameraSelfie] CapCamera.getPhoto returned:', { 
-        hasDataUrl: !!image.dataUrl, 
+      console.log('[Camera] CapCamera.getPhoto returned:', { 
+        hasWebPath: !!image.webPath,
+        hasPath: !!image.path,
         format: image.format,
-        dataUrlLength: image.dataUrl?.length || 0 
       });
 
-      if (!image.dataUrl) {
-        console.error('[CameraSelfie] Native camera returned no dataUrl');
-        toast.error('Erro ao capturar imagem. Tente novamente.');
-        return;
-      }
+      const uri = getCameraUri(image);
+      let blob = await uriToBlob(uri);
 
-      // Conversão manual robusta para iOS WKWebView (não usar fetch para dataUrls)
-      let blob: Blob;
-      try {
-        blob = dataUrlToBlob(image.dataUrl);
-      } catch (convErr) {
-        console.error('[CameraSelfie] dataUrlToBlob failed:', convErr);
-        toast.error('Erro ao processar imagem. Tente novamente.');
-        return;
-      }
+      // Compress selfie through unified pipeline
+      blob = await compressImage(blob, { maxWidth: 1280, quality: 0.8 });
 
       if (!blob || blob.size === 0) {
-        console.error('[CameraSelfie] Blob vazio após conversão da dataUrl');
+        console.error('[Camera] Blob vazio após processamento');
         toast.error('Imagem capturada está vazia. Tente novamente.');
         return;
       }
 
-      console.log('[CameraSelfie] Native photo blob ready:', {
+      console.log('[ImageProcessing] Selfie blob ready:', {
         size: blob.size,
         type: blob.type,
         source,
