@@ -40,9 +40,9 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   const [fileName, setFileName] = useState('');
   const [hasFile, setHasFile] = useState(!!currentPreview);
 
-  const isNative = Capacitor.isNativePlatform();
+  const platform = Capacitor.getPlatform();
+  const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
