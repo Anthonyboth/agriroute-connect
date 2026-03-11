@@ -577,8 +577,8 @@ const CompleteProfile = () => {
         id: profile.id,
         role: profile.role || 'PRODUTOR',
         status: freshStatus,
-        selfie_url: documentUrls.selfie || profile.selfie_url || null,
-        document_photo_url: documentUrls.document_photo || profile.document_photo_url || null,
+        selfie_url: effectiveDocumentUrls.selfie || profile.selfie_url || null,
+        document_photo_url: effectiveDocumentUrls.document_photo || profile.document_photo_url || null,
       });
       navigate(destination);
     } catch (error) {
