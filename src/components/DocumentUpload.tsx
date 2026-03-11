@@ -188,15 +188,6 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       <Card>
         <CardContent className="p-4">
           <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileUpload}
-            disabled={uploading || uploaded}
-            className="hidden"
-          />
-          <input
             ref={galleryInputRef}
             type="file"
             accept={accept}
