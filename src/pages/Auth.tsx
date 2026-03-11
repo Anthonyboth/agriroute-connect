@@ -115,16 +115,22 @@ const Auth = () => {
       }
       setRole(effectiveRole);
       
-      // ✅ FRT-053: Só resetar signupStep para role-selection na PRIMEIRA execução.
-      // Em execuções subsequentes (re-renders), NÃO resetar — o usuário pode já ter avançado.
+      // ✅ FRT-053: Só avançar automaticamente na PRIMEIRA execução.
       if (!initialSyncDoneRef.current && mode === 'signup') {
         if (effectiveRole === 'MOTORISTA_AFILIADO') {
-          // Redirect to affiliate signup page
           window.location.href = '/cadastro-motorista-afiliado';
           return;
         }
-        // Stay on role-selection step with the card pre-highlighted
-        setSignupStep('role-selection');
+        // ✅ UX FIX: Se o role já veio na URL, pular direto pro formulário (sem piscar nos cards)
+        if (effectiveRole === 'MOTORISTA') {
+          setSignupStep('driver-type');
+        } else if (effectiveRole === 'TRANSPORTADORA') {
+          setDriverType('TRANSPORTADORA');
+          setSignupStep('form');
+        } else {
+          // PRODUTOR, PRESTADOR_SERVICOS → direto pro form
+          setSignupStep('form');
+        }
       }
     }
     
