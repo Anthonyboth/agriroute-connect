@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,6 +45,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputId = useId();
 
   useEffect(() => {
     if (currentFile) {
@@ -220,23 +221,24 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                   Abrir Câmera
                 </Button>
               ) : (
-                <label className="relative flex-1 cursor-pointer">
+                <>
                   <input
+                    id={cameraInputId}
                     type="file"
                     accept="image/*"
                     capture="environment"
                     onChange={handleFileUpload}
                     disabled={uploading || uploaded}
-                    className="absolute inset-0 h-full w-full opacity-[0.01] cursor-pointer"
+                    className="sr-only"
                     aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
                   />
-                  <Button asChild type="button" variant="outline" className="w-full pointer-events-none">
-                    <span>
+                  <Button asChild type="button" variant="outline" className="flex-1">
+                    <label htmlFor={cameraInputId} className="cursor-pointer">
                       <Camera className="h-4 w-4 mr-2" />
                       Abrir Câmera
-                    </span>
+                    </label>
                   </Button>
-                </label>
+                </>
               )}
               <Button
                 type="button"
