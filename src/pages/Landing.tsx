@@ -123,6 +123,11 @@ const Landing: React.FC = () => {
     setHowItWorksModal({ isOpen: false });
   };
 
+  const handleOpenSignup = useCallback(() => {
+    sessionStorage.removeItem('pending_signup_role');
+    navigate('/auth?mode=signup');
+  }, [navigate]);
+
   const handleProceedToDashboard = () => {
     const userType = howItWorksModal.userType;
     if (userType) {
