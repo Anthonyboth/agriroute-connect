@@ -52,6 +52,16 @@ interface AddressData {
   complemento: string;
 }
 
+interface DocumentUrlsState {
+  selfie: string;
+  document_photo: string;
+  cnh: string;
+  truck_documents: string;
+  truck_photo: string;
+  license_plate: string;
+  address_proof: string;
+}
+
 const CompleteProfile = () => {
   const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user, refreshProfile } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
@@ -75,7 +85,7 @@ const CompleteProfile = () => {
   const isAutonomousDriver = registrationMode === 'MOTORISTA_AUTONOMO';
   const isAffiliatedDriver = registrationMode === 'MOTORISTA_AFILIADO';
   const isDriver = isAutonomousDriver || isAffiliatedDriver;
-  const [documentUrls, setDocumentUrls] = useState({
+  const [documentUrls, setDocumentUrls] = useState<DocumentUrlsState>({
     selfie: '',
     document_photo: '',
     cnh: '',
@@ -123,6 +133,34 @@ const CompleteProfile = () => {
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
   const [legalDialogType, setLegalDialogType] = useState<'terms' | 'privacy' | null>(null);
   const didInitRef = useRef(false);
+  const documentUrlsRef = useRef<DocumentUrlsState>(documentUrls);
+
+  const updateDocumentUrls = useCallback(
+    (next: Partial<DocumentUrlsState> | ((prev: DocumentUrlsState) => DocumentUrlsState)) => {
+      setDocumentUrls((prev) => {
+        const updated = typeof next === 'function' ? next(prev) : { ...prev, ...next };
+        documentUrlsRef.current = updated;
+        return updated;
+      });
+    },
+    []
+  );
+
+  const persistDocumentField = useCallback(
+    async (field: 'selfie_url' | 'document_photo_url' | 'cnh_photo_url' | 'address_proof_url', value: string) => {
+      if (!profile?.user_id || !value) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [field]: value })
+        .eq('user_id', profile.user_id);
+
+      if (error) {
+        console.warn(`[CompleteProfile] Falha ao persistir ${field} em rascunho:`, error.message);
+      }
+    },
+    [profile?.user_id]
+  );
 
   const isLegacySelfieUrl = documentUrls.selfie.startsWith('http://') || documentUrls.selfie.startsWith('https://');
   const { url: resolvedSelfieUrl } = useSignedImageUrl(isLegacySelfieUrl ? null : documentUrls.selfie);
@@ -166,15 +204,16 @@ const CompleteProfile = () => {
           
           const sd = secureData as any;
           if (sd) {
-            setDocumentUrls({
-              selfie: sd.selfie_url || '',
-              document_photo: sd.document_photo_url || '',
-              cnh: sd.cnh_photo_url || '',
-              truck_documents: sd.truck_documents_url || '',
-              truck_photo: sd.truck_photo_url || '',
-              license_plate: sd.license_plate_photo_url || '',
-              address_proof: sd.address_proof_url || ''
-            });
+            updateDocumentUrls((prev) => ({
+              ...prev,
+              selfie: prev.selfie || sd.selfie_url || '',
+              document_photo: prev.document_photo || sd.document_photo_url || '',
+              cnh: prev.cnh || sd.cnh_photo_url || '',
+              truck_documents: prev.truck_documents || sd.truck_documents_url || '',
+              truck_photo: prev.truck_photo || sd.truck_photo_url || '',
+              license_plate: prev.license_plate || sd.license_plate_photo_url || '',
+              address_proof: prev.address_proof || sd.address_proof_url || '',
+            }));
             
             setProfileData(prev => ({
               ...prev,
@@ -197,15 +236,16 @@ const CompleteProfile = () => {
       };
       
       // Inicializar com dados disponíveis do useAuth (pode estar incompleto por CLS)
-      setDocumentUrls({
-        selfie: profile.selfie_url || '',
-        document_photo: profile.document_photo_url || '',
-        cnh: profile.cnh_photo_url || '',
-        truck_documents: profile.truck_documents_url || '',
-        truck_photo: profile.truck_photo_url || '',
-        license_plate: profile.license_plate_photo_url || '',
-        address_proof: profile.address_proof_url || ''
-      });
+      updateDocumentUrls((prev) => ({
+        ...prev,
+        selfie: prev.selfie || profile.selfie_url || '',
+        document_photo: prev.document_photo || profile.document_photo_url || '',
+        cnh: prev.cnh || profile.cnh_photo_url || '',
+        truck_documents: prev.truck_documents || profile.truck_documents_url || '',
+        truck_photo: prev.truck_photo || profile.truck_photo_url || '',
+        license_plate: prev.license_plate || profile.license_plate_photo_url || '',
+        address_proof: prev.address_proof || profile.address_proof_url || '',
+      }));
       
       setLocationEnabled(profile.location_enabled || false);
       
@@ -261,7 +301,7 @@ const CompleteProfile = () => {
       // Evita reidratação em atualizações subsequentes do perfil
       didInitRef.current = true;
     }
-  }, [profile, authLoading, isAuthenticated, navigate]);
+  }, [profile, authLoading, isAuthenticated, navigate, updateDocumentUrls]);
 
   // Função para construir endereço completo
   const buildFullAddress = () => {
@@ -326,18 +366,20 @@ const CompleteProfile = () => {
       return;
     }
 
-    // FRT-045 debug: log selfie state to diagnose iPhone/Capacitor issues
+    const effectiveDocumentUrls = documentUrlsRef.current;
+
+    // FRT-056 debug: usa snapshot em ref para evitar race de setState no clique em Continuar
     console.log('[CompleteProfile] handleSaveAndContinue called', {
       currentStep,
       registrationMode,
-      selfieUrl: documentUrls.selfie ? `${documentUrls.selfie.substring(0, 60)}...` : '(empty)',
-      documentPhotoUrl: documentUrls.document_photo ? '✅ set' : '(empty)',
-      cnhUrl: documentUrls.cnh ? '✅ set' : '(empty)',
+      selfieUrl: effectiveDocumentUrls.selfie ? `${effectiveDocumentUrls.selfie.substring(0, 60)}...` : '(empty)',
+      documentPhotoUrl: effectiveDocumentUrls.document_photo ? '✅ set' : '(empty)',
+      cnhUrl: effectiveDocumentUrls.cnh ? '✅ set' : '(empty)',
     });
 
     const state = {
       profileData,
-      documentUrls,
+      documentUrls: effectiveDocumentUrls,
       platePhotos: [], // Removido - veículos são adicionados após o cadastro
       vehicles: [], // Veículos agora são adicionados após o cadastro
       skipVehicleRegistration: true, // Sempre pular cadastro de veículos durante registro
@@ -382,7 +424,7 @@ const CompleteProfile = () => {
       }
       
       // Demais perfis finalizam no passo 2
-      await finalizeProfile();
+      await finalizeProfile(effectiveDocumentUrls);
       return;
     }
     
@@ -408,19 +450,21 @@ const CompleteProfile = () => {
       }
       
       // Finalizar cadastro
-      await finalizeProfile();
+      await finalizeProfile(effectiveDocumentUrls);
       return;
     }
   };
 
-  const finalizeProfile = async () => {
-    if (import.meta.env.DEV) console.log('🚀 Iniciando finalização do perfil...', { profileData, documentUrls });
+  const finalizeProfile = async (docsOverride?: DocumentUrlsState) => {
+    const effectiveDocumentUrls = docsOverride ?? documentUrlsRef.current;
+
+    if (import.meta.env.DEV) console.log('🚀 Iniciando finalização do perfil...', { profileData, documentUrls: effectiveDocumentUrls });
 
     // Validação final de selfie
-    if (!documentUrls.selfie) {
+    if (!effectiveDocumentUrls.selfie) {
       console.warn('[CompleteProfile] ❌ Selfie ausente na finalização. documentUrls:', JSON.stringify({
-        selfie: documentUrls.selfie || '(empty)',
-        document_photo: documentUrls.document_photo ? '✅' : '(empty)',
+        selfie: effectiveDocumentUrls.selfie || '(empty)',
+        document_photo: effectiveDocumentUrls.document_photo ? '✅' : '(empty)',
       }));
       toast('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.', { id: 'missing-selfie' });
       return;
@@ -449,9 +493,9 @@ const CompleteProfile = () => {
         phone: profileData.phone,
         cpf_cnpj: profileData.cpf_cnpj,
         fixed_address: profileData.fixed_address,
-        selfie_url: documentUrls.selfie, // FRT-046: Now stores relative path from selfieUpload
-        document_photo_url: documentUrls.document_photo,
-        address_proof_url: documentUrls.address_proof,
+        selfie_url: effectiveDocumentUrls.selfie, // FRT-046: Now stores relative path from selfieUpload
+        document_photo_url: effectiveDocumentUrls.document_photo,
+        address_proof_url: effectiveDocumentUrls.address_proof,
         location_enabled: locationEnabled,
         metadata: {
         ...((profile as any).metadata || {}),
@@ -477,10 +521,10 @@ const CompleteProfile = () => {
           rntrc: profileData.rntrc || null,
           cnh_category: (profileData as any).cnh_category || null,
           cnh_expiry_date: profileData.cnh_expiry_date || null,
-          cnh_photo_url: documentUrls.cnh || null,
-          truck_documents_url: documentUrls.truck_documents || null,
-          truck_photo_url: documentUrls.truck_photo || null,
-          license_plate_photo_url: documentUrls.license_plate || null,
+          cnh_photo_url: effectiveDocumentUrls.cnh || null,
+          truck_documents_url: effectiveDocumentUrls.truck_documents || null,
+          truck_photo_url: effectiveDocumentUrls.truck_photo || null,
+          license_plate_photo_url: effectiveDocumentUrls.license_plate || null,
           antt_number: profileData.antt_number || null,
           cooperative: profileData.cooperative || null,
         };
@@ -533,8 +577,8 @@ const CompleteProfile = () => {
         id: profile.id,
         role: profile.role || 'PRODUTOR',
         status: freshStatus,
-        selfie_url: documentUrls.selfie || profile.selfie_url || null,
-        document_photo_url: documentUrls.document_photo || profile.document_photo_url || null,
+        selfie_url: effectiveDocumentUrls.selfie || profile.selfie_url || null,
+        document_photo_url: effectiveDocumentUrls.document_photo || profile.document_photo_url || null,
       });
       navigate(destination);
     } catch (error) {
@@ -1171,11 +1215,9 @@ const CompleteProfile = () => {
                             }
 
                             setSelfiePreviewUrl(result.signedUrl || '');
-                            setDocumentUrls(prev => {
-                              const updated = { ...prev, selfie: result.filePath! };
-                              console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado com path relativo:', result.filePath);
-                              return updated;
-                            });
+                            updateDocumentUrls({ selfie: result.filePath! });
+                            void persistDocumentField('selfie_url', result.filePath!);
+                            console.log('[CompleteProfile] ✅ documentUrls.selfie atualizado com path relativo:', result.filePath);
                             toast.success(
                               `✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`,
                               { id: 'selfie-upload' }
@@ -1199,7 +1241,10 @@ const CompleteProfile = () => {
                   label={isDriver ? "Foto da Frente da CNH *" : "Foto do Documento (RG/CNH) *"}
                   fileType="document"
                   bucketName="profile-photos"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, document_photo: url }))}
+                  onUploadComplete={(url) => {
+                    updateDocumentUrls({ document_photo: url });
+                    void persistDocumentField('document_photo_url', url);
+                  }}
                   required
                 />
 
@@ -1210,7 +1255,10 @@ const CompleteProfile = () => {
                       label="Foto do Verso da CNH *"
                       fileType="cnh"
                       bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
+                      onUploadComplete={(url) => {
+                        updateDocumentUrls({ cnh: url });
+                        void persistDocumentField('cnh_photo_url', url);
+                      }}
                       required
                     />
 
@@ -1218,7 +1266,10 @@ const CompleteProfile = () => {
                       label="Comprovante de Endereço *"
                       fileType="address"
                       bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, address_proof: url }))}
+                      onUploadComplete={(url) => {
+                        updateDocumentUrls({ address_proof: url });
+                        void persistDocumentField('address_proof_url', url);
+                      }}
                       required
                       accept="image/*,application/pdf"
                     />
