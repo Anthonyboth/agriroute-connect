@@ -104,13 +104,12 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
   }, [processSelectedFile]);
 
   const handleNativeCameraCapture = useCallback(async () => {
-
     try {
-      console.log('[DocumentUploadLocal] Opening native camera for:', fileType);
+      console.log('[Camera] Opening native camera for:', fileType);
       const image = await CapCamera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: CameraResultType.DataUrl,
+        resultType: CameraResultType.Uri,
         source: CameraSource.Camera,
         direction: CameraDirection.Rear,
         correctOrientation: true,
@@ -118,31 +117,19 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
         height: 1080,
       });
 
-      if (!image.dataUrl) {
-        toast.error('Não foi possível capturar a imagem.');
-        return;
-      }
+      const uri = getCameraUri(image);
+      console.log('[Camera] Got URI, processing image...');
 
-      let blob: Blob;
-      try {
-        blob = dataUrlToBlob(image.dataUrl);
-      } catch (convErr) {
-        console.error('[DocumentUploadLocal] dataUrlToBlob failed:', convErr);
-        toast.error('Erro ao processar imagem. Tente novamente.');
-        return;
-      }
+      const processed = await processCameraImage(uri, fileType, {
+        maxWidth: 1280,
+        quality: 0.8,
+      });
 
-      if (!blob.size) {
-        toast.error('Imagem inválida. Tente novamente.');
-        return;
-      }
-
-      const mime = blob.type || 'image/jpeg';
-      const ext = getFileExtensionFromMime(mime);
-      const nativeFile = new File([blob], `${fileType}_${Date.now()}.${ext}`, { type: mime });
-
-      console.log('[DocumentUploadLocal] Native file created:', { size: nativeFile.size, type: mime });
-      await processSelectedFile(nativeFile);
+      console.log('[StorageUpload] Native file ready:', {
+        size: processed.file.size,
+        type: processed.file.type,
+      });
+      await processSelectedFile(processed.file);
     } catch (error: any) {
       const msg = error?.message || String(error);
       const isCancellation = msg === 'User cancelled photos app' || 
@@ -150,7 +137,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
                               msg.includes('User cancelled') ||
                               (msg.toLowerCase() === 'cancelled');
       if (isCancellation) return;
-      console.error('[DocumentUploadLocal] Native camera error:', { message: msg, fileType });
+      console.error('[Camera] Native camera error:', { message: msg, fileType });
       toast.error('Erro ao abrir câmera. Tente novamente.');
     }
   }, [fileType, processSelectedFile]);
