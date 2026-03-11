@@ -49,7 +49,8 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
         if (hasValidLocation) {
           setCity({
             city: profile.base_city_name,
-            state: profile.base_state
+            state: profile.base_state,
+            id: profile.base_city_id || undefined,
           });
           setRadius(profile.service_radius_km || 50);
           setHasLocation(true);
