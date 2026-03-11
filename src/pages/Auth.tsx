@@ -595,22 +595,21 @@ const Auth = () => {
                     onRoleSelect={(selectedRole) => {
                       setRole(selectedRole);
                       setDriverType(null);
-                    }}
-                    onContinue={() => {
-                      // ✅ Step 1: Apenas MOTORISTA vai para step 2 (Autônomo vs Afiliado)
-                      // Transportadora, Produtor e Prestador vão direto para o form
-                      if (role === 'MOTORISTA') {
+
+                      // ✅ UX FIX: avanço imediato no primeiro clique (sem precisar clicar em "Continuar")
+                      if (selectedRole === 'MOTORISTA') {
                         setSignupStep('driver-type');
-                      } else if (role === 'TRANSPORTADORA') {
+                      } else if (selectedRole === 'TRANSPORTADORA') {
                         setDriverType('TRANSPORTADORA');
                         setSignupStep('form');
                       } else {
                         setSignupStep('form');
                       }
                     }}
+                    onContinue={() => {}}
+                    showContinueButton={false}
                     title="Escolha o tipo de conta"
                     description="Selecione o perfil que melhor se encaixa com você"
-                    continueButtonText="Continuar"
                   />
                 )}
 

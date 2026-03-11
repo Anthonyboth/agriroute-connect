@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
 import { ServiceWizard } from './ServiceWizard';
 import { ServiceType } from './types';
 
@@ -31,6 +31,9 @@ export const ServiceWizardModal: React.FC<ServiceWizardModalProps> = ({
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+        <DialogDescription className="sr-only">
+          Assistente de criação e configuração de serviço.
+        </DialogDescription>
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
           <ServiceWizard
             serviceType={serviceType}

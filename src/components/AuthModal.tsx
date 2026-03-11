@@ -93,8 +93,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
     setSelectedRole(role);
   };
 
-  const handleProceedToSignup = () => {
-    if (!selectedRole) {
+  const handleProceedToSignup = (roleOverride?: CardSelectableRole) => {
+    const roleToUse = roleOverride ?? selectedRole;
+
+    if (!roleToUse) {
       toast({
         title: "Selecione o tipo de conta",
         description: "Por favor, escolha o tipo de conta que deseja criar.",
@@ -104,11 +106,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
     }
     
     // Store role in sessionStorage for persistence across page loads
-    sessionStorage.setItem('pending_signup_role', selectedRole);
+    sessionStorage.setItem('pending_signup_role', roleToUse);
     
     onClose();
-    // ✅ CRITICAL: Use mode=signup instead of tab=signup
-    navigate(`/auth?mode=signup&role=${selectedRole}`);
+    // ✅ UX FIX: navegação direta no primeiro clique do card
+    navigate(`/auth?mode=signup&role=${roleToUse}`);
   };
 
   // IMPORTANT: DialogTitle/DialogDescription REQUIRE a <Dialog> context.
