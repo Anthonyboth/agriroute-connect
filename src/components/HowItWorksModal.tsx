@@ -224,11 +224,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                  {viewType === 'PRODUTOR' ? '🌾' : viewType === 'TRANSPORTADORA' ? '🏢' : '🚛'}
+                  {viewType === 'PRODUTOR' ? '🌾' : viewType === 'TRANSPORTADORA' ? '🏢' : viewType === 'PRESTADOR_SERVICOS' ? '🔧' : '🚛'}
                 </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   {viewType === 'PRODUTOR' ? 'Fluxo do Produtor' : 
                    viewType === 'TRANSPORTADORA' ? 'Fluxo da Transportadora' :
+                   viewType === 'PRESTADOR_SERVICOS' ? 'Fluxo do Prestador' :
                    'Fluxo do Motorista'}
                 </h3>
               </div>
