@@ -87,6 +87,10 @@ export function usePanelErrorTelegramReporter() {
       'Erro de validação',
       'Por favor, envie',
       'Por favor, corrija',
+      // Camera warmup messages — transient UX, not real errors
+      'camera_warming_up',
+      'A câmera ainda não está pronta',
+      'Inicializando câmera',
     ];
 
     const shouldIgnore = (msg: string): boolean => {

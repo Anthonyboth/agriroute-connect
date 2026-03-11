@@ -39,8 +39,15 @@ export function useWebDocumentCamera({
   const [isOpen, setIsOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamVersion, setStreamVersion] = useState(0);
+
+  // Track readiness in a ref so capturePhoto can read it synchronously inside the wait loop
+  const isVideoReadyRef = useRef(false);
+  useEffect(() => {
+    isVideoReadyRef.current = isVideoReady;
+  }, [isVideoReady]);
 
   const isSupported =
     typeof navigator !== 'undefined' &&
@@ -60,6 +67,8 @@ export function useWebDocumentCamera({
 
   const closeCamera = useCallback(() => {
     setIsOpen(false);
+    setIsVideoReady(false);
+    isVideoReadyRef.current = false;
     setErrorMessage(null);
     stopStream();
   }, [stopStream]);
@@ -72,6 +81,8 @@ export function useWebDocumentCamera({
     }
 
     setIsStarting(true);
+    setIsVideoReady(false);
+    isVideoReadyRef.current = false;
     setErrorMessage(null);
 
     try {
@@ -97,6 +108,7 @@ export function useWebDocumentCamera({
     }
   }, [facingMode, height, isSupported, stopStream, width]);
 
+  // Attach video stream and listen for readiness events
   useEffect(() => {
     if (!isOpen || !streamRef.current || !videoRef.current) {
       return;
@@ -105,17 +117,53 @@ export function useWebDocumentCamera({
     const videoElement = videoRef.current;
     videoElement.srcObject = streamRef.current;
 
+    const markReady = () => {
+      console.log('[Camera] Video stream ready');
+      setIsVideoReady(true);
+      isVideoReadyRef.current = true;
+    };
+
+    // Listen to multiple events to cover all browsers
+    videoElement.addEventListener('loadeddata', markReady, { once: true });
+    videoElement.addEventListener('canplay', markReady, { once: true });
+    videoElement.addEventListener('playing', markReady, { once: true });
+
     void videoElement.play().catch(() => {
-      setErrorMessage('Toque novamente em “Abrir Câmera” para ativar o vídeo.');
+      setErrorMessage('Toque novamente em "Abrir Câmera" para ativar o vídeo.');
     });
+
+    return () => {
+      videoElement.removeEventListener('loadeddata', markReady);
+      videoElement.removeEventListener('canplay', markReady);
+      videoElement.removeEventListener('playing', markReady);
+    };
   }, [isOpen, streamVersion]);
+
+  /**
+   * Wait for video readiness with a timeout instead of failing instantly.
+   */
+  const waitForVideoReady = useCallback(async (timeout = 2500): Promise<boolean> => {
+    if (isVideoReadyRef.current) return true;
+
+    const start = Date.now();
+    while (!isVideoReadyRef.current && Date.now() - start < timeout) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return isVideoReadyRef.current;
+  }, []);
 
   const capturePhoto = useCallback(
     async (fileNamePrefix: string): Promise<File> => {
       const videoElement = videoRef.current;
 
-      if (!videoElement || videoElement.readyState < 2) {
-        throw new Error('A câmera ainda não está pronta. Aguarde um instante.');
+      if (!videoElement) {
+        throw new Error('Elemento de vídeo não encontrado.');
+      }
+
+      // Wait up to 2.5s for readiness instead of failing immediately
+      const ready = await waitForVideoReady(2500);
+      if (!ready || videoElement.readyState < 2) {
+        throw new Error('camera_warming_up');
       }
 
       setIsCapturing(true);
@@ -149,7 +197,7 @@ export function useWebDocumentCamera({
         setIsCapturing(false);
       }
     },
-    [height, width]
+    [height, width, waitForVideoReady]
   );
 
   useEffect(() => {
@@ -164,6 +212,7 @@ export function useWebDocumentCamera({
     isOpen,
     isStarting,
     isCapturing,
+    isVideoReady,
     errorMessage,
     openCamera,
     closeCamera,

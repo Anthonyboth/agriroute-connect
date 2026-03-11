@@ -52,6 +52,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
     isOpen: isWebCameraOpen,
     isStarting: isWebCameraStarting,
     isCapturing: isWebCameraCapturing,
+    isVideoReady: isWebCameraReady,
     errorMessage: webCameraErrorMessage,
     openCamera: openWebCamera,
     closeCamera: closeWebCamera,
@@ -168,6 +169,10 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       await processSelectedFile(capturedFile);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Não foi possível capturar a foto.';
+      if (message === 'camera_warming_up') {
+        toast('Inicializando câmera, aguarde...', { id: 'camera-warmup' });
+        return;
+      }
       toast.error(message);
     }
   }, [captureWebCameraPhoto, closeWebCamera, fileType, processSelectedFile]);
@@ -291,14 +296,16 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
               type="button"
               className="flex-1"
               onClick={handleCaptureWebCamera}
-              disabled={processing || isWebCameraStarting || isWebCameraCapturing}
+              disabled={processing || isWebCameraStarting || isWebCameraCapturing || !isWebCameraReady}
             >
               {isWebCameraCapturing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : !isWebCameraReady ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Camera className="h-4 w-4 mr-2" />
               )}
-              Capturar
+              {isWebCameraReady ? 'Capturar' : 'Inicializando...'}
             </Button>
           </div>
         </DialogContent>
