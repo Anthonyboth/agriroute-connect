@@ -193,16 +193,37 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={handleNativeCameraCapture}
-                disabled={processing}
-              >
-                {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
-                Abrir Câmera
-              </Button>
+              {isNative ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleNativeCameraCapture}
+                  disabled={processing}
+                >
+                  {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                  Abrir Câmera
+                </Button>
+              ) : (
+                <label className="relative flex-1 cursor-pointer">
+                  <input
+                    id={`${fileType}-camera-web`}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    disabled={processing}
+                    className="absolute inset-0 h-full w-full opacity-[0.01] cursor-pointer"
+                    aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
+                  />
+                  <Button asChild type="button" variant="outline" className="w-full pointer-events-none">
+                    <span>
+                      {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                      Abrir Câmera
+                    </span>
+                  </Button>
+                </label>
+              )}
               <Button
                 type="button"
                 variant="outline"
