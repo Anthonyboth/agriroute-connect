@@ -49,6 +49,20 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
     navigator.mediaDevices && 
     typeof navigator.mediaDevices.getUserMedia === 'function';
 
+  // Stop camera and release resources
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setVideoReady(false);
+  }, []);
+
   // ========== CAPACITOR NATIVE CAMERA ==========
   const takeNativePhoto = useCallback(async (source: 'camera' | 'gallery') => {
     try {
@@ -107,8 +121,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
         console.log('[CameraSelfie] ✅ onCapture completed successfully');
       } catch (uploadErr) {
         console.error('[CameraSelfie] ❌ onCapture threw error:', uploadErr);
-        // Don't swallow this - the parent's onCapture should handle its own errors
-        // but if it throws, show a toast here too
         toast.error('Falha ao enviar imagem. Tente novamente.');
         return;
       }
@@ -130,20 +142,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       setStarting(false);
     }
   }, [onCapture, stopCamera]);
-
-  // Stop camera and release resources
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        track.stop();
-      });
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setVideoReady(false);
-  }, []);
 
   // Start camera with getUserMedia
   const startCamera = useCallback(async (origin: 'auto' | 'user') => {
