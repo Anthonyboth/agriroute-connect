@@ -193,6 +193,10 @@ export function useWebDocumentCamera({
         window.cancelAnimationFrame(animationFrameId);
       }
 
+      if (readyPollIntervalId !== null) {
+        window.clearInterval(readyPollIntervalId);
+      }
+
       if (fallbackTimeoutId !== null) {
         window.clearTimeout(fallbackTimeoutId);
       }
