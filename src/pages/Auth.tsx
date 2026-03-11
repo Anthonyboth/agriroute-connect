@@ -621,7 +621,7 @@ const Auth = () => {
 
                 {/* Step 2: Apenas para MOTORISTA — Autônomo ou Afiliado */}
                 {signupStep === 'driver-type' && (
-                  <div className="space-y-4">
+                  <div className="animate-fade-in space-y-4">
                     <div className="flex items-center gap-2 mb-4">
                       <Button
                         variant="ghost"
