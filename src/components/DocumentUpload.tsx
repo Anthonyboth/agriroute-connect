@@ -193,6 +193,31 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     galleryInputRef.current?.click();
   }, []);
 
+  const handleOpenWebCamera = useCallback(async () => {
+    if (!isWebCameraSupported) {
+      toast.error('Seu navegador não suporta câmera direta. Use a opção Galeria.');
+      return;
+    }
+
+    try {
+      await openWebCamera();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível abrir a câmera.';
+      toast.error(message);
+    }
+  }, [isWebCameraSupported, openWebCamera]);
+
+  const handleCaptureWebCamera = useCallback(async () => {
+    try {
+      const capturedFile = await captureWebCameraPhoto(fileType);
+      closeWebCamera();
+      await processFileUpload(capturedFile);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível capturar a foto.';
+      toast.error(message);
+    }
+  }, [captureWebCameraPhoto, closeWebCamera, fileType, processFileUpload]);
+
   return (
     <div className="space-y-2">
       <Label htmlFor={fileType}>
