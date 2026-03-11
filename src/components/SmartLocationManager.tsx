@@ -73,7 +73,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
   }, [user, showValidationModal]);
 
   const handleSaveLocation = async () => {
-    if (!city.city || !city.state) {
+    if (!city.city || !city.state || !city.id) {
       toast.error('Por favor, selecione uma cidade válida');
       return;
     }
