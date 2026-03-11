@@ -59,8 +59,13 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   const prevValueRef = useRef(value);
   useEffect(() => {
     const prev = prevValueRef.current;
-    const changed = value?.city !== prev?.city || value?.state !== prev?.state;
+    const changed =
+      value?.city !== prev?.city ||
+      value?.state !== prev?.state ||
+      value?.id !== prev?.id;
+
     prevValueRef.current = value;
+
     if (changed && value?.city && value?.state) {
       setSearchTerm(formatCityDisplay(value.city, value.state));
       setValidationStatus(value.id ? 'valid' : 'none');
