@@ -164,7 +164,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
             <div className="space-y-4">
               <AddressLocationInput
                 value={city}
-                onChange={(data) => setCity({ city: data.city, state: data.state })}
+                onChange={(data) => setCity({ city: data.city, state: data.state, id: data.id })}
                 label="Sua Cidade Base"
                 placeholder="Digite CEP ou nome da cidade"
                 required
