@@ -258,24 +258,20 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                   Abrir Câmera
                 </Button>
               ) : (
-                <>
-                  <input
-                    id={cameraInputId}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileUpload}
-                    disabled={uploading || uploaded}
-                    className="sr-only"
-                    aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
-                  />
-                  <Button asChild type="button" variant="outline" className="flex-1">
-                    <label htmlFor={cameraInputId} className="cursor-pointer">
-                      <Camera className="h-4 w-4 mr-2" />
-                      Abrir Câmera
-                    </label>
-                  </Button>
-                </>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleOpenWebCamera}
+                  disabled={uploading || uploaded || isWebCameraStarting || isWebCameraCapturing}
+                >
+                  {isWebCameraStarting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4 mr-2" />
+                  )}
+                  Abrir Câmera
+                </Button>
               )}
               <Button
                 type="button"
