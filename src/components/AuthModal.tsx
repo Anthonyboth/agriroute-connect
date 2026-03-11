@@ -93,8 +93,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
     setSelectedRole(role);
   };
 
-  const handleProceedToSignup = () => {
-    if (!selectedRole) {
+  const handleProceedToSignup = (roleOverride?: CardSelectableRole) => {
+    const roleToUse = roleOverride ?? selectedRole;
+
+    if (!roleToUse) {
       toast({
         title: "Selecione o tipo de conta",
         description: "Por favor, escolha o tipo de conta que deseja criar.",
@@ -104,11 +106,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
     }
     
     // Store role in sessionStorage for persistence across page loads
-    sessionStorage.setItem('pending_signup_role', selectedRole);
+    sessionStorage.setItem('pending_signup_role', roleToUse);
     
     onClose();
-    // ✅ CRITICAL: Use mode=signup instead of tab=signup
-    navigate(`/auth?mode=signup&role=${selectedRole}`);
+    // ✅ UX FIX: navegação direta no primeiro clique do card
+    navigate(`/auth?mode=signup&role=${roleToUse}`);
   };
 
   // IMPORTANT: DialogTitle/DialogDescription REQUIRE a <Dialog> context.
@@ -221,7 +223,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
                         ? 'ring-2 ring-primary bg-primary/5 shadow-md'
                         : 'hover:bg-muted/50 hover:shadow-sm'
                     }`}
-                    onClick={() => handleSignupRoleSelect(role.value as CardSelectableRole)}
+                    onClick={() => {
+                      handleSignupRoleSelect(role.value as CardSelectableRole);
+                      handleProceedToSignup(role.value as CardSelectableRole);
+                    }}
                   >
                     <CardContent className="flex flex-col items-center justify-center p-4 text-center">
                       <div
@@ -241,7 +246,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
           <Separator />
 
           <Button
-            onClick={handleProceedToSignup}
+            onClick={() => handleProceedToSignup()}
             disabled={!selectedRole}
             className="w-full gradient-primary text-primary-foreground"
           >
