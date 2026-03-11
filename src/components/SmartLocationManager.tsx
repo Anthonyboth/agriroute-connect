@@ -21,7 +21,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
   showValidationModal = false,
   requiredAction = "usar o sistema"
 }) => {
-  const [city, setCity] = useState({ city: '', state: '' });
+  const [city, setCity] = useState<{ city: string; state: string; id?: string }>({ city: '', state: '' });
   const [radius, setRadius] = useState(50);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +38,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('base_city_name, base_state, service_radius_km, base_lat, base_lng')
+          .select('base_city_id, base_city_name, base_state, service_radius_km, base_lat, base_lng')
           .eq('user_id', user.id)
           .single();
 
@@ -49,7 +49,8 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
         if (hasValidLocation) {
           setCity({
             city: profile.base_city_name,
-            state: profile.base_state
+            state: profile.base_state,
+            id: profile.base_city_id || undefined,
           });
           setRadius(profile.service_radius_km || 50);
           setHasLocation(true);
@@ -72,7 +73,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
   }, [user, showValidationModal]);
 
   const handleSaveLocation = async () => {
-    if (!city.city || !city.state) {
+    if (!city.city || !city.state || !city.id) {
       toast.error('Por favor, selecione uma cidade válida');
       return;
     }
@@ -88,6 +89,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
       const { error } = await supabase
         .from('profiles')
         .update({
+          base_city_id: city.id,
           base_city_name: city.city,
           base_state: city.state,
           service_radius_km: radius,
@@ -162,7 +164,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
             <div className="space-y-4">
               <AddressLocationInput
                 value={city}
-                onChange={(data) => setCity({ city: data.city, state: data.state })}
+                onChange={(data) => setCity({ city: data.city, state: data.state, id: data.id })}
                 label="Sua Cidade Base"
                 placeholder="Digite CEP ou nome da cidade"
                 required
@@ -185,7 +187,7 @@ export const SmartLocationManager: React.FC<SmartLocationManagerProps> = ({
           <div className="flex gap-3 pt-4">
             <Button
               onClick={handleSaveLocation}
-              disabled={!city.city || !city.state || isSaving}
+              disabled={!city.city || !city.state || !city.id || isSaving}
               className="flex-1"
             >
               {isSaving ? (

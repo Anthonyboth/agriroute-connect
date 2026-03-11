@@ -59,8 +59,13 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   const prevValueRef = useRef(value);
   useEffect(() => {
     const prev = prevValueRef.current;
-    const changed = value?.city !== prev?.city || value?.state !== prev?.state;
+    const changed =
+      value?.city !== prev?.city ||
+      value?.state !== prev?.state ||
+      value?.id !== prev?.id;
+
     prevValueRef.current = value;
+
     if (changed && value?.city && value?.state) {
       setSearchTerm(formatCityDisplay(value.city, value.state));
       setValidationStatus(value.id ? 'valid' : 'none');
@@ -72,6 +77,14 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [inputType, setInputType] = useState<'cep' | 'city' | 'empty'>('empty');
   const [validationStatus, setValidationStatus] = useState<'none' | 'valid' | 'invalid'>(value?.id ? 'valid' : 'none');
+  const selectedDisplayValue = value?.city && value?.state
+    ? formatCityDisplay(value.city, value.state)
+    : '';
+  const isConfirmedSelection = Boolean(
+    value?.id &&
+    selectedDisplayValue &&
+    searchTerm.trim().toLowerCase() === selectedDisplayValue.trim().toLowerCase()
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -140,6 +153,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   const searchCities = async (term: string) => {
     if (!term || term.length < 2) {
       setCities([]);
+      setShowDropdown(false);
       return;
     }
 
@@ -152,6 +166,8 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
 
       if (error) {
         console.error('Erro ao buscar cidades:', error);
+        setCities([]);
+        setShowDropdown(false);
         return;
       }
 
@@ -160,12 +176,14 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         ...c,
         display_name: formatCityDisplay(c.name, c.state)
       }));
-      
+
       const uniqueCities = deduplicateCities(rawCities).slice(0, 10);
       setCities(uniqueCities);
-      setShowDropdown(true);
+      setShowDropdown(uniqueCities.length > 0);
     } catch (error) {
       console.error('Erro na busca de cidades:', error);
+      setCities([]);
+      setShowDropdown(false);
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +200,17 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
 
     if (type === 'empty') {
       setCities([]);
+      setShowDropdown(false);
       setValidationStatus('none');
+      return;
+    }
+
+    // Se já existe seleção válida e input está igual ao valor selecionado,
+    // não reabre dropdown nem dispara nova busca (evita flicker).
+    if (type === 'city' && isConfirmedSelection) {
+      setCities([]);
+      setShowDropdown(false);
+      setValidationStatus('valid');
       return;
     }
 
@@ -202,7 +230,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchTerm]);
+  }, [searchTerm, isConfirmedSelection]);
 
   // Fechar dropdown quando clicar fora
   useEffect(() => {
@@ -227,7 +255,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
     }
     
     setSearchTerm(inputValue);
-    setShowDropdown(type === 'city');
+    setShowDropdown(false);
     setSelectedIndex(-1);
     setValidationStatus('none');
   };
@@ -439,7 +467,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         )}
         
         {/* Warning quando digitou cidade mas não selecionou */}
-        {!error && searchTerm && inputType === 'city' && value?.city && !value?.id && (
+        {!error && searchTerm && inputType === 'city' && !value?.id && searchTerm.trim().length >= 2 && (
           <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
             Selecione uma cidade da lista

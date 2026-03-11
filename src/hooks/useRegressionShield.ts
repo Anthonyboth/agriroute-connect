@@ -1476,6 +1476,34 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'driver_type_step_accessible_without_flash',
     ],
   },
+
+  // ── FRT-054: City picker flicker + false warning after valid selection in guest/service flows ──
+  {
+    id: 'FRT-054',
+    date: '2026-03-11',
+    severity: 'CRITICAL',
+    area: 'city-selection-validation',
+    bug: 'Campo de Cidade/CEP no fluxo de solicitação (incluindo sem cadastro e Transporte de Pet) piscava a lista e mantinha aviso "Selecione uma cidade da lista" mesmo após seleção válida.',
+    rootCause: 'AddressLocationInput re-disparava searchCities após seleção programática (setSearchTerm), reabria dropdown e oscilava entre loading/empty. Em paralelo, faltava EXECUTE para role anon em search_cities, gerando erro 42501 em fluxos públicos.',
+    fix: 'Bloqueada nova busca quando o input já corresponde à seleção validada (value.id + display igual), dropdown só abre com resultados reais, erro de busca agora limpa dropdown, e adicionada permissão EXECUTE para anon em public.search_cities. SmartLocationManager também passou a persistir base_city_id para manter validação consistente.',
+    files: [
+      'src/components/AddressLocationInput.tsx',
+      'src/components/SmartLocationManager.tsx',
+      'supabase/migrations/*_grant_search_cities_anon.sql',
+    ],
+    rules: [
+      'Autocomplete de cidade NÃO deve reabrir dropdown após seleção confirmada por ID.',
+      'Fluxos públicos (sem cadastro) que dependem de RPC DEVEM ter GRANT EXECUTE para role anon quando aplicável.',
+      'Campos de cidade validados DEVEM persistir city_id junto com city/state em toda tela que salva localização.',
+    ],
+    keywords: ['AddressLocationInput', 'search_cities', '42501', 'permission denied', 'cidade', 'flicker', 'dropdown', 'anon', 'city_id'],
+    testCases: [
+      'guest_pet_transport_city_select_stays_stable_after_click',
+      'selected_city_with_id_does_not_show_select_from_list_warning',
+      'anon_can_execute_search_cities_rpc_without_42501',
+      'smart_location_manager_saves_base_city_id',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
