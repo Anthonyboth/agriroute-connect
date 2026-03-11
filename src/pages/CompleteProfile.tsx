@@ -450,7 +450,7 @@ const CompleteProfile = () => {
       }
       
       // Finalizar cadastro
-      await finalizeProfile();
+      await finalizeProfile(effectiveDocumentUrls);
       return;
     }
   };
