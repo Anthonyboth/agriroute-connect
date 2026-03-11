@@ -5,7 +5,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.seu.bundle.id
+        bundle_identifier: com.agriroute.app # ALTERE PARA O MESMO DO capacitor.config.ts
       vars:
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
         APP_STORE_CONNECT_KEY_IDENTIFIER: SEU_KEY_ID_AQUI
@@ -13,20 +13,57 @@ workflows:
           -----BEGIN PRIVATE KEY-----
           COLE_AQUI_SUA_CHAVE_PRIVADA_COMPLETA_DO_ARQUIVO_P8
           -----END PRIVATE KEY-----
-        BUNDLE_ID: "com.seu.bundle.id"
-        XCODE_WORKSPACE: "SeuWorkspace.xcworkspace"
-        XCODE_SCHEME: "SeuScheme"
+        BUNDLE_ID: "com.agriroute.app" # MESMO VALOR DO capacitor.config.ts
+        NODE_VERSION: "18"
       groups:
         - app_store_connect
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
     scripts:
-      - name: Install dependencies
+      - name: Install Node dependencies
         script: |
-          # Instalar dependências do CocoaPods se necessário
-          # pod install --repo-update
+          npm install
+          npm install -g @ionic/cli native-run cordova-res
 
-      - name: Set up code signing
+      - name: Build web assets
         script: |
-          echo "Configurando code signing..."
+          ionic build --prod
+
+      - name: Sync with Capacitor
+        script: |
+          npx cap sync ios
+
+      - name: Configure for iPhone only
+        script: |
+          echo "Configurando app para iPhone apenas..."
+
+          # Modificar o Info.plist para iPhone apenas
+          INFO_PLIST="ios/App/App/Info.plist"
+
+          if [ -f "$INFO_PLIST" ]; then
+            # Remover suporte a iPad
+            /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily:1" "$INFO_PLIST" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Set :UIDeviceFamily:0 integer 1" "$INFO_PLIST" 2>/dev/null || true
+            
+            # Remover orientações específicas do iPad
+            /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "$INFO_PLIST" 2>/dev/null || true
+            
+            echo "✅ App configurado para iPhone apenas"
+          else
+            echo "⚠️ Info.plist não encontrado em $INFO_PLIST"
+          fi
+
+      - name: Set build version
+        script: |
+          cd ios/App
+          agvtool new-marketing-version $(date +"%Y.%m.%d")
+          agvtool new-version -all $(git rev-list --count HEAD)
+          cd ../..
 
       - name: Fetch signing files
         script: |
@@ -40,48 +77,25 @@ workflows:
       - name: Add certificates to keychain
         script: |
           keychain initialize
-
-      - name: Apply code signing
-        script: |
           app-store-connect decode-certificate \
             --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
             --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
-            --certificate @env:APP_STORE_CONNECT_CERTIFICATE
+            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY
 
-      - name: Set build version
+      - name: Build iOS app
         script: |
-          agvtool new-marketing-version $(date +"%Y.%m.%d")
-          agvtool new-version -all $(git rev-list --count HEAD)
-
-      - name: Configure for iPhone only
-        script: |
-          echo "Configurando app para iPhone apenas..."
-
-          # Definir dispositivos suportados como iPhone apenas
-          /usr/libexec/PlistBuddy -c "Set :UISupportedInterfaceOrientations~ipad array" "./$XCODE_SCHEME/Info.plist" 2>/dev/null || true
-
-          # Remover orientações específicas do iPad se existirem
-          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "./$XCODE_SCHEME/Info.plist" 2>/dev/null || true
-
-          # Garantir que o app rode apenas no iPhone
-          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" "./$XCODE_SCHEME/Info.plist" 2>/dev/null
-          /usr/libexec/PlistBuddy -c "Set :UIDeviceFamily 1" "./$XCODE_SCHEME/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" "./$XCODE_SCHEME/Info.plist"
-
-          echo "Configuração concluída: app rodará apenas em iPhone"
-
-      - name: Build IPA
-        script: |
+          cd ios/App
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
+            --workspace "App.xcworkspace" \
+            --scheme "App" \
             --config "Release" \
-            --destination "generic/platform=iOS"  # Força build apenas para iPhone/iOS
+            --destination "generic/platform=iOS"
+          cd ../..
 
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - ios/App/build/ios/archive/*.xcarchive
 
     publishing:
       app_store_connect:
@@ -89,13 +103,10 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         submit_to_testflight: true
-        # Opcional: distribuir para grupos específicos do TestFlight
-        # beta_groups:
-        #   - "Grupo de Testadores"
 
       email:
         recipients:
-          - seu-email@exemplo.com
+          - anthony_pva@hotmail.com
         notify:
           success: true
           failure: true
