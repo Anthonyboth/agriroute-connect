@@ -289,7 +289,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRODUTOR')}
-                className="gradient-primary text-primary-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-glow hover:scale-105 transition-bounce w-full sm:w-auto"
+                className="bg-[hsl(145,62%,53%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-glow hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(145,62%,45%)]"
               >
                 <Users className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Produtor
@@ -298,7 +298,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('MOTORISTA')}
-                className="bg-accent text-accent-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto"
+                className="bg-[hsl(22,100%,63%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(22,100%,55%)]"
               >
                 <Truck className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Motorista
@@ -309,7 +309,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('TRANSPORTADORA')}
-                className="bg-[hsl(45,90%,50%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(45,90%,43%)]"
+                className="bg-[hsl(43,100%,70%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(43,100%,60%)]"
               >
                 <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Transportadora
@@ -318,7 +318,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
-                className="bg-[hsl(197,71%,53%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(197,71%,45%)]"
+                className="bg-[hsl(202,100%,60%)] text-black text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto hover:bg-[hsl(202,100%,50%)]"
               >
                 <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Prestador
