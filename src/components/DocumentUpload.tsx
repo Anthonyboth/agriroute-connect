@@ -1,16 +1,18 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 
 import { toast } from 'sonner';
-import { Upload, Check, Camera } from 'lucide-react';
+import { Upload, Check, Camera, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraDirection, CameraResultType, CameraSource } from '@capacitor/camera';
 import { validateImageQuality } from '@/utils/imageValidator';
 import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
 import { InlineSpinner } from '@/components/ui/AppSpinner';
 import { dataUrlToBlob, getFileExtensionFromMime } from '@/utils/imageDataUrl';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useWebDocumentCamera } from '@/hooks/useWebDocumentCamera';
 
 interface DocumentUploadProps {
   onUploadComplete: (url: string) => void;
@@ -45,7 +47,17 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const isNative = Capacitor.isNativePlatform() || platform === 'ios' || platform === 'android';
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputId = useId();
+  const {
+    videoRef: webCameraVideoRef,
+    isSupported: isWebCameraSupported,
+    isOpen: isWebCameraOpen,
+    isStarting: isWebCameraStarting,
+    isCapturing: isWebCameraCapturing,
+    errorMessage: webCameraErrorMessage,
+    openCamera: openWebCamera,
+    closeCamera: closeWebCamera,
+    capturePhoto: captureWebCameraPhoto,
+  } = useWebDocumentCamera({ facingMode: 'environment' });
 
   useEffect(() => {
     if (currentFile) {
@@ -181,6 +193,31 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     galleryInputRef.current?.click();
   }, []);
 
+  const handleOpenWebCamera = useCallback(async () => {
+    if (!isWebCameraSupported) {
+      toast.error('Seu navegador não suporta câmera direta. Use a opção Galeria.');
+      return;
+    }
+
+    try {
+      await openWebCamera();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível abrir a câmera.';
+      toast.error(message);
+    }
+  }, [isWebCameraSupported, openWebCamera]);
+
+  const handleCaptureWebCamera = useCallback(async () => {
+    try {
+      const capturedFile = await captureWebCameraPhoto(fileType);
+      closeWebCamera();
+      await processFileUpload(capturedFile);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível capturar a foto.';
+      toast.error(message);
+    }
+  }, [captureWebCameraPhoto, closeWebCamera, fileType, processFileUpload]);
+
   return (
     <div className="space-y-2">
       <Label htmlFor={fileType}>
@@ -221,24 +258,20 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                   Abrir Câmera
                 </Button>
               ) : (
-                <>
-                  <input
-                    id={cameraInputId}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileUpload}
-                    disabled={uploading || uploaded}
-                    className="sr-only"
-                    aria-label={`Capturar ${label.toLowerCase()} com a câmera`}
-                  />
-                  <Button asChild type="button" variant="outline" className="flex-1">
-                    <label htmlFor={cameraInputId} className="cursor-pointer">
-                      <Camera className="h-4 w-4 mr-2" />
-                      Abrir Câmera
-                    </label>
-                  </Button>
-                </>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleOpenWebCamera}
+                  disabled={uploading || uploaded || isWebCameraStarting || isWebCameraCapturing}
+                >
+                  {isWebCameraStarting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4 mr-2" />
+                  )}
+                  Abrir Câmera
+                </Button>
               )}
               <Button
                 type="button"
@@ -254,6 +287,50 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isWebCameraOpen} onOpenChange={(open) => !open && closeWebCamera()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Capturar documento</DialogTitle>
+            <DialogDescription>
+              Posicione o documento no enquadramento e toque em “Capturar”.
+            </DialogDescription>
+          </DialogHeader>
+
+          {webCameraErrorMessage ? (
+            <p className="text-sm text-destructive">{webCameraErrorMessage}</p>
+          ) : null}
+
+          <div className="overflow-hidden rounded-md border bg-muted">
+            <video
+              ref={webCameraVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full aspect-[4/3] object-cover"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={closeWebCamera}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleCaptureWebCamera}
+              disabled={uploading || isWebCameraStarting || isWebCameraCapturing}
+            >
+              {isWebCameraCapturing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4 mr-2" />
+              )}
+              Capturar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
