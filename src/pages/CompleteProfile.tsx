@@ -204,15 +204,16 @@ const CompleteProfile = () => {
           
           const sd = secureData as any;
           if (sd) {
-            setDocumentUrls({
-              selfie: sd.selfie_url || '',
-              document_photo: sd.document_photo_url || '',
-              cnh: sd.cnh_photo_url || '',
-              truck_documents: sd.truck_documents_url || '',
-              truck_photo: sd.truck_photo_url || '',
-              license_plate: sd.license_plate_photo_url || '',
-              address_proof: sd.address_proof_url || ''
-            });
+            updateDocumentUrls((prev) => ({
+              ...prev,
+              selfie: prev.selfie || sd.selfie_url || '',
+              document_photo: prev.document_photo || sd.document_photo_url || '',
+              cnh: prev.cnh || sd.cnh_photo_url || '',
+              truck_documents: prev.truck_documents || sd.truck_documents_url || '',
+              truck_photo: prev.truck_photo || sd.truck_photo_url || '',
+              license_plate: prev.license_plate || sd.license_plate_photo_url || '',
+              address_proof: prev.address_proof || sd.address_proof_url || '',
+            }));
             
             setProfileData(prev => ({
               ...prev,
