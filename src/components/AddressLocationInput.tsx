@@ -77,6 +77,14 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [inputType, setInputType] = useState<'cep' | 'city' | 'empty'>('empty');
   const [validationStatus, setValidationStatus] = useState<'none' | 'valid' | 'invalid'>(value?.id ? 'valid' : 'none');
+  const selectedDisplayValue = value?.city && value?.state
+    ? formatCityDisplay(value.city, value.state)
+    : '';
+  const isConfirmedSelection = Boolean(
+    value?.id &&
+    selectedDisplayValue &&
+    searchTerm.trim().toLowerCase() === selectedDisplayValue.trim().toLowerCase()
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
