@@ -153,6 +153,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   const searchCities = async (term: string) => {
     if (!term || term.length < 2) {
       setCities([]);
+      setShowDropdown(false);
       return;
     }
 
@@ -165,6 +166,8 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
 
       if (error) {
         console.error('Erro ao buscar cidades:', error);
+        setCities([]);
+        setShowDropdown(false);
         return;
       }
 
@@ -173,12 +176,14 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         ...c,
         display_name: formatCityDisplay(c.name, c.state)
       }));
-      
+
       const uniqueCities = deduplicateCities(rawCities).slice(0, 10);
       setCities(uniqueCities);
-      setShowDropdown(true);
+      setShowDropdown(uniqueCities.length > 0);
     } catch (error) {
       console.error('Erro na busca de cidades:', error);
+      setCities([]);
+      setShowDropdown(false);
     } finally {
       setIsLoading(false);
     }
