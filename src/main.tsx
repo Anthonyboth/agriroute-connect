@@ -159,9 +159,22 @@ if (isLikelyNative) {
   }, 10000);
 }
 
+// ✅ Detect native platform BEFORE boot (no Capacitor import needed)
+const isNativePlatform = typeof window !== 'undefined' && (
+  (window as any).Capacitor?.isNativePlatform?.() === true ||
+  window.location.protocol === 'capacitor:' ||
+  (window.location.hostname === 'localhost' && !window.location.port)
+);
+
 // Bootstrap controlado para permitir limpeza/reload antes do mount
 void (async () => {
-  await ensureFreshPreviewBuild();
+  // ✅ FRT-062 FIX: Skip preview cleanup and PWA recovery in native environment
+  // These routines cause reload loops and flashing in Android/iOS WebViews
+  if (!isNativePlatform) {
+    await ensureFreshPreviewBuild();
+  } else {
+    console.log('[Boot] Native platform detected — skipping preview cleanup & PWA recovery');
+  }
 
   if (typeof window !== 'undefined') {
     (window as any).__domErrors = (window as any).__domErrors || [];

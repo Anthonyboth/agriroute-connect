@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "audit:deps": "bash ./audit-deps.sh"
+    "audit:deps": "bash ./audit-deps.sh",
+    "mobile:preflight:release": "node scripts/validate-native-release.mjs",
+    "mobile:sync:android:release": "npm run build && npm run mobile:preflight:release && npx cap sync android",
+    "mobile:sync:android:dev": "CAPACITOR_LIVE_RELOAD=true npx cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "7.4.4",

@@ -1,73 +1,24 @@
 
-Objetivo: eliminar o crash imediato no Android (Play Store), corrigir a regressão de boot nativo e impedir que volte a acontecer.
 
-Contexto confirmado
-- Cenário informado: fecha imediatamente ao abrir.
-- Canal afetado: Play Store (produção).
-- Logs web/preview mostram boot saudável; problema está no container/build nativo, não no fluxo web normal.
-- Do I know what the issue is? Sim: há regressão crítica de estratégia de boot nativo (produção apontando para servidor remoto de preview + configuração arriscada de `server.url`), incompatível com estabilidade de app em loja.
+## Problem
 
-Plano de implementação (hotfix + blindagem)
+The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
 
-1) Hotfix de boot nativo (bloqueador de produção)
-- Arquivo: `capacitor.config.ts`
-- Remover dependência fixa de `server.url` para produção.
-- Deixar `server` habilitado apenas em modo de desenvolvimento controlado por variável de ambiente.
-- Sanitizar URL de live reload (sem query/path), para evitar cenários que já causaram crash Android em Capacitor.
-- Resultado esperado: app de produção abre usando `dist/` local, sem depender de preview remoto.
+## Root Cause
 
-2) Hardening no bootstrap web dentro do app nativo
-- Arquivo: `src/main.tsx`
-- Impedir rotinas de “preview cache cleanup” e auto-recovery PWA em ambiente nativo (Android/iOS), pois essas rotinas podem gerar reloads agressivos/flicker quando não são contexto web puro.
-- Manter SW desabilitado em nativo de forma explícita (já existe parcialmente, vamos fechar todos os caminhos).
-- Resultado esperado: cold start previsível no WebView nativo, sem loops de reload.
+The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
 
-3) Blindagem anti-regressão executável (não só documental)
-- Arquivos:
-  - `scripts/validate-native-release.mjs` (novo)
-  - `package.json`
-  - `src/hooks/useRegressionShield.ts`
-- Criar validação automática de release que falha build se:
-  - `server.url` estiver ativo em release
-  - URL de server tiver query/path inválido para boot seguro
-- Adicionar scripts de pipeline:
-  - `mobile:preflight:release`
-  - `mobile:sync:android:release`
-  - `mobile:sync:android:dev`
-- Atualizar FRT-062 com regra “enforceable” (checagem automatizada), não apenas texto.
+## Plan
 
-4) Procedimento de recuperação de produção
-- Arquivo: `docs/RELEASE_CHECKLIST.md`
-- Incluir checklist obrigatório antes de publicar AAB:
-  - `npm run build`
-  - `npm run mobile:preflight:release`
-  - `npx cap sync android`
-  - smoke test em aparelho real
-- Incluir protocolo de emergência:
-  - rollback de versão nativa se crash rate subir
-  - bloqueio de release quando preflight falhar.
+### 1. Replace local hero image files
+- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
 
-Detalhes técnicos (implementação proposta)
-- `capacitor.config.ts`:
-  - `const isNativeDev = process.env.CAPACITOR_LIVE_RELOAD === 'true'`
-  - `server` só entra no objeto quando `isNativeDev`
-  - sanitização de URL via `new URL(...)`, mantendo somente `origin`.
-- `main.tsx`:
-  - `const isNative = Capacitor.isNativePlatform()`
-  - `ensureFreshPreviewBuild()` e handlers de recuperação PWA só para web preview, nunca para nativo.
-- `validate-native-release.mjs`:
-  - valida config efetiva e aborta com exit code 1 se houver risco de boot remoto em release.
+### 2. Update the database record
+- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
 
-Critérios de aceite (obrigatórios)
-1. Android release abre sem piscar/fechar (3 aberturas seguidas).
-2. Sem `server.url` no build de produção.
-3. Fluxo de cadastro abre normalmente após cold start.
-4. Câmera (selfie + documento) continua funcional em Android release.
-5. Preflight falha automaticamente se alguém tentar reintroduzir configuração insegura.
+### 3. Update the inline fallback in `index.html`
+- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
 
-Ordem de execução recomendada
-1. Aplicar hotfix de `capacitor.config.ts`.
-2. Aplicar hardening de `main.tsx`.
-3. Adicionar preflight/script e atualizar `package.json`.
-4. Atualizar `useRegressionShield.ts` + checklist.
-5. Gerar build de release e validar em dispositivo real antes de publicar.
+### Technical Note
+All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
+
