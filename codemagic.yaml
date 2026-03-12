@@ -7,7 +7,6 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
-        # API Key do App Store Connect (já existente)
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
         APP_STORE_CONNECT_KEY_IDENTIFIER: "44TTKA2QF4"
         APP_STORE_CONNECT_PRIVATE_KEY: |
@@ -17,7 +16,6 @@ workflows:
           6OMfYYImZtXgHbifvEj+FM4I5bpym3kk0YMDzenPrpbWZwoh/SVmImP5H1KcLb6j
           kPkRlUpe
           -----END PRIVATE KEY-----
-        # Apple ID e senha específica para upload (já existentes)
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
@@ -28,40 +26,23 @@ workflows:
     scripts:
       - name: Limpar ambiente Ruby
         script: |
-          # Remove qualquer Gemfile para evitar conflitos com bundler
           find . -name "Gemfile" -type f -delete
           find . -name "Gemfile.lock" -type f -delete
           unset BUNDLE_GEMFILE
-
       - name: Instalar dependências Node e build
         script: |
           npm install
           npm run build
-
-      - name: Instalar CocoaPods (necessário para Capacitor)
+      - name: Instalar CocoaPods
         script: |
           gem install cocoapods -NV
-
       - name: Sincronizar Capacitor
         script: |
           npx cap sync ios
-
       - name: Configurar iPhone apenas
         script: |
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
-
-      - name: Forçar download de perfis de provisionamento
-        script: |
-          # O Codemagic já baixa os perfis automaticamente com a configuração ios_signing,
-          # mas vamos garantir executando o comando manualmente (opcional, mas seguro)
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --platform IOS \
-            --type IOS_APP_STORE \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
-
       - name: Construir IPA
         script: |
           cd ios/App
@@ -70,8 +51,7 @@ workflows:
             --scheme "App" \
             --config "Release"
           cd ../..
-          echo "✅ IPA gerado em $(find . -name "*.ipa" -type f)"
-
+          echo "✅ IPA gerado: $(find . -name "*.ipa" -type f)"
       - name: Enviar para TestFlight
         script: |
           IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
@@ -82,13 +62,10 @@ workflows:
             echo "❌ IPA não encontrado"
             exit 1
           fi
-          echo "📦 Enviando IPA: $IPA_PATH"
           xcrun altool --upload-app -f "$IPA_PATH" -u "$APPLE_ID" -p "$APP_SPECIFIC_PASSWORD" --type ios --verbose
-
     artifacts:
       - "build/ios/ipa/*.ipa"
       - "ios/App/build/ios/ipa/*.ipa"
-
     publishing:
       email:
         recipients:
