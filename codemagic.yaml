@@ -8,6 +8,16 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
+        # API Key para fetch-signing-files
+        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
+        APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR
+        APP_STORE_CONNECT_PRIVATE_KEY: |
+          -----BEGIN PRIVATE KEY-----
+          MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv5WLsj3roOV3zWQ3
+          XLf/urSEb/YScSsxBhKWYRpGDcihRANCAASi8X/qcRwcfBFuspm/jRnUHD8HPqXP
+          vx9dZC5M7KmuHZandSxTXaIpJe9lQY9M/eC40twqnaf3Ga7xDmdsL8Nb
+          -----END PRIVATE KEY-----
+        # Apple ID para upload com altool
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
@@ -41,9 +51,9 @@ workflows:
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --platform IOS \
             --type IOS_APP_STORE \
-            --apple-id "$APPLE_ID" \
-            --password "$APP_SPECIFIC_PASSWORD" \
-            --team-id "$TEAM_ID"
+            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
 
       - name: Build IPA
         script: |
