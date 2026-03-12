@@ -15,22 +15,22 @@ workflows:
       groups:
         - app_store_connect
     scripts:
-      - name: Install dependencies
+      - name: 1. Instalar dependências
         script: |
           npm install
           npm run build
-          gem install fastlane -NV
+          gem install fastlane cocoapods -NV
 
-      - name: Sync Capacitor
+      - name: 2. Sincronizar com Capacitor
         script: |
           npx cap sync ios
 
-      - name: Configure iPhone only
+      - name: 3. Configurar para iPhone apenas
         script: |
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: Fetch signing files (fastlane match)
+      - name: 4. Buscar perfis com fastlane match
         script: |
           cd ios/App
           fastlane run match appstore \
@@ -42,17 +42,37 @@ workflows:
             force:true
           cd ../..
 
-      - name: Build IPA
+      - name: 5. Gerar export_options.plist e construir IPA
         script: |
           cd ios/App
+          cat > export_options.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>$TEAM_ID</string>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
           xcode-project build-ipa \
             --workspace "App.xcworkspace" \
             --scheme "App" \
-            --config "Release"
+            --config "Release" \
+            --export-options-plist export_options.plist
+          cd ../..
 
-      - name: Upload to TestFlight
+      - name: 6. Enviar para TestFlight
         script: |
           IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "IPA não encontrado"
+            exit 1
+          fi
           xcrun altool --upload-app -f "$IPA_PATH" -u "$APPLE_ID" -p "$APP_SPECIFIC_PASSWORD" --type ios --verbose
 
     artifacts:
@@ -63,3 +83,6 @@ workflows:
       email:
         recipients:
           - anthony_pva@hotmail.com
+        notify:
+          success: true
+          failure: true
