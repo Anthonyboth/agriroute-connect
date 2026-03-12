@@ -23,19 +23,20 @@ workflows:
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
+        # Configurações do fastlane match
+        MATCH_GIT_URL: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
+        MATCH_PASSWORD: "AgriRoute2025!Match"
       groups:
         - app_store_connect
     scripts:
       - name: 1. Instalar dependências
         script: |
           set -e
-          # Remove qualquer Gemfile para evitar conflitos com Bundler
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
           unset BUNDLE_GEMFILE
           npm install
           npm run build
-          # Instala a gem correta: app_store_connect (com underscore)
-          gem install app_store_connect -NV
+          gem install fastlane -NV
 
       - name: 2. Sync Capacitor
         script: |
@@ -48,48 +49,28 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Garantir certificado de distribuição
+      - name: 4. Configurar API Key para fastlane
         script: |
           set -e
-          # Lista certificados existentes do tipo distribuição
-          CERT_LIST=$(app-store-connect list-certificates \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
-            --filter[certificateType]=IOS_DISTRIBUTION 2>/dev/null || echo "")
-          if echo "$CERT_LIST" | grep -q '"id"'; then
-            echo "✅ Certificado de distribuição já existe."
-          else
-            echo "📄 Criando novo certificado de distribuição..."
-            # Gera CSR usando Ruby (já disponível no ambiente)
-            CSR=$(ruby -e '
-              require "openssl"
-              key = OpenSSL::PKey::RSA.new(2048)
-              csr = OpenSSL::X509::Request.new
-              csr.subject = OpenSSL::X509::Name.parse("/CN=Distribution Certificate")
-              csr.public_key = key.public_key
-              csr.sign(key, OpenSSL::Digest::SHA256.new)
-              puts csr.to_pem
-            ')
-            # Cria o certificado
-            app-store-connect create-certificate \
-              --type IOS_DISTRIBUTION \
-              --csr-content "$CSR" \
-              --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-              --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-              --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY
-            echo "✅ Certificado criado com sucesso."
-          fi
+          mkdir -p ~/.fastlane
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.fastlane/private_key.p8
+          export APP_STORE_CONNECT_API_KEY_KEY_ID="$APP_STORE_CONNECT_KEY_IDENTIFIER"
+          export APP_STORE_CONNECT_API_KEY_ISSUER_ID="$APP_STORE_CONNECT_ISSUER_ID"
+          export APP_STORE_CONNECT_API_KEY_KEY_FILE_PATH="$HOME/.fastlane/private_key.p8"
 
-      - name: 5. Buscar perfis (signing files)
+      - name: 5. Executar fastlane match
         script: |
           set -e
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --platform IOS \
-            --type IOS_APP_STORE \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
+          cd ios/App
+          fastlane run match appstore \
+            git_url:"$MATCH_GIT_URL" \
+            storage_mode:"git" \
+            type:"appstore" \
+            app_identifier:"$BUNDLE_ID" \
+            team_id:"$TEAM_ID" \
+            readonly:false \
+            force:true
+          cd ../..
 
       - name: 6. Gerar export_options.plist e construir IPA
         script: |
