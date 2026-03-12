@@ -64,20 +64,26 @@ workflows:
             --scheme "App" \
             --config "Release" \
             --export-options-plist export_options.plist
+          # Verificar onde o IPA foi gerado
+          echo "Conteúdo do diretório build:"
+          find build -type f 2>/dev/null || echo "build não encontrado"
           cd ../..
 
       - name: 6. Enviar para TestFlight
         script: |
-          IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" | head -1)
+          # Procurar por qualquer arquivo .ipa em qualquer lugar
+          IPA_PATH=$(find . -path "*.ipa" -type f | head -1)
           if [ -z "$IPA_PATH" ]; then
-            echo "IPA não encontrado"
+            echo "IPA não encontrado em nenhum local"
             exit 1
           fi
+          echo "IPA encontrado em: $IPA_PATH"
           xcrun altool --upload-app -f "$IPA_PATH" -u "$APPLE_ID" -p "$APP_SPECIFIC_PASSWORD" --type ios --verbose
 
     artifacts:
       - build/ios/ipa/*.ipa
       - ios/App/build/ios/ipa/*.ipa
+      - **/*.ipa
 
     publishing:
       email:
