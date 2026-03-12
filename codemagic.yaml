@@ -7,7 +7,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
-        # API Key (nova)
+        # Chave API do App Store Connect (gerada hoje)
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
         APP_STORE_CONNECT_KEY_IDENTIFIER: "44TTKA2QF4"
         APP_STORE_CONNECT_PRIVATE_KEY: |
@@ -17,14 +17,14 @@ workflows:
           6OMfYYImZtXgHbifvEj+FM4I5bpym3kk0YMDzenPrpbWZwoh/SVmImP5H1KcLb6j
           kPkRlUpe
           -----END PRIVATE KEY-----
-        # Apple ID para upload
+        # Apple ID para upload no TestFlight
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
       groups:
-        - app_store_connect
+        - app_store_connect # Grupo com as variáveis acima (já existente)
     scripts:
       - name: 1. Instalar dependências e limpar ambiente Ruby
         script: |
@@ -32,7 +32,7 @@ workflows:
           # Remove qualquer Gemfile para evitar conflitos com Bundler
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
           unset BUNDLE_GEMFILE
-          # Instala dependências Node
+          # Instala dependências Node e faz build
           npm install
           npm run build
           # Instala fastlane e cocoapods globalmente (sem usar Bundler)
@@ -91,6 +91,7 @@ workflows:
       - name: 6. Enviar para TestFlight
         script: |
           set -e
+          # Procura o IPA em locais comuns
           IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
           if [ -z "$IPA_PATH" ]; then
             IPA_PATH=$(find build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
