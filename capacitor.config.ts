@@ -18,14 +18,11 @@ const config: CapacitorConfig = {
   appName: 'AgriRoute',
   webDir: 'dist',
   
-  // ✅ DEVELOPMENT MODE: Uncomment below for hot-reload from Lovable preview
-  // server: {
-  //   url: 'https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com?forceHideBadge=true',
-  //   cleartext: true
-  // },
-  
-  // ✅ PRODUCTION MODE: Uses bundled assets from webDir (dist/)
-  // No server config = load from local bundle
+  // ✅ HOT-RELOAD: Conecta ao preview do Lovable para desenvolvimento
+  server: {
+    url: 'https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com?forceHideBadge=true',
+    cleartext: true
+  },
   
   // ✅ SplashScreen DISABLED - using native LaunchScreen.storyboard only
   // The Capacitor SplashScreen plugin was overriding the storyboard with green background
