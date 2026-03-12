@@ -7,17 +7,29 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
+        # API Key do App Store Connect (gerada hoje)
+        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "44TTKA2QF4"
+        APP_STORE_CONNECT_PRIVATE_KEY: |
+          -----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgigwhCuCxA6te7/KL
+          ioXsyBPjeBQVL4O8yhOam6tBTaqgCgYIKoZIzj0DAQehRANCAATXuQQUITAEbh0i
+          6OMfYYImZtXgHbifvEj+FM4I5bpym3kk0YMDzenPrpbWZwoh/SVmImP5H1KcLb6j
+          kPkRlUpe
+          -----END PRIVATE KEY-----
+        # Apple ID para upload no TestFlight (senha específica de app)
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
+        # Configurações do fastlane match
         MATCH_GIT_URL: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
         MATCH_PASSWORD: "AgriRoute2025!Match"
       groups:
         - app_store_connect
     scripts:
-      - name: 1. Instalar dependências
+      - name: 1. Instalar dependências e limpar ambiente Ruby
         script: |
           set -e
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
@@ -29,25 +41,29 @@ workflows:
       - name: 2. Sync Capacitor
         script: |
           set -e
+          rm -f Gemfile Gemfile.lock
           npx cap sync ios
 
-      - name: 3. Configurar iPhone apenas
+      - name: 3. Configurar para iPhone apenas
         script: |
           set -e
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Buscar/criar certificados com fastlane match
+      - name: 4. Buscar/criar certificados com fastlane match (usando API Key)
         script: |
           set -e
+          # Configura a API Key para o fastlane
+          export APP_STORE_CONNECT_API_KEY_KEY_ID="$APP_STORE_CONNECT_KEY_IDENTIFIER"
+          export APP_STORE_CONNECT_API_KEY_ISSUER_ID="$APP_STORE_CONNECT_ISSUER_ID"
+          export APP_STORE_CONNECT_API_KEY_KEY="$APP_STORE_CONNECT_PRIVATE_KEY"
           cd ios/App
-          fastlane run match \
+          fastlane run match appstore \
             git_url:"$MATCH_GIT_URL" \
             storage_mode:"git" \
             type:"appstore" \
             app_identifier:"$BUNDLE_ID" \
             team_id:"$TEAM_ID" \
-            username:"$APPLE_ID" \
             readonly:false \
             force:true
           cd ../..
