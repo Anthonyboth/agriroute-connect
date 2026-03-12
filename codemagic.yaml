@@ -20,11 +20,17 @@ workflows:
         script: |
           npm install
           npm run build
-          gem install fastlane -NV  # Instala fastlane globalmente
+          # Instala fastlane e cocoapods globalmente na versão Ruby atual
+          gem install fastlane cocoapods -NV
 
       - name: Sync Capacitor
         script: |
-          npx cap sync ios
+          # Copia os assets para o projeto iOS
+          npx cap copy ios
+          # Executa pod install manualmente para garantir
+          cd ios/App
+          pod install --no-repo-update
+          cd ../..
 
       - name: Configure iPhone only
         script: |
