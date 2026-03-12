@@ -5,7 +5,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba # ATUALIZADO
+        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
         APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR
@@ -15,20 +15,23 @@ workflows:
           XLf/urSEb/YScSsxBhKWYRpGDcihRANCAASi8X/qcRwcfBFuspm/jRnUHD8HPqXP
           vx9dZC5M7KmuHZandSxTXaIpJe9lQY9M/eC40twqnaf3Ga7xDmdsL8Nb
           -----END PRIVATE KEY-----
-        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" # ATUALIZADO
+        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
       groups:
         - app_store_connect
     scripts:
-      - name: Setup Ionic/Capacitor
+      - name: Build web app (React + Vite)
         script: |
           npm install
-          npm install -g @ionic/cli
-          ionic build --prod
-          npx cap sync ios
+          npm run build  # Gera os arquivos na pasta dist (padrão Vite)
+
+      - name: Sync with Capacitor
+        script: |
+          npx cap sync ios  # Copia de dist/ para ios/App/App/public
 
       - name: Configure iPhone only
         script: |
+          # Forçar app para rodar apenas em iPhone
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
