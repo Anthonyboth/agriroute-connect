@@ -7,59 +7,50 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
-        # Chave API do App Store Connect (gerada hoje)
-        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "44TTKA2QF4"
-        APP_STORE_CONNECT_PRIVATE_KEY: |
-          -----BEGIN PRIVATE KEY-----
-          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgigwhCuCxA6te7/KL
-          ioXsyBPjeBQVL4O8yhOam6tBTaqgCgYIKoZIzj0DAQehRANCAATXuQQUITAEbh0i
-          6OMfYYImZtXgHbifvEj+FM4I5bpym3kk0YMDzenPrpbWZwoh/SVmImP5H1KcLb6j
-          kPkRlUpe
-          -----END PRIVATE KEY-----
-        # Apple ID para upload no TestFlight
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
+        MATCH_GIT_URL: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
+        MATCH_PASSWORD: "AgriRoute2025!Match"
       groups:
-        - app_store_connect # Grupo com as variáveis acima (já existente)
+        - app_store_connect
     scripts:
-      - name: 1. Instalar dependências e limpar ambiente Ruby
+      - name: 1. Instalar dependências
         script: |
           set -e
-          # Remove qualquer Gemfile para evitar conflitos com Bundler
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
           unset BUNDLE_GEMFILE
-          # Instala dependências Node e faz build
           npm install
           npm run build
-          # Instala fastlane e cocoapods globalmente (sem usar Bundler)
           gem install fastlane cocoapods -NV
 
-      - name: 2. Sync Capacitor (sem interferência do Bundler)
+      - name: 2. Sync Capacitor
         script: |
           set -e
-          # Garante que não há Gemfile no caminho
-          rm -f Gemfile Gemfile.lock
           npx cap sync ios
 
-      - name: 3. Configurar para iPhone apenas
+      - name: 3. Configurar iPhone apenas
         script: |
           set -e
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Buscar perfis (signing files) com API Key
+      - name: 4. Buscar/criar certificados com fastlane match
         script: |
           set -e
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --platform IOS \
-            --type IOS_APP_STORE \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
+          cd ios/App
+          fastlane run match \
+            git_url:"$MATCH_GIT_URL" \
+            storage_mode:"git" \
+            type:"appstore" \
+            app_identifier:"$BUNDLE_ID" \
+            team_id:"$TEAM_ID" \
+            username:"$APPLE_ID" \
+            readonly:false \
+            force:true
+          cd ../..
 
       - name: 5. Gerar export_options.plist e construir IPA
         script: |
@@ -91,7 +82,6 @@ workflows:
       - name: 6. Enviar para TestFlight
         script: |
           set -e
-          # Procura o IPA em locais comuns
           IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
           if [ -z "$IPA_PATH" ]; then
             IPA_PATH=$(find build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
