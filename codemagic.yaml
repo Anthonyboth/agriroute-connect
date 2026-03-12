@@ -34,8 +34,8 @@ workflows:
           unset BUNDLE_GEMFILE
           npm install
           npm run build
-          # Instala a gem app-store-connect (necessária para os comandos)
-          gem install app-store-connect -NV
+          # Instala a gem correta: app_store_connect (com underscore)
+          gem install app_store_connect -NV
 
       - name: 2. Sync Capacitor
         script: |
