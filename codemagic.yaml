@@ -52,12 +52,16 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Definir versão da compilação (build number)
+      - name: Definir versão do app e build number
         script: |
           cd ios/App
-          BUILD_NUMBER=$(git rev-list --count HEAD)
-          echo "Build number: $BUILD_NUMBER"
-          agvtool new-version -all $BUILD_NUMBER
+          # Usa o número total de commits como versão (sempre crescente)
+          VERSION=$(git rev-list --count HEAD)
+          echo "Nova versão: $VERSION"
+          # Define a versão curta (CFBundleShortVersionString)
+          agvtool new-marketing-version $VERSION
+          # Define o build number (CFBundleVersion)
+          agvtool new-version -all $VERSION
           cd ../..
 
       - name: Build IPA
