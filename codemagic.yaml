@@ -29,44 +29,61 @@ workflows:
           find . -name "Gemfile" -type f -delete
           find . -name "Gemfile.lock" -type f -delete
           unset BUNDLE_GEMFILE
+
       - name: Instalar dependências Node e build
         script: |
           npm install
           npm run build
+
       - name: Instalar CocoaPods
         script: |
           gem install cocoapods -NV
+
       - name: Sincronizar Capacitor
         script: |
           npx cap sync ios
+
       - name: Configurar iPhone apenas
         script: |
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
-      - name: Construir IPA
+
+      - name: Build IPA
         script: |
           cd ios/App
+          # Gera arquivo de opções de exportação
+          cat > export_options.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>$TEAM_ID</string>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
           xcode-project build-ipa \
             --workspace "App.xcworkspace" \
             --scheme "App" \
-            --config "Release"
+            --config "Release" \
+            --export-options-plist export_options.plist
           cd ../..
-          echo "✅ IPA gerado: $(find . -name "*.ipa" -type f)"
-      - name: Enviar para TestFlight
-        script: |
-          IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
-          if [ -z "$IPA_PATH" ]; then
-            IPA_PATH=$(find build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
-          fi
-          if [ -z "$IPA_PATH" ]; then
-            echo "❌ IPA não encontrado"
-            exit 1
-          fi
-          xcrun altool --upload-app -f "$IPA_PATH" -u "$APPLE_ID" -p "$APP_SPECIFIC_PASSWORD" --type ios --verbose
+          echo "📦 IPA gerado em: $(find . -name "*.ipa" -type f)"
+
     artifacts:
-      - "build/ios/ipa/*.ipa"
-      - "ios/App/build/ios/ipa/*.ipa"
+      - build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
+
     publishing:
+      app_store_connect:
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        submit_to_testflight: true
       email:
         recipients:
           - anthony_pva@hotmail.com
