@@ -26,17 +26,23 @@ workflows:
           npm install
           npm run build
 
-      - name: Sync with Capacitor
+      - name: Sync with Capacitor (sem interferência do Bundler)
         script: |
-          # Remove Gemfile temporariamente para evitar conflitos com bundler
-          if [ -f "Gemfile" ]; then mv Gemfile Gemfile.bak; fi
+          # Remove qualquer Gemfile para evitar que o Bundler tente resolver
+          find . -name "Gemfile" -type f -exec mv {} {}.bak \;
+          # Remove variável de ambiente do Bundler se existir
+          unset BUNDLE_GEMFILE
 
-          # Instala bundler compatível e CocoaPods (necessário para pod install)
-          gem install bundler -v '~> 2.5' --no-document
-          gem install cocoapods
+          # Instala CocoaPods (se não estiver instalado)
+          gem install cocoapods --no-document
 
-          # Sincroniza com Capacitor (executa pod install automaticamente)
-          npx cap sync ios
+          # Copia os assets para o projeto iOS
+          npx cap copy ios
+
+          # Executa pod install manualmente, sem o Bundler
+          cd ios/App
+          pod install --no-repo-update
+          cd ../..
 
       - name: Configure iPhone only
         script: |
