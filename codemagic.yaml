@@ -7,25 +7,16 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
-        # API Key do App Store Connect (gerada hoje)
-        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "44TTKA2QF4"
-        APP_STORE_CONNECT_PRIVATE_KEY: |
-          -----BEGIN PRIVATE KEY-----
-          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgigwhCuCxA6te7/KL
-          ioXsyBPjeBQVL4O8yhOam6tBTaqgCgYIKoZIzj0DAQehRANCAATXuQQUITAEbh0i
-          6OMfYYImZtXgHbifvEj+FM4I5bpym3kk0YMDzenPrpbWZwoh/SVmImP5H1KcLb6j
-          kPkRlUpe
-          -----END PRIVATE KEY-----
-        # Apple ID para upload no TestFlight (senha específica de app)
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
-        # Configurações do fastlane match
         MATCH_GIT_URL: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
         MATCH_PASSWORD: "AgriRoute2025!Match"
+        FASTLANE_USER: "agrirouteconnect@gmail.com"
+        FASTLANE_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
+        FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
       groups:
         - app_store_connect
     scripts:
