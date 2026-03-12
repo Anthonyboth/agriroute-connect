@@ -3,7 +3,6 @@ workflows:
     name: iOS Release to TestFlight
     max_build_duration: 60
     environment:
-      ruby: 3.2.2
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
@@ -20,24 +19,18 @@ workflows:
         script: |
           npm install
           npm run build
-          # Instala fastlane e cocoapods globalmente na versão Ruby atual
-          gem install fastlane cocoapods -NV
+          gem install fastlane -NV
 
       - name: Sync Capacitor
         script: |
-          # Copia os assets para o projeto iOS
-          npx cap copy ios
-          # Executa pod install manualmente para garantir
-          cd ios/App
-          pod install --no-repo-update
-          cd ../..
+          npx cap sync ios
 
       - name: Configure iPhone only
         script: |
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: Fetch signing files with fastlane
+      - name: Fetch signing files (fastlane match)
         script: |
           cd ios/App
           fastlane run match appstore \
@@ -60,10 +53,6 @@ workflows:
       - name: Upload to TestFlight
         script: |
           IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" | head -1)
-          if [ -z "$IPA_PATH" ]; then
-            echo "IPA not found"
-            exit 1
-          fi
           xcrun altool --upload-app -f "$IPA_PATH" -u "$APPLE_ID" -p "$APP_SPECIFIC_PASSWORD" --type ios --verbose
 
     artifacts:
@@ -74,6 +63,3 @@ workflows:
       email:
         recipients:
           - anthony_pva@hotmail.com
-        notify:
-          success: true
-          failure: true
