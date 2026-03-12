@@ -49,17 +49,26 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Configurar API Key para fastlane
+      - name: 4. Preparar arquivo da API Key
         script: |
           set -e
           mkdir -p ~/.fastlane
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.fastlane/private_key.p8
-          export APP_STORE_CONNECT_API_KEY_KEY_ID="$APP_STORE_CONNECT_KEY_IDENTIFIER"
-          export APP_STORE_CONNECT_API_KEY_ISSUER_ID="$APP_STORE_CONNECT_ISSUER_ID"
-          export APP_STORE_CONNECT_API_KEY_KEY_FILE_PATH="$HOME/.fastlane/private_key.p8"
-          # Remove credenciais de usuário/senha para evitar conflito
+          # Cria arquivo JSON com os dados da API Key para o fastlane
+          cat > ~/.fastlane/app_store_connect_api_key.json <<EOF
+          {
+            "key_id": "$APP_STORE_CONNECT_KEY_IDENTIFIER",
+            "issuer_id": "$APP_STORE_CONNECT_ISSUER_ID",
+            "key_file": "$HOME/.fastlane/private_key.p8",
+            "duration": 1200,
+            "in_house": false
+          }
+          EOF
+          # Remove qualquer variável de ambiente que possa causar conflito
           unset FASTLANE_USER
           unset FASTLANE_PASSWORD
+          unset APPLE_ID
+          unset FASTLANE_SESSION
 
       - name: 5. Executar fastlane match com API Key
         script: |
@@ -72,7 +81,8 @@ workflows:
             app_identifier:"$BUNDLE_ID" \
             team_id:"$TEAM_ID" \
             readonly:false \
-            force:true
+            force:true \
+            api_key_path:"$HOME/.fastlane/app_store_connect_api_key.json"
           cd ../..
 
       - name: 6. Gerar export_options.plist e construir IPA
