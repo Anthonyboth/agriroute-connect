@@ -48,10 +48,26 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
+      - name: Listar perfis instalados (debug)
+        script: |
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Aplicar perfil de provisionamento ao projeto
+        script: |
+          cd ios/App
+          PROFILE_PATH=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
+          echo "Usando perfil: $PROFILE_PATH"
+          app-store-connect use-profiles \
+            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
+            --bundle-id $BUNDLE_ID \
+            --profile "$PROFILE_PATH"
+          cd ../..
+
       - name: Build IPA
         script: |
           cd ios/App
-          # Gera arquivo de opções de exportação
           cat > export_options.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
