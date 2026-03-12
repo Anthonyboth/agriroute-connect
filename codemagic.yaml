@@ -9,12 +9,12 @@ workflows:
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
         APPLE_ID: "agrirouteconnect@gmail.com"
-        APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp" # Senha específica de app
-        TEAM_ID: "SEU_TEAM_ID_AQUI" # Opcional, mas recomendado
+        APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
+        TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
       groups:
-        - app_store_connect # Grupo com as variáveis acima (opcional, se quiser criptografar)
+        - app_store_connect
     scripts:
       - name: Build web app (React + Vite)
         script: |
@@ -23,14 +23,9 @@ workflows:
 
       - name: Sync with Capacitor
         script: |
-          # Remove Gemfiles para evitar conflitos com bundler
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
           unset BUNDLE_GEMFILE
-
-          # Instala CocoaPods
           gem install cocoapods --no-document
-
-          # Sincroniza assets e executa pod install
           npx cap copy ios
           cd ios/App
           pod install --no-repo-update
@@ -41,14 +36,14 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: Fetch signing files (com Apple ID)
+      - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --platform IOS \
             --type IOS_APP_STORE \
             --apple-id "$APPLE_ID" \
             --password "$APP_SPECIFIC_PASSWORD" \
-            ${TEAM_ID:+--team-id "$TEAM_ID"}
+            --team-id "$TEAM_ID"
 
       - name: Build IPA
         script: |
@@ -58,13 +53,23 @@ workflows:
             --scheme "App" \
             --config "Release"
 
+      - name: Upload to TestFlight
+        script: |
+          IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "IPA not found"
+            exit 1
+          fi
+          xcrun altool --upload-app -f "$IPA_PATH" -u "$APPLE_ID" -p "$APP_SPECIFIC_PASSWORD" --type ios --verbose
+
     artifacts:
       - build/ios/ipa/*.ipa
       - ios/App/build/ios/ipa/*.ipa
 
     publishing:
-      app_store_connect:
-        apple_id: "$APPLE_ID"
-        password: "$APP_SPECIFIC_PASSWORD"
-        team_id: "$TEAM_ID" # Opcional, mas recomendado
-        submit_to_testflight: true
+      email:
+        recipients:
+          - anthony_pva@hotmail.com
+        notify:
+          success: true
+          failure: true
