@@ -1664,6 +1664,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'native_ios_document_camera_uses_capcamera_source_camera',
     ],
   },
+
+  // ── FRT-062: Android piscava e não iniciava por configuração insegura de boot nativo ──
+  {
+    id: 'FRT-062',
+    date: '2026-03-12',
+    severity: 'CRITICAL',
+    area: 'native-app-bootstrap/android',
+    bug: 'App Android podia apenas piscar a tela e não abrir após atualização, afetando cadastro e entrada de novos usuários.',
+    rootCause: 'Configuração nativa sem proteção de release: risco de app depender de URL remota de preview/hot-reload ou bundle local desatualizado, causando falha de carregamento no WebView nativo.',
+    fix: 'Padronizado protocolo de release nativo: produção deve abrir somente com bundle local válido (dist), URL remota apenas em modo de desenvolvimento, com sync obrigatório após pull/build.',
+    files: [
+      'capacitor.config.ts',
+      'src/main.tsx',
+      'src/hooks/useRegressionShield.ts',
+    ],
+    rules: [
+      'Build de produção nativa NUNCA deve depender de URL de preview/hot-reload no capacitor.config.',
+      'Após qualquer alteração web, executar obrigatoriamente npm run build + npx cap sync antes de rodar/publicar Android/iOS.',
+      'Falha de boot nativo (tela piscando/blank) deve ser tratada como bloqueador de release com rollback imediato.',
+    ],
+    keywords: ['FRT-062', 'android', 'pisca tela', 'app não abre', 'capacitor', 'webview', 'bundle', 'cadastro'],
+    testCases: [
+      'native_android_release_starts_without_remote_server_url',
+      'native_android_after_build_and_sync_loads_local_dist_bundle',
+      'native_boot_failure_blocks_release_and_triggers_rollback',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
