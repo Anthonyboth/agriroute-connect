@@ -23,20 +23,15 @@ workflows:
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
-        # Configurações do fastlane match
-        MATCH_GIT_URL: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
-        MATCH_PASSWORD: "AgriRoute2025!Match"
       groups:
         - app_store_connect
     scripts:
       - name: 1. Instalar dependências
         script: |
           set -e
-          find . -name "Gemfile" -type f -exec mv {} {}.bak \;
-          unset BUNDLE_GEMFILE
           npm install
           npm run build
-          gem install fastlane -NV
+          gem install cocoapods -NV
 
       - name: 2. Sync Capacitor
         script: |
@@ -49,43 +44,7 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Preparar arquivo da API Key
-        script: |
-          set -e
-          mkdir -p ~/.fastlane
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.fastlane/private_key.p8
-          # Cria arquivo JSON com os dados da API Key para o fastlane
-          cat > ~/.fastlane/app_store_connect_api_key.json <<EOF
-          {
-            "key_id": "$APP_STORE_CONNECT_KEY_IDENTIFIER",
-            "issuer_id": "$APP_STORE_CONNECT_ISSUER_ID",
-            "key_file": "$HOME/.fastlane/private_key.p8",
-            "duration": 1200,
-            "in_house": false
-          }
-          EOF
-          # Remove qualquer variável de ambiente que possa causar conflito
-          unset FASTLANE_USER
-          unset FASTLANE_PASSWORD
-          unset APPLE_ID
-          unset FASTLANE_SESSION
-
-      - name: 5. Executar fastlane match com API Key
-        script: |
-          set -e
-          cd ios/App
-          fastlane run match appstore \
-            git_url:"$MATCH_GIT_URL" \
-            storage_mode:"git" \
-            type:"appstore" \
-            app_identifier:"$BUNDLE_ID" \
-            team_id:"$TEAM_ID" \
-            readonly:false \
-            force:true \
-            api_key_path:"$HOME/.fastlane/app_store_connect_api_key.json"
-          cd ../..
-
-      - name: 6. Gerar export_options.plist e construir IPA
+      - name: 4. Gerar export_options.plist e construir IPA
         script: |
           set -e
           cd ios/App
@@ -112,7 +71,7 @@ workflows:
           echo "✅ IPA gerado. Procurando..."
           find . -name "*.ipa" -type f
 
-      - name: 7. Enviar para TestFlight
+      - name: 5. Enviar para TestFlight
         script: |
           set -e
           IPA_PATH=$(find ios/App/build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
