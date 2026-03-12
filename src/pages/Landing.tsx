@@ -300,7 +300,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('MOTORISTA')}
-                className="bg-gradient-to-br from-[#2B7A4B] to-[#1F5C38] text-white font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-[20px] shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
+                className="bg-gradient-to-br from-[hsl(22,100%,63%)] to-[hsl(22,100%,53%)] text-white font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-[20px] shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
                 <Truck className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Motorista
