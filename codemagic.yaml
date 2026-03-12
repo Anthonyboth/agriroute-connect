@@ -7,23 +7,32 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
+        # Dados da nova chave API (App Store Connect)
+        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "44TTKA2QF4"
+        APP_STORE_CONNECT_PRIVATE_KEY: |
+          -----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgigwhCuCxA6te7/KL
+          ioXsyBPjeBQVL4O8yhOam6tBTaqgCgYIKoZIzj0DAQehRANCAATXuQQUITAEbh0i
+          6OMfYYImZtXgHbifvEj+FM4I5bpym3kk0YMDzenPrpbWZwoh/SVmImP5H1KcLb6j
+          kPkRlUpe
+          -----END PRIVATE KEY-----
+        # Credenciais Apple ID para upload
         APPLE_ID: "agrirouteconnect@gmail.com"
         APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp"
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
-        MATCH_PASSWORD: "sua-senha-aqui" # <-- COLOQUE A SENHA DO REPOSITÓRIO DE CERTIFICADOS
       groups:
         - app_store_connect
     scripts:
-      - name: 1. Instalar dependências
+      - name: 1. Build web app (React + Vite)
         script: |
           set -e
           npm install
           npm run build
-          gem install fastlane cocoapods -NV
 
-      - name: 2. Sincronizar com Capacitor
+      - name: 2. Sync Capacitor
         script: |
           set -e
           npx cap sync ios
@@ -34,27 +43,21 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Buscar perfis com fastlane match
+      - name: 4. Buscar perfis (signing files) com API Key
         script: |
           set -e
-          cd ios/App
-          fastlane run match appstore \
-            username:"$APPLE_ID" \
-            team_id:"$TEAM_ID" \
-            readonly:false \
-            app_identifier:"$BUNDLE_ID" \
-            type:"appstore" \
-            force:true \
-            git_url:"https://github.com/Anthonyboth/agriroute-connect-certificates-public.git" \
-            git_branch:"main" \
-            storage_mode:"git" \
-            match_password:"$MATCH_PASSWORD"
-          cd ../..
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
+            --type IOS_APP_STORE \
+            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
 
       - name: 5. Gerar export_options.plist e construir IPA
         script: |
           set -e
           cd ios/App
+          # Cria arquivo de opções de exportação
           cat > export_options.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -69,13 +72,14 @@ workflows:
           </dict>
           </plist>
           EOF
+          # Build do IPA
           xcode-project build-ipa \
             --workspace "App.xcworkspace" \
             --scheme "App" \
             --config "Release" \
             --export-options-plist export_options.plist
           cd ../..
-          echo "✅ Build concluído. Procurando IPA..."
+          echo "✅ IPA gerado. Procurando..."
           find . -name "*.ipa" -type f
 
       - name: 6. Enviar para TestFlight
@@ -87,7 +91,7 @@ workflows:
             IPA_PATH=$(find build/ios/ipa -name "*.ipa" 2>/dev/null | head -1)
           fi
           if [ -z "$IPA_PATH" ]; then
-            echo "❌ IPA não encontrado em ios/App/build/ios/ipa nem em build/ios/ipa"
+            echo "❌ IPA não encontrado"
             exit 1
           fi
           echo "📦 Enviando IPA: $IPA_PATH"
