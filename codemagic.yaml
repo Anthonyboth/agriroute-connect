@@ -48,18 +48,43 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: Aplicar perfis de provisionamento com xcode-project
+      - name: Aplicar perfis de provisionamento
         script: |
           xcode-project use-profiles
 
+      - name: Definir versão da compilação (build number)
+        script: |
+          cd ios/App
+          # Usa o número total de commits como build number (sempre crescente)
+          BUILD_NUMBER=$(git rev-list --count HEAD)
+          echo "Build number: $BUILD_NUMBER"
+          agvtool new-version -all $BUILD_NUMBER
+          cd ../..
+
       - name: Build IPA
         script: |
+          cd ios/App
+          cat > export_options.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>$TEAM_ID</string>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App \
-            --config Release \
-            --export-options-plist /Users/builder/export_options.plist
-          echo "📦 IPA gerado em: $(find . -name '*.ipa' -type f)"
+            --workspace "App.xcworkspace" \
+            --scheme "App" \
+            --config "Release" \
+            --export-options-plist export_options.plist
+          cd ../..
+          echo "📦 IPA gerado em: $(find . -name "*.ipa" -type f)"
 
     artifacts:
       - build/ios/ipa/*.ipa
