@@ -50,9 +50,9 @@ workflows:
             type:"appstore" \
             app_identifier:"$BUNDLE_ID" \
             team_id:"$TEAM_ID" \
-            username:"$FASTLANE_USER" \
-            readonly:false \
-            force:true
+            readonly:true \
+            skip_certificate_matching:true \
+            skip_set_partition_list:true
           cd ../..
 
       - name: 6. Gerar export_options.plist e construir IPA
