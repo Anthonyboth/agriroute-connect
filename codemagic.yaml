@@ -54,28 +54,12 @@ workflows:
 
       - name: Build IPA
         script: |
-          cd ios/App
-          cat > export_options.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store</string>
-              <key>teamID</key>
-              <string>$TEAM_ID</string>
-              <key>uploadSymbols</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
           xcode-project build-ipa \
-            --workspace "App.xcworkspace" \
-            --scheme "App" \
-            --config "Release" \
-            --export-options-plist export_options.plist
-          cd ../..
-          echo "📦 IPA gerado em: $(find . -name "*.ipa" -type f)"
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --config Release \
+            --export-options-plist /Users/builder/export_options.plist
+          echo "📦 IPA gerado em: $(find . -name '*.ipa' -type f)"
 
     artifacts:
       - build/ios/ipa/*.ipa
