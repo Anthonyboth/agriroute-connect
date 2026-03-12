@@ -3,6 +3,7 @@ workflows:
     name: iOS Release to TestFlight
     max_build_duration: 60
     environment:
+      ruby: 3.0.0 # <--- ADICIONE ESTA LINHA
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
@@ -23,15 +24,18 @@ workflows:
       - name: Build web app (React + Vite)
         script: |
           npm install
-          npm run build  # Gera os arquivos na pasta dist (padrão Vite)
+          npm run build
 
       - name: Sync with Capacitor
         script: |
-          npx cap sync ios  # Copia de dist/ para ios/App/App/public
+          # Remove Gemfile temporariamente se existir (para evitar conflitos)
+          if [ -f "Gemfile" ]; then
+            mv Gemfile Gemfile.bak
+          fi
+          npx cap sync ios
 
       - name: Configure iPhone only
         script: |
-          # Forçar app para rodar apenas em iPhone
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
