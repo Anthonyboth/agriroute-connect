@@ -1666,29 +1666,48 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
   },
 
   // ── FRT-062: Android piscava e não iniciava por configuração insegura de boot nativo ──
+  // ⚠️ REGRESSÃO REINCIDENTE: Este bug voltou a ocorrer em 2026-03-12 porque server.url 
+  // foi reintroduzido sem guard de env. Agora há validação automatizada (preflight script).
   {
     id: 'FRT-062',
     date: '2026-03-12',
     severity: 'CRITICAL',
     area: 'native-app-bootstrap/android',
-    bug: 'App Android podia apenas piscar a tela e não abrir após atualização, afetando cadastro e entrada de novos usuários.',
-    rootCause: 'Configuração nativa sem proteção de release: risco de app depender de URL remota de preview/hot-reload ou bundle local desatualizado, causando falha de carregamento no WebView nativo.',
-    fix: 'Padronizado protocolo de release nativo: produção deve abrir somente com bundle local válido (dist), URL remota apenas em modo de desenvolvimento, com sync obrigatório após pull/build.',
+    bug: 'App Android fecha imediatamente ao abrir (Play Store). Tela pisca e fecha sem mostrar login.',
+    rootCause: 'capacitor.config.ts tinha server.url apontando para preview remoto SEM guard de variável de ambiente, fazendo o app de produção depender de servidor externo para boot. Também rotinas de PWA cleanup em main.tsx causavam reload loops no WebView nativo.',
+    fix: [
+      '1. capacitor.config.ts: server block agora é condicional (CAPACITOR_LIVE_RELOAD=true)',
+      '2. URL sanitizada sem query params (causavam crash no Android WebView)',
+      '3. main.tsx: ensureFreshPreviewBuild() e PWA recovery SKIP em plataforma nativa',
+      '4. webContentsDebuggingEnabled agora é false em produção',
+      '5. scripts/validate-native-release.mjs: validação automatizada que BLOQUEIA release insegura',
+      '6. npm run mobile:preflight:release: script obrigatório antes de publicar AAB',
+    ].join('\n'),
     files: [
       'capacitor.config.ts',
       'src/main.tsx',
+      'scripts/validate-native-release.mjs',
+      'package.json',
+      'docs/RELEASE_CHECKLIST.md',
       'src/hooks/useRegressionShield.ts',
     ],
     rules: [
-      'Build de produção nativa NUNCA deve depender de URL de preview/hot-reload no capacitor.config.',
-      'Após qualquer alteração web, executar obrigatoriamente npm run build + npx cap sync antes de rodar/publicar Android/iOS.',
-      'Falha de boot nativo (tela piscando/blank) deve ser tratada como bloqueador de release com rollback imediato.',
+      'Build de produção nativa NUNCA deve ter server.url ativo — usar CAPACITOR_LIVE_RELOAD=true apenas em dev.',
+      'URL de server NUNCA deve conter query params (?forceHideBadge=true) — causa crash em Android WebView.',
+      'main.tsx DEVE skipar ensureFreshPreviewBuild() e PWA recovery quando Capacitor.isNativePlatform() === true.',
+      'webContentsDebuggingEnabled DEVE ser false em release (guard por isLiveReload).',
+      'Executar npm run mobile:preflight:release ANTES de qualquer npx cap sync para release.',
+      'Se preflight falhar, release é BLOQUEADA — corrigir config antes de continuar.',
+      'Falha de boot nativo (tela piscando/blank) é bloqueador P0 com rollback imediato.',
     ],
-    keywords: ['FRT-062', 'android', 'pisca tela', 'app não abre', 'capacitor', 'webview', 'bundle', 'cadastro'],
+    keywords: ['FRT-062', 'android', 'pisca tela', 'app não abre', 'capacitor', 'webview', 'bundle', 'cadastro', 'server.url', 'CAPACITOR_LIVE_RELOAD', 'preflight'],
     testCases: [
       'native_android_release_starts_without_remote_server_url',
       'native_android_after_build_and_sync_loads_local_dist_bundle',
       'native_boot_failure_blocks_release_and_triggers_rollback',
+      'preflight_script_blocks_release_if_server_url_hardcoded',
+      'preflight_script_blocks_release_if_url_has_query_params',
+      'main_tsx_skips_preview_cleanup_on_native_platform',
     ],
   },
 ];
