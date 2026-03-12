@@ -273,6 +273,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: [
       'react', 
       'react-dom',
+      'react/jsx-runtime',
       // Deduplicate ALL Radix UI packages to prevent version mismatches
       '@radix-ui/primitive',
       '@radix-ui/react-primitive',
