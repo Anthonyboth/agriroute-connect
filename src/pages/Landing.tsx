@@ -287,42 +287,42 @@ const Landing: React.FC = () => {
           
           {/* Main Action Buttons - Stack vertically on mobile, horizontal on desktop */}
            <div className="max-w-3xl mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRODUTOR')}
-                className="bg-[hsl(145,62%,53%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-glow hover:scale-105 transition-bounce hover:bg-[hsl(145,62%,45%)] w-full"
+                className="bg-gradient-to-br from-[#2F9E5B] to-[#2B7A4B] text-white font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-[20px] shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
-                <Users className="mr-2 h-5 w-5 flex-shrink-0" />
+                <Users className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Produtor
-                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0 opacity-80" />
               </Button>
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('MOTORISTA')}
-                className="bg-[hsl(22,100%,63%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce hover:bg-[hsl(22,100%,55%)] w-full"
+                className="bg-gradient-to-br from-[#2B7A4B] to-[#1F5C38] text-white font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-[20px] shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
-                <Truck className="mr-2 h-5 w-5 flex-shrink-0" />
+                <Truck className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Motorista
-                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0 opacity-80" />
               </Button>
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('TRANSPORTADORA')}
-                className="bg-[hsl(43,100%,70%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce hover:bg-[hsl(43,100%,60%)] w-full"
+                className="bg-gradient-to-br from-[#2F7F8F] to-[#246670] text-white font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-[20px] shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
-                <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
+                <Building2 className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Transportadora
-                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0 opacity-80" />
               </Button>
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRESTADOR_SERVICOS')}
-                className="bg-[hsl(202,100%,60%)] text-black text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce hover:bg-[hsl(202,100%,50%)] w-full"
+                className="bg-gradient-to-br from-[#2C6E9B] to-[#215577] text-white font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-[20px] shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
-                <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
+                <Wrench className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Prestador
-                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0 opacity-80" />
               </Button>
             </div>
             <div className="mt-3 md:mt-4 flex justify-center">
