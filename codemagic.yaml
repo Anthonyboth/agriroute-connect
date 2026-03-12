@@ -40,25 +40,17 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: 4. Configurar API Key para fastlane
-        script: |
-          set -e
-          mkdir -p ~/.fastlane
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.fastlane/private_key.p8
-          export APP_STORE_CONNECT_API_KEY_KEY_ID="$APP_STORE_CONNECT_KEY_IDENTIFIER"
-          export APP_STORE_CONNECT_API_KEY_ISSUER_ID="$APP_STORE_CONNECT_ISSUER_ID"
-          export APP_STORE_CONNECT_API_KEY_KEY_FILE_PATH="$HOME/.fastlane/private_key.p8"
-
-      - name: 5. Executar fastlane match
+      - name: 4. Executar fastlane match
         script: |
           set -e
           cd ios/App
-          fastlane run match appstore \
+          fastlane run match \
             git_url:"$MATCH_GIT_URL" \
             storage_mode:"git" \
             type:"appstore" \
             app_identifier:"$BUNDLE_ID" \
             team_id:"$TEAM_ID" \
+            username:"$FASTLANE_USER" \
             readonly:false \
             force:true
           cd ../..
