@@ -28,18 +28,10 @@ workflows:
 
       - name: Sync with Capacitor (sem interferência do Bundler)
         script: |
-          # Remove qualquer Gemfile para evitar que o Bundler tente resolver
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
-          # Remove variável de ambiente do Bundler se existir
           unset BUNDLE_GEMFILE
-
-          # Instala CocoaPods (se não estiver instalado)
           gem install cocoapods --no-document
-
-          # Copia os assets para o projeto iOS
           npx cap copy ios
-
-          # Executa pod install manualmente, sem o Bundler
           cd ios/App
           pod install --no-repo-update
           cd ../..
@@ -56,7 +48,7 @@ workflows:
             --type IOS_APP_STORE \
             --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
             --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY
+            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
 
       - name: Build IPA
         script: |
