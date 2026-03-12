@@ -12,6 +12,7 @@ workflows:
         TEAM_ID: "4YULT95XAK"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
+        MATCH_PASSWORD: "sua-senha-aqui" # <-- COLOQUE A SENHA DO REPOSITÓRIO DE CERTIFICADOS
       groups:
         - app_store_connect
     scripts:
@@ -43,7 +44,11 @@ workflows:
             readonly:false \
             app_identifier:"$BUNDLE_ID" \
             type:"appstore" \
-            force:true
+            force:true \
+            git_url:"https://github.com/Anthonyboth/agriroute-connect-certificates-public.git" \
+            git_branch:"main" \
+            storage_mode:"git" \
+            match_password:"$MATCH_PASSWORD"
           cd ../..
 
       - name: 5. Gerar export_options.plist e construir IPA
