@@ -55,7 +55,6 @@ workflows:
       - name: Definir versão da compilação (build number)
         script: |
           cd ios/App
-          # Usa o número total de commits como build number (sempre crescente)
           BUILD_NUMBER=$(git rev-list --count HEAD)
           echo "Build number: $BUILD_NUMBER"
           agvtool new-version -all $BUILD_NUMBER
@@ -64,25 +63,11 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          cat > export_options.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store</string>
-              <key>teamID</key>
-              <string>$TEAM_ID</string>
-              <key>uploadSymbols</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
           xcode-project build-ipa \
             --workspace "App.xcworkspace" \
             --scheme "App" \
             --config "Release" \
-            --export-options-plist export_options.plist
+            --export-options-plist /Users/builder/export_options.plist
           cd ../..
           echo "📦 IPA gerado em: $(find . -name "*.ipa" -type f)"
 
