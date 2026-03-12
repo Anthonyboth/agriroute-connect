@@ -8,29 +8,29 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
       vars:
-        APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
-        APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR
-        APP_STORE_CONNECT_PRIVATE_KEY: |
-          -----BEGIN PRIVATE KEY-----
-          MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv5WLsj3roOV3zWQ3
-          XLf/urSEb/YScSsxBhKWYRpGDcihRANCAASi8X/qcRwcfBFuspm/jRnUHD8HPqXP
-          vx9dZC5M7KmuHZandSxTXaIpJe9lQY9M/eC40twqnaf3Ga7xDmdsL8Nb
-          -----END PRIVATE KEY-----
+        APPLE_ID: "agrirouteconnect@gmail.com"
+        APP_SPECIFIC_PASSWORD: "pcyz-gvlt-cwiv-yfmp" # Senha específica de app
+        TEAM_ID: "SEU_TEAM_ID_AQUI" # Opcional, mas recomendado
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
       groups:
-        - app_store_connect
+        - app_store_connect # Grupo com as variáveis acima (opcional, se quiser criptografar)
     scripts:
       - name: Build web app (React + Vite)
         script: |
           npm install
           npm run build
 
-      - name: Sync with Capacitor (sem interferência do Bundler)
+      - name: Sync with Capacitor
         script: |
+          # Remove Gemfiles para evitar conflitos com bundler
           find . -name "Gemfile" -type f -exec mv {} {}.bak \;
           unset BUNDLE_GEMFILE
+
+          # Instala CocoaPods
           gem install cocoapods --no-document
+
+          # Sincroniza assets e executa pod install
           npx cap copy ios
           cd ios/App
           pod install --no-repo-update
@@ -41,14 +41,14 @@ workflows:
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
-      - name: Fetch signing files
+      - name: Fetch signing files (com Apple ID)
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --platform IOS \
             --type IOS_APP_STORE \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY
+            --apple-id "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD" \
+            ${TEAM_ID:+--team-id "$TEAM_ID"}
 
       - name: Build IPA
         script: |
@@ -64,7 +64,7 @@ workflows:
 
     publishing:
       app_store_connect:
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        apple_id: "$APPLE_ID"
+        password: "$APP_SPECIFIC_PASSWORD"
+        team_id: "$TEAM_ID" # Opcional, mas recomendado
         submit_to_testflight: true
