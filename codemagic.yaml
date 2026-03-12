@@ -3,7 +3,6 @@ workflows:
     name: iOS Release to TestFlight
     max_build_duration: 60
     environment:
-      # Versão do Ruby compatível com ARM64 (Apple Silicon) – resolve erro de compilação
       ruby: 3.2.2
       ios_signing:
         distribution_type: app_store
@@ -11,7 +10,6 @@ workflows:
       vars:
         APP_STORE_CONNECT_ISSUER_ID: b3214eff-b69b-4b7a-bfd0-0c476ed2605c
         APP_STORE_CONNECT_KEY_IDENTIFIER: 67SDRAXWZR
-        # Chave privada fornecida por você (já validada)
         APP_STORE_CONNECT_PRIVATE_KEY: |
           -----BEGIN PRIVATE KEY-----
           MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv5WLsj3roOV3zWQ3
@@ -21,26 +19,27 @@ workflows:
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         NODE_VERSION: "18"
       groups:
-        - app_store_connect # Grupo com as variáveis acima (já configurado no Codemagic)
+        - app_store_connect
     scripts:
       - name: Build web app (React + Vite)
         script: |
           npm install
-          npm run build  # Gera os arquivos na pasta dist (padrão do Vite)
+          npm run build
 
-      - name: Sync with Capacitor (sem conflitos de Ruby)
+      - name: Sync with Capacitor
         script: |
           # Remove Gemfile temporariamente para evitar conflitos com bundler
-          if [ -f "Gemfile" ]; then
-            mv Gemfile Gemfile.bak
-          fi
-          # Garante que o bundler correto esteja instalado (opcional, mas seguro)
+          if [ -f "Gemfile" ]; then mv Gemfile Gemfile.bak; fi
+
+          # Instala bundler compatível e CocoaPods (necessário para pod install)
           gem install bundler -v '~> 2.5' --no-document
-          npx cap sync ios  # Copia de dist/ para ios/App/App/public
+          gem install cocoapods
+
+          # Sincroniza com Capacitor (executa pod install automaticamente)
+          npx cap sync ios
 
       - name: Configure iPhone only
         script: |
-          # Define o app para rodar apenas em iPhone (remove suporte a iPad)
           plutil -replace UIDeviceFamily -json '[1]' ios/App/App/Info.plist
           plutil -remove UISupportedInterfaceOrientations~ipad ios/App/App/Info.plist || true
 
@@ -70,4 +69,4 @@ workflows:
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        submit_to_testflight: true # Envia para o TestFlight automaticamente
+        submit_to_testflight: true
