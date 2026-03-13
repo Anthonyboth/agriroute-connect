@@ -92,7 +92,7 @@ try {
 
 const hasServerUrl = /server\s*:\s*\{[^}]*url\s*:/s.test(configContent);
 const hasEnvGuard = /process\.env\.CAPACITOR_LIVE_RELOAD/s.test(configContent);
-const hasConditionalSpread = /\.\.\.\(isLiveReload|isNativeDev/s.test(configContent);
+const hasConditionalSpread = /\.\.\.\((?:isLiveReload|isNativeDev|enableLiveReload)/s.test(configContent);
 
 if (hasServerUrl && !hasEnvGuard) {
   pushError('server.url is present WITHOUT CAPACITOR_LIVE_RELOAD env guard');
