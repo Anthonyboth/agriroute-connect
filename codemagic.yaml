@@ -23,6 +23,7 @@ workflows:
         NODE_VERSION: "18"
       groups:
         - app_store_connect
+    clone_depth: 0
     scripts:
       - name: Limpar ambiente Ruby
         script: |
@@ -52,20 +53,13 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Definir versão do app e build number
+      - name: Incrementar versão do app e build number
         script: |
-          cd ios/App
-          # Versão baseada na data (ex: 2026.3.12) - sempre maior que 151
-          VERSION=$(date +%Y.%-m.%-d)
-          echo "Versão do app: $VERSION"
-          # Build number baseado no timestamp (único e crescente)
-          BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
-          echo "Build number: $BUILD_NUMBER"
-          # Define a versão curta (CFBundleShortVersionString)
-          agvtool new-marketing-version $VERSION
-          # Define o build number (CFBundleVersion)
-          agvtool new-version -all $BUILD_NUMBER
-          cd ../..
+          TOTAL_COMMITS=$(git rev-list --count HEAD)
+          echo "Total de commits: $TOTAL_COMMITS"
+          plutil -replace CFBundleShortVersionString -string "$TOTAL_COMMITS" ios/App/App/Info.plist
+          plutil -replace CFBundleVersion -string "$TOTAL_COMMITS" ios/App/App/Info.plist
+          echo "Versão definida para: $TOTAL_COMMITS"
 
       - name: Build IPA
         script: |
