@@ -289,6 +289,7 @@ import { useErrorMonitoring } from '@/hooks/useErrorMonitoring';
 import { useSecurityAntiError } from '@/hooks/useSecurityAntiError';
 import { usePanelErrorTelegramReporter } from '@/hooks/usePanelErrorTelegramReporter';
 import { useCityIdMismatchMonitor } from '@/hooks/useCityIdMismatchMonitor';
+import { useNativeCrashMonitor } from '@/hooks/useNativeCrashMonitor';
 
 const ErrorMonitoringSetup = () => {
   useErrorMonitoring();
@@ -307,6 +308,11 @@ const PanelErrorTelegramSetup = () => {
 
 const CityIdMismatchMonitorSetup = () => {
   useCityIdMismatchMonitor();
+  return null;
+};
+
+const NativeCrashMonitorSetup = () => {
+  useNativeCrashMonitor();
   return null;
 };
 
@@ -982,6 +988,7 @@ const App = () => {
                       <ErrorMonitoringSetup />
                       <SecurityAntiErrorSetup />
                       <PanelErrorTelegramSetup />
+                      <NativeCrashMonitorSetup />
                       <CityIdMismatchMonitorSetup />
                       <ZipCodeSyncOnReconnect />
                       <FloatingSupportButton />
