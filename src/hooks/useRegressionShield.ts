@@ -49,7 +49,8 @@ export type RuntimeGuardKey =
   | 'available-feed-must-exclude-driver-active-assignments'
   | 'rpc-column-names-must-match-table-schema'
   | 'lazy-imports-must-use-lazyWithRetry'
-  | 'validation-toasts-must-be-neutral';
+  | 'validation-toasts-must-be-neutral'
+  | 'build-gradle-must-use-signing-properties';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
