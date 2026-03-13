@@ -169,7 +169,6 @@ if (requireAndroidAssets) {
     } else {
       try {
         const assetFiles = readdirSync(ANDROID_COMPILED_ASSETS);
-        const assetFiles = readdirSync(ANDROID_COMPILED_ASSETS);
         const hasJsFiles = assetFiles.some(f => f.endsWith('.js'));
         if (!hasJsFiles) {
           pushError(

@@ -52,8 +52,11 @@ export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
       // Resetar estado após um tempo para permitir nova tentativa se falhar
       setTimeout(() => setIsRecovering(false), 3000);
     } else {
-      // Fallback: reload simples
-      window.location.reload();
+      // FRT-077: NEVER auto-reload on native — causes crash loop
+      const isNative = (window as any).__CAPACITOR_NATIVE__ || (window as any).Capacitor?.isNativePlatform?.() === true;
+      if (!isNative) {
+        window.location.reload();
+      }
     }
   };
 
@@ -94,10 +97,16 @@ export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
         sessionStorage.clear();
       } catch {}
       
-      // Reload forçado
-      window.location.reload();
+      // FRT-077: NEVER auto-reload on native — causes crash loop
+      const isNative = (window as any).__CAPACITOR_NATIVE__ || (window as any).Capacitor?.isNativePlatform?.() === true;
+      if (!isNative) {
+        window.location.reload();
+      }
     } catch {
-      window.location.reload();
+      const isNative2 = (window as any).__CAPACITOR_NATIVE__ || (window as any).Capacitor?.isNativePlatform?.() === true;
+      if (!isNative2) {
+        window.location.reload();
+      }
     }
   };
 
