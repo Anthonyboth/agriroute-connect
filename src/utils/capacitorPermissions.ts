@@ -21,7 +21,7 @@ export const checkGeolocationPermission = async (): Promise<CapacitorPermissionS
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao verificar permissão de localização:', error);
+    console.warn('[Capacitor] Permissão de localização indisponível:', error);
     return 'unsupported';
   }
 };
