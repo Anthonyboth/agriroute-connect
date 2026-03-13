@@ -11,6 +11,14 @@ const RECOVERY_REASON_KEY = 'pwa_last_recovery_reason';
 const MAX_RECOVERIES = 2;
 const RECOVERY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 /**
  * Detecta se o erro é relacionado a chunk/módulo dinâmico
  */
@@ -92,6 +100,11 @@ function addCacheBust(url: string): string {
  */
 export async function hardResetPWA(reason: string): Promise<void> {
   console.warn('[PWA Recovery] Iniciando hard reset:', reason);
+
+  // ✅ FRT-062: nunca forçar reload automático em ambiente nativo
+  if (isNativePlatform()) {
+    throw new Error('NATIVE_PLATFORM_RECOVERY_DISABLED');
+  }
   
   if (!canAttemptRecovery()) {
     console.error('[PWA Recovery] Máximo de tentativas atingido. Exibindo fallback.');
@@ -135,12 +148,12 @@ export async function hardResetPWA(reason: string): Promise<void> {
     
     if (import.meta.env.DEV) console.log('[PWA Recovery] Limpeza concluída. Recarregando...');
     
-    // 4. Recarregar com cache-bust
+    // 4. Recarregar com cache-bust (somente web)
     window.location.replace(addCacheBust(window.location.href));
     
   } catch (error) {
     console.error('[PWA Recovery] Erro durante reset:', error);
-    // Fallback: reload simples
+    // Fallback: reload simples apenas em web
     window.location.reload();
   }
 }
@@ -155,6 +168,12 @@ let isRecovering = false;
  */
 async function handleChunkError(error: unknown): Promise<void> {
   if (isRecovering) return;
+
+  // ✅ FRT-062: em nativo não acionamos auto-recovery com reload
+  if (isNativePlatform()) {
+    console.warn('[PWA Recovery] Chunk error em ambiente nativo detectado; auto-recovery web desativado');
+    return;
+  }
   
   if (isChunkLoadError(error)) {
     isRecovering = true;
@@ -266,6 +285,12 @@ function showManualRecoveryUI(): void {
  * Instala handlers globais para auto-recuperação
  */
 export function installAutoRecoveryHandlers(): void {
+  // ✅ FRT-062: handlers web-only
+  if (isNativePlatform()) {
+    console.debug('[PWA Recovery] Plataforma nativa detectada — handlers não instalados');
+    return;
+  }
+
   // Handler para erros síncronos
   window.addEventListener('error', (event) => {
     handleChunkError(event.error || event.message);

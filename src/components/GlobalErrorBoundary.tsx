@@ -40,6 +40,14 @@ const RECOVERY_KEY = 'global_error_recovery_count';
 const RECOVERY_TIMESTAMP_KEY = 'global_error_recovery_ts';
 const MAX_RECOVERY_WINDOW_MS = 60000; // 1 minute window
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 function getRecoveryCount(): number {
   try {
     const ts = sessionStorage.getItem(RECOVERY_TIMESTAMP_KEY);
@@ -105,7 +113,8 @@ class GlobalErrorBoundary extends Component<Props, State> {
     const sessionRecoveryCount = getRecoveryCount();
     
     // Check if this is a recoverable chunk loading error AND we haven't exceeded attempts
-    if (isChunkLoadError(error) && sessionRecoveryCount < this.MAX_AUTO_RECOVERY) {
+    // ✅ FRT-062: em nativo, nunca auto-reload de recovery
+    if (isChunkLoadError(error) && !isNativePlatform() && sessionRecoveryCount < this.MAX_AUTO_RECOVERY) {
       if (import.meta.env.DEV) console.log('🔄 Detected chunk loading error, attempting auto-recovery... (attempt', sessionRecoveryCount + 1, ')');
       incrementRecoveryCount();
       this.attemptAutoRecovery();
@@ -129,6 +138,12 @@ class GlobalErrorBoundary extends Component<Props, State> {
       isRecovering: true, 
       recoveryAttempt: this.state.recoveryAttempt + 1 
     });
+
+    // ✅ FRT-062: em nativo, abortar auto-recovery para evitar loop de boot
+    if (isNativePlatform()) {
+      this.setState({ isRecovering: false });
+      return;
+    }
 
     try {
       // Clear caches
@@ -168,6 +183,11 @@ class GlobalErrorBoundary extends Component<Props, State> {
   };
 
   private handleReload = () => {
+    if (isNativePlatform()) {
+      this.setState({ hasError: false, error: null, errorInfo: null, isRecovering: false });
+      return;
+    }
+
     window.location.reload();
   };
 
@@ -208,11 +228,21 @@ class GlobalErrorBoundary extends Component<Props, State> {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(registrations.map(reg => reg.unregister()));
       }
+
+      // ✅ FRT-062: no native, reset local sem reload forçado
+      if (isNativePlatform()) {
+        this.setState({ hasError: false, error: null, errorInfo: null, isRecovering: false });
+        return;
+      }
       
       // Force reload
       window.location.reload();
     } catch (e) {
-      // Fallback to simple reload
+      // Fallback em nativo: reset local; em web: reload
+      if (isNativePlatform()) {
+        this.setState({ hasError: false, error: null, errorInfo: null, isRecovering: false });
+        return;
+      }
       window.location.reload();
     }
   };

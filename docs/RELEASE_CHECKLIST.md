@@ -128,14 +128,21 @@ Before ANY release, validate ALL items below in ALL environments:
 
 ### Android (Capacitor)
 ```bash
-npx cap sync android
-npx cap run android
+npm run mobile:sync:android:release
 ```
-- [ ] App launches without white screen
+- [ ] Comando acima executado sem erro (build + sync + preflight)
+- [ ] `android/app/src/main/assets/capacitor.config.json` existe
+- [ ] `android/app/src/main/assets/capacitor.config.json` **não** contém `server.url`
+- [ ] App abre 3x seguidas sem white screen/flicker/close
 - [ ] Splash screen transitions smoothly
-- [ ] All navigation works
+- [ ] Landing/login/cadastro abrem após cold start
 - [ ] Deep links work
 - [ ] Camera/GPS permissions work (if used)
+
+### Android Smoke (obrigatório antes da Play Store)
+- [ ] Abrir app, fechar totalmente, reabrir (3 ciclos)
+- [ ] Testar rota inicial + login/cadastro
+- [ ] Confirmar que não houve reload loop no boot
 
 ### iOS (Capacitor)
 ```bash
@@ -180,8 +187,9 @@ npx cap run ios
 If ANY critical issue is found post-release:
 
 1. **Web:** Revert to previous Lovable version via History
-2. **Mobile:** Users retain previous app version until store update
-3. **Database:** Migrations are non-destructive, no rollback needed
+2. **Mobile:** Pause rollout / rollback in Play Console immediately if crash rate spikes
+3. **Mobile:** Block new AAB uploads until `mobile:preflight:release` passes again
+4. **Database:** Migrations are non-destructive, no rollback needed
 
 ---
 

@@ -21,6 +21,14 @@ interface State {
   diagnosticCopied?: boolean;
 }
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false
@@ -28,9 +36,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(error: Error): State {
     const isChunk = isChunkLoadError(error);
+    const isNative = isNativePlatform();
     
-    // FRT-044: Auto-reload once for chunk errors before showing UI
-    if (isChunk) {
+    // FRT-044/FRT-062: auto-reload de chunk só em web
+    if (isChunk && !isNative) {
       const key = 'agriroute_chunk_reload_attempted';
       const lastAttempt = sessionStorage.getItem(key);
       const now = Date.now();
@@ -131,17 +140,31 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
+    if (isNativePlatform()) {
+      this.setState({ hasError: false, error: undefined, isChunkError: false, isClearing: false });
+      return;
+    }
+
+    this.setState({ hasError: false, error: undefined, isChunkError: false });
     window.location.reload();
   };
 
   private handleClearCache = async () => {
     this.setState({ isClearing: true });
+
+    // ✅ FRT-062: no native, nunca forçar reload/cycle automático
+    if (isNativePlatform()) {
+      this.setState({ isClearing: false, hasError: false, error: undefined, isChunkError: false });
+      return;
+    }
+
     try {
       await hardResetPWA('error_boundary_manual');
     } catch (e) {
-      // Se falhar, pelo menos recarrega
+      // Se falhar em web, pelo menos recarrega
       window.location.reload();
+    } finally {
+      this.setState({ isClearing: false });
     }
   };
 

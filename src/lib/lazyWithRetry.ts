@@ -25,6 +25,14 @@ function isChunkError(error: unknown): boolean {
   return /dynamically imported module|ChunkLoadError|Loading chunk.*failed|Failed to fetch/i.test(msg);
 }
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 function getRetryCount(): number {
   try {
     return parseInt(sessionStorage.getItem(RETRY_KEY) || '0', 10);
@@ -151,8 +159,8 @@ export function lazyWithRetry<T extends ComponentType<any>>(
         if (isChunkError(error)) {
           console.warn(`[lazyWithRetry] ChunkLoadError - tentativa ${attempt + 1}/${maxRetries}`);
           
-          // Na primeira falha, limpa todos os caches
-          if (attempt === 0 && !wasCacheRecentlyCleared()) {
+          // Na primeira falha, limpa todos os caches (somente web)
+          if (attempt === 0 && !wasCacheRecentlyCleared() && !isNativePlatform()) {
             if (import.meta.env.DEV) console.log('[lazyWithRetry] Limpando todos os caches...');
             await clearAllCaches();
           }
@@ -171,7 +179,13 @@ export function lazyWithRetry<T extends ComponentType<any>>(
     const currentRetries = getRetryCount();
     
     if (currentRetries <= 2) {
-      // Ainda tem tentativas de página, recarrega
+      if (isNativePlatform()) {
+        // ✅ FRT-062: nunca auto-reload em nativo (evita loop de boot)
+        clearRetryCount();
+        throw lastError || new Error('Native chunk load failed without auto-reload');
+      }
+
+      // Web: ainda tem tentativas de página, recarrega
       window.location.reload();
       // Nunca retorna (página recarrega)
       return new Promise(() => {});

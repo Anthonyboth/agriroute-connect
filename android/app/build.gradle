@@ -42,6 +42,19 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
+def repoRootDir = rootProject.projectDir.parentFile
+
+tasks.register("validateNativeRelease", Exec) {
+    workingDir repoRootDir
+    commandLine "node", "scripts/validate-native-release.mjs", "--require-android-assets"
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == "assembleRelease" || task.name == "bundleRelease") {
+        task.dependsOn("validateNativeRelease")
+    }
+}
+
 apply from: 'capacitor.build.gradle'
 
 try {

@@ -4,8 +4,8 @@ import './index.css'
 import { installAutoRecoveryHandlers, clearRecoveryCounters } from './utils/pwaRecovery'
 import { isLovablePreviewHost } from './utils/isLovablePreviewHost'
 
-// Instalar handlers de auto-recuperação para erros de chunk/PWA ANTES de qualquer coisa
-installAutoRecoveryHandlers();
+// ⚠️ FRT-062: handlers de auto-recuperação são WEB-ONLY
+// Em nativo (Android/iOS), reload automático pode causar loop de boot.
 
 // ✅ GLOBAL: Silenciar AbortError de MapLibre/fetch cleanup ANTES de qualquer React montar
 // Estes são cancelamentos normais de tiles/requests e NÃO são bugs reais
@@ -168,12 +168,12 @@ const isNativePlatform = typeof window !== 'undefined' && (
 
 // Bootstrap controlado para permitir limpeza/reload antes do mount
 void (async () => {
-  // ✅ FRT-062 FIX: Skip preview cleanup and PWA recovery in native environment
-  // These routines cause reload loops and flashing in Android/iOS WebViews
+  // ✅ FRT-062 FIX: tudo de recovery/preview é WEB-ONLY
   if (!isNativePlatform) {
+    installAutoRecoveryHandlers();
     await ensureFreshPreviewBuild();
   } else {
-    console.log('[Boot] Native platform detected — skipping preview cleanup & PWA recovery');
+    console.log('[Boot] Native platform detected — skipping preview cleanup & PWA recovery handlers');
   }
 
   if (typeof window !== 'undefined') {

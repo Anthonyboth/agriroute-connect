@@ -1,58 +1,24 @@
 
-Problema reavaliado (Play Store, fecha imediato): o bug ainda pode voltar porque a blindagem atual está incompleta em 2 pontos críticos.
 
-Do I know what the issue is? **Sim**.
+## Problem
 
-Causa provável real (reincidência):
-1) **Boot nativo ainda executa mecanismos web de auto-recovery/reload** em alguns caminhos (não está 100% isolado para native).  
-2) **Validação de release está fraca**: hoje ela valida só `capacitor.config.ts`, mas não garante que o Android build final (`android/app/src/main/assets/capacitor.config.json`) esteja limpo nem bloqueia build no próprio Gradle.
+The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
 
-Arquivos isolados (onde o bug pode continuar nas próximas releases):
-- `src/main.tsx`
-- `src/utils/pwaRecovery.ts`
-- `src/lib/lazyWithRetry.ts`
-- `src/components/ErrorBoundary.tsx`
-- `src/components/GlobalErrorBoundary.tsx`
-- `src/services/securityAutoHealService.ts`
-- `scripts/validate-native-release.mjs`
-- `android/app/build.gradle`
-- `docs/RELEASE_CHECKLIST.md`
-- `src/hooks/useRegressionShield.ts`
+## Root Cause
 
-Plano de correção (definitivo, sem meia-medida):
+The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
 
-1) Blindagem total “web-only recovery” fora do nativo
-- Em `main.tsx`, mover `installAutoRecoveryHandlers()` para execução **apenas web** (nunca Android/iOS).
-- Garantir que qualquer rotina de preview/PWA recovery não rode em `Capacitor.isNativePlatform() === true`.
-- Resultado: remove loops de reload/flicker no WebView nativo.
+## Plan
 
-2) Hardening dos pontos que ainda forçam reload
-- Em `pwaRecovery.ts`, `lazyWithRetry.ts`, `ErrorBoundary.tsx`, `GlobalErrorBoundary.tsx`, `securityAutoHealService.ts`:
-  - Se for native: **não fazer `window.location.reload()` / `location.replace()` automático**.
-  - Em native, fazer fallback seguro (UI de erro + instrução) em vez de loop de reload.
-- Resultado: elimina ciclo de “pisca e fecha” provocado por recovery agressivo em runtime.
+### 1. Replace local hero image files
+- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
 
-3) Preflight realmente bloqueador de release (nível Gradle)
-- Fortalecer `scripts/validate-native-release.mjs` para também validar:
-  - `android/app/src/main/assets/capacitor.config.json` (quando existir)
-  - falhar se houver `server.url` em release
-  - falhar se assets Android estiverem ausentes (indicando sync incorreto antes do build)
-- Em `android/app/build.gradle`, adicionar task de validação executada antes de `assembleRelease/bundleRelease`.
-- Resultado: mesmo que alguém ignore npm script, o próprio build release será bloqueado se inseguro.
+### 2. Update the database record
+- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
 
-4) Protocolo anti-regressão formal
-- Atualizar `docs/RELEASE_CHECKLIST.md` com etapa obrigatória e bloqueante:
-  - `npm run mobile:sync:android:release`
-  - validação explícita do `capacitor.config.json` gerado
-- Atualizar FRT-062 em `useRegressionShield.ts` com regra nova:
-  - “Release Android só é válida se Gradle validator passar + native recovery estiver desativado para web-only handlers”.
+### 3. Update the inline fallback in `index.html`
+- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
 
-Validação de aceite (obrigatória após implementar):
-1. Build release abre 3x seguidas sem fechar.  
-2. `android/app/src/main/assets/capacitor.config.json` sem `server.url`.  
-3. Sem loop de reload em native quando ocorre erro de chunk/rede.  
-4. Fluxo inicial (landing/login/cadastro) abre estável.  
-5. Gate de release bloqueia automaticamente qualquer tentativa futura de reintroduzir boot remoto.
+### Technical Note
+All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
 
-Referência técnica externa usada na investigação:
-- Issues do ecossistema Capacitor sobre conflitos de Service Worker/reload em Android WebView e crashes por estratégia web aplicada em container nativo — reforça a decisão de separar estritamente recovery web vs native.
