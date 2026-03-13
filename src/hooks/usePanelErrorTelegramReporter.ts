@@ -97,6 +97,9 @@ export function usePanelErrorTelegramReporter() {
       'Permissão de localização negada',
       // FRT-067: Capacitor plugins não registrados (APK desatualizado ou cap sync pendente)
       'plugin is not implemented',
+      // FRT-068: SplashScreen plugin ausente em builds nativos dessincronizados (ruído esperado)
+      'erro ao ocultar splash',
+      '"splashscreen" plugin is not implemented on android',
     ];
 
     const shouldIgnore = (msg: string): boolean => {
