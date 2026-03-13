@@ -139,6 +139,12 @@ class GlobalErrorBoundary extends Component<Props, State> {
       recoveryAttempt: this.state.recoveryAttempt + 1 
     });
 
+    // ✅ FRT-062: em nativo, abortar auto-recovery para evitar loop de boot
+    if (isNativePlatform()) {
+      this.setState({ isRecovering: false });
+      return;
+    }
+
     try {
       // Clear caches
       if ('caches' in window) {
