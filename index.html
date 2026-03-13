@@ -32,6 +32,58 @@
       })();
     </script>
 
+    <!-- ✅ FRT-077: Pre-React diagnostic for native crash detection -->
+    <script>
+      (function(){
+        if (!window.__CAPACITOR_NATIVE__) return;
+        window.__preReactDiagnostic = { webviewLoaded: true, timestamp: Date.now() };
+        var timeout = setTimeout(function(){
+          // React didn't mount within 12s — report to Telegram
+          if (window.__reactMounted) return;
+          var payload = {
+            errorType: 'FRONTEND',
+            errorCategory: 'CRITICAL',
+            errorMessage: 'PRE_REACT_BOOT_FAILURE: WebView loaded but React never mounted within 12s',
+            module: 'index.html/pre-react-diagnostic',
+            functionName: 'boot-watchdog',
+            route: location.pathname,
+            metadata: {
+              url: location.href,
+              userAgent: navigator.userAgent,
+              timestamp: new Date().toISOString(),
+              rootHTML: (document.getElementById('root') || {}).innerHTML ? 
+                document.getElementById('root').innerHTML.slice(0,200) : 'empty',
+              scriptErrors: window.__preReactErrors || []
+            }
+          };
+          var url = 'https://shnvtxejjecbnztdbbbl.supabase.co/functions/v1/telegram-error-notifier';
+          try {
+            fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MTY2ODcsImV4cCI6MjA2MDQ5MjY4N30.EJbRt-VmQZb11bNYfSjOYxBMymHgLBjIGdB4bfKn6co',
+                'X-Skip-Error-Monitoring': 'true'
+              },
+              body: JSON.stringify(payload)
+            }).catch(function(){});
+          } catch(e){}
+        }, 12000);
+        // Capture early script errors
+        window.__preReactErrors = [];
+        window.addEventListener('error', function(e){
+          if (window.__reactMounted) return;
+          window.__preReactErrors.push({
+            msg: (e.message || '').slice(0,200),
+            file: (e.filename || '').slice(-60),
+            line: e.lineno
+          });
+          if (window.__preReactErrors.length > 5) window.__preReactErrors.shift();
+        });
+        window.__preReactBootTimeout = timeout;
+      })();
+    </script>
+
     <!-- Android/Chrome PWA -->
     <link rel="manifest" href="/site.webmanifest?v=2">
     <meta name="theme-color" content="#10b981">

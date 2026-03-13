@@ -466,6 +466,14 @@ export class SecurityAutoHealService {
       }
 
       localStorage.setItem(reloadKey, String(now));
+      // FRT-077: NEVER auto-reload on native — causes crash loop
+      const isNative = typeof window !== 'undefined' && (
+        (window as any).__CAPACITOR_NATIVE__ ||
+        (window as any).Capacitor?.isNativePlatform?.() === true
+      );
+      if (isNative) {
+        return { success: true, action: 'Chunk reload suprimido em nativo (anti-loop)' };
+      }
       // Agendar reload após notificação Telegram
       setTimeout(() => window.location.reload(), 2000);
       return { success: true, action: 'Página será recarregada em 2s para carregar chunks atualizados' };

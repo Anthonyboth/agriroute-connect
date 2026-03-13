@@ -160,6 +160,18 @@ export class ErrorAutoCorrector {
     devLog('[ErrorAutoCorrector] Resetando React Query cache');
     
     try {
+      // FRT-077: NEVER auto-reload on native — causes crash loop
+      const isNative = typeof window !== 'undefined' && (
+        (window as any).__CAPACITOR_NATIVE__ ||
+        (window as any).Capacitor?.isNativePlatform?.() === true
+      );
+      if (isNative) {
+        return {
+          attempted: true,
+          action: 'Reload suprimido em ambiente nativo (anti-loop)',
+          success: true
+        };
+      }
       window.location.reload();
       
       return {
