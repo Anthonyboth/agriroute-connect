@@ -100,20 +100,9 @@ export async function resolvePostAuthRoute(profile: ProfileForRouting): Promise<
     return '/complete-profile';
   }
 
-  // Gate 2: Motorista autônomo precisa aprovação admin
-  if (profile.role === 'MOTORISTA' && profile.status !== 'APPROVED') {
-    // Verificar se possui vínculo ATIVO com alguma transportadora
-    const { data: activeLink } = await supabase
-      .from('company_drivers')
-      .select('id')
-      .eq('driver_profile_id', profile.id)
-      .eq('status', 'ACTIVE')
-      .limit(1)
-      .maybeSingle();
-
-    if (!activeLink) {
-      return '/awaiting-approval';
-    }
+  // Gate 2: TODOS os tipos não aprovados com documentos completos => aguardar aprovação
+  if (profile.status !== 'APPROVED') {
+    return '/awaiting-approval';
   }
 
   // Gate 3: Dashboard por role (fonte única: panelAccessGuard)

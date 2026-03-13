@@ -45,8 +45,6 @@ const AwaitingApproval = () => {
     navigate('/auth', { replace: true });
   };
 
-  const isDriver = profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO';
-
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center bg-background p-6">
       <Card className="max-w-lg w-full">
@@ -62,9 +60,7 @@ const AwaitingApproval = () => {
               Aguardando Aprovação
             </h2>
             <p className="text-muted-foreground">
-              {isDriver 
-                ? 'Seu cadastro de motorista está sendo analisado pela equipe AgriRoute.'
-                : 'Seu cadastro está sendo analisado pela equipe AgriRoute.'}
+              Seu cadastro está sendo analisado pela equipe AgriRoute.
             </p>
           </div>
 
