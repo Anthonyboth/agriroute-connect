@@ -42,7 +42,7 @@ export const requestGeolocationPermission = async (): Promise<CapacitorPermissio
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao solicitar permissão de localização:', error);
+    console.warn('[Capacitor] Falha ao solicitar permissão de localização:', error);
     return 'denied';
   }
 };
