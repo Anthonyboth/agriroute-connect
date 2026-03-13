@@ -25,6 +25,14 @@ function isChunkError(error: unknown): boolean {
   return /dynamically imported module|ChunkLoadError|Loading chunk.*failed|Failed to fetch/i.test(msg);
 }
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 function getRetryCount(): number {
   try {
     return parseInt(sessionStorage.getItem(RETRY_KEY) || '0', 10);
