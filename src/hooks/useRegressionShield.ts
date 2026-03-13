@@ -2380,6 +2380,45 @@ export function assertNoKnownRegression(
 }
 
 // ═══════════════════════════════════════════════════════════════
+// FRT-077: Native reload loop prevention + pre-React diagnostic
+// ═══════════════════════════════════════════════════════════════
+
+const FRT_077_ENTRY: RegressionEntry = {
+  id: 'FRT-077',
+  date: '2026-03-13',
+  severity: 'CRITICAL' as Severity,
+  area: 'Android/iOS/NativeBoot',
+  bug: 'App nativo "abre e fecha" em loop infinito. WebView carrega, React monta, mas um erro (chunk/network/cache) dispara window.location.reload() que reinicia o ciclo.',
+  rootCause: 'Múltiplos pontos no código (ErrorAutoCorrector, SecurityAutoHealService, BootstrapFallback, usePullToRefresh) chamavam window.location.reload() sem verificar se estão em ambiente nativo Capacitor. Em web, reload recupera o app. Em nativo, reload reinicia o WebView do zero, criando um loop de crash infinito.',
+  fix: '(1) Todos os pontos de auto-reload agora verificam isNative antes de chamar reload(). (2) index.html inclui diagnóstico pré-React que reporta ao Telegram se React não montar em 12s. (3) main.tsx sinaliza __reactMounted para cancelar o watchdog. (4) validate-native-release.mjs corrigido (duplicate const).',
+  files: [
+    'index.html',
+    'src/main.tsx',
+    'src/services/errorAutoCorrector.ts',
+    'src/services/securityAutoHealService.ts',
+    'src/components/BootstrapFallback.tsx',
+    'scripts/validate-native-release.mjs',
+  ],
+  rules: [
+    'NUNCA chamar window.location.reload() em ambiente nativo Capacitor.',
+    'Em nativo, recuperação de erro deve resetar estado React (setState) sem reload.',
+    'Diagnóstico pré-React deve estar inline no index.html para detectar falhas antes do bundle JS.',
+    'validate-native-release.mjs deve passar sem SyntaxError para que o preflight funcione.',
+  ],
+  keywords: ['FRT-077', 'reload loop', 'abre e fecha', 'crash loop', 'native', 'capacitor', 'window.location.reload', 'pre-react diagnostic', 'boot watchdog'],
+  testCases: [
+    'native_app_error_must_not_trigger_reload',
+    'native_chunk_error_must_recover_without_reload',
+    'pre_react_diagnostic_fires_telegram_if_react_fails_to_mount',
+    'validate_native_release_mjs_runs_without_syntax_error',
+  ],
+  runtimeGuard: 'native-must-never-auto-reload',
+};
+
+// Add FRT-077 to registry
+REGRESSION_REGISTRY.push(FRT_077_ENTRY);
+
+// ═══════════════════════════════════════════════════════════════
 // HOOK — Interface principal para componentes React
 // ═══════════════════════════════════════════════════════════════
 
