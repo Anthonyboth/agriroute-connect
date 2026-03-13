@@ -97,6 +97,9 @@ export function usePanelErrorTelegramReporter() {
       'Permissão de localização negada',
       // FRT-067: Capacitor plugins não registrados (APK desatualizado ou cap sync pendente)
       'plugin is not implemented',
+      // FRT-068: SplashScreen plugin ausente em builds nativos dessincronizados (ruído esperado)
+      'erro ao ocultar splash',
+      '"splashscreen" plugin is not implemented on android',
     ];
 
     const shouldIgnore = (msg: string): boolean => {
@@ -213,28 +216,34 @@ export function usePanelErrorTelegramReporter() {
       // Chamar o original primeiro
       originalConsoleError(...args);
 
-      // Não reportar erros das próprias chamadas de monitoramento
-      const firstArg = String(args[0] || '');
+      const rawMessage = args.map((a: unknown) => {
+        if (a instanceof Error) return a.message;
+        if (typeof a === 'string') return a;
+        if (a && typeof a === 'object' && 'message' in (a as any)) {
+          return String((a as any).message || '');
+        }
+        try { return JSON.stringify(a); } catch { return String(a); }
+      }).join(' ');
+      const lowerRawMessage = rawMessage.toLowerCase();
+
+      // Ignorar ruído esperado de plugins/monitoramento
       if (
-        firstArg.includes('[ErrorMonitoring]') ||
-        firstArg.includes('telegram') ||
-        firstArg.includes('report-error') ||
-        firstArg.includes('[useErrorMonitoring]') ||
-        firstArg.includes('[hmr]') ||
-        firstArg.includes('[vite]') ||
-        firstArg.includes('hot update') ||
-        firstArg.toLowerCase().includes('wake_lock') ||
-        firstArg.toLowerCase().includes('foregroundservice')
+        lowerRawMessage.includes('[errormonitoring]') ||
+        lowerRawMessage.includes('telegram') ||
+        lowerRawMessage.includes('report-error') ||
+        lowerRawMessage.includes('[useerrormonitoring]') ||
+        lowerRawMessage.includes('[hmr]') ||
+        lowerRawMessage.includes('[vite]') ||
+        lowerRawMessage.includes('hot update') ||
+        lowerRawMessage.includes('wake_lock') ||
+        lowerRawMessage.includes('foregroundservice') ||
+        lowerRawMessage.includes('erro ao ocultar splash') ||
+        lowerRawMessage.includes('plugin is not implemented on android')
       ) {
         return;
       }
 
-      const parts = args.map((a: unknown) => {
-        if (a instanceof Error) return a.message;
-        if (typeof a === 'string') return a;
-        try { return JSON.stringify(a)?.slice(0, 100); } catch { return '[object]'; }
-      });
-      const msg = parts.join(' ').slice(0, 400);
+      const msg = rawMessage.slice(0, 400);
       if (msg.length > 5) {
         reportError(msg, 'console_error');
       }
