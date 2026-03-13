@@ -95,6 +95,8 @@ export function usePanelErrorTelegramReporter() {
       'Missing the following permissions',
       'AndroidManifest',
       'Permissão de localização negada',
+      // FRT-067: Capacitor plugins não registrados (APK desatualizado ou cap sync pendente)
+      'plugin is not implemented',
     ];
 
     const shouldIgnore = (msg: string): boolean => {

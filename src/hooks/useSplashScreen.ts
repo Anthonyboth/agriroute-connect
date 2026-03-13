@@ -41,7 +41,7 @@ export const useSplashScreen = () => {
         setIsHidden(true);
         console.log('[SplashScreen] ✅ Splash screen ocultada com sucesso');
       } catch (error) {
-        console.error('[SplashScreen] ❌ Erro ao ocultar splash:', error);
+        console.warn('[SplashScreen] Plugin não disponível, ignorando:', error);
         setIsHidden(true);
       }
     };
