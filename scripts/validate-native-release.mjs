@@ -92,7 +92,7 @@ try {
 
 const hasServerUrl = /server\s*:\s*\{[^}]*url\s*:/s.test(configContent);
 const hasEnvGuard = /process\.env\.CAPACITOR_LIVE_RELOAD/s.test(configContent);
-const hasConditionalSpread = /\.\.\.\(isLiveReload|isNativeDev/s.test(configContent);
+const hasConditionalSpread = /\.\.\.\((?:isLiveReload|isNativeDev|enableLiveReload)/s.test(configContent);
 
 if (hasServerUrl && !hasEnvGuard) {
   pushError('server.url is present WITHOUT CAPACITOR_LIVE_RELOAD env guard');
@@ -197,7 +197,7 @@ if (requireAndroidAssets) {
       const pluginsRaw = readFileSync(ANDROID_PLUGINS_JSON, 'utf-8');
       const plugins = JSON.parse(pluginsRaw);
       const registeredNames = Array.isArray(plugins)
-        ? plugins.map(p => p.name || p.id || '').filter(Boolean)
+        ? plugins.map(p => p.classpath || p.name || p.id || '').filter(Boolean)
         : [];
 
       for (const critical of CRITICAL_PLUGINS) {
