@@ -151,11 +151,20 @@ class ErrorBoundary extends Component<Props, State> {
 
   private handleClearCache = async () => {
     this.setState({ isClearing: true });
+
+    // ✅ FRT-062: no native, nunca forçar reload/cycle automático
+    if (isNativePlatform()) {
+      this.setState({ isClearing: false, hasError: false, error: undefined, isChunkError: false });
+      return;
+    }
+
     try {
       await hardResetPWA('error_boundary_manual');
     } catch (e) {
-      // Se falhar, pelo menos recarrega
+      // Se falhar em web, pelo menos recarrega
       window.location.reload();
+    } finally {
+      this.setState({ isClearing: false });
     }
   };
 
