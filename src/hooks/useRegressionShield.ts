@@ -1718,6 +1718,48 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'main_tsx_skips_preview_cleanup_and_recovery_handlers_on_native_platform',
     ],
   },
+
+  // ── FRT-063: AAB gerado sem assets web (dist/) — app abre e fecha imediatamente ──
+  // ⚠️ REGRESSÃO REINCIDENTE (2x): Build Android empacotou apenas código nativo sem frontend.
+  {
+    id: 'FRT-063',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Android/Build/Capacitor',
+    bug: 'AAB gerado com ~9 MB (normal ~12 MB). App abre, WebView tenta carregar index.html que não existe nos assets, app fecha imediatamente. Não aparece FATAL no logcat porque não é crash nativo — é WebView sem conteúdo.',
+    rootCause: [
+      '1. `npx cap sync android` não foi executado antes de gerar o AAB no Android Studio.',
+      '2. A pasta android/app/src/main/assets/public/ ficou vazia (gitignored por design do Capacitor).',
+      '3. Sem index.html, o WebView não tem o que renderizar e o app fecha.',
+      '4. Não havia validação bloqueante no Gradle para verificar presença de index.html.',
+    ].join('\n'),
+    fix: [
+      '1. scripts/validate-native-release.mjs: adicionada verificação explícita de public/index.html',
+      '2. android/app/build.gradle: nova task validateWebAssetsExist bloqueia assembleRelease/bundleRelease se index.html ausente',
+      '3. docs/RELEASE_CHECKLIST.md: adicionada verificação de tamanho do AAB (≥ 11 MB) e presença de index.html',
+      '4. Fluxo obrigatório: npm run build → npx cap sync android → Android Studio Generate AAB',
+    ].join('\n'),
+    files: [
+      'scripts/validate-native-release.mjs',
+      'android/app/build.gradle',
+      'docs/RELEASE_CHECKLIST.md',
+    ],
+    rules: [
+      'NUNCA gerar AAB sem antes executar `npm run mobile:sync:android:release`.',
+      'Se o AAB tiver menos de 11 MB, o dist/ NÃO entrou no build — NÃO publique.',
+      'android/app/src/main/assets/public/index.html DEVE existir antes do AAB.',
+      'Gradle DEVE bloquear assembleRelease/bundleRelease se index.html não existir.',
+      'A pasta android/app/src/main/assets/public é gitignored — SEMPRE regenerada por cap sync.',
+    ],
+    keywords: ['FRT-063', 'android', 'AAB', 'tamanho', '9mb', '12mb', 'dist', 'index.html', 'assets', 'cap sync', 'abre e fecha', 'webview vazio', 'build sem frontend'],
+    testCases: [
+      'aab_size_must_be_at_least_11mb',
+      'android_assets_public_index_html_must_exist_before_release',
+      'gradle_blocks_release_if_index_html_missing',
+      'preflight_script_checks_index_html_presence',
+      'cap_sync_copies_dist_to_android_assets',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução

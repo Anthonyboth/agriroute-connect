@@ -158,5 +158,8 @@ if (hasAndroidConfigJson) {
 if (hasAndroidPublicAssets) {
   console.log('   - Android public assets folder found');
 }
+if (hasAndroidIndexHtml) {
+  console.log('   - Android public/index.html present (dist/ correctly synced)');
+}
 console.log('');
 process.exit(0);

@@ -49,9 +49,24 @@ tasks.register("validateNativeRelease", Exec) {
     commandLine "node", "scripts/validate-native-release.mjs", "--require-android-assets"
 }
 
+tasks.register("validateWebAssetsExist") {
+    description "Fails the build if dist/ web assets are missing from Android assets (FRT-063)"
+    doLast {
+        def indexHtml = file("src/main/assets/public/index.html")
+        if (!indexHtml.exists()) {
+            throw new GradleException(
+                "❌ RELEASE BLOCKED (FRT-063): android/app/src/main/assets/public/index.html not found.\n" +
+                "   The AAB will be ~9 MB instead of ~12 MB and the app will crash on open.\n" +
+                "   Fix: run 'npm run build && npx cap sync android' before generating the AAB."
+            )
+        }
+    }
+}
+
 tasks.whenTaskAdded { task ->
     if (task.name == "assembleRelease" || task.name == "bundleRelease") {
         task.dependsOn("validateNativeRelease")
+        task.dependsOn("validateWebAssetsExist")
     }
 }
 
