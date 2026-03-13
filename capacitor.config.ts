@@ -17,6 +17,10 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const isLiveReload = process.env.CAPACITOR_LIVE_RELOAD === 'true';
 
+// FRT-072: Safety — block live reload in CI environments
+const isCI = process.env.CI === 'true' || process.env.CODEMAGIC === 'true';
+const enableLiveReload = isLiveReload && !isCI;
+
 // Sanitize URL: keep only origin (no query params or paths that crash Android WebView)
 const LIVE_RELOAD_URL = 'https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com';
 
@@ -26,7 +30,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
 
   // ✅ server block ONLY in dev mode — production uses local dist/ bundle
-  ...(isLiveReload ? {
+  // ⚠️ FRT-062: NEVER remove the env guard — causes splash-flash-close on Play Store
+  ...(enableLiveReload ? {
     server: {
       url: LIVE_RELOAD_URL,
       cleartext: true
@@ -50,9 +55,10 @@ const config: CapacitorConfig = {
     }
   },
   android: {
-    allowMixedContent: true,
-    // Debug only in dev mode
-    webContentsDebuggingEnabled: isLiveReload,
+    // ✅ FRT-071: allowMixedContent false in production for security
+    allowMixedContent: enableLiveReload,
+    // Debug only in dev mode — never in production/CI
+    webContentsDebuggingEnabled: enableLiveReload,
   },
   ios: {
     contentInset: 'automatic',
