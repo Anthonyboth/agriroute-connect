@@ -25,6 +25,10 @@ const ANDROID_PUBLIC_ASSETS_DIR = resolve(
   process.cwd(),
   'android/app/src/main/assets/public',
 );
+const ANDROID_INDEX_HTML = resolve(
+  process.cwd(),
+  'android/app/src/main/assets/public/index.html',
+);
 
 console.log('🔍 [Preflight] Validating native release configuration...\n');
 
