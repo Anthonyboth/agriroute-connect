@@ -4,8 +4,8 @@ import './index.css'
 import { installAutoRecoveryHandlers, clearRecoveryCounters } from './utils/pwaRecovery'
 import { isLovablePreviewHost } from './utils/isLovablePreviewHost'
 
-// Instalar handlers de auto-recuperação para erros de chunk/PWA ANTES de qualquer coisa
-installAutoRecoveryHandlers();
+// ⚠️ FRT-062: handlers de auto-recuperação são WEB-ONLY
+// Em nativo (Android/iOS), reload automático pode causar loop de boot.
 
 // ✅ GLOBAL: Silenciar AbortError de MapLibre/fetch cleanup ANTES de qualquer React montar
 // Estes são cancelamentos normais de tiles/requests e NÃO são bugs reais
