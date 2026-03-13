@@ -1760,6 +1760,32 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'cap_sync_copies_dist_to_android_assets',
     ],
   },
+
+  // ── FRT-064: Popup de download do app exibido dentro do app já instalado ──
+  // ⚠️ O modal "Baixe agora" aparecia em Capacitor nativo e PWA standalone.
+  {
+    id: 'FRT-064',
+    date: '2026-03-13',
+    severity: 'HIGH' as Severity,
+    area: 'Mobile/Capacitor',
+    bug: 'Popup de download do app aparecia dentro do próprio app instalado (nativo e PWA standalone).',
+    rootCause: 'Detecção baseada apenas em User-Agent, que é idêntico no browser mobile e no container Capacitor/PWA.',
+    fix: 'Gate de ambiente em MobileAppDownloadPopup: bloqueia exibição se Capacitor.isNativePlatform(), window.Capacitor, protocol capacitor:, ou display-mode standalone/navigator.standalone.',
+    files: ['src/components/MobileAppDownloadPopup.tsx'],
+    rules: [
+      'Popup de download de app NUNCA aparece em ambiente nativo Capacitor.',
+      'Popup de download de app NUNCA aparece em PWA standalone.',
+      'Popup de download de app SÓ aparece em navegador mobile convencional (aba).',
+    ],
+    keywords: ['FRT-064', 'popup', 'download', 'app', 'capacitor', 'nativo', 'standalone', 'pwa', 'MobileAppDownloadPopup', 'baixe agora'],
+    testCases: [
+      'native_android_does_not_show_download_popup',
+      'native_ios_does_not_show_download_popup',
+      'pwa_standalone_does_not_show_download_popup',
+      'mobile_browser_shows_download_popup_after_delay',
+      'desktop_does_not_show_download_popup',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução

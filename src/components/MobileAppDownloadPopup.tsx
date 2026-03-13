@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 const STORAGE_KEY = 'agriroute_app_popup_closed';
 const DISMISS_DAYS = 30;
@@ -10,8 +11,35 @@ const APP_STORE_URL = 'https://apps.apple.com/app/id6755402445';
 
 type MobilePlatform = 'android' | 'ios' | null;
 
+// ── FRT-064: popup NUNCA deve aparecer em app nativo ou PWA standalone ──
+function isInstalledAppContext(): boolean {
+  // 1. Capacitor native (Android/iOS app)
+  try {
+    if (Capacitor.isNativePlatform()) return true;
+  } catch { /* ignore */ }
+
+  // 2. Fallback: window.Capacitor global or capacitor:// protocol
+  if (typeof window !== 'undefined') {
+    if ((window as any).Capacitor?.isNativePlatform?.()) return true;
+    if (window.location?.protocol === 'capacitor:') return true;
+  }
+
+  // 3. PWA standalone (installed via browser)
+  if (typeof window !== 'undefined') {
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      (navigator as any).standalone === true;
+    if (isStandalone) return true;
+  }
+
+  return false;
+}
+
 function detectMobilePlatform(): MobilePlatform {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return null;
+
+  // ── FRT-064: Block in installed contexts ──
+  if (isInstalledAppContext()) return null;
 
   const ua = navigator.userAgent.toLowerCase();
 
