@@ -11,7 +11,7 @@ interface LegalDocumentDialogProps {
   documentType: DocumentType;
 }
 
-const termsContent = [
+export const termsContent = [
   {
     title: '1. Aceitação dos Termos',
     items: [
