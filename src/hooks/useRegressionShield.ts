@@ -2085,6 +2085,34 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'preflight_matches_geolocation_in_classpath',
     ],
   },
+
+  // ── FRT-076: Monitor de crashes nativos Android/iOS para Telegram ──
+  {
+    id: 'FRT-076',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'native-crash-monitoring',
+    bug: 'Crashes nativos do app Android/iOS (WebView blank screen, plugin bridge errors, OOM, ANR, crash-restart cycles) não eram detectados nem reportados ao Telegram. O monitoramento existente (usePanelErrorTelegramReporter) só capturava erros JS do frontend.',
+    rootCause: 'Não existia interceptor dedicado para sinais de crash nativo do Capacitor: console.error com keywords específicas de crash (SIGSEGV, NullPointerException, etc), detecção de tela branca, monitoramento de pressão de memória, long tasks > 5s (ANR), e detecção de ciclos crash-restart via localStorage.',
+    fix: 'Criado useNativeCrashMonitor.ts com 7 camadas de detecção: (1) Intercept de bridge errors nativos, (2) App state monitoring via @capacitor/app, (3) Detecção de crash-restart via localStorage flags, (4) Blank screen detection 10s após boot, (5) Memory pressure monitoring, (6) Long task ANR detection via PerformanceObserver, (7) Network offline correlation. Todos os sinais são enviados ao Telegram via ErrorMonitoringService com prefixo 📱 [PLATFORM CRASH].',
+    files: [
+      'src/hooks/useNativeCrashMonitor.ts',
+      'src/App.tsx',
+    ],
+    rules: [
+      'SEMPRE manter useNativeCrashMonitor ativo no App.tsx via NativeCrashMonitorSetup.',
+      'Novos sinais de crash nativo devem ser adicionados ao interceptor de bridge errors.',
+      'NUNCA remover detecção de blank screen — é o principal indicador de WebView crash.',
+      'Monitoramento de memória deve permanecer ativo apenas em ambiente nativo para evitar overhead.',
+    ],
+    keywords: ['FRT-076', 'native crash', 'android crash', 'ios crash', 'blank screen', 'ANR', 'OOM', 'memory pressure', 'crash monitor', 'telegram', 'SIGSEGV', 'NullPointerException'],
+    testCases: [
+      'native_crash_monitor_detects_blank_screen',
+      'native_crash_monitor_detects_memory_pressure',
+      'native_crash_monitor_detects_crash_restart_cycle',
+      'native_crash_monitor_reports_to_telegram',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
