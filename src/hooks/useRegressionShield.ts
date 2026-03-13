@@ -1809,6 +1809,37 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'manifest_activity_name_is_fully_qualified',
     ],
   },
+
+  // ── FRT-066: Localização NÃO deve bloquear cadastro quando APK desatualizado ──
+  {
+    id: 'FRT-066',
+    date: '2026-03-13',
+    severity: 'HIGH' as Severity,
+    area: 'onboarding/location-permission',
+    bug: 'Cadastro ficava bloqueado quando permissão de localização falhava no Android com APK desatualizado (Missing permissions in AndroidManifest).',
+    rootCause: 'O APK instalado localmente não foi reconstruído após npx cap sync. Capacitor bridge reportava "Missing the following permissions in AndroidManifest.xml" via console.error, que era interceptado pelo usePanelErrorTelegramReporter e enviado como alerta crítico. O getStepRequirements incluía "localizacao" como requisito obrigatório do step 3, bloqueando o cadastro.',
+    fix: 'Localização removida dos requisitos obrigatórios de cadastro (registration-policy.ts). Será solicitada após cadastro no dashboard. Erros de "Missing permissions" e "AndroidManifest" adicionados ao IGNORED_PATTERNS do reporter. console.error em capacitorPermissions.ts downgraded para console.warn.',
+    files: [
+      'src/lib/registration-policy.ts',
+      'src/components/LocationPermission.tsx',
+      'src/hooks/usePanelErrorTelegramReporter.ts',
+      'src/integrations/supabase/client.ts',
+      'src/utils/capacitorPermissions.ts',
+    ],
+    rules: [
+      'Localização NUNCA deve bloquear o cadastro — é um requisito soft, solicitado após registro.',
+      'Erros de "Missing permissions in AndroidManifest" são problemas de build (APK desatualizado), NÃO bugs de código.',
+      'console.error em catches de permissão Capacitor DEVE ser console.warn para evitar alertas falsos.',
+      'IGNORED_PATTERNS deve incluir "Missing the following permissions" e "AndroidManifest".',
+    ],
+    keywords: ['FRT-066', 'localização', 'cadastro', 'bloqueado', 'AndroidManifest', 'Missing permissions', 'APK desatualizado', 'registration', 'onboarding', 'location'],
+    testCases: [
+      'registration_completes_without_location_permission',
+      'location_failure_shows_soft_toast_not_error',
+      'missing_permissions_error_not_sent_to_telegram',
+      'capacitor_permission_errors_use_console_warn',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução

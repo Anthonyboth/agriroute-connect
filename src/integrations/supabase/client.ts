@@ -271,7 +271,10 @@ if (typeof window !== 'undefined' && !isPublicPage) {
       lowerMsg.includes('os-plug-gloc') ||
       lowerMsg.includes('location services are not enabled') ||
       lowerMsg.includes('location permission') ||
-      lowerMsg.includes('location services');
+      lowerMsg.includes('location services') ||
+      // FRT-066: APK desatualizado reporta "Missing the following permissions"
+      lowerMsg.includes('missing the following permissions') ||
+      lowerMsg.includes('androidmanifest');
     if (isNativePermissionNoise) {
       // Downgrade to warn — not a bug, just native GPS status
       console.warn('[GPS-Native]', ...args);

@@ -182,9 +182,9 @@ export function getMissingForStep(
       case 'address_proof':
         if (!state.documentUrls.address_proof) missing.push('Comprovante de endereço');
         break;
-      // Localização é obrigatória para motoristas no step 3
+      // FRT-066: Localização é soft requirement — NÃO bloqueia cadastro
       case 'localizacao':
-        if (!state.locationEnabled) missing.push('Permissão de localização');
+        // Não adiciona ao missing — será solicitada após cadastro
         break;
       // Os casos abaixo foram REMOVIDOS do onboarding - veículos são cadastrados
       // APÓS a aprovação do perfil, na aba de Veículos do painel interno.

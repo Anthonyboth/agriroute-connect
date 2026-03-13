@@ -85,7 +85,7 @@ export const requestCameraPermission = async (): Promise<CapacitorPermissionStat
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao solicitar permissão de câmera:', error);
+    console.warn('[Capacitor] Falha ao solicitar permissão de câmera:', error);
     return 'denied';
   }
 };
