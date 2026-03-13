@@ -12,7 +12,21 @@ interface TrackingConsentModalProps {
   freightId: string;
 }
 
-const CONSENT_TEXT = `Ao aceitar este frete, declaro que li e concordo que: (i) manterei o serviço de localização do meu dispositivo ativo durante toda a execução do frete; (ii) autorizo a coleta e o tratamento dos meus dados de localização, fotos e registros necessários para execução deste contrato; (iii) em caso de desligamento injustificado do rastreamento, desvio de rota ou outras ocorrências graves, autorizo o compartilhamento dos registros com as autoridades competentes e aceito que a plataforma tome medidas administrativas (suspensão, bloqueio, retenção de valores) enquanto durar a investigação.`;
+const CONSENT_TEXT = `Ao aceitar este frete, declaro que li e concordo com os seguintes termos de rastreamento:
+
+(i) Autorizo a coleta e o tratamento dos meus dados de localização (GPS) exclusivamente durante a execução deste frete, com a finalidade de garantir a segurança da carga e do motorista, fornecer informações de acompanhamento ao embarcador e permitir assistência em caso de emergências.
+
+(ii) Estou ciente de que manterei o serviço de localização do meu dispositivo ativo durante toda a execução do frete, sendo este requisito necessário para a prestação do serviço contratado.
+
+(iii) Compreendo que os dados de localização coletados serão armazenados com segurança pela AgriRoute e utilizados exclusivamente para as finalidades descritas acima, podendo ser compartilhados com as partes do frete (produtor/embarcador) para acompanhamento da operação.
+
+(iv) Em caso de desligamento injustificado do rastreamento, desvio de rota ou outras ocorrências que comprometam a segurança da operação, a AgriRoute poderá adotar medidas administrativas (suspensão temporária, investigação) e, quando houver indícios de ilícito, compartilhar registros com autoridades competentes mediante ordem judicial ou requisição legal válida.
+
+(v) Estou ciente de que posso recusar este consentimento, porém isso impedirá a execução deste frete específico. A recusa não afeta meu acesso geral à plataforma.
+
+(vi) Posso revogar este consentimento a qualquer momento, ciente de que a revogação durante a execução do frete poderá resultar na interrupção do serviço e nas medidas administrativas previstas nos Termos de Uso.
+
+Este consentimento está em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018).`;
 
 export function TrackingConsentModal({ isOpen, onConsent, freightId }: TrackingConsentModalProps) {
   const [agreed, setAgreed] = useState(false);
