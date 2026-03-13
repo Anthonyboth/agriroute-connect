@@ -50,7 +50,8 @@ export type RuntimeGuardKey =
   | 'rpc-column-names-must-match-table-schema'
   | 'lazy-imports-must-use-lazyWithRetry'
   | 'validation-toasts-must-be-neutral'
-  | 'build-gradle-must-use-signing-properties';
+  | 'build-gradle-must-use-signing-properties'
+  | 'preflight-must-validate-index-html-content-and-assets';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
