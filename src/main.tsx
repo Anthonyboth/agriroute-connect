@@ -168,12 +168,12 @@ const isNativePlatform = typeof window !== 'undefined' && (
 
 // Bootstrap controlado para permitir limpeza/reload antes do mount
 void (async () => {
-  // ✅ FRT-062 FIX: Skip preview cleanup and PWA recovery in native environment
-  // These routines cause reload loops and flashing in Android/iOS WebViews
+  // ✅ FRT-062 FIX: tudo de recovery/preview é WEB-ONLY
   if (!isNativePlatform) {
+    installAutoRecoveryHandlers();
     await ensureFreshPreviewBuild();
   } else {
-    console.log('[Boot] Native platform detected — skipping preview cleanup & PWA recovery');
+    console.log('[Boot] Native platform detected — skipping preview cleanup & PWA recovery handlers');
   }
 
   if (typeof window !== 'undefined') {
