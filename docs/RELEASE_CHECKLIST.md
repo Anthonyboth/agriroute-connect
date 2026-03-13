@@ -133,6 +133,8 @@ npm run mobile:sync:android:release
 - [ ] Comando acima executado sem erro (build + sync + preflight)
 - [ ] `android/app/src/main/assets/capacitor.config.json` existe
 - [ ] `android/app/src/main/assets/capacitor.config.json` **não** contém `server.url`
+- [ ] `android/app/src/main/assets/public/index.html` existe (FRT-063)
+- [ ] **Tamanho do AAB ≥ 11 MB** (se < 10 MB, dist/ não entrou no build — FRT-063)
 - [ ] App abre 3x seguidas sem white screen/flicker/close
 - [ ] Splash screen transitions smoothly
 - [ ] Landing/login/cadastro abrem após cold start
@@ -143,6 +145,7 @@ npm run mobile:sync:android:release
 - [ ] Abrir app, fechar totalmente, reabrir (3 ciclos)
 - [ ] Testar rota inicial + login/cadastro
 - [ ] Confirmar que não houve reload loop no boot
+- [ ] Confirmar tamanho do AAB ≥ 11 MB (FRT-063)
 
 ### iOS (Capacitor)
 ```bash
