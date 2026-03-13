@@ -571,8 +571,8 @@ const AffiliatedDriverSignup = () => {
           data: {
             driver_profile_id: profileData.id,
             driver_name: formData.fullName,
-            has_complete_profile: true,
-            documents_count: 4,
+            has_complete_profile: allUploadsSucceeded,
+            documents_count: successfulUploads,
             requires_action: true
           }
         });

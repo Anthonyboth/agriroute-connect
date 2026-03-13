@@ -1899,6 +1899,56 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'console_error_splash_signature_is_ignored_by_reporter',
     ],
   },
+
+  // ── FRT-069: Upload afiliado usava MIME/extensão hardcoded (image/jpeg + .jpg) para todos os arquivos ──
+  {
+    id: 'FRT-069',
+    date: '2026-03-13',
+    severity: 'HIGH' as Severity,
+    area: 'Onboarding/Upload/AffiliatedDriver',
+    bug: 'uploadDocument no AffiliatedDriverSignup.tsx forçava contentType image/jpeg e extensão .jpg para todos os blobs, incluindo PDFs e PNGs.',
+    rootCause: 'Helper uploadDocument usava const ext = "jpg" e contentType "image/jpeg" hardcoded, ignorando blob.type real.',
+    fix: 'uploadDocument agora lê blob.type para determinar MIME real e usa mapa de extensões (jpg/png/webp/pdf). Fallback seguro para image/jpeg apenas quando blob.type está vazio.',
+    files: [
+      'src/pages/AffiliatedDriverSignup.tsx',
+    ],
+    rules: [
+      'NUNCA hardcodar contentType ou extensão de arquivo — usar blob.type como fonte primária.',
+      'Upload de documentos deve preservar o formato original (PDF permanece PDF, PNG permanece PNG).',
+    ],
+    keywords: ['FRT-069', 'upload', 'mime', 'contentType', 'hardcode', 'jpg', 'pdf', 'affiliated', 'extensão'],
+    testCases: [
+      'upload_pdf_preserves_pdf_extension_and_mime',
+      'upload_png_preserves_png_extension_and_mime',
+      'upload_without_blob_type_falls_back_to_jpeg',
+    ],
+  },
+
+  // ── FRT-070: Cadastro afiliado finalizava com sucesso mesmo quando uploads falhavam ──
+  {
+    id: 'FRT-070',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Onboarding/Upload/AffiliatedDriver',
+    bug: 'AffiliatedDriverSignup permitia finalizar cadastro e notificar transportadora como "cadastro completo" mesmo quando 1 ou mais uploads de documentos falhavam silenciosamente.',
+    rootCause: 'uploadDocument retornava string vazia em caso de falha, mas handleSubmit não verificava se todos os 4 uploads (selfie + 3 docs) retornaram URLs válidas antes de persistir e notificar.',
+    fix: 'Após Promise.all dos uploads, verificar que todos os 4 retornaram URLs não-vazias. Se algum falhou, exibir toast com lista dos documentos falhados e bloquear finalização. Payload de notificação agora reflete contagem real.',
+    files: [
+      'src/pages/AffiliatedDriverSignup.tsx',
+    ],
+    rules: [
+      'NUNCA finalizar cadastro se upload obrigatório falhou — bloquear e informar quais documentos falharam.',
+      'Payload de notificação (has_complete_profile, documents_count) DEVE refletir estado real dos uploads, não valores hardcoded.',
+      'Todo fluxo de cadastro que requer documentos DEVE validar sucesso de upload antes de persistir no banco.',
+    ],
+    keywords: ['FRT-070', 'upload', 'falha', 'silenciosa', 'cadastro completo', 'false positive', 'notification', 'affiliated', 'bloqueio'],
+    testCases: [
+      'signup_blocked_when_selfie_upload_fails',
+      'signup_blocked_when_document_upload_fails',
+      'notification_documents_count_matches_actual_uploads',
+      'toast_lists_specific_failed_documents',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
