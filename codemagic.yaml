@@ -23,8 +23,12 @@ workflows:
         NODE_VERSION: "18"
       groups:
         - app_store_connect
-    clone_depth: 0
     scripts:
+      - name: Configurar Git para clone completo
+        script: |
+          # Garante que temos todo o histórico para contar commits corretamente
+          git fetch --unshallow || true
+
       - name: Limpar ambiente Ruby
         script: |
           find . -name "Gemfile" -type f -delete
