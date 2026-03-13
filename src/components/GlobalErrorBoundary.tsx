@@ -113,7 +113,8 @@ class GlobalErrorBoundary extends Component<Props, State> {
     const sessionRecoveryCount = getRecoveryCount();
     
     // Check if this is a recoverable chunk loading error AND we haven't exceeded attempts
-    if (isChunkLoadError(error) && sessionRecoveryCount < this.MAX_AUTO_RECOVERY) {
+    // ✅ FRT-062: em nativo, nunca auto-reload de recovery
+    if (isChunkLoadError(error) && !isNativePlatform() && sessionRecoveryCount < this.MAX_AUTO_RECOVERY) {
       if (import.meta.env.DEV) console.log('🔄 Detected chunk loading error, attempting auto-recovery... (attempt', sessionRecoveryCount + 1, ')');
       incrementRecoveryCount();
       this.attemptAutoRecovery();
