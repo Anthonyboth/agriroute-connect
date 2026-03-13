@@ -422,16 +422,24 @@ const AffiliatedDriverSignup = () => {
       }
 
       // 4.1 Upload dos demais documentos após autenticação
+      // FRT-069: Usar MIME/extensão real do blob (não hardcode jpg)
       const uploadDocument = async (blob: Blob | null, fileType: string): Promise<string> => {
         if (!blob || blob.size === 0) return '';
         
         try {
-          const ext = 'jpg'; // Assumimos jpg para imagens
+          const mimeType = blob.type || 'image/jpeg';
+          const extMap: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+            'application/pdf': 'pdf',
+          };
+          const ext = extMap[mimeType] || mimeType.split('/')[1] || 'jpg';
           const fileName = `${authData.user!.id}/${fileType}_${Date.now()}.${ext}`;
           
           const { error: uploadError } = await supabase.storage
             .from('profile-photos')
-            .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
+            .upload(fileName, blob, { contentType: mimeType, upsert: true });
           
           if (uploadError) {
             console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, uploadError);
@@ -440,7 +448,7 @@ const AffiliatedDriverSignup = () => {
           
            // FRT-046: Return relative path for DB storage, NOT signed URL
           const relativePath = `profile-photos/${fileName}`;
-          console.log(`[AffiliatedDriverSignup] ✅ ${fileType} uploaded. Path: ${relativePath}`);
+          console.log(`[AffiliatedDriverSignup] ✅ ${fileType} uploaded (${mimeType}). Path: ${relativePath}`);
           return relativePath;
         } catch (err) {
           console.error(`⚠️ Erro ao fazer upload de ${fileType}:`, err);
@@ -453,6 +461,23 @@ const AffiliatedDriverSignup = () => {
         uploadDocument(documentBlobs.cnh_photo, 'cnh_photo'),
         uploadDocument(documentBlobs.address_proof, 'address_proof'),
       ]);
+
+      // FRT-070: Bloquear finalização se uploads obrigatórios falharam
+      const uploadedDocs = [selfieUrl, documentPhotoUrl, cnhPhotoUrl, addressProofUrl];
+      const successfulUploads = uploadedDocs.filter(url => !!url).length;
+      const allUploadsSucceeded = successfulUploads === 4;
+
+      if (!allUploadsSucceeded) {
+        const failedNames: string[] = [];
+        if (!selfieUrl) failedNames.push('Selfie');
+        if (!documentPhotoUrl) failedNames.push('Documento');
+        if (!cnhPhotoUrl) failedNames.push('CNH');
+        if (!addressProofUrl) failedNames.push('Comprovante de endereço');
+        
+        toast.error(`Falha no envio de: ${failedNames.join(', ')}. Tente novamente.`);
+        setLoading(false);
+        return;
+      }
 
       // 5. Update profile with all data (store CNH in metadata)
       const updatedMetadata = {
@@ -546,8 +571,8 @@ const AffiliatedDriverSignup = () => {
           data: {
             driver_profile_id: profileData.id,
             driver_name: formData.fullName,
-            has_complete_profile: true,
-            documents_count: 4,
+            has_complete_profile: allUploadsSucceeded,
+            documents_count: successfulUploads,
             requires_action: true
           }
         });
