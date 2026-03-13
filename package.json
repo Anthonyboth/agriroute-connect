@@ -14,7 +14,10 @@
     "mobile:preflight:release": "node scripts/validate-native-release.mjs --require-android-assets",
     "mobile:sync:android:release": "npm run build && npx cap sync android && npm run mobile:preflight:release",
     "mobile:sync:ios:release": "npm run build && npx cap sync ios && node scripts/validate-native-release.mjs",
-    "mobile:sync:android:dev": "CAPACITOR_LIVE_RELOAD=true npx cap sync android"
+    "mobile:sync:android:dev": "CAPACITOR_LIVE_RELOAD=true npx cap sync android",
+    "mobile:build:android": "node scripts/build-android-release.mjs",
+    "mobile:build:android:skip-bundle": "node scripts/build-android-release.mjs --skip-bundle",
+    "mobile:validate:aab": "node scripts/validate-aab.mjs"
   },
   "dependencies": {
     "@capacitor/android": "7.4.4",
