@@ -184,6 +184,24 @@ export class AutomaticApprovalService {
         
         console.log('Status do perfil atualizado com sucesso!');
 
+        // ✅ Se for TRANSPORTADORA, também atualizar transport_companies para APPROVED
+        if (isTransportadora) {
+          devLog('📦 Atualizando transport_companies para APPROVED...');
+          const { error: companyUpdateError } = await supabase
+            .from('transport_companies')
+            .update({
+              status: 'APPROVED' as const,
+              approved_at: new Date().toISOString()
+            })
+            .eq('profile_id', profileId);
+          
+          if (companyUpdateError) {
+            console.error('ERRO ao atualizar transport_companies:', companyUpdateError);
+          } else {
+            devLog('✅ Transport company atualizada para APPROVED');
+          }
+        }
+
         // Create validation history
         await supabase
           .from('validation_history')
