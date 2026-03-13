@@ -1,48 +1,24 @@
 
 
-## Analysis: AAB Local Crash ("abre e fecha")
+## Problem
 
-### What I found
+The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
 
-After reviewing the entire codebase, here is the status:
+## Root Cause
 
-**Already hardened (working correctly):**
-- `validate-native-release.mjs` validates index.html, plugins.json, plugin version alignment, AAB size
-- Gradle gates block release if assets are missing
-- `signing.properties` shield prevents misconfigured builds
-- `BrowserRouter` works fine with Capacitor 7.x (uses internal localhost server, not `file://`)
-- SplashScreen fallback has try/catch, plugin availability check
-- Native platform detection skips PWA recovery correctly
+The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
 
-**The logs you shared are from `com.dp.logcatapp` (Logcat reader app), not from AgriRoute.** They show the Logcat app starting up, not the crash itself.
+## Plan
 
-### Proposed improvements
+### 1. Replace local hero image files
+- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
 
-Two small hardening additions to `validate-native-release.mjs`:
+### 2. Update the database record
+- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
 
-1. **Validate index.html content** (not just existence) — detect empty/corrupt files where the file exists but has no React root
-2. **Validate compiled assets directory** — ensure `assets/public/assets/` contains actual JS/CSS files
+### 3. Update the inline fallback in `index.html`
+- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
 
-### Technical details
-
-**File: `scripts/validate-native-release.mjs`**
-
-Add after the existing `hasAndroidIndexHtml` check:
-- Read `index.html` content and verify it contains `<div id="root">` 
-- Check `android/app/src/main/assets/public/assets/` directory exists and has `.js` files
-
-These are ~15 lines of code, zero risk to the app.
-
-### What you need to do to debug the actual crash
-
-To capture the **real** AgriRoute crash logs, run:
-```
-adb logcat --pid=$(adb shell pidof -s com.agriroute.connect) 
-```
-Or filter by your package:
-```
-adb logcat | grep -i "agriroute\|capacitor\|WebView\|chromium"
-```
-
-The logs you shared show `com.dp.logcatapp` (a log viewer app), not your app's crash output.
+### Technical Note
+All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
 

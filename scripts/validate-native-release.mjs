@@ -13,7 +13,7 @@
  * FRT-072: Validates plugin major version alignment with @capacitor/core
  */
 
-import { existsSync, readFileSync, statSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { resolve } from 'path';
 
 const args = new Set(process.argv.slice(2));
@@ -139,6 +139,48 @@ if (requireAndroidAssets) {
       '     This causes the app to open and immediately close (AAB ~9 MB instead of ~12 MB).\n' +
       '     Fix: run `npm run build && npx cap sync android` before generating the AAB.'
     );
+  }
+
+  // Validate index.html content (detect empty/corrupt files)
+  if (hasAndroidIndexHtml) {
+    try {
+      const htmlContent = readFileSync(ANDROID_INDEX_HTML, 'utf-8');
+      if (!htmlContent.includes('<div id="root">') && !htmlContent.includes('<div id="root"')) {
+        pushError(
+          'android/app/src/main/assets/public/index.html exists but does NOT contain <div id="root">.\n' +
+          '     The file may be empty or corrupt. This causes a white screen / instant crash.\n' +
+          '     Fix: run `npm run build && npx cap sync android`.'
+        );
+      }
+    } catch (err) {
+      pushError(`Failed to read index.html content: ${err.message}`);
+    }
+  }
+
+  // Validate compiled JS assets exist in assets/public/assets/
+  const ANDROID_COMPILED_ASSETS = resolve(process.cwd(), 'android/app/src/main/assets/public/assets');
+  if (hasAndroidPublicAssets) {
+    if (!existsSync(ANDROID_COMPILED_ASSETS)) {
+      pushError(
+        'android/app/src/main/assets/public/assets/ directory NOT FOUND.\n' +
+        '     Compiled JS/CSS bundles are missing — the app will show a blank screen.\n' +
+        '     Fix: run `npm run build && npx cap sync android`.'
+      );
+    } else {
+      try {
+        const assetFiles = readdirSync(ANDROID_COMPILED_ASSETS);
+        const assetFiles = readdirSync(ANDROID_COMPILED_ASSETS);
+        const hasJsFiles = assetFiles.some(f => f.endsWith('.js'));
+        if (!hasJsFiles) {
+          pushError(
+            'android/app/src/main/assets/public/assets/ exists but contains NO .js files.\n' +
+            '     The build output is incomplete. Fix: run `npm run build && npx cap sync android`.'
+          );
+        }
+      } catch (err) {
+        pushError(`Failed to read assets directory: ${err.message}`);
+      }
+    }
   }
 
   // FRT-071: Validate capacitor.plugins.json exists and has critical plugins
