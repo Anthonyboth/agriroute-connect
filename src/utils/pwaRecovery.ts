@@ -168,6 +168,12 @@ let isRecovering = false;
  */
 async function handleChunkError(error: unknown): Promise<void> {
   if (isRecovering) return;
+
+  // ✅ FRT-062: em nativo não acionamos auto-recovery com reload
+  if (isNativePlatform()) {
+    console.warn('[PWA Recovery] Chunk error em ambiente nativo detectado; auto-recovery web desativado');
+    return;
+  }
   
   if (isChunkLoadError(error)) {
     isRecovering = true;
