@@ -1,48 +1,24 @@
 
 
-## Diagnóstico: ClassNotFoundException no Google Play
+## Problem
 
-O erro reportado pelo Google Play é:
+The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
 
-```
-java.lang.ClassNotFoundException: Não foi encontrada a classe "com.agriroute.connect.MainActivity"
-```
+## Root Cause
 
-### Causa raiz
+The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
 
-O repositório define a MainActivity no pacote Java `app.lovable.f2dbc20153194f90a3cc8dd215bbebba`:
+## Plan
 
-```
-android/app/src/main/java/app/lovable/f2dbc20153194f90a3cc8dd215bbebba/MainActivity.java
-```
+### 1. Replace local hero image files
+- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
 
-Porém, no seu build local, você altera o `applicationId` e `namespace` para `com.agriroute.connect`. O Android resolve `android:name=".MainActivity"` no AndroidManifest como `{namespace}.MainActivity`, ou seja, `com.agriroute.connect.MainActivity`.
+### 2. Update the database record
+- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
 
-**Mas a classe Java compilada continua no pacote `app.lovable.f2dbc20153194f90a3cc8dd215bbebba`**. O Android não encontra a classe no pacote esperado → crash imediato.
+### 3. Update the inline fallback in `index.html`
+- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
 
-Isso é um **desalinhamento entre namespace/applicationId de produção e o pacote Java real da MainActivity**.
-
-### Como resolver (mudança no repositório)
-
-Precisamos que o AndroidManifest use o nome **completo (fully-qualified)** da Activity em vez do relativo (`.MainActivity`), para que funcione independentemente do namespace configurado localmente.
-
-**Arquivo:** `android/app/src/main/AndroidManifest.xml`
-
-**Mudança:** Linha 15 — trocar `android:name=".MainActivity"` por `android:name="app.lovable.f2dbc20153194f90a3cc8dd215bbebba.MainActivity"`
-
-Isso garante que o Android sempre encontre a classe no pacote correto, mesmo quando o `namespace` e `applicationId` são alterados localmente para `com.agriroute.connect`.
-
-### Registro de regressão
-
-Registrar como **FRT-065** no `useRegressionShield.ts`:
-- Bug: `ClassNotFoundException` ao usar applicationId diferente do pacote Java
-- Causa: `android:name=".MainActivity"` resolve relativo ao namespace
-- Regra: sempre usar nome fully-qualified no AndroidManifest
-
-### Resumo das mudanças
-
-| Arquivo | Mudança |
-|---|---|
-| `android/app/src/main/AndroidManifest.xml` | `.MainActivity` → nome completo |
-| `src/hooks/useRegressionShield.ts` | Registrar FRT-065 |
+### Technical Note
+All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
 

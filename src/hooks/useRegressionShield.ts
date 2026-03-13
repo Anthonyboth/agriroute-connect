@@ -1786,6 +1786,29 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'desktop_does_not_show_download_popup',
     ],
   },
+
+  // ── FRT-065: ClassNotFoundException ao usar applicationId diferente do pacote Java ──
+  // ⚠️ Google Play rejeitou o app: "com.agriroute.connect.MainActivity" não encontrada.
+  {
+    id: 'FRT-065',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Android/Manifest',
+    bug: 'ClassNotFoundException: MainActivity não encontrada ao usar namespace/applicationId diferente do pacote Java real.',
+    rootCause: 'android:name=".MainActivity" resolve relativo ao namespace configurado no build.gradle. Quando o namespace muda para com.agriroute.connect, o Android procura com.agriroute.connect.MainActivity, mas a classe está compilada em app.lovable.f2dbc20153194f90a3cc8dd215bbebba.MainActivity.',
+    fix: 'Usar nome fully-qualified (app.lovable.f2dbc20153194f90a3cc8dd215bbebba.MainActivity) no AndroidManifest.xml em vez de nome relativo (.MainActivity).',
+    files: ['android/app/src/main/AndroidManifest.xml'],
+    rules: [
+      'AndroidManifest DEVE usar nomes fully-qualified para Activity, Service e Receiver.',
+      'NUNCA usar android:name relativo (.NomeClasse) quando namespace/applicationId pode diferir do pacote Java.',
+    ],
+    keywords: ['FRT-065', 'ClassNotFoundException', 'MainActivity', 'AndroidManifest', 'namespace', 'applicationId', 'fully-qualified', 'Google Play', 'rejeitado'],
+    testCases: [
+      'app_boots_with_namespace_com_agriroute_connect',
+      'app_boots_with_default_lovable_namespace',
+      'manifest_activity_name_is_fully_qualified',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
