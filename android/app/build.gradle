@@ -1,14 +1,44 @@
 apply plugin: 'com.android.application'
 
+// ============================================================
+// FRT-067: Configuração local via signing.properties
+// O repositório mantém configuração genérica do Lovable.
+// Para builds de produção, crie android/app/signing.properties
+// com base no template signing.properties.example.
+// signing.properties é ignorado pelo .gitignore (nunca commitado).
+// ============================================================
+def signingPropsFile = file("signing.properties")
+def hasSigningProps = signingPropsFile.exists()
+def signingProps = new Properties()
+
+if (hasSigningProps) {
+    signingProps.load(new FileInputStream(signingPropsFile))
+    logger.lifecycle("✅ FRT-067: signing.properties encontrado — usando configuração de PRODUÇÃO")
+} else {
+    logger.lifecycle("ℹ️ FRT-067: signing.properties não encontrado — usando configuração genérica do Lovable (desenvolvimento)")
+}
+
 android {
-    namespace "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+    namespace hasSigningProps ? signingProps['APP_NAMESPACE'] : "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
     compileSdk rootProject.ext.compileSdkVersion
+
+    if (hasSigningProps) {
+        signingConfigs {
+            release {
+                storeFile file(signingProps['STORE_FILE'])
+                storePassword signingProps['STORE_PASSWORD']
+                keyAlias signingProps['KEY_ALIAS']
+                keyPassword signingProps['KEY_PASSWORD']
+            }
+        }
+    }
+
     defaultConfig {
-        applicationId "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        applicationId hasSigningProps ? signingProps['APP_ID'] : "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 147
-        versionName "1.0"
+        versionCode hasSigningProps ? Integer.parseInt(signingProps['VERSION_CODE'] ?: '147') : 147
+        versionName hasSigningProps ? (signingProps['VERSION_NAME'] ?: '1.0') : "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,6 +48,9 @@ android {
     }
     buildTypes {
         release {
+            if (hasSigningProps) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -63,10 +96,25 @@ tasks.register("validateWebAssetsExist") {
     }
 }
 
+// FRT-067: Valida que signing.properties existe para builds de release
+tasks.register("validateSigningProperties") {
+    description "Fails the build if signing.properties is missing (FRT-067)"
+    doLast {
+        if (!hasSigningProps) {
+            throw new GradleException(
+                "❌ RELEASE BLOCKED (FRT-067): android/app/signing.properties não encontrado.\n" +
+                "   Copie signing.properties.example para signing.properties e preencha seus valores.\n" +
+                "   Sem este arquivo, o AAB não será assinado e o namespace ficará genérico."
+            )
+        }
+    }
+}
+
 tasks.whenTaskAdded { task ->
     if (task.name == "assembleRelease" || task.name == "bundleRelease") {
         task.dependsOn("validateNativeRelease")
         task.dependsOn("validateWebAssetsExist")
+        task.dependsOn("validateSigningProperties")
     }
 }
 

@@ -1,0 +1,29 @@
+# ============================================================
+# FRT-067: Configuração local de build para produção
+# ============================================================
+# 
+# INSTRUÇÕES:
+# 1. Copie este arquivo para signing.properties:
+#    Copy-Item "signing.properties.example" "signing.properties"
+#
+# 2. Preencha os valores abaixo com suas credenciais reais
+#
+# 3. NUNCA commite signing.properties — ele está no .gitignore
+#
+# 4. Após git pull, suas configurações são preservadas
+#    porque signing.properties não é versionado
+# ============================================================
+
+# Package / Namespace (deve ser o mesmo da Play Console)
+APP_NAMESPACE=com.agriroute.connect
+APP_ID=com.agriroute.connect
+
+# Versão (incremente a cada release)
+VERSION_CODE=157
+VERSION_NAME=2.1.28
+
+# Keystore de assinatura
+STORE_FILE=C:/Users/Anthony/Chave_Oficial_Google_Upload/keystore.jks
+STORE_PASSWORD=SUA_SENHA_AQUI
+KEY_ALIAS=upload
+KEY_PASSWORD=SUA_SENHA_AQUI
