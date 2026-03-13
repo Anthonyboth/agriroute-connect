@@ -311,6 +311,11 @@ const CityIdMismatchMonitorSetup = () => {
   return null;
 };
 
+const NativeCrashMonitorSetup = () => {
+  useNativeCrashMonitor();
+  return null;
+};
+
 // Defer ZipCode service initialization to after first render
 const ZipCodeSyncOnReconnect = () => {
   React.useEffect(() => {
