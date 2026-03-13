@@ -285,6 +285,12 @@ function showManualRecoveryUI(): void {
  * Instala handlers globais para auto-recuperação
  */
 export function installAutoRecoveryHandlers(): void {
+  // ✅ FRT-062: handlers web-only
+  if (isNativePlatform()) {
+    console.debug('[PWA Recovery] Plataforma nativa detectada — handlers não instalados');
+    return;
+  }
+
   // Handler para erros síncronos
   window.addEventListener('error', (event) => {
     handleChunkError(event.error || event.message);
