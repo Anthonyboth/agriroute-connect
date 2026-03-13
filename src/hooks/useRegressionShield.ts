@@ -51,7 +51,8 @@ export type RuntimeGuardKey =
   | 'lazy-imports-must-use-lazyWithRetry'
   | 'validation-toasts-must-be-neutral'
   | 'build-gradle-must-use-signing-properties'
-  | 'preflight-must-validate-index-html-content-and-assets';
+  | 'preflight-must-validate-index-html-content-and-assets'
+  | 'native-must-never-auto-reload';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
