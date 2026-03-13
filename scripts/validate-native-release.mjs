@@ -91,12 +91,22 @@ if (process.env.CAPACITOR_LIVE_RELOAD === 'true') {
 const hasAndroidConfigJson = existsSync(ANDROID_ASSET_CONFIG_PATH);
 const hasAndroidPublicAssets = existsSync(ANDROID_PUBLIC_ASSETS_DIR);
 
+const hasAndroidIndexHtml = existsSync(ANDROID_INDEX_HTML);
+
 if (requireAndroidAssets && !hasAndroidConfigJson) {
   pushError('android/app/src/main/assets/capacitor.config.json not found — run `npx cap sync android` before release');
 }
 
 if (requireAndroidAssets && !hasAndroidPublicAssets) {
   pushError('android/app/src/main/assets/public not found — Android assets not synced from dist');
+}
+
+if (requireAndroidAssets && hasAndroidPublicAssets && !hasAndroidIndexHtml) {
+  pushError(
+    'android/app/src/main/assets/public/index.html NOT FOUND — dist/ was not built or synced correctly.\n' +
+    '     This causes the app to open and immediately close (AAB ~9 MB instead of ~12 MB).\n' +
+    '     Fix: run `npm run build && npx cap sync android` before generating the AAB.'
+  );
 }
 
 if (!requireAndroidAssets && !hasAndroidConfigJson) {
