@@ -100,6 +100,11 @@ function addCacheBust(url: string): string {
  */
 export async function hardResetPWA(reason: string): Promise<void> {
   console.warn('[PWA Recovery] Iniciando hard reset:', reason);
+
+  // ✅ FRT-062: nunca forçar reload automático em ambiente nativo
+  if (isNativePlatform()) {
+    throw new Error('NATIVE_PLATFORM_RECOVERY_DISABLED');
+  }
   
   if (!canAttemptRecovery()) {
     console.error('[PWA Recovery] Máximo de tentativas atingido. Exibindo fallback.');
@@ -143,12 +148,12 @@ export async function hardResetPWA(reason: string): Promise<void> {
     
     if (import.meta.env.DEV) console.log('[PWA Recovery] Limpeza concluída. Recarregando...');
     
-    // 4. Recarregar com cache-bust
+    // 4. Recarregar com cache-bust (somente web)
     window.location.replace(addCacheBust(window.location.href));
     
   } catch (error) {
     console.error('[PWA Recovery] Erro durante reset:', error);
-    // Fallback: reload simples
+    // Fallback: reload simples apenas em web
     window.location.reload();
   }
 }
