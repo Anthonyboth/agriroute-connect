@@ -50,7 +50,8 @@ export type RuntimeGuardKey =
   | 'rpc-column-names-must-match-table-schema'
   | 'lazy-imports-must-use-lazyWithRetry'
   | 'validation-toasts-must-be-neutral'
-  | 'build-gradle-must-use-signing-properties';
+  | 'build-gradle-must-use-signing-properties'
+  | 'preflight-must-validate-index-html-content-and-assets';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -2009,6 +2010,34 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'package_json_has_aligned_capacitor_versions',
       'ci_env_blocks_live_reload_in_production',
     ],
+  },
+
+  // ── FRT-073: Preflight não validava conteúdo do index.html nem presença de JS compilados ──
+  {
+    id: 'FRT-073',
+    date: '2026-03-13',
+    severity: 'HIGH' as Severity,
+    area: 'Android/NativeBuild/Preflight',
+    bug: 'App nativo abria tela branca e fechava imediatamente. O arquivo index.html existia em assets/ mas estava vazio ou corrupto (sem <div id="root">), ou o diretório assets/public/assets/ não continha arquivos .js compilados.',
+    rootCause: 'validate-native-release.mjs verificava apenas a existência do index.html (existsSync), sem ler seu conteúdo. Também não verificava se o diretório de assets compilados (JS/CSS) continha arquivos reais. Builds com dist/ parcialmente gerado passavam no preflight.',
+    fix: 'Preflight v3 agora: (1) lê o conteúdo do index.html e verifica presença de <div id="root">, (2) verifica que android/app/src/main/assets/public/assets/ existe E contém pelo menos 1 arquivo .js. Ambos bloqueiam o release se falharem.',
+    files: [
+      'scripts/validate-native-release.mjs',
+    ],
+    rules: [
+      'Preflight DEVE validar o conteúdo do index.html, não apenas sua existência.',
+      'index.html sem <div id="root"> indica build corrupto — BLOQUEAR release.',
+      'Diretório assets/public/assets/ sem arquivos .js indica build incompleto — BLOQUEAR release.',
+      'Validação de conteúdo deve rodar APÓS validação de existência para dar mensagens de erro mais específicas.',
+    ],
+    keywords: ['FRT-073', 'index.html', 'vazio', 'corrupto', 'div root', 'assets', 'js files', 'tela branca', 'white screen', 'preflight', 'content validation'],
+    testCases: [
+      'preflight_blocks_when_index_html_missing_root_div',
+      'preflight_blocks_when_assets_dir_has_no_js_files',
+      'preflight_blocks_when_assets_dir_missing',
+      'preflight_passes_when_index_html_and_js_assets_valid',
+    ],
+    runtimeGuard: 'preflight-must-validate-index-html-content-and-assets' as RuntimeGuardKey,
   },
 ];
 // ═══════════════════════════════════════════════════════════════
