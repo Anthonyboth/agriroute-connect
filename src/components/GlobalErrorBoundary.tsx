@@ -228,11 +228,21 @@ class GlobalErrorBoundary extends Component<Props, State> {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(registrations.map(reg => reg.unregister()));
       }
+
+      // ✅ FRT-062: no native, reset local sem reload forçado
+      if (isNativePlatform()) {
+        this.setState({ hasError: false, error: null, errorInfo: null, isRecovering: false });
+        return;
+      }
       
       // Force reload
       window.location.reload();
     } catch (e) {
-      // Fallback to simple reload
+      // Fallback em nativo: reset local; em web: reload
+      if (isNativePlatform()) {
+        this.setState({ hasError: false, error: null, errorInfo: null, isRecovering: false });
+        return;
+      }
       window.location.reload();
     }
   };
