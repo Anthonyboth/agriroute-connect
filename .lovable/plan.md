@@ -1,24 +1,27 @@
 
 
-## Problem
+## Plano: Sincronizar páginas /termos e /privacidade com conteúdo jurídico revisado
 
-The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
+### Situação atual
 
-## Root Cause
+- As rotas `/termos` e `/privacidade` **já existem** e são públicas (sem login).
+- O `LegalDocumentDialog.tsx` já contém o conteúdo jurídico revisado (15 seções de Termos, 11 seções de Privacidade).
+- **Problema**: As páginas `Terms.tsx` e `Privacy.tsx` ainda exibem o conteúdo antigo (apenas 4 seções de termos, 5 seções de privacidade), desalinhado com o que o usuário aceita no cadastro.
 
-The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
+### O que será feito
 
-## Plan
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/Terms.tsx` | Reescrever usando as 15 seções do `termsContent` revisado (vinculação contratual, cláusula antigolpe, inadimplência 20%, bloqueio permanente, verificação, reputação, provas digitais, responsabilidade penal) |
+| `src/pages/Privacy.tsx` | Reescrever usando as 11 seções do `privacyContent` revisado (base legal LGPD Art. 7, rastreamento apenas durante frete ativo, direitos do titular, retenção e exclusão, DPO) |
 
-### 1. Replace local hero image files
-- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
+### Abordagem
 
-### 2. Update the database record
-- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
+- Importar e reutilizar os arrays `termsContent` e `privacyContent` diretamente do `LegalDocumentDialog.tsx` (exportá-los), garantindo uma **única fonte de verdade** para o conteúdo jurídico.
+- Manter o layout visual existente das páginas (header, hero, cards, footer de contato).
+- Manter as páginas acessíveis sem autenticação (já são).
 
-### 3. Update the inline fallback in `index.html`
-- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
+### Sobre o item 3 (revisão jurídica)
 
-### Technical Note
-All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
+A revisão jurídica completa já foi implementada na mensagem anterior — os Termos de Uso (15 seções), Política de Privacidade (11 seções), `CONSENT_TEXT` LGPD-compliant e checkbox de cadastro com cláusula de vinculação já estão no código. Este plano apenas sincroniza as páginas públicas dedicadas.
 
