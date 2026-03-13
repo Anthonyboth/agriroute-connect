@@ -40,6 +40,14 @@ const RECOVERY_KEY = 'global_error_recovery_count';
 const RECOVERY_TIMESTAMP_KEY = 'global_error_recovery_ts';
 const MAX_RECOVERY_WINDOW_MS = 60000; // 1 minute window
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 function getRecoveryCount(): number {
   try {
     const ts = sessionStorage.getItem(RECOVERY_TIMESTAMP_KEY);
