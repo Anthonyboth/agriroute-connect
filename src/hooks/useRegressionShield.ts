@@ -1872,6 +1872,33 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'build-gradle-must-use-signing-properties' as RuntimeGuardKey,
   },
+
+  // ── FRT-068: SplashScreen plugin ausente no Android gerava erro crítico e alerta falso ──
+  {
+    id: 'FRT-068',
+    date: '2026-03-13',
+    severity: 'HIGH' as Severity,
+    area: 'Mobile/Capacitor/Splash',
+    bug: 'Em Android nativo, a ocultação da splash podia disparar "SplashScreen plugin is not implemented on android" e ser reportada como erro crítico no monitor.',
+    rootCause: 'Build nativo dessincronizado/sem plugin disponível no runtime + fluxo de hide tratando indisponibilidade do plugin como erro ruidoso (console/reporter).',
+    fix: 'useSplashScreen passou a validar contexto nativo e disponibilidade do plugin antes de chamar SplashScreen.hide, com fallback seguro não-bloqueante. usePanelErrorTelegramReporter passou a ignorar assinaturas de erro de splash/plugin para evitar alerta falso.',
+    files: [
+      'src/hooks/useSplashScreen.ts',
+      'src/hooks/usePanelErrorTelegramReporter.ts',
+    ],
+    rules: [
+      'Falha de hide da SplashScreen por plugin ausente NUNCA deve bloquear boot do app.',
+      'Erros conhecidos de plugin ausente em runtime nativo DEVEM ser downgraded para warn e tratados como ruído operacional.',
+      'Monitor de erros NÃO deve enviar Telegram para assinatura "SplashScreen plugin is not implemented on android".',
+    ],
+    keywords: ['FRT-068', 'splashscreen', 'plugin is not implemented on android', 'erro ao ocultar splash', 'capacitor', 'android', 'telegram', 'false positive'],
+    testCases: [
+      'native_android_without_splash_plugin_does_not_block_boot',
+      'splash_hide_fallback_marks_app_ready',
+      'splash_plugin_not_implemented_not_sent_to_telegram',
+      'console_error_splash_signature_is_ignored_by_reporter',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
