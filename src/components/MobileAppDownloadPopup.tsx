@@ -18,10 +18,13 @@ function isInstalledAppContext(): boolean {
     if (Capacitor.isNativePlatform()) return true;
   } catch { /* ignore */ }
 
-  // 2. Fallback: window.Capacitor global or capacitor:// protocol
+  // 2. Fallback: window.Capacitor global, capacitor:// protocol, or localhost without port
   if (typeof window !== 'undefined') {
     if ((window as any).Capacitor?.isNativePlatform?.()) return true;
     if (window.location?.protocol === 'capacitor:') return true;
+    // Capacitor Android serves from https://localhost without a port
+    // Dev server uses localhost:5173 (with port), so this only matches native
+    if (window.location?.hostname === 'localhost' && !window.location?.port) return true;
   }
 
   // 3. PWA standalone (installed via browser)

@@ -1771,7 +1771,7 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     area: 'Mobile/Capacitor',
     bug: 'Popup de download do app aparecia dentro do próprio app instalado (nativo e PWA standalone).',
     rootCause: 'Detecção baseada apenas em User-Agent, que é idêntico no browser mobile e no container Capacitor/PWA.',
-    fix: 'Gate de ambiente em MobileAppDownloadPopup: bloqueia exibição se Capacitor.isNativePlatform(), window.Capacitor, protocol capacitor:, ou display-mode standalone/navigator.standalone.',
+    fix: 'Gate de ambiente em MobileAppDownloadPopup: bloqueia exibição se Capacitor.isNativePlatform(), window.Capacitor, protocol capacitor:, hostname localhost sem porta (Android nativo), ou display-mode standalone/navigator.standalone.',
     files: ['src/components/MobileAppDownloadPopup.tsx'],
     rules: [
       'Popup de download de app NUNCA aparece em ambiente nativo Capacitor.',
