@@ -78,7 +78,7 @@ export const DocumentUploadLocal: React.FC<DocumentUploadLocalProps> = ({
       if (enableQualityCheck && file.type.startsWith('image/')) {
         const validationResult = await validateImageQuality(file);
         if (!validationResult.valid) {
-          toast.error(`Qualidade insuficiente: ${validationResult.reason}`);
+          toast('Qualidade insuficiente: ' + validationResult.reason, { id: 'quality-check' });
           return;
         }
       }
