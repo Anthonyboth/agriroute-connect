@@ -42,9 +42,10 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
     try {
       const granted = await requestPermissionSafe();
       if (!granted) {
+        // FRT-066: Não bloquear cadastro — localização será solicitada após registro
         setLocationEnabled(false);
         onPermissionChange(false);
-        showGPSToast('NO_PERMISSION');
+        toast('Localização indisponível agora. Será solicitada após o cadastro.', { id: 'loc-soft-fail' });
         return;
       }
       

@@ -21,7 +21,7 @@ export const checkGeolocationPermission = async (): Promise<CapacitorPermissionS
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao verificar permissão de localização:', error);
+    console.warn('[Capacitor] Permissão de localização indisponível:', error);
     return 'unsupported';
   }
 };
@@ -42,7 +42,7 @@ export const requestGeolocationPermission = async (): Promise<CapacitorPermissio
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao solicitar permissão de localização:', error);
+    console.warn('[Capacitor] Falha ao solicitar permissão de localização:', error);
     return 'denied';
   }
 };
@@ -64,7 +64,7 @@ export const checkCameraPermission = async (): Promise<CapacitorPermissionStatus
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao verificar permissão de câmera:', error);
+    console.warn('[Capacitor] Permissão de câmera indisponível:', error);
     return 'unsupported';
   }
 };
@@ -85,7 +85,7 @@ export const requestCameraPermission = async (): Promise<CapacitorPermissionStat
     
     return 'prompt';
   } catch (error) {
-    console.error('❌ Erro ao solicitar permissão de câmera:', error);
+    console.warn('[Capacitor] Falha ao solicitar permissão de câmera:', error);
     return 'denied';
   }
 };

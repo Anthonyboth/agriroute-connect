@@ -91,6 +91,10 @@ export function usePanelErrorTelegramReporter() {
       'camera_warming_up',
       'A câmera ainda não está pronta',
       'Inicializando câmera',
+      // FRT-066: APK desatualizado — erros de permissão de manifest não são bugs
+      'Missing the following permissions',
+      'AndroidManifest',
+      'Permissão de localização negada',
     ];
 
     const shouldIgnore = (msg: string): boolean => {
