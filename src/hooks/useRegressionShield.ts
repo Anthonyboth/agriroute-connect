@@ -1841,6 +1841,37 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'capacitor_permission_errors_use_console_warn',
     ],
   },
+
+  // ── FRT-067: build.gradle DEVE ler signing.properties para configuração local ──
+  {
+    id: 'FRT-067',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Android/Build',
+    bug: 'build.gradle era sobrescrito após git pull, perdendo namespace (com.agriroute.connect), applicationId e signingConfigs de produção. AAB gerado com pacote genérico app.lovable... e sem assinatura.',
+    rootCause: 'Configurações de produção eram editadas diretamente no build.gradle versionado, que era resetado a cada git pull ou npx cap sync.',
+    fix: 'build.gradle agora lê signing.properties (não commitado) para namespace, applicationId, versionCode, versionName e signingConfigs. Se o arquivo não existir, usa configuração genérica do Lovable para desenvolvimento. Task validateSigningProperties bloqueia builds de release sem signing.properties.',
+    files: [
+      'android/app/build.gradle',
+      'android/app/signing.properties.example',
+      'android/.gitignore',
+    ],
+    rules: [
+      'NUNCA hardcodar senhas ou credenciais de keystore em arquivos versionados.',
+      'build.gradle DEVE usar signing.properties para configuração de produção.',
+      'signing.properties DEVE estar no .gitignore.',
+      'signing.properties.example DEVE ser commitado como template.',
+      'Task validateSigningProperties DEVE bloquear bundleRelease sem signing.properties.',
+    ],
+    keywords: ['FRT-067', 'signing', 'build.gradle', 'keystore', 'namespace', 'applicationId', 'sobrescrito', 'git pull', 'assinatura', 'signing.properties'],
+    testCases: [
+      'build_release_fails_without_signing_properties',
+      'build_release_uses_production_namespace_with_signing_properties',
+      'git_pull_does_not_overwrite_signing_properties',
+      'signing_properties_not_committed_to_repo',
+    ],
+    runtimeGuard: 'build-gradle-must-use-signing-properties' as RuntimeGuardKey,
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
