@@ -223,21 +223,22 @@ export function usePanelErrorTelegramReporter() {
           return String((a as any).message || '');
         }
         try { return JSON.stringify(a); } catch { return String(a); }
-      }).join(' ').toLowerCase();
+      }).join(' ');
+      const lowerRawMessage = rawMessage.toLowerCase();
 
       // Ignorar ruído esperado de plugins/monitoramento
       if (
-        rawMessage.includes('[errormonitoring]') ||
-        rawMessage.includes('telegram') ||
-        rawMessage.includes('report-error') ||
-        rawMessage.includes('[useerrormonitoring]') ||
-        rawMessage.includes('[hmr]') ||
-        rawMessage.includes('[vite]') ||
-        rawMessage.includes('hot update') ||
-        rawMessage.includes('wake_lock') ||
-        rawMessage.includes('foregroundservice') ||
-        rawMessage.includes('erro ao ocultar splash') ||
-        rawMessage.includes('plugin is not implemented on android')
+        lowerRawMessage.includes('[errormonitoring]') ||
+        lowerRawMessage.includes('telegram') ||
+        lowerRawMessage.includes('report-error') ||
+        lowerRawMessage.includes('[useerrormonitoring]') ||
+        lowerRawMessage.includes('[hmr]') ||
+        lowerRawMessage.includes('[vite]') ||
+        lowerRawMessage.includes('hot update') ||
+        lowerRawMessage.includes('wake_lock') ||
+        lowerRawMessage.includes('foregroundservice') ||
+        lowerRawMessage.includes('erro ao ocultar splash') ||
+        lowerRawMessage.includes('plugin is not implemented on android')
       ) {
         return;
       }
