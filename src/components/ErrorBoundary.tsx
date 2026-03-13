@@ -140,7 +140,12 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
+    if (isNativePlatform()) {
+      this.setState({ hasError: false, error: undefined, isChunkError: false, isClearing: false });
+      return;
+    }
+
+    this.setState({ hasError: false, error: undefined, isChunkError: false });
     window.location.reload();
   };
 
