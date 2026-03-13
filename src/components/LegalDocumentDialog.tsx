@@ -155,7 +155,7 @@ export const termsContent = [
   },
 ];
 
-const privacyContent = [
+export const privacyContent = [
   {
     title: '1. Quem Somos',
     items: [
