@@ -187,8 +187,9 @@ npx cap run ios
 If ANY critical issue is found post-release:
 
 1. **Web:** Revert to previous Lovable version via History
-2. **Mobile:** Users retain previous app version until store update
-3. **Database:** Migrations are non-destructive, no rollback needed
+2. **Mobile:** Pause rollout / rollback in Play Console immediately if crash rate spikes
+3. **Mobile:** Block new AAB uploads until `mobile:preflight:release` passes again
+4. **Database:** Migrations are non-destructive, no rollback needed
 
 ---
 
