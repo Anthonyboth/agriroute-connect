@@ -2039,6 +2039,52 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
     ],
     runtimeGuard: 'preflight-must-validate-index-html-content-and-assets' as RuntimeGuardKey,
   },
+
+  // ── FRT-074: Regex do preflight não reconhecia variável enableLiveReload no spread guard ──
+  {
+    id: 'FRT-074',
+    date: '2026-03-13',
+    severity: 'HIGH' as Severity,
+    area: 'Android/NativeBuild/Preflight',
+    bug: 'Preflight bloqueava release com falso positivo: "server block is not conditionally applied with spread + env guard" mesmo com capacitor.config.ts corretamente configurado.',
+    rootCause: 'A regex /\\.\\.\\.(isLiveReload|isNativeDev/ só reconhecia isLiveReload e isNativeDev como nomes de variável no spread. O capacitor.config.ts usa enableLiveReload (derivada de isLiveReload && !isCI), que não era reconhecida.',
+    fix: 'Regex atualizada para /\\.\\.\\.((?:isLiveReload|isNativeDev|enableLiveReload)/ cobrindo todas as variantes válidas.',
+    files: ['scripts/validate-native-release.mjs'],
+    rules: [
+      'Regex de validação do preflight DEVE cobrir TODAS as variantes de nome de variável usadas no spread guard.',
+      'Ao renomear variáveis no capacitor.config.ts, SEMPRE atualizar a regex correspondente no preflight.',
+    ],
+    keywords: ['FRT-074', 'preflight', 'regex', 'enableLiveReload', 'spread guard', 'false positive', 'server.url'],
+    testCases: [
+      'preflight_recognizes_enableLiveReload_spread',
+      'preflight_recognizes_isLiveReload_spread',
+      'preflight_blocks_when_no_spread_guard',
+    ],
+  },
+
+  // ── FRT-075: Preflight não encontrava plugins no capacitor.plugins.json (campo classpath ignorado) ──
+  {
+    id: 'FRT-075',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Android/NativeBuild/Preflight',
+    bug: 'Preflight reportava "Critical plugin Camera/Geolocation/SplashScreen NOT registered" com "Registered plugins: []" mesmo após cap sync bem-sucedido com 5 plugins encontrados.',
+    rootCause: 'O parser lia p.name e p.id do JSON, mas o Capacitor gera capacitor.plugins.json com campo "classpath" (ex: "com.capacitorjs.plugins.camera.CameraPlugin"), não "name" ou "id". Resultado: array de nomes vazio.',
+    fix: 'Parser agora lê p.classpath || p.name || p.id, extraindo corretamente os nomes dos plugins do formato real gerado pelo Capacitor.',
+    files: ['scripts/validate-native-release.mjs'],
+    rules: [
+      'Parser de capacitor.plugins.json DEVE ler o campo "classpath" como fonte primária do nome do plugin.',
+      'Ao validar plugins, usar match case-insensitive no classpath completo (ex: "camera" em "com.capacitorjs.plugins.camera.CameraPlugin").',
+      'NUNCA assumir formato do JSON sem verificar o output real de `npx cap sync`.',
+    ],
+    keywords: ['FRT-075', 'capacitor.plugins.json', 'classpath', 'parser', 'registered plugins', 'empty array', 'false positive', 'cap sync'],
+    testCases: [
+      'preflight_reads_classpath_from_plugins_json',
+      'preflight_matches_camera_in_classpath',
+      'preflight_matches_splashscreen_in_classpath',
+      'preflight_matches_geolocation_in_classpath',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
