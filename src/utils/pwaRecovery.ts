@@ -11,6 +11,14 @@ const RECOVERY_REASON_KEY = 'pwa_last_recovery_reason';
 const MAX_RECOVERIES = 2;
 const RECOVERY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 /**
  * Detecta se o erro é relacionado a chunk/módulo dinâmico
  */
