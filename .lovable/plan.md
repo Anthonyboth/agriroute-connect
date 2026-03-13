@@ -1,67 +1,24 @@
 
 
-## Diagnóstico
+## Problem
 
-O `MobileAppDownloadPopup` usa `Capacitor.isNativePlatform()` (import do npm) para detectar ambiente nativo. Porém, no app Capacitor, o bridge nativo pode não estar pronto quando o módulo JS é avaliado. O resto do codebase (`main.tsx`, `GlobalErrorBoundary.tsx`) já usa um padrão mais robusto que NÃO depende do import do npm:
+The hero background image shown in the producer dashboard (and other dashboards) does not match the image you uploaded. The system uses the `useHeroBackground()` hook which loads the image from the `hero_backgrounds` database table, with local files as fallback.
 
-```typescript
-// Padrão robusto usado em main.tsx (linhas 163-166)
-(window as any).Capacitor?.isNativePlatform?.() === true ||
-window.location.protocol === 'capacitor:' ||
-(window.location.hostname === 'localhost' && !window.location.port)
-```
+## Root Cause
 
-O terceiro check (`localhost` sem porta) é a chave: no Capacitor nativo, a URL é `https://localhost/` (sem porta). No browser local de dev é `localhost:5173` (com porta). O `MobileAppDownloadPopup` **não tem esse check**, e é por isso que falha no app nativo.
+The current hero image files in `public/` (`hero-truck-night-moon.webp` and `hero-truck-night-moon-mobile.webp`) are outdated. The uploaded image needs to replace them both as local fallbacks and in the database record.
 
-## Plano
+## Plan
 
-### 1. Corrigir `isInstalledAppContext()` em `MobileAppDownloadPopup.tsx`
+### 1. Replace local hero image files
+- Copy the uploaded image (`user-uploads://image-900.png`) to `public/hero-truck-night-moon.webp` (desktop) and `public/hero-truck-night-moon-mobile.webp` (mobile), overwriting the existing files.
 
-Adicionar o check `localhost` sem porta (mesmo padrão do `main.tsx`):
+### 2. Update the database record
+- Create a migration to update the `hero_backgrounds` table, setting the active record's `image_url` and `mobile_image_url` to point to the new files (same paths, but the content will be the new image).
 
-```typescript
-function isInstalledAppContext(): boolean {
-  // 1. Capacitor native — multiple fallbacks
-  try {
-    if (Capacitor.isNativePlatform()) return true;
-  } catch {}
+### 3. Update the inline fallback in `index.html`
+- The `index.html` has an inline `<picture>` element for LCP optimization that references the same files. Since the filenames stay the same, no code change is needed -- the new image content will be served automatically.
 
-  if (typeof window !== 'undefined') {
-    // 2. window.Capacitor global
-    if ((window as any).Capacitor?.isNativePlatform?.()) return true;
-    // 3. capacitor:// protocol (iOS)
-    if (window.location?.protocol === 'capacitor:') return true;
-    // 4. ✅ NOVO: Capacitor Android serve de https://localhost sem porta
-    if (window.location?.hostname === 'localhost' && !window.location?.port) return true;
-  }
-
-  // 5. PWA standalone
-  if (typeof window !== 'undefined') {
-    const isStandalone =
-      window.matchMedia?.('(display-mode: standalone)')?.matches ||
-      (navigator as any).standalone === true;
-    if (isStandalone) return true;
-  }
-
-  return false;
-}
-```
-
-### 2. Atualizar FRT-064 no regression shield
-
-Adicionar o check `localhost` sem porta na documentação do fix.
-
-### Arquivos modificados
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/MobileAppDownloadPopup.tsx` | Adicionar check `hostname === 'localhost' && !port` |
-| `src/hooks/useRegressionShield.ts` | Atualizar FRT-064 com novo check |
-
-### Por que funciona
-
-- **Android nativo**: URL = `https://localhost/` → hostname `localhost`, porta vazia → bloqueado
-- **iOS nativo**: URL = `capacitor://localhost/` → protocolo `capacitor:` → bloqueado (já funcionava)
-- **Browser mobile**: URL = `https://agriroute.lovable.app/` → hostname diferente → popup aparece
-- **Dev local**: URL = `http://localhost:5173/` → tem porta → popup aparece (correto)
+### Technical Note
+All 6 hero consumers (`ProducerDashboardHero`, `DriverDashboardHero`, `ServiceProviderHeroDashboard`, `CompanyDashboard`, `Landing`, `ProducerDashboard`) use the same `useHeroBackground()` hook, so updating the image files and DB record will propagate to all panels simultaneously.
 
