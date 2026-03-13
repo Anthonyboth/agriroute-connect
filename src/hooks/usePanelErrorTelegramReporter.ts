@@ -216,28 +216,33 @@ export function usePanelErrorTelegramReporter() {
       // Chamar o original primeiro
       originalConsoleError(...args);
 
-      // Não reportar erros das próprias chamadas de monitoramento
-      const firstArg = String(args[0] || '');
+      const rawMessage = args.map((a: unknown) => {
+        if (a instanceof Error) return a.message;
+        if (typeof a === 'string') return a;
+        if (a && typeof a === 'object' && 'message' in (a as any)) {
+          return String((a as any).message || '');
+        }
+        try { return JSON.stringify(a); } catch { return String(a); }
+      }).join(' ').toLowerCase();
+
+      // Ignorar ruído esperado de plugins/monitoramento
       if (
-        firstArg.includes('[ErrorMonitoring]') ||
-        firstArg.includes('telegram') ||
-        firstArg.includes('report-error') ||
-        firstArg.includes('[useErrorMonitoring]') ||
-        firstArg.includes('[hmr]') ||
-        firstArg.includes('[vite]') ||
-        firstArg.includes('hot update') ||
-        firstArg.toLowerCase().includes('wake_lock') ||
-        firstArg.toLowerCase().includes('foregroundservice')
+        rawMessage.includes('[errormonitoring]') ||
+        rawMessage.includes('telegram') ||
+        rawMessage.includes('report-error') ||
+        rawMessage.includes('[useerrormonitoring]') ||
+        rawMessage.includes('[hmr]') ||
+        rawMessage.includes('[vite]') ||
+        rawMessage.includes('hot update') ||
+        rawMessage.includes('wake_lock') ||
+        rawMessage.includes('foregroundservice') ||
+        rawMessage.includes('erro ao ocultar splash') ||
+        rawMessage.includes('plugin is not implemented on android')
       ) {
         return;
       }
 
-      const parts = args.map((a: unknown) => {
-        if (a instanceof Error) return a.message;
-        if (typeof a === 'string') return a;
-        try { return JSON.stringify(a)?.slice(0, 100); } catch { return '[object]'; }
-      });
-      const msg = parts.join(' ').slice(0, 400);
+      const msg = rawMessage.slice(0, 400);
       if (msg.length > 5) {
         reportError(msg, 'console_error');
       }
