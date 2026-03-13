@@ -944,7 +944,7 @@ const Auth = () => {
                               htmlFor="termsOfUseGeneral"
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              Li e aceito os{' '}
+                              Declaro que li e aceito os{' '}
                               <button 
                                 type="button"
                                 onClick={(e) => { e.preventDefault(); setLegalDialogType('terms'); }}
@@ -952,6 +952,7 @@ const Auth = () => {
                               >
                                 Termos de Uso
                               </button>
+                              {' '}e reconheço que negociações iniciadas na plataforma permanecem vinculadas aos Termos, mesmo que parte da comunicação ocorra por meios externos.
                             </label>
                           </div>
                           
