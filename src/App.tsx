@@ -988,6 +988,7 @@ const App = () => {
                       <ErrorMonitoringSetup />
                       <SecurityAntiErrorSetup />
                       <PanelErrorTelegramSetup />
+                      <NativeCrashMonitorSetup />
                       <CityIdMismatchMonitorSetup />
                       <ZipCodeSyncOnReconnect />
                       <FloatingSupportButton />
