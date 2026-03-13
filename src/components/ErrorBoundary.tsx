@@ -36,9 +36,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(error: Error): State {
     const isChunk = isChunkLoadError(error);
+    const isNative = isNativePlatform();
     
-    // FRT-044: Auto-reload once for chunk errors before showing UI
-    if (isChunk) {
+    // FRT-044/FRT-062: auto-reload de chunk só em web
+    if (isChunk && !isNative) {
       const key = 'agriroute_chunk_reload_attempted';
       const lastAttempt = sessionStorage.getItem(key);
       const now = Date.now();
