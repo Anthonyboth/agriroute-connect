@@ -159,8 +159,8 @@ export function lazyWithRetry<T extends ComponentType<any>>(
         if (isChunkError(error)) {
           console.warn(`[lazyWithRetry] ChunkLoadError - tentativa ${attempt + 1}/${maxRetries}`);
           
-          // Na primeira falha, limpa todos os caches
-          if (attempt === 0 && !wasCacheRecentlyCleared()) {
+          // Na primeira falha, limpa todos os caches (somente web)
+          if (attempt === 0 && !wasCacheRecentlyCleared() && !isNativePlatform()) {
             if (import.meta.env.DEV) console.log('[lazyWithRetry] Limpando todos os caches...');
             await clearAllCaches();
           }
