@@ -12,6 +12,8 @@ const isLikelyNativeContext = (): boolean => {
 };
 
 const isSplashPluginAvailable = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
   try {
     const globalCap = (window as any)?.Capacitor;
     if (typeof globalCap?.isPluginAvailable === 'function') {
