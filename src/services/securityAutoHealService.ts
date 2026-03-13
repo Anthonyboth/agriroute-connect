@@ -446,6 +446,15 @@ export class SecurityAutoHealService {
   // --- CHUNK_RELOAD ---
   private healChunkReload(): { success: boolean; action: string } {
     try {
+      // ✅ FRT-062: no native, bloquear reload automático para evitar loop de boot
+      if (this.isNativePlatform()) {
+        window.dispatchEvent(new CustomEvent('security-component-reload'));
+        return {
+          success: true,
+          action: 'Auto-reload de chunk desativado em nativo; disparado evento de recuperação local',
+        };
+      }
+
       // Marcar que precisa recarregar e agendar
       const reloadKey = 'security_chunk_reload_at';
       const lastReload = localStorage.getItem(reloadKey);
