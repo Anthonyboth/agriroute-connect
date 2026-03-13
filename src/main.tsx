@@ -214,6 +214,11 @@ void (async () => {
 
   try {
     createRoot(document.getElementById('root')!).render(<App />);
+    // FRT-077: Signal to pre-React diagnostic that React mounted successfully
+    (window as any).__reactMounted = true;
+    if ((window as any).__preReactBootTimeout) {
+      clearTimeout((window as any).__preReactBootTimeout);
+    }
   } catch (error) {
     const root = document.getElementById('root');
     if (root) {
