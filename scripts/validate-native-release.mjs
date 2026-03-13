@@ -197,7 +197,7 @@ if (requireAndroidAssets) {
       const pluginsRaw = readFileSync(ANDROID_PLUGINS_JSON, 'utf-8');
       const plugins = JSON.parse(pluginsRaw);
       const registeredNames = Array.isArray(plugins)
-        ? plugins.map(p => p.name || p.id || '').filter(Boolean)
+        ? plugins.map(p => p.classpath || p.name || p.id || '').filter(Boolean)
         : [];
 
       for (const critical of CRITICAL_PLUGINS) {
