@@ -192,6 +192,14 @@ export class SecurityAutoHealService {
     return this.healLog.slice(-limit);
   }
 
+  private isNativePlatform(): boolean {
+    return typeof window !== 'undefined' && (
+      (window as any).Capacitor?.isNativePlatform?.() === true ||
+      window.location.protocol === 'capacitor:' ||
+      (window.location.hostname === 'localhost' && !window.location.port)
+    );
+  }
+
   // =========================================================================
   // ERROR CLASSIFICATION
   // =========================================================================
