@@ -168,7 +168,7 @@ if (requireAndroidAssets) {
       );
     } else {
       try {
-        const { readdirSync } = await import('fs');
+        const assetFiles = readdirSync(ANDROID_COMPILED_ASSETS);
         const assetFiles = readdirSync(ANDROID_COMPILED_ASSETS);
         const hasJsFiles = assetFiles.some(f => f.endsWith('.js'));
         if (!hasJsFiles) {
