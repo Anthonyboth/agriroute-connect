@@ -183,6 +183,11 @@ class GlobalErrorBoundary extends Component<Props, State> {
   };
 
   private handleReload = () => {
+    if (isNativePlatform()) {
+      this.setState({ hasError: false, error: null, errorInfo: null, isRecovering: false });
+      return;
+    }
+
     window.location.reload();
   };
 
