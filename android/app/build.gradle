@@ -86,11 +86,22 @@ tasks.register("validateWebAssetsExist") {
     description "Fails the build if dist/ web assets are missing from Android assets (FRT-063)"
     doLast {
         def indexHtml = file("src/main/assets/public/index.html")
+        def pluginsJson = file("src/main/assets/capacitor.plugins.json")
+
         if (!indexHtml.exists()) {
             throw new GradleException(
                 "❌ RELEASE BLOCKED (FRT-063): android/app/src/main/assets/public/index.html not found.\n" +
                 "   The AAB will be ~9 MB instead of ~12 MB and the app will crash on open.\n" +
                 "   Fix: run 'npm run build && npx cap sync android' before generating the AAB."
+            )
+        }
+
+        if (!pluginsJson.exists()) {
+            throw new GradleException(
+                "❌ RELEASE BLOCKED (FRT-071): android/app/src/main/assets/capacitor.plugins.json not found.\n" +
+                "   Without this file, native plugins (Camera, SplashScreen, Geolocation) will throw\n" +
+                "   'plugin is not implemented' at runtime, causing the app to crash on boot.\n" +
+                "   Fix: run 'npx cap sync android' before generating the AAB."
             )
         }
     }

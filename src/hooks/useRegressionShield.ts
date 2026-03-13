@@ -1949,6 +1949,67 @@ export const REGRESSION_REGISTRY: RegressionEntry[] = [
       'toast_lists_specific_failed_documents',
     ],
   },
+
+  // ── FRT-071: Build publicado sem capacitor.plugins.json / assets nativos ──
+  {
+    id: 'FRT-071',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Android/iOS/NativeBuild',
+    bug: 'App da Play Store abria splash e fechava imediatamente. WebView não encontrava index.html nos assets nativos. Erro "SplashScreen plugin is not implemented" nos logs de produção.',
+    rootCause: 'O AAB foi publicado sem rodar `npx cap sync android`, resultando em ausência de: (1) android/app/src/main/assets/public/index.html (frontend), (2) capacitor.plugins.json (registro de plugins nativos), (3) capacitor.config.json. O tamanho do AAB caiu de ~12MB para ~9MB, confirmando ausência de assets.',
+    fix: 'Preflight v3 (validate-native-release.mjs) agora valida presença de capacitor.plugins.json e verifica se plugins críticos (Camera, Geolocation, SplashScreen) estão registrados. build.gradle bloqueia bundleRelease se plugins.json estiver ausente. Verificação de tamanho do AAB (< 11MB = bloqueado).',
+    files: [
+      'scripts/validate-native-release.mjs',
+      'android/app/build.gradle',
+      'capacitor.config.ts',
+    ],
+    rules: [
+      'NUNCA gerar AAB sem rodar `npm run build && npx cap sync android` — o frontend e plugins não serão empacotados.',
+      'capacitor.plugins.json DEVE existir em android/app/src/main/assets/ e conter Camera, Geolocation, SplashScreen.',
+      'AAB com tamanho < 11MB é indicador imediato de assets ausentes — bloquear publicação.',
+      'O fluxo oficial é: `npm run mobile:sync:android:release` que faz build + sync + preflight automaticamente.',
+      'A pasta android/app/src/main/assets/ é gitignored por design — deve ser gerada localmente antes de cada build.',
+    ],
+    keywords: ['FRT-071', 'splash', 'fecha', 'crash boot', 'index.html', 'capacitor.plugins.json', 'assets', 'AAB', '9MB', 'plugin not implemented', 'cap sync'],
+    testCases: [
+      'preflight_blocks_when_plugins_json_missing',
+      'preflight_blocks_when_index_html_missing',
+      'preflight_validates_critical_plugins_registered',
+      'gradle_blocks_release_without_plugins_json',
+      'aab_size_below_11mb_triggers_error',
+    ],
+  },
+
+  // ── FRT-072: Incompatibilidade de major entre plugin nativo e Capacitor core ──
+  {
+    id: 'FRT-072',
+    date: '2026-03-13',
+    severity: 'CRITICAL' as Severity,
+    area: 'Android/iOS/NativePlugins',
+    bug: 'App apresentava crash silencioso de boot ou comportamento instável de plugins nativos. @capawesome-team/capacitor-android-foreground-service@8.0.1 estava instalado com @capacitor/core@7.4.4.',
+    rootCause: 'Plugins nativos do Capacitor exigem mesma major version do core. foreground-service v8 carrega bindings incompatíveis com o runtime do Capacitor 7, causando falha na inicialização do bridge nativo.',
+    fix: 'Downgrade de foreground-service para ^7.0.0. Preflight v3 agora verifica automaticamente que todos os pacotes @capacitor/* e @capawesome-team/* compartilham a mesma major version do @capacitor/core. CI/Codemagic também bloqueado via env guard (isCI) para nunca usar live-reload em builds de produção.',
+    files: [
+      'package.json',
+      'scripts/validate-native-release.mjs',
+      'capacitor.config.ts',
+    ],
+    rules: [
+      'TODOS os pacotes @capacitor/* DEVEM ter a mesma major version (ex: todos 7.x.x).',
+      'Plugins de terceiros (@capawesome-team/*) DEVEM ter major compatível com @capacitor/core.',
+      'Usar versões fixas (sem ^) para @capacitor/core, @capacitor/android, @capacitor/ios em produção.',
+      'Preflight deve validar matriz de versões automaticamente antes de cada release.',
+      'NUNCA atualizar @capacitor/core sem atualizar simultaneamente TODOS os plugins dependentes.',
+    ],
+    keywords: ['FRT-072', 'major version', 'incompatível', 'foreground-service', 'capawesome', 'capacitor 7', 'capacitor 8', 'plugin crash', 'bridge', 'mismatch'],
+    testCases: [
+      'preflight_detects_capacitor_major_mismatch',
+      'preflight_detects_third_party_plugin_mismatch',
+      'package_json_has_aligned_capacitor_versions',
+      'ci_env_blocks_live_reload_in_production',
+    ],
+  },
 ];
 // ═══════════════════════════════════════════════════════════════
 // RUNTIME GUARDS — Previnem regressão em tempo de execução
