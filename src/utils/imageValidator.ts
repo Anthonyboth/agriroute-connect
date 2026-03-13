@@ -30,10 +30,10 @@ export const validateImageQuality = async (file: File): Promise<ImageValidationR
   }
   
   // Verificar tamanho mínimo como indicador de qualidade
-  if (file.size < 50000) { // Reduzido para 50KB para ser mais permissivo
+  if (file.size < 15000) { // 15KB - permissivo para câmeras Android de baixa resolução
     return {
       valid: false,
-      reason: 'Arquivo muito pequeno (mínimo 50KB). Tire uma foto mais nítida.'
+      reason: 'Arquivo muito pequeno (mínimo 15KB). Tire uma foto mais nítida.'
     };
   }
   
