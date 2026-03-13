@@ -13,7 +13,7 @@
  * FRT-072: Validates plugin major version alignment with @capacitor/core
  */
 
-import { existsSync, readFileSync, statSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { resolve } from 'path';
 
 const args = new Set(process.argv.slice(2));
