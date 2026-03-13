@@ -21,6 +21,14 @@ interface State {
   diagnosticCopied?: boolean;
 }
 
+function isNativePlatform(): boolean {
+  return typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && !window.location.port)
+  );
+}
+
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false
