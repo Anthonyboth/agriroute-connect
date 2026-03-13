@@ -13,7 +13,7 @@
         "@capacitor/geolocation": "7.1.8",
         "@capacitor/ios": "7.4.4",
         "@capacitor/splash-screen": "7.0.5",
-        "@capawesome-team/capacitor-android-foreground-service": "^8.0.1",
+        "@capawesome-team/capacitor-android-foreground-service": "^7.0.0",
         "@googlemaps/js-api-loader": "^1.16.10",
         "@googlemaps/react-wrapper": "^1.2.0",
         "@hookform/resolvers": "^3.10.0",
@@ -316,7 +316,7 @@
 
     "@capacitor/synapse": ["@capacitor/synapse@1.0.4", "", {}, "sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw=="],
 
-    "@capawesome-team/capacitor-android-foreground-service": ["@capawesome-team/capacitor-android-foreground-service@8.0.1", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-SnkzGKvtbQ5aiIddRUviCelMjlM68WF835Zzt3AhRNg13v6uvzAL7EnqMByxX7RTqicSuvhJVYJprv/SyDiN7Q=="],
+    "@capawesome-team/capacitor-android-foreground-service": ["@capawesome-team/capacitor-android-foreground-service@7.0.1", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-JjeINYZ5SL81TV1D2WYIE2fmd1MlxHbIzB2gsNKINt9Ge3gkbdh7P/Urb3gSPPz4UWJoUFiCLFaHBRJvu+EP6Q=="],
 
     "@date-fns/tz": ["@date-fns/tz@1.4.1", "", {}, "sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA=="],
 
