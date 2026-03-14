@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">AgriRoute</string>
     <string name="title_activity_main">AgriRoute</string>
-    <string name="package_name">app.lovable.f2dbc20153194f90a3cc8dd215bbebba</string>
-    <string name="custom_url_scheme">app.lovable.f2dbc20153194f90a3cc8dd215bbebba</string>
+    <string name="package_name">com.agriroute.connect</string>
+    <string name="custom_url_scheme">com.agriroute.connect</string>
 </resources>
