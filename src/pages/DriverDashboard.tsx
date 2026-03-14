@@ -102,7 +102,7 @@ const DriverDashboard = () => {
   const location = useLocation();
   
   // ✅ Sincronizar permissão de localização real do dispositivo com o banco
-  const { isLocationEnabled, isSyncing: isLocationSyncing } = useLocationPermissionSync();
+  const { isLocationEnabled, isSyncing: isLocationSyncing, forceSync: forceLocationSync } = useLocationPermissionSync();
 
   // ✅ FIX: Usar mesma fonte de dados do DriverOngoingTab para o badge
   const { data: ongoingCardsData } = useDriverOngoingCards(profile?.id);
