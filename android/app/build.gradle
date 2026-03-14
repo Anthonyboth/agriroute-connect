@@ -19,7 +19,7 @@ if (hasSigningProps) {
 }
 
 android {
-    namespace hasSigningProps ? signingProps['APP_NAMESPACE'] : "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+    namespace hasSigningProps ? signingProps['APP_NAMESPACE'] : "com.agriroute.connect"
     compileSdk rootProject.ext.compileSdkVersion
 
     if (hasSigningProps) {
