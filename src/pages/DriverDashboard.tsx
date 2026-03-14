@@ -2659,10 +2659,11 @@ const DriverDashboard = () => {
                 }
                 <Button 
                   variant="link" 
-                  onClick={() => setShowLocationManager(true)}
-                  className="p-0 h-auto ml-2 text-destructive-foreground underline font-bold"
+                  onClick={handleActivateLocationNow}
+                  disabled={isLocationSyncing || isActivatingLocation}
+                  className="p-0 h-auto ml-2 text-destructive underline font-bold disabled:opacity-70"
                 >
-                  Ativar agora
+                  {isActivatingLocation ? 'Ativando...' : 'Ativar agora'}
                 </Button>
               </AlertDescription>
             </Alert>
