@@ -6378,6 +6378,68 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_insurances: {
+        Row: {
+          coverage_value: number
+          created_at: string
+          freight_id: string
+          id: string
+          insurance_product_id: string
+          price: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          coverage_value?: number
+          created_at?: string
+          freight_id: string
+          id?: string
+          insurance_product_id: string
+          price?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          coverage_value?: number
+          created_at?: string
+          freight_id?: string
+          id?: string
+          insurance_product_id?: string
+          price?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_insurances_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_insurances_insurance_product_id_fkey"
+            columns: ["insurance_product_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_insurances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_insurances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_matches: {
         Row: {
           created_at: string | null
@@ -8570,6 +8632,125 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      insurance_claims: {
+        Row: {
+          amount_claimed: number
+          amount_paid: number
+          created_at: string
+          description: string
+          evidence_urls: string[] | null
+          freight_insurance_id: string | null
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          status: string
+          user_id: string
+          user_insurance_id: string | null
+        }
+        Insert: {
+          amount_claimed?: number
+          amount_paid?: number
+          created_at?: string
+          description?: string
+          evidence_urls?: string[] | null
+          freight_insurance_id?: string | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+          user_insurance_id?: string | null
+        }
+        Update: {
+          amount_claimed?: number
+          amount_paid?: number
+          created_at?: string
+          description?: string
+          evidence_urls?: string[] | null
+          freight_insurance_id?: string | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+          user_insurance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claims_freight_insurance_id_fkey"
+            columns: ["freight_insurance_id"]
+            isOneToOne: false
+            referencedRelation: "freight_insurances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_user_insurance_id_fkey"
+            columns: ["user_insurance_id"]
+            isOneToOne: false
+            referencedRelation: "user_insurances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_products: {
+        Row: {
+          active: boolean
+          category: string
+          coverage_details: string
+          created_at: string
+          description: string
+          exclusions: string
+          id: string
+          max_coverage: number | null
+          max_price: number
+          min_price: number
+          name: string
+          pricing_model: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          coverage_details?: string
+          created_at?: string
+          description?: string
+          exclusions?: string
+          id?: string
+          max_coverage?: number | null
+          max_price?: number
+          min_price?: number
+          name: string
+          pricing_model?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          coverage_details?: string
+          created_at?: string
+          description?: string
+          exclusions?: string
+          id?: string
+          max_coverage?: number | null
+          max_price?: number
+          min_price?: number
+          name?: string
+          pricing_model?: string
+        }
+        Relationships: []
       }
       ledger_entries: {
         Row: {
@@ -14190,6 +14371,67 @@ export type Database = {
           },
           {
             foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_insurances: {
+        Row: {
+          coverage_value: number
+          created_at: string
+          end_date: string | null
+          id: string
+          insurance_product_id: string
+          payment_method: string | null
+          price: number
+          start_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          coverage_value?: number
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          insurance_product_id: string
+          payment_method?: string | null
+          price?: number
+          start_date?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          coverage_value?: number
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          insurance_product_id?: string
+          payment_method?: string | null
+          price?: number
+          start_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_insurances_insurance_product_id_fkey"
+            columns: ["insurance_product_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_insurances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_insurances_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
