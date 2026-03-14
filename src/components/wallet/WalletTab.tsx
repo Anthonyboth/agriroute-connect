@@ -81,14 +81,20 @@ export const WalletTab: React.FC<WalletTabProps> = ({
   return (
     <div className="space-y-4">
       <Tabs defaultValue="wallet" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="wallet" className="gap-2">
             <Wallet className="h-4 w-4" />
-            {isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}
+            <span className="hidden sm:inline">{isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}</span>
+            <span className="sm:hidden">Carteira</span>
           </TabsTrigger>
           <TabsTrigger value="management" className="gap-2">
             <CreditCard className="h-4 w-4" />
-            Gestão de Pagamentos
+            <span className="hidden sm:inline">Gestão de Pagamentos</span>
+            <span className="sm:hidden">Pagamentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="insurance" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Seguros
           </TabsTrigger>
         </TabsList>
 
