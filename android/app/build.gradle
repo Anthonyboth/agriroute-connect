@@ -128,7 +128,7 @@ tasks.register("validateSigningProperties") {
                 "❌ RELEASE BLOCKED (FRT-079): APP_ID/APP_NAMESPACE inválidos no signing.properties.\n" +
                 "   Encontrado: APP_ID='${appIdFromProps}', APP_NAMESPACE='${namespaceFromProps}'.\n" +
                 "   Esperado: APP_ID='${canonicalAppId}', APP_NAMESPACE='${canonicalAppId}'.\n" +
-                "   Corrija o typo (ex: com.agrioute.connect) para com.agriroute.connect."
+                "   Corrija qualquer typo para com.agriroute.connect."
             )
         }
     }
