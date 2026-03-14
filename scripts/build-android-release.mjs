@@ -178,6 +178,9 @@ if (fileExists(`${ASSETS_BASE}/public/index.html`)) {
 }
 
 // Check capacitor.config.json doesn't have server.url (FRT-062)
+// AND validate appId matches canonical ID (FRT-079)
+const CANONICAL_APP_ID = 'com.agriroute.connect';
+
 if (fileExists(`${ASSETS_BASE}/capacitor.config.json`)) {
   try {
     const config = JSON.parse(readFileSync(resolve(ROOT, `${ASSETS_BASE}/capacitor.config.json`), 'utf-8'));
@@ -187,6 +190,15 @@ if (fileExists(`${ASSETS_BASE}/capacitor.config.json`)) {
       assetErrors++;
     } else {
       log('   ', '✓ No server.url in release config (FRT-062 safe)');
+    }
+
+    // FRT-079: Validate canonical appId
+    if (config?.appId && config.appId !== CANONICAL_APP_ID) {
+      console.error(`   ❌ FRT-079: appId mismatch! Found "${config.appId}", expected "${CANONICAL_APP_ID}"`);
+      console.error('     Dual identifiers cause Play Store crash (split APK mismatch).');
+      assetErrors++;
+    } else if (config?.appId === CANONICAL_APP_ID) {
+      log('   ', `✓ appId = ${CANONICAL_APP_ID} (FRT-079 safe)`);
     }
   } catch (err) {
     console.error(`   ❌ Failed to parse capacitor.config.json: ${err.message}`);

@@ -1,4 +1,4 @@
-package app.lovable.f2dbc20153194f90a3cc8dd215bbebba;
+package com.agriroute.connect;
 
 import com.getcapacitor.BridgeActivity;
 
