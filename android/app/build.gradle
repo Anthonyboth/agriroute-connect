@@ -110,13 +110,25 @@ tasks.register("validateWebAssetsExist") {
 
 // FRT-067: Valida que signing.properties existe para builds de release
 tasks.register("validateSigningProperties") {
-    description "Fails the build if signing.properties is missing (FRT-067)"
+    description "Fails the build if signing.properties is missing or has mismatched app id/namespace (FRT-067/FRT-079)"
     doLast {
         if (!hasSigningProps) {
             throw new GradleException(
                 "❌ RELEASE BLOCKED (FRT-067): android/app/signing.properties não encontrado.\n" +
                 "   Copie signing.properties.example para signing.properties e preencha seus valores.\n" +
                 "   Sem este arquivo, o AAB não será assinado e o namespace ficará genérico."
+            )
+        }
+
+        def appIdFromProps = signingProps['APP_ID']
+        def namespaceFromProps = signingProps['APP_NAMESPACE']
+
+        if (appIdFromProps != canonicalAppId || namespaceFromProps != canonicalAppId) {
+            throw new GradleException(
+                "❌ RELEASE BLOCKED (FRT-079): APP_ID/APP_NAMESPACE inválidos no signing.properties.\n" +
+                "   Encontrado: APP_ID='${appIdFromProps}', APP_NAMESPACE='${namespaceFromProps}'.\n" +
+                "   Esperado: APP_ID='${canonicalAppId}', APP_NAMESPACE='${canonicalAppId}'.\n" +
+                "   Corrija o typo (ex: com.agrioute.connect) para com.agriroute.connect."
             )
         }
     }
