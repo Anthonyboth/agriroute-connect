@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, CreditCard } from 'lucide-react';
+import { Wallet, CreditCard, Shield, Loader2 } from 'lucide-react';
+
+const InsuranceTab = React.lazy(() => import('./InsuranceTab'));
 import { SmartFinancialCard } from './SmartFinancialCard';
 import { EscrowFlowCard } from './EscrowFlowCard';
 import { PaymentOrdersCard } from './PaymentOrdersCard';
@@ -79,14 +81,20 @@ export const WalletTab: React.FC<WalletTabProps> = ({
   return (
     <div className="space-y-4">
       <Tabs defaultValue="wallet" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="wallet" className="gap-2">
             <Wallet className="h-4 w-4" />
-            {isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}
+            <span className="hidden sm:inline">{isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}</span>
+            <span className="sm:hidden">Carteira</span>
           </TabsTrigger>
           <TabsTrigger value="management" className="gap-2">
             <CreditCard className="h-4 w-4" />
-            Gestão de Pagamentos
+            <span className="hidden sm:inline">Gestão de Pagamentos</span>
+            <span className="sm:hidden">Pagamentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="insurance" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Seguros
           </TabsTrigger>
         </TabsList>
 
@@ -187,6 +195,16 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             walletId={wallet?.id}
             legacyContent={legacyPaymentContent}
           />
+        </TabsContent>
+
+        <TabsContent value="insurance" className="space-y-4 mt-4">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          }>
+            <InsuranceTab />
+          </Suspense>
         </TabsContent>
       </Tabs>
 

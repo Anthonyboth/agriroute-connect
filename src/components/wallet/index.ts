@@ -20,3 +20,4 @@ export { RiskConfirmationFlow } from './RiskConfirmationFlow';
 export { CashflowForecastCard } from './CashflowForecastCard';
 export { AutopayCard } from './AutopayCard';
 export { DynamicCreditCard } from './DynamicCreditCard';
+export { default as InsuranceTab } from './InsuranceTab';
