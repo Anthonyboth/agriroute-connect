@@ -26,10 +26,12 @@ import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X, XCircle, ClipboardList, Inbox, Send, CreditCard } from 'lucide-react';
+import { requestPermissionSafe } from '@/utils/location';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
+import { GPSPermissionDeniedDialog } from '@/components/GPSPermissionDeniedDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { isFinalStatus } from '@/lib/freight-status';
@@ -100,7 +102,7 @@ const DriverDashboard = () => {
   const location = useLocation();
   
   // ✅ Sincronizar permissão de localização real do dispositivo com o banco
-  const { isLocationEnabled, isSyncing: isLocationSyncing } = useLocationPermissionSync();
+  const { isLocationEnabled, isSyncing: isLocationSyncing, forceSync: forceLocationSync } = useLocationPermissionSync();
 
   // ✅ FIX: Usar mesma fonte de dados do DriverOngoingTab para o badge
   const { data: ongoingCardsData } = useDriverOngoingCards(profile?.id);
@@ -189,10 +191,34 @@ const DriverDashboard = () => {
   }, []);
 
   const [showLocationManager, setShowLocationManager] = useState(false);
+  const [showGPSPermissionDialog, setShowGPSPermissionDialog] = useState(false);
+  const [isActivatingLocation, setIsActivatingLocation] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [isTransportCompany, setIsTransportCompany] = useState(false);
   const [isMuralOpen, setIsMuralOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+
+  const handleActivateLocationNow = useCallback(async () => {
+    if (isActivatingLocation || isLocationSyncing) return;
+
+    setIsActivatingLocation(true);
+    try {
+      const granted = await requestPermissionSafe();
+
+      if (!granted) {
+        setShowGPSPermissionDialog(true);
+        return;
+      }
+
+      await forceLocationSync();
+      toast.success('Localização ativada com sucesso');
+    } catch (error) {
+      console.error('Erro ao ativar localização:', error);
+      toast.error('Não foi possível ativar a localização agora');
+    } finally {
+      setIsActivatingLocation(false);
+    }
+  }, [forceLocationSync, isActivatingLocation, isLocationSyncing]);
 
   useEffect(() => {
     const dismissedAt = localStorage.getItem('mural_dismissed_at');
@@ -2633,10 +2659,11 @@ const DriverDashboard = () => {
                 }
                 <Button 
                   variant="link" 
-                  onClick={() => setShowLocationManager(true)}
-                  className="p-0 h-auto ml-2 text-destructive-foreground underline font-bold"
+                  onClick={handleActivateLocationNow}
+                  disabled={isLocationSyncing || isActivatingLocation}
+                  className="p-0 h-auto ml-2 text-destructive underline font-bold disabled:opacity-70"
                 >
-                  Ativar agora
+                  {isActivatingLocation ? 'Ativando...' : 'Ativar agora'}
                 </Button>
               </AlertDescription>
             </Alert>
@@ -3239,6 +3266,12 @@ const DriverDashboard = () => {
           </div>
         </div>
       ) : null}
+
+      <GPSPermissionDeniedDialog
+        open={showGPSPermissionDialog}
+        onOpenChange={setShowGPSPermissionDialog}
+      />
+
       {/* ✅ REMOVIDO: Dialog de service_request (motoristas não veem serviços) */}
       
       <ServicesModal

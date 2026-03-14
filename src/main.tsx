@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import { Capacitor } from '@capacitor/core'
 import App from './App.tsx'
 import './index.css'
 import { installAutoRecoveryHandlers, clearRecoveryCounters } from './utils/pwaRecovery'
@@ -149,13 +150,40 @@ const isLikelyNative = typeof window !== 'undefined' && (
   (window.location.hostname === 'localhost' && !window.location.port)
 );
 
+const isSplashPluginAvailableAtBoot = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const globalCap = (window as any)?.Capacitor;
+    if (typeof globalCap?.isPluginAvailable === 'function') {
+      return globalCap.isPluginAvailable('SplashScreen') === true;
+    }
+
+    const capacitorAny = Capacitor as any;
+    if (typeof capacitorAny?.isPluginAvailable === 'function') {
+      return capacitorAny.isPluginAvailable('SplashScreen') === true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
+};
+
 if (isLikelyNative) {
   setTimeout(async () => {
+    if (!isSplashPluginAvailableAtBoot()) {
+      console.warn('[main] SplashScreen plugin indisponível no runtime nativo; fallback ignorado.');
+      return;
+    }
+
     try {
       const { SplashScreen } = await import('@capacitor/splash-screen');
       await SplashScreen.hide({ fadeOutDuration: 300 });
       console.warn('[main] ⚠️ Fallback global de splash ativado');
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, 10000);
 }
 
