@@ -196,6 +196,16 @@ export const WalletTab: React.FC<WalletTabProps> = ({
             legacyContent={legacyPaymentContent}
           />
         </TabsContent>
+
+        <TabsContent value="insurance" className="space-y-4 mt-4">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          }>
+            <InsuranceTab />
+          </Suspense>
+        </TabsContent>
       </Tabs>
 
       {/* Modals — condicionais por papel */}
