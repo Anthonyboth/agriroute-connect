@@ -191,10 +191,34 @@ const DriverDashboard = () => {
   }, []);
 
   const [showLocationManager, setShowLocationManager] = useState(false);
+  const [showGPSPermissionDialog, setShowGPSPermissionDialog] = useState(false);
+  const [isActivatingLocation, setIsActivatingLocation] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [isTransportCompany, setIsTransportCompany] = useState(false);
   const [isMuralOpen, setIsMuralOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+
+  const handleActivateLocationNow = useCallback(async () => {
+    if (isActivatingLocation || isLocationSyncing) return;
+
+    setIsActivatingLocation(true);
+    try {
+      const granted = await requestPermissionSafe();
+
+      if (!granted) {
+        setShowGPSPermissionDialog(true);
+        return;
+      }
+
+      await forceLocationSync();
+      toast.success('Localização ativada com sucesso');
+    } catch (error) {
+      console.error('Erro ao ativar localização:', error);
+      toast.error('Não foi possível ativar a localização agora');
+    } finally {
+      setIsActivatingLocation(false);
+    }
+  }, [forceLocationSync, isActivatingLocation, isLocationSyncing]);
 
   useEffect(() => {
     const dismissedAt = localStorage.getItem('mural_dismissed_at');
