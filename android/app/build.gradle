@@ -35,7 +35,7 @@ android {
     }
 
     defaultConfig {
-        applicationId hasSigningProps ? signingProps['APP_ID'] : "com.agriroute.connect"
+        applicationId canonicalAppId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode hasSigningProps ? Integer.parseInt(signingProps['VERSION_CODE'] ?: '147') : 147
