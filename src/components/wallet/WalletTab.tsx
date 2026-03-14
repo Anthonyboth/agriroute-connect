@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, CreditCard } from 'lucide-react';
+import { Wallet, CreditCard, Shield, Loader2 } from 'lucide-react';
+
+const InsuranceTab = React.lazy(() => import('./InsuranceTab'));
 import { SmartFinancialCard } from './SmartFinancialCard';
 import { EscrowFlowCard } from './EscrowFlowCard';
 import { PaymentOrdersCard } from './PaymentOrdersCard';
