@@ -10,6 +10,7 @@ apply plugin: 'com.android.application'
 def signingPropsFile = file("signing.properties")
 def hasSigningProps = signingPropsFile.exists()
 def signingProps = new Properties()
+def canonicalAppId = "com.agriroute.connect"
 
 if (hasSigningProps) {
     signingProps.load(new FileInputStream(signingPropsFile))
@@ -19,7 +20,7 @@ if (hasSigningProps) {
 }
 
 android {
-    namespace hasSigningProps ? signingProps['APP_NAMESPACE'] : "com.agriroute.connect"
+    namespace canonicalAppId
     compileSdk rootProject.ext.compileSdkVersion
 
     if (hasSigningProps) {
