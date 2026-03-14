@@ -3266,6 +3266,12 @@ const DriverDashboard = () => {
           </div>
         </div>
       ) : null}
+
+      <GPSPermissionDeniedDialog
+        open={showGPSPermissionDialog}
+        onOpenChange={setShowGPSPermissionDialog}
+      />
+
       {/* ✅ REMOVIDO: Dialog de service_request (motoristas não veem serviços) */}
       
       <ServicesModal
