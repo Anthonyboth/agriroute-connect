@@ -113,3 +113,36 @@ base/assets/public/assets/*.js ← bundles JS compilados
 ```
 
 **Data:** 2026-03-13
+
+---
+
+## FRT-079: Dualidade de Identificadores (app.lovable vs com.agriroute) ⭐ NOVO
+
+**Severidade:** 🔴 Crítica  
+**Plataforma:** Android (Play Store)  
+**Sintoma:** App funciona via ADB mas crasha na Play Store. Mesmo com assets corretos e AAB ≥ 11MB.  
+
+**Causa raiz:**  
+O projeto tinha DOIS identificadores simultâneos:
+- `app.lovable.f2dbc20153194f90a3cc8dd215bbebba` — gerado pelo Lovable (em `capacitor.config.ts`, `MainActivity.java`, `AndroidManifest.xml`, `strings.xml`)
+- `com.agriroute.connect` — usado na Play Store (via `signing.properties` no Gradle)
+
+Quando o Gradle sobrescreve `applicationId` via `signing.properties` mas o `AndroidManifest.xml` referencia `app.lovable...MainActivity`, o Android não encontra a classe correta no pacote final. O split APK delivery da Play Store amplifica o problema.
+
+**Correção (FRT-079):**
+1. Pacote Java migrado para `com/agriroute/connect/MainActivity.java`
+2. `AndroidManifest.xml` → `android:name="com.agriroute.connect.MainActivity"`
+3. `capacitor.config.ts` → `appId: 'com.agriroute.connect'`
+4. `build.gradle` → fallback padrão `"com.agriroute.connect"` (sem `signing.properties`)
+5. `strings.xml` → `package_name` e `custom_url_scheme` = `com.agriroute.connect`
+6. Build pipeline valida appId canônico no `capacitor.config.json` sincronizado
+
+**Regra permanente:** O projeto DEVE ter UM ÚNICO identificador em todos os arquivos Android. Nunca dois.
+
+**Validação:**
+```bash
+npm run mobile:build:android
+# Step 4 agora valida: appId = com.agriroute.connect (FRT-079 safe)
+```
+
+**Data:** 2026-03-14
