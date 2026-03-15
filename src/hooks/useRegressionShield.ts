@@ -2518,6 +2518,58 @@ const FRT_080_ENTRY: RegressionEntry = {
 
 REGRESSION_REGISTRY.push(FRT_078_ENTRY, FRT_079_ENTRY, FRT_080_ENTRY);
 
+const FRT_081_ENTRY: RegressionEntry = {
+  id: 'FRT-081',
+  date: '2026-03-15',
+  severity: 'MEDIUM' as Severity,
+  area: 'UI/Alignment',
+  bug: 'Ícones nos cards de serviço (ServiceCatalogGrid) desalinhados, não centralizados no quadrado.',
+  rootCause: 'O container flex perdia sua proporção em layouts apertados ou grids com items-start, causando desalinhamento visual do ícone interno.',
+  fix: 'Adicionado "shrink-0" ao ERP.iconBox no agri-erp.ts e garantido centralização flex (items-center justify-center).',
+  files: ['src/styles/agri-erp.ts', 'src/components/ServiceCatalogGrid.tsx'],
+  rules: [
+    'Sempre usar shrink-0 em containers de ícones fixos para evitar que o flex-engine deforme o quadrado.',
+    'Garantir items-center justify-center para centralização perfeita de SVG.',
+  ],
+  keywords: ['FRT-081', 'alinhamento', 'ícone', 'centered', 'shrink-0', 'flexbox'],
+  testCases: ['service_card_icon_is_centered', 'icon_box_does_not_shrink'],
+};
+
+const FRT_082_ENTRY: RegressionEntry = {
+  id: 'FRT-082',
+  date: '2026-03-15',
+  severity: 'MEDIUM' as Severity,
+  area: 'UI/MatchInteligente',
+  bug: 'Área de Match Inteligente bagunçada no mobile, com chips de categorias muito pequenos e desalinhados com a busca.',
+  rootCause: 'Uso de h-3 w-3 para ícones (muito pequenos) e container flex simples sem background ou bordas para agrupar filtros, causando "bagunça" visual ao quebrar linhas.',
+  fix: 'Aumentado ícones para h-4 w-4, adicionado background p-3 bg-secondary/20 nos filtros, e melhorado alinhamento do refresh e busca com h-11 consistente.',
+  files: ['src/components/SmartFreightMatcher.tsx'],
+  rules: [
+    'Ícones de categorias em badges devem ter no mínimo h-4 para boa legibilidade.',
+    'Agrupar filtros relacionados em containers com background sutil para organizar a hierarquia visual.',
+  ],
+  keywords: ['FRT-082', 'Match Inteligente', 'layout', 'chips', 'badget', 'ícones pequenos'],
+  testCases: ['match_inteligente_chips_are_readable', 'search_and_refresh_are_aligned'],
+};
+
+const FRT_083_ENTRY: RegressionEntry = {
+  id: 'FRT-083',
+  date: '2026-03-15',
+  severity: 'MEDIUM' as Severity,
+  area: 'UI/Wallet',
+  bug: 'Ícone da aba "Pagamentos" na carteira muito pequeno em comparação com outros ou com o texto.',
+  rootCause: 'Uso de h-4 w-4 em TabsTrigger que, dependendo da fonte ou layout mobile, parecia desproporcional.',
+  fix: 'Aumentado ícones de todas as abas da carteira para h-5 w-5 e adicionado shrink-0 para estabilidade.',
+  files: ['src/components/wallet/WalletTab.tsx'],
+  rules: [
+    'Ícones de navegação principal (Tabs) devem ter h-5 para destaque adequado.',
+  ],
+  keywords: ['FRT-083', 'Pagamentos', 'ícone pequeno', 'wallet', 'carteira', 'tabs'],
+  testCases: ['wallet_tab_icons_are_consistent_and_large'],
+};
+
+REGRESSION_REGISTRY.push(FRT_081_ENTRY, FRT_082_ENTRY, FRT_083_ENTRY);
+
 // ═══════════════════════════════════════════════════════════════
 // HOOK — Interface principal para componentes React
 // ═══════════════════════════════════════════════════════════════

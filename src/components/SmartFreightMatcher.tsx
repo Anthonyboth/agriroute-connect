@@ -598,44 +598,44 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     switch (serviceType) {
       case "CARGA":
         return (
-          <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <Package className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">Carga</span>
+          <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1.5 px-2.5 py-1 max-w-fit truncate whitespace-nowrap shadow-sm">
+            <Package className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate font-medium">Carga</span>
           </Badge>
         );
       case "MUDANCA":
         return (
-          <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <Truck className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">Mudança</span>
+          <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800 flex items-center gap-1.5 px-2.5 py-1 max-w-fit truncate whitespace-nowrap shadow-sm">
+            <Truck className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate font-medium">Mudança</span>
           </Badge>
         );
       case "GUINCHO":
         return (
-          <Badge className="bg-orange-100 text-orange-800 border-orange-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <Wrench className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">Guincho</span>
+          <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800 flex items-center gap-1.5 px-2.5 py-1 max-w-fit truncate whitespace-nowrap shadow-sm">
+            <Wrench className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate font-medium">Guincho</span>
           </Badge>
         );
       case "FRETE_MOTO":
         return (
-          <Badge className="bg-teal-100 text-teal-800 border-teal-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <Bike className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">Moto</span>
+          <Badge className="bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800 flex items-center gap-1.5 px-2.5 py-1 max-w-fit truncate whitespace-nowrap shadow-sm">
+            <Bike className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate font-medium">Moto</span>
           </Badge>
         );
       case "ENTREGA_PACOTES":
         return (
-          <Badge className="bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <Package className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">Pacotes 📦</span>
+          <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800 flex items-center gap-1.5 px-2.5 py-1 max-w-fit truncate whitespace-nowrap shadow-sm">
+            <Package className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate font-medium">Pacotes 📦</span>
           </Badge>
         );
       case "TRANSPORTE_PET":
         return (
-          <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
-            <PawPrint className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">Pet 🐾</span>
+          <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800 flex items-center gap-1.5 px-2.5 py-1 max-w-fit truncate whitespace-nowrap shadow-sm">
+            <PawPrint className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate font-medium">Pet 🐾</span>
           </Badge>
         );
       default:
@@ -662,59 +662,67 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-      {/* Filtros rápidos + busca */}
-      <div className="flex flex-wrap items-center gap-2 mb-2">
-        {profile?.service_types && (
-          <>
-            {Array.from(
-              new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
-            ).map((serviceType: string) => (
-              <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
-            ))}
-          </>
-        )}
-        <div>
-          <MarketplaceFilters
-            filters={marketplaceFilters}
-            onChange={(newFilters) => {
-              setMarketplaceFilters(newFilters);
-              setTimeout(() => fetchRef.current(), 100);
-            }}
-            showRpmSort={hasRuralFreights}
-            showDistSort={hasRuralFreights}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por origem, destino ou carga..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-secondary/20 rounded-xl border border-border/40">
+          <div className="flex flex-wrap items-center gap-2">
+            {profile?.service_types && (
+              <>
+                {Array.from(
+                  new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
+                ).map((serviceType: string) => (
+                  <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
+                ))}
+              </>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <MarketplaceFilters
+              filters={marketplaceFilters}
+              onChange={(newFilters) => {
+                setMarketplaceFilters(newFilters);
+                setTimeout(() => fetchRef.current(), 100);
+              }}
+              showRpmSort={hasRuralFreights}
+              showDistSort={hasRuralFreights}
+            />
+          </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap sm:flex-nowrap items-center">
-          <Button
-            variant="outline"
-            onClick={() => {
-              fetchCompatibleFreights();
-              setLastRefreshAt(new Date());
-            }}
-            disabled={loading}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">{loading ? 'Atualizando...' : 'Atualizar'}</span>
-          </Button>
-          {lastRefreshAt && !loading && (
-            <span className="text-xs text-muted-foreground hidden md:inline">
-              Atualizado às {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          )}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por origem, destino ou carga..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-11 bg-background shadow-sm"
+            />
+          </div>
+
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outline"
+              onClick={() => {
+                fetchCompatibleFreights();
+                setLastRefreshAt(new Date());
+              }}
+              disabled={loading}
+              className="h-11 px-4 flex items-center gap-2 whitespace-nowrap shadow-sm bg-background hover:bg-secondary/50"
+            >
+              <RefreshCw className={`h-4 w-4 text-primary ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline font-medium">{loading ? 'Atualizando...' : 'Atualizar'}</span>
+            </Button>
+            
+            {lastRefreshAt && !loading && (
+              <div className="flex flex-col items-end justify-center min-w-[70px] hidden md:flex">
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Última atualização</span>
+                <span className="text-xs font-semibold text-foreground">
+                  {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

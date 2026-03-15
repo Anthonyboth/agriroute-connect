@@ -82,19 +82,19 @@ export const WalletTab: React.FC<WalletTabProps> = ({
     <div className="space-y-4">
       <Tabs defaultValue="wallet" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="wallet" className="gap-2">
-            <Wallet className="h-4 w-4" />
-            <span className="hidden sm:inline">{isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}</span>
-            <span className="sm:hidden">Carteira</span>
+          <TabsTrigger value="wallet" className="gap-2.5 px-4 h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Wallet className="h-5 w-5 shrink-0" />
+            <span className="hidden sm:inline font-semibold">{isAffiliatedDriver ? 'Crédito de Transporte' : 'Carteira AgriRoute'}</span>
+            <span className="sm:hidden font-semibold">Carteira</span>
           </TabsTrigger>
-          <TabsTrigger value="management" className="gap-2">
-            <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Gestão de Pagamentos</span>
-            <span className="sm:hidden">Pagamentos</span>
+          <TabsTrigger value="management" className="gap-2.5 px-4 h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <CreditCard className="h-5 w-5 shrink-0" />
+            <span className="hidden sm:inline font-semibold">Gestão de Pagamentos</span>
+            <span className="sm:hidden font-semibold">Pagamentos</span>
           </TabsTrigger>
-          <TabsTrigger value="insurance" className="gap-2">
-            <Shield className="h-4 w-4" />
-            Seguros
+          <TabsTrigger value="insurance" className="gap-2.5 px-4 h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Shield className="h-5 w-5 shrink-0" />
+            <span className="font-semibold px-1">Seguros</span>
           </TabsTrigger>
         </TabsList>
 

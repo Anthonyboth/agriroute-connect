@@ -15,7 +15,7 @@ export const ERP = {
 
   // ── Icon box ──
   iconBox:
-    "h-11 w-11 rounded-xl flex items-center justify-center " +
+    "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 " +
     "bg-primary/10 text-primary border border-primary/15 " +
     "transition-all duration-150 group-hover:scale-105",
 
