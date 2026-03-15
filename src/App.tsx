@@ -211,6 +211,15 @@ if (typeof window !== 'undefined') {
         return;
       }
 
+      // ✅ Ignorar falhas nativas de rede/webview para evitar spam no monitor de erros
+      if (
+        message.includes('Load failed') ||
+        message.includes('Failed to fetch') ||
+        message.includes('Network request failed')
+      ) {
+        return;
+      }
+
       // ✅ Não reportar conflitos esperados (regra de negócio) como "blank screen"
       const isExpectedFiscalIssuerConflict =
         message.includes('Edge function returned 409') &&
@@ -246,6 +255,16 @@ if (typeof window !== 'undefined') {
         message.includes('signal is aborted without reason') ||
         message.includes('The operation was aborted') ||
         /aborted/i.test(message)
+      ) {
+        event.preventDefault?.();
+        return;
+      }
+
+      // ✅ Ignorar falhas nativas de rede/webview para evitar spam no monitor de erros
+      if (
+        message.includes('Load failed') ||
+        message.includes('Failed to fetch') ||
+        message.includes('Network request failed')
       ) {
         event.preventDefault?.();
         return;

@@ -159,14 +159,17 @@ export async function uploadSelfieWithInstrumentation({
       filePath: relativeFilePath,
     };
   } catch (error: any) {
+    const errorMsg = error?.message || String(error);
+    const isNetworkError = errorMsg.includes('Load failed') || errorMsg.includes('Failed to fetch') || errorMsg.includes('Network request failed');
     console.error('[SELFIE-UPLOAD] Erro inesperado:', error);
+
     return {
       success: false,
       error: {
         stage: 'upload',
-        code: 'UNEXPECTED_ERROR',
-        message: 'Erro inesperado ao enviar selfie.',
-        details: error?.message,
+        code: isNetworkError ? 'NETWORK_ERROR' : 'UNEXPECTED_ERROR',
+        message: isNetworkError ? 'Falha na conexão. Verifique sua internet e tente novamente.' : 'Erro inesperado ao enviar selfie.',
+        details: errorMsg,
       },
     };
   }

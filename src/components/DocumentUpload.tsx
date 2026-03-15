@@ -121,8 +121,12 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       toast.success(`${label} enviado com sucesso!`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      if (errorMessage.includes('autenticad')) {
+      const isNetworkError = errorMessage.includes('Load failed') || errorMessage.includes('Failed to fetch') || errorMessage.includes('Network request failed');
+
+      if (errorMessage.includes('autenticad') || errorMessage.includes('AUTH_EXPIRED')) {
         toast.error('Sessão expirada. Por favor, faça login novamente.');
+      } else if (isNetworkError) {
+        toast.error('Falha na conexão. Verifique sua internet e tente enviar novamente.', { id: 'doc-upload-net-error' });
       } else {
         toast.error(`Erro ao enviar ${label.toLowerCase()}: ${errorMessage}`);
       }

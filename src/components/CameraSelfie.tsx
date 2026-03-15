@@ -110,9 +110,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       try {
         await onCapture(blob, source === 'camera' ? 'CAMERA' : 'GALLERY');
         console.log('[CameraSelfie] ✅ onCapture completed successfully');
-      } catch (uploadErr) {
+      } catch (uploadErr: any) {
         console.error('[CameraSelfie] ❌ onCapture threw error:', uploadErr);
-        toast.error('Falha ao enviar imagem. Tente novamente.');
+        const errorMsg = uploadErr?.message || String(uploadErr);
+        if (errorMsg.includes('Load failed') || errorMsg.includes('Failed to fetch')) {
+          toast.error('Falha na conexão. Verifique sua internet e tente enviar novamente.', { id: 'selfie-net-error-native' });
+        } else {
+          toast.error('Falha ao enviar imagem. Tente novamente.', { id: 'selfie-upload-error-native' });
+        }
         return;
       }
       stopCamera();
@@ -368,9 +373,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (fallbackPreviewUrl) URL.revokeObjectURL(fallbackPreviewUrl);
       stopCamera();
-    } catch (e) {
+    } catch (e: any) {
       console.error('[CameraSelfie] Erro ao confirmar selfie:', e);
-      toast.error('Erro ao confirmar selfie. Tente novamente.');
+      const errorMsg = e?.message || String(e);
+      if (errorMsg.includes('Load failed') || errorMsg.includes('Failed to fetch')) {
+        toast.error('Falha na conexão. Verifique sua internet e tente enviar novamente.', { id: 'selfie-net-error-confirm' });
+      } else {
+        toast.error('Erro ao confirmar selfie. Tente novamente.', { id: 'selfie-error-confirm' });
+      }
     } finally {
       setConfirming(false);
     }

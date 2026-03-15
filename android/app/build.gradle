@@ -1,57 +1,33 @@
 apply plugin: 'com.android.application'
 
-// ============================================================
-// FRT-067: Configuração local via signing.properties
-// O repositório mantém configuração genérica do Lovable.
-// Para builds de produção, crie android/app/signing.properties
-// com base no template signing.properties.example.
-// signing.properties é ignorado pelo .gitignore (nunca commitado).
-// ============================================================
-def signingPropsFile = file("signing.properties")
-def hasSigningProps = signingPropsFile.exists()
-def signingProps = new Properties()
-def canonicalAppId = "com.agriroute.connect"
-
-if (hasSigningProps) {
-    signingProps.load(new FileInputStream(signingPropsFile))
-    logger.lifecycle("✅ FRT-067: signing.properties encontrado — usando configuração de PRODUÇÃO")
-} else {
-    logger.lifecycle("ℹ️ FRT-067: signing.properties não encontrado — usando configuração genérica do Lovable (desenvolvimento)")
-}
-
 android {
-    namespace canonicalAppId
+    namespace "com.agriroute.connect"
     compileSdk rootProject.ext.compileSdkVersion
 
-    if (hasSigningProps) {
-        signingConfigs {
-            release {
-                storeFile file(signingProps['STORE_FILE'])
-                storePassword signingProps['STORE_PASSWORD']
-                keyAlias signingProps['KEY_ALIAS']
-                keyPassword signingProps['KEY_PASSWORD']
-            }
-        }
-    }
-
     defaultConfig {
-        applicationId canonicalAppId
+        applicationId "com.agriroute.connect"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode hasSigningProps ? Integer.parseInt(signingProps['VERSION_CODE'] ?: '147') : 147
-        versionName hasSigningProps ? (signingProps['VERSION_NAME'] ?: '1.0') : "1.0"
+        versionCode 169
+        versionName "2.1.40"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        release {
+            storeFile file('C:\\Users\\Anthony\\Chave_Oficial_Google_Upload\\keystore.jks')
+            storePassword 'ab25071995.'
+            keyAlias 'upload'
+            keyPassword 'ab25071995.'
+        }
+    }
+
     buildTypes {
         release {
-            if (hasSigningProps) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -59,7 +35,7 @@ android {
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
@@ -67,8 +43,6 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
-    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
-    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
@@ -76,79 +50,4 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
-def repoRootDir = rootProject.projectDir.parentFile
-
-tasks.register("validateNativeRelease", Exec) {
-    workingDir repoRootDir
-    commandLine "node", "scripts/validate-native-release.mjs", "--require-android-assets"
-}
-
-tasks.register("validateWebAssetsExist") {
-    description "Fails the build if dist/ web assets are missing from Android assets (FRT-063)"
-    doLast {
-        def indexHtml = file("src/main/assets/public/index.html")
-        def pluginsJson = file("src/main/assets/capacitor.plugins.json")
-
-        if (!indexHtml.exists()) {
-            throw new GradleException(
-                "❌ RELEASE BLOCKED (FRT-063): android/app/src/main/assets/public/index.html not found.\n" +
-                "   The AAB will be ~9 MB instead of ~12 MB and the app will crash on open.\n" +
-                "   Fix: run 'npm run build && npx cap sync android' before generating the AAB."
-            )
-        }
-
-        if (!pluginsJson.exists()) {
-            throw new GradleException(
-                "❌ RELEASE BLOCKED (FRT-071): android/app/src/main/assets/capacitor.plugins.json not found.\n" +
-                "   Without this file, native plugins (Camera, SplashScreen, Geolocation) will throw\n" +
-                "   'plugin is not implemented' at runtime, causing the app to crash on boot.\n" +
-                "   Fix: run 'npx cap sync android' before generating the AAB."
-            )
-        }
-    }
-}
-
-// FRT-067: Valida que signing.properties existe para builds de release
-tasks.register("validateSigningProperties") {
-    description "Fails the build if signing.properties is missing or has mismatched app id/namespace (FRT-067/FRT-079)"
-    doLast {
-        if (!hasSigningProps) {
-            throw new GradleException(
-                "❌ RELEASE BLOCKED (FRT-067): android/app/signing.properties não encontrado.\n" +
-                "   Copie signing.properties.example para signing.properties e preencha seus valores.\n" +
-                "   Sem este arquivo, o AAB não será assinado e o namespace ficará genérico."
-            )
-        }
-
-        def appIdFromProps = signingProps['APP_ID']
-        def namespaceFromProps = signingProps['APP_NAMESPACE']
-
-        if (appIdFromProps != canonicalAppId || namespaceFromProps != canonicalAppId) {
-            throw new GradleException(
-                "❌ RELEASE BLOCKED (FRT-079): APP_ID/APP_NAMESPACE inválidos no signing.properties.\n" +
-                "   Encontrado: APP_ID='${appIdFromProps}', APP_NAMESPACE='${namespaceFromProps}'.\n" +
-                "   Esperado: APP_ID='${canonicalAppId}', APP_NAMESPACE='${canonicalAppId}'.\n" +
-                "   Corrija qualquer typo para com.agriroute.connect."
-            )
-        }
-    }
-}
-
-tasks.whenTaskAdded { task ->
-    if (task.name == "assembleRelease" || task.name == "bundleRelease") {
-        task.dependsOn("validateNativeRelease")
-        task.dependsOn("validateWebAssetsExist")
-        task.dependsOn("validateSigningProperties")
-    }
-}
-
 apply from: 'capacitor.build.gradle'
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}
