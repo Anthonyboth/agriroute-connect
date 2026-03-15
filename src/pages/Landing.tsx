@@ -291,7 +291,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRODUTOR')}
-                className="bg-[#F18B2D] text-[#09273A] font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
+                className="bg-[#5FE28E] text-[#09273A] font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
                 <Users className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Produtor
@@ -300,7 +300,7 @@ const Landing: React.FC = () => {
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('MOTORISTA')}
-                className="bg-[#5FE28E] text-[#09273A] font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
+                className="bg-[#F18B2D] text-[#09273A] font-semibold text-base sm:text-lg px-4 sm:px-8 py-5 sm:py-6 rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200 w-full border-0"
               >
                 <Truck className="mr-2 h-[22px] w-[22px] flex-shrink-0" />
                 Sou Motorista
