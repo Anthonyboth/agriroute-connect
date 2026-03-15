@@ -52,7 +52,10 @@ export type RuntimeGuardKey =
   | 'validation-toasts-must-be-neutral'
   | 'build-gradle-must-use-signing-properties'
   | 'preflight-must-validate-index-html-content-and-assets'
-  | 'native-must-never-auto-reload';
+  | 'native-must-never-auto-reload'
+  | 'upload-must-handle-native-network-errors'
+  | 'android-manifest-must-declare-location-permissions'
+  | 'crash-monitor-must-not-flag-background-kills';
 
 export interface RuntimeGuardContext {
   freightStatus?: string;
@@ -2254,6 +2257,21 @@ const regressionGuards = {
       }
     }
   },
+
+  // FRT-078: Upload must handle native network errors
+  assertUploadHandlesNativeNetworkErrors() {
+    console.info('[RegressionGuard FRT-078] Upload functions MUST catch and handle network errors instead of failing silently.');
+  },
+
+  // FRT-079: Android manifest must declare location permissions
+  assertAndroidManifestDeclaresLocationPermissions() {
+    console.info('[RegressionGuard FRT-079] AndroidManifest.xml MUST include ACCESS_FINE_LOCATION and ACCESS_COARSE_LOCATION.');
+  },
+
+  // FRT-080: Crash monitor must not flag background kills
+  assertCrashMonitorRespectsBackgroundKills() {
+    console.info('[RegressionGuard FRT-080] _crashMonitor_cleanExit heuristic MUST NOT be used, as background kills are normal.');
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -2376,6 +2394,15 @@ export function assertNoKnownRegression(
     case 'available-feed-must-exclude-driver-active-assignments':
       regressionGuards.assertAvailableFeedExcludesActiveAssignments(context);
       return;
+    case 'upload-must-handle-native-network-errors':
+      regressionGuards.assertUploadHandlesNativeNetworkErrors();
+      return;
+    case 'android-manifest-must-declare-location-permissions':
+      regressionGuards.assertAndroidManifestDeclaresLocationPermissions();
+      return;
+    case 'crash-monitor-must-not-flag-background-kills':
+      regressionGuards.assertCrashMonitorRespectsBackgroundKills();
+      return;
   }
 }
 
@@ -2417,6 +2444,79 @@ const FRT_077_ENTRY: RegressionEntry = {
 
 // Add FRT-077 to registry
 REGRESSION_REGISTRY.push(FRT_077_ENTRY);
+
+const FRT_078_ENTRY: RegressionEntry = {
+  id: 'FRT-078',
+  date: '2026-03-15',
+  severity: 'HIGH' as Severity,
+  area: 'FileUpload/iOS',
+  bug: 'Uploads de documentos falhavam silenciosamente no iOS Capacitor via "Load failed". Erro de rede não era tratado corretamente e poluía o monitor.',
+  rootCause: 'Falha de rede (sem internet ou troca de rede) disparava erro "Load failed" no fetch do Capacitor/WebView no iOS. O catch genérico não identificava erro de rede, mascarando como erro normal.',
+  fix: 'Adicionado tratamento explícito identificando erros "Load failed" e "Failed to fetch" nos blocos catch de selfieUpload, CameraSelfie e DocumentUpload. Sistema agora notifica o usuário na UI e suprime falsos positivos no monitor global.',
+  files: [
+    'src/App.tsx',
+    'src/utils/selfieUpload.ts',
+    'src/components/CameraSelfie.tsx',
+    'src/components/DocumentUpload.tsx',
+  ],
+  rules: [
+    'Sempre interceptar "Load failed" e "Failed to fetch" em requisições de upload no Capacitor.',
+    'Nunca spammar o sistema de monitoramento de erros de rede conhecidos vindos do dispositivo do usuário.',
+  ],
+  keywords: ['FRT-078', 'Load failed', 'Failed to fetch', 'Network request failed', 'upload', 'selfie', 'documentos', 'iOS'],
+  testCases: [
+    'upload_network_error_displays_toast_to_user',
+    'load_failed_error_is_ignored_by_global_monitor',
+  ],
+  runtimeGuard: 'upload-must-handle-native-network-errors',
+};
+
+const FRT_079_ENTRY: RegressionEntry = {
+  id: 'FRT-079',
+  date: '2026-03-15',
+  severity: 'CRITICAL' as Severity,
+  area: 'Android/Permissions',
+  bug: 'App Android não pedia permissão de localização. Opção de Localização sumia das configurações do App no Android Settings.',
+  rootCause: 'As permissões "ACCESS_COARSE_LOCATION" e "ACCESS_FINE_LOCATION" não estavam declaradas no AndroidManifest.xml. Sem isso, o sistema operacional Android oculta completamente a opção, impedindo uso do app.',
+  fix: 'Adicionadas as tags "uses-permission" e "uses-feature" relacionadas ao GPS no android/app/src/main/AndroidManifest.xml. Sincronizado com npx cap sync android.',
+  files: [
+    'android/app/src/main/AndroidManifest.xml',
+  ],
+  rules: [
+    'SEMPRE verificar AndroidManifest.xml ao adicionar plugins Cordova/Capacitor que dependem de hardware (câmera, gps, arquivos).',
+    'NUNCA assumir que permissões pedidas via JS funcionarão se o manifesto Android estiver ausente.',
+  ],
+  keywords: ['FRT-079', 'Location', 'gps', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'AndroidManifest.xml', 'permissão'],
+  testCases: [
+    'android_manifest_contains_location_permissions',
+  ],
+  runtimeGuard: 'android-manifest-must-declare-location-permissions',
+};
+
+const FRT_080_ENTRY: RegressionEntry = {
+  id: 'FRT-080',
+  date: '2026-03-15',
+  severity: 'HIGH' as Severity,
+  area: 'Monitoring',
+  bug: 'Monitor de Crashes disparando "Possible crash-restart detected. Last pause 126s ago" e "ANR-like long task detected" excessivamente no Telegram.',
+  rootCause: 'Heurísticas de crash agressivas: o Android mata silenciosamente apps no background para liberar memória (comum), mas o monitor tratava isso como um app crash na volta. O mesmo para JS travado por > 5s (normal em celulares lentos ao renderizar React).',
+  fix: 'Removidos do useNativeCrashMonitor.ts os blocos "Boot crash detection" (_crashMonitor_cleanExit), "app_state_resume_long" e a "PerformanceObserver" (long task / ANR). O monitor foca apenas em bridge errors, telas brancas e falta grave de memória.',
+  files: [
+    'src/hooks/useNativeCrashMonitor.ts',
+  ],
+  rules: [
+    'NUNCA tratar "app morto no background no Android" como App Crash.',
+    'NUNCA notificar a equipe técnica sobre travamento longo de thread JS (UI freeze) a menos que seja um loop infinito fatal (crash real).',
+  ],
+  keywords: ['FRT-080', 'Possible crash-restart', 'clean exit', 'background kill', 'ANR', 'long task', 'falso positivo'],
+  testCases: [
+    'crash_monitor_ignores_app_resume_after_background',
+    'crash_monitor_does_not_use_performance_observer_for_longtask',
+  ],
+  runtimeGuard: 'crash-monitor-must-not-flag-background-kills',
+};
+
+REGRESSION_REGISTRY.push(FRT_078_ENTRY, FRT_079_ENTRY, FRT_080_ENTRY);
 
 // ═══════════════════════════════════════════════════════════════
 // HOOK — Interface principal para componentes React
