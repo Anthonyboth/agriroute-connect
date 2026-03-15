@@ -152,16 +152,6 @@ export function useNativeCrashMonitor() {
               } catch { /* ignore */ }
             } else if (wasBackgrounded && lastPauseTime) {
               // App resumed — check for anomalies
-              const pauseDuration = Date.now() - lastPauseTime;
-              
-              // If app was in background for > 30 min, might have been killed and restarted
-              if (pauseDuration > 30 * 60 * 1000) {
-                reportCrash(
-                  `App resumed after ${Math.round(pauseDuration / 60000)}min background (possible kill/restart)`,
-                  'app_state_resume_long',
-                  { pauseDurationMs: pauseDuration }
-                );
-              }
               
               wasBackgrounded = false;
               try {
@@ -183,31 +173,7 @@ export function useNativeCrashMonitor() {
     }
 
     // ===== 3. Boot crash detection =====
-    // If the app crashed on last boot, localStorage will have __crashMonitor_cleanExit = false
-    if (isNative) {
-      try {
-        const lastCleanExit = localStorage.getItem('__crashMonitor_cleanExit');
-        const lastPause = localStorage.getItem('__crashMonitor_lastPause');
-        
-        if (lastCleanExit === 'false' && lastPause) {
-          const pauseTime = Number(lastPause);
-          const timeSincePause = Date.now() - pauseTime;
-          
-          // If it's been less than 5 minutes, this is likely a crash-restart cycle
-          if (timeSincePause < 5 * 60 * 1000 && timeSincePause > 2000) {
-            reportCrash(
-              `Possible crash-restart detected. Last pause ${Math.round(timeSincePause / 1000)}s ago, no clean exit recorded.`,
-              'crash_restart_detection',
-              { timeSincePauseMs: timeSincePause, lastPauseTimestamp: pauseTime }
-            );
-          }
-        }
-        
-        // Mark this boot as started
-        localStorage.setItem('__crashMonitor_cleanExit', 'true');
-        localStorage.setItem('__crashMonitor_bootTime', String(Date.now()));
-      } catch { /* ignore localStorage errors */ }
-    }
+    // Removed because Android commonly kills backgrounded apps silently, leading to false positives.
 
     // ===== 4. WebView blank screen detection =====
     if (isNative) {
@@ -257,31 +223,7 @@ export function useNativeCrashMonitor() {
     }
 
     // ===== 6. Unresponsive UI detection (long tasks) =====
-    if (isNative && typeof PerformanceObserver !== 'undefined') {
-      try {
-        const longTaskObserver = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            // Report tasks that block the main thread for > 5 seconds (ANR territory)
-            if (entry.duration > 5000) {
-              reportCrash(
-                `ANR-like long task detected: ${Math.round(entry.duration)}ms blocked`,
-                'long_task_anr',
-                {
-                  taskDuration: entry.duration,
-                  taskName: entry.name,
-                  taskType: entry.entryType,
-                }
-              );
-            }
-          }
-        });
-
-        longTaskObserver.observe({ type: 'longtask', buffered: true });
-        cleanups.push(() => longTaskObserver.disconnect());
-      } catch {
-        // PerformanceObserver for longtask not supported
-      }
-    }
+    // Removed because a Javascript long task (like heavy React Hydration) is not a native crash and can spam the monitor.
 
     // ===== 7. Network connectivity crash correlation =====
     if (isNative) {
